@@ -171,6 +171,27 @@ Errores: [...]
 | **Infraestructura** | Integration E2E | ≥60% | go test / vitest |
 | **HTTP/Handlers** | HTTP tests | ≥70% | go test |
 
+### Proporción de Tests (Regla Práctica Inicial)
+
+**Distribución recomendada de cobertura total:**
+
+| Tipo de Test | Proporción | Descripción | Herramienta |
+|--------------|-----------|------------|------------|
+| **Unit Tests** | 70% | Pruebas de componentes individuales (dominio, VOs, entidades) | go test / vitest |
+| **Integration Tests** | 20% | Pruebas de orquestación (use cases, repositorios mockeados) | go test / vitest |
+| **E2E Tests** | 10% | Pruebas end-to-end (HTTP handlers, API contracts) | go test / curl |
+
+**Ejemplo para cobertura total de 80%:**
+- Unit Tests: 80% × 70% = **56%**
+- Integration Tests: 80% × 20% = **16%**
+- E2E Tests: 80% × 10% = **8%**
+- **Total: 80%** ✅
+
+**Aplicación por capa:**
+- **Dominio:** 90% cobertura → Unit 63% + Integration 18% + E2E 9%
+- **Aplicación:** 80% cobertura → Unit 56% + Integration 16% + E2E 8%
+- **Infraestructura:** 60% cobertura → Unit 42% + Integration 12% + E2E 6%
+
 ### Casos de Prueba Críticos
 
 **Dominio:**
