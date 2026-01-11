@@ -1,7 +1,9 @@
-package user
+package user_test
 
 import (
 	"testing"
+
+	"github.com/joran-cortez/tramatex/internal/domain/user"
 )
 
 func TestPasswordNewWithValidLength(t *testing.T) {
@@ -14,7 +16,7 @@ func TestPasswordNewWithValidLength(t *testing.T) {
 
 	for _, pwd := range tests {
 		t.Run(pwd, func(t *testing.T) {
-			p, err := NewPassword(pwd)
+			p, err := user.NewPassword(pwd)
 			if err != nil {
 				t.Errorf("NewPassword(%q) failed: %v", pwd, err)
 			}
@@ -34,7 +36,7 @@ func TestPasswordNewWithTooShort(t *testing.T) {
 
 	for _, pwd := range tests {
 		t.Run(pwd, func(t *testing.T) {
-			p, err := NewPassword(pwd)
+			p, err := user.NewPassword(pwd)
 			if err == nil {
 				t.Errorf("NewPassword(%q) should fail for short password", pwd)
 			}
@@ -52,7 +54,7 @@ func TestPasswordNewWithTooLong(t *testing.T) {
 		longPwd += "a"
 	}
 
-	p, err := NewPassword(longPwd)
+	p, err := user.NewPassword(longPwd)
 	if err == nil {
 		t.Error("NewPassword with >72 chars should fail")
 	}
@@ -62,7 +64,7 @@ func TestPasswordNewWithTooLong(t *testing.T) {
 }
 
 func TestPasswordNewWithEmptyString(t *testing.T) {
-	p, err := NewPassword("")
+	p, err := user.NewPassword("")
 	if err == nil {
 		t.Error("NewPassword(\"\") should fail for empty string")
 	}
@@ -73,7 +75,7 @@ func TestPasswordNewWithEmptyString(t *testing.T) {
 
 func TestPasswordMatchesWithCorrectPassword(t *testing.T) {
 	plaintext := "mySecurePassword123"
-	p, _ := NewPassword(plaintext)
+	p, _ := user.NewPassword(plaintext)
 
 	if !p.Matches(plaintext) {
 		t.Error("Matches() should return true for correct password")
@@ -82,7 +84,7 @@ func TestPasswordMatchesWithCorrectPassword(t *testing.T) {
 
 func TestPasswordMatchesWithWrongPassword(t *testing.T) {
 	plaintext := "mySecurePassword123"
-	p, _ := NewPassword(plaintext)
+	p, _ := user.NewPassword(plaintext)
 
 	if p.Matches("wrongPassword") {
 		t.Error("Matches() should return false for wrong password")
@@ -90,11 +92,11 @@ func TestPasswordMatchesWithWrongPassword(t *testing.T) {
 }
 
 func TestPasswordMatchesWithEmpty(t *testing.T) {
-	p, _ := NewPassword("password123")
+	p, _ := user.NewPassword("password123")
 
 	tests := []struct {
 		name     string
-		pwd      *Password
+		pwd      *user.Password
 		input    string
 		expected bool
 	}{
@@ -116,7 +118,7 @@ func TestPasswordMatchesWithEmpty(t *testing.T) {
 
 func TestPasswordNeverStoredPlaintext(t *testing.T) {
 	plaintext := "mySecurePassword"
-	p, _ := NewPassword(plaintext)
+	p, _ := user.NewPassword(plaintext)
 
 	hash := p.Hash()
 
@@ -132,13 +134,13 @@ func TestPasswordNeverStoredPlaintext(t *testing.T) {
 }
 
 func TestPasswordBcryptCostAtLeast10(t *testing.T) {
-	if BcryptCost < 10 {
-		t.Errorf("BcryptCost = %d, must be >= 10 for security", BcryptCost)
+	if user.BcryptCost < 10 {
+		t.Errorf("BcryptCost = %d, must be >= 10 for security", user.BcryptCost)
 	}
 }
 
 func TestPasswordString(t *testing.T) {
-	p, _ := NewPassword("password123")
+	p, _ := user.NewPassword("password123")
 
 	str := p.String()
 	if str != "[REDACTED]" {

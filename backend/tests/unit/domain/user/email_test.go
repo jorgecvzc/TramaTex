@@ -1,7 +1,9 @@
-package user
+package user_test
 
 import (
 	"testing"
+
+	"github.com/joran-cortez/tramatex/internal/domain/user"
 )
 
 func TestEmailNewWithValidFormat(t *testing.T) {
@@ -15,7 +17,7 @@ func TestEmailNewWithValidFormat(t *testing.T) {
 
 	for _, email := range tests {
 		t.Run(email, func(t *testing.T) {
-			e, err := NewEmail(email)
+			e, err := user.NewEmail(email)
 			if err != nil {
 				t.Errorf("NewEmail(%q) failed: %v", email, err)
 			}
@@ -42,7 +44,7 @@ func TestEmailNewWithInvalidFormat(t *testing.T) {
 
 	for _, email := range tests {
 		t.Run(email, func(t *testing.T) {
-			e, err := NewEmail(email)
+			e, err := user.NewEmail(email)
 			if err == nil {
 				t.Errorf("NewEmail(%q) should have failed but got: %v", email, e)
 			}
@@ -54,7 +56,7 @@ func TestEmailNewWithInvalidFormat(t *testing.T) {
 }
 
 func TestEmailNewWithEmptyString(t *testing.T) {
-	e, err := NewEmail("")
+	e, err := user.NewEmail("")
 	if err == nil {
 		t.Error("NewEmail(\"\") should fail for empty string")
 	}
@@ -64,7 +66,7 @@ func TestEmailNewWithEmptyString(t *testing.T) {
 }
 
 func TestEmailNewWithWhitespaceOnly(t *testing.T) {
-	e, err := NewEmail("   ")
+	e, err := user.NewEmail("   ")
 	if err == nil {
 		t.Error("NewEmail(\"   \") should fail for whitespace-only string")
 	}
@@ -75,7 +77,7 @@ func TestEmailNewWithWhitespaceOnly(t *testing.T) {
 
 func TestEmailNewWithTooLongAddress(t *testing.T) {
 	longEmail := "a@" + string(make([]byte, 253)) + ".com" // > 254 chars
-	e, err := NewEmail(longEmail)
+	e, err := user.NewEmail(longEmail)
 	if err == nil {
 		t.Error("NewEmail with >254 chars should fail")
 	}
@@ -90,7 +92,7 @@ func TestEmailNewWithTooLongLocalPart(t *testing.T) {
 		localPart = "a" + localPart
 	}
 	email := localPart + "@domain.com"
-	e, err := NewEmail(email)
+	e, err := user.NewEmail(email)
 	if err == nil {
 		t.Error("NewEmail with >64 char local part should fail")
 	}
@@ -100,14 +102,14 @@ func TestEmailNewWithTooLongLocalPart(t *testing.T) {
 }
 
 func TestEmailEquals(t *testing.T) {
-	email1, _ := NewEmail("user@example.com")
-	email2, _ := NewEmail("user@example.com")
-	email3, _ := NewEmail("other@example.com")
+	email1, _ := user.NewEmail("user@example.com")
+	email2, _ := user.NewEmail("user@example.com")
+	email3, _ := user.NewEmail("other@example.com")
 
 	tests := []struct {
 		name     string
-		email1   *Email
-		email2   *Email
+		email1   *user.Email
+		email2   *user.Email
 		expected bool
 	}{
 		{"Equal emails", email1, email2, true},
@@ -130,7 +132,7 @@ func TestEmailEquals(t *testing.T) {
 
 func TestEmailImmutable(t *testing.T) {
 	// Email should not allow modification after creation
-	email, _ := NewEmail("original@example.com")
+	email, _ := user.NewEmail("original@example.com")
 
 	// Try to modify (through reflection would be needed to actually modify)
 	// For this test, we just verify Value() returns the same
@@ -145,7 +147,7 @@ func TestEmailImmutable(t *testing.T) {
 }
 
 func TestEmailString(t *testing.T) {
-	email, _ := NewEmail("test@example.com")
+	email, _ := user.NewEmail("test@example.com")
 	if email.String() != "test@example.com" {
 		t.Errorf("String() = %q, want %q", email.String(), "test@example.com")
 	}

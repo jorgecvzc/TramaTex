@@ -1,146 +1,148 @@
-package user
+package user_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/joran-cortez/tramatex/internal/domain/user"
 )
 
 func TestUserNewWithValidData(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, err := NewUser("user-123", email, password, RoleOperator)
+	u, err := user.NewUser("user-123", email, password, user.RoleOperator)
 
 	if err != nil {
 		t.Errorf("NewUser with valid data should not fail: %v", err)
 	}
 
-	if user == nil {
+	if u == nil {
 		t.Error("NewUser should return a user instance")
 	}
 
-	if user.ID() != "user-123" {
-		t.Errorf("ID() = %q, want %q", user.ID(), "user-123")
+	if u.ID() != "user-123" {
+		t.Errorf("ID() = %q, want %q", u.ID(), "user-123")
 	}
 
-	if !user.Email().Equals(email) {
+	if !u.Email().Equals(email) {
 		t.Error("Email should match input")
 	}
 
-	if !user.IsActive() {
+	if !u.IsActive() {
 		t.Error("User should be active by default")
 	}
 }
 
 func TestUserNewWithMissingEmail(t *testing.T) {
-	password, _ := NewPassword("validPassword123")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, err := NewUser("user-123", nil, password, RoleOperator)
+	u, err := user.NewUser("user-123", nil, password, user.RoleOperator)
 
 	if err == nil {
 		t.Error("NewUser with nil email should fail")
 	}
 
-	if user != nil {
+	if u != nil {
 		t.Error("NewUser should return nil on error")
 	}
 }
 
 func TestUserNewWithMissingPassword(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
+	email, _ := user.NewEmail("user@example.com")
 
-	user, err := NewUser("user-123", email, nil, RoleOperator)
+	u, err := user.NewUser("user-123", email, nil, user.RoleOperator)
 
 	if err == nil {
 		t.Error("NewUser with nil password should fail")
 	}
 
-	if user != nil {
+	if u != nil {
 		t.Error("NewUser should return nil on error")
 	}
 }
 
 func TestUserNewWithEmptyID(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, err := NewUser("", email, password, RoleOperator)
+	u, err := user.NewUser("", email, password, user.RoleOperator)
 
 	if err == nil {
 		t.Error("NewUser with empty ID should fail")
 	}
 
-	if user != nil {
+	if u != nil {
 		t.Error("NewUser should return nil on error")
 	}
 }
 
 func TestUserNewWithInvalidRole(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, err := NewUser("user-123", email, password, Role("invalid"))
+	u, err := user.NewUser("user-123", email, password, user.Role("invalid"))
 
 	if err == nil {
 		t.Error("NewUser with invalid role should fail")
 	}
 
-	if user != nil {
+	if u != nil {
 		t.Error("NewUser should return nil on error")
 	}
 }
 
 func TestUserNewWithValidRoles(t *testing.T) {
-	roles := []Role{RoleAdmin, RoleManager, RoleOperator}
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	roles := []user.Role{user.RoleAdmin, user.RoleManager, user.RoleOperator}
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
 	for _, role := range roles {
 		t.Run(string(role), func(t *testing.T) {
-			user, err := NewUser("user-123", email, password, role)
+			u, err := user.NewUser("user-123", email, password, role)
 
 			if err != nil {
 				t.Errorf("NewUser with role %q should succeed: %v", role, err)
 			}
 
-			if user.Role() != role {
-				t.Errorf("Role() = %q, want %q", user.Role(), role)
+			if u.Role() != role {
+				t.Errorf("Role() = %q, want %q", u.Role(), role)
 			}
 		})
 	}
 }
 
 func TestUserImmutableAfterCreation(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, _ := NewUser("user-123", email, password, RoleOperator)
+	u, _ := user.NewUser("user-123", email, password, user.RoleOperator)
 
 	// Verify ID doesn't change
-	id1 := user.ID()
-	id2 := user.ID()
+	id1 := u.ID()
+	id2 := u.ID()
 	if id1 != id2 {
 		t.Error("User ID should not change")
 	}
 
 	// Verify Email immutability through reference
-	email1 := user.Email()
-	email2 := user.Email()
+	email1 := u.Email()
+	email2 := u.Email()
 	if !email1.Equals(email2) {
 		t.Error("User Email should not change")
 	}
 }
 
 func TestUserTimestampsAutomatic(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
 	before := time.Now()
-	user, _ := NewUser("user-123", email, password, RoleOperator)
+	u, _ := user.NewUser("user-123", email, password, user.RoleOperator)
 	after := time.Now()
 
-	createdAt := user.CreatedAt()
-	updatedAt := user.UpdatedAt()
+	createdAt := u.CreatedAt()
+	updatedAt := u.UpdatedAt()
 
 	if createdAt.Before(before) || createdAt.After(after) {
 		t.Error("CreatedAt should be between before and after times")
@@ -157,66 +159,66 @@ func TestUserTimestampsAutomatic(t *testing.T) {
 }
 
 func TestUserActiveFlag(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, _ := NewUser("user-123", email, password, RoleOperator)
+	u, _ := user.NewUser("user-123", email, password, user.RoleOperator)
 
 	// Default to active
-	if !user.IsActive() {
+	if !u.IsActive() {
 		t.Error("User should be active by default")
 	}
 
 	// Deactivate
-	user.Deactivate()
-	if user.IsActive() {
+	u.Deactivate()
+	if u.IsActive() {
 		t.Error("User should be inactive after Deactivate()")
 	}
 
 	// Activate
-	user.Activate()
-	if !user.IsActive() {
+	u.Activate()
+	if !u.IsActive() {
 		t.Error("User should be active after Activate()")
 	}
 }
 
 func TestUserChangePassword(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	oldPassword, _ := NewPassword("oldPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	oldPassword, _ := user.NewPassword("oldPassword123")
 
-	user, _ := NewUser("user-123", email, oldPassword, RoleOperator)
+	u, _ := user.NewUser("user-123", email, oldPassword, user.RoleOperator)
 
-	oldUpdatedAt := user.UpdatedAt()
+	oldUpdatedAt := u.UpdatedAt()
 	time.Sleep(10 * time.Millisecond) // Ensure time difference
 
-	newPassword, _ := NewPassword("newPassword456")
-	err := user.ChangePassword(newPassword)
+	newPassword, _ := user.NewPassword("newPassword456")
+	err := u.ChangePassword(newPassword)
 
 	if err != nil {
 		t.Errorf("ChangePassword should succeed: %v", err)
 	}
 
-	if !user.Password().Matches("newPassword456") {
+	if !u.Password().Matches("newPassword456") {
 		t.Error("New password should match")
 	}
 
-	if user.Password().Matches("oldPassword123") {
+	if u.Password().Matches("oldPassword123") {
 		t.Error("Old password should not match after change")
 	}
 
-	newUpdatedAt := user.UpdatedAt()
+	newUpdatedAt := u.UpdatedAt()
 	if !newUpdatedAt.After(oldUpdatedAt) {
 		t.Error("UpdatedAt should be updated after ChangePassword")
 	}
 }
 
 func TestUserChangePasswordWithNil(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, _ := NewUser("user-123", email, password, RoleOperator)
+	u, _ := user.NewUser("user-123", email, password, user.RoleOperator)
 
-	err := user.ChangePassword(nil)
+	err := u.ChangePassword(nil)
 	if err == nil {
 		t.Error("ChangePassword with nil should fail")
 	}
@@ -224,14 +226,14 @@ func TestUserChangePasswordWithNil(t *testing.T) {
 
 func TestRoleIsValid(t *testing.T) {
 	tests := []struct {
-		role     Role
+		role     user.Role
 		expected bool
 	}{
-		{RoleAdmin, true},
-		{RoleManager, true},
-		{RoleOperator, true},
-		{Role("invalid"), false},
-		{Role(""), false},
+		{user.RoleAdmin, true},
+		{user.RoleManager, true},
+		{user.RoleOperator, true},
+		{user.Role("invalid"), false},
+		{user.Role(""), false},
 	}
 
 	for _, tt := range tests {
@@ -243,26 +245,26 @@ func TestRoleIsValid(t *testing.T) {
 }
 
 func TestNewUserWithUUID(t *testing.T) {
-	email, _ := NewEmail("user@example.com")
-	password, _ := NewPassword("validPassword123")
+	email, _ := user.NewEmail("user@example.com")
+	password, _ := user.NewPassword("validPassword123")
 
-	user, err := NewUserWithUUID(email, password, RoleOperator)
+	u, err := user.NewUserWithUUID(email, password, user.RoleOperator)
 
 	if err != nil {
 		t.Errorf("NewUserWithUUID failed: %v", err)
 	}
 
-	if user == nil {
+	if u == nil {
 		t.Error("NewUserWithUUID should return a user")
 	}
 
 	// UUID should be valid (non-empty, not "")
-	if user.ID() == "" {
+	if u.ID() == "" {
 		t.Error("User ID should not be empty")
 	}
 
 	// UUID format check (simple: contains dashes)
-	if len(user.ID()) != 36 {
-		t.Errorf("UUID format unexpected: %q", user.ID())
+	if len(u.ID()) != 36 {
+		t.Errorf("UUID format unexpected: %q", u.ID())
 	}
 }

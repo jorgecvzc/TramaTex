@@ -1,8 +1,10 @@
-package security
+package security_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/joran-cortez/tramatex/internal/domain/security"
 )
 
 func TestTokenClaimsCreation(t *testing.T) {
@@ -10,7 +12,7 @@ func TestTokenClaimsCreation(t *testing.T) {
 	expiresIn := 15 * time.Minute
 	expiresAt := now.Add(expiresIn)
 
-	claims, err := NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
 
 	if err != nil {
 		t.Errorf("NewTokenClaims with valid data should not fail: %v", err)
@@ -39,7 +41,7 @@ func TestTokenClaimsIsExpired(t *testing.T) {
 	// Create expired token (expiresAt is in the past)
 	expiredAt := now.Add(-1 * time.Hour)
 
-	claims, err := NewTokenClaims("user-123", "user@example.com", "admin", now.Add(-2*time.Hour), expiredAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "admin", now.Add(-2*time.Hour), expiredAt)
 
 	// Should fail because expiration is in the past
 	if err == nil {
@@ -55,7 +57,7 @@ func TestTokenClaimsNotExpired(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute) // 15 minutes in future
 
-	claims, err := NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
 
 	if err != nil {
 		t.Errorf("NewTokenClaims with future expiration should succeed: %v", err)
@@ -71,7 +73,7 @@ func TestTokenClaimsJustExpired(t *testing.T) {
 	expiresAt := now.Add(-1 * time.Millisecond) // Just expired
 
 	// Should fail creation because expiration is in past
-	claims, err := NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
 
 	if err == nil {
 		t.Error("NewTokenClaims with just-expired time should fail")
@@ -89,7 +91,7 @@ func TestTokenClaimsAllFields(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(7 * 24 * time.Hour) // 7 days
 
-	claims, _ := NewTokenClaims(subject, email, role, now, expiresAt)
+	claims, _ := security.NewTokenClaims(subject, email, role, now, expiresAt)
 
 	// Verify all fields
 	if claims.Subject() != subject {
@@ -117,7 +119,7 @@ func TestTokenClaimsWithEmptySubject(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute)
 
-	claims, err := NewTokenClaims("", "user@example.com", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("", "user@example.com", "admin", now, expiresAt)
 
 	if err == nil {
 		t.Error("NewTokenClaims with empty subject should fail")
@@ -132,7 +134,7 @@ func TestTokenClaimsWithEmptyEmail(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute)
 
-	claims, err := NewTokenClaims("user-123", "", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "", "admin", now, expiresAt)
 
 	if err == nil {
 		t.Error("NewTokenClaims with empty email should fail")
@@ -147,7 +149,7 @@ func TestTokenClaimsWithEmptyRole(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute)
 
-	claims, err := NewTokenClaims("user-123", "user@example.com", "", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "", now, expiresAt)
 
 	if err == nil {
 		t.Error("NewTokenClaims with empty role should fail")
@@ -162,7 +164,7 @@ func TestTokenClaimsExpirationAfterIssuance(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(-1 * time.Hour) // Expires before issuance
 
-	claims, err := NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
+	claims, err := security.NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
 
 	if err == nil {
 		t.Error("NewTokenClaims with expiration before issuance should fail")
@@ -177,7 +179,7 @@ func TestTokenClaimsString(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute)
 
-	claims, _ := NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
+	claims, _ := security.NewTokenClaims("user-123", "user@example.com", "admin", now, expiresAt)
 
 	str := claims.String()
 
