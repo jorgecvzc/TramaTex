@@ -1,6 +1,7 @@
 # TramaTex – Nota de Sesión
 
-**Fecha:** {{FECHA}}  
+**Fecha Inicio:** {{FECHA_INICIO}}
+**Fecha Fin:** {{FECHA_FIN}}
 **Sesión Nº:** {{Nº_SESIÓN}}  
 **Responsable / Coordinador:** {{NOMBRE}}  
 **Estado Proyecto:** {{MVP / Post-MVP / Desarrollo}}  

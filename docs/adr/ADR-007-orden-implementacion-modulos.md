@@ -147,13 +147,191 @@ Party: "Bordados Levante S.L."
 
 **Objetivo:** Construir los módulos necesarios para que el núcleo económico (tarificación) sea funcional.
 
+**Módulos de desarrollo (dominio):**
+
+1. **Party / Organización**    
+    - Entidad raíz Party (Persona/Organización)
+    - Gestión de roles (PartyRole)
+    - Especialización Cliente con:
+        - Descuentos base
+        - Jerarquía empresarial (matriz → dependientes)
+        - Herencia de descuentos
+    - Especialización Proveedor con:
+        - Códigos de proveedor
+        - Costes base por producto/variante
+        - **Sin jerarquía** (plano)
+    
+2. **Producto / Variante / Categoría**    
+    - Producto como entidad raíz
+    - Variantes (talla, color, modificaciones) que afectan precio
+    - Categorías para clasificación (no afectan tarificación)
+    - Relación Producto → Variantes → Categorías
+    
+3. **Tarificación** (núcleo económico)    
+    - Motor de cálculo de precios
+    - Aplicación de márgenes
+    - Gestión de descuentos (base, heredados, específicos)
+    - Integración con costes de proveedor
+    - Cálculo de precio final de venta
+
+**Infraestructura asociada:**
+
+- Repositorios PostgreSQL para Party, Producto, Tarificación
+- Migraciones de base de datos con integridad referencial ACID
+- Implementación de interfaces de repositorio (sin lógica de negocio)
+
+**Módulos transversales:**
+
+- **Auditoría mínima**: Log de cambios críticos en tarificación y precios
+
+**Frontend paralelo:**
+
+- **CRUD completo Party**:
+    - Crear/editar clientes y proveedores
+    - Gestionar jerarquías de clientes (matriz/dependientes)
+    - Asignar/modificar descuentos
+- **CRUD completo Producto/Variante/Categoría**:
+    - Gestión de catálogo de productos
+    - Creación de variantes
+    - Clasificación por categorías
+- **Calculadora de tarificación funcional**:
+    - Interfaz que permite calcular precio de un producto/variante
+    - Selección de cliente (con descuentos visibles)
+    - Selección de proveedor (coste base visible)
+    - Visualización de desglose: coste + margen + descuento = precio final
+
+**Criterios de aceptación Fase 1:**
+
+- ✅ CRUD Party funcional (frontend + backend integrados)
+- ✅ CRUD Producto funcional con variantes
+- ✅ Cálculo de tarificación funcional con datos reales
+- ✅ Cobertura de tests **≥80% en dominio de tarificación**
+- ✅ Auditoría registra cambios en precios y descuentos
+- ✅ Jerarquía de clientes funciona correctamente (herencia de descuentos)
+
+**Justificación:** Garantiza que el núcleo económico del sistema es **funcional y testeable** desde el inicio, construido sobre bases sólidas (Party y Producto).
+
+---
+
 ### Fase 2 – Casos de Uso Core y Pedidos
 
 **Objetivo:** Orquestar los flujos de negocio críticos usando los módulos base ya estables.
 
+**Módulos de desarrollo:**
+
+1. **Pedido Estándar** (flujo completo de ventas)
+    
+    - Creación de pedidos con líneas de pedido
+    - Selección de cliente (desde Party con rol Cliente)
+    - Selección de productos/variantes
+    - Cálculo automático de precios usando motor de tarificación
+    - Estados de pedido (Borrador, Confirmado, En preparación, Entregado)
+    - Gestión de cambios en pedidos
+2. **Casos de uso de ventas**
+    
+    - Flujo completo: desde cotización hasta entrega
+    - Validación de crédito de cliente
+    - Aplicación de descuentos por cliente/jerarquía
+    - Generación de documentos (delegado a frontend vía Web-to-Print)
+
+**Infraestructura asociada:**
+
+- Repositorio de Pedidos
+- Migraciones para tablas de pedidos y líneas de pedido
+- Contratos dominio ↔ infraestructura para futuras integraciones
+
+**Frontend paralelo:**
+
+- **Creación de pedidos estándar completa**:
+    - Formulario de pedido con búsqueda de cliente
+    - Añadir líneas de pedido (producto + variante + cantidad)
+    - Cálculo automático de precio por línea y total
+    - Visualización de descuentos aplicados
+- **Visualización de pedidos**:
+    - Listado de pedidos con filtros (estado, cliente, fecha)
+    - Detalle completo de pedido
+    - Cambio de estado de pedido
+- **Generación de documentos**:
+    - Presupuestos (PDF vía Web-to-Print)
+    - Albaranes
+    - Facturas proforma (sin validez legal en MVP)
+
+**Criterios de aceptación Fase 2:**
+
+- ✅ Se puede crear un pedido estándar completo desde frontend
+- ✅ Precio se calcula automáticamente usando tarificación
+- ✅ Pedidos se persisten y visualizan correctamente
+- ✅ Estados de pedido se gestionan correctamente
+- ✅ Documentos se generan correctamente en frontend (PDF funcional)
+- ✅ Cobertura de tests en casos de uso de pedidos **≥70%**
+
+---
+
 ### Fase 3 – Subdominio Secundario MVP: MES
 
 **Objetivo:** Completar el subdominio necesario para gestionar pedidos personalizados y alcanzar el **MVP completo**.
+
+**Módulos de desarrollo:**
+
+1. **MES – Producción personalizada** (subdominio)
+    
+    - Pedidos personalizados (extensión de Pedido con requisitos de producción)
+    - Estados de producción específicos:
+        - Diseño
+        - Aprobación de diseño
+        - Marcaje
+        - Taller
+        - Control de calidad
+        - Listo para entrega
+    - Gestión de diseños y archivos asociados
+    - Trazabilidad de procesos productivos
+2. **Terminal de taller**
+    
+    - Interfaz simplificada para tablets
+    - Visualización de trabajos asignados
+    - Cambio de estado de producción
+    - Adjuntar observaciones/fotografías
+
+**Infraestructura asociada:**
+
+- Repositorio de MES y estados de producción
+- **Adaptadores para almacenamiento documental** (NAS mínimo):
+    - Almacenamiento de diseños (AI, PDF, imágenes)
+    - Indexación en PostgreSQL con ruta a NAS
+- Migraciones para tablas MES
+
+**Módulos transversales:**
+
+- **Gestión documental**: Almacenamiento, recuperación y trazabilidad de archivos
+
+**Frontend paralelo:**
+
+- **Terminal de taller funcional**:
+    - Interfaz optimizada para tablets
+    - Listado de trabajos pendientes
+    - Cambio de estado con un toque
+    - Visualización de diseños asociados
+    - Captura de observaciones
+- **Gestión de pedidos personalizados**:
+    - Creación de pedidos con requisitos de personalización
+    - Adjuntar diseños del cliente
+    - Seguimiento de estados de producción
+    - Notificaciones de cambios de estado
+- **Visualización de diseños**:
+    - Visor de archivos (PDF, imágenes)
+    - Descarga de diseños para producción
+
+**Criterios de aceptación Fase 3:**
+
+- ✅ Terminal de taller operativa en tablet
+- ✅ Pedidos personalizados gestionables extremo a extremo:
+    - Creación con diseño
+    - Flujo completo por estados de producción
+    - Trazabilidad de cambios
+- ✅ Almacenamiento NAS funcional con indexación en BD
+- ✅ Diseños se visualizan y descargan correctamente
+- ✅ **MVP listo para despliegue en producción**
+- ✅ Sistema completo probado con casos reales de la empresa
 
 ---
 
@@ -234,7 +412,7 @@ Este ADR aplica a:
 ## Referencias
 
 - ADR-001: Selección del Stack Tecnológico
-- ADR-002: Adopción de Clean Architecture y DDD
+- ADR-002: Adopción de Clean Architecture y DDD con Rigor Asimétrico
 - ADR-003: Tipo y Distribución de la Aplicación (Monolito Modular)
 - ADR-004: Ciclo de Vida de Desarrollo e Implementación hasta MVP
 - ADR-005: Gestión Unificada de Clientes y Proveedores (Party / Organización)
@@ -242,4 +420,15 @@ Este ADR aplica a:
 
 ---
 
-**Fin del ADR-007**
+## Notas Finales
+
+Este ADR consolida el **plan de ejecución completo del MVP**, desde fundaciones técnicas hasta subdominio MES.
+
+La secuencia propuesta garantiza:
+
+- **Dominio económico protegido** (tarificación construida sobre bases sólidas)
+- **Entrega incremental y validable** (cada fase es operativa)
+- **Calidad técnica desde el inicio** (TDD, Clean Architecture)
+- **Preparación para evolución futura** (módulos extraíbles, contratos claros)
+
+A partir de este punto, el desarrollo debe seguir estrictamente esta secuencia, aplicando rigor asimétrico según ADR-002 y validando con usuarios reales al final de cada fase.
