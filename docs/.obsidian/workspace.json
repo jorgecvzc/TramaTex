@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "QUICK_START.md",
+                "file": "modules/auth.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "QUICK_START"
+              "title": "auth"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "QUICK_START.md",
+                "file": "modules/auth.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for QUICK_START"
+              "title": "Backlinks for auth"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "QUICK_START.md",
+                "file": "modules/auth.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from QUICK_START"
+              "title": "Outgoing links from auth"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "QUICK_START.md",
+                "file": "modules/auth.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of QUICK_START"
+              "title": "Outline of auth"
             }
           }
         ]
@@ -185,6 +185,7 @@
   },
   "active": "487285f82cec250f",
   "lastOpenFiles": [
+    "QUICK_START.md",
     "modules/_MODULE_TEMPLATE.md",
     "modules/auth.md",
     "modules/_TEMPLATE.md",
