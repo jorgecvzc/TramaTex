@@ -1,8 +1,9 @@
 # Estado Actual del Proyecto TramaTex
 
-**Fecha de Última Actualización:** 11/01/2026  
-**Fase:** 0 (Fundaciones Técnicas) - Setup Completado  
-**Sesión:** 01 - Estructura Inicial
+**Fecha de Última Actualización:** 11/01/2026 20:15 UTC  
+**Fase:** 0-1 (Infraestructura + Autenticación Base)  
+**Sesión Activa:** Session-10 (Frontend Auth) - PENDIENTE  
+**Última Sesión Completada:** Session-09 (Backend Auth Fases 0-3)
 
 ---
 
@@ -11,44 +12,81 @@
 ### Estructura Base (ADR-009)
 - [x] Carpeta raíz `/tramatex`
 - [x] `/docs` → ADRs, módulos, sesiones, diagramas, guías
-- [x] `/backend` → cmd/api, internal
+- [x] `/backend` → cmd/api, internal, tests
 - [x] `/frontend` → src
 - [x] `/docker` → configuración Docker
 
-### Documentación
+### Backend Infrastructure (Session-09a, Fase 0) ✅
+- [x] Go 1.21+ project scaffold (`go.mod`, `go.sum`)
+- [x] Clean Architecture directories (domain/, application/, interfaces/, infrastructure/)
+- [x] Docker setup (Dockerfile multistage, docker-compose.yml)
+- [x] Enhanced Makefile (30+ targets)
+- [x] Base configuration (main.go, .env.example)
+- [x] Health checks y networking
+
+### Backend Auth Implementation (Session-09b, Fases 1-3) ✅
+- [x] Domain Layer:
+  - [x] Email Value Object (RFC validation)
+  - [x] Password Value Object (bcrypt hashing, cost=10)
+  - [x] User Entity (invariants, Role enum)
+  - [x] TokenClaims VO (JWT claims)
+  - [x] JWTService interface
+  - [x] UserRepository interface
+- [x] Application Layer:
+  - [x] LoginUseCase (orchestration)
+  - [x] DTOs (LoginRequest, LoginResponse, UserDTO)
+- [x] Tests Organization:
+  - [x] 28 unit tests (tests/unit/domain/)
+  - [x] 7 integration tests (tests/integration/auth/)
+  - [x] Clean separation: tests/ folder structure
+  - [x] Domain layer purely logic (no tests embedded)
+
+### Documentation
 - [x] ADR-006 → Estrategia Desarrollo Dirigido Dominio
 - [x] ADR-007 → Orden Implementación Módulos
 - [x] ADR-008 → Planificación y Cronograma
 - [x] ADR-009 → Estructura Carpetas
 - [x] Plantilla de Módulo (`/docs/modules/_TEMPLATE.md`)
 - [x] Plantilla de Sesión (`/docs/sessions/_SESSION_TEMPLATE.md`)
+- [x] `/docs/modules/auth.md` → Complete auth specification
+- [x] `/docs/sessions/2026-01-11-session-09.md` → Backend auth documentation
 
 ### Archivos Iniciales
 - [x] `README.md` → Descripción, stack, quickstart
 - [x] `.gitignore` → Go, Node, IDE, OS, logs
-- [x] `Makefile` → Comandos principales
+- [x] `Makefile` → 30+ comandos build, test, lint, docker, db
 - [x] `LICENSE` (placeholder)
 
 ### Control de Versiones
 - [x] Repositorio Git inicializado
 - [x] Configuración usuario: Jorge Cortés Villalba
-- [x] Primer commit: estructura inicial
-- [x] Segundo commit: documentación sesión
+- [x] 8 commits completados (infraestructura + auth backend)
 
 ---
 
 ## ⏳ En Progreso (Próxima Sesión)
 
-### Fase 0.2: Autenticación y Setup
-- [ ] Skeleton Go con Clean Architecture
-- [ ] Setup Vue.js 3 + Vite
-- [ ] Entidad User en dominio
-- [ ] JWT (generación y validación)
-- [ ] Componente Login.vue
-- [ ] Docker Compose básico
-- [ ] Tests iniciales
+### Session 10: Frontend Auth (Vue.js 3) - INICIO PRÓXIMO
+- [ ] Pinia store para auth state management
+- [ ] useAuth composable (login, logout, refreshToken)
+- [ ] LoginForm component con validación
+- [ ] Navigation guards (requireAuth, requireGuest)
+- [ ] Navbar y layout protegido
+- [ ] HTTP client con JWT interceptor
+- [ ] Tests frontend (~40-50 tests, ≥80% cobertura)
 
-**Duración estimada:** 32 horas (4 semanas)
+**Duración estimada:** 6-7 horas  
+**Prerequisitos:** Session-09 Fase 4 (HTTP handler /api/auth/login)
+
+### Session 09 Fase 4-5 (Backend HTTP & Validation) - PENDIENTE
+- [ ] HTTP handler POST /api/auth/login
+- [ ] CORS configuration
+- [ ] Validation & error handling
+- [ ] go test ./... pasa 100%
+- [ ] Docker JWT_SECRET configuration
+- [ ] Final documentation y commits
+
+**Duración estimada:** 2-3 horas
 
 ---
 
@@ -78,15 +116,18 @@
 
 ## 📊 Métricas
 
-| Métrica | Valor |
-|---------|-------|
-| **Horas invertidas** | 4h / 782h totales |
-| **Porcentaje del proyecto** | 0.5% |
-| **Semanas completadas** | 1 / 101 |
-| **Fases completadas** | Setup / 4 |
-| **Commits** | 2 |
-| **Líneas de código** | 0 (puro setup) |
-| **Líneas de documentación** | 1435+ |
+| Métrica | Valor | Target |
+|---------|-------|--------|
+| **Horas invertidas** | 5.5h (Fase 0-3) | 8h (Fase 0-5) |
+| **Porcentaje del proyecto** | 1.8% | 100% |
+| **Semanas completadas** | 1.2 / 101 | — |
+| **Sesiones completadas** | 9a + 9b | — |
+| **Commits** | 8 | — |
+| **Líneas de código** | 495 (backend) | — |
+| **Líneas de tests** | 1,100+ | — |
+| **Tests escritos** | 35 | — |
+| **Archivos creados** | 17 | — |
+| **Documentación** | 1,800+ líneas | — |
 
 ---
 
@@ -94,10 +135,16 @@
 
 ### Q1 2026 (Enero - Marzo)
 
-| Semana | Hito | Status |
-|--------|------|--------|
-| 1 | ✅ Estructura inicial | Completado |
-| 2-4 | ⏳ Autenticación JWT | En plazo |
+| Semana | Hito | Status | Sesión |
+|--------|------|--------|--------|
+| 1 | ✅ Estructura inicial | Completado | Setup |
+| 2 | ✅ Backend Auth Infra (Fase 0) | Completado | 09a |
+| 2-3 | ✅ Backend Auth Implementation (Fase 1-3) | Completado | 09b |
+| 3 | ⏳ Frontend Auth (Pinia, Guards, Login) | Próximo | 10 |
+| 3-4 | ⏳ Backend HTTP Handler + Validation | Próximo | 09 (Fase 4-5) |
+| 4 | ⏳ Refresh Tokens & Security | Planificado | 11 |
+| 5 | ⏳ User Profile & Management | Planificado | 12 |
+| 6-7 | ⏳ Party (Customer/Supplier) Module | Planificado | 13-14 |
 | 5-8 | ⏳ Party CRUD Backend | Próximo |
 | 9-13 | ⏳ Party CRUD Frontend | Próximo |
 
