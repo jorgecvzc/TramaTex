@@ -178,19 +178,19 @@ Errores: [...]
 | Tipo de Test | Proporción | Descripción | Herramienta |
 |--------------|-----------|------------|------------|
 | **Unit Tests** | 70% | Pruebas de componentes individuales (dominio, VOs, entidades) | go test / vitest |
-| **Integration Tests** | 20% | Pruebas de orquestación (use cases, repositorios mockeados) | go test / vitest |
-| **E2E Tests** | 10% | Pruebas end-to-end (HTTP handlers, API contracts) | go test / curl |
+| **Integration Tests** | 25% | Pruebas de orquestación (use cases, repositorios mockeados) | go test / vitest |
+| **E2E Tests** | 5% | Pruebas end-to-end solo casos críticos (HTTP handlers principales) | go test / curl |
 
 **Ejemplo para cobertura total de 80%:**
 - Unit Tests: 80% × 70% = **56%**
-- Integration Tests: 80% × 20% = **16%**
-- E2E Tests: 80% × 10% = **8%**
+- Integration Tests: 80% × 25% = **20%**
+- E2E Tests (críticos): 80% × 5% = **4%**
 - **Total: 80%** ✅
 
 **Aplicación por capa:**
-- **Dominio:** 90% cobertura → Unit 63% + Integration 18% + E2E 9%
-- **Aplicación:** 80% cobertura → Unit 56% + Integration 16% + E2E 8%
-- **Infraestructura:** 60% cobertura → Unit 42% + Integration 12% + E2E 6%
+- **Dominio:** 90% cobertura → Unit 63% + Integration 22.5% + E2E 4.5%
+- **Aplicación:** 80% cobertura → Unit 56% + Integration 20% + E2E 4%
+- **Infraestructura:** 60% cobertura → Unit 42% + Integration 15% + E2E 3% (solo health check)
 
 ### Casos de Prueba Críticos
 
