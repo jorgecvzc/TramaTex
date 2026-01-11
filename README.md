@@ -1,0 +1,221 @@
+# TramaTex - README
+
+**TramaTex** es un **ERP/MES (Enterprise Resource Planning / Manufacturing Execution System)** diseñado específicamente para **microempresas del sector textil y de personalización**.
+
+---
+
+## 📋 Visión
+
+Proporcionar una solución integrada que permita a microempresas:
+- **Gestionar clientes y proveedores** de forma centralizada (Party)
+- **Administrar catálogo de productos** con variantes (tallas, colores, modificaciones)
+- **Calcular precios** de forma inteligente y automática (tarificación)
+- **Gestionar pedidos** desde cotización hasta entrega
+- **Controlar producción personalizada** con seguimiento estado-a-estado
+- **Documentar procesos** con trazabilidad completa
+
+---
+
+## 🏗️ Arquitectura
+
+### Stack Tecnológico
+
+- **Backend:** Go 1.21+ (Clean Architecture + DDD)
+- **Frontend:** Vue.js 3 + Vite + Tailwind CSS
+- **Base de Datos:** PostgreSQL 14+
+- **Contenedorización:** Docker + Docker Compose
+- **Testing:** TDD (Go testing + Vitest)
+
+### Estructura
+
+TramaTex sigue un **monolito modular** basado en **Clean Architecture y Domain-Driven Design**:
+
+```
+tramatex/
+├── backend/          # Lógica de negocio (Go)
+│   ├── internal/
+│   │   ├── domain/       # Capa de dominio (Party, Product, Pricing, Sales, MES)
+│   │   ├── application/  # Casos de uso
+│   │   ├── infrastructure/ # Adaptadores (BD, storage, seguridad)
+│   │   └── interfaces/   # Controllers REST
+│   └── ...
+├── frontend/         # Interfaz de usuario (Vue.js)
+│   ├── src/
+│   │   ├── views/       # Páginas por módulo
+│   │   ├── components/  # Componentes reutilizables
+│   │   ├── stores/      # Estado global (Pinia)
+│   │   ├── services/    # Clientes API
+│   │   └── ...
+│   └── ...
+└── docs/             # Documentación
+    ├── adr/         # Architecture Decision Records
+    ├── modules/     # Especificaciones de módulos
+    └── sessions/    # Registro de sesiones de desarrollo
+```
+
+Más detalles en [ADR-009 – Estructura de Proyecto](docs/adr/ADR-009-estructura-proyecto.md).
+
+---
+
+## 🚀 Quick Start
+
+### Requisitos
+
+- **Docker Desktop** (incluye Docker y Docker Compose)
+- **Go 1.21+** (opcional, para desarrollo local)
+- **Node.js 18+** (opcional, para desarrollo local)
+
+### Arrancar el Proyecto
+
+#### Con Docker Compose (recomendado)
+
+```bash
+cd tramatex
+docker-compose up --build
+```
+
+El sistema estará disponible en:
+- **Frontend:** http://localhost:5173
+- **Backend API:** http://localhost:8080
+- **PostgreSQL:** localhost:5432
+
+#### Sin Docker (desarrollo local)
+
+**Backend:**
+```bash
+cd backend
+go install github.com/golang-migrate/migrate/cmd/migrate@latest
+make migrate-up
+make run
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+## 📚 Documentación
+
+### Architecture Decision Records (ADRs)
+
+- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
+- [ADR-007: Orden de Implementación de Módulos](docs/adr/ADR-007-orden-implementacion-modulos.md)
+- [ADR-008: Planificación y Cronograma](docs/adr/ADR-008-planificacion-cronograma-mvp.md)
+- [ADR-009: Estructura de Carpetas](docs/adr/ADR-009-estructura-proyecto.md)
+
+### Guías
+
+- [Setup de Desarrollo](docs/guides/setup-development.md)
+- [Estrategia de Testing](docs/guides/testing-strategy.md)
+- [Despliegue](docs/guides/deployment.md)
+
+### Módulos
+
+Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
+
+- **Party:** Gestión de clientes y proveedores
+- **Product:** Catálogo de productos y variantes
+- **Pricing:** Motor de tarificación
+- **Sales:** Gestión de pedidos
+- **MES:** Producción personalizada y taller
+
+---
+
+## 📅 Cronograma
+
+**Duración total:** 24 meses (Enero 2026 - Enero 2028)
+
+### Fases
+
+1. **Fase 0 (Q1 2026):** Fundaciones técnicas
+   - Setup Docker, Git, autenticación JWT
+   - **Hito:** Sistema arranca + login funcional
+
+2. **Fase 1 (Q2-Q4 2026):** Dominio base
+   - Módulos: Party, Producto, Tarificación
+   - **Hito:** Núcleo económico funcional
+
+3. **Fase 2 (Q1-Q2 2027):** Ventas
+   - Gestión de pedidos estándar
+   - **Hito:** Flujo completo de ventas
+
+4. **Fase 3 (Q3-Q4 2027):** MES
+   - Producción personalizada, terminal taller
+   - **Hito:** MVP completo
+
+5. **Fase 4 (Q1 2028):** Estabilización
+   - **Hito:** En producción estable
+
+Más detalles en [ADR-008 – Cronograma](docs/adr/ADR-008-planificacion-cronograma-mvp.md).
+
+---
+
+## 🛠️ Desarrollo
+
+### Comandos Principales
+
+**Backend:**
+```bash
+cd backend
+make run              # Ejecutar servidor
+make test             # Tests
+make test-coverage    # Cobertura
+make lint             # Linter
+make migrate-up       # Migraciones
+make docker-up        # Stack completo en Docker
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run dev           # Servidor desarrollo
+npm run build         # Build producción
+npm run lint          # Linter
+npm run format        # Prettier
+```
+
+### Testing
+
+- **Backend:** Go testing + assertions manuales
+- **Frontend:** Vitest (similar a Jest)
+- **Cobertura objetivo:** ≥75% global, ≥80% en dominio crítico
+
+### Code Style
+
+- **Backend:** `gofmt` + `golangci-lint`
+- **Frontend:** ESLint + Prettier
+
+---
+
+## 🤝 Contribución
+
+[Pendiente: Guía de contribución en docs/guides/contribution.md]
+
+---
+
+## 📄 Licencia
+
+[Pendiente: Especificar licencia]
+
+---
+
+## 👥 Autores
+
+- **Jorge Cortés Villalba** - Producto, Dominio
+- **Claude (Anthropic)** - Arquitectura, Copiloto técnico
+
+---
+
+## 📞 Contacto
+
+[Información de contacto según necesario]
+
+---
+
+**Última Actualización:** 11/01/2026  
+**Versión:** 0.1.0 (Pre-Fase 0)  
+**Estado:** En Planificación
