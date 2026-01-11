@@ -1,149 +1,84 @@
-# Sesión NN - [Fecha]
+# TramaTex – Nota de Sesión
 
-## Contexto
-- **Fase actual:** [Fase 0/1/2/3]
-- **Sprint actual:** [Sprint N]
-- **Semana del cronograma:** [Semana NN]
-- **Hito esperado:** [Hito X]
-
----
-
-## Objetivos de la Sesión
-
-- [ ] Objetivo 1: [Descripción]
-- [ ] Objetivo 2: [Descripción]
-- [ ] Objetivo 3: [Descripción]
+**Fecha:** {{FECHA}}  
+**Sesión Nº:** {{Nº_SESIÓN}}  
+**Responsable / Coordinador:** {{NOMBRE}}  
+**Estado Proyecto:** {{MVP / Post-MVP / Desarrollo}}  
 
 ---
 
-## Trabajo Realizado
+## Objetivo de la sesión
 
-### Tarea 1: [Descripción]
-- **Tiempo:** Xh
-- **Status:** ✅ Completado / ⏳ En Progreso / ❌ Bloqueado
-- **Detalles:** [Descripción de qué se hizo]
-- **Commits:** [Hash o enlace]
-
-### Tarea 2: [Descripción]
-- **Tiempo:** Xh
-- **Status:** [Estado]
-- **Detalles:** [Descripción]
-- **Commits:** [Hash o enlace]
-
-**Total de horas trabajadas:** Xh / 8h
+{{Describir brevemente qué se pretende lograr en esta sesión}}
 
 ---
 
-## Decisiones Tomadas
+## 1. Secciones / Módulos a trabajar
 
-### Decisión 1: [Título]
-**Contexto:** [Por qué se necesitaba decidir]  
-**Opciones:** [Alternativas consideradas]  
-**Decisión:** [Qué se eligió]  
-**Razón:** [Justificación breve]  
-
-### Decisión 2: [Título]
-- ...
+- [[Ventas / Pedido Estándar]]  
+- [[Inventario / Stock]]  
+- [[MES / Producción Personalizada]]  
+- [[Módulos Transversales]]  
+- Otros: {{Especificar}}
 
 ---
 
-## Problemas Encontrados
+## 2. RF/RNF relacionados
 
-### Problema 1: [Descripción]
-- **Severidad:** 🔴 Crítico / 🟡 Mayor / 🟢 Menor
-- **Causa Raíz:** [Análisis]
-- **Solución Implementada:** [Qué se hizo]
-- **Estado:** ✅ Resuelto / ⏳ Pendiente / 🔄 Requiere Seguimiento
-
-### Problema 2: [Descripción]
-- ...
+- RF involucrados: {{Ej: [RF1], [RF4]}}  
+- RNF involucrados: {{Ej: [RNF1], [RNF3]}}  
+- Post-MVP relacionados: {{Si aplica}}
 
 ---
 
-## Aprendizajes
+## 3. Actividades planificadas
 
-### Aprendizaje Técnico
-[Qué aprendiste sobre la tecnología/framework/herramienta]
-
-### Aprendizaje de Dominio
-[Qué aprendiste sobre el negocio/requisitos]
-
-### Aprendizaje de Procesos
-[Qué aprendiste sobre el desarrollo/equipo/proyecto]
+1. {{Actividad 1 – Ej: Generar diagramas de flujo de casos de uso para MES}}  
+2. {{Actividad 2 – Ej: Redactar notas de implementación para módulo de taller}}  
+3. {{Actividad 3 – Ej: Revisar trazabilidad y enlaces de RF/RNF}}  
 
 ---
 
-## Estado de Tests
+## 4. Notas de trabajo
 
-### Cobertura Actual
-- **Global:** X%
-- **Dominio:** X%
-- **Aplicación:** X%
-- **Infraestructura:** X%
-
-### Tests Fallidos
-- [ ] Test 1
-- [ ] Test 2
-
-### Tests Añadidos
-- [+] Test nuevo 1: [Descripción]
-- [+] Test nuevo 2: [Descripción]
+{{Registrar ideas, decisiones, problemas encontrados, alternativas}}  
 
 ---
 
-## Métricas
+## 5. Decisiones y ADR
 
-| Métrica | Valor |
-|---------|-------|
-| Horas trabajadas | Xh |
-| Commits realizados | N |
-| Archivos modificados | N |
-| Líneas de código ± | ±N |
-| Tests nuevos | N |
-| Bugs encontrados | N |
-| Bugs resueltos | N |
+- Nueva decisión arquitectónica (si aplica): [ADR-XXX – Título]  
+- Justificación: {{Breve explicación}}  
 
 ---
 
-## Estado del Cronograma
+## 6. Referencias internas
 
-- **Semana:** NN / 101
-- **Fase:** X / 4
-- **Avance esperado:** X% / X% (real)
-- **En línea con cronograma:** ✅ Sí / ⚠️ Ligeramente atrás / ❌ Significativamente atrás
-
-### Ajustes Necesarios (si aplica)
-[Si estamos atrás, qué se necesita hacer]
+- Documentación: [docs/adr/](../../docs/adr/)  
+- Módulos: [docs/modules/](../../docs/modules/)  
+- Cronograma: [ADR-008](../../docs/adr/ADR-008-planificacion-cronograma-mvp.md)  
+- Plan de sesiones: [docs/sessions/](../../docs/sessions/)  
 
 ---
 
-## Próxima Sesión
+## 7. Próximos pasos
 
-### Tareas Planificadas
-- [ ] Tarea 1: [Descripción]
-- [ ] Tarea 2: [Descripción]
-- [ ] Tarea 3: [Descripción]
-
-### Bloqueadores Conocidos
-- [Bloqueador 1]: [Descripción]
-- [Bloqueador 2]: [Descripción]
-
-### Preparación
-- [ ] Investigar [Tema]
-- [ ] Revisar [Documento/código]
-- [ ] Preparar [Recurso]
+1. {{Paso siguiente 1}}  
+2. {{Paso siguiente 2}}  
+3. {{Paso siguiente 3}}  
 
 ---
 
-## Notas Adicionales
+## 8. Tags y organización
 
-[Cualquier otra información relevante]
+- #Sesión  
+- #MVP / #Post-MVP  
+- #TDD  
+- #Arquitectura / #Implementación / #Testing  
+- #Análisis / #Diseño / #Código
 
 ---
 
-**Fecha:** [Fecha de sesión]  
-**Duración:** Xh  
-**Próxima sesión:** [Fecha estimada]  
-**Estado Final:** ✅ Exitosa / ⚠️ Parcial / ❌ Con Bloqueos
-
-**Firma:** [Nombre]
+**Duración:** {{Horas trabajadas}}  
+**Estado final:** {{✅ Exitosa / ⚠️ Parcial / ❌ Con bloqueos}}  
+**Próxima sesión:** {{Fecha estimada}}
