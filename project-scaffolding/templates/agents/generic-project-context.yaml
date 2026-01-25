@@ -1,0 +1,384 @@
+# Generic Project Context Agent
+# Version: 1.0
+# Audience: Any software development project
+# Purpose: Template for loading project-specific context agents
+
+---
+
+⚠️ IMPORTANT: PREREQUISITES
+==========================
+BEFORE processing this agent:
+→ IF NOT LOADED: Load "generic-rules.yaml" first
+→ VERIFY: Confirm generic-rules.yaml has been processed
+→ THEN: Continue with this agent
+
+If generic-rules.yaml is not loaded, load it now.
+
+---
+
+metadata:
+  filename: "generic-project-context.yaml"
+  version: "1.0"
+  last_updated: "2026-01-14"
+  purpose: "Generic project context loader"
+  scope: "Any software project"
+  note: "This file is a template. Each project has its own context in agents/[project-name]/"
+  load_order: "second"
+  dependencies:
+    - "generic-rules.yaml"
+
+how_to_use:
+  title: "🎯 How to Use This File"
+  
+  this_is_a_template: |
+    This file shows the STRUCTURE for project context agents.
+    
+    For a specific project, load:
+      agents/[project-name]/project-context.yaml
+    
+    NOT this file directly.
+  
+  example_for_tramatex:
+    command: "Load agents/project/project-context.yaml"
+    contains: "TramaTex-specific context"
+  
+  example_for_another_project:
+    command: "Load agents/myproject/project-context.yaml"
+    contains: "MyProject-specific context"
+
+project_context_structure:
+  title: "📋 Standard Project Context Structure"
+  description: "Every project context should include these sections"
+  
+  metadata:
+    purpose: "Identify the project and reference to specific agents"
+    includes:
+      - filename
+      - version
+      - project_name
+      - project_vision
+      - context_agents_location
+  
+  project_identity:
+    purpose: "What is this project?"
+    includes:
+      - vision (one-liner)
+      - domain (business domain)
+      - key_characteristics (2-3 defining traits)
+      - problem_statement (what problem does it solve?)
+  
+  technology_stack:
+    purpose: "What technologies are used?"
+    includes:
+      - component_name (language, frameworks, database)      - infrastructure (containerization, deployment)
+      - ci_cd (automation)
+  
+  project_structure:
+    purpose: "How is the project organized?"
+    includes:
+      - component_layout (folder structure)      - documentation_layout (docs structure)
+  
+  bounded_contexts:
+    purpose: "What are the business domains?"
+    includes:
+      - list of core modules
+      - relationships between modules
+      - criticality levels
+  
+  code_quality_standards:
+    purpose: "What are the quality gates?"
+    includes:
+      - backend acceptance criteria
+      - frontend acceptance criteria
+      - testing requirements
+      - linting requirements
+  
+  architecture_decisions:
+    purpose: "Key architectural choices"
+    includes:
+      - ADR references
+      - Design patterns used
+      - Principles followed
+  
+  decision_rules:
+    purpose: "When to apply which rules?"
+    includes:
+      - strict vs pragmatic trade-offs
+      - when to relax standards
+      - context-specific rules
+  
+  workflow:
+    purpose: "How do we build this?"
+    includes:
+      - development workflow
+      - testing strategy
+      - deployment process
+  
+  references:
+    purpose: "Where to find more info?"
+    includes:
+      - business documents
+      - architecture guides
+      - module documentation
+      - session records
+
+modular_context_agents:
+  title: "📚 Modular Context Agents Pattern"
+  description: "How context agents are organized per project"
+  
+  structure: |
+    agents/
+    ├── [Universal: shared by all projects]
+    │   ├── generic-rules.yaml
+    │   ├── generic-project-context.yaml (this file)
+    │   ├── sprint-session-loader.yaml
+    │   └── sprint-registry.yaml
+    │
+    └── [Project-specific: one folder per project]
+        └── /project/
+            ├── project-context.yaml          (main context)
+            ├── /context/                     (modular agents)
+            │   ├── architecture.yaml
+            │   ├── bounded-contexts.yaml
+            │   ├── tech-stack.yaml
+            │   ├── code-standards.yaml
+            │   ├── INDEX.md
+            │   └── README.md
+            └── ...other project-specific agents
+  
+  benefits:
+    - "Reuse universal agents across projects"
+    - "Project-specific context isolated in subdirectories"
+    - "Modular context agents reduce token usage"
+    - "Clear separation: universal vs specific"
+    - "Scalable: easy to add new projects"
+
+how_to_create_project_context:
+  title: "🛠️ Creating Project Context for New Project"
+  
+  step_1_create_folder:
+    command: "mkdir agents/project/context"
+  
+  step_2_create_main_context:
+    filename: "agents/project/project-context.yaml"
+    based_on: "This file as template"
+    customize:
+      - Project name and vision
+      - Technology stack
+      - Project structure
+      - Bounded contexts
+      - Code quality standards
+  
+  step_3_create_modular_agents:
+    in_context_folder:
+      - architecture.yaml (project-specific patterns)
+      - bounded-contexts.yaml (project-specific domains)
+      - tech-stack.yaml (project-specific tools)
+      - code-standards.yaml (project-specific criteria)
+      - INDEX.md (navigation guide)
+      - README.md (quick start)
+  
+  step_4_reference_in_sessions:
+    when: "In session files, reference your project context"
+    example: "Load agents/project/project-context.yaml"
+
+example_usage_patterns:
+  title: "📖 Example Usage Patterns"
+  
+  pattern_1_single_agent_load:
+    context: "User just needs basic project info"
+    load: "agents/project/project-context.yaml"
+    provides: "High-level overview"
+    typical_for: "New team members, quick reference"
+  
+  pattern_2_architecture_design:
+    context: "Designing new module"
+    load:
+      - "agents/project/project-context.yaml (overview)"
+      - "agents/project/context/architecture.yaml (patterns)"
+      - "agents/project/context/bounded-contexts.yaml (domains)"
+    provides: "Complete picture for design"
+    typical_for: "Architects, tech leads"
+  
+  pattern_3_implementation:
+    context: "Implementing specific feature"
+    load:
+      - "agents/project/context/bounded-contexts.yaml (this module)"
+      - "agents/project/context/tech-stack.yaml (tooling)"
+      - "agents/project/context/architecture.yaml (patterns)"
+    provides: "Everything needed to code"
+    typical_for: "Developers"
+  
+  pattern_4_code_review:
+    context: "Reviewing code"
+    load:
+      - "agents/project/context/code-standards.yaml (criteria)"
+      - "agents/project/context/architecture.yaml (patterns)"
+    provides: "Validation checklist"
+    typical_for: "Reviewers"
+  
+  pattern_5_session_startup:
+    context: "Starting new development session"
+    load:
+      - "agents/sprint-session-loader.yaml"
+    provides: "A guided workflow to resume or start a task within a sprint, loading all necessary context automatically."
+    typical_for: "Every session"
+
+loading_strategy:
+  title: "🎯 Smart Loading Strategy"
+  description: "Load only what you need for the current task"
+  
+  recommendation: |
+    DON'T load everything at once.
+    Instead, follow this pattern:
+    
+    1. Know your project name
+    2. Load agents/project/project-context.yaml (if new)
+    3. Then load specific context agents as needed
+    4. Skip agents you don't need for this task
+  
+  token_saving_strategy:
+    - "Project context: ~150 lines, always useful"
+    - "Specific context agents: ~200-350 lines each"
+    - "Load all together: ~1,200+ lines (expensive)"
+    - "Load selectively: 600-800 lines (efficient)"
+    - "Savings: ~30-40% token reduction"
+
+comparison_universal_vs_project:
+  title: "📊 Universal vs Project-Specific"
+  
+  universal_agents:
+    location: "/agents/ (root)"
+    files:
+      - generic-rules.yaml
+      - generic-project-context.yaml
+      - sprint-session-loader.yaml
+      - sprint-registry.yaml
+    shared_by: "All projects"
+    examples:
+      - Language conventions (ES docs, EN code)
+      - Directory structure standards
+      - Documentation principles
+      - Session workflow
+
+  project_specific_agents:
+    location: "/agents/project/"
+    files:
+      - project-context.yaml (main)
+      - /context/
+        - architecture.yaml
+        - bounded-contexts.yaml
+        - tech-stack.yaml
+        - code-standards.yaml
+    unique_to: "Each project"
+    examples:
+      - TramaTex pricing engine
+      - MyApp user management
+      - YourProject specific stack
+
+finding_what_you_need:
+  title: "🔍 Quick Finding Guide"
+  
+  question_answer_pairs:
+    - question: "How do I start a new project?"
+      answer: "agents/project-initialization.yaml"
+    
+    - question: "What are universal rules for any project?"
+      answer: "agents/generic-rules.yaml"
+    
+    - question: "What is the TramaTex project about?"
+      answer: "agents/project/project-context.yaml"
+    
+    - question: "How do I start a session?"
+      answer: "agents/sprint-session-loader.yaml"
+    
+    - question: "What are TramaTex architecture patterns?"
+      answer: "agents/project/context/architecture.yaml"
+    
+    - question: "What are TramaTex modules?"
+      answer: "agents/project/context/bounded-contexts.yaml"
+    
+    - question: "How do I setup TramaTex development?"
+      answer: "agents/project/context/tech-stack.yaml"
+    
+    - question: "What's the code quality standard for TramaTex?"
+      answer: "agents/project/context/code-standards.yaml"
+    
+    - question: "I'm in another project, what context do I need?"
+      answer: "agents/[project-name]/project-context.yaml"
+
+future_projects:
+  title: "🚀 Adding New Projects"
+  
+  when_you_want_new_project:
+    step_1: "Run agents/project-initialization.yaml workflow"
+    step_2: "Create agents/[new-project-name]/ folder"
+    step_3: "Customize agents/[new-project-name]/project-context.yaml"
+    step_4: "Create modular agents in /context/ subfolder"
+    step_5: "Update session workflow to load new project context"
+  
+  universal_agents_stay_same: |
+    Universal agents (generic-rules, generic-project-context, sprint-session-loader, sprint-registry) are shared.
+    Don't modify them for specific projects.
+    Create project-specific overrides in /[project-name]/ instead.
+
+validation:
+  title: "✅ Validation Checklist"
+  description: "Verify your project context is complete"
+  
+  main_context_file:
+    - [ ] agents/project/project-context.yaml exists
+    - [ ] Has metadata section
+    - [ ] Has project_identity section
+    - [ ] Has technology_stack section
+    - [ ] Has bounded_contexts section
+    - [ ] Has code_quality_standards section
+    - [ ] Has decision_rules section
+  
+  modular_agents:
+    - [ ] agents/project/context/ folder exists
+    - [ ] architecture.yaml created
+    - [ ] bounded-contexts.yaml created
+    - [ ] tech-stack.yaml created
+    - [ ] code-standards.yaml created
+    - [ ] INDEX.md created
+    - [ ] README.md created
+  
+  integration:
+    - [ ] agents/sprint-session-loader.yaml can load project context
+    - [ ] All agents use consistent YAML structure
+    - [ ] All cross-references are correct
+
+troubleshooting:
+  title: "🔧 Common Issues"
+  
+  issue_agents_not_found:
+    symptom: "Cannot load agents/project/project-context.yaml"
+    fix: "Verify folder exists at agents/project/"
+  
+  issue_missing_context_agents:
+    symptom: "Some modular agents missing"
+    fix: "Check agents/project/context/ has all 4 agents"
+  
+  issue_universal_agents_modified:
+    symptom: "Different projects have different universal agents"
+    fix: "Universal agents should be identical. Don't customize per project."
+  
+  issue_path_confusion:
+    symptom: "Don't know which path to load"
+    fix: "For TramaTex, load: agents/project/project-context.yaml"
+
+next_steps:
+  title: "➡️ Next Steps"
+  
+  after_reading_this: |
+    1. Identify your project name.
+    2. Start a new session by loading: agents/sprint-session-loader.yaml.
+    3. The loader will guide you to load the project context and continue or start a task within a sprint.
+  
+  for_new_project:
+    - Run: agents/project-initialization.yaml
+    - Create: agents/project/ folder
+    - Customize: project-context.yaml
+    - Create: modular agents in /context/
+    - Start: first session with your project loaded

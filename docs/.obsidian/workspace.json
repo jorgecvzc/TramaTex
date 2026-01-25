@@ -1,24 +1,20 @@
 {
   "main": {
-    "id": "1b6b5450ed5b7b8b",
+    "id": "0cd58d0c063dee23",
     "type": "split",
     "children": [
       {
-        "id": "c2545e63c413942a",
+        "id": "e7e12e4804405ed0",
         "type": "tabs",
         "children": [
           {
-            "id": "487285f82cec250f",
+            "id": "6644e5612085a139",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "modules/auth.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "auth"
+              "title": "New tab"
             }
           }
         ]
@@ -27,15 +23,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "4bc172510acfb578",
+    "id": "ed1726c47fbdd83d",
     "type": "split",
     "children": [
       {
-        "id": "827fb19e520b89e7",
+        "id": "5e7ee815077db5e9",
         "type": "tabs",
         "children": [
           {
-            "id": "97035453a2916af0",
+            "id": "6bbdfc3eb7863dbb",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -48,7 +44,7 @@
             }
           },
           {
-            "id": "ca7acf295bee5de5",
+            "id": "9694ab99c0c29f73",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -65,7 +61,7 @@
             }
           },
           {
-            "id": "d7c61f7c2fa544c4",
+            "id": "b59896d15f5033e1",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -81,20 +77,19 @@
     "width": 300
   },
   "right": {
-    "id": "fd5ac62f74e5a8bd",
+    "id": "2e2f7c77df5dcf76",
     "type": "split",
     "children": [
       {
-        "id": "f5caedd897be53de",
+        "id": "cc3f63b7765a5653",
         "type": "tabs",
         "children": [
           {
-            "id": "aa2f7d0021ede1d6",
+            "id": "d02df9ff88139404",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "modules/auth.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,25 +99,24 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for auth"
+              "title": "Backlinks"
             }
           },
           {
-            "id": "755df647e0c0f0e4",
+            "id": "b68c926710d7f864",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "modules/auth.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from auth"
+              "title": "Outgoing links"
             }
           },
           {
-            "id": "837c54f3f0cd0541",
+            "id": "3a5459453de4c317",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -137,7 +131,7 @@
             }
           },
           {
-            "id": "3cb0e64bb795ac78",
+            "id": "4b154080b6961a35",
             "type": "leaf",
             "state": {
               "type": "all-properties",
@@ -151,18 +145,17 @@
             }
           },
           {
-            "id": "884d7d32a309d115",
+            "id": "5f7c8f37b5e7cf9e",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "modules/auth.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of auth"
+              "title": "Outline"
             }
           }
         ]
@@ -183,22 +176,39 @@
       "bases:Create new base": false
     }
   },
-  "active": "487285f82cec250f",
+  "active": "6644e5612085a139",
   "lastOpenFiles": [
-    "sessions/2026-01-11-session-09.md",
-    "sessions/2026-01-11-SESSION-09-SUMMARY.md",
-    "sessions/2026-01-11-session-09b-auth-jwt-implementation.md",
-    "sessions/2026-01-11-session-09a-infrastructure-foundations.md",
-    "QUICK_START.md",
-    "modules/_MODULE_TEMPLATE.md",
-    "modules/auth.md",
-    "modules/_TEMPLATE.md",
-    "adr/ADR-009-estructura-proyecto.md",
-    "sessions/2026-01-11-session-08.md",
-    "sessions/_SESSION_TEMPLATE.md",
-    "SESSION_PROMPT.md",
-    "SESSION_INIT_TEMPLATE.md",
-    "consolidated/DOCUMENTO-CONSOLIDADO-3.0.md",
-    "COPILOT_INSTRUCTIONS.md"
+    "project/sprints/sprint-03/sprint-03-summary.md",
+    "project/sprints/sprint-05/sprint-05-summary.md",
+    "project/sprints/sprint-04/sprint-04-summary.md",
+    "project/sprints/sprint-05/sprint-06-summary.md",
+    "project/sprints/sprint-05/01-implementacion-modulo-party.md",
+    "project/sprints/sprint-05",
+    "project/sprints/sprint-04/sprint-05-summary.md",
+    "project/sprints/sprint-04/03-estrategia-calidad-deuda-tecnica.md",
+    "project/sprints/sprint-04/02-pipeline-cicd-github-actions.md",
+    "project/sprints/sprint-04/01-implementacion-controles-seguridad-owasp.md",
+    "project/sprints/sprint-04",
+    "project/sprints/sprint-03/sprint-04-summary.md",
+    "project/sprints/sprint-03/01-definicion-sistema-de-diseno.md",
+    "project/sprints/sprint-03",
+    "project/sprints/sprint-05-temp/sprint-05-summary.md",
+    "project/sprints/sprint-05-temp/03-estrategia-calidad-deuda-tecnica.md",
+    "project/sprints/sprint-05-temp/02-pipeline-cicd-github-actions.md",
+    "project/sprints/sprint-05-temp/01-implementacion-controles-seguridad-owasp.md",
+    "project/sprints/sprint-05-temp",
+    "project/sprints/sprint-06-temp/sprint-06-summary.md",
+    "project/sprints/sprint-06-temp/01-implementacion-modulo-party.md",
+    "project/sprints/sprint-06-temp",
+    "project/SPRINT-REORGANIZATION-DEEP-ANALYSIS.md",
+    "project/SPRINT-HISTORY-RECONSTRUCTION.md",
+    "project/sprints/sprint-06/sprint-06-summary.md",
+    "project/sprints/sprint-06/sprint-05-summary.md",
+    "project/sprints/sprint-06/01-implementacion-modulo-party.md",
+    "project/sprints/sprint-06",
+    "project/sprints/sprint-05/03-estrategia-calidad-deuda-tecnica.md",
+    "project/sprints/sprint-05/01-implementacion-controles-seguridad-owasp.md",
+    "project/sprints/sprint-05/02-pipeline-cicd-github-actions.md",
+    "project/sprints/sprint-05-temp/01-implementacion-modulo-party.md"
   ]
 }

@@ -1,0 +1,10 @@
+/*
+ * TramaTex Design System
+ *
+ * Este es el punto de entrada principal para los estilos globales.
+ * Importa todas las partes del sistema de diseño en el orden correcto.
+ */
+
+@import './_variables.css';
+@import './_base.css';
+@import './_typography.css';

@@ -1,0 +1,71 @@
+# Docker Compose - REMOTE (pcele Linux Server via SSH)
+# Usage: docker-compose -f docker-compose.remote.yml -H ssh://ele@pcele up -d
+# Or use the Makefile: make docker-up ENV=remote
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: ${DB_IMAGE:-postgres:15-alpine}
+    container_name: ${DB_CONTAINER:-tramatex_db}
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_remote:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tramatex_network
+    labels:
+      com.tramatex.environment: "remote"
+
+  # TramaTex API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${API_CONTAINER:-tramatex_api}
+    environment:
+      ENV: ${ENV:-production}
+      SERVER_HOST: ${API_HOST}
+      SERVER_PORT: ${API_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: ${DB_SSLMODE}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
+      JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tramatex_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      com.tramatex.environment: "remote"
+
+volumes:
+  postgres_data_remote:
+    driver: local
+
+networks:
+  tramatex_network:
+    driver: bridge

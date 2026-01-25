@@ -4,7 +4,25 @@
 
 ---
 
-## 📋 Visión
+## � Estado Actual
+
+**Última Auditoría:** ✅ Completado 24/01/2026 - Auditoría de Estructura y Compilación
+**Proyecto Status:** 🟢 **VERDE** - Compilable y Operativo
+
+### 📋 Documentación Rápida
+
+- **Generales:** [Proyecto](README.md), [Estado](docs/project/project-status.md)
+- **Auditoría 2026-01-24:** 
+  - ⚡ [Resumen Rápido](QUICK_SUMMARY_AUDIT.md) ← **LEER PRIMERO (2 min)**
+  - 📑 [Índice de Auditoría](AUDIT_INDEX.md) - Navega todos los reportes
+  - 📊 [Reporte Técnico Completo](AUDIT_COMPLETE_FINAL_REPORT.md)
+- **Arquitectura:** [ADRs](docs/engineering/architecture/adr/), [Documentos del Proyecto](docs/project/), [Diagramas](docs/engineering/architecture/diagrams/)
+- **Módulos:** [IAM](docs/engineering/modules/iam/), [Party](docs/engineering/modules/party/)
+- **Desarrollo:** [Makefile](Makefile), [Backend](apps/tramatex-api/), [Frontend](apps/frontend/)
+
+---
+
+## �📋 Visión
 
 Proporcionar una solución integrada que permita a microempresas:
 - **Gestionar clientes y proveedores** de forma centralizada (Party)
@@ -32,28 +50,29 @@ TramaTex sigue un **monolito modular** basado en **Clean Architecture y Domain-D
 
 ```
 tramatex/
-├── backend/          # Lógica de negocio (Go)
-│   ├── internal/
-│   │   ├── domain/       # Capa de dominio (Party, Product, Pricing, Sales, MES)
-│   │   ├── application/  # Casos de uso
-│   │   ├── infrastructure/ # Adaptadores (BD, storage, seguridad)
-│   │   └── interfaces/   # Controllers REST
-│   └── ...
-├── frontend/         # Interfaz de usuario (Vue.js)
-│   ├── src/
-│   │   ├── views/       # Páginas por módulo
-│   │   ├── components/  # Componentes reutilizables
-│   │   ├── stores/      # Estado global (Pinia)
-│   │   ├── services/    # Clientes API
-│   │   └── ...
-│   └── ...
-└── docs/             # Documentación
-    ├── adr/         # Architecture Decision Records
-    ├── modules/     # Especificaciones de módulos
-    └── sessions/    # Registro de sesiones de desarrollo
+├── apps/
+│   ├── tramatex-api/   # Lógica de negocio (Go)
+│   │   ├── internal/
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   └── ...
+│   │   └── cmd/
+│   └── frontend/       # Interfaz de usuario (Vue.js)
+│       ├── src/
+│       │   ├── views/
+│       │   ├── components/
+│       │   └── ...
+│       └── ...
+├── docs/               # Documentación
+│   ├── engineering/
+│   │   ├── architecture/
+│   │   └── modules/
+│   ├── guides/
+│   └── project/
+└── ...
 ```
 
-Más detalles en [ADR-009 – Estructura de Proyecto](docs/adr/ADR-009-estructura-proyecto.md).
+Más detalles en [ADR-009 – Estructura de Proyecto](docs/engineering/architecture/adr/ADR-009-estructura-proyecto.md).
 
 ---
 
@@ -83,7 +102,7 @@ El sistema estará disponible en:
 
 **Backend:**
 ```bash
-cd backend
+cd apps/tramatex-api
 go install github.com/golang-migrate/migrate/cmd/migrate@latest
 make migrate-up
 make run
@@ -91,7 +110,7 @@ make run
 
 **Frontend:**
 ```bash
-cd frontend
+cd apps/frontend
 npm install
 npm run dev
 ```
@@ -102,16 +121,20 @@ npm run dev
 
 ### Architecture Decision Records (ADRs)
 
-- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
-- [ADR-007: Orden de Implementación de Módulos](docs/adr/ADR-007-orden-implementacion-modulos.md)
-- [ADR-008: Planificación y Cronograma](docs/adr/ADR-008-planificacion-cronograma-mvp.md)
-- [ADR-009: Estructura de Carpetas](docs/adr/ADR-009-estructura-proyecto.md)
+- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/engineering/architecture/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
+- [ADR-007: Orden de Implementación de Módulos](docs/engineering/architecture/adr/ADR-007-orden-implementacion-modulos.md)
+- [ADR-008: Planificación y Cronograma](docs/engineering/architecture/adr/ADR-008-planificacion-cronograma-mvp.md)
+- [ADR-009: Estructura de Carpetas](docs/engineering/architecture/adr/ADR-009-estructura-proyecto.md)
+
+### Estado del Proyecto
+
+- [project-status.md](project-status.md) - Progreso actual, hitos, timeline
 
 ### Guías
 
-- [Setup de Desarrollo](docs/guides/setup-development.md)
-- [Estrategia de Testing](docs/guides/testing-strategy.md)
-- [Despliegue](docs/guides/deployment.md)
+- [Setup de Desarrollo](docs/guides/setup-development.md) [Pendiente]
+- [Estrategia de Testing](docs/guides/testing-strategy.md) [Pendiente]
+- [Despliegue](docs/guides/deployment.md) [Pendiente]
 
 ### Módulos
 
@@ -134,6 +157,7 @@ Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
 1. **Fase 0 (Q1 2026):** Fundaciones técnicas
    - Setup Docker, Git, autenticación JWT
    - **Hito:** Sistema arranca + login funcional
+   - Detalle: [MVP Specification](docs/project/02-mvp-specification.md)
 
 2. **Fase 1 (Q2-Q4 2026):** Dominio base
    - Módulos: Party, Producto, Tarificación
@@ -150,7 +174,7 @@ Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
 5. **Fase 4 (Q1 2028):** Estabilización
    - **Hito:** En producción estable
 
-Más detalles en [ADR-008 – Cronograma](docs/adr/ADR-008-planificacion-cronograma-mvp.md).
+Más detalles en [ADR-008 – Cronograma](docs/engineering/architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](project-status.md).
 
 ---
 
@@ -160,7 +184,7 @@ Más detalles en [ADR-008 – Cronograma](docs/adr/ADR-008-planificacion-cronogr
 
 **Backend:**
 ```bash
-cd backend
+cd apps/tramatex-api
 make run              # Ejecutar servidor
 make test             # Tests
 make test-coverage    # Cobertura
@@ -171,7 +195,7 @@ make docker-up        # Stack completo en Docker
 
 **Frontend:**
 ```bash
-cd frontend
+cd apps/frontend
 npm run dev           # Servidor desarrollo
 npm run build         # Build producción
 npm run lint          # Linter

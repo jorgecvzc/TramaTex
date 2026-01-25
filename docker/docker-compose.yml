@@ -1,0 +1,62 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tramatex_db
+    environment:
+      POSTGRES_USER: tramatex
+      POSTGRES_PASSWORD: tramatex
+      POSTGRES_DB: tramatex
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tramatex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tramatex_network
+
+  # TramaTex API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tramatex_api
+    environment:
+      ENV: production
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: tramatex
+      DB_PASSWORD: tramatex
+      DB_NAME: tramatex
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-super-secret-key-2024}
+      JWT_ACCESS_TOKEN_TTL: 15m
+      JWT_REFRESH_TOKEN_TTL: 7d
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tramatex_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  tramatex_network:
+    driver: bridge

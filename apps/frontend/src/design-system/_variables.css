@@ -1,0 +1,67 @@
+:root {
+  /*
+   * Colores
+   * Paleta de colores alineada con los mockups.
+   */
+
+  /* Colores primarios y de marca */
+  --color-primary: #E6B800;        /* Moderate Dark Yellow - para acciones principales y acentos */
+  --color-secondary: #002395;      /* Intense Royal Blue - para navegación, encabezados y fondo de elementos clave */
+
+  /* Colores de fondo */
+  --color-background: #f1f5f9;     /* Un gris muy claro (Tailwind gray-100) */
+  --color-surface: #ffffff;        /* Blanco para superficies como tarjetas y modales */
+  --color-border: #e2e8f0;         /* Gris claro para bordes y separadores (Tailwind slate-200) */
+
+  /* Colores de texto */
+  --color-text-primary: #1e293b;   /* Un negro azulado para texto principal (Tailwind slate-800) */
+  --color-text-secondary: #64748b; /* Un gris oscuro para texto secundario (Tailwind slate-500) */
+  --color-text-on-primary: #1e293b; /* Texto oscuro sobre el primario (amarillo) para legibilidad */
+  --color-text-on-secondary: #ffffff;/* Texto blanco sobre el secundario (azul) */
+
+  /* Colores de estado */
+  --color-success: #22c55e;        /* Verde para éxito */
+  --color-warning: #f59e0b;        /* Amarillo para advertencias */
+  --color-error: #ef4444;          /* Rojo para errores */
+  --color-info: #3b82f6;           /* Azul para información */
+
+  /*
+   * Tipografía
+   */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-brand: 'Calibri', 'Candara', 'Segoe', 'Segoe UI', 'Optima', 'Arial', sans-serif;
+  --font-family-mono: 'Fira Code', 'Courier New', monospace;
+
+  --font-size-base: 16px;
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-md: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem;  /* 20px */
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  /*
+   * Espaciado
+   */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem;  /* 8px */
+  --spacing-md: 1rem;    /* 16px */
+  --spacing-lg: 1.5rem;  /* 24px */
+  --spacing-xl: 2rem;    /* 32px */
+  --spacing-xxl: 3rem;   /* 48px */
+
+  /*
+   * Bordes y Sombras
+   */
+  --border-radius-sm: 2px; /* Redondeado sutil de los mockups */
+  --border-radius-md: 4px;
+  --border-radius-lg: 8px;
+  --box-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --box-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}

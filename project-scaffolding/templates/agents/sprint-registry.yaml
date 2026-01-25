@@ -1,0 +1,118 @@
+# Universal Sprint Registry Template
+# Version: 1.1
+# Purpose: Track sprint and task status for quick lookup by session loader
+# Audience: Project teams, AI assistants
+
+---
+
+metadata:
+  filename: "sprint-registry.yaml"
+  location: "agents/sprint-registry.yaml"
+  version: "1.1"
+  last_updated: "YYYY-MM-DD"
+  purpose: "Central registry of all sprints and tasks, their status, and metadata"
+  auto_update_trigger: "After each task session"
+  note: "Parsed by sprint-session-loader.yaml for quick discovery"
+  
+  naming_conventions:
+    task_files:
+      pattern: "[ID_TAREA]-descriptive-name.md"
+      id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
+      location: "docs/project/sprints/sprint-[XX]/"
+      language: "Spanish (Español)"
+      examples:
+        - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
+        - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
+        - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
+      notes:
+        - "Task IDs restart at 01 for each sprint"
+        - "Unique ID = sprint-XX + task-YY"
+        - "Facilitates reopening closed sprints"
+    
+    summary_files:
+      pattern: "sprint-[XX]-summary.md"
+      location: "docs/project/sprints/sprint-[XX]/"
+      language: "Spanish (Español)"
+      examples:
+        - "sprint-01-summary.md"
+        - "sprint-05-summary.md"
+
+active_tasks:
+  title: "🔄 Active/Open Tasks"
+  count: 0
+  tasks: []
+  note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
+
+completed_tasks:
+  title: "✅ Completed Tasks"
+  note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+  structure: |
+    task_XX_YY:
+      id: "XX-YY"
+      sprint: "XX"
+      filename: "YY-descriptive-name.md"
+      title: "Task Title"
+      status: "✅ Completado"
+      dates:
+        started: "YYYY-MM-DD"
+        completed: "YYYY-MM-DD"
+      context_focus: "Module or context area"
+      facilitator: "AI Assistant or Team Member"
+      key_outcomes:
+        - "Outcome 1"
+        - "Outcome 2"
+
+task_backlog:
+  title: "📋 Recommended Next Tasks (Backlog)"
+  structure: |
+    candidate_X:
+      priority: "HIGH|MEDIUM|LOW"
+      focus: "Description of next work"
+      context_to_load: "agents/[PROJECT]/context/[module].yaml"
+      suggested_title: "Sprint-ID_Task-ID_name"
+      estimated_duration: "X hours"
+
+phase_status:
+  title: "🎯 Project Phase Status"
+  structure: |
+    phase_X:
+      name: "Phase Name"
+      status: "✅ COMPLETED|🔄 IN PROGRESS|⏳ BLOCKED"
+      modules_completed: []
+      modules_in_progress: []
+      modules_planned: []
+      estimated_total_hours: "X-Y"
+
+session_flow_quick_start:
+  title: "🚀 When You Start a New Session"
+  
+  step_by_step:
+    1: "Load: agents/sprint-session-loader.yaml"
+    2: "It will scan docs/sprints/ for open tasks"
+    3: "Check: agents/sprint-registry.yaml for status"
+    4: "Review: active_tasks list"
+    5: "If tasks open → Continue one of them"
+    6: "If all completed → Check task_backlog"
+    7: "Load relevant context from agents/[PROJECT]/context/"
+    8: "Begin work following TDD approach"
+
+instructions_for_ai:
+  title: "📝 For AI Assistants Using This File"
+  
+  when_session_starts:
+    step_1: "Parse this file (sprint-registry.yaml)"
+    step_2: "Note 'active_tasks.count' - how many are open"
+    step_3: "If count > 0, propose continuing one"
+    step_4: "If count = 0, propose from task_backlog"
+    step_5: "Use phase_status to understand timeline"
+  
+  when_task_completes:
+    step_1: "Move task from active_tasks to completed_tasks"
+    step_2: "Update 'last_updated' timestamp"
+    step_3: "Add key_outcomes section"
+    step_4: "Ensure next phase is ready"
+    step_5: "Update phase_status accordingly"
+  
+  keep_this_file:
+    note: "This is a living document. Update after each task session."
+

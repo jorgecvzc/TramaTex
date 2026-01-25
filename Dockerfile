@@ -1,19 +1,18 @@
 # Stage 1: Build
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev
 
-# Copy go mod files
-COPY go.mod go.sum ./
+# Copy backend files
+COPY apps/tramatex-api/ .
 
-# Download dependencies
+# Download and verify dependencies
+RUN go mod tidy
 RUN go mod download
-
-# Copy source code
-COPY . .
+RUN go mod verify
 
 # Build the application
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o tramatex .
