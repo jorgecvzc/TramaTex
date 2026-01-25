@@ -1,4 +1,4 @@
-# 📋 Sprint 05 - Implementación del Módulo Party
+# 📋 Sprint 04 - Implementación del Módulo Party
 
 ---
 
@@ -6,7 +6,7 @@
 
 | Campo | Valor |
 |-------|-------|
-| **ID del Sprint** | sprint-05 |
+| **ID del Sprint** | sprint-04 |
 | **Título** | Implementación del Módulo Party (Gestión de Clientes y Proveedores) |
 | **Estado** | 🔍 Pendiente de Aprobación Humana |
 | **Facilitador/LLM** | GitHub Copilot, Jorge Cortés Villalba |
@@ -32,20 +32,20 @@ Implementar el módulo Party (Gestión de Clientes y Proveedores) siguiendo los 
 3. ✅ Añadir RoleMiddleware a endpoints según controles OWASP
 4. ✅ Integrar logging estructurado (logrus)
 5. ✅ Ejecutar linters y pre-commit hooks
-6. ✅ Ajustar cualquier desviación de las normas del Sprint 04
+6. ✅ Ajustar cualquier desviación de las normas del Sprint 03
 
 ---
 
 ## 📋 TAREAS PLANIFICADAS
 
-### Tarea 05-01: Implementación del Módulo Party
+### Tarea 04-01: Implementación del Módulo Party
 
 **Estado:** 🔍 Pendiente de Aprobación Humana  
 **Duración Estimada:** 4-6 horas  
 **Prioridad:** 🟠 Alta
 
 **Código Existente:**
-El código fue desarrollado entre 2026-01-18 y 2026-01-24. Ahora requiere auditoría contra normas del Sprint 04.
+El código fue desarrollado entre 2026-01-18 y 2026-01-24. Ahora requiere auditoría contra normas del Sprint 03.
 
 **Referencias:**
 - [01-implementacion-modulo-party.md](./01-implementacion-modulo-party.md)
@@ -57,7 +57,7 @@ El código fue desarrollado entre 2026-01-18 y 2026-01-24. Ahora requiere audito
 **Regla del Proyecto**: Los sprints NO se consideran completados hasta obtener **aprobación explícita del equipo de desarrollo humano**.
 
 Este sprint está marcado como "🔍 Pendiente de Aprobación Humana" porque:
-1. Fue ejecutado antes de establecer las normas del Sprint 04
+1. Fue ejecutado antes de establecer las normas del Sprint 03
 2. Requiere auditoría de cumplimiento con nuevas políticas
 3. Puede necesitar refactorización para alinearse con estándares
 

@@ -1,4 +1,4 @@
-# 📋 Sprint 04 - Fundaciones de Seguridad y Calidad
+# 📋 Sprint 03 - Fundaciones de Seguridad y Calidad
 
 ---
 
@@ -6,7 +6,7 @@
 
 | Campo | Valor |
 |-------|-------|
-| **ID del Sprint** | sprint-04 |
+| **ID del Sprint** | sprint-03 |
 | **Título** | Fundaciones de Seguridad y Calidad |
 | **Estado** | ⏳ Planificado |
 | **Facilitador/LLM** | GitHub Copilot (Claude Sonnet 4.5) |
@@ -31,7 +31,7 @@ Implementar las fundaciones de seguridad y calidad del proyecto **antes de conti
 
 ## 📋 TAREAS PLANIFICADAS
 
-### Tarea 04-01: Implementación de Controles de Seguridad OWASP
+### Tarea 03-01: Implementación de Controles de Seguridad OWASP
 
 **Estado:** ⏳ Planificado  
 **Duración Estimada:** 8 horas  
@@ -55,7 +55,7 @@ Resolver hallazgos críticos y de alta prioridad de la auditoría OWASP:
 
 ---
 
-### Tarea 04-02: Pipeline CI/CD con GitHub Actions
+### Tarea 03-02: Pipeline CI/CD con GitHub Actions
 
 **Estado:** ⏳ Planificado  
 **Duración Estimada:** 4 horas  
@@ -80,7 +80,7 @@ Establecer pipeline automatizado de CI/CD para backend y frontend:
 
 ---
 
-### Tarea 04-03: Estrategia de Calidad y Registro de Deuda Técnica
+### Tarea 03-03: Estrategia de Calidad y Registro de Deuda Técnica
 
 **Estado:** ⏳ Planificado  
 **Duración Estimada:** 2-4 horas  
@@ -108,9 +108,9 @@ Documentar formalmente políticas de calidad y establecer registro de deuda téc
 
 | Tarea | Estado | Estimado | Real | Progreso |
 |-------|--------|----------|------|----------|
-| 04-01 | ⏳ Planificado | 8h | - | 0% |
-| 04-02 | ⏳ Planificado | 4h | - | 0% |
-| 04-03 | ⏳ Planificado | 2-4h | - | 0% |
+| 03-01 | ⏳ Planificado | 8h | - | 0% |
+| 03-02 | ⏳ Planificado | 4h | - | 0% |
+| 03-03 | ⏳ Planificado | 2-4h | - | 0% |
 
 **Total Estimado:** 14-16 horas  
 **Total Real:** (Por determinar)  
