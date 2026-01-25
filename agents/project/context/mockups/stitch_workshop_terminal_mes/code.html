@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TramaTex Login - Dark Intermediate Blue</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#E6B800", // Dark Moderate Yellow
+                        "royal-blue": "#2B52B2", // Intermediate Royal Blue
+                        "charcoal": "#121212", // Deep charcoal/near-black
+                        "surface": "#1E1E1E", // Slightly lighter dark grey
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body { 
+                background-color: theme('colors.charcoal');
+                color: #E2E8F0;
+            }
+            .calibri { 
+                font-family: 'Calibri', 'Candara', 'Segoe', 'Segoe UI', 'Optima', 'Arial', sans-serif; 
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex items-center justify-center p-6">
+<div class="w-full max-w-sm">
+<div class="bg-surface p-8 rounded-lg shadow-2xl border border-white/5">
+<div class="text-center mb-10">
+<h1 class="calibri text-4xl font-bold text-royal-blue italic tracking-tight mb-2">
+                    TramaTex
+                </h1>
+<p class="text-xs uppercase tracking-[0.2em] text-gray-500 font-semibold">
+                    Enterprise Resource Planning
+                </p>
+</div>
+<form class="space-y-6">
+<div>
+<label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                        Username
+                    </label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg">person</span>
+<input class="w-full bg-charcoal border-gray-700 text-white rounded-md pl-10 py-2.5 text-sm focus:ring-royal-blue focus:border-royal-blue transition-all" placeholder="admin_user" type="text"/>
+</div>
+</div>
+<div>
+<label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                        Password
+                    </label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg">lock</span>
+<input class="w-full bg-charcoal border-gray-700 text-white rounded-md pl-10 py-2.5 text-sm focus:ring-royal-blue focus:border-royal-blue transition-all" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex items-center justify-between py-1">
+<label class="flex items-center gap-2 cursor-pointer">
+<input class="rounded bg-charcoal border-gray-700 text-royal-blue focus:ring-royal-blue" type="checkbox"/>
+<span class="text-[11px] text-gray-500 font-medium">Remember me</span>
+</label>
+<a class="text-[11px] text-royal-blue font-bold hover:underline" href="#">Forgot password?</a>
+</div>
+<button class="w-full bg-primary hover:bg-[#EAC412] text-gray-900 font-black py-3 rounded-md text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all uppercase tracking-widest mt-4" type="submit">
+<span class="material-symbols-outlined font-bold text-lg">login</span>
+                    Login
+                </button>
+</form>
+<div class="mt-8 pt-6 border-t border-white/5 text-center">
+<div class="flex items-center justify-center gap-4">
+<div class="text-left">
+<p class="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Access Node</p>
+<p class="text-[11px] text-gray-300 font-semibold">Plant A - Mumbai</p>
+</div>
+<div class="h-6 w-[1px] bg-white/10"></div>
+<div class="text-left">
+<p class="text-[10px] text-gray-500 font-bold uppercase tracking-tight">v2.4.0</p>
+<p class="text-[11px] text-gray-300 font-semibold">Production Ready</p>
+</div>
+</div>
+</div>
+</div>
+<p class="text-center mt-8 text-[10px] text-gray-600 font-medium uppercase tracking-[0.1em]">
+            © 2024 TramaTex Textile Solutions • Secure Gateway
+        </p>
+</div>
+
+</body></html>

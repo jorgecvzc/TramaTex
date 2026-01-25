@@ -1,0 +1,386 @@
+# TramaTex Bounded Contexts Agent
+# Version: 1.0
+# Purpose: Definition of bounded contexts and module dependencies
+
+---
+
+metadata:
+  filename: "bounded-contexts.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  references:
+    - "03-bounded-contexts.md"
+    - "ADR-005-gestion-unificada-clientes-proveedores.md"
+
+bounded_contexts_overview:
+  title: "🎯 TramaTex Bounded Contexts"
+  description: "Modules organized by business domain"
+
+core_contexts:
+  auth:
+    title: "Authentication & Authorization (Phase 0)"
+    description: "User identification and JWT token management"
+    
+    criticality: "CRITICAL - Security Foundation"
+    implementation_phase: "0 (Before MVP)"
+    
+    key_entities:
+      - "User (email, password hash, status)"
+      - "Role (Admin, Commercial, Designer, Workshop)"
+      - "Permission (action-based authorization)"
+    
+    domain_concepts:
+      - "User registration with email validation"
+      - "Password hashing (bcrypt)"
+      - "JWT token generation and validation"
+      - "Session management (tokens, refresh)"
+    
+    repositories:
+      - "UserRepository: find by email, create, update"
+      - "RoleRepository: find by name"
+      - "PermissionRepository: find by resource+action"
+    
+    external_integrations: "None (MVP)"
+    
+    dependencies_on:
+      - "None (foundational)"
+    
+    depended_on_by:
+      - "Party (owner/creator tracking)"
+      - "Product (creator/modifier tracking)"
+      - "Sales (order owner)"
+      - "All modules (authentication middleware)"
+    
+    use_cases:
+      - "Register user"
+      - "Login user (generate JWT)"
+      - "Refresh token"
+      - "Logout user"
+      - "Assign role to user"
+    
+    api_endpoints:
+      - "POST /auth/register"
+      - "POST /auth/login"
+      - "POST /auth/refresh"
+      - "POST /auth/logout"
+  
+  party:
+    title: "Party / Organization Management (Phase 1)"
+    description: "Unified management of clients and suppliers"
+    
+    criticality: "CRITICAL - Business Foundation"
+    implementation_phase: "1"
+    
+    key_entities:
+      - "Organization (company, unified for clients/suppliers)"
+      - "Person (contacts within organization)"
+      - "Contact (emails, phones, addresses)"
+      - "Address (with standardization)"
+      - "OrganizationRole (Client, Supplier, Both)"
+    
+    domain_concepts:
+      - "Organization hierarchy (parent-child relationships)"
+      - "Contact management (multiple contacts per organization)"
+      - "Address standardization and validation"
+      - "Organization status management (active, inactive)"
+      - "Tax ID validation (CIF, NIF, etc.)"
+    
+    repositories:
+      - "OrganizationRepository"
+      - "PersonRepository"
+      - "ContactRepository"
+      - "AddressRepository"
+    
+    external_integrations:
+      - "Address standardization (future)"
+      - "Tax ID validation (future)"
+    
+    dependencies_on:
+      - "Auth (creator, modifier tracking)"
+    
+    depended_on_by:
+      - "Product (client preferences, supplier defaults)"
+      - "Pricing (client-specific pricing)"
+      - "Sales (customer, supplier references)"
+      - "MES (workflow participants)"
+    
+    use_cases:
+      - "Create organization (client or supplier)"
+      - "Update organization information"
+      - "Add contact to organization"
+      - "Add address to organization"
+      - "Change organization status"
+      - "Link client to supplier"
+    
+    api_endpoints:
+      - "GET/POST /organizations"
+      - "GET/PUT /organizations/{id}"
+      - "POST /organizations/{id}/contacts"
+      - "POST /organizations/{id}/addresses"
+  
+  product:
+    title: "Product Catalog (Phase 1)"
+    description: "Products, variants (size, color), and categories"
+    
+    criticality: "CRITICAL - Pricing Base"
+    implementation_phase: "1"
+    
+    key_entities:
+      - "Product (base product definition)"
+      - "Variant (specific size/color combination)"
+      - "VariantAttribute (size, color, material)"
+      - "Category (product grouping)"
+      - "Supplier (preferred suppliers per product)"
+      - "SupplierCost (cost per variant per supplier)"
+    
+    domain_concepts:
+      - "Product hierarchy (categories)"
+      - "Variant matrix (size × color combinations)"
+      - "Attribute validation (only allowed sizes/colors)"
+      - "Stock tracking per variant"
+      - "Supplier cost management"
+      - "Product status (active, inactive, discontinued)"
+    
+    repositories:
+      - "ProductRepository"
+      - "VariantRepository"
+      - "CategoryRepository"
+      - "SupplierRepository"
+      - "SupplierCostRepository"
+    
+    external_integrations: "None (MVP)"
+    
+    dependencies_on:
+      - "Auth (creator tracking)"
+      - "Party (supplier references)"
+    
+    depended_on_by:
+      - "Pricing (variant-based pricing)"
+      - "Sales (order items)"
+      - "MES (production assignments)"
+    
+    use_cases:
+      - "Create product with category"
+      - "Define variant attributes (sizes, colors)"
+      - "Create variant combinations"
+      - "Set supplier costs"
+      - "Update product information"
+      - "Deactivate product"
+    
+    api_endpoints:
+      - "GET/POST /products"
+      - "GET/PUT /products/{id}"
+      - "POST /products/{id}/variants"
+      - "GET /products/{id}/suppliers"
+  
+  pricing:
+    title: "Pricing Engine (Phase 1)"
+    description: "Dynamic pricing calculations with rules and margins"
+    
+    criticality: "CRITICAL - Core Business Logic (Economically critical)"
+    implementation_phase: "1"
+    
+    key_entities:
+      - "PricingRule (base, margin, discount rules)"
+      - "ClientPricing (client-specific pricing overrides)"
+      - "Margin (markup percentages)"
+      - "Discount (volume, loyalty, promotional)"
+      - "PriceCalculation (audit trail)"
+    
+    domain_concepts:
+      - "Cost-based pricing (supplier cost + margin)"
+      - "Client-specific pricing (overrides)"
+      - "Margin management (by product, category, client)"
+      - "Volume discount rules"
+      - "Loyalty discounts"
+      - "Promotional pricing"
+      - "Currency and decimal precision"
+      - "Audit trail for all price calculations"
+    
+    value_objects:
+      - "Money (amount, currency, precision)"
+      - "Percentage (discount, margin)"
+      - "PricingRule (encapsulates rule logic)"
+    
+    repositories:
+      - "PricingRuleRepository"
+      - "ClientPricingRepository"
+      - "MarginRepository"
+      - "PriceCalculationRepository"
+    
+    domain_services:
+      - "PriceCalculationService (orchestrates pricing logic)"
+    
+    external_integrations: "None (MVP)"
+    
+    dependencies_on:
+      - "Auth (user tracking)"
+      - "Party (client references)"
+      - "Product (variant costs)"
+    
+    depended_on_by:
+      - "Sales (order pricing)"
+      - "Reports (pricing analysis)"
+    
+    use_cases:
+      - "Calculate price for product variant + client"
+      - "Create pricing rule"
+      - "Override client pricing"
+      - "Apply discount"
+      - "Get pricing history (audit)"
+      - "Bulk recalculate prices"
+    
+    api_endpoints:
+      - "POST /pricing/calculate"
+      - "GET/POST /pricing/rules"
+      - "POST /pricing/client-overrides"
+      - "GET /pricing/history/{product-id}"
+    
+    special_considerations:
+      - "100% unit test coverage mandatory"
+      - "Separate calculation logic from persistence"
+      - "All prices immutable in audit trail"
+      - "Audit all price changes and reasons"
+  
+  sales:
+    title: "Sales & Orders (Phase 2)"
+    description: "Order management and sales transactions"
+    
+    criticality: "HIGH - Main Business Flow"
+    implementation_phase: "2"
+    
+    key_entities:
+      - "Order (sales order with header + lines)"
+      - "OrderItem (individual product in order)"
+      - "Quote (price estimate before order)"
+      - "SalesTransaction (financial record)"
+      - "OrderStatus (draft, pending, confirmed, completed)"
+    
+    domain_concepts:
+      - "Order creation with pricing"
+      - "Quote generation"
+      - "Order confirmation"
+      - "Line item management"
+      - "Order status workflow"
+      - "Delivery tracking"
+      - "Invoice generation (future)"
+    
+    repositories:
+      - "OrderRepository"
+      - "OrderItemRepository"
+      - "QuoteRepository"
+      - "SalesTransactionRepository"
+    
+    external_integrations:
+      - "Pricing context (calculate order total)"
+      - "Inventory context (check stock)"
+      - "MES context (production assignment)"
+    
+    dependencies_on:
+      - "Auth (user tracking)"
+      - "Party (customer reference)"
+      - "Product (product/variant reference)"
+      - "Pricing (order pricing)"
+    
+    depended_on_by:
+      - "MES (production orders)"
+      - "Inventory (stock deductions)"
+      - "Reports (sales analysis)"
+    
+    use_cases:
+      - "Create order"
+      - "Add items to order"
+      - "Generate quote"
+      - "Confirm order"
+      - "Change order status"
+      - "Complete order"
+    
+    api_endpoints:
+      - "GET/POST /orders"
+      - "GET/PUT /orders/{id}"
+      - "POST /orders/{id}/items"
+      - "GET/POST /quotes"
+  
+  mes:
+    title: "Manufacturing Execution System (Phase 3)"
+    description: "Production planning, execution, and quality control"
+    
+    criticality: "MEDIUM - Post-MVP"
+    implementation_phase: "3"
+    
+    key_entities:
+      - "ProductionOrder (MES work order)"
+      - "WorkCenter (production stations)"
+      - "QualityCheck (quality control)"
+      - "ProductionStatus (pending, in-progress, completed)"
+    
+    domain_concepts:
+      - "Production order assignment"
+      - "Work center scheduling"
+      - "Quality checks and inspection"
+      - "Production status tracking"
+    
+    dependencies_on:
+      - "Sales (production order source)"
+      - "Product (what to produce)"
+    
+    depended_on_by:
+      - "Inventory (stock completion)"
+      - "Reports (production metrics)"
+
+context_dependencies:
+  title: "📊 Bounded Context Dependencies"
+  
+  dependency_graph: |
+    Auth
+     ├─→ Party
+     ├─→ Product
+     └─→ Pricing
+            ├─→ Party (client reference)
+            └─→ Product (costs)
+                 └─→ Sales
+                      └─→ MES
+
+  implementation_order:
+    1: "Auth - foundational for all modules"
+    2: "Party - required by Product and Pricing"
+    3: "Product - base for pricing calculations"
+    4: "Pricing - core business logic, revenue critical"
+    5: "Sales - uses Auth, Party, Product, Pricing"
+    6: "MES - uses Sales, Product"
+  
+  blocking_dependencies:
+    "Pricing cannot start until": "Auth, Party, Product are complete"
+    "Sales cannot start until": "Auth, Party, Product, Pricing are complete"
+    "MES cannot start until": "Sales is complete"
+
+inter_context_communication:
+  title: "🔗 How Contexts Communicate"
+  
+  principle: "Loose coupling through interfaces"
+  
+  patterns:
+    - "A context exposes use cases as application services"
+    - "Other contexts call through service interfaces"
+    - "No direct database access across boundaries"
+    - "DTOs for data transfer between contexts"
+    - "Dependency Injection in application layer"
+  
+  example:
+    scenario: "Sales creates order with Pricing calculation"
+    flow: |
+      1. Sales receives create-order request
+      2. Sales loads Product via ProductRepository
+      3. Sales calls Pricing.CalculatePrice(product, client)
+      4. Pricing returns Money value object
+      5. Sales creates Order with calculated price
+      6. Order is persisted via OrderRepository
+
+context_ownership:
+  title: "👤 Context Ownership"
+  
+  recommendation:
+    - "Assign one developer per Bounded Context"
+    - "That developer owns domain + use cases"
+    - "Shared infrastructure layer code (factories, config)"
+    - "Clear interfaces between contexts"

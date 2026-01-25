@@ -1,0 +1,393 @@
+# Universal Sprint Registry Template
+# Version: 1.0
+# Purpose: Track journal status for quick lookup by session loader
+# Audience: Project teams, AI assistants
+
+---
+
+metadata:
+  filename: "sprint-registry.yaml"
+  location: "agents/sprint-registry.yaml"
+  version: "1.1"
+  last_updated: "2026-01-25"
+  purpose: "Central registry of all sprints and tasks, their status, and metadata"
+  auto_update_trigger: "After each task session"
+  note: "Parsed by sprint-session-loader.yaml for quick discovery"
+  
+  naming_conventions:
+    task_files:
+      pattern: "[ID_TAREA]-descriptive-name.md"
+      id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
+      location: "docs/project/sprints/sprint-[XX]/"
+      language: "Spanish (Espa\u00f1ol)"
+      examples:
+        - "sprint-01/04-auditoria-seguridad-owasp.md"
+        - "sprint-02/01-refactorizacion-sistema-documentacion.md"
+        - "sprint-02/02-compilacion-y-testeo-del-backend.md"
+        - "sprint-04/01-definicion-sistema-de-diseno.md"
+      notes:
+        - "Task IDs restart at 01 for each sprint"
+        - "Unique ID = sprint-XX + task-YY"
+        - "Facilitates reopening closed sprints"
+    
+    summary_files:
+      pattern: "sprint-[XX]-summary.md"
+      location: "docs/project/sprints/sprint-[XX]/"
+      language: "Spanish (Español)"
+      examples:
+        - "sprint-01-summary.md"
+        - "sprint-05-summary.md"
+
+active_tasks:
+  title: "🔄 Active/Open Tasks"
+  count: 4
+  note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
+  
+  task_04_01:
+    id: "04-01"
+    sprint: "04"
+    filename: "01-implementacion-controles-seguridad-owasp.md"
+    title: "Implementación de Controles de Seguridad OWASP"
+    status: "⏳ Planificado"
+    dates:
+      planned_start: "(Por determinar)"
+      planned_end: "(Por determinar)"
+    duration_estimated: "8 horas"
+    context_focus: "RBAC middleware, structured logging, CORS configuration"
+    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
+    priorities:
+      - "A01 Broken Access Control (RBAC)"
+      - "A09 Security Logging Failures (logrus)"
+      - "A05 Security Misconfiguration (CORS)"
+    deliverables:
+      - "RoleMiddleware implementation"
+      - "Structured logging with logrus"
+      - "CORS configuration by environment"
+      - "Security test suite"
+  
+  task_04_02:
+    id: "04-02"
+    sprint: "04"
+    filename: "02-pipeline-cicd-github-actions.md"
+    title: "Pipeline CI/CD con GitHub Actions"
+    status: "⏳ Planificado"
+    dates:
+      planned_start: "(Por determinar)"
+      planned_end: "(Por determinar)"
+    duration_estimated: "4 horas"
+    context_focus: "GitHub Actions workflows, pre-commit hooks, linters"
+    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
+    deliverables:
+      - "GitHub Actions workflows (backend.yml, frontend.yml)"
+      - "Pre-commit hooks configuration"
+      - "Linters: golangci-lint, eslint, prettier"
+      - "Codecov integration"
+  
+  task_04_03:
+    id: "04-03"
+    sprint: "04"
+    filename: "03-estrategia-calidad-deuda-tecnica.md"
+    title: "Estrategia de Calidad y Registro de Deuda Técnica"
+    status: "⏳ Planificado"
+    dates:
+      planned_start: "(Por determinar)"
+      planned_end: "(Por determinar)"
+    duration_estimated: "2-4 horas"
+    context_focus: "Testing strategy ADR, technical debt registry, contribution guide"
+    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
+    deliverables:
+      - "ADR-010: Testing Strategy"
+      - "docs/engineering/technical-debt.md"
+      - "CONTRIBUTING.md"
+  
+  task_05_01:
+    id: "05-01"
+    sprint: "05"
+    filename: "01-implementacion-modulo-party.md"
+    title: "Implementación del Módulo Party (Validación Post-Normas)"
+    status: "🔍 Pendiente de Aprobación Humana"
+    dates:
+      original_execution: "2026-01-18 to 2026-01-24"
+      pending_review: "(After Sprint 04 completion)"
+    duration_estimated: "4-6 horas"
+    context_focus: "Party module validation against Sprint 04 standards"
+    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
+    note: "Code exists but requires validation against new quality standards"
+    validation_checklist:
+      - "Coverage ≥ 90% per ADR-010"
+      - "RBAC middleware on endpoints"
+      - "Structured logging integration"
+      - "Linter compliance"
+      - "Pre-commit hooks pass"
+
+completed_tasks:
+  title: "✅ Completed Tasks"
+  note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+  
+  task_01_01:
+    id: "01-01"
+    sprint: "01"
+    filename: "01-diseño-y-arquitectura-inicial.md"
+    title: "Diseño y Arquitectura Inicial del Proyecto"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-06"
+      completed: "2026-01-11"
+    context_focus: "Project architecture, ADRs, documentation structure"
+    facilitator: "Jorge Cortés Villalba, Gemini"
+    key_outcomes:
+      - "9 ADRs iniciales definiendo arquitectura del proyecto"
+      - "Estructura de monorepo establecida"
+      - "Sistema de documentación inicial creado"
+      - "Bounded contexts definidos"
+      - "Tech stack seleccionado y documentado"
+  
+  task_01_02:
+    id: "01-02"
+    sprint: "01"
+    filename: "02-implementacion-modulo-autenticacion.md"
+    title: "Implementación del Módulo de Autenticación (Full-Stack)"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-11"
+      completed: "2026-01-13"
+    context_focus: "IAM module implementation (backend + frontend)"
+    facilitator: "Jorge Cortés Villalba, Gemini"
+    key_outcomes:
+      - "Módulo IAM backend implementado (dominio, casos de uso, persistencia)"
+      - "API REST de autenticación completada"
+      - "Frontend de login implementado en Vue 3"
+      - "Tests unitarios del módulo IAM"
+      - "Integración backend-frontend validada"
+  
+  task_01_03:
+    id: "01-03"
+    sprint: "01"
+    filename: "03-configuracion-entorno-dual-docker.md"
+    title: "Configuración de Entorno de Desarrollo Dual con Docker"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-14"
+      completed: "2026-01-15"
+    context_focus: "Docker environment setup (local + remote)"
+    facilitator: "Jorge Cortés Villalba"
+    key_outcomes:
+      - "Docker Compose configurado para desarrollo local"
+      - "Docker Compose configurado para servidor remoto"
+      - "PostgreSQL containerizado funcionando"
+      - "Makefile con comandos de gestión creado"
+      - "Scripts de instalación y verificación"
+  
+  task_01_04:
+    id: "01-04"
+    sprint: "01"
+    filename: "04-auditoria-seguridad-owasp.md"
+    title: "Auditoría de Seguridad basada en OWASP Top 10"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-24"
+      completed: "2026-01-25"
+    context_focus: "Security audit across all modules (IAM, Party)"
+    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
+    key_outcomes:
+      - "Auditoría completa OWASP Top 10 2021 realizada"
+      - "15 hallazgos documentados (2 críticos, 1 alto, 6 medios, 6 bajos)"
+      - "3 categorías sin vulnerabilidades (Injection, Components, SSRF)"
+      - "Plan de mitigación priorizado creado"
+      - "Riesgos aceptados para MVP documentados"
+      - "Informe ejecutivo con métricas de seguridad"
+  
+  task_02_01:
+    id: "02-01"
+    sprint: "02"
+    filename: "01-refactorizacion-sistema-documentacion.md"
+    title: "Refactorizaci\u00f3n del Sistema de Documentaci\u00f3n de Desarrollo"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-17"
+      completed: "2026-01-17"
+    context_focus: "Documentation system refactoring (sessions to sprints/tasks)"
+    facilitator: "Gemini"
+    key_outcomes:
+      - "Sistema de documentaci\u00f3n refactorizado de sesiones a sprints/tareas"
+      - "Plantilla _TASK_TEMPLATE.md creada"
+      - "Agente sprint-session-loader.yaml actualizado"
+      - "Sesiones antiguas archivadas en milestones"
+      - "Nueva estructura docs/project/sprints/ establecida"
+  
+  task_02_02:
+    id: "02-02"
+    sprint: "02"
+    filename: "02-compilacion-y-testeo-del-backend.md"
+    title: "Compilación, Testeo y Refactorización del tramatex-api"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-17"
+      completed: "2026-01-18"
+    context_focus: "Backend compilation, testing, initial Party domain setup"
+    facilitator: "Gemini"
+    key_outcomes:
+      - "Backend compilado correctamente"
+      - "Sistema de testing configurado"
+      - "Primeras pruebas de concepto del dominio Party"
+      - "Migraciones SQL básicas creadas"
+    note: "Trabajo inicial de Party - implementación completa se hizo en Sprint 06"
+  
+  task_04_01:
+    id: "04-01"
+    sprint: "04"
+    filename: "01-definicion-sistema-de-diseno.md"
+    title: "Definición e Implementación del Sistema de Diseño"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-18"
+      completed: "2026-01-18"
+    context_focus: "Design System implementation"
+    facilitator: "Gemini, GitHub Copilot, Jorge Cortés Villalba"
+    key_outcomes:
+      - "Sistema de diseño CSS implementado"
+      - "StyleGuide.vue component creado"
+      - "Ruta /style-guide accesible"
+      - "Contexto de diseño para agentes creado"
+
+task_backlog:
+  title: "📋 Recommended Next Tasks (Backlog)"
+  note: "Sprint 05 (Security/Quality) must be completed and Sprint 06 (Party) must be approved before continuing with domain modules"
+  
+  candidate_1:
+    priority: "HIGH"
+    focus: "Complete Sprint 05: Fundaciones de Seguridad y Calidad"
+    tasks:
+      - "05-01: Implementación controles OWASP"
+      - "05-02: Pipeline CI/CD"
+      - "05-03: Documentación de calidad"
+  
+  candidate_2:
+    priority: "HIGH"
+    focus: "Validate and approve Sprint 06: Módulo Party"
+    tasks:
+      - "Human review of existing code"
+      - "Validation against ADR-010"
+      - "Apply Sprint 05 standards"
+  
+  candidate_3:
+    priority: "MEDIUM"
+    focus: "Product Module implementation (after Sprint 05 + 06 approval)"
+    context_to_load: 
+      - "agents/project/context/architecture.yaml"
+      - "agents/project/context/code-standards.yaml"
+    suggested_title: "Sprint-06-08-implement-security-improvements"
+    estimated_duration: "4-6 hours"
+    key_actions:
+      - "Implement RoleMiddleware for RBAC"
+      - "Add ownership verification in use cases"
+      - "Configure environment-based CORS"
+      - "Implement structured logging (logrus/zap)"
+      - "Sanitize error messages in production"
+  
+  candidate_2:
+    priority: "HIGH"
+    focus: "Implement Product module (Catalogue)"
+    context_to_load:
+      - "agents/project/context/bounded-contexts.yaml"
+      - "agents/project/context/architecture.yaml"
+      - "agents/project/context/tech-stack.yaml"
+    suggested_title: "Sprint-06-09-implementacion-modulo-product"
+    estimated_duration: "6-8 hours"
+    key_actions:
+      - "Design Product domain model"
+      - "Implement product catalogue CRUD"
+      - "Create product categories"
+      - "Add product variants support"
+      - "Frontend UI for product management"
+  
+  candidate_3:
+    priority: "MEDIUM"
+    focus: "Implement Pricing module"
+    context_to_load:
+      - "agents/project/context/bounded-contexts.yaml"
+      - "agents/project/context/architecture.yaml"
+    suggested_title: "Sprint-06-10-implementacion-modulo-pricing"
+    estimated_duration: "6-8 hours"
+    key_actions:
+      - "Design pricing strategies (tiered, volume, etc)"
+      - "Implement price calculation engine"
+      - "Create price lists"
+      - "Frontend UI for pricing management"
+  
+  candidate_4:
+    priority: "MEDIUM"
+    focus: "Setup CI/CD pipeline"
+    context_to_load:
+      - "agents/project/context/tech-stack.yaml"
+      - "agents/project/context/code-standards.yaml"
+    suggested_title: "Sprint-06-11-setup-cicd-pipeline"
+    estimated_duration: "3-4 hours"
+    key_actions:
+      - "Configure GitHub Actions"
+      - "Automate test execution on PR"
+      - "Add linters to pipeline"
+      - "Setup pre-commit hooks"
+
+phase_status:
+  title: "🎯 Project Phase Status"
+  
+  phase_0:
+    name: "Fase 0: Fundaciones Técnicas"
+    status: "✅ COMPLETED"
+    modules_completed:
+      - "IAM (Authentication)"
+      - "Docker environment"
+      - "Git workflow"
+      - "Initial CI/CD"
+    estimated_total_hours: "20-25"
+    completion_date: "Q1 2026"
+  
+  phase_1:
+    name: "Fase 1: Dominio Base"
+    status: "🔄 IN PROGRESS"
+    modules_completed:
+      - "Party (Organizations, Contacts, Addresses)"
+      - "Design System"
+      - "OWASP Security Audit"
+    modules_in_progress: []
+    modules_planned:
+      - "Product (Catalogue)"
+      - "Pricing (Price Engine)"
+      - "Security improvements"
+    estimated_total_hours: "30-40"
+    target_completion: "Q2-Q4 2026"
+
+session_flow_quick_start:
+  title: "🚀 When You Start a New Session"
+  
+  step_by_step:
+    1: "Load: agents/sprint-session-loader.yaml"
+    2: "It will scan docs/project/sprints/ for open tasks"
+    3: "Check: agents/sprint-registry.yaml for status"
+    4: "Review: active_tasks list"
+    5: "If tasks open → Continue one of them"
+    6: "If all completed → Check task_backlog"
+    7: "Load relevant context from agents/[PROJECT]/context/"
+    8: "Begin work following TDD approach"
+
+instructions_for_ai:
+  title: "📝 For AI Assistants Using This File"
+  
+  when_session_starts:
+    step_1: "Parse this file (sprint-registry.yaml)"
+    step_2: "Note 'active_tasks.count' - how many are open"
+    step_3: "If count > 0, propose continuing one"
+    step_4: "If count = 0, propose from task_backlog"
+    step_5: "Use phase_status to understand timeline"
+  
+  when_task_completes:
+    step_1: "Move task from active_tasks to completed_tasks"
+    step_2: "Update 'last_updated' timestamp"
+    step_3: "Add key_outcomes section"
+    step_4: "Ensure next phase is ready"
+    step_5: "Update phase_status accordingly"
+  
+  keep_this_file:
+    note: "This is a living document. Update after each task session."
+

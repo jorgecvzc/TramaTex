@@ -1,0 +1,295 @@
+# TramaTex Tech Stack Context Agent
+# Version: 1.0
+# Purpose: Technology stack details and tool-specific guidelines
+
+---
+
+metadata:
+  filename: "tech-stack.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  references:
+    - "ADR-001-seleccion-stack-tecnologico.md"
+
+tramatex-api_stack:
+  title: "🔧 tramatex-api Stack (Go)"
+  
+  runtime:
+    language: "Go 1.21+"
+    rationale: "Fast compilation, single binary, good concurrency, suitable for local-first"
+  
+  web_framework:
+    library: "Gin Gonic"
+    purpose: "HTTP routing, middleware"
+    usage: "Interfaces layer only"
+  
+  database:
+    engine: "PostgreSQL 15+"
+    connection: "pgx via GORM"
+    rationale: "Reliable, supports complex queries, local deployment friendly"
+  
+  orm:
+    library: "GORM"
+    location: "Infrastructure layer ONLY"
+    rule: "NO GORM in domain or application layers"
+    models: "Define alongside repositories in infrastructure/"
+  
+  error_handling:
+    package: "apps/tramatex-api/pkg/errors"
+    style: "Custom typed errors, not string errors"
+  
+  logging:
+    approach: "Structured logging with levels (Debug, Info, Warn, Error)"
+    tools: "[To be defined - consider logrus or zap]"
+  
+  testing:
+    framework: "Go testing package (built-in)"
+    assertions: "testify/assert or similar"
+    databases: "Test containers or in-memory SQLite for unit tests"
+  
+  build_and_deployment:
+    containerization: "Docker + Dockerfile"
+    orchestration: "Docker Compose"
+    configuration: "Environment variables, config files in /apps/tramatex-api/cmd/api/"
+
+frontend_stack:
+  title: "🎨 Frontend Stack (Vue.js 3)"
+  
+  framework:
+    library: "Vue.js 3"
+    composition_api: "REQUIRED (no Options API)"
+    rationale: "Modern, reactive, composition-based code organization"
+  
+  build_tool:
+    tool: "Vite"
+    purpose: "Fast dev server, optimized builds"
+    config: "vite.config.js"
+  
+  state_management:
+    library: "Pinia"
+    approach: "Stores for global state (not component-local)"
+    rationale: "Replaces Vuex, simpler and more Vue 3 native"
+  
+  styling:
+    css_framework: "Tailwind CSS"
+    rule: "NO inline styles, NO raw CSS"
+    approach: "Utility-first CSS classes"
+  
+  type_safety:
+    language: "TypeScript"
+    config: "tsconfig.json"
+    requirement: "Strict type checking, no 'any'"
+  
+  api_communication:
+    pattern: "Services layer for API calls"
+    rule: "NO direct fetch/axios in components"
+    approach: "Services → Composables → Components"
+  
+  form_validation:
+    location: "Composables or Stores (not templates)"
+    approach: "Reusable validation logic"
+  
+  testing:
+    framework: "Vitest"
+    config: "vitest.config.ts"
+    scope: "Critical business logic in stores and composables"
+    tools: "Vitest + Vue Test Utils"
+    coverage: "≥80% for critical logic"
+  
+  accessibility:
+    baseline: "Minimal (WCAG 2.0 level A)"
+    requirements:
+      - "Form labels properly associated"
+      - "ARIA roles for complex widgets"
+      - "Keyboard navigation for dialogs"
+  
+  build_output:
+    location: "dist/"
+    format: "SPA (Single Page Application)"
+    deployment: "Static file server or embedded in tramatex-api"
+
+infrastructure_and_deployment:
+  title: "🐳 Infrastructure & Deployment"
+  
+  containerization:
+    base_image:
+      tramatex-api: "golang:1.21-alpine (multistage build)"
+      frontend: "node:20-alpine (build stage) → nginx:alpine (serve)"
+  
+  orchestration:
+    tool: "Docker Compose"
+    scope: "MVP development and small deployments"
+    services:
+      - "tramatex-api service (Go)"
+      - "frontend service (Vue.js via nginx)"
+      - "postgresql service (database)"
+      - "volumes for data persistence"
+    
+    file: "docker-compose.yml"
+  
+  local_first_design:
+    principle: "Operate without cloud dependencies"
+    requirements:
+      - "All data stays in local PostgreSQL"
+      - "No required cloud services"
+      - "NAS for file storage (optional, future)"
+      - "Possible future: optional cloud backup"
+  
+  networking:
+    tramatex-api_api: "http://localhost:8080 (development)"
+    frontend: "http://localhost:5173 (development, Vite)"
+    production: "[To be defined]"
+  
+  security:
+    authentication: "JWT (JSON Web Tokens)"
+    token_storage: "LocalStorage (frontend) - be aware of XSS"
+    password_hashing: "bcrypt (Go crypto/bcrypt)"
+    https: "TLS/SSL (post-MVP or for production)"
+  
+  configuration:
+    tramatex-api:
+      method: "Environment variables + config files"
+      location: "apps/tramatex-api/internal/config/"
+      example_vars:
+        - "DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
+        - "JWT_SECRET"
+        - "API_PORT"
+    
+    frontend:
+      method: "Environment variables (Vite) or runtime config"
+      location: "apps/frontend/.env, .env.local"
+      example_vars:
+        - "VITE_API_URL"
+
+development_workflow:
+  title: "⚙️ Development Workflow"
+  
+  tramatex-api_development:
+    run_locally:
+      - "Start PostgreSQL (Docker or local)"
+      - "go run apps/tramatex-api/main.go"
+      - "Or use: docker-compose up tramatex-api"
+    
+    testing:
+      - "go test ./..."
+      - "go test -cover ./..."
+      - "go test -v ./..."
+    
+    linting:
+      - "golangci-lint run ./..."
+      - "golangci-lint run ./... --fix"
+    
+    formatting:
+      - "go fmt ./..."
+      - "go vet ./..."
+  
+  frontend_development:
+    run_locally:
+      - "cd apps/frontend"
+      - "npm install"
+      - "npm run dev"
+      - "Vite server runs on http://localhost:5173"
+    
+    testing:
+      - "npm run test"
+      - "npm run test:ui (Vitest UI)"
+    
+    linting:
+      - "npm run lint"
+      - "npm run lint -- --fix"
+    
+    building:
+      - "npm run build"
+      - "Output: apps/frontend/dist/"
+  
+  docker_compose_workflow:
+    development:
+      - "docker-compose up"
+      - "tramatex-api: http://localhost:8080"
+      - "Frontend: http://localhost:5173 (via Vite in compose)"
+    
+    production_build:
+      - "docker-compose -f docker-compose.prod.yml up"
+      - "[Post-MVP]"
+  
+  database_workflow:
+    migrations:
+      - "Migrations stored: apps/tramatex-api/migrations/"
+      - "Format: YYYYMMDD_description.sql (sequentially numbered)"
+      - "Apply on startup: [Migration tool TBD]"
+    
+    testing:
+      - "Use in-memory SQLite for unit tests"
+      - "Use test PostgreSQL container for integration tests"
+
+browser_and_client_support:
+  title: "🌐 Browser Support"
+  
+  desktop:
+    browsers:
+      - "Chrome/Chromium 90+"
+      - "Firefox 88+"
+      - "Safari 14+"
+    
+    rationale: "Modern browsers, HTML5, ES2020+"
+  
+  tablet:
+    os:
+      - "iPad OS 14+ (Safari)"
+      - "Android 10+ (Chrome)"
+    
+    considerations:
+      - "Touch-friendly interfaces"
+      - "Responsive design (Tailwind)"
+      - "Performance optimized"
+  
+  no_mobile_phones_in_mvp:
+    scope: "Desktop and tablet focus"
+    rationale: "Core users are shop assistants, designers, production staff"
+
+performance_considerations:
+  title: "⚡ Performance Targets"
+  
+  tramatex-api:
+    response_times:
+      - "Standard queries: <100ms"
+      - "Complex calculations (pricing): <500ms"
+      - "Bulk operations: <5s"
+    
+    database:
+      - "Indexes on foreign keys and frequent filters"
+      - "Query optimization per ADR"
+    
+    concurrency:
+      - "Handle 50-100 concurrent users"
+      - "Go goroutines for I/O-bound tasks"
+  
+  frontend:
+    page_load:
+      - "First Contentful Paint: <2s"
+      - "Time to Interactive: <3s"
+    
+    bundle_size:
+      - "Gzip: <500KB (excluding vendor)"
+    
+    optimization:
+      - "Code splitting via Vite"
+      - "Lazy loading of routes"
+      - "Image optimization (future)"
+
+future_technology_decisions:
+  title: "🚀 Post-MVP Technology Decisions"
+  
+  database_evolution:
+    - "Possible: Read replicas"
+    - "Possible: Redis caching (high-volume scenarios)"
+  
+  frontend_evolution:
+    - "PWA capabilities (offline support)"
+    - "i18n (internationalization)"
+    - "Advanced charting (business intelligence)"
+  
+  infrastructure_evolution:
+    - "Kubernetes (if scaling to multiple deployments)"
+    - "Cloud backup (optional, post-MVP)"
+    - "Microservices split (if business justifies)"

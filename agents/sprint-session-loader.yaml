@@ -1,0 +1,143 @@
+# Universal Sprint Task Session Loader Agent
+# Version: 1.0
+# Purpose: Load project context, scan for open journals, and propose workflow
+# Audience: Any AI assistant starting a development session on any project
+
+---
+
+metadata:
+  filename: "sprint-session-loader.yaml"
+  location: "agents/sprint-session-loader.yaml"
+  version: "1.0"
+  last_updated: "2026-01-18"
+  purpose: "Load project context, scan for open sprint tasks, and propose workflow"
+  load_order: "first-in-session"
+  applies_to: "Any project using modular agent system"
+  note: "Generic version - each project loads its own project-context.yaml"
+
+workflow:
+  title: "🚀 Universal Sprint Task Session Loader Workflow"
+  description: "Smart initialization that loads context and identifies active sprint tasks"
+  
+  step_1_load_project_context:
+    action: "Load project-context.yaml"
+    source: "agents/generic-project-context.yaml"
+    purpose: "Establish project identity, architecture, and standards"
+    outcome: "Project context is now active"
+  
+  step_2_scan_journals:
+    action: "Scan sprints directory for tasks"
+    source: "docs/project/sprints/"
+    pattern: "sprint-[XX]/[ID_TAREA]-descriptive-name.md files with task structure"
+    naming_convention:
+      format: "[ID_TAREA]-descriptive-name.md"
+      id_format: "Sequential local per sprint (01, 02, 03... resets each sprint)"
+      unique_id: "sprint-XX + task-YY combination"
+      examples:
+        - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
+        - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
+        - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
+        - "sprint-05/01-implementacion-modulo-party.md (task 05-01)"
+      note: "Task IDs restart at 01 for each sprint, allowing sprint reopening"
+    purpose: "Identify all available tasks"
+    look_for:
+      - filename: "Task file naming: [ID_TAREA]-descriptive-name.md (e.g., 04-auditoria-seguridad.md)"
+      - status_field: "Estado field in task header (⏳ En Progreso, ✅ Completado, etc.)"
+      - entry_date: "Most recent task with status other than ✅ Completado"
+    outcome: "List of all tasks with their current status"
+  
+  step_3_identify_open_tasks:
+    action: "Filter tasks by status"
+    criteria:
+      - name: "Open or In-Progress"
+        status: "Not marked as ✅ Completado"
+        priority: "HIGH"
+      - name: "Recently Active"
+        indicator: "Last modified date or recent work entries"
+        priority: "MEDIUM"
+      - name: "Recently Completed"
+        status: "✅ Completado but within last 1-2 sessions"
+        priority: "LOW"
+    outcome: "Categorized list of tasks by status and recency"
+  
+  step_4_propose_workflow:
+    action: "Present options to user"
+    options:
+      option_1:
+        title: "Continue Previous Task"
+        when: "Open or recently completed task exists"
+        action: "Load most recent active task and load its context"
+        benefits:
+          - "Maintains context continuity"
+          - "Reduces context-switching overhead"
+          - "Builds on previous work"
+      
+      option_2:
+        title: "Start New Task"
+        when: "All tasks completed or user wants fresh start"
+        action: "Create new task following _TASK_TEMPLATE.md"
+      
+      option_3:
+        title: "Continue Specific Task"
+        when: "Multiple open tasks exist"
+        action: "Allow user to select from list of open tasks"
+
+task_detection_algorithm:
+  title: "🔍 How to Identify Open vs Completed Tasks"
+  
+  detection_rules:
+    rule_1:
+      name: "Status Field Check"
+      location: "Task header | Estado field"
+      open_indicators:
+        - "🔄 En Progreso"
+        - "⏸️ En Pausa"
+        - "🔍 En Revisión"
+      completed_indicators:
+        - "✅ Completado"
+
+context_loading_sequence:
+  title: "📚 Recommended Context Loading Sequence"
+  
+  when_continuing_task:
+    step_1: "Load generic-project-context.yaml (already done)"
+    step_2: "Review task's 📋 INFORMACIÓN section"
+    step_3: "Identify which Bounded Context the task focuses on"
+    step_4: "Load corresponding context from agents/project/context/"
+    step_5: "Review 🎯 OBJETIVOS for uncompleted items"
+    step_6: "Check 🚨 BLOQUEADORES for issues"
+    step_7: "Begin work on next objective"
+
+prompts_for_user:
+  title: "💬 User Prompts to Present"
+  
+  scenario_1_open_task:
+    prompt: |
+      ✅ Found open task: **[TASK_TITLE]**
+      
+      📊 Status: [STATUS]
+      📅 Last modified: [DATE]
+      🎯 Remaining objectives: [COUNT]
+      
+      Would you like to:
+      1. ✏️ Continue this task
+      2. 📝 Start a new task
+      3. 🔄 Switch to a different open task
+
+  scenario_2_completed_tasks:
+    prompt: |
+      📋 All recent tasks are completed.
+      
+      Available options:
+      1. 📝 Start new task for next phase
+      2. 🔍 Review specific completed task
+      3. 📊 Check project-status.md for guidance
+
+recommendations:
+  title: "💡 Best Practices"
+  
+  recommendation_1: "Always load this agent at session start"
+  recommendation_2: "Keep task Estado field updated after each session"
+  recommendation_3: "Complete Fecha de Fin before marking task as done"
+  recommendation_4: "Use focused tasks (one bounded context per task)"
+  recommendation_5: "Update project-status.md when changing phases"
