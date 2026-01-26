@@ -19,6 +19,23 @@ workflow:
   title: "🚀 Universal Sprint Task Session Loader Workflow"
   description: "Smart initialization that loads context and identifies active sprint tasks"
   
+  step_0_check_next_session:
+    action: "Check NEXT_SESSION.md file"
+    source: "NEXT_SESSION.md (root directory)"
+    purpose: "Determine if there is pending work from previous session"
+    conditions:
+      if_file_not_empty:
+        action: "Present NEXT_SESSION.md content to user"
+        prompt: "Previous session left pending work. Review NEXT_SESSION.md and choose:"
+        options:
+          - "Continue from checkpoint (recommended)"
+          - "Ignore and start fresh workflow"
+        note: "NEXT_SESSION.md takes priority over normal sprint scanning"
+      if_file_empty_or_missing:
+        action: "Continue to step_1_load_project_context"
+        note: "No pending work - proceed with normal session initialization"
+    outcome: "Decision on whether to resume from checkpoint or start fresh"
+  
   step_1_load_project_context:
     action: "Load project-context.yaml"
     source: "agents/generic-project-context.yaml"

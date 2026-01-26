@@ -22,7 +22,7 @@ metadata:
 
   
 project_standards:
-  organization_policy: "CLEAN ROOT - Only essential project files in root"
+  organization_policy: "CLEAN ROOT - Only README.md, AGENTS.md, NEXT_SESSION.md, and essential config files in root"
   documentation_structure: "All documentation organized in docs/ with clear categories for engineering, guides, and project management"
 
 workflow_steps:
@@ -178,7 +178,7 @@ workflow_steps:
 
   - step_id: "create_root_files"
     title: "Crear Archivos Raíz del Proyecto (POLÍTICA: Raíz Limpia)"
-    description: "Creará solo los archivos esenciales en raíz. POLÍTICA: Solo README.md y project-status.md como documentación. Todo lo demás va en docs/. (.gitignore, .env.example, Makefile, etc.)"
+    description: "Creará solo los archivos esenciales en raíz. POLÍTICA: Solo README.md, AGENTS.md, y NEXT_SESSION.md como documentación. Todo lo demás va en docs/. (.gitignore, .env.example, Makefile, etc.)"
     files_to_create:
       - filename: ".gitignore"
         content: |
@@ -212,8 +212,9 @@ workflow_steps:
           **POLÍTICAS DE ESTE PROYECTO:**
           - ✅ README.md → Navegación general (este archivo)
           - ✅ AGENTS.md → Punto de entrada para Asistentes de IA
-          - ❌ NO documentación .md adicional en raíz
-          - ✅ TODO va en carpetas dentro de `docs/`
+          - ✅ NEXT_SESSION.md → Estado de la sesión actual
+          - ❌ NO otra documentación .md en raíz
+          - ✅ TODO lo demás va en carpetas dentro de `docs/`
           
           **Por tipo de documento:**
           - 🏗️ **Ingeniería**: [docs/engineering/](docs/engineering/) (Arquitectura, Módulos, Diseño Técnico)
@@ -232,20 +233,42 @@ workflow_steps:
 
           You enforce these non-negotiable principles at all times:
 
-          *   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, and essential configuration files are permitted.
+          *   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, `NEXT_SESSION.md`, and essential configuration files are permitted.
           *   **Bilingual Standard**: Documentation is in **Spanish**, while code, comments, commits, and agent files are in **English**.
           *   **Clean Architecture & DDD**: The system is a modular monolith that strictly follows Clean Architecture and Domain-Driven Design.
           *   **Test-Driven Development (TDD)**: All business logic must be developed using a test-first approach.
 
-          ## 3. Standard Workflow
+          ## 3. NEXT_SESSION.md - Session Continuity
 
-          1.  **Initiate Session**: Always start by loading `agents/sprint-session-loader.yaml`.
+          `NEXT_SESSION.md` is a volatile checkpoint file:
+          - **Overwritten each session** with pending work
+          - **Empty file** = no pending tasks
+          - **Priority**: Check this file first before loading sprint-session-loader
+          - **Usage**: Resume half-finished work, track blockers, provide context
+
+          ## 4. Standard Workflow
+
+          1.  **Check NEXT_SESSION.md**: If not empty, resume from there. Otherwise load `agents/sprint-session-loader.yaml`.
           2.  **Select Task**: Either continue an existing task or start a new one from the backlog.
           3.  **Load Context**: Load the specific context agents required for the task from `agents/project/context/`.
           4.  **Develop (TDD)**: Write tests first, then implement the code.
           5.  **Validate**: Run all tests, linters, and formatters before committing.
-          6.  **Commit**: Use conventional commit messages in English.
+          6.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if complete.
+          7.  **Commit**: Use conventional commit messages in English.
 
+      - filename: "NEXT_SESSION.md"
+        content: |
+          # 📝 Next Session - $PROJECT_NAME
+          
+          **Last Updated:** [[YYYY-MM-DD]]
+          
+          ## Pending Work
+          
+          (This file is empty - no pending work from previous session)
+          
+          ---
+          
+          **Note:** This file is overwritten each session. Empty = no pending tasks.
 
       - filename: ".env.example"
         content: |

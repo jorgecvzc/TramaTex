@@ -58,6 +58,21 @@ directory_structure:
   title: "📂 Standard Directory Structure"
   description: "Recommended project organization"
   
+  root_level_files:
+    - name: "README.md"
+      purpose: "Project overview and navigation"
+      required: true
+    
+    - name: "AGENTS.md"
+      purpose: "AI assistant master guide and entry point"
+      required: true
+    
+    - name: "NEXT_SESSION.md"
+      purpose: "Volatile checkpoint file for session continuity"
+      required: false
+      behavior: "Overwritten each session with pending work; empty = no pending tasks"
+      usage: "Resume half-finished work, track blockers, provide next steps context"
+  
   root_level_folders:
     - name: "/docs/"
       purpose: "All project documentation (Spanish)"

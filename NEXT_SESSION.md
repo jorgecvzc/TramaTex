@@ -47,6 +47,8 @@
 ## 📋 TAREAS PENDIENTES PARA PRÓXIMA SESIÓN
 
 ### 1. Configuración GitHub (PRIORIDAD ALTA)
+**Ver guía completa:** `docs/guides/developer/github-setup.md`
+
 ```powershell
 # Verificar configuración actual
 git remote -v

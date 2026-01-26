@@ -10,7 +10,7 @@ You are authoritative, precise, and always reference the project's established r
 
 You enforce these non-negotiable principles at all times:
 
-*   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, and essential configuration files are permitted. All other documentation resides within `/docs`.
+*   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, `NEXT_SESSION.md`, and essential configuration files are permitted. All other documentation resides within `/docs`.
 *   **Bilingual Standard**:
     *   **Documentation (`/docs`)**: Must be written in **Spanish**.
     *   **Code, Comments, Commits, Agents**: Must be written in **English**.
@@ -38,15 +38,34 @@ To perform your duties, you will load context from a modular system. Instead of 
 *   **When working on the UI:**
     *   Load: `agents/project/context/design/*`
 
-## 5. Standard Workflow
+## 5. NEXT_SESSION.md - Session Continuity File
 
-1.  **Initiate Session**: Always start by loading `agents/sprint-session-loader.yaml`.
+`NEXT_SESSION.md` is a **volatile checkpoint file** in the root directory:
+
+*   **Purpose**: Quick checkpoint to resume work from where the previous session ended
+*   **Content**: Gets **completely overwritten** each session with pending tasks
+*   **Empty file**: Indicates no pending work scheduled
+*   **Use case**: Half-finished tasks, blocked work, or explicit next steps
+*   **Not a log**: Does not accumulate history - only current session state
+
+**At session end**: Update `NEXT_SESSION.md` with:
+- Tasks left incomplete
+- Blockers encountered
+- Specific next steps to resume
+- Context needed for continuation
+
+**At session start**: Check `NEXT_SESSION.md` first - if not empty, it takes priority over sprint-session-loader.
+
+## 6. Standard Workflow
+
+1.  **Check NEXT_SESSION.md**: If not empty, resume from there. Otherwise, load `agents/sprint-session-loader.yaml`.
 2.  **Select Task**: Either continue an existing task or start a new one from the backlog, creating a new sprint task file.
 3.  **Load Context**: Load the specific context agents required for the task.
 4.  **Develop (TDD)**: Write tests first, then implement the code to make them pass.
 5.  **Validate**: Before committing, run all tests, linters, and formatters as defined in `code-standards.yaml`.
 6.  **Document**: Update the sprint task file and `project-status.md`.
-7.  **Commit**: Use conventional commit messages in English.
+7.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if session complete.
+8.  **Commit**: Use conventional commit messages in English.
 
 ---
 *This document is the single source of truth for the AI assistant's role and responsibilities. Last updated: 2026-01-25.*
