@@ -19,6 +19,7 @@ import (
 	party_repo "github.com/joran-cortez/tramatex/internal/party/persistence"
 
 	// Security Service & Middleware Import
+	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 	"github.com/joran-cortez/tramatex/internal/shared/interfaces/http/middleware"
 )
@@ -139,17 +140,22 @@ func main() {
 		{
 			organizations := protected.Group("/organizations")
 			{
-				organizations.POST("", orgHandler.CreateOrganization)
+				// Write operations: admin and manager only
+				organizations.POST("", infra_middleware.RequireRole("admin", "manager"), orgHandler.CreateOrganization)
+				organizations.PUT("/:id", infra_middleware.RequireRole("admin", "manager"), orgHandler.UpdateOrganization)
+				organizations.PATCH("/:id/status", infra_middleware.RequireRole("admin", "manager"), orgHandler.ChangeStatus)
+
+				// Read operations: all authenticated users
 				organizations.GET("", orgHandler.ListOrganizations)
 				organizations.GET("/:id", orgHandler.GetOrganization)
-				organizations.PUT("/:id", orgHandler.UpdateOrganization)
-				organizations.PATCH("/:id/status", orgHandler.ChangeStatus)
 
-				organizations.POST("/:org_id/persons", personHandler.AddPerson)
+				// Person operations
+				organizations.POST("/:org_id/persons", infra_middleware.RequireRole("admin", "manager"), personHandler.AddPerson)
 				organizations.GET("/:org_id/persons", personHandler.ListPersons)
 				organizations.GET("/:org_id/primary-contact", personHandler.GetPrimaryContact)
 
-				organizations.POST("/:org_id/addresses", addressHandler.AddAddress)
+				// Address operations
+				organizations.POST("/:org_id/addresses", infra_middleware.RequireRole("admin", "manager"), addressHandler.AddAddress)
 				organizations.GET("/:org_id/addresses", addressHandler.ListAddresses)
 			}
 

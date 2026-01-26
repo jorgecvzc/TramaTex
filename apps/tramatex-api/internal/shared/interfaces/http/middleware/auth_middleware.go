@@ -23,16 +23,16 @@ func AuthMiddleware(jwtService security.JWTService) gin.HandlerFunc {
 		}
 
 		tokenString := parts[1]
-		claims, err := jwtService.ValidateToken(tokenString)
+		claims, err := jwtService.ValidateToken(c.Request.Context(), tokenString)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}
 
 		// Set user context
-		c.Set("userID", claims.Subject)
-		// You can also set roles if they are in the token
-		// c.Set("roles", claims.Roles)
+		c.Set("userID", claims.Subject())
+		c.Set("userEmail", claims.Email())
+		c.Set("userRole", claims.Role())
 
 		c.Next()
 	}
