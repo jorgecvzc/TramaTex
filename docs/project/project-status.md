@@ -27,7 +27,7 @@ Esto garantiza que todo el código cumple con los estándares de calidad y ha si
   - [x] Auditoría de seguridad OWASP - `COMPLETADO`
   - [ ] **Sprint 04: Fundaciones de Seguridad y Calidad** - `PLANIFICADO`
     - [ ] Controles de seguridad OWASP (RBAC, logging, CORS)
-    - [ ] Pipeline CI/CD con GitHub Actions
+    - [ ] Pipeline CI/CD con GitHub Actions (✅ Prerequisito: GitHub configurado)
     - [ ] Estrategia de calidad y deuda técnica
   - [ ] **Sprint 05: Módulo Party** - `PENDIENTE DE APROBACIÓN`
     - [x] Código implementado (2026-01-18 a 2026-01-24)
@@ -37,7 +37,11 @@ Esto garantiza que todo el código cumple con los estándares de calidad y ha si
   - [ ] Módulo Pricing (Tarificación)
 
 ## Hitos Recientes
-
+### 🚀 GitHub Configurado (2026-01-26)
+- ✅ Autenticación SSH configurada
+- ✅ Repositorio remoto: `git@github.com:jorgecvzc/TramaTex.git`
+- ✅ Push inicial completado (5082 objetos)
+- ✅ Clean Root Policy actualizada (NEXT_SESSION.md incluido)
 ### � Reorganización de Sprints (2026-01-25)
 - 📋 Sprint 04 y 05 intercambiados para orden lógico correcto
 - 🛡️ Sprint 04: Fundaciones de Seguridad y Calidad (establecer normas primero)

@@ -57,14 +57,22 @@
 
 ### 3. **Dónde Va la Documentación**
 
-| Documentación | Ubicación | Cantidad |
+| Documentación | Ubicación | Comportamiento |
 |---|---|---|
+| Checkpoint de sesión | **NEXT_SESSION.md (raíz)** | **VOLÁTIL** - Se sobrescribe cada sesión, NO acumula historia |
+| Histórico de cambios | **docs/project/project-status.md** | Acumulativo - hitos y progreso |
 | Changelog | **TramaTex raíz** (NO init-project/) | Opcional |
 | Guía de estándares | **Dentro de bootstrap.yaml** o **TramaTex raíz** | 1 |
 | Resumen ejecutivo | **TramaTex raíz** (NO init-project/) | Opcional |
 | Arquitectura | **bootstrap.yaml** o **templates/** | 1 |
 | Templates | **project-scaffolding/templates/** | ✓ |
 | Configuración | **bootstrap.yaml** | 1 |
+
+**REGLA CRÍTICA: NEXT_SESSION.md**
+- ❌ NO es un log histórico
+- ✅ Se sobrescribe completamente cada sesión
+- ✅ Vacío = no hay trabajo pendiente
+- ✅ Lo completado → eliminar o mover a project-status.md antes de sobrescribir
 
 ---
 
