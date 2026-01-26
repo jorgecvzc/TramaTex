@@ -44,9 +44,10 @@ type JWTConfig struct {
 
 // SecurityConfig holds security configuration
 type SecurityConfig struct {
-	JWTSecret         string
-	JWTAccessTTL      string
-	JWTRefreshTTL     string
+	JWTSecret          string
+	JWTAccessTTL       string
+	JWTRefreshTTL      string
+	CORSAllowedOrigins string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -75,9 +76,10 @@ func LoadConfig() (*Config, error) {
 			RefreshTokenTTL2: getEnv("JWT_REFRESH_TOKEN_TTL", "7d"),
 		},
 		Security: SecurityConfig{
-			JWTSecret:     getEnvRequired("JWT_SECRET"),
-			JWTAccessTTL:  getEnv("JWT_ACCESS_TOKEN_TTL", "15m"),
-			JWTRefreshTTL: getEnv("JWT_REFRESH_TOKEN_TTL", "7d"),
+			JWTSecret:          getEnvRequired("JWT_SECRET"),
+			JWTAccessTTL:       getEnv("JWT_ACCESS_TOKEN_TTL", "15m"),
+			JWTRefreshTTL:      getEnv("JWT_REFRESH_TOKEN_TTL", "7d"),
+			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
 		},
 	}
 

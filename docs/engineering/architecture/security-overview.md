@@ -1,6 +1,6 @@
 # Estrategia de Seguridad TramaTex
 
-**Referencia completa:** [ADR-010: Estrategia de Seguridad - Defensa en Profundidad](adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
+**Referencia completa y autoritativa:** [ADR-010: Estrategia de Seguridad - Defensa en Profundidad](adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
 
 ---
 

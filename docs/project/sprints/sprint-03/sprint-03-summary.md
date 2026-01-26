@@ -149,10 +149,14 @@ Tras completar los módulos IAM y Party (Sprint 02-03), se identificó la necesi
 
 ### Decisiones Clave
 
-1. **RBAC con Middleware:**
-   - Decisión: Usar middleware de autorización en capa de interfaces
-   - Razón: Separación de concerns, fácil de testear
-   - Alternativa rechazada: RBAC en cada handler (duplicación)
+1. **ADR-010: Estrategia de Seguridad y Defensa en Profundidad**:
+   - Decisión: Adoptar una estrategia de seguridad de 6 capas (Red, IAM, Aplicación, Datos, Supply Chain, Operaciones).
+   - Razón: Proteger proactivamente los datos críticos del negocio y cumplir con las mejores prácticas de la industria.
+
+2. **RBAC con Middleware:**
+   - Decisión: Usar middleware de autorización en capa de interfaces.
+   - Razón: Separación de concerns, fácil de testear.
+   - Alternativa rechazada: RBAC en cada handler (duplicación).
 
 2. **Logging Estructurado:**
    - Decisión: logrus con formato JSON

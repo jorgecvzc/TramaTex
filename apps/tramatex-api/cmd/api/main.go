@@ -70,9 +70,11 @@ func main() {
 	router := gin.Default()
 
 	// Global middlewares (order matters!)
-	router.Use(infra_middleware.RequestIDMiddleware())      // 1. Generate request ID
-	router.Use(infra_middleware.SecurityLoggerMiddleware()) // 2. Log all requests with security context
-	router.Use(corsMiddleware())                            // 3. CORS
+	router.Use(infra_middleware.SecurityHeadersMiddleware())                     // 1. Add security headers
+	router.Use(infra_middleware.RequestIDMiddleware())                           // 2. Generate request ID
+	router.Use(infra_middleware.SecurityLoggerMiddleware())                      // 3. Log all requests with security context
+	router.Use(infra_middleware.CORSMiddleware(cfg.Security.CORSAllowedOrigins)) // 4. CORS with whitelist
+	router.Use(infra_middleware.ErrorHandlerMiddleware(cfg.Server.Environment))  // 5. Error sanitization
 
 	// =========================================================================
 	// DEPENDENCY INJECTION & ROUTE SETUP
@@ -181,24 +183,12 @@ func main() {
 	// =========================================================================
 
 	// Start server
+	logging.Logger.WithFields(map[string]interface{}{
+		"host": cfg.Server.Host,
+		"port": cfg.Server.Port,
+	}).Info("Server starting")
+
 	if err := router.Run(cfg.Server.Host + ":" + cfg.Server.Port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
-}
-
-// corsMiddleware adds CORS headers
-func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-User-ID")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
+		logging.Logger.WithError(err).Fatal("Failed to start server")
 	}
 }

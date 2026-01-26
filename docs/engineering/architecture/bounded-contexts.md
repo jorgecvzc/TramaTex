@@ -265,6 +265,8 @@ Donde:
 
 ### Seguridad (MVP: básica; Post-MVP: avanzada)
 
+**Referencia Arquitectónica:** [ADR-010 - Estrategia de Seguridad](adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
+
 **MVP:**
 - Autenticación JWT
 - Roles básicos: Admin, Comercial, Diseño, Taller
