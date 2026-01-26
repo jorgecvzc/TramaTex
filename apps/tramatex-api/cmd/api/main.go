@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/config"
+	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/logging"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/migrations"
 
 	// IAM Module Imports
@@ -31,6 +32,15 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Initialize logger
+	logging.InitLogger(cfg.Server.Environment)
+	logging.Logger.Info("🚀 TramaTex API starting...")
+	logging.Logger.WithFields(map[string]interface{}{
+		"host":        cfg.Server.Host,
+		"port":        cfg.Server.Port,
+		"environment": cfg.Server.Environment,
+	}).Info("Server configuration loaded")
+
 	fmt.Println("🚀 TramaTex API starting...")
 	fmt.Printf("Server: %s:%s\n", cfg.Server.Host, cfg.Server.Port)
 	fmt.Printf("Database: %s\n", cfg.DB.Host)
@@ -38,8 +48,9 @@ func main() {
 	// Connect to database
 	db, err := cfg.DB.Connect()
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logging.Logger.WithError(err).Fatal("Failed to connect to database")
 	}
+	logging.Logger.Info("✓ Database connected")
 	fmt.Println("✓ Database connected")
 
 	// Get underlying SQL DB from GORM for repositories that need *sql.DB
@@ -58,8 +69,10 @@ func main() {
 	// Setup Gin router
 	router := gin.Default()
 
-	// CORS middleware
-	router.Use(corsMiddleware())
+	// Global middlewares (order matters!)
+	router.Use(infra_middleware.RequestIDMiddleware())      // 1. Generate request ID
+	router.Use(infra_middleware.SecurityLoggerMiddleware()) // 2. Log all requests with security context
+	router.Use(corsMiddleware())                            // 3. CORS
 
 	// =========================================================================
 	// DEPENDENCY INJECTION & ROUTE SETUP
