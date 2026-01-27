@@ -6,7 +6,7 @@
 
 | Campo | Valor |
 |-------|-------|
-| **ID de Tarea** | 03 |
+| **ID de Tarea** | 01 |
 | **ID de Sprint** | sprint-04 |
 | **Título** | Estrategia de Calidad y Registro de Deuda Técnica |
 | **Estado** | ⏳ Planificado |
@@ -17,9 +17,9 @@
 | **Duración Real** | (Completar al finalizar) |
 
 **Nota sobre IDs:**
-- **ID de Tarea**: 03 (tercera tarea del sprint-04)
+- **ID de Tarea**: 01 (primera tarea del sprint-04)
 - **ID de Sprint**: sprint-04
-- **ID Único**: 04-03
+- **ID Único**: 04-01
 
 ---
 
