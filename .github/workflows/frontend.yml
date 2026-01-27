@@ -1,0 +1,125 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  test:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: apps/frontend
+        run: npm run test:unit
+
+      - name: Run tests with coverage
+        working-directory: apps/frontend
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: apps/frontend/coverage/coverage-final.json
+          flags: frontend
+          fail_ci_if_error: false
+
+      - name: Build application
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: apps/frontend/dist
+          retention-days: 7
+
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Check code formatting
+        working-directory: apps/frontend
+        run: |
+          if command -v prettier &> /dev/null; then
+            npx prettier --check "src/**/*.{js,vue,ts}"
+          else
+            echo "⚠️  Prettier not configured, skipping format check"
+          fi
+
+      - name: Run ESLint
+        working-directory: apps/frontend
+        run: |
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+            npx eslint src/
+          else
+            echo "⚠️  ESLint not configured, skipping lint check"
+          fi
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Run npm audit
+        working-directory: apps/frontend
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Check for known vulnerabilities
+        working-directory: apps/frontend
+        run: |
+          npm audit --json > audit-report.json || true
+          if [ -s audit-report.json ]; then
+            echo "📋 Vulnerability report generated"
+            cat audit-report.json
+          fi

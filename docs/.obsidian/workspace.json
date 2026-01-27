@@ -4,17 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "e7e12e4804405ed0",
+        "id": "40dbb9aac8acf4e9",
         "type": "tabs",
         "children": [
           {
-            "id": "6644e5612085a139",
+            "id": "049755ec0847af80",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "project/01-project-charter.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "01-project-charter"
             }
           }
         ]
@@ -176,8 +180,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "6644e5612085a139",
+  "active": "049755ec0847af80",
   "lastOpenFiles": [
+    "project/project-handbook.md",
+    "project/01-project-charter.md",
     "project/sprints/sprint-03/sprint-03-summary.md",
     "project/sprints/sprint-05/sprint-05-summary.md",
     "project/sprints/sprint-04/sprint-04-summary.md",
@@ -207,8 +213,6 @@
     "project/sprints/sprint-06/01-implementacion-modulo-party.md",
     "project/sprints/sprint-06",
     "project/sprints/sprint-05/03-estrategia-calidad-deuda-tecnica.md",
-    "project/sprints/sprint-05/01-implementacion-controles-seguridad-owasp.md",
-    "project/sprints/sprint-05/02-pipeline-cicd-github-actions.md",
-    "project/sprints/sprint-05-temp/01-implementacion-modulo-party.md"
+    "project/sprints/sprint-05/01-implementacion-controles-seguridad-owasp.md"
   ]
 }

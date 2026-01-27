@@ -1,28 +1,26 @@
 # TramaTex - README
 
+[![Backend CI](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml)
+[![Frontend CI](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml)
+[![codecov](https://codecov.io/gh/joran-cortez/tramatex/branch/master/graph/badge.svg)](https://codecov.io/gh/joran-cortez/tramatex)
+
 **TramaTex** es un **ERP/MES (Enterprise Resource Planning / Manufacturing Execution System)** diseñado específicamente para **microempresas del sector textil y de personalización**.
 
 ---
 
-## � Estado Actual
+## 🚀 Punto de Partida
 
-**Última Auditoría:** ✅ Completado 24/01/2026 - Auditoría de Estructura y Compilación
-**Proyecto Status:** 🟢 **VERDE** - Compilable y Operativo
+**Para obtener una visión completa y guiada del proyecto, la arquitectura, el stack tecnológico y el estado actual, consulta nuestro manual central:**
 
-### 📋 Documentación Rápida
+- **[📖 Manual del Proyecto TramaTex](./docs/project/project-handbook.md)** ← **LEER PRIMERO**
 
-- **Generales:** [Proyecto](README.md), [Estado](docs/project/project-status.md)
-- **Auditoría 2026-01-24:** 
-  - ⚡ [Resumen Rápido](QUICK_SUMMARY_AUDIT.md) ← **LEER PRIMERO (2 min)**
-  - 📑 [Índice de Auditoría](AUDIT_INDEX.md) - Navega todos los reportes
-  - 📊 [Reporte Técnico Completo](AUDIT_COMPLETE_FINAL_REPORT.md)
-- **Arquitectura:** [ADRs](docs/engineering/architecture/adr/), [Documentos del Proyecto](docs/project/), [Diagramas](docs/engineering/architecture/diagrams/)
-- **Módulos:** [IAM](docs/engineering/modules/iam/), [Party](docs/engineering/modules/party/)
-- **Desarrollo:** [Makefile](Makefile), [Backend](apps/tramatex-api/), [Frontend](apps/frontend/)
+Para ver el progreso actualizado, los hitos y los próximos pasos, visita el panel de estado:
+
+- **[📊 Estado del Proyecto](./docs/project/project-status.md)**
 
 ---
 
-## �📋 Visión
+## vision-icon📋 Visión
 
 Proporcionar una solución integrada que permita a microempresas:
 - **Gestionar clientes y proveedores** de forma centralizada (Party)
