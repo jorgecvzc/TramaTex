@@ -196,7 +196,7 @@ Nota: Estas estimaciones son orientativas. La duración real dependerá de:
 |---|---|---|
 | RNF1 | Eficiencia de recursos | <150MB RAM |
 | RNF2 | Operativa 100% local | No cloud required |
-| RNF3 | Mantenibilidad base | TDD + cobertura ≥75% |
+| RNF3 | Mantenibilidad base | TDD + cobertura ≥75% (ver ADR-011 para estrategia detallada) |
 | RNF4 | Integridad de datos | ACID PostgreSQL |
 | RNF5 | Seguridad básica | JWT + RBAC |
 | RNF6 | Resiliencia operativa | Backups automáticos |
