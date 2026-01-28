@@ -103,8 +103,8 @@ Establecer una arquitectura de seguridad robusta que proteja el sistema mediante
 **Controles implementados:**
 - **CORS:** Whitelist de orígenes permitidos (configurable por entorno)
 - **TLS 1.3:** Cifrado en tránsito obligatorio (excepto desarrollo local)
-- **Rate Limiting:** Protección contra ataques de fuerza bruta (post-inicial)
-- **WAF:** Web Application Firewall si despliegue en cloud (post-inicial)
+- **Rate Limiting:** Protección contra ataques de fuerza bruta (post-MVP)
+- **WAF:** Web Application Firewall si despliegue en cloud (post-MVP)
 
 **Configuración:**
 ```yaml
@@ -138,7 +138,7 @@ TLS_MIN_VERSION: "1.3"
 - **Nunca** en código fuente
 - Variables de entorno (`.env` en `.gitignore`)
 - Validación automática en CI/CD (no commits con secretos)
-- Rotación JWT_SECRET: manual en fase inicial; automática post-inicial
+- Rotación JWT_SECRET: manual en fase inicial; automática post-MVP
 
 #### 2.2 Autorización (RBAC)
 
@@ -153,7 +153,7 @@ Todo endpoint de escritura (POST, PUT, PATCH, DELETE) **DEBE** verificar rol ant
 **Configuración por defecto:**
 - Nuevas cuentas: `active: false` (requiere activación manual)
 - Acceso: organizacional completo (sin ownership granular en fase inicial)
-- Expansibilidad: diseño permite roles personalizables (post-inicial)
+- Expansibilidad: diseño permite roles personalizables (post-MVP)
 
 ---
 
@@ -180,7 +180,7 @@ Todo endpoint de escritura (POST, PUT, PATCH, DELETE) **DEBE** verificar rol ant
 | **SQL Injection** | GORM prepared statements (automático) |
 | **XSS** | Prohibido `v-html` en frontend; sanitización automática Vue.js |
 | **Path Traversal** | `filepath.Clean()` + whitelist de directorios |
-| **LDAP/NoSQL** | No aplica en fase inicial; crítico post-inicial |
+- **LDAP/NoSQL** | No aplica en fase inicial; crítico post-MVP
 
 #### 3.3 Manejo de Errores
 
@@ -211,12 +211,12 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 #### 4.1 Cifrado
 
 **En tránsito:**
-- TLS 1.3 obligatorio (post-inicial)
+- TLS 1.3 obligatorio (post-MVP)
 - Certificados válidos (Let's Encrypt o corporativos)
 
 **En reposo:**
 - Contraseñas: bcrypt (ya implementado)
-- Datos sensibles: cifrado AES-256 (post-inicial para precios, financiero)
+- Datos sensibles: cifrado AES-256 (post-MVP para precios, financiero)
 
 #### 4.2 Privacidad en Logs
 
@@ -252,7 +252,7 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 - Checksums de binarios generados
 - Escaneo de imágenes Docker: Trivy o Grype
 - SBOM (Software Bill of Materials) generado
-- Firma GPG de commits: opcional en fase inicial; obligatorio post-inicial
+- Firma GPG de commits: opcional en fase inicial; obligatorio post-MVP
 
 ---
 
@@ -291,11 +291,11 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 **Almacenamiento:**
 - Fase inicial: archivos rotados (7 días dev / 90 días prod)
-- Post-inicial: centralización (ELK, Loki, CloudWatch)
+- Post-MVP: centralización (ELK, Loki, CloudWatch)
 
 **Alertas:**
 - Fase inicial: revisión manual de logs
-- Post-inicial: automáticas (>10 logins fallidos/min)
+- Post-MVP: automáticas (>10 logins fallidos/min)
 
 #### 6.2 Correlación de Requests
 
@@ -363,15 +363,15 @@ Para validar que un módulo cumple esta estrategia:
 - Sin cifrado en reposo
 
 **Fase Intermedia (Pre-Cloud):**
-- TLS 1.3 obligatorio
-- Cifrado en reposo para datos sensibles
-- Centralización de logs
+- TLS 1.3 obligatorio (post-MVP)
+- Cifrado en reposo para datos sensibles (post-MVP para precios, financiero)
+- Centralización de logs (post-MVP)
 
 **Fase Avanzada (Cloud):**
-- WAF + Rate limiting
-- Revocación de tokens (Redis)
-- Alertas automáticas
-- Roles personalizables
+- WAF + Rate limiting (post-MVP)
+- Revocación de tokens (Redis) (post-MVP)
+- Alertas automáticas (post-MVP)
+- Roles personalizables (post-MVP)
 
 ### Script de Validación de Configuración
 
