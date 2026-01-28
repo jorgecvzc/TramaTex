@@ -47,9 +47,11 @@ project_structure:
     - "internal/{module}/...: Backend code organized by Bounded Context."
     - "src/{components,pages,services,stores}/...: Frontend code structure."
   documentation_layout:
-    - "docs/engineering: Technical documentation (architecture, modules)."
-    - "docs/project: Project management (sprints, status, milestones)."
+    - "docs/1_project: Project management (charter, status, sprints)."
+    - "docs/2_architecture: Technical documentation (architecture, ADRs)."
+    - "docs/3_modules: Detailed documentation for each Bounded Context."
     - "docs/guides: Developer and user guides."
+    - "docs/archive: Historical records (sprints, milestones)."
 
 bounded_contexts:
   description: "The system is a modular monolith. Core business domains are separated into Bounded Contexts. For a detailed map, see agents/project/context/bounded-contexts.yaml."
@@ -88,11 +90,11 @@ architecture_decisions:
 
 workflow:
   development_workflow: "Feature-branch workflow with Pull Requests. Commits must follow Conventional Commits standard."
-  testing_strategy: "TDD is mandatory for critical domain logic (Pricing). See ADR-010 for full testing strategy."
+  testing_strategy: "TDD is mandatory for critical domain logic (Pricing). See ADR-011 for full testing strategy."
   deployment_process: "Docker Compose for local and remote MVP deployment. CI/CD pipeline managed by GitHub Actions."
 
 references:
-  - "[Project Handbook](docs/project/project-handbook.md) (Primary Entry Point)"
-  - "[Architecture Overview](docs/engineering/architecture/architecture-overview.md)"
-  - "[Module Documentation](docs/engineering/modules/)"
-  - "[Active Sprints](docs/project/sprints/)"
+  - "[Project Handbook](docs/1_project/README.md) (Primary Entry Point)"
+  - "[Architecture Overview](docs/2_architecture/README.md)"
+  - "[Module Documentation](docs/3_modules/)"
+  - "[Active Sprints](docs/archive/sprints/)"

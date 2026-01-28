@@ -51,9 +51,14 @@ func SecurityLoggerMiddleware() gin.HandlerFunc {
 			"user_agent": c.Request.UserAgent(),
 		})
 
-		// Log with appropriate level based on status code
+		// Log with appropriate level and message based on status code and context
 		status := c.Writer.Status()
 		msg := "HTTP request completed"
+		if authErr, exists := c.Get("authError"); exists {
+			if errStr, ok := authErr.(string); ok {
+				msg = errStr
+			}
+		}
 
 		switch {
 		case status >= 500:

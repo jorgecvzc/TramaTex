@@ -18,7 +18,7 @@ metadata:
     task_files:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
-      location: "docs/project/sprints/sprint-[XX]/"
+      location: "docs/archive/sprints/sprint-[XX]/"
       language: "Spanish (Español)"
       examples:
         - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
@@ -31,7 +31,7 @@ metadata:
     
     summary_files:
       pattern: "sprint-[XX]-summary.md"
-      location: "docs/project/sprints/sprint-[XX]/"
+      location: "docs/archive/sprints/sprint-[XX]/"
       language: "Spanish (Español)"
       examples:
         - "sprint-01-summary.md"
@@ -88,7 +88,7 @@ session_flow_quick_start:
   
   step_by_step:
     1: "Load: agents/sprint-session-loader.yaml"
-    2: "It will scan docs/sprints/ for open tasks"
+    2: "It will scan docs/archive/sprints/ for open tasks"
     3: "Check: agents/sprint-registry.yaml for status"
     4: "Review: active_tasks list"
     5: "If tasks open → Continue one of them"

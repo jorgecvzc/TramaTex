@@ -19,6 +19,7 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		// Extract user role from context (set by AuthMiddleware)
 		roleValue, exists := c.Get("userRole")
 		if !exists {
+			c.Set("authError", "role_not_found_in_context")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "unauthorized: user role not found in context",
 			})
@@ -28,6 +29,7 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 
 		userRole, ok := roleValue.(string)
 		if !ok {
+			c.Set("authError", "invalid_role_type_in_context")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "internal server error: invalid role type",
 			})
@@ -45,6 +47,7 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		if !roleAllowed {
+			c.Set("authError", "insufficient_permissions")
 			c.JSON(http.StatusForbidden, gin.H{
 				"error": "forbidden: insufficient permissions",
 			})

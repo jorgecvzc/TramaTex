@@ -66,14 +66,14 @@ workflow_steps:
   - step_id: "create_docs_subdirectories"
     title: "Crear Subdirectorios de Documentación"
     description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
-    command: "mkdir -p docs/engineering/architecture/adr docs/engineering/architecture/diagrams docs/engineering/modules docs/guides/user docs/guides/developer docs/project/sprints docs/project/governance docs/project/milestones"
+    command: "mkdir -p docs/1_project/governance docs/2_architecture/adr docs/2_architecture/diagrams docs/3_modules docs/guides/developer docs/guides/user docs/archive/sprints docs/archive/milestones"
     next_step: "create_project_status_file"
 
   - step_id: "create_project_status_file"
     title: "Crear Archivo de Estado del Proyecto"
-    description: "Creará el archivo `project-status.md` dentro de `docs/project/`."
+    description: "Creará el archivo `project-status.md` dentro de `docs/1_project/`."
     files_to_create:
-      - filename: "docs/project/project-status.md"
+      - filename: "docs/1_project/project-status.md"
         content: |
           # Estado del Proyecto: $PROJECT_NAME
           
@@ -165,15 +165,15 @@ workflow_steps:
     description: "Copiará las plantillas de documentación universales a la carpeta 'docs/' del nuevo proyecto."
     files_to_copy_relative_to_project_scaffolding:
       - source: "templates/docs/_ADR_TEMPLATE.md"
-        destination: "docs/engineering/architecture/adr/_ADR_TEMPLATE.md"
+        destination: "docs/2_architecture/adr/_ADR_TEMPLATE.md"
       - source: "templates/docs/_TASK_TEMPLATE.md"
-        destination: "docs/project/sprints/_TASK_TEMPLATE.md"
+        destination: "docs/archive/sprints/_TASK_TEMPLATE.md"
       - source: "templates/docs/_MODULE_TEMPLATE.md"
-        destination: "docs/engineering/modules/_MODULE_TEMPLATE.md"
+        destination: "docs/3_modules/_MODULE_TEMPLATE.md"
       - source: "templates/docs/_GUIDE_TEMPLATE.md"
         destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
       - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
-        destination: "docs/project/governance/project-scaffolding-policy.md"
+        destination: "docs/1_project/governance/project-scaffolding-policy.md"
     next_step: "create_root_files"
 
   - step_id: "create_root_files"
@@ -217,9 +217,11 @@ workflow_steps:
           - ✅ TODO lo demás va en carpetas dentro de `docs/`
           
           **Por tipo de documento:**
-          - 🏗️ **Ingeniería**: [docs/engineering/](docs/engineering/) (Arquitectura, Módulos, Diseño Técnico)
+          - 🚀 **Proyecto**: [docs/1_project/](docs/1_project/) (Gestión del proyecto, sprints, contexto de negocio)
+          - 🏗️ **Arquitectura**: [docs/2_architecture/](docs/2_architecture/) (Arquitectura, Módulos, Diseño Técnico)
+          - 🧩 **Módulos**: [docs/3_modules/](docs/3_modules/) (Documentación detallada por Bounded Context)
           - 📖 **Guías**: [docs/guides/](docs/guides/) (Tutoriales para desarrolladores y usuarios)
-          - 📂 **Proyecto**: [docs/project/](docs/project/) (Gestión del proyecto, sprints, contexto de negocio)
+          - 🗄️ **Archivo**: [docs/archive/](docs/archive/) (Sprints y milestones históricos)
 
       - filename: "AGENTS.md"
         content: |
@@ -280,17 +282,97 @@ workflow_steps:
           DB_PASSWORD=password
           DB_NAME=dbname
           JWT_SECRET=supersecretjwtkey
+      - filename: "Makefile"
+        content: |
+          # Makefile Genérico para $PROJECT_NAME
+          #
+          # Instrucciones:
+          # Descomenta y adapta los comandos a la tecnología de tu proyecto.
+
+          .PHONY: all build run test lint clean help
+
+          all: build
+
+          # build:
+          # 	@echo "Construyendo el proyecto..."
+          # 	# Ejemplo Go: go build -o bin/app ./cmd/api
+          # 	# Ejemplo Node: npm run build
+
+          # run:
+          # 	@echo "Iniciando la aplicación..."
+          # 	# Ejemplo Go: ./bin/app
+          # 	# Ejemplo Node: npm start
+
+          # test:
+          # 	@echo "Ejecutando tests..."
+          # 	# Ejemplo Go: go test -v ./...
+          # 	# Ejemplo Node: npm test
+
+          # lint:
+          # 	@echo "Ejecutando linters..."
+          # 	# Ejemplo Go: golangci-lint run
+          # 	# Ejemplo Node: npm run lint
+
+          # clean:
+          # 	@echo "Limpiando artefactos de build..."
+          # 	# Ejemplo: rm -rf bin/ dist/
+
+          help:
+          	@echo "Comandos disponibles:"
+          	@echo "  make build   - Construye los artefactos del proyecto."
+          	@echo "  make run     - Ejecuta la aplicación."
+          	@echo "  make test    - Corre la suite de tests."
+          	@echo "  make lint    - Analiza el código con linters."
+          	@echo "  make clean   - Elimina los artefactos de build."
+    next_step: "create_cicd_directories"
+
+  - step_id: "create_cicd_directories"
+    title: "Crear Directorio para CI/CD"
+    description: "Creará el directorio .github/workflows para las plantillas de CI/CD."
+    command: "mkdir -p .github/workflows"
+    next_step: "prompt_for_applications"
+
+  - step_id: "prompt_for_applications"
+    title: "🏗️ Definir Aplicaciones del Proyecto"
+    description: "Define todas las aplicaciones que compondrán tu proyecto. Usa el formato 'tipo:nombre' y sepáralas por comas."
+    prompt_user:
+      - question: "Ejemplo: backend:user-api, backend:orders-api, frontend:admin-panel, intermediary:mobile-bff"
+        variable_name: "APPLICATIONS_TO_CREATE"
+    next_step: "create_application_components"
+
+  - step_id: "create_application_components"
+    title: "Creando Estructuras de Aplicación y Workflows de CI/CD"
+    description: "Crea dinámicamente los directorios y los workflows de CI/CD para cada aplicación definida."
+    create_apps_from_spec:
+      spec_variable: "$APPLICATIONS_TO_CREATE"
+      base_apps_dir: "apps/"
+      base_workflow_dir: ".github/workflows/"
+      templates:
+        backend:
+          structure:
+            - "cmd/api"
+            - "internal/{domain,application,infrastructure,interfaces,config}"
+            - "migrations"
+            - "pkg/errors"
+            - "tests/{unit,integration}"
+          ci_template: "templates/.github/workflows/backend-ci.yml"
+        frontend:
+          structure:
+            - "src/{components,stores,composables,services,views,types,design-system}"
+            - "tests"
+            - "public"
+          ci_template: "templates/.github/workflows/frontend-ci.yml"
+        intermediary:
+          structure:
+            - "src/{handlers,services,tests,config}"
+          ci_template: "templates/.github/workflows/intermediary-ci.yml"
     next_step: "initial_git_commit"
 
   - step_id: "initial_git_commit"
     title: "Realizar Primer Commit en Git"
     description: "Realizará el commit inicial de la estructura del proyecto."
     command: "git add . && git commit -m 'chore: bootstrap project structure with new journal loader system' && git branch -M main"
-    next_step: "document_session_agent_upgrade"
-
-
-
-
+    next_step: "check_input_docs_folder"
 
   - step_id: "check_input_docs_folder"
     title: "Revisar Carpeta de Documentos de Entrada"
@@ -336,7 +418,7 @@ workflow_steps:
   - step_id: "generate_initial_adr_001"
     title: "Generar ADR-001 (Stack Tecnológico)"
     description: "Creará el primer ADR detallando las decisiones del stack tecnológico."
-    filename: "docs/engineering/architecture/adr/ADR-001-seleccion-stack-tecnologico.md"
+    filename: "docs/2_architecture/adr/ADR-001-seleccion-stack-tecnologico.md"
     content_template: |
       # ADR-001 – Selección del Stack Tecnológico y Estrategia Tecnológica Base
 
@@ -361,6 +443,124 @@ workflow_steps:
       [Detallar consecuencias positivas y negativas]
 
       ---
+    next_step: "generate_quality_security_adrs"
+
+  - step_id: "generate_quality_security_adrs"
+    title: "Generar ADRs Fundacionales (Seguridad y Calidad)"
+    description: "Creará los ADRs iniciales para la estrategia de seguridad y calidad, incorporando principios clave desde el inicio."
+    files_to_create:
+      - filename: "docs/2_architecture/adr/ADR-002-estrategia-seguridad.md"
+        content_template: |
+          # ADR-002 – Estrategia de Seguridad (Security by Design)
+
+          **Fecha:** [[YYYY-MM-DD]]
+          **Estado:** Propuesto
+          **Autores:** [Tu Nombre], Gemini
+
+          ---
+
+          ## 1. Contexto
+          Se establece la estrategia de seguridad para $PROJECT_NAME, aplicando los principios de **Security by Design** y **Security by Default**. El objetivo es construir un sistema resiliente y seguro desde su concepción.
+
+          ## 2. Decisión
+          Se adoptará un enfoque de **Defensa en Profundidad**, cubriendo múltiples capas: Red, Identidad, Aplicación, Datos y Operaciones. Cada nueva funcionalidad debe ser evaluada contra los principios de OWASP Top 10.
+
+          ### Principios Clave:
+          - **Menor Privilegio**: Los componentes y usuarios solo tendrán los permisos estrictamente necesarios.
+          - **Superficie de Ataque Mínima**: No se expondrán endpoints o servicios innecesarios.
+          - **Límites (Boundary) Claros**: Se definirán y protegerán los límites entre los Bounded Contexts.
+
+          ## 3. Consecuencias
+          - **Positivas**: Mayor resiliencia, reducción de vulnerabilidades, confianza del cliente.
+          - **Negativas**: Posible incremento en el tiempo de desarrollo inicial.
+      - filename: "docs/2_architecture/adr/ADR-003-estrategia-calidad-testing.md"
+        content_template: |
+          # ADR-003 – Estrategia de Calidad y Testing Estratégico (100/80/0)
+
+          **Fecha:** [[YYYY-MM-DD]]
+          **Estado:** Propuesto
+          **Autores:** [Tu Nombre], Gemini
+
+          ---
+
+          ## 1. Contexto
+          Para asegurar la máxima calidad y fiabilidad en `$PROJECT_NAME`, se rechaza la métrica de "cobertura de tests global" por ser engañosa. En su lugar, se adopta una **Cobertura Estratégica** basada en el riesgo de negocio. La pregunta clave no es "¿cuánto código está cubierto?", sino **"¿está cubierto el código que puede quebrar el negocio?"**.
+
+          ## 2. Decisión
+          Se implementa una política de testing multinivel, denominada **"100/80/0"**, que clasifica el código en tres tiers según su criticidad. Además, se complementará con la monitorización de **métricas DORA** para evaluar la salud del ciclo de vida de desarrollo.
+
+          ### Tier 1: CORE (Coverage Objetivo: 100%)
+          - **Definición**: Lógica de negocio absolutamente crítica. Si falla, el negocio pierde dinero, datos o confianza de forma directa.
+          - **Ejemplos**: Cálculos de precios, procesamiento de pagos, algoritmos de seguridad, validaciones de dominio críticas.
+          - **Requisito**: Cobertura del 100% en statements, branches y funciones. TDD es obligatorio.
+
+          ### Tier 2: IMPORTANT (Coverage Objetivo: 80%)
+          - **Definición**: Funcionalidades con las que el usuario interactúa directamente. Si fallan, la experiencia de usuario se degrada y genera frustración.
+          - **Ejemplos**: Componentes de UI, flujos de usuario, validaciones de formularios, controladores de API.
+          - **Requisito**: Cobertura del 80%. Se priorizan los "happy paths" y los errores más comunes, omitiendo casos de uso muy rebuscados.
+
+          ### Tier 3: INFRASTRUCTURE (Coverage Objetivo: 0%)
+          - **Definición**: Código sin lógica de negocio, cuya correctitud es garantizada por otras herramientas (como el compilador de TypeScript) o es trivial.
+          - **Ejemplos**: Interfaces, tipos de datos, constantes, archivos de configuración, código generado.
+          - **Requisito**: Excluido del cálculo de cobertura. Testearlo se considera un anti-patrón que no aporta valor.
+
+          ### Métricas DORA
+          Para una visión holística de la calidad y velocidad, se medirán (post-MVP):
+          1. **Lead Time for Changes**: Tiempo desde el commit hasta el despliegue.
+          2. **Deployment Frequency**: Frecuencia de los despliegues.
+          3. **Change Failure Rate**: Tasa de fallos por cambio.
+          4. **Time to Restore Service**: Tiempo de recuperación ante un fallo.
+
+          ## 3. Consecuencias
+          - **Positivas**: Foco del esfuerzo de testing en áreas de alto impacto. Reducción de bugs críticos en producción. Mayor confianza para refactorizar.
+          - **Negativas**: Requiere un análisis inicial para clasificar el código en tiers. Puede generar discusiones sobre qué es "CORE".
+
+          ## 4. Ejemplo de Implementación (Conceptual)
+          La configuración del runner de tests (ej. Jest, Vitest) deberá ser parametrizada para forzar estos umbrales por directorios o patrones de archivo.
+
+          ```yaml
+          # Esto es un ejemplo conceptual y agnóstico a la tecnología.
+          # La sintaxis real dependerá de la herramienta de testing.
+          coverage_thresholds:
+            # 🎯 TIER CORE (100%)
+            'paths/to/business-logic/**':
+              statements: 100, branches: 100, functions: 100, lines: 100
+
+            # 🔧 TIER IMPORTANT (80%)
+            'paths/to/ui-components/**':
+              statements: 80, functions: 80
+
+            # 🏗️ TIER INFRASTRUCTURE (0%)
+            'paths/to/types/**':
+              statements: 0
+          ```
+
+      ---
+    next_step: "prompt_user_to_validate_adrs"
+
+  - step_id: "prompt_user_to_validate_adrs"
+    title: "🔬 Validar ADRs Fundacionales"
+    description: "Se han generado los ADRs iniciales de Seguridad y Calidad. Es CRÍTICO que los revises y adaptes a las necesidades específicas de tu proyecto."
+    output_message: |
+      
+      ✅ ADRs de Seguridad y Calidad generados.
+      
+      ACCIÓN REQUERIDA:
+      ─────────────────
+      Por favor, revisa y modifica los siguientes archivos antes de continuar:
+      
+      1. 📄 docs/2_architecture/adr/ADR-002-estrategia-seguridad.md
+         - Define los principios de seguridad. Adáptalo a tus requerimientos.
+      
+      2. 📄 docs/2_architecture/adr/ADR-003-estrategia-calidad-testing.md
+         - Define la estrategia de "Strategic Coverage (100/80/0)".
+         - DEBES clasificar tus futuros directorios en los tiers CORE, IMPORTANT o INFRASTRUCTURE.
+      
+      La IA ha propuesto una base, pero la decisión final sobre estos estándares es tuya.
+    prompt_user:
+      - question: "He revisado y entiendo que debo adaptar estos ADRs. ¿Continuar? (sí/no)"
+        variable_name: "USER_CONFIRMED_ADRS"
+        validation: "USER_CONFIRMED_ADRS == 'sí'"
     next_step: "generate_project_context_agent"
 
   - step_id: "generate_project_context_agent"
@@ -456,26 +656,32 @@ workflow_steps:
       📚 ESTRUCTURA DE DOCUMENTACIÓN CLAVE
       ───────────────────────────────────────────────────
       
-      🏗️ docs/engineering/
+      🚀 **Proyecto**: docs/1_project/
+         El "qué" y el "porqué": Contexto de negocio, planificación, estado.
+      
+      🏗️ **Arquitectura**: docs/2_architecture/
          El corazón técnico: Arquitectura, ADRs, diagramas, diseño de módulos.
       
-      📖 docs/guides/
+      🧩 **Módulos**: docs/3_modules/
+         Documentación detallada para cada Bounded Context.
+
+      📖 **Guías**: docs/guides/
          Guías prácticas para desarrolladores (cómo configurar, desplegar) y usuarios.
       
-      📂 docs/project/
-         Gestión del proyecto: Contexto de negocio, planificación de sprints, estado.
+      🗄️ **Archivo**: docs/archive/
+         El registro histórico: Sprints y milestones pasados.
       
       
       🎯 PRÓXIMOS PASOS
       ────────────────
-      1. Detallar la arquitectura en `docs/engineering/architecture/`.
-      2. Definir el contexto de negocio en `docs/project/`.
-      3. Crear las primeras tareas del sprint en `docs/project/sprints/`.
+      1. Detallar la arquitectura en `docs/2_architecture/`.
+      2. Definir el contexto de negocio en `docs/1_project/`.
+      3. Crear las primeras tareas del sprint en `docs/archive/sprints/`.
       
       
       📌 RECORDATORIO IMPORTANTE
       ──────────────────────────
-      Esta estructura separa claramente el 'cómo' (engineering), del 'paso a paso' (guides), y del 'porqué' (project).
+      Esta estructura separa claramente el 'cómo' (architecture), del 'paso a paso' (guides), y del 'porqué' (project).
       ¡Respeta la organización desde el inicio!
       
       

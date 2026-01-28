@@ -12,12 +12,14 @@ func AuthMiddleware(jwtService security.JWTService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			c.Set("authError", "missing_authorization_header")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.Set("authError", "invalid_authorization_format")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
 			return
 		}
@@ -25,6 +27,7 @@ func AuthMiddleware(jwtService security.JWTService) gin.HandlerFunc {
 		tokenString := parts[1]
 		claims, err := jwtService.ValidateToken(c.Request.Context(), tokenString)
 		if err != nil {
+			c.Set("authError", "invalid_token")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}

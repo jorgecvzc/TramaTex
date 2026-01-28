@@ -18,7 +18,7 @@ metadata:
     task_files:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
-      location: "docs/project/sprints/sprint-[XX]/"
+      location: "docs/archive/sprints/sprint-[XX]/"
       language: "Spanish (Espa\u00f1ol)"
       examples:
         - "sprint-01/04-auditoria-seguridad-owasp.md"
@@ -32,7 +32,7 @@ metadata:
     
     summary_files:
       pattern: "sprint-[XX]-summary.md"
-      location: "docs/project/sprints/sprint-[XX]/"
+      location: "docs/archive/sprints/sprint-[XX]/"
       language: "Spanish (Español)"
       examples:
         - "sprint-01-summary.md"
@@ -40,72 +40,15 @@ metadata:
 
 active_tasks:
   title: "🔄 Active/Open Tasks"
-  count: 4
+  count: 1
   note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
-  
-  task_04_01:
-    id: "04-01"
-    sprint: "04"
-    filename: "01-implementacion-controles-seguridad-owasp.md"
-    title: "Implementación de Controles de Seguridad OWASP"
-    status: "⏳ Planificado"
-    dates:
-      planned_start: "(Por determinar)"
-      planned_end: "(Por determinar)"
-    duration_estimated: "8 horas"
-    context_focus: "RBAC middleware, structured logging, CORS configuration"
-    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
-    priorities:
-      - "A01 Broken Access Control (RBAC)"
-      - "A09 Security Logging Failures (logrus)"
-      - "A05 Security Misconfiguration (CORS)"
-    deliverables:
-      - "RoleMiddleware implementation"
-      - "Structured logging with logrus"
-      - "CORS configuration by environment"
-      - "Security test suite"
-  
-  task_04_02:
-    id: "04-02"
-    sprint: "04"
-    filename: "02-pipeline-cicd-github-actions.md"
-    title: "Pipeline CI/CD con GitHub Actions"
-    status: "⏳ Planificado"
-    dates:
-      planned_start: "(Por determinar)"
-      planned_end: "(Por determinar)"
-    duration_estimated: "4 horas"
-    context_focus: "GitHub Actions workflows, pre-commit hooks, linters"
-    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
-    deliverables:
-      - "GitHub Actions workflows (backend.yml, frontend.yml)"
-      - "Pre-commit hooks configuration"
-      - "Linters: golangci-lint, eslint, prettier"
-      - "Codecov integration"
-  
-  task_04_03:
-    id: "04-03"
-    sprint: "04"
-    filename: "03-estrategia-calidad-deuda-tecnica.md"
-    title: "Estrategia de Calidad y Registro de Deuda Técnica"
-    status: "⏳ Planificado"
-    dates:
-      planned_start: "(Por determinar)"
-      planned_end: "(Por determinar)"
-    duration_estimated: "2-4 horas"
-    context_focus: "Testing strategy ADR, technical debt registry, contribution guide"
-    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
-    deliverables:
-      - "ADR-010: Testing Strategy"
-      - "docs/engineering/technical-debt.md"
-      - "CONTRIBUTING.md"
   
   task_05_01:
     id: "05-01"
     sprint: "05"
     filename: "01-implementacion-modulo-party.md"
     title: "Implementación del Módulo Party (Validación Post-Normas)"
-    status: "🔍 Pendiente de Aprobación Humana"
+    status: "🔄 En Progreso"
     dates:
       original_execution: "2026-01-18 to 2026-01-24"
       pending_review: "(After Sprint 04 completion)"
@@ -123,6 +66,22 @@ active_tasks:
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+  
+  task_04_01:
+    id: "04-01"
+    sprint: "04"
+    filename: "01-estrategia-calidad-deuda-tecnica.md"
+    title: "Fundaciones de Seguridad y Calidad (OWASP, CI/CD, Deuda Técnica)"
+    status: "✅ Completado"
+    dates:
+      started: "2026-01-27"
+      completed: "2026-01-27"
+    context_focus: "Security, CI/CD, Quality Standards, Technical Debt"
+    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
+    key_outcomes:
+      - "Controles de seguridad OWASP implementados (RBAC mejorado, logging estructurado)."
+      - "Workflows de CI/CD para backend y frontend creados en .github/workflows/."
+      - "Documentos fundacionales de calidad creados (ADR-011, CONTRIBUTING.md, technical-debt.md)."
   
   task_01_01:
     id: "01-01"
@@ -213,7 +172,7 @@ completed_tasks:
       - "Plantilla _TASK_TEMPLATE.md creada"
       - "Agente sprint-session-loader.yaml actualizado"
       - "Sesiones antiguas archivadas en milestones"
-      - "Nueva estructura docs/project/sprints/ establecida"
+      - "Nueva estructura docs/archive/sprints/ establecida"
   
   task_02_02:
     id: "02-02"
@@ -363,7 +322,7 @@ session_flow_quick_start:
   
   step_by_step:
     1: "Load: agents/sprint-session-loader.yaml"
-    2: "It will scan docs/project/sprints/ for open tasks"
+    2: "It will scan docs/archive/sprints/ for open tasks"
     3: "Check: agents/sprint-registry.yaml for status"
     4: "Review: active_tasks list"
     5: "If tasks open → Continue one of them"

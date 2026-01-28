@@ -15,7 +15,7 @@ Bienvenido al centro de documentación de TramaTex. Esta sección está organiza
 - **Contenido:** Documentación detallada para cada módulo o Bounded Context del sistema (Party, Product, Pricing, etc.), incluyendo sus especificaciones, modelos de dominio y contratos de API.
 
 ## 4. 🛠️ Guías de Desarrollo
-- **Ubicación:** [`./4_guides/`](./4_guides/)
+- **Ubicación:** [`./guides/`](./guides/)
 - **Contenido:** Guías prácticas y tutoriales para desarrolladores, como la configuración de claves SSH, el flujo de trabajo de CI/CD, y otros procedimientos técnicos.
 
 ## 5. 🗄️ Archivo Histórico

@@ -44,7 +44,7 @@ workflow:
   
   step_2_scan_journals:
     action: "Scan sprints directory for tasks"
-    source: "docs/project/sprints/"
+    source: "docs/archive/sprints/"
     pattern: "sprint-[XX]/[ID_TAREA]-descriptive-name.md files with task structure"
     naming_convention:
       format: "[ID_TAREA]-descriptive-name.md"

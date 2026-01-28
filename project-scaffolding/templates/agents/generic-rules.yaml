@@ -72,56 +72,56 @@ directory_structure:
       visibility: "Developer"
   
   docs_structure:
-    engineering:
-      path: "/docs/engineering/"
-      purpose: "Contiene la documentación técnica central, incluyendo arquitectura, ADRs, diagramas y diseño detallado de módulos."
-
+    1_project:
+      path: "/docs/1_project/"
+      purpose: "Incluye documentos relacionados con la gestión del proyecto, como el contexto de negocio, la planificación y los informes de estado."
+    2_architecture:
+      path: "/docs/2_architecture/"
+      purpose: "Contiene la documentación técnica central, incluyendo arquitectura, ADRs, y diseño detallado de módulos."
+    3_modules:
+      path: "/docs/3_modules/"
+      purpose: "Documentación detallada para cada módulo o Bounded Context del sistema."
     guides:
       path: "/docs/guides/"
       purpose: "Alberga guías prácticas y tutoriales, tanto para desarrolladores como para usuarios finales."
-
-    project:
-      path: "/docs/project/"
-      purpose: "Incluye documentos relacionados con la gestión del proyecto, como el contexto de negocio, la planificación de sprints y los informes de estado."
-
-    milestones:
-      path: "/docs/project/milestones/"
-      purpose: "Contiene informes de hitos históricos, como auditorías, reportes de estabilización y resúmenes de fases importantes del proyecto. No se debe usar para documentación de trabajo diario."
-
-    sprints:
-      path: "/docs/project/sprints/"
-      purpose: "Documentación de trabajo en sprints, incluyendo tareas individuales y resúmenes de sprint."
-      structure:
-        - "sprint-[XX]/ - Carpeta por cada sprint"
-        - "[ID_TAREA]-nombre-tarea.md - Archivos de tareas individuales"
-        - "sprint-[XX]-summary.md - Resumen del sprint"
-        - "_TASK_TEMPLATE.md - Plantilla para nuevas tareas"
-        - "_SPRINT_SUMMARY_TEMPLATE.md - Plantilla para resúmenes"
+    archive:
+      path: "/docs/archive/"
+      purpose: "Registro histórico del trabajo realizado, incluyendo sprints y milestones pasados."
       
-      naming_conventions:
-        task_files:
-          pattern: "[ID_TAREA]-descriptive-name-kebab-case.md"
-          id_format: "Número secuencial local por sprint (01, 02, 03... se reinicia en cada sprint)"
-          location: "docs/project/sprints/sprint-[XX]/"
-          language: "Spanish (Español)"
-          examples:
-            - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
-            - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
-            - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
-          notes:
-            - "ID de tarea es local al sprint (se reinicia en 01 cada sprint)"
-            - "Identificación única: combinación sprint-XX + tarea-YY"
-            - "Esto permite reabrir sprints cerrados sin conflictos de numeración"
-            - "Usar kebab-case para nombres descriptivos"
-            - "Evitar términos: 'journal', 'bitácora' → usar 'Tarea'"
+      sprints:
+        path: "/docs/archive/sprints/"
+        purpose: "Documentación de trabajo en sprints, incluyendo tareas individuales y resúmenes de sprint."
+        structure:
+          - "sprint-[XX]/ - Carpeta por cada sprint"
+          - "[ID_TAREA]-nombre-tarea.md - Archivos de tareas individuales"
+          - "sprint-[XX]-summary.md - Resumen del sprint"
+          - "_TASK_TEMPLATE.md - Plantilla para nuevas tareas"
+          - "_SPRINT_SUMMARY_TEMPLATE.md - Plantilla para resúmenes"
         
-        summary_files:
-          pattern: "sprint-[XX]-summary.md"
-          location: "docs/project/sprints/sprint-[XX]/"
-          language: "Spanish (Español)"
-          examples:
-            - "sprint-01-summary.md"
-            - "sprint-05-summary.md"
+        naming_conventions:
+          task_files:
+            pattern: "[ID_TAREA]-descriptive-name-kebab-case.md"
+            id_format: "Número secuencial local por sprint (01, 02, 03... se reinicia en cada sprint)"
+            location: "docs/archive/sprints/sprint-[XX]/"
+            language: "Spanish (Español)"
+            examples:
+              - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
+              - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
+              - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
+            notes:
+              - "ID de tarea es local al sprint (se reinicia en 01 cada sprint)"
+              - "Identificación única: combinación sprint-XX + tarea-YY"
+              - "Esto permite reabrir sprints cerrados sin conflictos de numeración"
+              - "Usar kebab-case para nombres descriptivos"
+              - "Evitar términos: 'journal', 'bitácora' → usar 'Tarea'"
+          
+          summary_files:
+            pattern: "sprint-[XX]-summary.md"
+            location: "docs/archive/sprints/sprint-[XX]/"
+            language: "Spanish (Español)"
+            examples:
+              - "sprint-01-summary.md"
+              - "sprint-05-summary.md"
       
       terminology: "Use 'Tarea' consistently (not 'Bitácora' or 'Journal')"
   
@@ -148,7 +148,7 @@ root_directory_policy:
     - "Cualquier otro archivo de documentación .md que no sea README.md o AGENTS.md."
     - "Documentos de análisis, borradores, resúmenes de sesión, etc."
   
-  enforcement: "Toda la documentación adicional DEBE residir dentro del directorio `/docs` en la subcarpeta apropiada (engineering, guides, project)."
+  enforcement: "Toda la documentación adicional DEBE residir dentro del directorio `/docs` en la subcarpeta apropiada (1_project, 2_architecture, etc.)."
   rationale: "Evita la acumulación de desorden en la raíz, centraliza la documentación y mantiene una estructura de proyecto predecible y profesional."
 
 documentation_principles:
