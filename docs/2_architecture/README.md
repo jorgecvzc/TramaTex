@@ -18,8 +18,14 @@ Este overview es el punto de partida. Para profundizar, consulta los siguientes 
     *   [ADR-001](./adr/ADR-001-seleccion-stack-tecnologico.md): Stack Tecnológico.
     *   [ADR-002](./adr/ADR-002-adopcion-clean-architecture-ddd.md): Clean Architecture y DDD.
     *   [ADR-003](./adr/ADR-003-tipo-distribucion-aplicacion.md): Monolito Modular.
+    *   [ADR-004](./adr/ADR-004-ciclo-vida-desarrollo-mvp.md): Ciclo de Vida del MVP.
+    *   [ADR-005](./adr/ADR-005-gestion-unificada-clientes-proveedores.md): Patrón Party.
+    *   [ADR-006](./adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md): Desarrollo Dirigido por Dominio.
     *   [ADR-007](./adr/ADR-007-orden-implementacion-modulos.md): Orden de Implementación.
+    *   [ADR-008](./adr/ADR-008-planificacion-cronograma-mvp.md): Planificación y Cronograma.
+    *   [ADR-009](./adr/ADR-009-estructura-proyecto.md): Estructura de Carpetas.
     *   [ADR-010](./adr/ADR-010-estrategia-seguridad-defensa-profundidad.md): Estrategia de Seguridad.
+    *   [ADR-011](./adr/ADR-011-estrategia-testing-coverage.md): Estrategia de Testing.
 *   **Diagramas Visuales**: [./diagrams/](./diagrams/)
 
 ## 3. Estructura de Módulos
