@@ -12,11 +12,11 @@
 
 **Para obtener una visión completa y guiada del proyecto, la arquitectura, el stack tecnológico y el estado actual, consulta nuestro manual central:**
 
-- **[📖 Manual del Proyecto TramaTex](./docs/project/project-handbook.md)** ← **LEER PRIMERO**
+- **[📖 Manual del Proyecto TramaTex](./docs/1_project/README.md)** ← **LEER PRIMERO**
 
 Para ver el progreso actualizado, los hitos y los próximos pasos, visita el panel de estado:
 
-- **[📊 Estado del Proyecto](./docs/project/project-status.md)**
+- **[📊 Estado del Proyecto](./docs/1_project/project-status.md)**
 
 ---
 
@@ -49,28 +49,18 @@ TramaTex sigue un **monolito modular** basado en **Clean Architecture y Domain-D
 ```
 tramatex/
 ├── apps/
-│   ├── tramatex-api/   # Lógica de negocio (Go)
-│   │   ├── internal/
-│   │   │   ├── domain/
-│   │   │   ├── application/
-│   │   │   └── ...
-│   │   └── cmd/
-│   └── frontend/       # Interfaz de usuario (Vue.js)
-│       ├── src/
-│       │   ├── views/
-│       │   ├── components/
-│       │   └── ...
-│       └── ...
-├── docs/               # Documentación
-│   ├── engineering/
-│   │   ├── architecture/
-│   │   └── modules/
+│   ├── tramatex-api/
+│   └── frontend/
+├── docs/
+│   ├── 1_project/
+│   ├── 2_architecture/
+│   ├── 3_modules/
 │   ├── guides/
-│   └── project/
+│   └── archive/
 └── ...
 ```
 
-Más detalles en [ADR-009 – Estructura de Proyecto](docs/engineering/architecture/adr/ADR-009-estructura-proyecto.md).
+Más detalles en [ADR-009 – Estructura de Proyecto](docs/2_architecture/adr/ADR-009-estructura-proyecto.md).
 
 ---
 
@@ -119,24 +109,24 @@ npm run dev
 
 ### Architecture Decision Records (ADRs)
 
-- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/engineering/architecture/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
-- [ADR-007: Orden de Implementación de Módulos](docs/engineering/architecture/adr/ADR-007-orden-implementacion-modulos.md)
-- [ADR-008: Planificación y Cronograma](docs/engineering/architecture/adr/ADR-008-planificacion-cronograma-mvp.md)
-- [ADR-009: Estructura de Carpetas](docs/engineering/architecture/adr/ADR-009-estructura-proyecto.md)
+- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/2_architecture/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
+- [ADR-007: Orden de Implementación de Módulos](docs/2_architecture/adr/ADR-007-orden-implementacion-modulos.md)
+- [ADR-008: Planificación y Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md)
+- [ADR-009: Estructura de Carpetas](docs/2_architecture/adr/ADR-009-estructura-proyecto.md)
 
 ### Estado del Proyecto
 
-- [project-status.md](project-status.md) - Progreso actual, hitos, timeline
+- [project-status.md](docs/1_project/project-status.md) - Progreso actual, hitos, timeline
 
 ### Guías
 
-- [Setup de Desarrollo](docs/guides/setup-development.md) [Pendiente]
-- [Estrategia de Testing](docs/guides/testing-strategy.md) [Pendiente]
+- [Setup de Desarrollo](docs/guides/developer/github-setup.md) [Pendiente]
+- [Estrategia de Testing](docs/guides/developer/ci-cd.md) [Pendiente]
 - [Despliegue](docs/guides/deployment.md) [Pendiente]
 
 ### Módulos
 
-Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
+Cada módulo tiene su documentación en `docs/3_modules/[modulo]/`:
 
 - **Party:** Gestión de clientes y proveedores
 - **Product:** Catálogo de productos y variantes
@@ -155,7 +145,7 @@ Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
 1. **Fase 0 (Q1 2026):** Fundaciones técnicas
    - Setup Docker, Git, autenticación JWT
    - **Hito:** Sistema arranca + login funcional
-   - Detalle: [MVP Specification](docs/project/02-mvp-specification.md)
+   - Detalle: [MVP Specification](docs/1_project/README.md)
 
 2. **Fase 1 (Q2-Q4 2026):** Dominio base
    - Módulos: Party, Producto, Tarificación
@@ -172,7 +162,7 @@ Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
 5. **Fase 4 (Q1 2028):** Estabilización
    - **Hito:** En producción estable
 
-Más detalles en [ADR-008 – Cronograma](docs/engineering/architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](project-status.md).
+Más detalles en [ADR-008 – Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](docs/1_project/project-status.md).
 
 ---
 

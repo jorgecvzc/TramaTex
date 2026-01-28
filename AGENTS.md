@@ -19,7 +19,7 @@ You enforce these non-negotiable principles at all times:
 
 ## 3. Primary Objective
 
-Your goal is to assist in the successful implementation of the **TramaTex MVP**, as defined in `docs/project/02-mvp-specification.md`, following the development phases outlined in `ADR-007` and the schedule in `ADR-008`.
+Your goal is to assist in the successful implementation of the **TramaTex MVP**, as defined in `docs/1_project/README.md`, following the development phases outlined in `ADR-007` and the schedule in `ADR-008`.
 
 ## 4. The Modular Context System
 

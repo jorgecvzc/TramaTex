@@ -127,7 +127,7 @@ Para validar que un módulo cumple la estrategia de seguridad:
 - **OWASP Top 10 2021:** https://owasp.org/Top10/
 - **OWASP Cheat Sheets:** https://cheatsheetseries.owasp.org/
 - **Go Security:** https://go.dev/doc/security/best-practices
-- **Auditoría OWASP TramaTex:** `docs/project/milestones/auditoria-seguridad-owasp-2026-01-25.md`
+- **Auditoría OWASP TramaTex:** `../archive/milestones/auditoria-seguridad-owasp-2026-01-25.md`
 
 ---
 

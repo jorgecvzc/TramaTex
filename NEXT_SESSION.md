@@ -21,7 +21,7 @@
 **Load context:**
 ```yaml
 - agents/sprint-session-loader.yaml
-- docs/project/sprints/sprint-05/01-implementacion-modulo-party.md
+- docs/archive/sprints/sprint-05/01-implementacion-modulo-party.md
 - agents/project/context/code-standards.yaml
 - agents/project/context/architecture.yaml
 ```
