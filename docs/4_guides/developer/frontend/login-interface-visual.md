@@ -4,7 +4,7 @@
 
 He creado una vista previa HTML completa e interactiva que puedes abrir en cualquier navegador:
 
-👉 **[apps/apps/frontend/LOGIN-PREVIEW.html](../LOGIN-PREVIEW.html)** ← Abre en el navegador para ver la interfaz completa
+👉 **[apps/frontend/LOGIN-PREVIEW.html](../../../apps/frontend/LOGIN-PREVIEW.html)** ← Abre en el navegador para ver la interfaz completa
 
 ---
 

@@ -198,4 +198,4 @@ We use **Codecov** to track and visualize test coverage:
 ---
 
 **Last Updated:** 2026-01-27  
-**Related:** [ADR-010 Security Architecture](../../engineering/architecture/adr/ADR-010-security-architecture.md), [Backend Setup Guide](backend/setup.md)
+**Related:** [ADR-010 Security Architecture](../../../2_architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md), [Backend Setup Guide](backend/README.md)

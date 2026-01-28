@@ -99,7 +99,7 @@
 
 *Enlaces a otros documentos, ADRs, o recursos externos relevantes.*
 
-- **ADR Relacionado:** [ADR-XXX - Título del ADR](../../engineering/architecture/adr/ADR-XXX.md)
+- **ADR Relacionado:** [ADR-XXX - Título del ADR](../../../2_architecture/adr/ADR-XXX.md)
 - **Bitácora de Desarrollo:** [XX - Título de la Bitácora](ruta/a/la/bitacora.md)
 - **Documentación Externa:** [Nombre del Recurso](https://ejemplo.com)
 
