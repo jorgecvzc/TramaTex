@@ -6,7 +6,7 @@ Este documento sirve como punto de entrada para los desarrolladores que trabajan
 
 La arquitectura del proyecto es la base de todo el desarrollo. Antes de escribir código, es fundamental comprender las decisiones y la estructura establecidas.
 
--   **Fuente de Verdad Arquitectónica:** [ADR-009 – Estructura de Carpetas y Organización del Proyecto](../../engineering/architecture/adr/ADR-009-estructura-proyecto.md)
+-   **Fuente de Verdad Arquitectónica:** [ADR-009 – Estructura de Carpetas y Organización del Proyecto](../../2_architecture/adr/ADR-009-estructura-proyecto.md)
     -   Este documento contiene la estructura completa y actualizada de todo el proyecto, incluyendo el backend. Describe cómo se organizan los módulos (Bounded Contexts) y las capas de la Clean Architecture.
 
 -   **Principios Clave:**
@@ -18,11 +18,11 @@ La arquitectura del proyecto es la base de todo el desarrollo. Antes de escribir
 
 Cada módulo de negocio tiene su propia documentación detallada. Para entender la implementación de un módulo específico, consulta su directorio correspondiente:
 
--   [**Módulo IAM**](../../engineering/modules/iam/)
--   [**Módulo Party**](../../engineering/modules/party/)
--   [**Módulo Product**](../../engineering/modules/product/)
--   [**Módulo Pricing**](../../engineering/modules/pricing/)
--   [**Módulo Sales**](../../engineering/modules/sales/)
+-   [**Módulo IAM**](../../3_modules/iam/)
+-   [**Módulo Party**](../../3_modules/party/)
+-   [**Módulo Product**](../../3_modules/product/)
+-   [**Módulo Pricing**](../../3_modules/pricing/)
+-   [**Módulo Sales**](../../3_modules/sales/)
 
 Dentro de cada uno de estos directorios, encontrarás:
 -   `module-spec.md`: La especificación funcional del módulo.
