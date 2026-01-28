@@ -265,7 +265,7 @@ Donde:
 
 ### Seguridad (MVP: básica; Post-MVP: avanzada)
 
-**Referencia Arquitectónica:** [ADR-010 - Estrategia de Seguridad](adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
+**Referencia Arquitectónica:** [ADR-010 - Estrategia de Seguridad](./adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
 
 **MVP:**
 - Autenticación JWT
@@ -390,6 +390,6 @@ PEDIDO PERSONALIZADO:
 
 ---
 
-**Para especificación del MVP, ver:** [02-mvp-specification.md](02-mvp-specification.md)  
-**Para charter del proyecto, ver:** [01-project-charter.md](01-project-charter.md)  
-**Para glosario de términos, ver:** [04-glossary.md](04-glossary.md)
+**Para especificación del MVP, ver:** [Project Charter & MVP Specification](../1_project/README.md)  
+**Para charter del proyecto, ver:** [Project Charter & MVP Specification](../1_project/README.md)  
+**Para glosario de términos, ver:** [Glosario Unificado](./glossary.md)

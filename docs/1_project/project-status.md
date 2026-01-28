@@ -3,8 +3,8 @@
 **Visión:** ERP/MES (Enterprise Resource Planning / Manufacturing Execution System) para microempresas del sector textil y de personalización, permitiendo la gestión centralizada de clientes, proveedores, catálogo de productos, precios, pedidos y producción.
 
 **Fase Actual:** Fase 1 (Dominio Base)
-**Sprint Actual:** Sprint 04 - Fundaciones de Seguridad y Calidad
-**Última Actualización:** 2026-01-25
+**Sprint Actual:** Sprint 05 - Validación del Módulo Party
+**Última Actualización:** 2026-01-27
 
 ---
 
@@ -25,11 +25,8 @@ Esto garantiza que todo el código cumple con los estándares de calidad y ha si
 - [x] **Fase 1: Dominio Base (Q2-Q4 2026)** - `EN PROGRESO`
   - [x] Design System implementado - `COMPLETADO`
   - [x] Auditoría de seguridad OWASP - `COMPLETADO`
-  - [ ] **Sprint 04: Fundaciones de Seguridad y Calidad** - `PLANIFICADO`
-    - [ ] Controles de seguridad OWASP (RBAC, logging, CORS)
-    - [ ] Pipeline CI/CD con GitHub Actions (✅ Prerequisito: GitHub configurado)
-    - [ ] Estrategia de calidad y deuda técnica
-  - [ ] **Sprint 05: Módulo Party** - `PENDIENTE DE APROBACIÓN`
+  - [x] **Sprint 04: Fundaciones de Seguridad y Calidad** - `COMPLETADO`
+  - [ ] **Sprint 05: Módulo Party** - `EN PROGRESO`
     - [x] Código implementado (2026-01-18 a 2026-01-24)
     - [ ] Validación contra normas del Sprint 04
     - [ ] Aprobación humana pendiente
@@ -72,20 +69,14 @@ Esto garantiza que todo el código cumple con los estándares de calidad y ha si
 
 ## Próximos Pasos
 
-1.  **Sprint 04 (Actual): Fundaciones de Seguridad y Calidad**
-    - Implementar controles OWASP prioritarios (RBAC, logging, CORS)
-    - Establecer pipeline CI/CD con GitHub Actions
-    - Documentar estrategia de testing y deuda técnica
-    - **Objetivo**: Establecer normas de calidad antes de continuar
+1.  **Sprint 05 (Actual): Validación del Módulo Party**
+    - Revisar el código existente del módulo `Party` contra las normas establecidas en el Sprint 04.
+    - Ejecutar los nuevos pipelines de CI/CD sobre el módulo.
+    - Asegurar que la cobertura de tests (`ADR-011`) y los estándares de seguridad (`ADR-010`) se cumplen.
+    - **Objetivo**: Obtener la aprobación humana para dar el módulo por finalizado.
 
-2.  **Sprint 05: Validación del Módulo Party**
-    - Revisar código existente contra normas del Sprint 04
-    - Aplicar ADR-010 (Testing Strategy)
-    - Integrar controles de seguridad
-    - **Obtener aprobación humana**
-
-3.  **Sprint 06: Módulo Product** (Post Sprint 04 + 05 aprobado)
-    - Implementar CRUD de productos con normas establecidas
+2.  **Sprint 06: Módulo Product** (Una vez se apruebe el Sprint 05)
+    - Iniciar la implementación del catálogo de productos.
 
 ## Métricas del Proyecto
 

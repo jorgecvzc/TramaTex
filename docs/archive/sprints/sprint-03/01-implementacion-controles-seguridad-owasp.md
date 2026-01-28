@@ -25,7 +25,7 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-Resolver los hallazgos **críticos y altos** identificados en la auditoría OWASP Top 10, siguiendo la estrategia definida en el **[ADR-010: Estrategia de Seguridad - Defensa en Profundidad](../../../engineering/architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)**.
+Resolver los hallazgos **críticos y altos** identificados en la auditoría OWASP Top 10, siguiendo la estrategia definida en el **[ADR-010: Estrategia de Seguridad - Defensa en Profundidad](../../../2_architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)**.
 
 **Referencia de Auditoría:** [04-auditoria-seguridad-owasp.md](../sprint-01/04-auditoria-seguridad-owasp.md) y [Informe Ejecutivo](../../milestones/auditoria-seguridad-owasp-2026-01-25.md)
 

@@ -332,7 +332,7 @@ npm run test:unit -- --coverage
 
 ### Fase 2: Registro de Deuda Técnica
 
-**Archivo a crear:** `docs/engineering/technical-debt.md`
+**Archivo a crear:** `../../1_project/technical-debt.md`
 
 ```markdown
 # 📋 Registro de Deuda Técnica - TramaTex
@@ -381,7 +381,7 @@ Este documento registra y prioriza la deuda técnica del proyecto TramaTex, clas
 - Backoff exponencial tras múltiples fallos
 
 **Referencias:**
-- [auditoria-seguridad-owasp.md](../project/sprints/sprint-01/04-auditoria-seguridad-owasp.md#a04-insecure-design)
+- [auditoria-seguridad-owasp.md](../../archive/sprints/sprint-01/04-auditoria-seguridad-owasp.md#a04-insecure-design)
 
 ---
 
@@ -867,7 +867,7 @@ npm run format  # Solo Prettier
 
 ### Política de Coverage
 
-Ver [ADR-010](docs/engineering/architecture/adr/ADR-010-estrategia-testing-coverage.md) para detalles completos.
+Ver [ADR-011](../../2_architecture/adr/ADR-011-estrategia-testing-coverage.md) para detalles completos.
 
 **Mínimos:**
 - Domain: 100%
@@ -1055,10 +1055,10 @@ Al revisar el PR:
 
 ## 📚 Recursos Adicionales
 
-- [Architecture Overview](docs/engineering/architecture/architecture-overview.md)
-- [ADRs](docs/engineering/architecture/adr/)
-- [Technical Debt](docs/engineering/technical-debt.md)
-- [Project Status](docs/project/project-status.md)
+- [Architecture Overview](../../2_architecture/README.md)
+- [ADRs](../../2_architecture/adr/)
+- [Technical Debt](../../1_project/technical-debt.md)
+- [Project Status](../../1_project/project-status.md)
 
 ---
 
@@ -1106,7 +1106,7 @@ Si tienes dudas:
 
 ## 📚 REFERENCIAS
 
-- [ADR Template](docs/engineering/architecture/adr/_ADR_TEMPLATE.md)
+- [ADR Template](../../2_architecture/adr/_ADR_TEMPLATE.md)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 

@@ -32,4 +32,4 @@ El sistema está dividido en los siguientes módulos principales (Bounded Contex
 *   **Sales**: Gestiona el proceso de ventas.
 *   **Pricing**: Calcula los precios de los productos.
 
-Para más detalles sobre cada módulo, consulta la documentación específica en `docs/engineering/modules/`.
+Para más detalles sobre cada módulo, consulta la documentación específica en `../3_modules/`.

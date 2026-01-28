@@ -157,7 +157,7 @@ Tras completar los módulos IAM y Party (Sprint 02-03), se identificó la necesi
 
 ### Decisiones Clave
 
-1. **ADR-010: Estrategia de Seguridad y Defensa en Profundidad**:
+- **[ADR-010]**: [Descripción breve de la decisión]
    - Decisión: Adoptar una estrategia de seguridad de 6 capas (Red, IAM, Aplicación, Datos, Supply Chain, Operaciones).
    - Razón: Proteger proactivamente los datos críticos del negocio y cumplir con las mejores prácticas de la industria.
 
@@ -254,8 +254,7 @@ Tras completar los módulos IAM y Party (Sprint 02-03), se identificó la necesi
 - Sprint 01, Tarea 04: Auditoría OWASP completada
 - Sprint 02, Tarea 01: Arquitectura del backend establecida
 
-**Documentos:**
-- [ADR-007 - Fases de Desarrollo](../../engineering/architecture/adr/ADR-007-fases-desarrollo.md)
+- [ADR-007 - Fases de Desarrollo](../../../2_architecture/adr/ADR-007-orden-implementacion-modulos.md)
 - [Auditoría OWASP](../../project/milestones/auditoria-seguridad-owasp-2026-01-25.md)
 
 ### Salidas hacia Sprints Futuros
@@ -342,9 +341,9 @@ Total: 12 horas en 1 día
 
 ### Documentos del Proyecto
 
-- [Project Status](../../project-status.md)
+- [Project Status](../../../1_project/project-status.md)
 - [ADR-007 - Fases de Desarrollo](../../engineering/architecture/adr/ADR-007-fases-desarrollo.md)
-- [ADR-010 - Security Architecture](../../engineering/architecture/adr/ADR-010-security-architecture.md)
+- [ADR-010 - Security Architecture](../../../2_architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
 
 ### Auditorías y Análisis
 
@@ -358,7 +357,7 @@ Total: 12 horas en 1 día
 
 ### Guías Generadas
 
-- [CI/CD Workflow Guide](../../guides/developer/ci-cd.md)
+- [CI/CD Workflow Guide](../../../4_guides/developer/ci-cd.md)
 
 ---
 
