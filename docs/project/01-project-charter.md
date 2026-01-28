@@ -83,13 +83,17 @@ TramaTex se concibe como un **monolito modular**, diseñado bajo principios de *
 
 Decisiones arquitectónicas fundamentales:
 
-- [ADR-001](/docs/adr/ADR-001-seleccion-stack-tecnologico.md): Selección del Stack Tecnológico y Estrategia Tecnológica Base
-- [ADR-002](/docs/adr/ADR-002-adopcion-clean-architecture-ddd.md): Adopción de Clean Architecture y DDD con Rigor Asimétrico
-- [ADR-003](/docs/adr/ADR-003-tipo-distribucion-aplicacion.md): Tipo y Distribución de la Aplicación (Monolito Modular Local-First)
-- [ADR-004](/docs/adr/ADR-004-ciclo-vida-desarrollo-mvp.md): Ciclo de Vida de Desarrollo e Implementación hasta MVP
-- [ADR-005](/docs/adr/ADR-005-gestion-unificada-clientes-proveedores.md): Gestión Unificada de Clientes y Proveedores 
-- [ADR-006](/docs/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md): Estrategia de Desarrollo Dirigida por Dominio (MVP)
-- [ADR-007](/docs/adr/ADR-007-orden-implementacion-modulos.md): Orden de Implementación de Módulos y Creación de Infraestructura
+- [ADR-001: Selección del Stack Tecnológico y Estrategia Tecnológica Base](../engineering/architecture/adr/ADR-001-seleccion-stack-tecnologico.md)
+- [ADR-002: Adopción de Clean Architecture y DDD con Rigor Asimétrico](../engineering/architecture/adr/ADR-002-adopcion-clean-architecture-ddd.md)
+- [ADR-003: Tipo y Distribución de la Aplicación (Monolito Modular Local-First)](../engineering/architecture/adr/ADR-003-tipo-distribucion-aplicacion.md)
+- [ADR-004: Ciclo de Vida de Desarrollo e Implementación hasta MVP](../engineering/architecture/adr/ADR-004-ciclo-vida-desarrollo-mvp.md)
+- [ADR-005: Gestión Unificada de Clientes y Proveedores (Party / Organización)](../engineering/architecture/adr/ADR-005-gestion-unificada-clientes-proveedores.md)
+- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio (MVP)](../engineering/architecture/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
+- [ADR-007: Orden de Implementación de Módulos e Infraestructura (Revisión Final)](../engineering/architecture/adr/ADR-007-orden-implementacion-modulos.md)
+- [ADR-008: Planificación y Cronograma MVP Ajustado a Disponibilidad Real](../engineering/architecture/adr/ADR-008-planificacion-cronograma-mvp.md)
+- [ADR-009: Estructura de Carpetas y Organización del Proyecto](../engineering/architecture/adr/ADR-009-estructura-proyecto.md)
+- [ADR-010: Estrategia de Seguridad: Defensa en Profundidad y Security by Default](../engineering/architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md)
+- [ADR-011: Estrategia de Testing y Coverage](../engineering/architecture/adr/ADR-011-estrategia-testing-coverage.md)
 
 ---
 
