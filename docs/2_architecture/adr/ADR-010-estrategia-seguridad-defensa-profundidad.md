@@ -132,13 +132,13 @@ TLS_MIN_VERSION: "1.3"
 **Gestión de tokens:**
 - Access token: corta duración (15 minutos)
 - Refresh token: larga duración (7 días)
-- Revocación: stateless en fase inicial; blacklist en Redis si cloud
+- Revocación: stateless en MVP; blacklist en Redis si cloud
 
 **Gestión de secretos:**
 - **Nunca** en código fuente
 - Variables de entorno (`.env` en `.gitignore`)
 - Validación automática en CI/CD (no commits con secretos)
-- Rotación JWT_SECRET: manual en fase inicial; automática post-MVP
+- Rotación JWT_SECRET: manual en MVP; automática post-MVP
 
 #### 2.2 Autorización (RBAC)
 
@@ -152,7 +152,7 @@ Todo endpoint de escritura (POST, PUT, PATCH, DELETE) **DEBE** verificar rol ant
 
 **Configuración por defecto:**
 - Nuevas cuentas: `active: false` (requiere activación manual)
-- Acceso: organizacional completo (sin ownership granular en fase inicial)
+- Acceso: organizacional completo (sin ownership granular en MVP)
 - Expansibilidad: diseño permite roles personalizables (post-MVP)
 
 ---
@@ -180,7 +180,7 @@ Todo endpoint de escritura (POST, PUT, PATCH, DELETE) **DEBE** verificar rol ant
 | **SQL Injection** | GORM prepared statements (automático) |
 | **XSS** | Prohibido `v-html` en frontend; sanitización automática Vue.js |
 | **Path Traversal** | `filepath.Clean()` + whitelist de directorios |
-- **LDAP/NoSQL** | No aplica en fase inicial; crítico post-MVP
+- **LDAP/NoSQL** | No aplica en MVP; crítico post-MVP
 
 #### 3.3 Manejo de Errores
 
@@ -252,7 +252,7 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 - Checksums de binarios generados
 - Escaneo de imágenes Docker: Trivy o Grype
 - SBOM (Software Bill of Materials) generado
-- Firma GPG de commits: opcional en fase inicial; obligatorio post-MVP
+- Firma GPG de commits: opcional en MVP; obligatorio post-MVP
 
 ---
 
@@ -290,11 +290,11 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 - Modificaciones de configuración
 
 **Almacenamiento:**
-- Fase inicial: archivos rotados (7 días dev / 90 días prod)
+- MVP: archivos rotados (7 días dev / 90 días prod)
 - Post-MVP: centralización (ELK, Loki, CloudWatch)
 
 **Alertas:**
-- Fase inicial: revisión manual de logs
+- MVP: revisión manual de logs
 - Post-MVP: automáticas (>10 logins fallidos/min)
 
 #### 6.2 Correlación de Requests
