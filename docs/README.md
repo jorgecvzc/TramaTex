@@ -1,23 +1,46 @@
-# Documentación del Proyecto TramaTex
+# Estándar de documentación del proyecto
 
-Bienvenido al centro de documentación de TramaTex. Esta sección está organizada por temas para facilitar la navegación y la consulta.
+## 1. Objetivos
 
-## 1. 🚀 Visión y Gestión del Proyecto
-- **Ubicación:** [`./1_project/`](./1_project/)
-- **Contenido:** Project charter, especificación del MVP, estado actual, manual del proyecto y registro de deuda técnica. Todo lo relacionado con el "qué", "por qué" y "cuándo".
+- Centralizar toda la documentación en `/docs/`.
+- Mantener una estructura predecible y fácil de navegar.
+- Asegurar que la documentación esté actualizada, versionada y trazable.
 
-## 2. 🏗️ Arquitectura
-- **Ubicación:** [`./2_architecture/`](./2_architecture/)
-- **Contenido:** La biblia técnica del proyecto. Incluye la visión general de la arquitectura, todos los **Architecture Decision Records (ADRs)**, el glosario de términos y la estrategia de seguridad.
+## 2. Regla de Oro: Nombres y Contenido
 
-## 3. 🧩 Módulos (Bounded Contexts)
-- **Ubicación:** [`./3_modules/`](./3_modules/)
-- **Contenido:** Documentación detallada para cada módulo o Bounded Context del sistema (Party, Product, Pricing, etc.), incluyendo sus especificaciones, modelos de dominio y contratos de API.
+- **Nombres de Archivos/Carpetas:** ✅ **Inglés** (`kebab-case`).
+- **Contenido de la Documentación:** ✅ **Castellano**.
 
-## 4. 🛠️ Guías de Desarrollo
-- **Ubicación:** [`./guides/`](./guides/)
-- **Contenido:** Guías prácticas y tutoriales para desarrolladores, como la configuración de claves SSH, el flujo de trabajo de CI/CD, y otros procedimientos técnicos.
+**Ejemplo:**
+- `docs/architecture/adr/001-tech-stack.md` (Correcto)
+- `docs/arquitectura/adrs/001-stack-tecnologico.md` (Incorrecto)
 
-## 5. 🗄️ Archivo Histórico
-- **Ubicación:** [`./archive/`](./archive/)
-- **Contenido:** Un registro histórico del trabajo realizado. Incluye todos los **sprints** y **milestones** pasados. Este directorio es útil para consultas forenses pero no es necesario para el desarrollo diario.
+Esta regla es fundamental para mantener la consistencia del proyecto.
+
+## 3. Estructura de carpetas
+
+```text
+/docs
+  ├─ README.md              # Este estándar + índice general
+  ├─ overview/              # Contexto y visión
+  ├─ architecture/          # Arquitectura del sistema
+  ├─ guides/                # Guías de uso (usuarios y devs)
+  ├─ reference/             # Información de referencia estable (API, modelos)
+  └─ log/                   # Registro de trabajo (sprints, estado)
+```
+
+## 4. Reglas de estilo
+
+- Formato por defecto: Markdown (.md).
+- Un documento por tema: evitar documentos “monstruo”.
+- Enlaces relativos siempre que sea posible (ej.: ../architecture/vision.md).
+- Idioma: usar siempre el mismo (por defecto, español), salvo APIs o términos técnicos.
+
+## 5. Flujo de mantenimiento
+
+- Toda feature relevante debe ir acompañada de actualización de documentación.
+- La documentación se revisa en las PR igual que el código.
+- Al final de cada release se revisa /docs/ para:
+    - Marcar como obsoleto lo que ya no aplique.
+    - Dividir documentos demasiado grandes.
+    - Ajustar la estructura si crecen nuevos módulos.

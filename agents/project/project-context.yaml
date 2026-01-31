@@ -47,11 +47,11 @@ project_structure:
     - "internal/{module}/...: Backend code organized by Bounded Context."
     - "src/{components,pages,services,stores}/...: Frontend code structure."
   documentation_layout:
-    - "docs/1_project: Project management (charter, status, sprints)."
-    - "docs/2_architecture: Technical documentation (architecture, ADRs)."
-    - "docs/3_modules: Detailed documentation for each Bounded Context."
+    - "docs/overview: Project management (charter, status, sprints)."
+    - "docs/architecture: Technical documentation (architecture, ADRs)."
+    - "docs/reference: Detailed documentation for each Bounded Context."
     - "docs/guides: Developer and user guides."
-    - "docs/archive: Historical records (sprints, milestones)."
+    - "docs/log: Historical records (sprints, milestones)."
 
 bounded_contexts:
   description: "The system is a modular monolith. Core business domains are separated into Bounded Contexts. For a detailed map, see agents/project/context/bounded-contexts.yaml."
@@ -94,7 +94,7 @@ workflow:
   deployment_process: "Docker Compose for local and remote MVP deployment. CI/CD pipeline managed by GitHub Actions."
 
 references:
-  - "[Project Handbook](docs/1_project/README.md) (Primary Entry Point)"
-  - "[Architecture Overview](docs/2_architecture/README.md)"
-  - "[Module Documentation](docs/3_modules/)"
-  - "[Active Sprints](docs/archive/sprints/)"
+  - "[Project Handbook](docs/overview/vision.md) (Primary Entry Point)"
+  - "[Architecture Overview](docs/architecture/architecture-vision.md)"
+  - "[Module Documentation](docs/reference/)"
+  - "[Active Sprints](docs/log/sprints/)"

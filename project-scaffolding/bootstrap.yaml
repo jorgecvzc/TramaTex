@@ -66,14 +66,14 @@ workflow_steps:
   - step_id: "create_docs_subdirectories"
     title: "Crear Subdirectorios de Documentación"
     description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
-    command: "mkdir -p docs/1_project/governance docs/2_architecture/adr docs/2_architecture/diagrams docs/3_modules docs/guides/developer docs/guides/user docs/archive/sprints docs/archive/milestones"
+    command: "mkdir -p docs/overview/governance docs/architecture/adr docs/architecture/diagrams docs/reference docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones"
     next_step: "create_project_status_file"
 
   - step_id: "create_project_status_file"
     title: "Crear Archivo de Estado del Proyecto"
-    description: "Creará el archivo `project-status.md` dentro de `docs/1_project/`."
+    description: "Creará el archivo `project-status.md` dentro de `docs/log/`."
     files_to_create:
-      - filename: "docs/1_project/project-status.md"
+      - filename: "docs/log/project-status.md"
         content: |
           # Estado del Proyecto: $PROJECT_NAME
           
@@ -165,15 +165,15 @@ workflow_steps:
     description: "Copiará las plantillas de documentación universales a la carpeta 'docs/' del nuevo proyecto."
     files_to_copy_relative_to_project_scaffolding:
       - source: "templates/docs/_ADR_TEMPLATE.md"
-        destination: "docs/2_architecture/adr/_ADR_TEMPLATE.md"
+        destination: "docs/architecture/adrs/_ADR_TEMPLATE.md"
       - source: "templates/docs/_TASK_TEMPLATE.md"
-        destination: "docs/archive/sprints/_TASK_TEMPLATE.md"
+        destination: "docs/log/sprints/_TASK_TEMPLATE.md"
       - source: "templates/docs/_MODULE_TEMPLATE.md"
-        destination: "docs/3_modules/_MODULE_TEMPLATE.md"
+        destination: "docs/reference/_MODULE_TEMPLATE.md"
       - source: "templates/docs/_GUIDE_TEMPLATE.md"
         destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
       - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
-        destination: "docs/1_project/governance/project-scaffolding-policy.md"
+        destination: "docs/guides/developer/governance/project-scaffolding-policy.md"
     next_step: "create_root_files"
 
   - step_id: "create_root_files"
@@ -217,11 +217,11 @@ workflow_steps:
           - ✅ TODO lo demás va en carpetas dentro de `docs/`
           
           **Por tipo de documento:**
-          - 🚀 **Proyecto**: [docs/1_project/](docs/1_project/) (Gestión del proyecto, sprints, contexto de negocio)
-          - 🏗️ **Arquitectura**: [docs/2_architecture/](docs/2_architecture/) (Arquitectura, Módulos, Diseño Técnico)
-          - 🧩 **Módulos**: [docs/3_modules/](docs/3_modules/) (Documentación detallada por Bounded Context)
+          - 🚀 **Proyecto**: [docs/overview/](docs/overview/) (Gestión del proyecto, sprints, contexto de negocio)
+          - 🏗️ **Arquitectura**: [docs/architecture/](docs/architecture/) (Arquitectura, Módulos, Diseño Técnico)
+          - 🧩 **Módulos**: [docs/reference/](docs/reference/) (Documentación detallada por Bounded Context)
           - 📖 **Guías**: [docs/guides/](docs/guides/) (Tutoriales para desarrolladores y usuarios)
-          - 🗄️ **Archivo**: [docs/archive/](docs/archive/) (Sprints y milestones históricos)
+          - 🗄️ **Archivo**: [docs/log/](docs/log/) (Sprints y milestones históricos)
 
       - filename: "AGENTS.md"
         content: |
@@ -418,7 +418,7 @@ workflow_steps:
   - step_id: "generate_initial_adr_001"
     title: "Generar ADR-001 (Stack Tecnológico)"
     description: "Creará el primer ADR detallando las decisiones del stack tecnológico."
-    filename: "docs/2_architecture/adr/ADR-001-seleccion-stack-tecnologico.md"
+    filename: "docs/architecture/adrs/ADR-001-seleccion-stack-tecnologico.md"
     content_template: |
       # ADR-001 – Selección del Stack Tecnológico y Estrategia Tecnológica Base
 
@@ -449,7 +449,7 @@ workflow_steps:
     title: "Generar ADRs Fundacionales (Seguridad y Calidad)"
     description: "Creará los ADRs iniciales para la estrategia de seguridad y calidad, incorporando principios clave desde el inicio."
     files_to_create:
-      - filename: "docs/2_architecture/adr/ADR-002-estrategia-seguridad.md"
+      - filename: "docs/architecture/adrs/ADR-002-estrategia-seguridad.md"
         content_template: |
           # ADR-002 – Estrategia de Seguridad (Security by Design)
 
@@ -473,7 +473,7 @@ workflow_steps:
           ## 3. Consecuencias
           - **Positivas**: Mayor resiliencia, reducción de vulnerabilidades, confianza del cliente.
           - **Negativas**: Posible incremento en el tiempo de desarrollo inicial.
-      - filename: "docs/2_architecture/adr/ADR-003-estrategia-calidad-testing.md"
+      - filename: "docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md"
         content_template: |
           # ADR-003 – Estrategia de Calidad y Testing Estratégico (100/80/0)
 
@@ -549,10 +549,10 @@ workflow_steps:
       ─────────────────
       Por favor, revisa y modifica los siguientes archivos antes de continuar:
       
-      1. 📄 docs/2_architecture/adr/ADR-002-estrategia-seguridad.md
+      1. 📄 docs/architecture/adrs/ADR-002-estrategia-seguridad.md
          - Define los principios de seguridad. Adáptalo a tus requerimientos.
       
-      2. 📄 docs/2_architecture/adr/ADR-003-estrategia-calidad-testing.md
+      2. 📄 docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md
          - Define la estrategia de "Strategic Coverage (100/80/0)".
          - DEBES clasificar tus futuros directorios en los tiers CORE, IMPORTANT o INFRASTRUCTURE.
       
@@ -656,27 +656,27 @@ workflow_steps:
       📚 ESTRUCTURA DE DOCUMENTACIÓN CLAVE
       ───────────────────────────────────────────────────
       
-      🚀 **Proyecto**: docs/1_project/
+      🚀 **Proyecto**: docs/overview/
          El "qué" y el "porqué": Contexto de negocio, planificación, estado.
       
-      🏗️ **Arquitectura**: docs/2_architecture/
+      🏗️ **Arquitectura**: docs/architecture/
          El corazón técnico: Arquitectura, ADRs, diagramas, diseño de módulos.
       
-      🧩 **Módulos**: docs/3_modules/
+      🧩 **Módulos**: docs/reference/
          Documentación detallada para cada Bounded Context.
 
       📖 **Guías**: docs/guides/
          Guías prácticas para desarrolladores (cómo configurar, desplegar) y usuarios.
       
-      🗄️ **Archivo**: docs/archive/
+      🗄️ **Archivo**: docs/log/
          El registro histórico: Sprints y milestones pasados.
       
       
       🎯 PRÓXIMOS PASOS
       ────────────────
-      1. Detallar la arquitectura en `docs/2_architecture/`.
-      2. Definir el contexto de negocio en `docs/1_project/`.
-      3. Crear las primeras tareas del sprint en `docs/archive/sprints/`.
+      1. Detallar la arquitectura en `docs/architecture/`.
+      2. Definir el contexto de negocio en `docs/overview/`.
+      3. Crear las primeras tareas del sprint en `docs/log/sprints/`.
       
       
       📌 RECORDATORIO IMPORTANTE

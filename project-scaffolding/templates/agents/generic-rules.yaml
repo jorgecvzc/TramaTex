@@ -31,15 +31,16 @@ documentation_language_rules:
   
   code_and_comments:
     language: "English"
-    scope: "Source code and inline comments"
+    scope: "Source code, identifiers, and file system names"
     includes:
+      - "Filenames and directory names"
       - "Variable, function, class names"
       - "Code comments explaining 'why' not 'what'"
       - "API documentation strings"
       - "Error messages"
       - "Commit messages (preferably English)"
   
-  rationale: "Documentation in native language (Spanish) for stakeholders; code in English for international developer community"
+  rationale: "Documentation in native language (Spanish) for stakeholders; code and all technical identifiers (including filenames) in English for international developer community and tooling compatibility."
 
 agent_language_rules:
   title: "🤖 Agent Language Conventions"
@@ -73,23 +74,23 @@ directory_structure:
   
   docs_structure:
     1_project:
-      path: "/docs/1_project/"
+      path: "docs/overview/"
       purpose: "Incluye documentos relacionados con la gestión del proyecto, como el contexto de negocio, la planificación y los informes de estado."
     2_architecture:
-      path: "/docs/2_architecture/"
+      path: "docs/architecture/"
       purpose: "Contiene la documentación técnica central, incluyendo arquitectura, ADRs, y diseño detallado de módulos."
     3_modules:
-      path: "/docs/3_modules/"
+      path: "docs/reference/"
       purpose: "Documentación detallada para cada módulo o Bounded Context del sistema."
     guides:
       path: "/docs/guides/"
       purpose: "Alberga guías prácticas y tutoriales, tanto para desarrolladores como para usuarios finales."
     archive:
-      path: "/docs/archive/"
+      path: "/docs/log/"
       purpose: "Registro histórico del trabajo realizado, incluyendo sprints y milestones pasados."
       
       sprints:
-        path: "/docs/archive/sprints/"
+        path: "/docs/records/sprints/"
         purpose: "Documentación de trabajo en sprints, incluyendo tareas individuales y resúmenes de sprint."
         structure:
           - "sprint-[XX]/ - Carpeta por cada sprint"
@@ -102,23 +103,24 @@ directory_structure:
           task_files:
             pattern: "[ID_TAREA]-descriptive-name-kebab-case.md"
             id_format: "Número secuencial local por sprint (01, 02, 03... se reinicia en cada sprint)"
-            location: "docs/archive/sprints/sprint-[XX]/"
-            language: "Spanish (Español)"
+            location: "docs/records/sprints/sprint-[XX]/"
+            language: "English (filename), Spanish (content)"
             examples:
-              - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
-              - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
-              - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
+              - "sprint-01/04-security-audit-owasp.md"
+              - "sprint-02/01-documentation-system-refactoring.md"
+              - "sprint-04/01-design-system-definition.md"
             notes:
               - "ID de tarea es local al sprint (se reinicia en 01 cada sprint)"
               - "Identificación única: combinación sprint-XX + tarea-YY"
               - "Esto permite reabrir sprints cerrados sin conflictos de numeración"
-              - "Usar kebab-case para nombres descriptivos"
-              - "Evitar términos: 'journal', 'bitácora' → usar 'Tarea'"
+              - "Usar kebab-case para nombres descriptivos en inglés."
+              - "El CONTENIDO del archivo permanece en español."
+              - "Evitar términos: 'journal', 'bitácora' → usar 'Tarea' en el contenido."
           
           summary_files:
             pattern: "sprint-[XX]-summary.md"
-            location: "docs/archive/sprints/sprint-[XX]/"
-            language: "Spanish (Español)"
+            location: "docs/records/sprints/sprint-[XX]/"
+            language: "English (filename), Spanish (content)"
             examples:
               - "sprint-01-summary.md"
               - "sprint-05-summary.md"

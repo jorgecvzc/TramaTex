@@ -1,28 +1,39 @@
 # 📝 Next Session - TramaTex
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-31
 
 ---
 
-## 🎯 NEXT: Sprint 05 - Validación del Módulo Party
+## ✅ Resumen de la Sesión Actual
 
-**Status:** Sprint 04 (Fundaciones de Calidad y Seguridad) está **COMPLETADO**. El siguiente paso es iniciar el Sprint 05.
+Se ha completado la **refactorización y estandarización de la documentación**.
 
-**Objective:** Validar que el código existente del módulo `Party` cumple con los nuevos estándares de seguridad y calidad definidos en el Sprint 04.
+**Completado en esta sesión:**
+-   **Fase 4 (Refactorización de Sprints de Ejemplo)**: Los archivos `01-initial-design-and-architecture.md` y `sprint-01-summary.md` fueron refactorizados según sus plantillas.
+-   **Fase 5 (Limpieza de Plantillas No Utilizadas)**: Los archivos `docs/guides/developer/_GUIDE_TEMPLATE.md` y `docs/log/milestones/_MILESTONE_REPORT_TEMPLATE.md` fueron eliminados.
+-   **Fase 6 (Finalización y Reporte)**: Se generó el `docs/log/milestones/refactor-summary-2026-01-31.md` resumiendo el trabajo.
+-   **Mejora de la Documentación de Agentes**: Se refactorizó `AGENTS.md` (root) y se creó `agents/README.md` para mejorar la separación de la información para IA y humanos.
 
-**Tasks:**
-1.  Ejecutar los nuevos pipelines de CI/CD sobre el código del módulo.
-2.  Verificar la cobertura de tests contra los umbrales del `ADR-011`.
-3.  Revisar que todos los endpoints están protegidos con `RoleMiddleware`.
-4.  Asegurar que el `structured logging` está integrado.
-5.  Resolver cualquier issue de `linters` o `pre-commit hooks`.
-6.  Obtener la aprobación humana para dar el módulo por finalizado.
+---
 
-**Load context:**
-```yaml
-- agents/sprint-session-loader.yaml
-- docs/archive/sprints/sprint-05/01-implementacion-modulo-party.md
-- agents/project/context/code-standards.yaml
-- agents/project/context/architecture.yaml
-```
+## 🎯 PRÓXIMOS PASOS: Reorganización de Sprints
 
+La próxima sesión se centrará en la **reorganización completa del historial de sprints** para establecer un orden lógico, siguiendo la "Opción B" recomendada en `docs/log/milestones/SPRINT-REORGANIZATION-DEEP-ANALYSIS.md`.
+
+### Plan de Acción (Opción B)
+
+1.  **Backup del estado actual** (git commit)
+2.  **Eliminar `sprint-03/`** (duplicado)
+3.  **Renumerar carpetas:**
+    -   `docs/log/sprints/sprint-04` → `docs/log/sprints/sprint-03`
+    -   `docs/log/sprints/sprint-05` → `docs/log/sprints/sprint-04`
+    -   `docs/log/sprints/sprint-06` → `docs/log/sprints/sprint-05`
+4.  **Actualizar contenidos:**
+    -   IDs de sprint en metadata
+    -   IDs de tareas (03-01, 04-01, 05-01)
+    -   Referencias cruzadas en summaries
+    -   `agents/sprint-registry.yaml`
+    -   `docs/log/milestones/project-status.md`
+    -   `docs/log/sprints/_TASK_TEMPLATE.md` (ejemplo de referencia)
+5.  **Validar coherencia completa**
+6.  **Commit con mensaje:** `refactor(docs): clean sprint history and logical numbering`

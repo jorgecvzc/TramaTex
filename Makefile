@@ -255,12 +255,12 @@ docs-view: ## View documentation index
 	@echo "Documentación TramaTex"
 	@echo ""
 	@echo "ADRs:"
-	@ls -1 docs/2_architecture/adr/ | grep ADR
+	@ls -1 docs/architecture/adrs/ | grep ADR
 	@echo ""
 	@echo "Módulos:"
-	@ls -1 docs/3_modules/ | grep -v "^_"
+	@ls -1 docs/reference/ | grep -v "^_"
 	@echo ""
 	@echo "Sprints:"
-	@ls -1 docs/archive/sprints/ | grep -v "_TEMPLATE"
+	@ls -1 docs/records/sprints/ | grep -v "_TEMPLATE"
 
 .DEFAULT_GOAL := help

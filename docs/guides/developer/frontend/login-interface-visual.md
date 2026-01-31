@@ -435,4 +435,4 @@ npm run dev
 
 ---
 
-**✅ Vista previa HTML lista para ver en el navegador: [apps/apps/frontend/LOGIN-PREVIEW.html](../LOGIN-PREVIEW.html)**
+**✅ Vista previa HTML lista para ver en el navegador: [apps/frontend/LOGIN-PREVIEW.html](../../../apps/frontend/LOGIN-PREVIEW.html)**

@@ -12,11 +12,11 @@
 
 **Para obtener una visión completa y guiada del proyecto, la arquitectura, el stack tecnológico y el estado actual, consulta nuestro manual central:**
 
-- **[📖 Manual del Proyecto TramaTex](./docs/1_project/README.md)** ← **LEER PRIMERO**
+- **[📖 Manual del Proyecto TramaTex](./docs/overview/README.md)** ← **LEER PRIMERO**
 
 Para ver el progreso actualizado, los hitos y los próximos pasos, visita el panel de estado:
 
-- **[📊 Estado del Proyecto](./docs/1_project/project-status.md)**
+- **[📊 Estado del Proyecto](./docs/records/project-status.md)**
 
 ---
 
@@ -116,7 +116,7 @@ npm run dev
 
 ### Estado del Proyecto
 
-- [project-status.md](docs/1_project/project-status.md) - Progreso actual, hitos, timeline
+- [project-status.md](docs/records/project-status.md) - Progreso actual, hitos, timeline
 
 ### Guías
 
@@ -126,7 +126,7 @@ npm run dev
 
 ### Módulos
 
-Cada módulo tiene su documentación en `docs/3_modules/[modulo]/`:
+Cada módulo tiene su documentación en `docs/reference/[modulo]/`:
 
 - **Party:** Gestión de clientes y proveedores
 - **Product:** Catálogo de productos y variantes
@@ -145,7 +145,7 @@ Cada módulo tiene su documentación en `docs/3_modules/[modulo]/`:
 1. **Fase 0 (Q1 2026):** Fundaciones técnicas
    - Setup Docker, Git, autenticación JWT
    - **Hito:** Sistema arranca + login funcional
-   - Detalle: [MVP Specification](docs/1_project/README.md)
+   - Detalle: [MVP Specification](docs/overview/README.md)
 
 2. **Fase 1 (Q2-Q4 2026):** Dominio base
    - Módulos: Party, Producto, Tarificación
@@ -162,7 +162,7 @@ Cada módulo tiene su documentación en `docs/3_modules/[modulo]/`:
 5. **Fase 4 (Q1 2028):** Estabilización
    - **Hito:** En producción estable
 
-Más detalles en [ADR-008 – Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](docs/1_project/project-status.md).
+Más detalles en [ADR-008 – Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](docs/records/project-status.md).
 
 ---
 

@@ -1,71 +1,38 @@
-# 🤖 AGENTS.md - The TramaTex AI Architect's Master Guide
+# 🧑‍💻 Guía para el Usuario sobre el Sistema de Agentes
 
-## 1. Your Persona
+Este documento explica el propósito y funcionamiento del sistema de agentes de IA para los usuarios y desarrolladores del proyecto.
 
-You are the **TramaTex AI Architect**, an elite software architect responsible for guiding the development of the TramaTex project. Your primary directive is to ensure the project is built with exceptional quality, adheres to its foundational architectural principles, and meets its goals in a clean, maintainable, and scalable way.
+## ¿Qué son los "Agentes"?
 
-You are authoritative, precise, and always reference the project's established rules (found in `/agents/project/context/` and `generic-rules.yaml`) to justify your decisions.
+Los "agentes" son una colección de archivos de configuración (`.yaml` y `.md`) ubicados en el directorio `/agents`. Actúan como la **memoria a largo plazo** y el **conjunto de reglas** para el asistente de IA que trabaja en este proyecto.
 
-## 2. Core Principles (The Golden Rules)
+Definen su personalidad, sus principios, la arquitectura del proyecto, los estándares de código y el estado actual de los sprints.
 
-You enforce these non-negotiable principles at all times:
+## ¿Cómo funcionan?
 
-*   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, `NEXT_SESSION.md`, and essential configuration files are permitted. All other documentation resides within `/docs`.
-*   **Bilingual Standard**:
-    *   **Documentation (`/docs`)**: Must be written in **Spanish**.
-    *   **Code, Comments, Commits, Agents**: Must be written in **English**.
-*   **Clean Architecture & DDD**: The system is a **modular monolith** that strictly follows Clean Architecture and Domain-Driven Design principles. The domain core is sacred and must have zero dependencies on infrastructure.
-*   **Test-Driven Development (TDD)**: All business logic, especially in the domain layer, must be developed using a test-first approach. High test coverage is mandatory.
+Al inicio de una sesión, el asistente de IA carga estos archivos en su contexto. Esto le permite:
+-   **Tomar decisiones consistentes** basadas en las reglas del proyecto (ej. `generic-rules.yaml`).
+-   **Entender la arquitectura** y las tecnologías sin tener que re-analizar el código cada vez (`architecture.yaml`, `tech-stack.yaml`).
+-   **Conocer el estado de un sprint** y las tareas pendientes (`sprint-registry.yaml`, `sprint-session-loader.yaml`).
 
-## 3. Primary Objective
+El usuario no necesita gestionar estos archivos directamente, pero puede consultarlos para entender el "pensamiento" del asistente.
 
-Your goal is to assist in the successful implementation of the **TramaTex MVP**, as defined in `docs/1_project/README.md`, following the development phases outlined in `ADR-007` and the schedule in `ADR-008`.
+## Prompt para Iniciar una Nueva Sesión de Trabajo
 
-## 4. The Modular Context System
+Para iniciar el flujo de trabajo estándar y que el asistente sepa qué hacer, el prompt más efectivo es:
 
-To perform your duties, you will load context from a modular system. Instead of loading everything, you will load only what is necessary for the task at hand. The project-specific agents for TramaTex are located in `/agents/project/context/`.
+> **"Dónde estábamos en @NEXT_SESSION.md"**
 
-### Quick Loading Guide
+**¿Por qué este prompt?**
 
-*   **When designing a new module:**
-    *   Load: `agents/project/context/architecture.yaml`
-    *   Load: `agents/project/context/bounded-contexts.yaml`
-*   **When implementing code:**
-    *   Load: `agents/project/context/bounded-contexts.yaml`
-    *   Load: `agents/project/context/tech-stack.yaml`
-*   **When running pre-commit checks:**
-    *   Load: `agents/project/context/code-standards.yaml`
-*   **When working on the UI:**
-    *   Load: `agents/project/context/design/*`
+1.  **Carga el archivo de continuidad**: Hace que el asistente revise primero `NEXT_SESSION.md`, que es el punto de partida prioritario.
+2.  **Activa el flujo estándar**: Si `NEXT_SESSION.md` está vacío, el asistente sabe que debe proceder a cargar el estado del sprint actual (`sprint-session-loader.yaml`).
+3.  **Es claro y directo**: No deja lugar a ambigüedad y le indica al asistente que se prepare para continuar con el trabajo pendiente.
 
-## 5. NEXT_SESSION.md - Session Continuity File
+## Documentación Técnica de la IA
 
-`NEXT_SESSION.md` is a **volatile checkpoint file** in the root directory:
-
-*   **Purpose**: Quick checkpoint to resume work from where the previous session ended
-*   **Content**: Gets **completely overwritten** each session with pending tasks
-*   **Empty file**: Indicates no pending work scheduled
-*   **Use case**: Half-finished tasks, blocked work, or explicit next steps
-*   **Not a log**: Does not accumulate history - only current session state
-
-**At session end**: Update `NEXT_SESSION.md` with:
-- Tasks left incomplete
-- Blockers encountered
-- Specific next steps to resume
-- Context needed for continuation
-
-**At session start**: Check `NEXT_SESSION.md` first - if not empty, it takes priority over sprint-session-loader.
-
-## 6. Standard Workflow
-
-1.  **Check NEXT_SESSION.md**: If not empty, resume from there. Otherwise, load `agents/sprint-session-loader.yaml`.
-2.  **Select Task**: Either continue an existing task or start a new one from the backlog, creating a new sprint task file.
-3.  **Load Context**: Load the specific context agents required for the task.
-4.  **Develop (TDD)**: Write tests first, then implement the code to make them pass.
-5.  **Validate**: Before committing, run all tests, linters, and formatters as defined in `code-standards.yaml`.
-6.  **Document**: Update the sprint task file and `project-status.md`.
-7.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if session complete.
-8.  **Commit**: Use conventional commit messages in English.
+Para una descripción detallada de la persona, los principios y el flujo de trabajo interno de la IA, consulta el archivo:
+-   **[agents/README.md](./agents/README.md)**
 
 ---
-*This document is the single source of truth for the AI assistant's role and responsibilities. Last updated: 2026-01-25.*
+*Última actualización: 2026-01-31*

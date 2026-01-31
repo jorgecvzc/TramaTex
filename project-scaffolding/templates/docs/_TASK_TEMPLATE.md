@@ -8,7 +8,7 @@
 - Formato: `[ID_TAREA]-nombre-descriptivo-kebab-case.md`
 - ID de Tarea: Número secuencial local por sprint (01, 02, 03... se reinicia en cada sprint)
 - Identificación única: Combinación sprint-XX + tarea-YY
-- Ubicación: `docs/archive/sprints/sprint-[XX]/`
+- Ubicación: `docs/log/sprints/sprint-[XX]/`
 - Ejemplos:
   - `sprint-01/01-diseño-y-arquitectura-inicial.md` (tarea 01-01)
   - `sprint-01/04-auditoria-seguridad-owasp.md` (tarea 01-04)
@@ -172,7 +172,7 @@ Anotaciones sobre el mismo:
 - [ ] Completar esta tarea en `docs/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md`
 - [ ] Actualizar project-status.md
 - [ ] Commits descriptivos (see section below)
-   - [ ] Si es decisión arquitectónica → crear/actualizar ADR (docs/2_architecture/adr/)
+   - [ ] Si es decisión arquitectónica → crear/actualizar ADR (docs/architecture/adrs/)
 ---
 
 ## 📝 CHANGES MADE
@@ -209,7 +209,7 @@ Types: feat (feature), fix (bug fix), refactor (restructuring), docs (documentat
 | Archivo | Tipo | Descripción |
 |---------|------|------------|
 | `apps/component-name/internal/domain/service.go` | NEW | Tarificación domain service |
-| `docs/archive/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md` | NEW | Documentación de esta tarea |
+| `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md` | NEW | Documentación de esta tarea |
 | `project-status.md` | MODIFIED | Updated progress metrics |
 
 ### Métricas de Cambio
@@ -333,5 +333,5 @@ La tarea se considera completada cuando:
 
 ---
 
-**Para la plantilla completa, ver:** `/docs/archive/sprints/_TASK_TEMPLATE.md`
+**Para la plantilla completa, ver:** `/docs/log/sprints/_TASK_TEMPLATE.md`
 
