@@ -1,4 +1,4 @@
-# Tarea 06-01: Validación del Módulo Party contra Normas de Calidad
+# Tarea 05-01: Validación del Módulo Party contra Normas de Calidad
 
 ---
 
@@ -7,13 +7,13 @@
 | Campo | Valor |
 |-------|-------|
 | **ID de Tarea** | 01 |
-| **ID de Sprint** | sprint-06 |
+| **ID de Sprint** | sprint-05 |
 | **Título** | Implementación del Módulo Party (Validación Post-Normas) |
 | **Estado** | 🔍 Pendiente de Aprobación Humana |
 | **Facilitador/LLM** | GitHub Copilot (Claude Sonnet 4.5), Jorge Cortés Villalba |
 | **Fecha de Inicio Original** | 2026-01-18 |
 | **Fecha de Fin Original** | 2026-01-24 |
-| **Fecha de Revisión** | (Pendiente - después del Sprint 04) |
+| **Fecha de Revisión** | (Pendiente - después del Sprint 03) |
 | **Duración Estimada** | 4-6 horas |
 | **Duración Real** | (Por determinar tras revisión) |
 
@@ -21,7 +21,7 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-Esta tarea tiene como objetivo **validar y ajustar** el módulo Party existente para que cumpla con las normas de calidad y seguridad establecidas en el Sprint 04.
+Esta tarea tiene como objetivo **validar y ajustar** el módulo Party existente para que cumpla con las normas de calidad y seguridad establecidas en el Sprint 03.
 
 ### Objetivos Específicos
 
@@ -102,12 +102,12 @@ apps/frontend/src/
     └── OrganizationDetailPage.vue
 ```
 
-### Dependencias del Sprint 04
+### Dependencias del Sprint 03
 
 **Prerequisitos para iniciar validación:**
-- [ ] Sprint 04, Tarea 01: Controles de Seguridad OWASP implementados
-- [ ] Sprint 04, Tarea 02: Pipeline CI/CD configurado y funcional
-- [ ] Sprint 04, Tarea 03: Estrategia de Calidad documentada
+- [ ] Sprint 03, Tarea 01: Controles de Seguridad OWASP implementados
+- [ ] Sprint 03, Tarea 02: Pipeline CI/CD configurado y funcional
+- [ ] Sprint 03, Tarea 03: Estrategia de Calidad documentada
 
 **Normas a aplicar:**
 - ADR-010: Testing Strategy (≥90% coverage)
@@ -336,7 +336,7 @@ Para considerar esta tarea **completada**, se debe cumplir:
 
 ## 📚 REFERENCIAS
 
-- **Sprint 04:**
+- **Sprint 03:**
   - [01-implementacion-controles-seguridad-owasp.md](../sprint-03/01-implementacion-controles-seguridad-owasp.md)
   - [02-pipeline-cicd-github-actions.md](../sprint-03/02-pipeline-cicd-github-actions.md)
   - [03-estrategia-calidad-deuda-tecnica.md](../sprint-03/03-estrategia-calidad-deuda-tecnica.md)
@@ -360,12 +360,12 @@ Para considerar esta tarea **completada**, se debe cumplir:
 
 ### Contexto Histórico
 
-El módulo Party fue implementado originalmente entre el 2026-01-18 y 2026-01-24, antes de que se establecieran las normas de calidad y seguridad del Sprint 04. Por lo tanto, esta tarea es esencialmente una **auditoría de cumplimiento** y **retrofit de mejores prácticas**.
+El módulo Party fue implementado originalmente entre el 2026-01-18 y 2026-01-24, antes de que se establecieran las normas de calidad y seguridad del Sprint 03. Por lo tanto, esta tarea es esencialmente una **auditoría de cumplimiento** y **retrofit de mejores prácticas**.
 
 ### Enfoque de Validación
 
 En lugar de re-implementar todo el módulo, el enfoque es:
-1. **Identificar gaps** respecto a las normas del Sprint 04
+1. **Identificar gaps** respecto a las normas del Sprint 03
 2. **Aplicar ajustes mínimos** para cumplir con las normas
 3. **Documentar deuda técnica** que sea aceptable para el MVP
 4. **Obtener aprobación humana** para garantizar calidad
@@ -380,4 +380,4 @@ El módulo Party NO se considera completado hasta que:
 ---
 
 **Estado Actual:** 🔍 Pendiente de Aprobación Humana  
-**Siguiente Paso:** Esperar a que se complete el Sprint 04 para iniciar validación
+**Siguiente Paso:** Esperar a que se complete el Sprint 03 para iniciar validación

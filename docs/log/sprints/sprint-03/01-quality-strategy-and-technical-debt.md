@@ -7,7 +7,7 @@
 | Campo | Valor |
 |-------|-------|
 | **ID de Tarea** | 01 |
-| **ID de Sprint** | sprint-04 |
+| **ID de Sprint** | sprint-03 |
 | **Título** | Estrategia de Calidad y Registro de Deuda Técnica |
 | **Estado** | ⏳ Planificado |
 | **Facilitador/LLM** | GitHub Copilot (Claude Sonnet 4.5) |
@@ -17,9 +17,9 @@
 | **Duración Real** | (Completar al finalizar) |
 
 **Nota sobre IDs:**
-- **ID de Tarea**: 01 (primera tarea del sprint-04)
-- **ID de Sprint**: sprint-04
-- **ID Único**: 04-01
+- **ID de Tarea**: 01 (primera tarea del sprint-03)
+- **ID de Sprint**: sprint-03
+| **ID Único** | 03-01 |
 
 ---
 
@@ -549,7 +549,7 @@ Este documento registra y prioriza la deuda técnica del proyecto TramaTex, clas
 - Usar swaggo para Go
 - UI interactiva con Swagger UI
 
-**Estado:** Planificado para Sprint 07 o 08
+**Estado:** Planificado para Sprint 06 o 07
 
 ---
 
@@ -571,13 +571,13 @@ Este documento registra y prioriza la deuda técnica del proyecto TramaTex, clas
 
 ## 📅 Plan de Resolución
 
-### Sprint 04 (Actual)
+### Sprint 03 (Actual)
 - ✅ Logging estructurado
 - ✅ RBAC y authorization
 - ✅ CORS configurable
 - ✅ Error handling centralizado
 
-### Sprint 05-06
+### Sprint 04-05
 - [ ] Documentación API (OpenAPI)
 - [ ] Rate limiting
 - [ ] Paginación en listados

@@ -13,7 +13,7 @@
   - `sprint-01/01-diseño-y-arquitectura-inicial.md` (tarea 01-01)
   - `sprint-01/04-auditoria-seguridad-owasp.md` (tarea 01-04)
   - `sprint-02/01-refactorizacion-sistema-documentacion.md` (tarea 02-01)
-  - `sprint-04/01-definicion-sistema-de-diseno.md` (tarea 04-01)
+  - `sprint-03/01-definicion-sistema-de-diseno.md` (tarea 03-01)
 
 **Anotaciones generales:**
 - Los títulos y explicaciones tienen que estar en castellano.

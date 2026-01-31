@@ -1,4 +1,4 @@
-# Tarea 07: Implementación del Módulo Party
+# Tarea 03: Implementación del Módulo Party
 
 ---
 
@@ -7,7 +7,7 @@
 | Campo | Valor |
 |-------|-------|
 | **ID de Tarea** | 01 |
-| **ID de Sprint** | sprint-05 |
+| **ID de Sprint** | sprint-04 |
 | **Título** | Implementación del Módulo Party (Gestión de Clientes y Proveedores) |
 | **Estado** | 🔍 Pendiente de Aprobación Humana |
 | **Facilitador/LLM** | GitHub Copilot, Jorge Cortés Villalba |
@@ -233,7 +233,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - Query tests: 9 tests (get, list, filter, find, pagination)
 - All error paths tested
 
-**Próximo Paso:** Sprint 4 - Interface Layer (REST API Handlers)
+**Próximo Paso:** Sprint 3 - Interface Layer (REST API Handlers)
 
 ---
 
@@ -279,7 +279,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - Functional tests: 12 tests (all endpoints, error cases)
 - Performance tests: 2 benchmarks (create, get)
 
-**Próximo Paso:** Sprint 5 - Frontend UI Components
+**Próximo Paso:** Sprint 4 - Frontend UI Components
 
 ---
 
@@ -304,7 +304,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - `apps/frontend/src/services/partyApi.js`
 - `apps/frontend/src/router/index.ts` (updated routes)
 
-**Tests Implementados:** Frontend component and e2e tests will be created in Sprint 6.
+**Tests Implementados:** Frontend component and e2e tests will be created in Sprint 5.
 
 ---
 
@@ -320,7 +320,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - API examples (Postman/curl collections)
 - Final documentation updates across module files and guides.
 
-**Tests Implementados:** Frontend component and e2e tests were implemented as part of Sprint 5 in the `apps/frontend/src/components/party/` and `apps/frontend/src/pages/organizations/` directories. Also the general documentation cleanup and refactoring was completed.
+**Tests Implementados:** Frontend component and e2e tests were implemented as part of Sprint 4 in the `apps/frontend/src/components/party/` and `apps/frontend/src/pages/organizations/` directories. Also the general documentation cleanup and refactoring was completed.
 
 ---
 
@@ -352,14 +352,14 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - [x] Tests de integración para use cases ✅ 18 TESTS PASSING
 - [x] Checkpoint: Use cases listos ✅
 
-### Sprint 4: Interface Layer (Estimado: 1-1.5 horas)
+### Sprint 3: Interface Layer (Estimado: 1-1.5 horas)
 - [x] REST controllers ✅
 - [x] DTOs y mappers ✅
 - [x] Error handling y HTTP responses ✅
 - [x] Tests de integración end-to-end ✅
-- [x] Checkpoint: API operacional ✅ 12 TESTS PASSING
+- [x] Checkpoint: API operacional ✅
 
-### Sprint 5: Frontend UI (Estimado: 2-2.5 horas)
+### Sprint 4: Frontend UI (Estimado: 2-2.5 horas)
 - [x] Components siguiendo design system ✅
 - [x] Pages y routing ✅
 - [x] Integración con API tramatex-api ✅
@@ -367,7 +367,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - [x] Tests de componentes (si tiempo permite) ✅
 - [x] Checkpoint: UI completo y funcional ✅
 
-### Sprint 6: Testing & Documentation (Estimado: 1-1.5 horas)
+### Sprint 5: Testing & Documentation (Estimado: 1-1.5 horas)
 - [x] Aumentar coverage a 90%+ ✅
 - [x] Escribir ejemplos de API (Postman/curl) ✅
 - [x] Actualizar documentación ✅
@@ -433,9 +433,9 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - [x] Sprint 1 completado: Domain layer 100%
 - [x] Sprint 2 completado: Persistence layer 100%
 - [x] Sprint 3 completado: Application layer 100%
-- [x] Sprint 4 completado: Interface layer 100%
-- [x] Sprint 5 completado: Frontend UI 100%
-- [x] Sprint 6 completado: Testing & Docs 100%
+- [x] Sprint 3 completado: Interface layer 100%
+- [x] Sprint 4 completado: Frontend UI 100%
+- [x] Sprint 5 completado: Testing & Docs 100%
 - [x] **FINAL:** Bitácora #07 completada ✅
 
 ---
