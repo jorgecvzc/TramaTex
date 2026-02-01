@@ -66,6 +66,23 @@ active_tasks:
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+
+  task_06_01:
+    id: "06-01"
+    sprint: "06"
+    filename: "01-análisis-y-diseño-módulo-party.md"
+    title: "Análisis y Diseño del Módulo Party"
+    status: "✅ Completado"
+    dates:
+      started: "2026-02-01"
+      completed: "2026-02-01"
+    context_focus: "Party module deep review (dominio, ADR, gap analysis, UI review)"
+    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
+    key_outcomes:
+      - "Dominio y casos de uso del módulo Party actualizados."
+      - "ADR-012 aprobado con el modelo Party con roles y relaciones."
+      - "Brecha completa detectada entre diseño e implementación actual."
+      - "Revisión de UI completada y cierre aprobado."
   
   task_04_01:
     id: "04-01"
