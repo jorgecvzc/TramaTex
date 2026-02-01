@@ -23,12 +23,12 @@ func (UserModel) TableName() string {
 }
 
 // SeedAdminUser retorna un UserModel para el usuario admin inicial
-// Password: Admin@12345 (hasheado con bcrypt cost=10)
+// Password: Ooli6574 (hasheado con bcrypt cost=10)
 func SeedAdminUser() UserModel {
 	return UserModel{
 		ID:           "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 		Email:        "admin@tramatex.local",
-		PasswordHash: "$2a$10$vDyHnw2RDOyyVDOWHX6sVuH.NSj/V4rUoeWhK3tYejgbrrKIwQIdS",
+		PasswordHash: "$2a$10$hIiYQQFTS.n4cKfowxZlR.XPrywCir4r.kDbEUIqfwSVvrHFQ26S2",
 		Role:         "admin",
 		IsActive:     true,
 		CreatedAt:    time.Now(),
