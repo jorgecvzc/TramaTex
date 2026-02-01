@@ -88,6 +88,7 @@ const routes: RouteRecordRaw[] = [
     component: UsersManagement,
     meta: {
       requiresAuth: true,
+      requiresAdmin: true,
       title: 'Usuarios - TramaTex'
     }
   },

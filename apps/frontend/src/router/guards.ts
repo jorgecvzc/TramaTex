@@ -51,9 +51,14 @@ export function setupAuthGuards(router: Router) {
 
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
     const requiresGuest = to.matched.some((record) => record.meta.requiresGuest)
+    const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
 
     if (requiresAuth && !authStore.isAuthenticated) {
       return next({ name: 'Login', query: { redirect: to.fullPath } })
+    }
+
+    if (requiresAdmin && !authStore.isAdmin) {
+      return next({ name: 'Dashboard' })
     }
 
     if (requiresGuest && authStore.isAuthenticated) {
