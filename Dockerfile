@@ -15,7 +15,7 @@ RUN go mod download
 RUN go mod verify
 
 # Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o tramatex .
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o tramatex ./cmd/api
 
 # Stage 2: Runtime
 FROM alpine:latest
