@@ -203,13 +203,13 @@ func main() {
 				organizations.GET("/:id", orgHandler.GetOrganization)
 
 				// Person operations
-				organizations.POST("/:org_id/persons", infra_middleware.RequireRole("admin", "commercial"), personHandler.AddPerson)
-				organizations.GET("/:org_id/persons", personHandler.ListPersons)
-				organizations.GET("/:org_id/primary-contact", personHandler.GetPrimaryContact)
+				organizations.POST("/:id/persons", infra_middleware.RequireRole("admin", "commercial"), personHandler.AddPerson)
+				organizations.GET("/:id/persons", personHandler.ListPersons)
+				organizations.GET("/:id/primary-contact", personHandler.GetPrimaryContact)
 
 				// Address operations
-				organizations.POST("/:org_id/addresses", infra_middleware.RequireRole("admin", "commercial"), addressHandler.AddAddress)
-				organizations.GET("/:org_id/addresses", addressHandler.ListAddresses)
+				organizations.POST("/:id/addresses", infra_middleware.RequireRole("admin", "commercial"), addressHandler.AddAddress)
+				organizations.GET("/:id/addresses", addressHandler.ListAddresses)
 			}
 
 			persons := protected.Group("/persons")
