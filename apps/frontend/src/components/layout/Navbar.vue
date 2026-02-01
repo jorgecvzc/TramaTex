@@ -21,6 +21,11 @@
             Clientes
           </RouterLink>
         </li>
+        <li v-if="isAdmin">
+          <RouterLink to="/admin/users" class="nav-link" active-class="active">
+            Usuarios
+          </RouterLink>
+        </li>
       </ul>
 
       <UserMenu />
@@ -29,8 +34,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import UserMenu from './UserMenu.vue'
+
+const authStore = useAuthStore()
+const isAdmin = computed(() => authStore.isAdmin)
 </script>
 
 <style scoped>
