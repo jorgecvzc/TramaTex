@@ -9,7 +9,7 @@ import (
 type UserModel struct {
 	ID           string     `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email        string     `gorm:"uniqueIndex;not null;type:varchar(255)"`
-	PasswordHash string     `gorm:"not null;type:varchar(255)"`
+	PasswordHash string     `gorm:"column:password;not null;type:varchar(255)"`
 	Role         string     `gorm:"not null;default:'commercial';type:varchar(50)"`
 	IsActive     bool       `gorm:"not null;default:true"`
 	CreatedAt    time.Time  `gorm:"autoCreateTime:milli;type:timestamp with time zone"`

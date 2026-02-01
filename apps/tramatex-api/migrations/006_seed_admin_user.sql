@@ -2,7 +2,7 @@
 -- Date: 2026-02-01
 -- Status: Ready for migration
 
-INSERT INTO users (id, email, password_hash, role, is_active)
+INSERT INTO users (id, email, password, role, is_active)
 VALUES (
   'f47ac10b-58cc-4372-a567-0e02b2c3d479',
   'admin@tramatex.local',
