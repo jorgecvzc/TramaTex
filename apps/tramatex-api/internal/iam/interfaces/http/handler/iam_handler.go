@@ -15,31 +15,37 @@ import (
 type IAMHandler struct {
 	loginUseCase      *usecase.LoginUseCase
 	registerUseCase   *usecase.RegisterUserUseCase
+	createUserUseCase *usecase.CreateUserUseCase
 	refreshUseCase    *usecase.RefreshTokenUseCase
 	logoutUseCase     *usecase.LogoutUserUseCase
 	assignRoleUseCase *usecase.AssignRoleUseCase
 	checkAuthUseCase  *usecase.CheckAuthorizationUseCase
 	listUsersUseCase  *usecase.ListUsersUseCase
+	deleteUserUseCase *usecase.DeleteUserUseCase
 }
 
 // NewIAMHandler creates a new IAM handler.
 func NewIAMHandler(
 	loginUseCase *usecase.LoginUseCase,
 	registerUseCase *usecase.RegisterUserUseCase,
+	createUserUseCase *usecase.CreateUserUseCase,
 	refreshUseCase *usecase.RefreshTokenUseCase,
 	logoutUseCase *usecase.LogoutUserUseCase,
 	assignRoleUseCase *usecase.AssignRoleUseCase,
 	checkAuthUseCase *usecase.CheckAuthorizationUseCase,
 	listUsersUseCase *usecase.ListUsersUseCase,
+	deleteUserUseCase *usecase.DeleteUserUseCase,
 ) *IAMHandler {
 	return &IAMHandler{
 		loginUseCase:      loginUseCase,
 		registerUseCase:   registerUseCase,
+		createUserUseCase: createUserUseCase,
 		refreshUseCase:    refreshUseCase,
 		logoutUseCase:     logoutUseCase,
 		assignRoleUseCase: assignRoleUseCase,
 		checkAuthUseCase:  checkAuthUseCase,
 		listUsersUseCase:  listUsersUseCase,
+		deleteUserUseCase: deleteUserUseCase,
 	}
 }
 
@@ -125,6 +131,39 @@ func (h *IAMHandler) Register(c *gin.Context) {
 		logging.WithRequestID(reqID).WithError(err).Error("Register failed: internal error")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "internal server error: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, output)
+}
+
+// CreateUser handles POST /auth/users
+func (h *IAMHandler) CreateUser(c *gin.Context) {
+	var req usecase.CreateUserInput
+
+	requestID, _ := c.Get("requestID")
+	reqID, _ := requestID.(string)
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logging.WithRequestID(reqID).WithField("error", err.Error()).Warn("CreateUser failed: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	output, err := h.createUserUseCase.Execute(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, model.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "user already exists",
+			})
+			return
+		}
+		logging.WithRequestID(reqID).WithError(err).Warn("CreateUser failed")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
 		})
 		return
 	}
@@ -259,6 +298,26 @@ func (h *IAMHandler) CheckAuthorization(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, output)
+}
+
+// DeleteUser handles DELETE /auth/users/:id
+func (h *IAMHandler) DeleteUser(c *gin.Context) {
+	requestID, _ := c.Get("requestID")
+	reqID, _ := requestID.(string)
+
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
+		return
+	}
+
+	if err := h.deleteUserUseCase.Execute(c.Request.Context(), userID); err != nil {
+		logging.WithRequestID(reqID).WithError(err).Warn("DeleteUser failed")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // ListUsers handles GET /auth/users

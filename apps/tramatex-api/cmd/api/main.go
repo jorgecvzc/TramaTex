@@ -94,20 +94,24 @@ func main() {
 	// 3. Use Cases
 	loginUseCase := iam_usecase.NewLoginUseCase(userRepository, jwtService)
 	registerUseCase := iam_usecase.NewRegisterUserUseCase(userRepository)
+	createUserUseCase := iam_usecase.NewCreateUserUseCase(userRepository)
 	refreshUseCase := iam_usecase.NewRefreshTokenUseCase(userRepository, jwtService)
 	logoutUseCase := iam_usecase.NewLogoutUserUseCase(jwtService, tokenBlacklist)
 	assignRoleUseCase := iam_usecase.NewAssignRoleUseCase(userRepository)
 	checkAuthUseCase := iam_usecase.NewCheckAuthorizationUseCase(userRepository)
 	listUsersUseCase := iam_usecase.NewListUsersUseCase(userRepository)
+	deleteUserUseCase := iam_usecase.NewDeleteUserUseCase(userRepository)
 	// 4. HTTP Handler
 	iamHandler := iam_handler.NewIAMHandler(
 		loginUseCase,
 		registerUseCase,
+		createUserUseCase,
 		refreshUseCase,
 		logoutUseCase,
 		assignRoleUseCase,
 		checkAuthUseCase,
 		listUsersUseCase,
+		deleteUserUseCase,
 	)
 
 	// --- Party Module Dependencies ---
@@ -173,10 +177,14 @@ func main() {
 		{
 			// Logout requires Authorization header
 			protectedAuth.POST("/logout", iamHandler.Logout)
+			// Admin only: create user
+			protectedAuth.POST("/users", infra_middleware.RequireRole("admin"), iamHandler.CreateUser)
 			// Admin only: assign role
 			protectedAuth.POST("/assign-role", infra_middleware.RequireRole("admin"), iamHandler.AssignRole)
 			// Admin only: list users
 			protectedAuth.GET("/users", infra_middleware.RequireRole("admin"), iamHandler.ListUsers)
+			// Admin only: delete user
+			protectedAuth.DELETE("/users/:id", infra_middleware.RequireRole("admin"), iamHandler.DeleteUser)
 			// Authorization checks (authenticated)
 			protectedAuth.POST("/authorize", iamHandler.CheckAuthorization)
 		}

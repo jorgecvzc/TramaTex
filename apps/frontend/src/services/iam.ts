@@ -48,6 +48,15 @@ class IamService {
       role: response.data.role
     }
   }
+
+  async createUser(payload: { email: string; password: string; role: UserRole }): Promise<Usuario> {
+    const response = await this.apiClient.post('/auth/users', payload)
+    return response.data
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.apiClient.delete(`/auth/users/${userId}`)
+  }
 }
 
 export const iamService = new IamService()

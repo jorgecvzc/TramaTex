@@ -35,6 +35,20 @@ type RegisterOutput struct {
 	Role  string `json:"role"`
 }
 
+// CreateUserInput contains input data to create a user with a role.
+type CreateUserInput struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+	Role     string `json:"role" binding:"required"`
+}
+
+// CreateUserOutput contains output data for created user.
+type CreateUserOutput struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 // RefreshInput contains input data for token refresh.
 type RefreshInput struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
