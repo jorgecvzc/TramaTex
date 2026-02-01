@@ -28,7 +28,7 @@ func SeedAdminUser() UserModel {
 	return UserModel{
 		ID:           "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 		Email:        "admin@tramatex.local",
-		PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/tvW2",
+		PasswordHash: "$2a$10$ITWmnAyriJUDmnmD0zW/We7YikhxKKwnD/kcJ5nIBBZpFGVCidTV2",
 		Role:         "admin",
 		IsActive:     true,
 		CreatedAt:    time.Now(),
