@@ -75,7 +75,7 @@ Se identificaron y corrigieron 4 errores críticos en `apps/tramatex-api/cmd/api
 
 ### 2.2. Referencias de Documentación Rotas
 
-Se corrigieron 18 referencias rotas en los siguientes archivos para que apuntaran a la nueva estructura de directorios (`docs/architecture/`, `docs/records/`, etc.):
+Se corrigieron 18 referencias rotas en los siguientes archivos para que apuntaran a la nueva estructura de directorios (`docs/architecture/`, `docs/log/`, etc.):
 - `README.md` (8 referencias)
 - `Makefile` (2 referencias)
 - `agents/project-context.yaml` (8 referencias)

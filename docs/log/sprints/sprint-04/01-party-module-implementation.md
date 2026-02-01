@@ -370,7 +370,7 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 ### Sprint 5: Testing & Documentation (Estimado: 1-1.5 horas)
 - [x] Aumentar coverage a 90%+ ✅
 - [x] Escribir ejemplos de API (Postman/curl) ✅
-- [x] Actualizar documentación ✅
+*   [x] Actualizar project-status.md
 - [x] Code review final ✅
 - [x] Checkpoint: Todo documentado y listo ✅
 
@@ -436,6 +436,6 @@ El objetivo de esta tarea es implementar el módulo Party (Gestión de Clientes 
 - [x] Sprint 3 completado: Interface layer 100%
 - [x] Sprint 4 completado: Frontend UI 100%
 - [x] Sprint 5 completado: Testing & Docs 100%
-- [x] **FINAL:** Bitácora #07 completada ✅
+- [x] **FINAL:** TAREA #07 completada ✅
 
 ---

@@ -6,6 +6,7 @@ import StyleGuide from '@/components/StyleGuide.vue'
 import OrganizationsList from '@/pages/organizations/List.vue'
 import OrganizationsCreate from '@/pages/organizations/Create.vue'
 import OrganizationsDetail from '@/pages/organizations/Detail.vue'
+import UsersManagement from '@/pages/admin/UsersManagement.vue'
 import { setupAuthGuards } from './guards'
 
 const routes: RouteRecordRaw[] = [
@@ -79,6 +80,15 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       title: 'Organization Details - TramaTex'
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'UsersManagement',
+    component: UsersManagement,
+    meta: {
+      requiresAuth: true,
+      title: 'Usuarios - TramaTex'
     }
   },
   {

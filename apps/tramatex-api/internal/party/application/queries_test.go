@@ -15,7 +15,9 @@ func TestGetOrganizationHandler_Success(t *testing.T) {
 	// Create organization
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Query it
 	handler := NewGetOrganizationHandler(orgRepo)
@@ -50,7 +52,9 @@ func TestListOrganizationsHandler_Success(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		orgID, _ := domain.NewOrganizationID("org-00" + string(rune('0'+i)))
 		org, _ := domain.NewOrganization(orgID, "Org "+string(rune('0'+i)), domain.OrganizationRoleClient, nil, "user-1")
-		orgRepo.Save(ctx, org)
+		if err := orgRepo.Save(ctx, org); err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	handler := NewListOrganizationsHandler(orgRepo)
@@ -72,11 +76,15 @@ func TestListOrganizationsHandler_FilterByRole(t *testing.T) {
 	// Create organizations with different roles
 	orgID1, _ := domain.NewOrganizationID("org-001")
 	org1, _ := domain.NewOrganization(orgID1, "Client Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org1)
+	if err := orgRepo.Save(ctx, org1); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	orgID2, _ := domain.NewOrganizationID("org-002")
 	org2, _ := domain.NewOrganization(orgID2, "Supplier Corp", domain.OrganizationRoleSupplier, nil, "user-1")
-	orgRepo.Save(ctx, org2)
+	if err := orgRepo.Save(ctx, org2); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	handler := NewListOrganizationsHandler(orgRepo)
 	query := &ListOrganizationsQuery{Role: "CLIENT", PageSize: 10, PageNumber: 1}
@@ -98,7 +106,9 @@ func TestListOrganizationsByRoleHandler_Success(t *testing.T) {
 	for i := 1; i <= 2; i++ {
 		orgID, _ := domain.NewOrganizationID("supp-00" + string(rune('0'+i)))
 		org, _ := domain.NewOrganization(orgID, "Supplier "+string(rune('0'+i)), domain.OrganizationRoleSupplier, nil, "user-1")
-		orgRepo.Save(ctx, org)
+		if err := orgRepo.Save(ctx, org); err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	handler := NewListOrganizationsByRoleHandler(orgRepo)
@@ -122,7 +132,9 @@ func TestGetPersonHandler_Success(t *testing.T) {
 	personID, _ := domain.NewPersonID("person-001")
 	email, _ := domain.NewEmail("john@example.com")
 	person := domain.NewPerson(personID, orgID, "John", "Doe", email, "user-1")
-	personRepo.Save(ctx, person)
+	if err := personRepo.Save(ctx, person); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Query it
 	handler := NewGetPersonHandler(personRepo)
@@ -148,7 +160,9 @@ func TestListPersonsByOrganizationHandler_Success(t *testing.T) {
 		personID, _ := domain.NewPersonID("person-00" + string(rune('0'+i)))
 		email, _ := domain.NewEmail("person" + string(rune('0'+i)) + "@example.com")
 		person := domain.NewPerson(personID, orgID, "Person", ""+string(rune('0'+i)), email, "user-1")
-		personRepo.Save(ctx, person)
+		if err := personRepo.Save(ctx, person); err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	handler := NewListPersonsByOrganizationHandler(personRepo)
@@ -172,7 +186,9 @@ func TestGetPersonByEmailHandler_Success(t *testing.T) {
 	personID, _ := domain.NewPersonID("person-001")
 	email, _ := domain.NewEmail("john@example.com")
 	person := domain.NewPerson(personID, orgID, "John", "Doe", email, "user-1")
-	personRepo.Save(ctx, person)
+	if err := personRepo.Save(ctx, person); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Query by email
 	handler := NewGetPersonByEmailHandler(personRepo)
@@ -198,7 +214,9 @@ func TestGetPrimaryContactHandler_Success(t *testing.T) {
 	email, _ := domain.NewEmail("primary@example.com")
 	person := domain.NewPerson(personID, orgID, "Primary", "Contact", email, "user-1")
 	person.SetPrimaryContact(true)
-	personRepo.Save(ctx, person)
+	if err := personRepo.Save(ctx, person); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Query primary contact
 	handler := NewGetPrimaryContactHandler(personRepo)
@@ -223,7 +241,9 @@ func TestListAddressesByOrganizationHandler_Success(t *testing.T) {
 	for i := 1; i <= 2; i++ {
 		addressID, _ := domain.NewAddressID("addr-00" + string(rune('0'+i)))
 		addr, _ := domain.NewAddress("Calle "+string(rune('0'+i))+" 123", "Madrid", "Madrid", "2800"+string(rune('0'+i)), "Spain")
-		addressRepo.Save(ctx, addr, addressID, orgID)
+		if err := addressRepo.Save(ctx, addr, addressID, orgID); err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	handler := NewListAddressesByOrganizationHandler(addressRepo)
@@ -247,7 +267,9 @@ func TestGetPrimaryAddressHandler_Success(t *testing.T) {
 	// Create address
 	addressID, _ := domain.NewAddressID("addr-001")
 	addr, _ := domain.NewAddress("Calle Principal 123", "Madrid", "Madrid", "28001", "Spain")
-	addressRepo.Save(ctx, addr, addressID, orgID)
+	if err := addressRepo.Save(ctx, addr, addressID, orgID); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Query primary address
 	handler := NewGetPrimaryAddressHandler(addressRepo)
@@ -261,3 +283,4 @@ func TestGetPrimaryAddressHandler_Success(t *testing.T) {
 		t.Errorf("Address city mismatch, got: %s", result.City())
 	}
 }
+

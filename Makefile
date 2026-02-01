@@ -258,9 +258,9 @@ docs-view: ## View documentation index
 	@ls -1 docs/architecture/adrs/ | grep ADR
 	@echo ""
 	@echo "Módulos:"
-	@ls -1 docs/reference/ | grep -v "^_"
+	@ls -1 docs/modules/ | grep -v "^_"
 	@echo ""
 	@echo "Sprints:"
-	@ls -1 docs/records/sprints/ | grep -v "_TEMPLATE"
+	@ls -1 docs/log/sprints/ | grep -v "_TEMPLATE"
 
 .DEFAULT_GOAL := help

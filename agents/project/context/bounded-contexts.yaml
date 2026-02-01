@@ -6,20 +6,20 @@
 
 metadata:
   filename: "bounded-contexts.yaml"
-  version: "1.0"
+  version: "1.1"
   location: "/agents/context/"
+  last_updated: "2026-02-01"
   references:
-    - "03-bounded-contexts.md"
-    - "ADR-005-gestion-unificada-clientes-proveedores.md"
+    - "ADR-005-unified-customer-supplier-management.md"
 
 bounded_contexts_overview:
   title: "🎯 TramaTex Bounded Contexts"
   description: "Modules organized by business domain"
 
 core_contexts:
-  auth:
-    title: "Authentication & Authorization (Phase 0)"
-    description: "User identification and JWT token management"
+  iam:
+    title: "Identity & Access Management (Phase 0)"
+    description: "User identification, authentication, and JWT token management"
     
     criticality: "CRITICAL - Security Foundation"
     implementation_phase: "0 (Before MVP)"
@@ -59,10 +59,10 @@ core_contexts:
       - "Assign role to user"
     
     api_endpoints:
-      - "POST /auth/register"
-      - "POST /auth/login"
-      - "POST /auth/refresh"
-      - "POST /auth/logout"
+      - "POST /iam/register"
+      - "POST /iam/login"
+      - "POST /iam/refresh"
+      - "POST /iam/logout"
   
   party:
     title: "Party / Organization Management (Phase 1)"
@@ -96,7 +96,7 @@ core_contexts:
       - "Tax ID validation (future)"
     
     dependencies_on:
-      - "Auth (creator, modifier tracking)"
+      - "IAM (creator, modifier tracking)"
     
     depended_on_by:
       - "Product (client preferences, supplier defaults)"
@@ -151,7 +151,7 @@ core_contexts:
     external_integrations: "None (MVP)"
     
     dependencies_on:
-      - "Auth (creator tracking)"
+      - "IAM (creator tracking)"
       - "Party (supplier references)"
     
     depended_on_by:
@@ -214,7 +214,7 @@ core_contexts:
     external_integrations: "None (MVP)"
     
     dependencies_on:
-      - "Auth (user tracking)"
+      - "IAM (user tracking)"
       - "Party (client references)"
       - "Product (variant costs)"
     
@@ -277,7 +277,7 @@ core_contexts:
       - "MES context (production assignment)"
     
     dependencies_on:
-      - "Auth (user tracking)"
+      - "IAM (user tracking)"
       - "Party (customer reference)"
       - "Product (product/variant reference)"
       - "Pricing (order pricing)"
@@ -305,7 +305,7 @@ core_contexts:
     title: "Manufacturing Execution System (Phase 3)"
     description: "Production planning, execution, and quality control"
     
-    criticality: "MEDIUM - Post-MVP"
+    criticality: "MEDIUM - MVP"
     implementation_phase: "3"
     
     key_entities:
@@ -332,7 +332,7 @@ context_dependencies:
   title: "📊 Bounded Context Dependencies"
   
   dependency_graph: |
-    Auth
+    IAM
      ├─→ Party
      ├─→ Product
      └─→ Pricing
@@ -342,16 +342,16 @@ context_dependencies:
                       └─→ MES
 
   implementation_order:
-    1: "Auth - foundational for all modules"
+    1: "IAM - foundational for all modules"
     2: "Party - required by Product and Pricing"
     3: "Product - base for pricing calculations"
     4: "Pricing - core business logic, revenue critical"
-    5: "Sales - uses Auth, Party, Product, Pricing"
+    5: "Sales - uses IAM, Party, Product, Pricing"
     6: "MES - uses Sales, Product"
   
   blocking_dependencies:
-    "Pricing cannot start until": "Auth, Party, Product are complete"
-    "Sales cannot start until": "Auth, Party, Product, Pricing are complete"
+    "Pricing cannot start until": "IAM, Party, Product are complete"
+    "Sales cannot start until": "IAM, Party, Product, Pricing are complete"
     "MES cannot start until": "Sales is complete"
 
 inter_context_communication:

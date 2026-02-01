@@ -35,7 +35,7 @@ El objetivo principal de este bloque de trabajo fue implementar el primer módul
 -   Se implementó el bounded context de **Seguridad/Autenticación** siguiendo los principios de Clean Architecture.
 -   **Capa de Dominio**: Se crearon las entidades y Value Objects (`User`, `Email`, `Password`) con sus invariantes y lógica de negocio aislada. Se definieron las interfaces para los repositorios y servicios (Dependency Inversion).
 -   **Capa de Aplicación**: Se implementó el caso de uso `LoginUseCase` para orquestar el flujo de autenticación.
--   **Capa de Interfaces**: Se crearon los `AuthHandler` para exponer el caso de uso a través de una API REST (`POST /api/auth/login`).
+-   **Capa de Interfaces**: Se crearon los `AuthHandler` para exponer el caso de uso a través de una API REST (`POST /auth/login`).
 -   **Testing (TDD)**: Se escribieron **35 tests** (unitarios y de integración con mocks) que cubrieron más del **90% del dominio** antes de escribir el código de infraestructura final.
 
 ### 2. Frontend (Vue.js) - (Sesión 10)

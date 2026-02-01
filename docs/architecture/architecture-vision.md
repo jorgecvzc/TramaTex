@@ -12,20 +12,20 @@ Este documento proporciona una visión de alto nivel de la arquitectura de Trama
 
 Este overview es el punto de partida. Para profundizar, consulta los siguientes recursos:
 
-*   **Contextos Delimitados (Bounded Contexts)**: [./bounded-contexts.md](./bounded-contexts.md)
+*   **Contextos Delimitados (Bounded Contexts)**: [./diagrams/C1-context.md](./diagrams/C1-context.md)
 *   **Glosario Ubicuo**: [./glossary.md](./glossary.md)
-*   **Decisiones Arquitectónicas (ADRs)**: [./adr/](./adr/). Incluye decisiones clave como:
-    *   [ADR-001](./adr/ADR-001-seleccion-stack-tecnologico.md): Stack Tecnológico.
-    *   [ADR-002](./adr/ADR-002-adopcion-clean-architecture-ddd.md): Clean Architecture y DDD.
-    *   [ADR-003](./adr/ADR-003-tipo-distribucion-aplicacion.md): Monolito Modular.
-    *   [ADR-004](./adr/ADR-004-ciclo-vida-desarrollo-mvp.md): Ciclo de Vida del MVP.
-    *   [ADR-005](./adr/ADR-005-gestion-unificada-clientes-proveedores.md): Patrón Party.
-    *   [ADR-006](./adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md): Desarrollo Dirigido por Dominio.
-    *   [ADR-007](./adr/ADR-007-orden-implementacion-modulos.md): Orden de Implementación.
-    *   [ADR-008](./adr/ADR-008-planificacion-cronograma-mvp.md): Planificación y Cronograma.
-    *   [ADR-009](./adr/ADR-009-estructura-proyecto.md): Estructura de Carpetas.
-    *   [ADR-010](./adr/ADR-010-estrategia-seguridad-defensa-profundidad.md): Estrategia de Seguridad.
-    *   [ADR-011](./adr/ADR-011-estrategia-testing-coverage.md): Estrategia de Testing.
+*   **Decisiones Arquitectónicas (ADRs)**: [./adrs/](./adrs/). Incluye decisiones clave como:
+    *   [ADR-001](./adrs/ADR-001-technology-stack-selection.md): Stack Tecnológico.
+    *   [ADR-002](./adrs/ADR-002-clean-architecture-ddd-adoption.md): Clean Architecture y DDD.
+    *   [ADR-003](./adrs/ADR-003-application-distribution-type.md): Monolito Modular.
+    *   [ADR-004](./adrs/ADR-004-mvp-development-lifecycle.md): Ciclo de Vida del MVP.
+    *   [ADR-005](./adrs/ADR-005-unified-customer-supplier-management.md): Patrón Party.
+    *   [ADR-006](./adrs/ADR-006-domain-driven-development-strategy.md): Desarrollo Dirigido por Dominio.
+    *   [ADR-007](./adrs/ADR-007-module-implementation-order.md): Orden de Implementación.
+    *   [ADR-008](./adrs/ADR-008-mvp-timeline-planning.md): Planificación y Cronograma.
+    *   [ADR-009](./adrs/ADR-009-project-structure.md): Estructura de Carpetas.
+    *   [ADR-010](./adrs/ADR-010-defense-in-depth-security-strategy.md): Estrategia de Seguridad.
+    *   [ADR-011](./adrs/ADR-011-testing-coverage-strategy.md): Estrategia de Testing.
 *   **Diagramas Visuales**: [./diagrams/](./diagrams/)
 
 ## 3. Estructura de Módulos
@@ -38,4 +38,4 @@ El sistema está dividido en los siguientes módulos principales (Bounded Contex
 *   **Sales**: Gestiona el proceso de ventas.
 *   **Pricing**: Calcula los precios de los productos.
 
-Para más detalles sobre cada módulo, consulta la documentación específica en `../reference/`.
+Para más detalles sobre cada módulo, consulta la documentación específica en `../modules/`.

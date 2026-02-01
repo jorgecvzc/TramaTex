@@ -19,7 +19,11 @@ func TestPostgreSQLOrganizationRepository_Save_And_FindByID_Integration(t *testi
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	repo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	ctx := context.Background()
@@ -52,7 +56,11 @@ func TestPostgreSQLOrganizationRepository_FindByRole_Integration(t *testing.T) {
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	repo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	ctx := context.Background()
@@ -60,11 +68,15 @@ func TestPostgreSQLOrganizationRepository_FindByRole_Integration(t *testing.T) {
 	// Create organizations with different roles
 	id1, _ := domain.NewOrganizationID("org-client-001")
 	org1, _ := domain.NewOrganization(id1, "Client Corp", domain.OrganizationRoleClient, nil, "test-user")
-	repo.Save(ctx, org1)
+	if err := repo.Save(ctx, org1); err != nil {
+		t.Fatalf("Failed to save org1: %v", err)
+	}
 
 	id2, _ := domain.NewOrganizationID("org-supplier-001")
 	org2, _ := domain.NewOrganization(id2, "Supplier Corp", domain.OrganizationRoleSupplier, nil, "test-user")
-	repo.Save(ctx, org2)
+	if err := repo.Save(ctx, org2); err != nil {
+		t.Fatalf("Failed to save org2: %v", err)
+	}
 
 	// Query by role
 	clients, _ := repo.FindByRole(ctx, domain.OrganizationRoleClient)
@@ -87,7 +99,11 @@ func TestPostgreSQLOrganizationRepository_Count_Integration(t *testing.T) {
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	repo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	ctx := context.Background()
@@ -101,7 +117,9 @@ func TestPostgreSQLOrganizationRepository_Count_Integration(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		id, _ := domain.NewOrganizationID("org-" + string(rune('0'+i)))
 		org, _ := domain.NewOrganization(id, "Org "+string(rune('0'+i)), domain.OrganizationRoleClient, nil, "test-user")
-		repo.Save(ctx, org)
+		if err := repo.Save(ctx, org); err != nil {
+			t.Fatalf("Failed to save org: %v", err)
+		}
 	}
 
 	count, _ = repo.Count(ctx)
@@ -119,7 +137,11 @@ func TestPostgreSQLPersonRepository_Save_And_FindByEmail_Integration(t *testing.
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	// Setup: create organization first
 	orgRepo := NewPostgreSQLOrganizationRepository(tdb.DB)
@@ -128,7 +150,9 @@ func TestPostgreSQLPersonRepository_Save_And_FindByEmail_Integration(t *testing.
 
 	orgID, _ := domain.NewOrganizationID("org-integration-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "test-user")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Failed to save org: %v", err)
+	}
 
 	// Create and save person
 	personID, _ := domain.NewPersonID("person-integration-001")
@@ -159,7 +183,11 @@ func TestPostgreSQLPersonRepository_FindByOrganization_Integration(t *testing.T)
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	orgRepo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	personRepo := NewPostgreSQLPersonRepository(tdb.DB)
@@ -168,14 +196,18 @@ func TestPostgreSQLPersonRepository_FindByOrganization_Integration(t *testing.T)
 	// Create organization
 	orgID, _ := domain.NewOrganizationID("org-integration-002")
 	org, _ := domain.NewOrganization(orgID, "Multi-Person Corp", domain.OrganizationRoleClient, nil, "test-user")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Failed to save org: %v", err)
+	}
 
 	// Create multiple persons
 	for i := 1; i <= 3; i++ {
 		personID, _ := domain.NewPersonID("person-integration-00" + string(rune('0'+i)))
 		email, _ := domain.NewEmail("person" + string(rune('0'+i)) + "@integration.com")
 		person := domain.NewPerson(personID, orgID, "Person", ""+string(rune('0'+i)), email, "test-user")
-		personRepo.Save(ctx, person)
+		if err := personRepo.Save(ctx, person); err != nil {
+			t.Fatalf("Failed to save person: %v", err)
+		}
 	}
 
 	// Query by organization
@@ -194,7 +226,11 @@ func TestPostgreSQLAddressRepository_Save_And_FindByID_Integration(t *testing.T)
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	orgRepo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	addressRepo := NewPostgreSQLAddressRepository(tdb.DB)
@@ -203,7 +239,9 @@ func TestPostgreSQLAddressRepository_Save_And_FindByID_Integration(t *testing.T)
 	// Create organization
 	orgID, _ := domain.NewOrganizationID("org-integration-003")
 	org, _ := domain.NewOrganization(orgID, "Address Test Corp", domain.OrganizationRoleClient, nil, "test-user")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Failed to save org: %v", err)
+	}
 
 	// Create and save address
 	addressID, _ := domain.NewAddressID("addr-integration-001")
@@ -232,7 +270,11 @@ func TestPostgreSQLAddressRepository_FindByOrganization_Integration(t *testing.T
 	if err := tdb.SetUp(); err != nil {
 		t.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			t.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	orgRepo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	addressRepo := NewPostgreSQLAddressRepository(tdb.DB)
@@ -241,13 +283,17 @@ func TestPostgreSQLAddressRepository_FindByOrganization_Integration(t *testing.T
 	// Create organization
 	orgID, _ := domain.NewOrganizationID("org-integration-004")
 	org, _ := domain.NewOrganization(orgID, "Multi-Address Corp", domain.OrganizationRoleClient, nil, "test-user")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Failed to save org: %v", err)
+	}
 
 	// Create multiple addresses
 	for i := 1; i <= 2; i++ {
 		addressID, _ := domain.NewAddressID("addr-integration-00" + string(rune('0'+i)))
 		addr, _ := domain.NewAddress("Calle "+string(rune('0'+i))+" 123", "Barcelona", "Barcelona", "0800"+string(rune('0'+i)), "Spain")
-		addressRepo.Save(ctx, addr, addressID, orgID)
+		if err := addressRepo.Save(ctx, addr, addressID, orgID); err != nil {
+			t.Fatalf("Failed to save address: %v", err)
+		}
 	}
 
 	// Query by organization
@@ -267,7 +313,11 @@ func BenchmarkPostgreSQLOrganizationRepository_Save(b *testing.B) {
 	if err := tdb.SetUp(); err != nil {
 		b.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			b.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	repo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	ctx := context.Background()
@@ -276,7 +326,9 @@ func BenchmarkPostgreSQLOrganizationRepository_Save(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		id, _ := domain.NewOrganizationID("org-bench-" + string(rune(i)))
 		org, _ := domain.NewOrganization(id, "Benchmark Org", domain.OrganizationRoleClient, nil, "bench-user")
-		repo.Save(ctx, org)
+		if err := repo.Save(ctx, org); err != nil {
+			b.Fatalf("Failed to save org: %v", err)
+		}
 	}
 }
 
@@ -289,7 +341,11 @@ func BenchmarkPostgreSQLPersonRepository_FindByEmail(b *testing.B) {
 	if err := tdb.SetUp(); err != nil {
 		b.Fatalf("Failed to set up test database: %v", err)
 	}
-	defer tdb.TearDown()
+	defer func() {
+		if err := tdb.TearDown(); err != nil {
+			b.Logf("Failed to tear down test database: %v", err)
+		}
+	}()
 
 	orgRepo := NewPostgreSQLOrganizationRepository(tdb.DB)
 	personRepo := NewPostgreSQLPersonRepository(tdb.DB)
@@ -298,15 +354,21 @@ func BenchmarkPostgreSQLPersonRepository_FindByEmail(b *testing.B) {
 	// Setup: create org and person
 	orgID, _ := domain.NewOrganizationID("org-bench")
 	org, _ := domain.NewOrganization(orgID, "Benchmark Org", domain.OrganizationRoleClient, nil, "bench-user")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		b.Fatalf("Failed to save org: %v", err)
+	}
 
 	personID, _ := domain.NewPersonID("person-bench")
 	email, _ := domain.NewEmail("bench@example.com")
 	person := domain.NewPerson(personID, orgID, "Bench", "User", email, "bench-user")
-	personRepo.Save(ctx, person)
+	if err := personRepo.Save(ctx, person); err != nil {
+		b.Fatalf("Failed to save person: %v", err)
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		personRepo.FindByEmail(ctx, "bench@example.com")
+		if _, err := personRepo.FindByEmail(ctx, "bench@example.com"); err != nil {
+			b.Fatalf("FindByEmail failed: %v", err)
+		}
 	}
 }

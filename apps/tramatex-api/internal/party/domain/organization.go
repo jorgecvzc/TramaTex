@@ -210,12 +210,9 @@ func (o *Organization) Persons() []*Person {
 }
 
 // AddAddress adds an address to the organization
-func (o *Organization) AddAddress(address *Address, addressID AddressID) error {
+func (o *Organization) AddAddress(address *Address) error {
 	if address == nil {
 		return fmt.Errorf("address cannot be nil")
-	}
-	if addressID.String() == "" {
-		return fmt.Errorf("address ID cannot be empty")
 	}
 	// Check if address already exists (basic check)
 	for _, a := range o.addresses {

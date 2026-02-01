@@ -4,19 +4,11 @@
 [![Frontend CI](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml)
 [![codecov](https://codecov.io/gh/joran-cortez/tramatex/branch/master/graph/badge.svg)](https://codecov.io/gh/joran-cortez/tramatex)
 
-**TramaTex** es un **ERP/MES (Enterprise Resource Planning / Manufacturing Execution System)** diseñado específicamente para **microempresas del sector textil y de personalización**.
-
----
 
 ## 🚀 Punto de Partida
 
-**Para obtener una visión completa y guiada del proyecto, la arquitectura, el stack tecnológico y el estado actual, consulta nuestro manual central:**
-
-- **[📖 Manual del Proyecto TramaTex](./docs/overview/README.md)** ← **LEER PRIMERO**
-
-Para ver el progreso actualizado, los hitos y los próximos pasos, visita el panel de estado:
-
-- **[📊 Estado del Proyecto](./docs/records/project-status.md)**
+- **[📖 Manual del Proyecto TramaTex](./docs/architecture/project-vision-and-scope.md)** ← **LEER PRIMERO**
+- **[📊 Estado del Proyecto](./docs/log/project-status.md)**
 
 ---
 
@@ -35,10 +27,9 @@ Proporcionar una solución integrada que permita a microempresas:
 ## 🏗️ Arquitectura
 
 ### Stack Tecnológico
-
 - **Backend:** Go 1.21+ (Clean Architecture + DDD)
 - **Frontend:** Vue.js 3 + Vite + Tailwind CSS
-- **Base de Datos:** PostgreSQL 14+
+- **Base de Datos:** PostgreSQL 15+
 - **Contenedorización:** Docker + Docker Compose
 - **Testing:** TDD (Go testing + Vitest)
 
@@ -52,18 +43,13 @@ tramatex/
 │   ├── tramatex-api/
 │   └── frontend/
 ├── docs/
-│   ├── 1_project/
-│   ├── 2_architecture/
-│   ├── 3_modules/
+│   ├── architecture/
 │   ├── guides/
-│   └── archive/
-└── ...
+│   ├── modules/
+│   └── log/
 ```
 
-Más detalles en [ADR-009 – Estructura de Proyecto](docs/2_architecture/adr/ADR-009-estructura-proyecto.md).
-
----
-
+Más detalles en [ADR-009 – Estructura de Proyecto](docs/architecture/adrs/ADR-009-project-structure.md).
 ## 🚀 Quick Start
 
 ### Requisitos
@@ -109,24 +95,23 @@ npm run dev
 
 ### Architecture Decision Records (ADRs)
 
-- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/2_architecture/adr/ADR-006-estrategia-desarrollo-dirigido-dominio.md)
-- [ADR-007: Orden de Implementación de Módulos](docs/2_architecture/adr/ADR-007-orden-implementacion-modulos.md)
-- [ADR-008: Planificación y Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md)
-- [ADR-009: Estructura de Carpetas](docs/2_architecture/adr/ADR-009-estructura-proyecto.md)
+- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/architecture/adrs/ADR-006-domain-driven-development-strategy.md)
+- [ADR-007: Orden de Implementación de Módulos](docs/architecture/adrs/ADR-007-module-implementation-order.md)
+- [ADR-008: Planificación y Cronograma](docs/architecture/adrs/ADR-008-mvp-timeline-planning.md)
+- [ADR-009: Estructura de Carpetas](docs/architecture/adrs/ADR-009-project-structure.md)
 
 ### Estado del Proyecto
 
-- [project-status.md](docs/records/project-status.md) - Progreso actual, hitos, timeline
+- [project-status.md](docs/log/project-status.md) - Progreso actual, hitos, timeline
 
 ### Guías
 
 - [Setup de Desarrollo](docs/guides/developer/github-setup.md) [Pendiente]
 - [Estrategia de Testing](docs/guides/developer/ci-cd.md) [Pendiente]
-- [Despliegue](docs/guides/deployment.md) [Pendiente]
 
 ### Módulos
 
-Cada módulo tiene su documentación en `docs/reference/[modulo]/`:
+Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
 
 - **Party:** Gestión de clientes y proveedores
 - **Product:** Catálogo de productos y variantes
@@ -145,7 +130,7 @@ Cada módulo tiene su documentación en `docs/reference/[modulo]/`:
 1. **Fase 0 (Q1 2026):** Fundaciones técnicas
    - Setup Docker, Git, autenticación JWT
    - **Hito:** Sistema arranca + login funcional
-   - Detalle: [MVP Specification](docs/overview/README.md)
+   - Detalle: [MVP Specification](docs/architecture/project-vision-and-scope.md)
 
 2. **Fase 1 (Q2-Q4 2026):** Dominio base
    - Módulos: Party, Producto, Tarificación
@@ -162,7 +147,7 @@ Cada módulo tiene su documentación en `docs/reference/[modulo]/`:
 5. **Fase 4 (Q1 2028):** Estabilización
    - **Hito:** En producción estable
 
-Más detalles en [ADR-008 – Cronograma](docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md) y [project-status.md](docs/records/project-status.md).
+Más detalles en [ADR-008 – Cronograma](docs/architecture/adrs/ADR-008-mvp-timeline-planning.md) y [project-status.md](docs/log/project-status.md).
 
 ---
 
@@ -194,7 +179,7 @@ npm run format        # Prettier
 
 - **Backend:** Go testing + assertions manuales
 - **Frontend:** Vitest (similar a Jest)
-- **Cobertura objetivo:** ≥75% global, ≥80% en dominio crítico
+- **Cobertura objetivo:** ≥75% global, 100% en Pricing
 
 ### Code Style
 
@@ -205,7 +190,7 @@ npm run format        # Prettier
 
 ## 🤝 Contribución
 
-[Pendiente: Guía de contribución en docs/guides/contribution.md]
+[Guía de contribución](docs/guides/developer/CONTRIBUTING.md)
 
 ---
 

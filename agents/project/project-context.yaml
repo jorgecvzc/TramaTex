@@ -7,7 +7,7 @@
 metadata:
   filename: "project-context.yaml"
   version: "1.0"
-  last_updated: "2026-01-27"
+  last_updated: "2026-02-01"
   purpose: "Provides the main, high-level context for the TramaTex project."
   scope: "TramaTex Project"
   load_order: "after generic-rules.yaml"
@@ -47,9 +47,8 @@ project_structure:
     - "internal/{module}/...: Backend code organized by Bounded Context."
     - "src/{components,pages,services,stores}/...: Frontend code structure."
   documentation_layout:
-    - "docs/overview: Project management (charter, status, sprints)."
     - "docs/architecture: Technical documentation (architecture, ADRs)."
-    - "docs/reference: Detailed documentation for each Bounded Context."
+    - "docs/modules: Detailed documentation for each Bounded Context."
     - "docs/guides: Developer and user guides."
     - "docs/log: Historical records (sprints, milestones)."
 
@@ -93,8 +92,8 @@ workflow:
   testing_strategy: "TDD is mandatory for critical domain logic (Pricing). See ADR-011 for full testing strategy."
   deployment_process: "Docker Compose for local and remote MVP deployment. CI/CD pipeline managed by GitHub Actions."
 
-references:
-  - "[Project Handbook](docs/overview/vision.md) (Primary Entry Point)"
-  - "[Architecture Overview](docs/architecture/architecture-vision.md)"
-  - "[Module Documentation](docs/reference/)"
-  - "[Active Sprints](docs/log/sprints/)"
+  references:
+    - "[Project Handbook](docs/architecture/project-vision-and-scope.md) (Primary Entry Point)"
+    - "[Architecture Overview](docs/architecture/architecture-vision.md)"
+    - "[Module Documentation](docs/modules/)"
+    - "[Active Sprints](docs/log/sprints/)"

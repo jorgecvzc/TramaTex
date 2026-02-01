@@ -54,6 +54,16 @@ func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+func (m *MockUserRepository) List(ctx context.Context) ([]*iam_model.User, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.user != nil {
+		return []*iam_model.User{m.user}, nil
+	}
+	return []*iam_model.User{}, nil
+}
+
 // MockJWTService mocks the JWTService interface
 type MockJWTService struct {
 	token string
@@ -85,7 +95,7 @@ func TestLoginUseCaseWithValidCredentials(t *testing.T) {
 	// Arrange
 	email, _ := iam_model.NewEmail("user@example.com")
 	password, _ := iam_model.NewPassword("SecurePassword123!")
-	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleOperator)
+	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleWorkshop)
 
 	mockRepo := &MockUserRepository{
 		user: testUser,
@@ -146,7 +156,7 @@ func TestLoginUseCaseWithWrongPassword(t *testing.T) {
 	// Arrange
 	email, _ := iam_model.NewEmail("user@example.com")
 	password, _ := iam_model.NewPassword("CorrectPassword123!")
-	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleOperator)
+	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleWorkshop)
 
 	mockRepo := &MockUserRepository{
 		user: testUser,

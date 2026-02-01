@@ -89,19 +89,28 @@ func (r *PostgreSQLOrganizationRepository) FindByID(ctx context.Context, id doma
 		taxIDObj, _ = domain.NewTaxID(taxID, "NIF") // Default type
 	}
 
-	org, _ := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+	org, err := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+	if err != nil {
+		return nil, err
+	}
 
 	// Set the website and notes if they exist
 	if website != "" {
-		org.UpdateWebsite(website, modifiedBy)
+		if err := org.UpdateWebsite(website, modifiedBy); err != nil {
+			return nil, err
+		}
 	}
 	if notes != "" {
-		org.UpdateNotes(notes, modifiedBy)
+		if err := org.UpdateNotes(notes, modifiedBy); err != nil {
+			return nil, err
+		}
 	}
 
 	// Set the status if it's inactive
 	if statusEnum == domain.OrganizationStatusInactive {
-		org.Deactivate(modifiedBy)
+		if err := org.Deactivate(modifiedBy); err != nil {
+			return nil, err
+		}
 	}
 
 	return org, nil
@@ -166,14 +175,21 @@ func (r *PostgreSQLOrganizationRepository) FindAll(ctx context.Context, filters 
 			taxIDObj, _ = domain.NewTaxID(taxID, "NIF")
 		}
 
-		org, _ := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+		org, err := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+		if err != nil {
+			return nil, err
+		}
 
 		// Set website and notes if they exist
 		if website != "" {
-			org.UpdateWebsite(website, modifiedBy)
+			if err := org.UpdateWebsite(website, modifiedBy); err != nil {
+				return nil, err
+			}
 		}
 		if notes != "" {
-			org.UpdateNotes(notes, modifiedBy)
+			if err := org.UpdateNotes(notes, modifiedBy); err != nil {
+				return nil, err
+			}
 		}
 
 		organizations = append(organizations, org)
@@ -215,13 +231,20 @@ func (r *PostgreSQLOrganizationRepository) FindByRole(ctx context.Context, role 
 			taxIDObj, _ = domain.NewTaxID(taxID, "NIF")
 		}
 
-		org, _ := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+		org, err := domain.NewOrganization(newID, name, roleEnum, taxIDObj, createdBy)
+		if err != nil {
+			return nil, err
+		}
 
 		if website != "" {
-			org.UpdateWebsite(website, modifiedBy)
+			if err := org.UpdateWebsite(website, modifiedBy); err != nil {
+				return nil, err
+			}
 		}
 		if notes != "" {
-			org.UpdateNotes(notes, modifiedBy)
+			if err := org.UpdateNotes(notes, modifiedBy); err != nil {
+				return nil, err
+			}
 		}
 
 		organizations = append(organizations, org)

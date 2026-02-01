@@ -4,36 +4,25 @@
 
 ---
 
-## ✅ Resumen de la Sesión Actual
+## ✅ Resumen de la Sesión Actual (Continuación)
 
-Se ha completado la **refactorización y estandarización de la documentación**.
+Se ha completado la **reestructuración y comprobación** de la documentación y configuración del proyecto.
 
 **Completado en esta sesión:**
--   **Fase 4 (Refactorización de Sprints de Ejemplo)**: Los archivos `01-initial-design-and-architecture.md` y `sprint-01-summary.md` fueron refactorizados según sus plantillas.
--   **Fase 5 (Limpieza de Plantillas No Utilizadas)**: Los archivos `docs/guides/developer/_GUIDE_TEMPLATE.md` y `docs/log/milestones/_MILESTONE_REPORT_TEMPLATE.md` fueron eliminados.
--   **Fase 6 (Finalización y Reporte)**: Se generó el `docs/log/milestones/refactor-summary-2026-01-31.md` resumiendo el trabajo.
--   **Mejora de la Documentación de Agentes**: Se refactorizó `AGENTS.md` (root) y se creó `agents/README.md` para mejorar la separación de la información para IA y humanos.
+-   **Reestructuración y comprobación de `docs/`**.
+-   **Comprobación de `agents/`**.
+-   **Comprobación de `project-scaffolding/`**.
 
 ---
 
-## 🎯 PRÓXIMOS PASOS: Reorganización de Sprints
+## 🎯 PRÓXIMOS PASOS: Revisión IAM y reconfiguración Party
 
-La próxima sesión se centrará en la **reorganización completa del historial de sprints** para establecer un orden lógico, siguiendo la "Opción B" recomendada en `docs/log/milestones/SPRINT-REORGANIZATION-DEEP-ANALYSIS.md`.
+La próxima sesión se centrará en verificar el desarrollo de **IAM** y luego **retomar y reconfigurar Party** bajo los nuevos parámetros de desarrollo y colaboración LLM-Humano.
 
-### Plan de Acción (Opción B)
+### Plan de Acción
 
-1.  **Backup del estado actual** (git commit)
-2.  **Eliminar `sprint-03/`** (duplicado)
-3.  **Renumerar carpetas:**
-    -   `docs/log/sprints/sprint-04` → `docs/log/sprints/sprint-03`
-    -   `docs/log/sprints/sprint-05` → `docs/log/sprints/sprint-04`
-    -   `docs/log/sprints/sprint-06` → `docs/log/sprints/sprint-05`
-4.  **Actualizar contenidos:**
-    -   IDs de sprint en metadata
-    -   IDs de tareas (03-01, 04-01, 05-01)
-    -   Referencias cruzadas en summaries
-    -   `agents/sprint-registry.yaml`
-    -   `docs/log/milestones/project-status.md`
-    -   `docs/log/sprints/_TASK_TEMPLATE.md` (ejemplo de referencia)
-5.  **Validar coherencia completa**
-6.  **Commit con mensaje:** `refactor(docs): clean sprint history and logical numbering`
+1.  **Comprobar el trabajo de documentación realizado** para confirmar si hay que ajustar algo.
+2.  **Revisar el estado actual de IAM** (funcionalidad, arquitectura y pendientes).
+3.  **Identificar ajustes necesarios** para alinear IAM con los nuevos parámetros de desarrollo y colaboración LLM-Humano.
+4.  **Retomar Party** y **reconfigurarlo** según los nuevos parámetros (estructura, estándares y coordinación LLM-Humano).
+5.  **Definir próximos pasos concretos** para IAM y Party, con tareas priorizadas.

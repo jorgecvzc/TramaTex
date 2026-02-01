@@ -10,7 +10,7 @@ vi.mock('../../services/auth', () => ({
         return {
           accessToken: 'jwt-access-token',
           refreshToken: 'jwt-refresh-token',
-          usuario: { id: '123', email, created_at: new Date(), updated_at: new Date() },
+          user: { id: '123', email, role: 'commercial' },
           expiresIn: 3600
         }
       }
@@ -22,7 +22,7 @@ vi.mock('../../services/auth', () => ({
       refreshToken: 'new-refresh-token',
       expiresIn: 3600
     })),
-    getCurrentUser: vi.fn(async () => ({ id: '123', email: 'user@example.com', created_at: new Date(), updated_at: new Date() }))
+    getCurrentUser: vi.fn(async () => ({ id: '123', email: 'user@example.com', role: 'commercial' }))
   }
 }))
 
@@ -72,7 +72,7 @@ describe('Authentication Flow Integration Tests', () => {
     // Setup: logged in with tokens
     store.accessToken = 'expired-token'
     store.refreshToken = 'valid-refresh-token'
-    store.user = { id: '123', email: 'user@example.com', created_at: new Date(), updated_at: new Date() }
+    store.user = { id: '123', email: 'user@example.com', role: 'commercial' }
     
     // Call refresh
     await store.refreshAccessToken()
@@ -88,7 +88,7 @@ describe('Authentication Flow Integration Tests', () => {
     
     // Setup: logged in
     store.accessToken = 'user-token'
-    store.user = { id: '123', email: 'user@example.com', created_at: new Date(), updated_at: new Date() }
+    store.user = { id: '123', email: 'user@example.com', role: 'commercial' }
     localStorage.setItem('tramatex_auth_token', 'user-token')
     
     expect(store.isAuthenticated).toBe(true)
@@ -139,7 +139,7 @@ describe('Authentication Flow Integration Tests', () => {
 
   it('Session restore from localStorage on app boot', () => {
     // Setup: previous session in localStorage
-    const userData = { id: '999', email: 'restored@example.com', created_at: new Date(), updated_at: new Date() }
+    const userData = { id: '999', email: 'restored@example.com', role: 'commercial' }
     const token = generateTestToken()
     localStorage.setItem('tramatex_auth_token', token)
     localStorage.setItem('tramatex_refresh_token', 'restored-refresh')

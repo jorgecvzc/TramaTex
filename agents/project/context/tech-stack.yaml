@@ -8,8 +8,9 @@ metadata:
   filename: "tech-stack.yaml"
   version: "1.0"
   location: "/agents/context/"
+  last_updated: "2026-02-01"
   references:
-    - "ADR-001-seleccion-stack-tecnologico.md"
+    - "ADR-001-technology-stack-selection.md"
 
 tramatex-api_stack:
   title: "🔧 tramatex-api Stack (Go)"

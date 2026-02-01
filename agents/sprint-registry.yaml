@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.1"
-  last_updated: "2026-01-25"
+  last_updated: "2026-02-01"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
   note: "Parsed by sprint-session-loader.yaml for quick discovery"
@@ -18,7 +18,7 @@ metadata:
     task_files:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
-      location: "docs/records/sprints/sprint-[XX]/"
+      location: "docs/log/sprints/sprint-[XX]/"
       language: "Spanish (Espa\u00f1ol)"
       examples:
         - "sprint-01/04-auditoria-seguridad-owasp.md"
@@ -32,7 +32,7 @@ metadata:
     
     summary_files:
       pattern: "sprint-[XX]-summary.md"
-      location: "docs/records/sprints/sprint-[XX]/"
+      location: "docs/log/sprints/sprint-[XX]/"
       language: "Spanish (Español)"
       examples:
         - "sprint-01-summary.md"
@@ -45,8 +45,8 @@ active_tasks:
   
   task_05_01:
     id: "05-01"
-    sprint: "04"
-    filename: "01-implementacion-modulo-party.md"
+    sprint: "05"
+    filename: "01-party-module-quality-validation.md"
     title: "Implementación del Módulo Party (Validación Post-Normas)"
     status: "🔄 En Progreso"
     dates:
@@ -57,7 +57,7 @@ active_tasks:
     facilitator: "GitHub Copilot, Jorge Cortés Villalba"
     note: "Code exists but requires validation against new quality standards"
     validation_checklist:
-      - "Coverage ≥ 90% per ADR-010"
+      - "Coverage ≥ 90% per ADR-011"
       - "RBAC middleware on endpoints"
       - "Structured logging integration"
       - "Linter compliance"
@@ -69,7 +69,7 @@ completed_tasks:
   
   task_04_01:
     id: "04-01"
-    sprint: "03"
+    sprint: "04"
     filename: "01-estrategia-calidad-deuda-tecnica.md"
     title: "Fundaciones de Seguridad y Calidad (OWASP, CI/CD, Deuda Técnica)"
     status: "✅ Completado"
@@ -172,7 +172,7 @@ completed_tasks:
       - "Plantilla _TASK_TEMPLATE.md creada"
       - "Agente sprint-session-loader.yaml actualizado"
       - "Sesiones antiguas archivadas en milestones"
-      - "Nueva estructura docs/records/sprints/ establecida"
+      - "Nueva estructura docs/log/sprints/ establecida"
   
   task_02_02:
     id: "02-02"
@@ -215,34 +215,11 @@ task_backlog:
   
   candidate_1:
     priority: "HIGH"
-    focus: "Complete Sprint 04: Fundaciones de Seguridad y Calidad"
-    tasks:
-      - "04-01: Implementación controles OWASP"
-      - "04-02: Pipeline CI/CD"
-      - "04-03: Documentación de calidad"
-  
-  candidate_2:
-    priority: "HIGH"
     focus: "Validate and approve Sprint 05: Módulo Party"
     tasks:
       - "Human review of existing code"
-      - "Validation against ADR-010"
-      - "Apply Sprint 05 standards"
-  
-  candidate_3:
-    priority: "MEDIUM"
-    focus: "Product Module implementation (after Sprint 05 + 06 approval)"
-    context_to_load: 
-      - "agents/project/context/architecture.yaml"
-      - "agents/project/context/code-standards.yaml"
-    suggested_title: "Sprint-05-06-implement-security-improvements"
-    estimated_duration: "4-6 hours"
-    key_actions:
-      - "Implement RoleMiddleware for RBAC"
-      - "Add ownership verification in use cases"
-      - "Configure environment-based CORS"
-      - "Implement structured logging (logrus/zap)"
-      - "Sanitize error messages in production"
+      - "Validation against ADR-011 and ADR-010"
+      - "Apply Sprint 04 quality standards"
   
   candidate_2:
     priority: "HIGH"
@@ -251,7 +228,7 @@ task_backlog:
       - "agents/project/context/bounded-contexts.yaml"
       - "agents/project/context/architecture.yaml"
       - "agents/project/context/tech-stack.yaml"
-    suggested_title: "Sprint-05-07-implementacion-modulo-product"
+    suggested_title: "sprint-06-implement-product-module"
     estimated_duration: "6-8 hours"
     key_actions:
       - "Design Product domain model"
@@ -266,27 +243,13 @@ task_backlog:
     context_to_load:
       - "agents/project/context/bounded-contexts.yaml"
       - "agents/project/context/architecture.yaml"
-    suggested_title: "Sprint-05-08-implementacion-modulo-pricing"
+    suggested_title: "sprint-07-implement-pricing-module"
     estimated_duration: "6-8 hours"
     key_actions:
       - "Design pricing strategies (tiered, volume, etc)"
       - "Implement price calculation engine"
       - "Create price lists"
       - "Frontend UI for pricing management"
-  
-  candidate_4:
-    priority: "MEDIUM"
-    focus: "Setup CI/CD pipeline"
-    context_to_load:
-      - "agents/project/context/tech-stack.yaml"
-      - "agents/project/context/code-standards.yaml"
-    suggested_title: "Sprint-05-09-setup-cicd-pipeline"
-    estimated_duration: "3-4 hours"
-    key_actions:
-      - "Configure GitHub Actions"
-      - "Automate test execution on PR"
-      - "Add linters to pipeline"
-      - "Setup pre-commit hooks"
 
 phase_status:
   title: "🎯 Project Phase Status"

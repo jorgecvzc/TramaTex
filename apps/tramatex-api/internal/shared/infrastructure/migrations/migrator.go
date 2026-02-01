@@ -39,7 +39,7 @@ type User struct {
 	ID        string     `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email     string     `gorm:"unique;type:varchar(255);not null"`
 	Password  string     `gorm:"type:varchar(255);not null"`
-	Role      string     `gorm:"type:varchar(50);default:'operator'"`
+	Role      string     `gorm:"type:varchar(50);default:'commercial'"`
 	IsActive  bool       `gorm:"default:true"`
 	CreatedAt time.Time  `gorm:"autoCreateTime:milli"`
 	UpdatedAt time.Time  `gorm:"autoUpdateTime:milli"`

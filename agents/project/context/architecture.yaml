@@ -8,9 +8,10 @@ metadata:
   filename: "architecture.yaml"
   version: "1.0"
   location: "/agents/context/"
+  last_updated: "2026-02-01"
   references:
-    - "ADR-002-adopcion-clean-architecture-ddd.md"
-    - "ADR-006-estrategia-desarrollo-dirigido-dominio.md"
+    - "ADR-002-clean-architecture-ddd-adoption.md"
+    - "ADR-006-domain-driven-development-strategy.md"
 
 clean_architecture_layers:
   title: "🏗️ Clean Architecture Layers"
@@ -39,6 +40,7 @@ clean_architecture_layers:
       pricing: "100% (non-negotiable)"
       party: "≥90%"
       product: "≥85%"
+      general: "≥75% minimum"
   
   application_layer:
     name: "Application (Orchestration)"
@@ -118,7 +120,7 @@ ddd_strategy:
              If module is technical plumbing → PRAGMATIC
   
   bounded_contexts:
-    auth:
+    iam:
       description: "User authentication and authorization"
       criticality: "CRITICAL"
       strategy: "Strict domain for user entity, pragmatic for JWT plumbing"
@@ -201,7 +203,6 @@ testing_strategy:
       pricing: "100%"
       party: "≥90%"
       product: "≥85%"
-      auth: "≥95%"
       general: "≥75% minimum"
     
     tools: "Go testing + testify/assert"

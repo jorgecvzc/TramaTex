@@ -8,6 +8,7 @@ metadata:
   filename: "code-standards.yaml"
   version: "1.0"
   location: "/agents/context/"
+  last_updated: "2026-02-01"
 
 acceptance_criteria:
   title: "✅ Code Acceptance Criteria"
@@ -162,7 +163,7 @@ cross_layer_rules:
       - "Test store mutations"
       - "Test composable logic"
       - "Test complex component interactions"
-      - "UI behavior NOT tested in tramatex-api tests
+      - "UI behavior NOT tested in tramatex-api tests"
   
   error_handling:
     principle: "Errors flow up, typed throughout"

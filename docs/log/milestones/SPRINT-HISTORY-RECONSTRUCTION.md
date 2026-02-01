@@ -66,7 +66,7 @@ apps/tramatex-api: 75/75 tests passing (100% coverage)
 1. ✅ Refactorización Sistema de Documentación
    - Cambio de "sesiones" a "sprints/tareas"
    - Templates creados
-   - Estructura docs/records/sprints/
+   - Estructura docs/log/sprints/
 
 2. ✅ Compilación y Testing del Backend
    - Backend compilado correctamente

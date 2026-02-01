@@ -79,10 +79,10 @@ func TestWithUser(t *testing.T) {
 func TestWithUserAndRequest(t *testing.T) {
 	logging.InitLogger("test")
 
-	entry := logging.WithUserAndRequest("req-123", "user-456", "test@example.com", "manager")
+	entry := logging.WithUserAndRequest("req-123", "user-456", "test@example.com", "commercial")
 
 	assert.Equal(t, "req-123", entry.Data["requestID"])
 	assert.Equal(t, "user-456", entry.Data["userID"])
 	assert.Equal(t, "t***@example.com", entry.Data["userEmail"])
-	assert.Equal(t, "manager", entry.Data["userRole"])
+	assert.Equal(t, "commercial", entry.Data["userRole"])
 }

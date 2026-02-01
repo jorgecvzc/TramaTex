@@ -12,7 +12,7 @@
 - **Contenido de la Documentación:** ✅ **Castellano**.
 
 **Ejemplo:**
-- `docs/architecture/adr/001-tech-stack.md` (Correcto)
+- `docs/architecture/adrs/ADR-001-technology-stack-selection.md` (Correcto)
 - `docs/arquitectura/adrs/001-stack-tecnologico.md` (Incorrecto)
 
 Esta regla es fundamental para mantener la consistencia del proyecto.
@@ -22,19 +22,19 @@ Esta regla es fundamental para mantener la consistencia del proyecto.
 ```text
 /docs
   ├─ README.md              # Este estándar + índice general
-  ├─ overview/              # Contexto y visión
   ├─ architecture/          # Arquitectura del sistema
   ├─ guides/                # Guías de uso (usuarios y devs)
-  ├─ reference/             # Información de referencia estable (API, modelos)
+  ├─ modules/               # Documentación detallada por Bounded Context (specs, diagramas)
   └─ log/                   # Registro de trabajo (sprints, estado)
 ```
 
 ## 4. Reglas de estilo
 
-- Formato por defecto: Markdown (.md).
-- Un documento por tema: evitar documentos “monstruo”.
-- Enlaces relativos siempre que sea posible (ej.: ../architecture/vision.md).
-- Idioma: usar siempre el mismo (por defecto, español), salvo APIs o términos técnicos.
+- **Formato de Archivos:** Markdown (`.md`) para toda la documentación.
+- **Diagramas:** Se utilizará **Mermaid** para la creación de diagramas. El código de Mermaid se incrustará directamente en los archivos `.md`.
+- **Atomicidad:** Un documento por tema para evitar documentos “monstruo”.
+- **Enlaces:** Enlaces relativos siempre que sea posible (ej.: `../architecture/architecture-vision.md`).
+- **Idioma:** Castellano para el contenido, salvo APIs o términos técnicos.
 
 ## 5. Flujo de mantenimiento
 

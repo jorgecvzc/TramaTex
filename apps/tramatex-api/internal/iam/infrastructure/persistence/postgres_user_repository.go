@@ -94,6 +94,29 @@ func (r *PostgresUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// List retrieves all users (excluding soft-deleted).
+func (r *PostgresUserRepository) List(ctx context.Context) ([]*model.User, error) {
+	var dbModels []UserModel
+
+	if err := r.db.WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Order("created_at DESC").
+		Find(&dbModels).Error; err != nil {
+		return nil, fmt.Errorf("failed to list users: %w", err)
+	}
+
+	users := make([]*model.User, 0, len(dbModels))
+	for i := range dbModels {
+		user, err := r.modelToDomain(&dbModels[i])
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
 // modelToDomain convierte un UserModel (BD) a User (domain)
 // Recrea los value objects: Email, Password desde el modelo
 func (r *PostgresUserRepository) modelToDomain(dbModel *UserModel) (*model.User, error) {

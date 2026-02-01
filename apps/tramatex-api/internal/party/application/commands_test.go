@@ -79,7 +79,9 @@ func TestUpdateOrganizationHandler_Success(t *testing.T) {
 	// Create initial organization
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Original Name", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Update it
 	handler := NewUpdateOrganizationHandler(orgRepo)
@@ -107,7 +109,9 @@ func TestChangeOrganizationStatusHandler_Success(t *testing.T) {
 	// Create initial organization
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Change status
 	handler := NewChangeOrganizationStatusHandler(orgRepo)
@@ -134,7 +138,9 @@ func TestAddPersonHandler_Success(t *testing.T) {
 	// Create organization first
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Add person
 	handler := NewAddPersonHandler(orgRepo, personRepo)
@@ -191,7 +197,9 @@ func TestAddAddressHandler_Success(t *testing.T) {
 	// Create organization first
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Add address
 	handler := NewAddAddressHandler(orgRepo, addressRepo)
@@ -224,7 +232,9 @@ func TestAddAddressHandler_InvalidAddress(t *testing.T) {
 	// Create organization
 	orgID, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(orgID, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	orgRepo.Save(ctx, org)
+	if err := orgRepo.Save(ctx, org); err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	handler := NewAddAddressHandler(orgRepo, addressRepo)
 	cmd := &AddAddressCommand{

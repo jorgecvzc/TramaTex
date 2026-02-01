@@ -226,7 +226,7 @@ Los siguientes hallazgos se aceptan temporalmente debido a:
 - **Documento completo:** [`docs/archive/sprints/sprint-01/04-auditoria-seguridad-owasp.md`](../sprints/sprint-01/04-auditoria-seguridad-owasp.md)
 - **OWASP Top 10 2021:** https://owasp.org/Top10/
 - **Sprint Registry:** [`agents/sprint-registry.yaml`](../../../agents/sprint-registry.yaml)
-- **Project Status:** [`docs/records/project-status.md`](../project-status.md)
+- **Project Status:** [`docs/log/project-status.md`](../project-status.md)
 
 ---
 

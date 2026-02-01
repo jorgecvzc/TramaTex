@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.1"
-  last_updated: "YYYY-MM-DD"
+  last_updated: "2026-02-01"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
   note: "Parsed by sprint-session-loader.yaml for quick discovery"
@@ -21,9 +21,8 @@ metadata:
       location: "docs/log/sprints/sprint-[XX]/"
       language: "Spanish (Español)"
       examples:
-        - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
-        - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
-        - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
+        - "sprint-XX/01-initial-task-setup.md (task XX-01)"
+        - "sprint-YY/02-feature-implementation.md (task YY-02)"
       notes:
         - "Task IDs restart at 01 for each sprint"
         - "Unique ID = sprint-XX + task-YY"
@@ -40,12 +39,13 @@ metadata:
 active_tasks:
   title: "🔄 Active/Open Tasks"
   count: 0
-  tasks: []
   note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
+  tasks: []
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+  tasks: []
   structure: |
     task_XX_YY:
       id: "XX-YY"
@@ -68,7 +68,7 @@ task_backlog:
     candidate_X:
       priority: "HIGH|MEDIUM|LOW"
       focus: "Description of next work"
-      context_to_load: "agents/[PROJECT]/context/[module].yaml"
+      context_to_load: "agents/[YOUR_PROJECT_NAME]/context/[module].yaml"
       suggested_title: "Sprint-ID_Task-ID_name"
       estimated_duration: "X hours"
 
@@ -93,7 +93,7 @@ session_flow_quick_start:
     4: "Review: active_tasks list"
     5: "If tasks open → Continue one of them"
     6: "If all completed → Check task_backlog"
-    7: "Load relevant context from agents/[PROJECT]/context/"
+    7: "Load relevant context from agents/[YOUR_PROJECT_NAME]/context/"
     8: "Begin work following TDD approach"
 
 instructions_for_ai:

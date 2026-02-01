@@ -10,7 +10,7 @@
 
 ### Directory Structure
 ```
-docs/records/sprints/
+docs/log/sprints/
 ├── sprint-01/    ✅ KEEP (4 tasks)
 ├── sprint-02/    ✅ KEEP (2 tasks)
 ├── sprint-03/    ❌ DELETE (1 duplicate task + summary)

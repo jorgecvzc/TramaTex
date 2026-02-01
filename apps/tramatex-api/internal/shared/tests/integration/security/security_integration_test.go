@@ -54,10 +54,10 @@ func setupTestRouter(t *testing.T) (*gin.Engine, security.JWTService) {
 
 	// Create protected routes
 	protected := router.Group("/api/protected")
-	protected.Use(http_middleware.AuthMiddleware(jwtService))
+	protected.Use(http_middleware.AuthMiddleware(jwtService, nil))
 	{
-		// Admin/Manager only endpoint
-		protected.POST("/admin-only", infra_middleware.RequireRole("admin", "manager"), func(c *gin.Context) {
+		// Admin/Commercial only endpoint
+		protected.POST("/admin-only", infra_middleware.RequireRole("admin", "commercial"), func(c *gin.Context) {
 			c.JSON(200, gin.H{"message": "admin access granted"})
 		})
 
@@ -93,12 +93,12 @@ func TestRBAC_AdminCanAccess(t *testing.T) {
 	assert.Equal(t, "admin access granted", response["message"])
 }
 
-// TestRBAC_ManagerCanAccess verifies manager role can access write endpoints
-func TestRBAC_ManagerCanAccess(t *testing.T) {
+// TestRBAC_CommercialCanAccess verifies commercial role can access write endpoints
+func TestRBAC_CommercialCanAccess(t *testing.T) {
 	router, jwtService := setupTestRouter(t)
 
-	// Generate manager token
-	token := generateTestToken(t, jwtService, "manager-user-id", "manager@tramatex.com", "manager")
+	// Generate commercial token
+	token := generateTestToken(t, jwtService, "commercial-user-id", "commercial@tramatex.com", "commercial")
 
 	req := httptest.NewRequest("POST", "/api/protected/admin-only", bytes.NewBuffer([]byte("{}")))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -110,12 +110,12 @@ func TestRBAC_ManagerCanAccess(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 
-// TestRBAC_OperatorDeniedAccess verifies operator role cannot access write endpoints
-func TestRBAC_OperatorDeniedAccess(t *testing.T) {
+// TestRBAC_WorkshopDeniedAccess verifies workshop role cannot access write endpoints
+func TestRBAC_WorkshopDeniedAccess(t *testing.T) {
 	router, jwtService := setupTestRouter(t)
 
-	// Generate operator token
-	token := generateTestToken(t, jwtService, "operator-user-id", "operator@tramatex.com", "operator")
+	// Generate workshop token
+	token := generateTestToken(t, jwtService, "workshop-user-id", "workshop@tramatex.com", "workshop")
 
 	req := httptest.NewRequest("POST", "/api/protected/admin-only", bytes.NewBuffer([]byte("{}")))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -133,11 +133,11 @@ func TestRBAC_OperatorDeniedAccess(t *testing.T) {
 	assert.Contains(t, response["error"], "insufficient permissions")
 }
 
-// TestRBAC_OperatorCanRead verifies operator can access read-only endpoints
-func TestRBAC_OperatorCanRead(t *testing.T) {
+// TestRBAC_WorkshopCanRead verifies workshop can access read-only endpoints
+func TestRBAC_WorkshopCanRead(t *testing.T) {
 	router, jwtService := setupTestRouter(t)
 
-	token := generateTestToken(t, jwtService, "operator-user-id", "operator@tramatex.com", "operator")
+	token := generateTestToken(t, jwtService, "workshop-user-id", "workshop@tramatex.com", "workshop")
 
 	req := httptest.NewRequest("GET", "/api/protected/read-only", nil)
 	req.Header.Set("Authorization", "Bearer "+token)

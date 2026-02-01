@@ -10,10 +10,8 @@
 - Identificación única: Combinación sprint-XX + tarea-YY
 - Ubicación: `docs/log/sprints/sprint-[XX]/`
 - Ejemplos:
-  - `sprint-01/01-diseño-y-arquitectura-inicial.md` (tarea 01-01)
-  - `sprint-01/04-auditoria-seguridad-owasp.md` (tarea 01-04)
-  - `sprint-02/01-refactorizacion-sistema-documentacion.md` (tarea 02-01)
-  - `sprint-04/01-definicion-sistema-de-diseno.md` (tarea 04-01)
+  - `sprint-XX/01-initial-task-setup.md` (tarea XX-01)
+  - `sprint-YY/02-feature-implementation.md` (tarea YY-02)
 
 Anotaciones sobre el mismo:
 - Los títulos y explicaciones tienen que estar en castellano.
@@ -72,9 +70,9 @@ Anotaciones sobre el mismo:
 - [Cambio 1]
 - [Cambio 2]
 
-**Estado en project-status.md:**
+**Estado en docs/log/project-status.md:**
 - Fase actual: [Fase X]
-- Horas invertidas: [X / 782]
+- Horas invertidas: [X / TOTAL_ESTIMATED_HOURS]
 - Porcentaje completado: [X%]
 
 ### Bloqueadores/Dependencias
@@ -158,10 +156,10 @@ Anotaciones sobre el mismo:
 
 ### Fase 4: Validación
 
-- [ ] `go test ./...` pasa (backend)
-- [ ] `npm run test` pasa (frontend si aplica)
-- [ ] `golangci-lint run ./...` sin warnings
-- [ ] `npm run lint` sin warnings (si aplica)
+- [ ] `[COMANDO_TEST_BACKEND]` pasa (backend)
+- [ ] `[COMANDO_TEST_FRONTEND]` pasa (frontend si aplica)
+- [ ] `[COMANDO_LINTER_BACKEND]` sin warnings
+- [ ] `[COMANDO_LINTER_FRONTEND]` sin warnings (si aplica)
 - [ ] Cobertura de tests ≥75% en módulos críticos
 - [ ] Docker Compose levanta sin errores
 - [ ] API funcional (test manual con curl/Postman si aplica)
@@ -169,8 +167,8 @@ Anotaciones sobre el mismo:
 
 ### Fase 5: Documentación
 
-- [ ] Completar esta tarea en `docs/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md`
-- [ ] Actualizar project-status.md
+- [ ] Completar esta tarea en `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md`
+- [ ] Actualizar `docs/log/project-status.md`
 - [ ] Commits descriptivos (see section below)
    - [ ] Si es decisión arquitectónica → crear/actualizar ADR (docs/architecture/adrs/)
 ---
@@ -208,9 +206,9 @@ Types: feat (feature), fix (bug fix), refactor (restructuring), docs (documentat
 
 | Archivo | Tipo | Descripción |
 |---------|------|------------|
-| `apps/component-name/internal/domain/service.go` | NEW | Tarificación domain service |
+| `apps/[NOMBRE_APP_BACKEND]/internal/[capa]/[modulo]/[archivo.go]` | NEW | Tarificación domain service |
 | `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md` | NEW | Documentación de esta tarea |
-| `project-status.md` | MODIFIED | Updated progress metrics |
+| `docs/log/project-status.md` | MODIFIED | Updated progress metrics |
 
 ### Métricas de Cambio
 
@@ -229,13 +227,13 @@ Types: feat (feature), fix (bug fix), refactor (restructuring), docs (documentat
 La tarea se considera completada cuando:
 
 - [x] Todos los objetivos están marcados como completados
-- [x] Tests backend pasan: `go test ./...`
-- [x] Tests frontend pasan: `npm run test` (si aplica)
-- [x] Lint sin warnings: `golangci-lint run ./...` y `npm run lint`
+- [x] Tests backend pasan: `[COMANDO_TEST_BACKEND]`
+- [x] Tests frontend pasan: `[COMANDO_TEST_FRONTEND]` (si aplica)
+- [x] Lint sin warnings: `[COMANDO_LINTER_BACKEND]` y `[COMANDO_LINTER_FRONTEND]` (si aplica)
 - [x] Cobertura ≥75% en dominio crítico
 - [x] Docker Compose levanta sin errores
 - [x] Tarea documentada completamente
-- [x] project-status.md actualizado
+- [x] docs/log/project-status.md actualizado
 - [x] Commits descriptivos y bien organizados
 - [x] No hay breaking changes no documentados
 
@@ -333,5 +331,5 @@ La tarea se considera completada cuando:
 
 ---
 
-**Para la plantilla completa, ver:** `/docs/log/sprints/_TASK_TEMPLATE.md`
+**Para la plantilla completa, ver:** `./_TASK_TEMPLATE.md`
 

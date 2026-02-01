@@ -25,4 +25,7 @@ type Repository interface {
 	// Delete removes a user from storage.
 	// Should be soft delete (mark as inactive) in production.
 	Delete(ctx context.Context, id string) error
+
+	// List retrieves all users.
+	List(ctx context.Context) ([]*model.User, error)
 }

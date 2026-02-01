@@ -223,16 +223,17 @@ La planificación del proyecto se estructura en tres niveles jerárquicos:
 
 | Abreviatura | Significado |
 |---|---|
-| MVP | Minimum Viable Product |
-| MES | Manufacturing Execution System |
+| ACID | Atomicity, Consistency, Isolation, Durability |
+| ADR | Architecture Decision Record |
 | DDD | Domain-Driven Design |
-| RBAC | Role-Based Access Control |
-| JWT | JSON Web Token |
-| NAS | Network Attached Storage |
-| TDD | Test-Driven Development |
 | i18n | Internacionalización |
+| JWT | JSON Web Token |
+| MES | Manufacturing Execution System |
+| MVP | Minimum Viable Product |
+| NAS | Network Attached Storage |
+| RBAC | Role-Based Access Control |
 | RF | Requisito Funcional |
 | RNF | Requisito No Funcional |
-| ACID | Atomicity, Consistency, Isolation, Durability |
+| TDD | Test-Driven Development |
 
 ---

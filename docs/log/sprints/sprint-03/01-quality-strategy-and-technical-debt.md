@@ -72,7 +72,7 @@ Documentar formalmente la estrategia de calidad del proyecto y establecer un reg
 
 ### Fase 1: ADR-010 - Estrategia de Testing y Coverage
 
-**Archivo a crear:** `docs/architecture/adrs/ADR-011-estrategia-testing-coverage.md`
+**Archivo a crear:** `docs/architecture/adrs/ADR-011-testing-coverage-strategy.md`
 
 ```markdown
 # ADR-010 – Estrategia de Testing y Coverage
@@ -332,7 +332,7 @@ npm run test:unit -- --coverage
 
 ### Fase 2: Registro de Deuda Técnica
 
-**Archivo a crear:** `../../1_project/technical-debt.md`
+**Archivo a crear:** `../../../guides/developer/technical-debt.md`
 
 ```markdown
 # 📋 Registro de Deuda Técnica - TramaTex
@@ -372,7 +372,7 @@ Este documento registra y prioriza la deuda técnica del proyecto TramaTex, clas
 
 **Categoría:** Seguridad  
 **Origen:** Auditoría OWASP (A04 - Insecure Design)  
-**Descripción:** No hay rate limiting en `/api/iam/login`, permitiendo ataques de fuerza bruta.  
+**Descripción:** No hay rate limiting en `/auth/login`, permitiendo ataques de fuerza bruta.  
 **Impacto:** Medio - Riesgo de compromiso de cuentas  
 **Estimación:** 2 horas  
 **Propuesta:**
@@ -867,7 +867,7 @@ npm run format  # Solo Prettier
 
 ### Política de Coverage
 
-Ver [ADR-011](../../architecture/adrs/ADR-011-estrategia-testing-coverage.md) para detalles completos.
+Ver [ADR-011](../../architecture/adrs/ADR-011-testing-coverage-strategy.md) para detalles completos.
 
 **Mínimos:**
 - Domain: 100%
@@ -1058,7 +1058,7 @@ Al revisar el PR:
 - [Architecture Overview](../../architecture/README.md)
 - [ADRs](../../architecture/adrs/)
 - [Technical Debt](../../guides/developer/technical-debt.md)
-- [Project Status](../../records/project-status.md)
+- [Project Status](../../project-status.md)
 
 ---
 

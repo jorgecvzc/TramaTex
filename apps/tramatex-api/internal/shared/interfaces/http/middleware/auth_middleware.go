@@ -8,7 +8,7 @@ import (
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 )
 
-func AuthMiddleware(jwtService security.JWTService) gin.HandlerFunc {
+func AuthMiddleware(jwtService security.JWTService, blacklist security.TokenBlacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -25,6 +25,12 @@ func AuthMiddleware(jwtService security.JWTService) gin.HandlerFunc {
 		}
 
 		tokenString := parts[1]
+		if blacklist != nil && blacklist.IsRevoked(tokenString) {
+			c.Set("authError", "revoked_token")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
 		claims, err := jwtService.ValidateToken(c.Request.Context(), tokenString)
 		if err != nil {
 			c.Set("authError", "invalid_token")

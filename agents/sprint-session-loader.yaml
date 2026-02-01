@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-session-loader.yaml"
   location: "agents/sprint-session-loader.yaml"
   version: "1.0"
-  last_updated: "2026-01-18"
+  last_updated: "2026-02-01"
   purpose: "Load project context, scan for open sprint tasks, and propose workflow"
   load_order: "first-in-session"
   applies_to: "Any project using modular agent system"
@@ -51,10 +51,10 @@ workflow:
       id_format: "Sequential local per sprint (01, 02, 03... resets each sprint)"
       unique_id: "sprint-XX + task-YY combination"
       examples:
-        - "sprint-01/04-auditoria-seguridad-owasp.md (task 01-04)"
-        - "sprint-02/01-refactorizacion-sistema-documentacion.md (task 02-01)"
-        - "sprint-04/01-definicion-sistema-de-diseno.md (task 04-01)"
-        - "sprint-05/01-implementacion-modulo-party.md (task 05-01)"
+        - "sprint-XX/01-initial-setup.md (task XX-01)"
+        - "sprint-YY/02-feature-implementation.md (task YY-02)"
+        - "sprint-ZZ/01-quality-improvements.md (task ZZ-01)"
+        - "sprint-ZZ/02-security-enhancements.md (task ZZ-02)"
       note: "Task IDs restart at 01 for each sprint, allowing sprint reopening"
     purpose: "Identify all available tasks"
     look_for:

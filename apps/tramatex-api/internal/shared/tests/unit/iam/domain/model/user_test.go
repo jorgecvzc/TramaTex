@@ -11,7 +11,7 @@ func TestUserNewWithValidData(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("user-123", email, password, model.RoleOperator)
+	u, err := model.NewUser("user-123", email, password, model.RoleWorkshop)
 
 	if err != nil {
 		t.Errorf("NewUser with valid data should not fail: %v", err)
@@ -37,7 +37,7 @@ func TestUserNewWithValidData(t *testing.T) {
 func TestUserNewWithMissingEmail(t *testing.T) {
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("user-123", nil, password, model.RoleOperator)
+	u, err := model.NewUser("user-123", nil, password, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with nil email should fail")
@@ -51,7 +51,7 @@ func TestUserNewWithMissingEmail(t *testing.T) {
 func TestUserNewWithMissingPassword(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 
-	u, err := model.NewUser("user-123", email, nil, model.RoleOperator)
+	u, err := model.NewUser("user-123", email, nil, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with nil password should fail")
@@ -66,7 +66,7 @@ func TestUserNewWithEmptyID(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("", email, password, model.RoleOperator)
+	u, err := model.NewUser("", email, password, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with empty ID should fail")
@@ -93,7 +93,7 @@ func TestUserNewWithInvalidRole(t *testing.T) {
 }
 
 func TestUserNewWithValidRoles(t *testing.T) {
-	roles := []model.Role{model.RoleAdmin, model.RoleManager, model.RoleOperator}
+	roles := []model.Role{model.RoleAdmin, model.RoleCommercial, model.RoleDesigner, model.RoleWorkshop}
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
@@ -116,7 +116,7 @@ func TestUserImmutableAfterCreation(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleOperator)
+	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
 
 	// Verify ID doesn't change
 	id1 := u.ID()
@@ -138,7 +138,7 @@ func TestUserTimestampsAutomatic(t *testing.T) {
 	password, _ := model.NewPassword("validPassword123")
 
 	before := time.Now()
-	u, _ := model.NewUser("user-123", email, password, model.RoleOperator)
+	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
 	after := time.Now()
 
 	createdAt := u.CreatedAt()
@@ -162,7 +162,7 @@ func TestUserActiveFlag(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleOperator)
+	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
 
 	// Default to active
 	if !u.IsActive() {
@@ -186,7 +186,7 @@ func TestUserChangePassword(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	oldPassword, _ := model.NewPassword("oldPassword123")
 
-	u, _ := model.NewUser("user-123", email, oldPassword, model.RoleOperator)
+	u, _ := model.NewUser("user-123", email, oldPassword, model.RoleWorkshop)
 
 	oldUpdatedAt := u.UpdatedAt()
 	time.Sleep(10 * time.Millisecond) // Ensure time difference
@@ -216,7 +216,7 @@ func TestUserChangePasswordWithNil(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleOperator)
+	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
 
 	err := u.ChangePassword(nil)
 	if err == nil {
@@ -230,8 +230,9 @@ func TestRoleIsValid(t *testing.T) {
 		expected bool
 	}{
 		{model.RoleAdmin, true},
-		{model.RoleManager, true},
-		{model.RoleOperator, true},
+		{model.RoleCommercial, true},
+		{model.RoleDesigner, true},
+		{model.RoleWorkshop, true},
 		{model.Role("invalid"), false},
 		{model.Role(""), false},
 	}
@@ -248,7 +249,7 @@ func TestNewUserWithUUID(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUserWithUUID(email, password, model.RoleOperator)
+	u, err := model.NewUserWithUUID(email, password, model.RoleWorkshop)
 
 	if err != nil {
 		t.Errorf("NewUserWithUUID failed: %v", err)

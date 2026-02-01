@@ -241,7 +241,6 @@ tramatex/
 ├── Makefile                           # Comandos comunes (build, test, run, etc.)
 │
 ├── docs/                              # DOCUMENTACIÓN (en Español)
-│   ├── overview/                      # Contexto y visión general del proyecto
 │   ├── architecture/                  # Arquitectura del sistema (ADRs, diagramas)
 │   │   ├── adr/                       # Architecture Decision Records
 │   │   │   └── ...
@@ -251,13 +250,13 @@ tramatex/
 │   │   ├── developer/
 │   │   └── user/
 │   │
-│   ├── reference/                     # Documentación de referencia (módulos, API)
+│   ├── modules/                       # Documentación detallada por Bounded Context (specs, diagramas)
 │   │   ├── _MODULE_TEMPLATE.md
 │   │   ├── iam/
 │   │   ├── party/
 │   │   └── ...
 │   │
-│   └── records/                       # Registros del proyecto (sprints, hitos, gobernanza)
+│   └── log/                           # Registros del proyecto (sprints, hitos, gobernanza)
 │       ├── sprints/                  # Planificación y logs de Sprints y Tareas
 │       │   ├── _SPRINT_TEMPLATE.md
 │       │   ├── _TASK_TEMPLATE.md
@@ -523,7 +522,7 @@ apps/frontend/src/
 ├── components/product/
 └── components/pricing/
 
-docs/reference/
+docs/modules/
 ├── party/
 ├── product/
 └── pricing/

@@ -8,7 +8,7 @@
 metadata:
   filename: "generic-rules.yaml"
   version: "1.0"
-  last_updated: "2026-01-14"
+  last_updated: "2026-02-01"
   purpose: "Generic foundational rules for AI agents"
   applies_to: "Any software development project"
   load_order: "first"
@@ -73,24 +73,21 @@ directory_structure:
       visibility: "Developer"
   
   docs_structure:
-    1_project:
-      path: "docs/overview/"
-      purpose: "Incluye documentos relacionados con la gestión del proyecto, como el contexto de negocio, la planificación y los informes de estado."
-    2_architecture:
+    architecture:
       path: "docs/architecture/"
       purpose: "Contiene la documentación técnica central, incluyendo arquitectura, ADRs, y diseño detallado de módulos."
-    3_modules:
-      path: "docs/reference/"
+    modules:
+      path: "docs/modules/"
       purpose: "Documentación detallada para cada módulo o Bounded Context del sistema."
     guides:
       path: "/docs/guides/"
       purpose: "Alberga guías prácticas y tutoriales, tanto para desarrolladores como para usuarios finales."
-    archive:
+    log:
       path: "/docs/log/"
       purpose: "Registro histórico del trabajo realizado, incluyendo sprints y milestones pasados."
       
       sprints:
-        path: "/docs/records/sprints/"
+        path: "/docs/log/sprints/"
         purpose: "Documentación de trabajo en sprints, incluyendo tareas individuales y resúmenes de sprint."
         structure:
           - "sprint-[XX]/ - Carpeta por cada sprint"
@@ -103,12 +100,11 @@ directory_structure:
           task_files:
             pattern: "[ID_TAREA]-descriptive-name-kebab-case.md"
             id_format: "Número secuencial local por sprint (01, 02, 03... se reinicia en cada sprint)"
-            location: "docs/records/sprints/sprint-[XX]/"
+            location: "docs/log/sprints/sprint-[XX]/"
             language: "English (filename), Spanish (content)"
             examples:
-              - "sprint-01/04-security-audit-owasp.md"
-              - "sprint-02/01-documentation-system-refactoring.md"
-              - "sprint-04/01-design-system-definition.md"
+              - "sprint-XX/01-initial-module-setup.md"
+              - "sprint-YY/02-feature-implementation.md"
             notes:
               - "ID de tarea es local al sprint (se reinicia en 01 cada sprint)"
               - "Identificación única: combinación sprint-XX + tarea-YY"
@@ -119,7 +115,7 @@ directory_structure:
           
           summary_files:
             pattern: "sprint-[XX]-summary.md"
-            location: "docs/records/sprints/sprint-[XX]/"
+            location: "docs/log/sprints/sprint-[XX]/"
             language: "English (filename), Spanish (content)"
             examples:
               - "sprint-01-summary.md"
@@ -150,7 +146,7 @@ root_directory_policy:
     - "Cualquier otro archivo de documentación .md que no sea README.md o AGENTS.md."
     - "Documentos de análisis, borradores, resúmenes de sesión, etc."
   
-  enforcement: "Toda la documentación adicional DEBE residir dentro del directorio `/docs` en la subcarpeta apropiada (1_project, 2_architecture, etc.)."
+  enforcement: "Toda la documentación adicional DEBE residir dentro del directorio `/docs` en la subcarpeta apropiada (architecture, modules, guides, log)."
   rationale: "Evita la acumulación de desorden en la raíz, centraliza la documentación y mantiene una estructura de proyecto predecible y profesional."
 
 documentation_principles:
@@ -224,7 +220,7 @@ agents_directory_rules:
     location: "/agents/[project-name]/context/"
     allowed: "README.md and INDEX.md for navigation within project context"
     rationale: "Project-specific context agents need internal documentation for their specialized agents"
-    example: "/agents/tramatex/context/README.md is acceptable"
+    example: "/agents/[your-project-name]/context/README.md is acceptable"
   
   verification:
     - "ls /agents/ should show ONLY .yaml files and /[project-name]/ folders"
@@ -327,6 +323,46 @@ conversation_patterns:
 workflow_best_practices:
   title: "🔄 Universal Workflow Best Practices"
   
+  module_development_workflow:
+    title: "🧩 Standard Module Development Workflow (SMDW)"
+    description: "A standardized, repeatable workflow for building new modules (Bounded Contexts) from design to deployment. **CRITICAL NOTE: Each phase must be discussed with and approved by the human development team before proceeding to the next.**"
+    phases:
+      phase_0:
+        title: "Phase 0: Scaffolding & Initial Setup"
+        steps:
+          - "1. Create Module Structure: Generate directories in `apps/<backend_app_name>/internal/<module>` and `apps/<frontend_app_name>/src/modules/<module>`."
+          - "2. Create Documentation Hub: Create `docs/modules/<module>/` and populate it from `_MODULE_TEMPLATE.md`."
+          - "3. Create Sprint Task: Create a new task file in `docs/log/sprints/` for the module implementation."
+      phase_1:
+        title: "Phase 1: Domain-Driven Design & API Specification"
+        steps:
+          - "1. Define Domain Model: Detail entities, aggregates, and value objects in `docs/modules/<module>/domain-model.md`."
+          - "2. Create Domain Diagram: Create a Mermaid class diagram in `docs/modules/<module>/diagrams/domain-model.md`."
+          - "3. Define Use Cases: List application use cases in `docs/modules/<module>/use-cases.md`."
+          - "4. Define API Contracts: Specify endpoints and DTOs in `docs/modules/<module>/api-contracts.md`."
+      phase_2:
+        title: "Phase 2: Backend Implementation (Test-Driven)"
+        steps:
+          - "1. Write Failing Domain Tests: Create unit tests for domain logic first."
+          - "2. Implement Domain Layer: Write code to make domain tests pass."
+          - "3. Write Failing Application Tests: Create tests for use cases, mocking repositories."
+          - "4. Implement Application Layer: Write code to make application tests pass."
+          - "5. Implement Infrastructure & Interfaces: Implement repositories and HTTP handlers."
+          - "6. Full Backend Validation: Run all tests and linters."
+      phase_3:
+        title: "Phase 3: Frontend Implementation"
+        steps:
+          - "1. Develop UI Components, Stores, and Services."
+          - "2. Write Frontend Unit Tests for critical logic (stores, composables)."
+          - "3. Full Frontend Validation: Run all tests and linters."
+      phase_4:
+        title: "Phase 4: Final Integration, Documentation & Review"
+        steps:
+          - "1. E2E Testing: Create Playwright tests for critical user flows."
+          - "2. Update Central Docs: Update `C2-containers.md` and `bounded-contexts.yaml` agent."
+          - "3. Human Approval: Mark task as 'Pending Review'."
+          - "4. Finalize Task: Once approved, mark as 'Completed' and update `sprint-registry.yaml`."
+
   before_implementation:
     - "Read existing architecture documentation"
     - "Map the module/feature to system boundaries"
@@ -367,54 +403,3 @@ validation_checklist:
     - "Explains 'what' and 'why'"
     - "References issues/ADRs if applicable"
     - "One logical change per commit"
-
-never_do:
-  title: "🚫 Universal Rules (Always Follow)"
-  rules:
-    - "Push code without tests in critical parts"
-    - "Place business logic outside domain layer"
-    - "Use framework-specific code in domain"
-    - "Hardcode configuration values"
-    - "Create massive functions without documentation"
-    - "Change architecture without documenting decision"
-    - "Make commits without descriptive messages"
-    - "Forget integration tests for workflows"
-    - "Violate project's architecture patterns"
-    - "Use credentials or secrets in code"
-
-communication_style:
-  title: "💡 Recommended Communication Style"
-  
-  with_developers:
-    - "Be clear and concise"
-    - "Cite architecture documents and ADRs"
-    - "Explain 'why' not just 'what'"
-    - "Ask clarifying questions when unsure"
-    - "Suggest improvements respectfully"
-  
-  with_stakeholders:
-    - "Use business terminology"
-    - "Focus on impact and value"
-    - "Reference business requirements"
-    - "Avoid technical jargon"
-  
-  for_code_reviews:
-    - "Be constructive"
-    - "Reference project standards"
-    - "Explain reasoning"
-    - "Acknowledge good practices"
-
-future_extensibility:
-  title: "🚀 Designed for Growth"
-  
-  scalability:
-    - "Agent structure supports adding domain-specific rules"
-    - "Documentation structure supports multiple projects"
-    - "Layer-based architecture supports new modules"
-    - "Technology stack can evolve without restructuring"
-  
-  adding_new_agents:
-    - "Create new agent file (0X-[domain].yaml)"
-    - "Follow same YAML structure"
-    - "Reference from session-initiation agent if needed"
-    - "Keep generic rules separate from domain-specific"

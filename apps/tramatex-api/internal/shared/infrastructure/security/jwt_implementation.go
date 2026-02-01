@@ -42,11 +42,11 @@ func NewJWTService(secret string, accessTokenTTL, refreshTokenTTL string) (JWTSe
 // GenerateAccessToken creates a new access token.
 func (j *JWTServiceImpl) GenerateAccessToken(ctx context.Context, claims *TokenClaims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub":  claims.Subject(),
+		"sub":   claims.Subject(),
 		"email": claims.Email(),
-		"role": claims.Role(),
-		"iat":  claims.IssuedAt().Unix(),
-		"exp":  time.Now().Add(j.accessTokenTTL).Unix(),
+		"role":  claims.Role(),
+		"iat":   claims.IssuedAt().Unix(),
+		"exp":   time.Now().Add(j.accessTokenTTL).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(j.secret))
@@ -60,9 +60,11 @@ func (j *JWTServiceImpl) GenerateAccessToken(ctx context.Context, claims *TokenC
 // GenerateRefreshToken creates a new refresh token.
 func (j *JWTServiceImpl) GenerateRefreshToken(ctx context.Context, claims *TokenClaims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": claims.Subject(),
-		"iat": claims.IssuedAt().Unix(),
-		"exp": time.Now().Add(j.refreshTokenTTL).Unix(),
+		"sub":   claims.Subject(),
+		"email": claims.Email(),
+		"role":  claims.Role(),
+		"iat":   claims.IssuedAt().Unix(),
+		"exp":   time.Now().Add(j.refreshTokenTTL).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(j.secret))

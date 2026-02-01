@@ -19,7 +19,7 @@ If generic-rules.yaml is not loaded, load it now.
 metadata:
   filename: "generic-project-context.yaml"
   version: "1.0"
-  last_updated: "2026-01-14"
+  last_updated: "2026-02-01"
   purpose: "Generic project context loader"
   scope: "Any software project"
   note: "This file is a template. Each project has its own context in agents/[project-name]/"
@@ -38,9 +38,9 @@ how_to_use:
     
     NOT this file directly.
   
-  example_for_tramatex:
-    command: "Load agents/project/project-context.yaml"
-    contains: "TramaTex-specific context"
+  example_for_your_project:
+    command: "Load agents/[your-project-name]/project-context.yaml"
+    contains: "Your project's specific context"
   
   example_for_another_project:
     command: "Load agents/myproject/project-context.yaml"
@@ -157,10 +157,10 @@ how_to_create_project_context:
   title: "🛠️ Creating Project Context for New Project"
   
   step_1_create_folder:
-    command: "mkdir agents/project/context"
+    command: "mkdir agents/[your-project-name]/context"
   
   step_2_create_main_context:
-    filename: "agents/project/project-context.yaml"
+    filename: "agents/[your-project-name]/project-context.yaml"
     based_on: "This file as template"
     customize:
       - Project name and vision
@@ -180,21 +180,21 @@ how_to_create_project_context:
   
   step_4_reference_in_sessions:
     when: "In session files, reference your project context"
-    example: "Load agents/project/project-context.yaml"
+    example: "Load agents/[your-project-name]/project-context.yaml"
 
 example_usage_patterns:
   title: "📖 Example Usage Patterns"
   
   pattern_1_single_agent_load:
     context: "User just needs basic project info"
-    load: "agents/project/project-context.yaml"
+    load: "agents/[your-project-name]/project-context.yaml"
     provides: "High-level overview"
     typical_for: "New team members, quick reference"
   
-  pattern_2_architecture_design:
+  pattern_architecture_design:
     context: "Designing new module"
     load:
-      - "agents/project/project-context.yaml (overview)"
+      - "agents/[your-project-name]/project-context.yaml (overview)"
       - "agents/project/context/architecture.yaml (patterns)"
       - "agents/project/context/bounded-contexts.yaml (domains)"
     provides: "Complete picture for design"
@@ -233,7 +233,7 @@ loading_strategy:
     Instead, follow this pattern:
     
     1. Know your project name
-    2. Load agents/project/project-context.yaml (if new)
+    2. Load agents/[your-project-name]/project-context.yaml (if new)
     3. Then load specific context agents as needed
     4. Skip agents you don't need for this task
   
@@ -262,7 +262,7 @@ comparison_universal_vs_project:
       - Session workflow
 
   project_specific_agents:
-    location: "/agents/project/"
+    location: "/agents/[your-project-name]/"
     files:
       - project-context.yaml (main)
       - /context/
@@ -270,11 +270,13 @@ comparison_universal_vs_project:
         - bounded-contexts.yaml
         - tech-stack.yaml
         - code-standards.yaml
+        - design/
+        - INDEX.md
+        - README.md
     unique_to: "Each project"
     examples:
-      - TramaTex pricing engine
-      - MyApp user management
-      - YourProject specific stack
+      - "YourApp user management"
+      - "YourProject specific stack"
 
 finding_what_you_need:
   title: "🔍 Quick Finding Guide"
@@ -286,16 +288,16 @@ finding_what_you_need:
     - question: "What are universal rules for any project?"
       answer: "agents/generic-rules.yaml"
     
-    - question: "What is the TramaTex project about?"
+    - question: "What is the [YOUR_PROJECT_NAME] project about?"
       answer: "agents/project/project-context.yaml"
     
     - question: "How do I start a session?"
       answer: "agents/sprint-session-loader.yaml"
     
-    - question: "What are TramaTex architecture patterns?"
+    - question: "What are [YOUR_PROJECT_NAME] architecture patterns?"
       answer: "agents/project/context/architecture.yaml"
     
-    - question: "What are TramaTex modules?"
+    - question: "What are [YOUR_PROJECT_NAME] modules?"
       answer: "agents/project/context/bounded-contexts.yaml"
     
     - question: "How do I setup TramaTex development?"
@@ -327,7 +329,7 @@ validation:
   description: "Verify your project context is complete"
   
   main_context_file:
-    - [ ] agents/project/project-context.yaml exists
+    - [ ] agents/[your-project-name]/project-context.yaml exists
     - [ ] Has metadata section
     - [ ] Has project_identity section
     - [ ] Has technology_stack section
@@ -336,7 +338,7 @@ validation:
     - [ ] Has decision_rules section
   
   modular_agents:
-    - [ ] agents/project/context/ folder exists
+    - [ ] agents/[your-project-name]/context/ folder exists
     - [ ] architecture.yaml created
     - [ ] bounded-contexts.yaml created
     - [ ] tech-stack.yaml created
@@ -345,7 +347,7 @@ validation:
     - [ ] README.md created
   
   integration:
-    - [ ] agents/sprint-session-loader.yaml can load project context
+    - [ ] agents/sprint-session-loader.yaml can load [your-project-name] context
     - [ ] All agents use consistent YAML structure
     - [ ] All cross-references are correct
 
@@ -353,12 +355,12 @@ troubleshooting:
   title: "🔧 Common Issues"
   
   issue_agents_not_found:
-    symptom: "Cannot load agents/project/project-context.yaml"
-    fix: "Verify folder exists at agents/project/"
+    symptom: "Cannot load agents/[your-project-name]/project-context.yaml"
+    fix: "Verify folder exists at agents/[your-project-name]/"
   
   issue_missing_context_agents:
     symptom: "Some modular agents missing"
-    fix: "Check agents/project/context/ has all 4 agents"
+    fix: "Check agents/[your-project-name]/context/ has all 4 agents"
   
   issue_universal_agents_modified:
     symptom: "Different projects have different universal agents"
@@ -366,7 +368,7 @@ troubleshooting:
   
   issue_path_confusion:
     symptom: "Don't know which path to load"
-    fix: "For TramaTex, load: agents/project/project-context.yaml"
+    fix: "For [YOUR_PROJECT_NAME], load: agents/[your-project-name]/project-context.yaml"
 
 next_steps:
   title: "➡️ Next Steps"
@@ -378,7 +380,7 @@ next_steps:
   
   for_new_project:
     - Run: agents/project-initialization.yaml
-    - Create: agents/project/ folder
-    - Customize: project-context.yaml
+    - Create: agents/[new-project-name]/ folder
+    - Customize: agents/[new-project-name]/project-context.yaml
     - Create: modular agents in /context/
     - Start: first session with your project loaded

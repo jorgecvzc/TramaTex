@@ -8,20 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Role represents a user role in the system.
-type Role string
-
-const (
-	RoleAdmin    Role = "admin"
-	RoleManager  Role = "manager"
-	RoleOperator Role = "operator"
-)
-
-// IsValid validates if a role is one of the allowed roles.
-func (r Role) IsValid() bool {
-	return r == RoleAdmin || r == RoleManager || r == RoleOperator
-}
-
 // User represents a user in the system as a Root Aggregate.
 // Immutable after creation (all fields private, only getters exposed).
 type User struct {
@@ -129,6 +115,17 @@ func (u *User) Activate() {
 	u.updatedAt = time.Now()
 }
 
+// ChangeRole updates the user's role.
+// Returns error if role is invalid.
+func (u *User) ChangeRole(newRole Role) error {
+	if !newRole.IsValid() {
+		return fmt.Errorf("invalid role: %s", newRole)
+	}
+	u.role = newRole
+	u.updatedAt = time.Now()
+	return nil
+}
+
 // NewUserWithUUID generates a new user with a UUID as ID.
 func NewUserWithUUID(email *Email, password *Password, role Role) (*User, error) {
 	id := uuid.New().String()
@@ -137,8 +134,7 @@ func NewUserWithUUID(email *Email, password *Password, role Role) (*User, error)
 
 // Error variables
 var (
-	ErrUserNotFound    = errors.New("user not found")
-	ErrInvalidPassword = errors.New("invalid password")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrInvalidPassword   = errors.New("invalid password")
 	ErrUserAlreadyExists = errors.New("user already exists")
 )
-

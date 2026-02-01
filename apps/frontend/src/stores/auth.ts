@@ -169,7 +169,8 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Update tokens
       accessToken.value = response.accessToken
-      refreshToken.value = response.refreshToken
+      // Keep existing refresh token (backend does not return a new one)
+      refreshToken.value = refreshToken.value
       tokenExpiresAt.value = Date.now() + response.expiresIn * 1000
 
       // Persist updated tokens

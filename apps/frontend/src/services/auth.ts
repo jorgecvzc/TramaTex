@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
-import type { LoginRequest, LoginResponse, Usuario } from '@/types/auth'
+import type { LoginResponse, Usuario } from '@/types/auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 class AuthService {
   private apiClient: AxiosInstance
@@ -37,18 +37,28 @@ class AuthService {
   }
 
   async login(email: string, password: string): Promise<LoginResponse> {
-    const response = await this.apiClient.post<LoginResponse>('/auth/login', {
+    const response = await this.apiClient.post('/auth/login', {
       email,
       password
     })
-    return response.data
+    const data = response.data
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+      user: data.user
+    }
   }
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
     const response = await this.apiClient.post('/auth/refresh', {
       refreshToken
     })
-    return response.data
+    const data = response.data
+    return {
+      accessToken: data.access_token,
+      expiresIn: data.expires_in
+    }
   }
 
   async getCurrentUser(): Promise<Usuario> {

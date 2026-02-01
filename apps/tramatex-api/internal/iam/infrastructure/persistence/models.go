@@ -10,7 +10,7 @@ type UserModel struct {
 	ID           string     `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email        string     `gorm:"uniqueIndex;not null;type:varchar(255)"`
 	PasswordHash string     `gorm:"not null;type:varchar(255)"`
-	Role         string     `gorm:"not null;default:'operator';type:varchar(50)"`
+	Role         string     `gorm:"not null;default:'commercial';type:varchar(50)"`
 	IsActive     bool       `gorm:"not null;default:true"`
 	CreatedAt    time.Time  `gorm:"autoCreateTime:milli;type:timestamp with time zone"`
 	UpdatedAt    time.Time  `gorm:"autoUpdateTime:milli;type:timestamp with time zone"`

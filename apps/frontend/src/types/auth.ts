@@ -1,9 +1,9 @@
+export type UserRole = 'admin' | 'commercial' | 'designer' | 'workshop'
+
 export interface Usuario {
   id: string
   email: string
-  nombre: string
-  rol: 'admin' | 'usuario'
-  creadoEn: string
+  role: UserRole
 }
 
 export interface LoginRequest {
@@ -15,12 +15,13 @@ export interface LoginResponse {
   accessToken: string
   refreshToken: string
   expiresIn: number
-  usuario: Usuario
+  user: Usuario
 }
 
 export interface TokenClaims {
   sub: string
   email: string
+  role: UserRole
   exp: number
   iat: number
 }

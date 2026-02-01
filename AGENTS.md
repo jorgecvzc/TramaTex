@@ -17,6 +17,14 @@ Al inicio de una sesión, el asistente de IA carga estos archivos en su contexto
 
 El usuario no necesita gestionar estos archivos directamente, pero puede consultarlos para entender el "pensamiento" del asistente.
 
+## Estructura de Agentes Clave
+
+-   `generic-rules.yaml`: Define las reglas universales del proyecto, como los idiomas para código y documentación, la estructura de directorios y los principios de arquitectura.
+-   `project-context.yaml`: Proporciona el contexto de alto nivel del proyecto TramaTex, incluyendo su visión, stack tecnológico y módulos principales.
+-   `sprint-registry.yaml`: Es el registro central de todos los sprints y tareas. Define qué tareas están activas, completadas o pendientes.
+-   `sprint-session-loader.yaml`: Contiene la lógica que el asistente de IA usa al inicio de una sesión para determinar qué tarea continuar o proponer.
+-   `agents/project/context/`: Contiene agentes modulares con información detallada sobre aspectos específicos como la arquitectura, los bounded contexts, el stack tecnológico y los estándares de código.
+
 ## Prompt para Iniciar una Nueva Sesión de Trabajo
 
 Para iniciar el flujo de trabajo estándar y que el asistente sepa qué hacer, el prompt más efectivo es:
@@ -31,8 +39,8 @@ Para iniciar el flujo de trabajo estándar y que el asistente sepa qué hacer, e
 
 ## Documentación Técnica de la IA
 
-Para una descripción detallada de la persona, los principios y el flujo de trabajo interno de la IA, consulta el archivo:
--   **[agents/README.md](./agents/README.md)**
+Para una descripción detallada de los agentes de contexto específicos del proyecto, consulta el archivo:
+-   **[agents/project/context/README.md](./agents/project/context/README.md)**
 
 ---
-*Última actualización: 2026-01-31*
+*Última actualización: 2026-02-01*

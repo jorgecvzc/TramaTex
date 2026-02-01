@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "2_architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md",
+                "file": "architecture/adrs/ADR-012-arquitectura-modulo-party.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ADR-010-estrategia-seguridad-defensa-profundidad"
+              "title": "ADR-012-arquitectura-modulo-party"
             }
           }
         ]

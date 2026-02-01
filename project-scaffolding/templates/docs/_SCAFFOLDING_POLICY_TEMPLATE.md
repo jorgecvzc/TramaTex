@@ -60,7 +60,7 @@
 | Documentación | Ubicación | Comportamiento |
 |---|---|---|
 | Checkpoint de sesión | **NEXT_SESSION.md (raíz)** | **VOLÁTIL** - Se sobrescribe cada sesión, NO acumula historia |
-| Histórico de cambios | **docs/records/project-status.md** | Acumulativo - hitos y progreso |
+| Histórico de cambios | **docs/log/project-status.md** | Acumulativo - hitos y progreso |
 | Changelog | **TramaTex raíz** (NO init-project/) | Opcional |
 | Guía de estándares | **Dentro de bootstrap.yaml** o **TramaTex raíz** | 1 |
 | Resumen ejecutivo | **TramaTex raíz** (NO init-project/) | Opcional |

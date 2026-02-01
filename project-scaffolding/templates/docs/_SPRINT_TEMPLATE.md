@@ -36,7 +36,7 @@
 - Identificación única: sprint-XX + tarea-YY (ej: 01-01, 02-03)
 - Esto permite reabrir sprints sin conflictos de numeración
 
-**Enlace a la plantilla de tarea:** `_TASK_TEMPLATE.md`
+**Enlace a la plantilla de tarea:** [_TASK_TEMPLATE.md](_TASK_TEMPLATE.md)
 
 ---
 
@@ -88,8 +88,11 @@
 1. **Acción 1:** [Descripción de la acción] (Responsable: [Nombre])
 2. **Acción 2:** [Descripción de la acción] (Responsable: [Nombre])
 
+## 🤖 Para Asistentes de IA
+Una vez completado el sprint, actualiza `sprint-registry.yaml` moviendo el sprint a la sección `completed_sprints` y añadiendo los `key_outcomes` relevantes. Asegúrate de actualizar la fecha `last_updated` en el `sprint-registry.yaml`.
+
 ---
 
 ## 🔗 REFERENCIAS
-- **ADRs relevantes:** [ADR-XXX]
+- **ADRs relevantes:** [ADR-XXX](docs/architecture/adrs/ADR-XXX.md)
 - **Documentos de negocio:** [Enlace]

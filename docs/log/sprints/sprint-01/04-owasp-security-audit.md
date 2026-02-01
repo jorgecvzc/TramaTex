@@ -230,7 +230,7 @@ func (r *postgreSQLOrganizationRepository) FindByID(ctx context.Context, id stri
 
 **Problema**:
 - No hay rate limiting en endpoints de login
-- Posible ataque de fuerza bruta en `/api/iam/login`
+- Posible ataque de fuerza bruta en `/auth/login`
 - Sin protección contra DoS
 
 **ACCIÓN RECOMENDADA** (Post-MVP):

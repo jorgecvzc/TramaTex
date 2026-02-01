@@ -2,7 +2,7 @@
   <div class="dashboard">
     <Navbar />
     <div class="dashboard-content">
-      <h1>Bienvenido, {{ usuario?.nombre || 'Usuario' }}</h1>
+      <h1>Bienvenido, {{ usuario?.email || 'Usuario' }}</h1>
       <div class="cards-grid">
         <div class="card">
           <h2>Pedidos</h2>

@@ -47,18 +47,18 @@
 | Métrica | Valor |
 |---------|-------|
 | **Archivos Creados** | No documentado en el momento |
-| **Archivos Modificados** | No documentado en el momento |
-| **Líneas de Código Agregadas** | No documentado en el momento |
-| **Líneas de Tests Agregadas** | No documentado en el momento |
-| **Commits Totales** | No documentado en el momento |
+| **Archivos Modificados** | N/A |
+| **Líneas de Código Agregadas** | N/A |
+| **Líneas de Tests Agregadas** | N/A |
+| **Commits Totales** | N/A |
 
 ### Tiempo
 
 | Métrica | Valor |
 |---------|-------|
-| **Horas Estimadas** | No documentado en el momento |
-| **Horas Reales** | No documentado en el momento |
-| **Variación** | No documentado en el momento |
+| **Horas Estimadas** | N/A |
+| **Horas Reales** | N/A |
+| **Variación** | N/A |
 
 ---
 
@@ -112,7 +112,7 @@
 
 ### Deuda Técnica Identificada
 
-- [ ] **N/A**: No documentado en el momento.
+- [ ] **N/A**: N/A
 
 ### Riesgos Aceptados
 
@@ -153,8 +153,8 @@ La definición explícita del alcance del MVP fue una decisión clave.
 - `ADR-004-mvp-development-lifecycle.md`
 - `ADR-005-unified-customer-supplier-management.md`
 - `ADR-006-domain-driven-development-strategy.md`
-- `ADR-007-orden-implementacion-modulos.md`
-- `ADR-008-planificacion-cronograma-mvp.md`
+- `ADR-007-module-implementation-order.md`
+- `ADR-008-mvp-timeline-planning.md`
 - `ADR-009-project-structure.md`
 
 **Tareas:**
@@ -244,10 +244,10 @@ Fases:
 
 | Concepto | Horas | Porcentaje |
 |----------|-------|------------|
-| **Horas Sprint** | No documentado | N/A |
-| **Horas Acumuladas** | No documentado | N/A |
+| **Horas Sprint** | N/A | N/A |
+| **Horas Acumuladas** | N/A | N/A |
 | **Horas Totales Estimadas** | 782 | 100% |
-| **Horas Restantes** | No documentado | N/A |
+| **Horas Restantes** | N/A | N/A |
 
 ---
 

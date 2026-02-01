@@ -1,0 +1,13 @@
+-- Session 19: Seed initial admin user if not exists
+-- Date: 2026-02-01
+-- Status: Ready for migration
+
+INSERT INTO users (id, email, password_hash, role, is_active)
+VALUES (
+  'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+  'admin@tramatex.local',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36P4/tvW2',
+  'admin',
+  true
+)
+ON CONFLICT (email) DO NOTHING;

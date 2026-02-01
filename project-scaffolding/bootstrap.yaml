@@ -8,7 +8,7 @@
 metadata:
   filename: "bootstrap.yaml"
   version: "1.1"
-  last_updated: "2026-01-17"
+  last_updated: "2026-02-01"
   purpose: "Interactively bootstrap a new project with complete structure and initial architecture documentation"
   triggers: "When starting a new software project from the project-scaffolding starter kit"
   load_order: "independent"
@@ -66,7 +66,7 @@ workflow_steps:
   - step_id: "create_docs_subdirectories"
     title: "Crear Subdirectorios de Documentación"
     description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
-    command: "mkdir -p docs/overview/governance docs/architecture/adr docs/architecture/diagrams docs/reference docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones"
+    command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
     next_step: "create_project_status_file"
 
   - step_id: "create_project_status_file"
@@ -169,11 +169,13 @@ workflow_steps:
       - source: "templates/docs/_TASK_TEMPLATE.md"
         destination: "docs/log/sprints/_TASK_TEMPLATE.md"
       - source: "templates/docs/_MODULE_TEMPLATE.md"
-        destination: "docs/reference/_MODULE_TEMPLATE.md"
+        destination: "docs/modules/_MODULE_TEMPLATE.md"
       - source: "templates/docs/_GUIDE_TEMPLATE.md"
         destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
       - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
         destination: "docs/guides/developer/governance/project-scaffolding-policy.md"
+      - source: "templates/docs/_DIAGRAM_TEMPLATE.md"
+        destination: "docs/architecture/diagrams/_DIAGRAM_TEMPLATE.md"
     next_step: "create_root_files"
 
   - step_id: "create_root_files"
@@ -213,13 +215,14 @@ workflow_steps:
           - ✅ README.md → Navegación general (este archivo)
           - ✅ AGENTS.md → Punto de entrada para Asistentes de IA
           - ✅ NEXT_SESSION.md → Estado de la sesión actual
+          - ✅ Diagramas: Usar **Mermaid** incrustado en los archivos `.md`.
           - ❌ NO otra documentación .md en raíz
           - ✅ TODO lo demás va en carpetas dentro de `docs/`
           
           **Por tipo de documento:**
-          - 🚀 **Proyecto**: [docs/overview/](docs/overview/) (Gestión del proyecto, sprints, contexto de negocio)
-          - 🏗️ **Arquitectura**: [docs/architecture/](docs/architecture/) (Arquitectura, Módulos, Diseño Técnico)
-          - 🧩 **Módulos**: [docs/reference/](docs/reference/) (Documentación detallada por Bounded Context)
+          - 🚀 **Proyecto**: [docs/log/](docs/log/) (Gestión del proyecto, sprints, estado y milestones)
+          - 🏗️ **Arquitectura**: [docs/architecture/](docs/architecture/) (Arquitectura, ADRs, Diagramas)
+          - 🧩 **Módulos**: [docs/modules/](docs/modules/) (Documentación detallada por Bounded Context)
           - 📖 **Guías**: [docs/guides/](docs/guides/) (Tutoriales para desarrolladores y usuarios)
           - 🗄️ **Archivo**: [docs/log/](docs/log/) (Sprints y milestones históricos)
 
@@ -252,11 +255,13 @@ workflow_steps:
 
           1.  **Check NEXT_SESSION.md**: If not empty, resume from there. Otherwise load `agents/sprint-session-loader.yaml`.
           2.  **Select Task**: Either continue an existing task or start a new one from the backlog.
-          3.  **Load Context**: Load the specific context agents required for the task from `agents/project/context/`.
-          4.  **Develop (TDD)**: Write tests first, then implement the code.
-          5.  **Validate**: Run all tests, linters, and formatters before committing.
-          6.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if complete.
-          7.  **Commit**: Use conventional commit messages in English.
+          3.  **Consult Module Workflow**: If the task is to create a new module, consult the **Standard Module Development Workflow (SMDW)** defined in `agents/generic-rules.yaml`.
+          4.  **Load Context**: Load the specific context agents required for the task from `agents/project/context/`.
+          5.  **Develop (TDD)**: Write tests first, then implement the code, following the SMDW phases.
+          6.  **Validate**: Run all tests, linters, and formatters before committing.
+          7.  **Document**: Update the sprint task file, `project-status.md`, and any other required module documentation.
+          8.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if complete.
+          9.  **Commit**: Use conventional commit messages in English.
 
       - filename: "NEXT_SESSION.md"
         content: |
@@ -418,7 +423,7 @@ workflow_steps:
   - step_id: "generate_initial_adr_001"
     title: "Generar ADR-001 (Stack Tecnológico)"
     description: "Creará el primer ADR detallando las decisiones del stack tecnológico."
-    filename: "docs/architecture/adrs/ADR-001-seleccion-stack-tecnologico.md"
+      filename: "docs/architecture/adrs/ADR-001-technology-stack-selection.md"
     content_template: |
       # ADR-001 – Selección del Stack Tecnológico y Estrategia Tecnológica Base
 

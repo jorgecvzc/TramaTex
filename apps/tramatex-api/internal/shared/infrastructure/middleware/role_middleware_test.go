@@ -21,7 +21,7 @@ func TestRequireRole(t *testing.T) {
 		c.Set("userRole", "admin")
 
 		// Create middleware
-		roleMiddleware := middleware.RequireRole("admin", "manager")
+		roleMiddleware := middleware.RequireRole("admin", "commercial")
 
 		// Execute
 		roleMiddleware(c)
@@ -35,10 +35,10 @@ func TestRequireRole(t *testing.T) {
 		// Setup
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Set("userRole", "manager")
+		c.Set("userRole", "commercial")
 
 		// Create middleware
-		roleMiddleware := middleware.RequireRole("admin", "manager", "operator")
+		roleMiddleware := middleware.RequireRole("admin", "commercial", "workshop")
 
 		// Execute
 		roleMiddleware(c)
@@ -52,10 +52,10 @@ func TestRequireRole(t *testing.T) {
 		// Setup
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Set("userRole", "operator")
+		c.Set("userRole", "workshop")
 
 		// Create middleware
-		roleMiddleware := middleware.RequireRole("admin", "manager")
+		roleMiddleware := middleware.RequireRole("admin", "commercial")
 
 		// Execute
 		roleMiddleware(c)

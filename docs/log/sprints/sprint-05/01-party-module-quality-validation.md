@@ -26,7 +26,7 @@ Esta tarea tiene como objetivo **validar y ajustar** el módulo Party existente 
 ### Objetivos Específicos
 
 1. [ ] **Validación de Cobertura de Tests**
-   - [ ] Verificar que la cobertura del módulo cumple con ≥90% establecido en ADR-010
+   - [ ] Verificar que la cobertura del módulo cumple con ≥90% establecido en ADR-011
    - [ ] Ejecutar suite completa de tests (unitarios, integración, e2e)
    - [ ] Identificar gaps de cobertura y crear tests adicionales si es necesario
 
@@ -110,7 +110,7 @@ apps/frontend/src/
 - [ ] Sprint 03, Tarea 03: Estrategia de Calidad documentada
 
 **Normas a aplicar:**
-- ADR-010: Testing Strategy (≥90% coverage)
+- ADR-011: Testing Strategy (≥90% coverage)
 - docs/engineering/technical-debt.md (registro de deuda)
 - CONTRIBUTING.md (guía de contribución)
 - .golangci.yml, .eslintrc.js (reglas de linters)
@@ -342,7 +342,7 @@ Para considerar esta tarea **completada**, se debe cumplir:
   - [03-estrategia-calidad-deuda-tecnica.md](../sprint-03/03-estrategia-calidad-deuda-tecnica.md)
 
 - **ADRs:**
-  - ADR-010: Testing Strategy
+  - ADR-011: Testing Strategy
   - ADR-006: Clean Architecture Implementation
 
 - **Documentación:**

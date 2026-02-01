@@ -47,11 +47,17 @@ func TestInMemoryOrganizationRepository_FindByRole(t *testing.T) {
 	// Add organizations with different roles
 	id1, _ := domain.NewOrganizationID("org-001")
 	org1, _ := domain.NewOrganization(id1, "Client Corp", domain.OrganizationRoleClient, nil, "user-1")
-	repo.Save(ctx, org1)
+	err := repo.Save(ctx, org1)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	id2, _ := domain.NewOrganizationID("org-002")
 	org2, _ := domain.NewOrganization(id2, "Supplier Corp", domain.OrganizationRoleSupplier, nil, "user-1")
-	repo.Save(ctx, org2)
+	err = repo.Save(ctx, org2)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	clients, _ := repo.FindByRole(ctx, domain.OrganizationRoleClient)
 	if len(clients) != 1 {
@@ -75,7 +81,10 @@ func TestInMemoryOrganizationRepository_Count(t *testing.T) {
 
 	id, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(id, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	repo.Save(ctx, org)
+	err := repo.Save(ctx, org)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	count, _ = repo.Count(ctx)
 	if count != 1 {
@@ -89,9 +98,12 @@ func TestInMemoryOrganizationRepository_Delete(t *testing.T) {
 
 	id, _ := domain.NewOrganizationID("org-001")
 	org, _ := domain.NewOrganization(id, "Test Corp", domain.OrganizationRoleClient, nil, "user-1")
-	repo.Save(ctx, org)
+	err := repo.Save(ctx, org)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
-	err := repo.Delete(ctx, id)
+	err = repo.Delete(ctx, id)
 	if err != nil {
 		t.Errorf("Delete should not error, got: %v", err)
 	}
@@ -137,7 +149,10 @@ func TestInMemoryPersonRepository_FindByOrganization(t *testing.T) {
 		personID, _ := domain.NewPersonID("person-00" + string(rune('0'+i)))
 		email, _ := domain.NewEmail("person" + string(rune('0'+i)) + "@example.com")
 		person := domain.NewPerson(personID, orgID, "Person", ""+string(rune('0'+i)), email, "user-1")
-		repo.Save(ctx, person)
+		err := repo.Save(ctx, person)
+		if err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	persons, _ := repo.FindByOrganization(ctx, orgID)
@@ -154,7 +169,10 @@ func TestInMemoryPersonRepository_FindByEmail(t *testing.T) {
 	personID, _ := domain.NewPersonID("person-001")
 	email, _ := domain.NewEmail("john@example.com")
 	person := domain.NewPerson(personID, orgID, "John", "Doe", email, "user-1")
-	repo.Save(ctx, person)
+	err := repo.Save(ctx, person)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	found, err := repo.FindByEmail(ctx, "john@example.com")
 	if err != nil {
@@ -175,14 +193,20 @@ func TestInMemoryPersonRepository_FindPrimaryContact(t *testing.T) {
 	personID1, _ := domain.NewPersonID("person-001")
 	email1, _ := domain.NewEmail("john@example.com")
 	person1 := domain.NewPerson(personID1, orgID, "John", "Doe", email1, "user-1")
-	repo.Save(ctx, person1)
+	err := repo.Save(ctx, person1)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	// Add primary contact
 	personID2, _ := domain.NewPersonID("person-002")
 	email2, _ := domain.NewEmail("jane@example.com")
 	person2 := domain.NewPerson(personID2, orgID, "Jane", "Smith", email2, "user-1")
 	person2.SetPrimaryContact(true)
-	repo.Save(ctx, person2)
+	err = repo.Save(ctx, person2)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
 	primary, err := repo.FindPrimaryContact(ctx, orgID)
 	if err != nil {
@@ -226,7 +250,10 @@ func TestInMemoryAddressRepository_FindByOrganization(t *testing.T) {
 	for i := 1; i <= 2; i++ {
 		addressID, _ := domain.NewAddressID("addr-00" + string(rune('0'+i)))
 		addr, _ := domain.NewAddress("Calle "+string(rune('0'+i))+" 123", "Madrid", "Madrid", "2800"+string(rune('0'+i)), "Spain")
-		repo.Save(ctx, addr, addressID, orgID)
+		err := repo.Save(ctx, addr, addressID, orgID)
+		if err != nil {
+			t.Fatalf("Save should not error, got: %v", err)
+		}
 	}
 
 	addresses, _ := repo.FindByOrganization(ctx, orgID)
@@ -242,9 +269,12 @@ func TestInMemoryAddressRepository_Delete(t *testing.T) {
 	orgID, _ := domain.NewOrganizationID("org-001")
 	addressID, _ := domain.NewAddressID("addr-001")
 	addr, _ := domain.NewAddress("Calle 123", "Madrid", "Madrid", "28001", "Spain")
-	repo.Save(ctx, addr, addressID, orgID)
+	err := repo.Save(ctx, addr, addressID, orgID)
+	if err != nil {
+		t.Fatalf("Save should not error, got: %v", err)
+	}
 
-	err := repo.Delete(ctx, addressID)
+	err = repo.Delete(ctx, addressID)
 	if err != nil {
 		t.Errorf("Delete should not error, got: %v", err)
 	}

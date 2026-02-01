@@ -35,7 +35,7 @@ Este documento registra y prioriza la deuda técnica del proyecto TramaTex, clas
 
 -   **Categoría:** Seguridad
 -   **Origen:** Auditoría OWASP (A04 - Insecure Design)
--   **Descripción:** El endpoint `/api/iam/login` no tiene límite de peticiones, lo que permite ataques de fuerza bruta.
+-   **Descripción:** El endpoint `/auth/login` ya tiene rate limiting por IP.
 -   **Impacto:** **Alto**. Riesgo de compromiso de cuentas de usuario.
 -   **Propuesta:** Implementar un middleware de rate limiting (ej. `gin-limiter`) con un límite de 5-10 intentos por minuto por IP.
 -   **Estado:** Planificado (Sprint post-MVP).

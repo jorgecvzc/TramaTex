@@ -152,11 +152,10 @@ func TestOrganization_AddPerson(t *testing.T) {
 func TestOrganization_AddAddress(t *testing.T) {
 	orgID, _ := NewOrganizationID("org-001")
 	org, _ := NewOrganization(orgID, "Name", OrganizationRoleClient, nil, "user-1")
-	addressID, _ := NewAddressID("addr-001")
 
 	addr, _ := NewAddress("Calle 123", "Madrid", "Madrid", "28001", "Spain")
 
-	err := org.AddAddress(addr, addressID)
+	err := org.AddAddress(addr)
 	if err != nil {
 		t.Errorf("AddAddress should not error, got: %v", err)
 	}
@@ -167,14 +166,13 @@ func TestOrganization_AddAddress(t *testing.T) {
 	}
 
 	// Try to add same address again
-	err = org.AddAddress(addr, addressID)
+	err = org.AddAddress(addr)
 	if err == nil {
 		t.Error("AddAddress should error when address already exists")
 	}
 
 	// Try to add nil address
-	addressID2, _ := NewAddressID("addr-002")
-	err = org.AddAddress(nil, addressID2)
+	err = org.AddAddress(nil)
 	if err == nil {
 		t.Error("AddAddress should error for nil address")
 	}
@@ -187,7 +185,9 @@ func TestOrganization_TimestampUpdates(t *testing.T) {
 	initialModifiedAt := org.ModifiedAt()
 	time.Sleep(10 * time.Millisecond) // Ensure time difference
 
-	org.UpdateName("New Name", "user-2")
+	if err := org.UpdateName("New Name", "user-2"); err != nil {
+		t.Fatalf("UpdateName should not return an error: %v", err)
+	}
 
 	if org.ModifiedAt().Equal(initialModifiedAt) {
 		t.Error("ModifiedAt should update when organization is modified")

@@ -22,7 +22,7 @@
 
 1. [x] **Analizar y proponer un nuevo sistema de documentación**: Reemplazar "Sesiones" por un concepto más adecuado de tareas y sprints.
 2. [x] **Ejecutar la refactorización de la estructura**:
-   - [x] Crear el nuevo directorio `docs/journals`.
+   - [x] Crear el nuevo directorio `docs/log/sprints`.
    - [x] Archivar las sesiones antiguas en `docs/archive/milestones`.
    - [x] Eliminar el antiguo directorio `docs/sessions`.
 3. [x] **Actualizar toda la documentación y agentes del proyecto**:
@@ -31,7 +31,7 @@
    - [x] Actualizar los documentos de contexto y estructura (`generic-rules.yaml`, `project-initialization.yaml`, `project-context.yaml`).
    - [x] Actualizar los documentos de estado e índice (`README.md`, `project-status.md`, `documentation-index.md`).
    - [x] Actualizar los ADRs relevantes (`ADR-008`, `ADR-009`).
-4. [x] **Crear este mismo journal** para documentar el proceso.
+4. [x] **Crear esta misma tarea** para documentar el proceso.
 
 ---
 
@@ -39,9 +39,9 @@
 
 ### Estado Anterior
 
-**Última bitácora completada:** 16 (archivada)
+**Última tarea completada:** 16 (archivada)
 
-**Cambios desde última bitácora:**
+**Cambios desde última tarea:**
 - Decisión de refactorizar el sistema de documentación de sesiones.
 
 **Estado en project-status.md:**
@@ -72,18 +72,18 @@ El plan de trabajo se ha seguido según lo conversado, ejecutando los pasos de l
 | `README.md` | MODIFIED | Readme actualizado. |
 | `docs/documentation-index.md` | MODIFIED | Índice de documentación actualizado. |
 | `project-status.md` | MODIFIED | Estado del proyecto actualizado. |
-| `docs/2_architecture/adr/ADR-008-planificacion-cronograma-mvp.md` | MODIFIED | ADR-008 actualizado. |
-| `docs/2_architecture/adr/ADR-009-estructura-proyecto.md` | MODIFIED | ADR-009 actualizado. |
-| `docs/archive/sprints/sprint-02/01-refactorizacion-sistema-documentacion.md` | NEW | Este mismo journal. |
+| `docs/architecture/adrs/ADR-008-mvp-timeline-planning.md` | MODIFIED | ADR-008 actualizado. |
+| `docs/architecture/adrs/ADR-009-project-structure.md` | MODIFIED | ADR-009 actualizado. |
+| `docs/archive/sprints/sprint-02/01-refactorizacion-sistema-documentacion.md` | NEW | Esta misma tarea. |
 
 ---
 
 ## ✅ DEFINICIÓN DE "HECHO"
 
-La bitácora se considerará completada cuando todos los archivos relevantes del proyecto reflejen la nueva estructura de "Journals de Desarrollo".
+La tarea se considerará completada cuando todos los archivos relevantes del proyecto reflejen la nueva estructura de "Tareas de Desarrollo".
 
 ---
 ## 🏁 CONCLUSIÓN
 
-La refactorización se ha completado. El proyecto ahora utiliza un sistema de "Bitácoras de Desarrollo" más robusto y descriptivo.
-El siguiente paso es marcar esta bitácora como completada y actualizar el estado del proyecto.
+La refactorización se ha completado. El proyecto ahora utiliza un sistema de "Tareas de Sprint" más robusto y descriptivo.
+El siguiente paso es marcar esta tarea como completada y actualizar el estado del proyecto.

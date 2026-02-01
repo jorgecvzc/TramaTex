@@ -13,7 +13,7 @@ import (
 //
 // Usage:
 //
-//	router.POST("/organizations", middleware.RequireRole("admin", "manager"), handler.CreateOrganization)
+//	router.POST("/organizations", middleware.RequireRole("admin", "commercial"), handler.CreateOrganization)
 func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract user role from context (set by AuthMiddleware)

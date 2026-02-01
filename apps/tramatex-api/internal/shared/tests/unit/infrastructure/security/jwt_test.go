@@ -87,7 +87,7 @@ func TestTokenClaimsJustExpired(t *testing.T) {
 func TestTokenClaimsAllFields(t *testing.T) {
 	subject := "user-123"
 	email := "user@example.com"
-	role := "manager"
+	role := "commercial"
 	now := time.Now()
 	expiresAt := now.Add(7 * 24 * time.Hour) // 7 days
 

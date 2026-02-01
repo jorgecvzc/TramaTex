@@ -1,318 +1,108 @@
-# Plantilla de Documentación de Módulo
+# [NOMBRE DEL MÓDULO] - Development Checklist & Documentation Hub
 
-**Nombre del Módulo:** [Nombre]  
-**Bounded Context:** [Contexto Delimitado]  
-**Responsabilidad Principal:** [Descripción breve]  
-**Entidades Raíz:** [Agregados principales]  
-**Dependencias:** [Módulos de los que depende]  
+**Bounded Context:** `[Contexto Delimitado]`  
+**Responsabilidad Principal:** `[Descripción breve]`  
+
+---
+> **Instrucciones:** Este documento es una checklist viva. Úsalo para guiar y rastrear el desarrollo del módulo a través de cada fase del **Standard Module Development Workflow (SMDW)**.
+> 
+> **NOTA CRÍTICA: Cada fase debe ser discutida y aprobada por el equipo de desarrollo humano antes de pasar a la siguiente.**
 
 ---
 
-## 1. Especificación del Módulo (module-spec.md)
+## Phase 0: Scaffolding & Initial Setup
 
-### Objetivo
-[Describir qué problema resuelve y qué valor proporciona]
-
-### Alcance
-[Qué está incluido, qué no]
-
-### Restricciones
-[Limitaciones técnicas o de negocio]
-
----
-
-## 2. Requisitos del Módulo
-
-### Requisitos Funcionales
-
-| ID | Descripción | Prioridad | Fase |
-|----|-----------|---------|----|
-| RF-[MOD]-001 | [Descripción requisito funcional] | Alta | [Fase] |
-| RF-[MOD]-002 | [Descripción requisito funcional] | Media | [Fase] |
-
-### Requisitos No Funcionales
-
-| ID | Descripción | Métrica | Target |
-|----|----------|---------|----|
-| RNF-[MOD]-001 | [Descripción requisito no funcional] | [Métrica] | [Target] |
-| RNF-[MOD]-002 | [Descripción requisito no funcional] | [Métrica] | [Target] |
-
-**Trazabilidad:** Conectar con [DOCUMENTO-CONSOLIDADO-3.0.md](../consolidated/DOCUMENTO-CONSOLIDADO-3.0.md)
+- [ ] **1. Crear Estructura de Módulo:**
+  - [ ] Backend: `apps/<backend_app_name>/internal/<module_name>/` (ej. `apps/tramatex-api/internal/<module_name>`)
+  - [ ] Frontend: `apps/<frontend_app_name>/src/modules/<module_name>/` (si aplica, ej. `apps/frontend/src/modules/<module_name>`)
+  - [ ] Otro: `apps/<other_app_name>/<module_name>/` (si aplica)
+- [ ] **2. Crear Hub de Documentación:**
+  - [ ] Carpeta: `docs/modules/<module_name>/`
+  - [ ] Diagramas: `docs/modules/<module_name>/diagrams/`
+- [ ] **3. Crear Tarea de Sprint:**
+  - [ ] Archivo de tarea creado en `docs/log/sprints/sprint-XX/`
+- [ ] **✅ Fase 0 Aprobada por el Equipo**
 
 ---
 
-## 3. Historias de Usuario
+## Phase 1: Domain-Driven Design & API Specification
 
-### Formato Estándar
+### 1.1. Domain Model (`domain-model.md`)
+- [ ] Definir Entidades y Agregados.
+- [ ] Definir Value Objects.
+- [ ] Definir Servicios de Dominio (si es necesario).
+- [ ] Establecer Reglas de Negocio Invariantes.
 
-**US-[MOD]-001: [Título breve]**
+### 1.2. Domain Diagram (`diagrams/domain-model.md`)
+- [ ] Crear diagrama de clases Mermaid con Entidades, VOs y relaciones.
 
-Como [rol de usuario]  
-Quiero [objetivo/acción]  
-Para [beneficio/razón de negocio]
+### 1.3. Use Cases (`use-cases.md`)
+- [ ] Listar todos los casos de uso de la capa de aplicación.
+- [ ] Describir actores, pre-condiciones y post-condiciones para cada uno.
 
-**Prioridad:** [Alta/Media/Baja]  
-**Complejidad:** [S/M/L/XL]  
-**Sprint:** [Sprint de asignación]
-
-#### Criterios de Aceptación (BDD)
-
-```gherkin
-Scenario 1: [Escenario exitoso]
-  Given [precondición 1]
-  When [acción principal]
-  Then [resultado esperado]
-  And [verificación adicional]
-
-Scenario 2: [Escenario alternativo]
-  Given [precondición]
-  When [acción]
-  Then [resultado esperado]
-
-Scenario 3: [Manejo de errores]
-  Given [precondición de error]
-  When [acción que causa error]
-  Then [error manejado correctamente]
-```
-
-### Ejemplos de User Stories
-
-**US-[MOD]-001**
-
-Como [rol]  
-Quiero [objetivo]  
-Para [beneficio]
-
-**Criterios de Aceptación:**
-```gherkin
-Scenario: [Descripción]
-  Given [condición inicial]
-  When [acción]
-  Then [resultado]
-```
+### 1.4. API Contracts (`api-contracts.md`)
+- [ ] Definir Endpoints (rutas, métodos HTTP).
+- [ ] Definir DTOs de Petición (Request).
+- [ ] Definir DTOs de Respuesta (Response).
+- [ ] Especificar Códigos de Error y sus significados.
+- [ ] **✅ Fase 1 Aprobada por el Equipo**
 
 ---
 
-## 4. Modelo de Dominio (domain-model.md)
+## Phase 2: Backend Implementation (TDD)
 
-### Entidades Principales
+### 2.1. Domain Layer
+- [ ] **Tests Unitarios:** Escribir tests para la lógica de negocio (Entidades, VOs, Servicios de Dominio).
+- [ ] **Implementación:** Escribir el código de dominio para que los tests pasen.
 
-```
-[DiagramER simplificado]
-```
+### 2.2. Application Layer
+- [ ] **Tests de Aplicación:** Escribir tests para los Casos de Uso (mockear repositorios).
+- [ ] **Implementación:** Escribir la orquestación de los casos de uso.
 
-#### [Entidad 1]
-- Responsabilidad:
-- Value Objects:
-- Reglas de Negocio:
+### 2.3. Infrastructure & Interfaces Layers
+- [ ] **Implementación de Repositorios:** Crear la implementación concreta de los repositorios (ej. `[NOMBRE_HERRAMIENTA_ORM_PERSISTENCIA]`).
+- [ ] **Implementación de Handlers:** Crear los manejadores HTTP (ej. `[NOMBRE_FRAMEWORK_WEB]`).
+- [ ] **Migraciones DB:** Crear y aplicar las migraciones de base de datos necesarias.
 
-#### [Entidad 2]
-- ...
-
-### Value Objects
-- [VO1]: [Descripción]
-- [VO2]: [Descripción]
-
-### Servicios de Dominio
-[Si aplica]
+### 2.4. Validation
+- [ ] Todos los tests del backend pasan (`[COMANDO_TEST_BACKEND]`).
+- [ ] Linter del backend pasa (`[COMANDO_LINTER_BACKEND]`).
+- [ ] Cobertura de tests cumple los objetivos de calidad (ej: 100% en Dominio crítico).
+- [ ] **✅ Fase 2 Aprobada por el Equipo**
 
 ---
 
-## 5. Casos de Uso (use-cases.md)
+## Phase 3: Frontend Implementation (si aplica)
 
-### Caso de Uso 1: [Nombre]
-- **Actor:** [Quién lo usa]
-- **Precondiciones:** [Qué debe ser verdadero]
-- **Flujo Normal:**
-  1. ...
-  2. ...
-- **Flujos Alternativos:** [Si aplica]
-- **Postcondiciones:** [Qué debe ser verdadero después]
-
-### Caso de Uso 2: [Nombre]
-- ...
+- [ ] **State Management:** Crear stores de `[NOMBRE_HERRAMIENTA_GESTION_ESTADO]`.
+- [ ] **Logic:** Crear servicios de API y `[TIPO_LOGICA_REUTILIZABLE]`.
+- [ ] **UI:** Crear componentes de `[NOMBRE_FRAMEWORK_UI]`.
+- [ ] **Tests:** Escribir tests unitarios para stores, `[TIPO_LOGICA_REUTILIZABLE]` u otra lógica.
+- [ ] **Validation:** Todos los tests (`[COMANDO_TEST_FRONTEND]`) y linter (`[COMANDO_LINTER_FRONTEND]`) pasan.
+- [ ] **✅ Fase 3 Aprobada por el Equipo**
 
 ---
 
-## 6. Contratos de API (api-contracts.md)
+## Phase 4: Final Integration & Review
 
-### Endpoint 1
-```json
-POST /api/[modulo]/[recurso]
-Request: { ... }
-Response: { ... }
-Errores: [...]
-```
-
-### Endpoint 2
-```
-...
-```
+- [ ] **E2E Testing:** Añadir tests de Playwright para los flujos críticos.
+- [ ] **Actualizar Documentación Central:**
+    - [ ] `docs/architecture/diagrams/C2-containers.md` (si hay cambios relevantes).
+    - [ ] `agents/project/context/bounded-contexts.yaml`.
+- [ ] **Revisión Humana:** Marcar la tarea como "Pendiente de Revisión".
+- [ ] **Cierre:** Marcar la tarea como "Completada" y actualizar `sprint-registry.yaml` tras la aprobación.
+- [ ] **✅ Fase 4 Aprobada por el Equipo**
 
 ---
+## Documentación Específica del Módulo
 
-## 7. Decisiones Técnicas
+*Esta sección contiene los enlaces a los documentos de diseño y especificación creados en la Fase 1.*
 
-### [Decisión 1]
-**Alternativas Consideradas:**
-**Decisión Tomada:**
-**Justificación:**
+- **[Especificación del Módulo](module-spec.md)**
+- **[Modelo de Dominio](domain-model.md)**
+- **[Diagramas de Dominio](diagrams/domain-model.md)**
+- **[Casos de Uso](use-cases.md)**
+- **[Contratos de API](api-contracts.md)**
+- **[Guía de Implementación](implementation-guide.md)**
 
----
-
-## 9. Tests y Cobertura
-
-### Estrategia de Testing
-
-| Capa | Enfoque | Cobertura Target | Herramienta |
-|------|---------|-----------------|------------|
-| **Dominio** | TDD-first, unit tests | ≥90% | go test / vitest |
-| **Aplicación** | Integration tests con mocks | ≥80% | go test / vitest |
-| **Infraestructura** | Integration E2E | ≥60% | go test / vitest |
-| **HTTP/Handlers** | HTTP tests | ≥70% | go test |
-
-### Proporción de Tests (Regla Práctica Inicial)
-
-**Distribución recomendada de cobertura total:**
-
-| Tipo de Test | Proporción | Descripción | Herramienta |
-|--------------|-----------|------------|------------|
-| **Unit Tests** | 70% | Pruebas de componentes individuales (dominio, VOs, entidades) | go test / vitest |
-| **Integration Tests** | 25% | Pruebas de orquestación (use cases, repositorios mockeados) | go test / vitest |
-| **E2E Tests** | 5% | Pruebas end-to-end solo casos críticos (HTTP handlers principales) | go test / curl |
-
-**Ejemplo para cobertura total de 80%:**
-- Unit Tests: 80% × 70% = **56%**
-- Integration Tests: 80% × 25% = **20%**
-- E2E Tests (críticos): 80% × 5% = **4%**
-- **Total: 80%** ✅
-
-**Aplicación por capa:**
-- **Dominio:** 90% cobertura → Unit 63% + Integration 22.5% + E2E 4.5%
-- **Aplicación:** 80% cobertura → Unit 56% + Integration 20% + E2E 4%
-- **Infraestructura:** 60% cobertura → Unit 42% + Integration 15% + E2E 3% (solo health check)
-
-### Casos de Prueba Críticos
-
-**Dominio:**
-- [ ] [Entidad principal] creation with valid inputs
-- [ ] [Entidad principal] rejects invalid inputs
-- [ ] [Value Object] validation rules
-- [ ] Business rule: [Regla crítica]
-
-**Aplicación:**
-- [ ] Use Case: [Caso exitoso]
-- [ ] Use Case: [Caso error]
-- [ ] Use Case: [Caso alternativo]
-- [ ] Repository mock integration
-
-**HTTP:**
-- [ ] POST [endpoint] with valid data → 200
-- [ ] POST [endpoint] with invalid data → 400
-- [ ] POST [endpoint] unauthorized → 401
-- [ ] POST [endpoint] error handling → 500
-
-### Línea de Base (Coverage Baseline)
-
-```bash
-# Backend (Go)
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
-
-# Frontend (Vue.js)
-npm run test:coverage
-# o
-vitest --coverage
-```
-
-### Reporte de Cobertura
-
-| Componente | Cobertura | Status |
-|------------|-----------|--------|
-| domain/[module]/ | XX% | ✅/⚠️/❌ |
-| application/[module]/ | XX% | ✅/⚠️/❌ |
-| infrastructure/[module]/ | XX% | ✅/⚠️/❌ |
-| interfaces/http/[module]/ | XX% | ✅/⚠️/❌ |
-
----
-
-## 10. Despliegue y Release
-
-### Configuración de Despliegue
-
-**Docker:**
-- [ ] Dockerfile configurado
-- [ ] docker-compose.yml actualizado
-- [ ] Environment variables documentadas
-
-**Base de Datos:**
-- [ ] Migration scripts presentes
-- [ ] Rollback plan documentado
-- [ ] Data fixtures para testing
-
-**Configuración:**
-- `.env.example` actualizado
-- `config/config.go` carga variables necesarias
-- JWT_SECRET / secrets manejados correctamente
-
-### Health Check
-
-```
-GET /api/[module]/health
-Response: { "status": "ok", "version": "1.0.0" }
-```
-
-### Checklist Pre-Release
-
-- [ ] Todos los tests pasan: `go test ./...` (100%)
-- [ ] Lint sin warnings: `golangci-lint run ./...`
-- [ ] Cobertura ≥80%: `go test -cover ./...`
-- [ ] Documentación actualizada (spec, ADRs)
-- [ ] Docker image build exitoso
-- [ ] docker-compose up funciona sin errores
-- [ ] Endpoint health check responde
-- [ ] Logs estructurados configurados
-- [ ] Error handling completo
-- [ ] Commit messages descriptivos
-- [ ] PR/sesión documentada
-- [ ] No hay breaking changes no documentados
-
-### Estrategia de Rollback
-
-**En caso de error post-release:**
-
-1. **Identificar problema:** Logs, monitoring, tests
-2. **Revertir cambios:**
-   ```bash
-   git revert [commit-hash]
-   docker-compose down
-   docker-compose up -d
-   ```
-3. **Restaurar BD (si aplica):**
-   ```bash
-   ./scripts/rollback-migration.sh [version]
-   ```
-4. **Comunicar:** Documentar en sesión qué falló y por qué
-
-### Monitoreo Post-Deploy
-
-- [ ] Logs sin errores
-- [ ] CPU/Memory dentro de límites
-- [ ] Latencia API aceptable
-- [ ] No hay data corruption
-- [ ] Backups completados
-
----
-
-## 11. Notas y Pendientes
-
-- [ ] Tarea 1
-- [ ] Tarea 2
-
----
-
-**Última Actualización:** [Fecha]  
-**Responsable:** [Persona/Equipo]  
-**Versión:** 1.0  
-**Relacionados:** [ADRs, sesiones, documentos]
 

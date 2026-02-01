@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/config"
@@ -88,10 +89,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize JWT service: %v", err)
 	}
+	// 2.1 Token Blacklist (logout invalidation)
+	tokenBlacklist := security.NewPostgresTokenBlacklist(db)
 	// 3. Use Cases
 	loginUseCase := iam_usecase.NewLoginUseCase(userRepository, jwtService)
+	registerUseCase := iam_usecase.NewRegisterUserUseCase(userRepository)
+	refreshUseCase := iam_usecase.NewRefreshTokenUseCase(userRepository, jwtService)
+	logoutUseCase := iam_usecase.NewLogoutUserUseCase(jwtService, tokenBlacklist)
+	assignRoleUseCase := iam_usecase.NewAssignRoleUseCase(userRepository)
+	checkAuthUseCase := iam_usecase.NewCheckAuthorizationUseCase(userRepository)
+	listUsersUseCase := iam_usecase.NewListUsersUseCase(userRepository)
 	// 4. HTTP Handler
-	iamHandler := iam_handler.NewIAMHandler(loginUseCase)
+	iamHandler := iam_handler.NewIAMHandler(
+		loginUseCase,
+		registerUseCase,
+		refreshUseCase,
+		logoutUseCase,
+		assignRoleUseCase,
+		checkAuthUseCase,
+		listUsersUseCase,
+	)
 
 	// --- Party Module Dependencies ---
 	// 1. Repositories
@@ -140,13 +157,34 @@ func main() {
 	)
 
 	// --- Middleware ---
-	authMiddleware := middleware.AuthMiddleware(jwtService)
+	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)
 
 	// --- API Routes ---
+	auth := router.Group("/auth")
+	{
+		// Public auth routes
+		auth.POST("/register", iamHandler.Register)
+		auth.POST("/login", infra_middleware.RateLimitMiddleware(10, time.Minute), iamHandler.Login)
+		auth.POST("/refresh", iamHandler.Refresh)
+
+		// Protected auth routes
+		protectedAuth := auth.Group("/")
+		protectedAuth.Use(authMiddleware)
+		{
+			// Logout requires Authorization header
+			protectedAuth.POST("/logout", iamHandler.Logout)
+			// Admin only: assign role
+			protectedAuth.POST("/assign-role", infra_middleware.RequireRole("admin"), iamHandler.AssignRole)
+			// Admin only: list users
+			protectedAuth.GET("/users", infra_middleware.RequireRole("admin"), iamHandler.ListUsers)
+			// Authorization checks (authenticated)
+			protectedAuth.POST("/authorize", iamHandler.CheckAuthorization)
+		}
+	}
+
 	api := router.Group("/api")
 	{
 		// Public routes
-		api.POST("/iam/login", iamHandler.Login)
 		api.GET("/health", iamHandler.Health)
 
 		// Protected routes
@@ -155,22 +193,22 @@ func main() {
 		{
 			organizations := protected.Group("/organizations")
 			{
-				// Write operations: admin and manager only
-				organizations.POST("", infra_middleware.RequireRole("admin", "manager"), orgHandler.CreateOrganization)
-				organizations.PUT("/:id", infra_middleware.RequireRole("admin", "manager"), orgHandler.UpdateOrganization)
-				organizations.PATCH("/:id/status", infra_middleware.RequireRole("admin", "manager"), orgHandler.ChangeStatus)
+				// Write operations: admin and commercial only
+				organizations.POST("", infra_middleware.RequireRole("admin", "commercial"), orgHandler.CreateOrganization)
+				organizations.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), orgHandler.UpdateOrganization)
+				organizations.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), orgHandler.ChangeStatus)
 
 				// Read operations: all authenticated users
 				organizations.GET("", orgHandler.ListOrganizations)
 				organizations.GET("/:id", orgHandler.GetOrganization)
 
 				// Person operations
-				organizations.POST("/:org_id/persons", infra_middleware.RequireRole("admin", "manager"), personHandler.AddPerson)
+				organizations.POST("/:org_id/persons", infra_middleware.RequireRole("admin", "commercial"), personHandler.AddPerson)
 				organizations.GET("/:org_id/persons", personHandler.ListPersons)
 				organizations.GET("/:org_id/primary-contact", personHandler.GetPrimaryContact)
 
 				// Address operations
-				organizations.POST("/:org_id/addresses", infra_middleware.RequireRole("admin", "manager"), addressHandler.AddAddress)
+				organizations.POST("/:org_id/addresses", infra_middleware.RequireRole("admin", "commercial"), addressHandler.AddAddress)
 				organizations.GET("/:org_id/addresses", addressHandler.ListAddresses)
 			}
 

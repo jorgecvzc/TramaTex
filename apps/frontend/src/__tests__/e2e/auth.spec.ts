@@ -9,7 +9,7 @@ test.describe('Authentication E2E Tests', () => {
   test.beforeEach(async ({ browser }) => {
     const context = await browser.newContext()
     page = await context.newPage()
-    await page.goto(`${BASE_URL}/auth/login`)
+    await page.goto(`${BASE_URL}/login`)
   })
 
   test('Complete user flow: Login -> Dashboard -> Logout', async () => {

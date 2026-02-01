@@ -271,7 +271,7 @@ Se identificó que la estructura de tests duplicada y externa estaba causando pr
 3. [ ] Crear Dockerfile para despliegue
 4. [ ] Configurar docker-compose.yml para desarrollo local
 
-## ✅ ESTADO FINAL - BITÁCORA 18
+## ✅ ESTADO FINAL - TAREA 18
 
 | Objetivo | Estado | Notas |
 |----------|--------|-------|
@@ -283,6 +283,6 @@ Se identificó que la estructura de tests duplicada y externa estaba causando pr
 | Tests de IAM | ✅ | Todos los tests pasan |
 | Cobertura de `iam/domain/model` | ✅ | 95.6% |
 | Makefile | ✅ | Desarrollo cómodo |
-| Documentación | ✅ | STRUCTURE.md + Bitácora actualizada |
+| Documentación | ✅ | STRUCTURE.md + Tarea actualizada |
 
 **Estado general: ✅ COMPLETADO** - Compilación exitosa, estructura optimizada, tests pasando con alta cobertura en el dominio.
