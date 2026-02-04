@@ -28,7 +28,7 @@ services:
   # TramaTex API
   api:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: ${API_CONTAINER:-tramatex_api}
     environment:
