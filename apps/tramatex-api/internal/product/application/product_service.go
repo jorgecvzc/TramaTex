@@ -11,11 +11,12 @@ import (
 
 // ProductService is the application service for product-related use cases.
 type ProductService struct {
-	productRepo   domain.ProductRepository
-	brandRepo     domain.BrandRepository
-	groupRepo     domain.ProductGroupRepository
-	attributeRepo domain.AttributeRepository
-	variantRepo   domain.ProductVariantRepository
+	productRepo            domain.ProductRepository
+	brandRepo              domain.BrandRepository
+	groupRepo              domain.ProductGroupRepository
+	attributeRepo          domain.AttributeRepository
+	variantRepo            domain.ProductVariantRepository
+	partyServiceConfigRepo domain.PartyServiceConfigurationRepository // New
 }
 
 // NewProductService creates a new ProductService.
@@ -25,13 +26,15 @@ func NewProductService(
 	groupRepo domain.ProductGroupRepository,
 	attributeRepo domain.AttributeRepository,
 	variantRepo domain.ProductVariantRepository,
+	partyServiceConfigRepo domain.PartyServiceConfigurationRepository, // New
 ) *ProductService {
 	return &ProductService{
-		productRepo:   productRepo,
-		brandRepo:     brandRepo,
-		groupRepo:     groupRepo,
-		attributeRepo: attributeRepo,
-		variantRepo:   variantRepo,
+		productRepo:            productRepo,
+		brandRepo:              brandRepo,
+		groupRepo:              groupRepo,
+		attributeRepo:          attributeRepo,
+		variantRepo:            variantRepo,
+		partyServiceConfigRepo: partyServiceConfigRepo, // New
 	}
 }
 
@@ -475,7 +478,7 @@ func (s *ProductService) ListAttributes(ctx context.Context, query ListAttribute
 	// Implement filtering logic based on query.ScopeType, query.BrandID, query.ProductGroupID
 	// For simplicity, let's assume FindByScope can handle all combinations for now.
 	// A more robust implementation would build the query dynamically.
-	
+
 	attributes, err := s.attributeRepo.FindByScope(ctx, query.BrandID, query.ProductGroupID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list attributes: %w", err)
@@ -532,9 +535,6 @@ func (s *ProductService) GetProductVariantByID(ctx context.Context, query GetPro
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
 }
 
-	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
-}
-
 // GenerateProductVariants handles UC-P-007: Pre-generate Variants for a Product.
 func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd GenerateProductVariantsCommand) error {
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
@@ -568,13 +568,13 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 	// Logic to generate all possible combinations of variants based on applicable attributes
 	// This is a complex combinatorial problem and requires careful implementation.
 	// Placeholder: This part will iterate through all combinations and create/update variants.
-	
+
 	// For each combination:
 	//   - Construct expected SKU
 	//   - Check if variant already exists by SKU or by ProductID + AttributeValues
 	//   - If not exists, create with Status = CONFIRMED (as it's pre-generated)
 	//   - If exists and PROVISIONAL, update Status to CONFIRMED
-	
+
 	return nil // Placeholder for actual implementation
 }
 
@@ -633,7 +633,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		attrJ := attrCodeToAttribute[sortedAttributeCodes[j]]
 		return attrI.SortOrder < attrJ.SortOrder
 	})
-	
+
 	// Construct the deterministic SKU
 	generatedSKU := product.SKU
 	for _, attrCode := range sortedAttributeCodes {
@@ -698,9 +698,9 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 	if err := s.variantRepo.Save(ctx, variant); err != nil {
 		return nil, fmt.Errorf("failed to save updated product variant: %w", err)
 	}
-	
+
 	// Need to fetch all attributes to populate OptionConfiguration in ProductVariantDTO
-	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil) 
+	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch attributes for variant: %w", err)
 	}
@@ -708,21 +708,109 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
 }
 
+// GetPartyServiceConfigurationByID handles fetching a single PartyServiceConfiguration by its ID and PartyID.
+func (s *ProductService) GetPartyServiceConfigurationByID(ctx context.Context, query GetPartyServiceConfigurationByIDQuery) (*PartyServiceConfigurationDTO, error) {
+	config, err := s.partyServiceConfigRepo.FindByID(ctx, query.PartyID, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("party service configuration not found: %w", err)
+	}
+	if config == nil {
+		return nil, fmt.Errorf("party service configuration with ID %s for party %s does not exist", query.ID, query.PartyID)
+	}
+	// Assuming a NewPartyServiceConfigurationDTOFromDomain function exists or create inline
+	return &PartyServiceConfigurationDTO{
+		ID:                   config.ID,
+		PartyID:              config.PartyID,
+		ServiceID:            config.ServiceID,
+		Name:                 config.Name,
+		ConfigurationDetails: config.ConfigurationDetails,
+	}, nil
+}
+
+// ListPartyServiceConfigurationsByPartyID handles fetching all PartyServiceConfigurations for a given PartyID.
+func (s *ProductService) ListPartyServiceConfigurationsByPartyID(ctx context.Context, query ListPartyServiceConfigurationsByPartyIDQuery) ([]*PartyServiceConfigurationDTO, error) {
+	configs, err := s.partyServiceConfigRepo.FindByPartyID(ctx, query.PartyID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list party service configurations: %w", err)
+	}
+
+	var dtos []*PartyServiceConfigurationDTO
+	for _, config := range configs {
+		dtos = append(dtos, &PartyServiceConfigurationDTO{
+			ID:                   config.ID,
+			PartyID:              config.PartyID,
+			ServiceID:            config.ServiceID,
+			Name:                 config.Name,
+			ConfigurationDetails: config.ConfigurationDetails,
+		})
+	}
+	return dtos, nil
+}
+
 // CreatePartyServiceConfiguration handles creating a new party service configuration.
 func (s *ProductService) CreatePartyServiceConfiguration(ctx context.Context, cmd CreatePartyServiceConfigurationCommand) (*PartyServiceConfigurationDTO, error) {
-	// TODO: Implement domain logic and persistence for PartyServiceConfiguration
-	// This will require a new repository in domain and an implementation in persistence.
-	return nil, fmt.Errorf("not implemented: CreatePartyServiceConfiguration")
+	config, err := domain.NewPartyServiceConfiguration(cmd.PartyID, cmd.ServiceID, cmd.Name, cmd.ConfigurationDetails)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create party service configuration domain entity: %w", err)
+	}
+
+	if err := s.partyServiceConfigRepo.Save(ctx, config); err != nil {
+		return nil, fmt.Errorf("failed to save party service configuration: %w", err)
+	}
+	return &PartyServiceConfigurationDTO{
+		ID:                   config.ID,
+		PartyID:              config.PartyID,
+		ServiceID:            config.ServiceID,
+		Name:                 config.Name,
+		ConfigurationDetails: config.ConfigurationDetails,
+	}, nil
 }
 
 // UpdatePartyServiceConfiguration handles updating an existing party service configuration.
 func (s *ProductService) UpdatePartyServiceConfiguration(ctx context.Context, cmd UpdatePartyServiceConfigurationCommand) (*PartyServiceConfigurationDTO, error) {
-	// TODO: Implement domain logic and persistence for PartyServiceConfiguration
-	return nil, fmt.Errorf("not implemented: UpdatePartyServiceConfiguration")
+	config, err := s.partyServiceConfigRepo.FindByID(ctx, cmd.PartyID, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("party service configuration not found: %w", err)
+	}
+	if config == nil {
+		return nil, fmt.Errorf("party service configuration with ID %s for party %s does not exist", cmd.ID, cmd.PartyID)
+	}
+
+	// Apply updates
+	serviceID := config.ServiceID
+	if cmd.ServiceID != nil {
+		serviceID = *cmd.ServiceID
+	}
+	name := config.Name
+	if cmd.Name != nil {
+		name = *cmd.Name
+	}
+	configDetails := config.ConfigurationDetails
+	if cmd.ConfigurationDetails != nil {
+		configDetails = cmd.ConfigurationDetails
+	}
+
+	if err := config.Update(serviceID, name, configDetails); err != nil {
+		return nil, fmt.Errorf("failed to update party service configuration domain entity: %w", err)
+	}
+
+	if err := s.partyServiceConfigRepo.Save(ctx, config); err != nil {
+		return nil, fmt.Errorf("failed to save updated party service configuration: %w", err)
+	}
+	return &PartyServiceConfigurationDTO{
+		ID:                   config.ID,
+		PartyID:              config.PartyID,
+		ServiceID:            config.ServiceID,
+		Name:                 config.Name,
+		ConfigurationDetails: config.ConfigurationDetails,
+	}, nil
 }
 
 // DeletePartyServiceConfiguration handles deleting a party service configuration.
 func (s *ProductService) DeletePartyServiceConfiguration(ctx context.Context, cmd DeletePartyServiceConfigurationCommand) error {
-	// TODO: Implement domain logic and persistence for PartyServiceConfiguration
-	return fmt.Errorf("not implemented: DeletePartyServiceConfiguration")
+	err := s.partyServiceConfigRepo.Delete(ctx, cmd.PartyID, cmd.ID)
+	if err != nil {
+		return fmt.Errorf("failed to delete party service configuration: %w", err)
+	}
+	return nil
 }

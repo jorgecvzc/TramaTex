@@ -76,10 +76,10 @@ type PreGenerateProductVariantsCommand struct {
 
 // UpdateProductVariantCommand is the input DTO for the UpdateProductVariant use case.
 type UpdateProductVariantCommand struct {
-	ID        uuid.UUID
-	Barcode   *string
-	IsActive  *bool
-	Status    *domain.VariantStatus // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
+	ID       uuid.UUID
+	Barcode  *string
+	IsActive *bool
+	Status   *domain.VariantStatus // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
 }
 
 // GenerateProductVariantsCommand is the input DTO for the GenerateProductVariants use case.
@@ -88,14 +88,14 @@ type GenerateProductVariantsCommand struct {
 }
 
 // OptionConfigurationItem represents a single attribute-value pair for variant creation/finding.
-typeType OptionConfigurationItem struct {
+type OptionConfigurationItem struct {
 	AttributeName string
 	Value         string
 }
 
 // FindOrCreateProductVariantCommand is the input DTO for the FindOrCreateProductVariant use case.
 type FindOrCreateProductVariantCommand struct {
-	ProductID         uuid.UUID
+	ProductID           uuid.UUID
 	OptionConfiguration []OptionConfigurationItem // AttributeName -> Value
 }
 
