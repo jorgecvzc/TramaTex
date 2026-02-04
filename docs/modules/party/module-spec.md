@@ -1,8 +1,8 @@
-# Módulo de Party (Clientes y Proveedores)
+# Módulo de Party
 
 ## 1. Propósito
 
-*   **Visión del Módulo:** Gestionar la información centralizada de clientes y proveedores.
+*   **Visión del Módulo:** Gestionar Parties (personas, organizaciones o ambas) con roles, relaciones y contactos.
 *   **Objetivos Clave:**
     *   Proporcionar un sistema centralizado para gestionar todos los clientes y proveedores de la empresa.
     *   Gestionar información de contacto, direcciones, categorías, y relaciones comerciales.
@@ -15,15 +15,17 @@
 
 
 
-*   **RF-001:** Registro de nuevos clientes y proveedores.
+*   **RF-001:** Registro de nuevas Parties (persona, organización o ambas).
 
-*   **RF-002:** Gestión de información de contacto.
+*   **RF-002:** Gestión de perfiles (persona/organización).
 
-*   **RF-003:** Gestión de direcciones (envío, facturación).
+*   **RF-003:** Gestión de contactos de organización.
 
-*   **RF-004:** Clasificación de clientes/proveedores por categoría. **(Post-MVP)**
+*   **RF-004:** Gestión de roles y relaciones entre Parties.
 
-*   **RF-005:** Historial de interacciones. **(Post-MVP)**
+*   **RF-005:** Clasificación por categorías. **(Post-MVP)**
+
+*   **RF-006:** Historial de interacciones. **(Post-MVP)**
 
 
 
@@ -45,35 +47,35 @@
 
 
 
-#### Organización
+#### Party
 
-- **Crear Organización:** Registrar un nuevo cliente o proveedor.
+- **Crear Party:** Registrar una Party con perfil persona/organización.
 
-- **Actualizar Organización:** Actualizar la información de un cliente o proveedor.
+- **Actualizar Party:** Actualizar perfiles y datos básicos.
 
-- **Obtener Organización:** Obtener los detalles de un cliente o proveedor.
+- **Obtener Party:** Obtener detalles por ID.
 
-- **Listar Organizaciones:** Listar clientes o proveedores con filtros.
+- **Listar Parties:** Listar con filtros por rol, tipo y estado.
 
-- **Cambiar Estado de Organización:** Cambiar el estado (activo/inactivo) de un cliente o proveedor.
+- **Cambiar Estado de Party:** Activar/desactivar.
 
+#### Roles
 
+- **Añadir Rol a Party**
+- **Eliminar Rol de Party**
 
-#### Persona (Contacto)
+#### Relaciones
 
-- **Añadir Persona a Organización:** Agregar una persona de contacto a una organización.
+- **Crear Relación entre Parties**
+- **Listar Relaciones**
+- **Eliminar Relación**
 
-- **Obtener Persona:** Recuperar los detalles de una persona de contacto.
+#### ContactDetails (Organización)
 
-- **Listar Personas de Organización:** Obtener la lista de contactos de una organización.
-
-
-
-#### Dirección
-
-- **Añadir Dirección a Organización:** Agregar una dirección a una organización.
-
-- **Listar Direcciones de Organización:** Obtener la lista de direcciones de una organización.
+- **Añadir Contacto**
+- **Listar Contactos**
+- **Actualizar Contacto**
+- **Eliminar Contacto**
 
 
 
@@ -81,11 +83,11 @@
 
 
 
-*   **HU-001:** Como vendedor, quiero registrar nuevos clientes para poder gestionar sus pedidos.
+*   **HU-001:** Como vendedor, quiero registrar una Party cliente para gestionar sus pedidos.
 
-*   **HU-002:** Como comprador, quiero registrar nuevos proveedores para poder gestionar las órdenes de compra.
+*   **HU-002:** Como comprador, quiero registrar una Party proveedor para gestionar órdenes de compra.
 
-*   **HU-003:** Como vendedor, quiero poder agregar múltiples direcciones a un cliente para gestionar envíos a diferentes sucursales.
+*   **HU-003:** Como vendedor, quiero agregar múltiples contactos de organización para gestionar comunicación.
 
 
 
@@ -95,7 +97,7 @@
 
 *   **Para HU-001:**
 
-    *   **Criterio 1:** Dado que ingreso el nombre legal y el tipo de un nuevo cliente, cuando guardo el formulario, entonces se crea una nueva "party" en el sistema.
+    *   **Criterio 1:** Dado que ingreso un perfil válido, cuando guardo el formulario, entonces se crea una nueva Party en el sistema.
 
 
 

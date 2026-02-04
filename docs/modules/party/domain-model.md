@@ -1,71 +1,66 @@
 # Modelo de Dominio - Módulo Party
 
-Este documento describe el modelo de dominio para el módulo `Party`, que gestiona clientes y proveedores. Se adhiere a los principios de Domain-Driven Design (DDD), definiendo la `Organization` como la raíz del agregado, `Person` como una entidad dentro de ese agregado y `Address` como un objeto de valor.
+Este documento describe el modelo de dominio vigente para el módulo `Party`, alineado con ADR-012 y la implementación actual. El agregado principal es `Party`, que puede representar una persona, una organización o ambas (perfiles compuestos).
 
-## 1. Agregado: Organization
+## 1. Agregado: Party
 
-La `Organization` es la raíz del agregado principal en el módulo `Party`. Es el punto de entrada para todas las operaciones que involucran a `Person` y `Address`, asegurando la consistencia transaccional.
+`Party` es la raíz del agregado. Centraliza el estado, los perfiles y las relaciones, y garantiza la consistencia transaccional.
 
-### Atributos de Organization:
-- **ID**: `OrganizationID` (identificador único del agregado)
-- **Nombre**: `string` (nombre legal de la organización)
-- **Rol**: `OrganizationRole` (enum: Cliente, Proveedor, Ambos)
-- **Estado**: `OrganizationStatus` (enum: Activo, Inactivo, Suspendido)
-- **TaxID**: `*TaxID` (Número de Identificación Fiscal, ej. CIF, NIF)
-- **Website**: `string` (URL del sitio web de la organización)
-- **Notes**: `string` (notas internas)
-- **CreatedBy**: `string` (ID del usuario que creó la organización)
-- **CreatedAt**: `time.Time` (marca de tiempo de creación)
-- **ModifiedBy**: `string` (ID del último usuario que modificó la organización)
-- **ModifiedAt**: `time.Time` (marca de tiempo de la última modificación)
+### Atributos principales
+- **ID**: `PartyID`
+- **Status**: `PartyStatus` (enum: `ACTIVE`, `INACTIVE`)
+- **PersonProfile**: `*PersonProfile` (opcional)
+- **OrganizationProfile**: `*OrganizationProfile` (opcional)
+- **Roles**: `[]PartyRole`
+- **Relationships**: `[]PartyRelationship`
+- **CreatedBy / CreatedAt / ModifiedBy / ModifiedAt**
 
-### Comportamientos Clave:
-- Crear una nueva `Organization` con validaciones iniciales.
-- Actualizar nombre, website o notas.
-- Activar o desactivar la organización.
-- Añadir `Person` (persona de contacto).
-- Añadir `Address` (dirección).
+### Reglas clave
+- Un `Party` debe tener **al menos un perfil** (persona u organización).
+- Puede tener múltiples roles (cliente, proveedor, empleado).
+- Puede relacionarse con otros `Party` mediante relaciones tipadas.
 
-## 2. Entidad: Person
+## 2. Perfil de Persona (`PersonProfile`)
 
-La `Person` es una entidad con su propia identidad, pero su ciclo de vida y consistencia son gestionados por la `Organization` a la que pertenece.
+Representa los datos personales de un `Party`.
 
-### Atributos de Person:
-- **ID**: `PersonID` (identificador único de la persona)
-- **OrganizationID**: `OrganizationID` (referencia a la organización a la que pertenece)
-- **FirstName**: `string` (nombre de pila)
-- **LastName**: `string` (apellido)
-- **Email**: `*Email` (objeto de valor para el email)
-- **Phone**: `*Phone` (objeto de valor para el teléfono)
-- **JobTitle**: `string` (cargo o puesto de trabajo)
-- **IsPrimaryContact**: `bool` (indica si es el contacto principal de la organización)
-- **CreatedBy**: `string`
-- **CreatedAt**: `time.Time`
-- **ModifiedBy**: `string`
-- **ModifiedAt**: `time.Time`
+- **FirstName**: `string`
+- **LastName**: `string`
 
-## 3. Value Object: Address
+## 3. Perfil de Organización (`OrganizationProfile`)
 
-`Address` es un objeto de valor que describe una ubicación física. No tiene una identidad conceptual propia dentro del dominio y se define por sus atributos.
+Representa los datos corporativos de un `Party`.
 
-### Atributos de Address:
-- **Street**: `string` (calle y número)
-- **City**: `string` (ciudad)
-- **Province**: `string` (provincia)
-- **PostalCode**: `string` (código postal)
-- **Country**: `string` (país)
+- **Name**: `string`
+- **TaxID**: `*TaxID`
+- **Website**: `string`
+- **Contacts**: `[]ContactDetails`
 
-## 4. Enumeraciones
+## 4. ContactDetails
 
-### OrganizationRole
-- `CLIENT`
-- `SUPPLIER`
-- `BOTH`
+Detalle de contacto asociado a una organización.
 
-### OrganizationStatus
-- `ACTIVE`
-- `INACTIVE`
-- `SUSPENDED`
+- **ID**: `ContactDetailsID`
+- **TypeDescription**: `string` (ej. “Ventas”, “Soporte”)
+- **Phone**: `*Phone`
+- **Email**: `*Email`
+- **RelatedPartyID**: `*PartyID` (opcional, para enlazar a otra Party)
+
+## 5. Roles y Relaciones
+
+### PartyRole
+- **Type**: `PartyRoleType` (`CLIENT`, `SUPPLIER`, `EMPLOYEE`)
+
+### PartyRelationship
+- **FromID**: `PartyID`
+- **ToID**: `PartyID`
+- **Type**: `RelationshipType` (`IS_EMPLOYEE_OF`, `IS_SUBSIDIARY_OF`)
+
+## 6. Value Objects y Enumeraciones
+
+**Value Objects:** `PartyID`, `ContactDetailsID`, `Email`, `Phone`, `TaxID`.
+
+**Enumeraciones:** `PartyStatus`, `PartyRoleType`, `RelationshipType`.
 
 ---
-**Última Actualización:** 2026-02-01
+**Última Actualización:** 2026-02-03

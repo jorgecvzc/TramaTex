@@ -94,11 +94,12 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.login(email, password)
+      const responseUser = (response as any).user ?? (response as any).usuario ?? null
 
       // Store response data
       accessToken.value = response.accessToken
       refreshToken.value = response.refreshToken
-      user.value = response.user
+      user.value = responseUser
       tokenExpiresAt.value = Date.now() + response.expiresIn * 1000
 
       // Persist to localStorage for session recovery
@@ -166,11 +167,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authService.refreshToken(refreshToken.value)
+      const nextRefreshToken = (response as any).refreshToken ?? refreshToken.value
 
       // Update tokens
       accessToken.value = response.accessToken
-      // Keep existing refresh token (backend does not return a new one)
-      refreshToken.value = refreshToken.value
+      refreshToken.value = nextRefreshToken
       tokenExpiresAt.value = Date.now() + response.expiresIn * 1000
 
       // Persist updated tokens
@@ -217,6 +218,11 @@ export const useAuthStore = defineStore('auth', () => {
       const isExpired = isTokenExpired(storedToken)
 
       if (isExpired) {
+        if (!storedRefreshToken) {
+          clearAuthState()
+          return
+        }
+
         // Token expired, try to refresh
         await refreshAccessToken()
       } else {

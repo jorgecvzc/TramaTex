@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios'
 import type { Usuario, UserRole } from '@/types/auth'
+import { getApiBase } from './apiBase'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const API_URL = getApiBase()
 
 class IamService {
   private apiClient: AxiosInstance

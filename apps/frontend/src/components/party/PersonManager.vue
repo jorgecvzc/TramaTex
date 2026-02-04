@@ -1,9 +1,9 @@
 <template>
   <div class="person-manager">
     <div class="manager-header">
-      <h3>Contacts & People</h3>
+      <h3>Contactos</h3>
       <button @click="showForm = !showForm" class="btn btn-primary">
-        {{ showForm ? '✕ Close' : '+ Add Contact' }}
+        {{ showForm ? '✕ Cerrar' : '+ Agregar contacto' }}
       </button>
     </div>
 
@@ -12,22 +12,22 @@
       <form @submit.prevent="submitForm">
         <div class="form-row">
           <div class="form-group">
-            <label for="firstName">First Name *</label>
+            <label for="firstName">Nombre *</label>
             <input
               id="firstName"
               v-model="form.firstName"
               type="text"
-              placeholder="First name"
+              placeholder="Nombre"
               required
             />
           </div>
           <div class="form-group">
-            <label for="lastName">Last Name *</label>
+            <label for="lastName">Apellido *</label>
             <input
               id="lastName"
               v-model="form.lastName"
               type="text"
-              placeholder="Last name"
+              placeholder="Apellido"
               required
             />
           </div>
@@ -35,17 +35,17 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="email">Email *</label>
+            <label for="email">Correo *</label>
             <input
               id="email"
               v-model="form.email"
               type="email"
-              placeholder="email@example.com"
+              placeholder="correo@ejemplo.com"
               required
             />
           </div>
           <div class="form-group">
-            <label for="phone">Phone</label>
+            <label for="phone">Teléfono</label>
             <input
               id="phone"
               v-model="form.phone"
@@ -56,12 +56,12 @@
         </div>
 
         <div class="form-group">
-          <label for="jobTitle">Job Title</label>
+          <label for="jobTitle">Cargo</label>
           <input
             id="jobTitle"
             v-model="form.jobTitle"
             type="text"
-            placeholder="e.g., Manager"
+            placeholder="p. ej., Gerente"
           />
         </div>
 
@@ -71,15 +71,15 @@
             v-model="form.isPrimary"
             type="checkbox"
           />
-          <label for="isPrimary">Mark as primary contact</label>
+          <label for="isPrimary">Marcar como contacto principal</label>
         </div>
 
         <div class="form-actions">
           <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
-            {{ isSubmitting ? 'Adding...' : 'Add Contact' }}
+            {{ isSubmitting ? 'Agregando...' : 'Agregar contacto' }}
           </button>
           <button type="button" @click="resetForm" class="btn btn-secondary">
-            Cancel
+            Cancelar
           </button>
         </div>
       </form>
@@ -100,7 +100,7 @@
             <p v-if="person.job_title" class="job">💼 {{ person.job_title }}</p>
           </div>
           <div class="person-badges">
-            <span v-if="person.is_primary" class="badge primary">Primary</span>
+            <span v-if="person.is_primary" class="badge primary">Principal</span>
             <span class="badge date">{{ formatDate(person.created_at) }}</span>
           </div>
         </div>
@@ -109,13 +109,13 @@
 
     <!-- Empty State -->
     <div v-if="persons.length === 0 && !showForm" class="empty-state">
-      <p>No contacts yet. Add your first contact to get started.</p>
+      <p>No hay contactos aún. Agrega el primero para empezar.</p>
     </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="loading">
       <div class="spinner"></div>
-      <p>Loading contacts...</p>
+      <p>Cargando contactos...</p>
     </div>
   </div>
 </template>
@@ -125,7 +125,7 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({
-  organizationId: {
+  partyId: {
     type: String,
     required: true,
   },
@@ -150,21 +150,21 @@ onMounted(() => {
   fetchPersons();
 });
 
-watch(() => props.organizationId, () => {
-  if (props.organizationId) {
+watch(() => props.partyId, () => {
+  if (props.partyId) {
     fetchPersons();
   }
 });
 
 async function fetchPersons() {
-  if (!props.organizationId) return;
+  if (!props.partyId) return;
 
   isLoading.value = true;
   try {
-    const response = await partyApi.listPersons(props.organizationId);
+    const response = await partyApi.listContacts(props.partyId);
     persons.value = response.data || [];
   } catch (error) {
-    formError.value = error.message || 'Failed to load contacts';
+    formError.value = error?.message || 'No se pudieron cargar los contactos';
   } finally {
     isLoading.value = false;
   }
@@ -172,7 +172,7 @@ async function fetchPersons() {
 
 async function submitForm() {
   if (!form.firstName || !form.lastName || !form.email) {
-    formError.value = 'First name, last name, and email are required';
+    formError.value = 'Nombre, apellido y correo son obligatorios';
     return;
   }
 
@@ -180,7 +180,7 @@ async function submitForm() {
   formError.value = '';
 
   try {
-    await partyApi.addPerson(props.organizationId, {
+    await partyApi.addContact(props.partyId, {
       id: `person-${Date.now()}`,
       firstName: form.firstName,
       lastName: form.lastName,
@@ -193,7 +193,7 @@ async function submitForm() {
     resetForm();
     await fetchPersons();
   } catch (error) {
-    formError.value = error.message || 'Failed to add contact';
+    formError.value = error?.message || 'No se pudo agregar el contacto';
   } finally {
     isSubmitting.value = false;
   }
@@ -223,9 +223,10 @@ function formatDate(dateString) {
 <style scoped>
 .person-manager {
   padding: 1.5rem;
-  background: var(--color-surface);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .manager-header {
@@ -236,16 +237,16 @@ function formatDate(dateString) {
 }
 
 .manager-header h3 {
-  color: var(--color-text-primary);
+  color: #1b3a6b;
   margin: 0;
 }
 
 .form-section {
-  background: rgba(230, 184, 0, 0.05);
+  background: #f8fafc;
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: 10px;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(230, 184, 0, 0.2);
+  border: 1px solid #e2e8f0;
 }
 
 .form-row {
@@ -261,22 +262,27 @@ function formatDate(dateString) {
 }
 
 .form-group label {
-  font-weight: 500;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 0.4rem;
 }
 
 .form-group input:not([type="checkbox"]) {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
+  border-color: #002395;
+  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
 }
 
 .form-group.checkbox {
@@ -302,38 +308,38 @@ function formatDate(dateString) {
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
-  color: var(--color-text-on-primary);
+  background: #e6b800;
+  color: #1e293b;
+  font-weight: 700;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-color-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(230, 184, 0, 0.3);
+  background: #d6aa00;
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-text-primary);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
 }
 
 .error-message {
-  color: var(--color-error);
-  background-color: rgba(244, 67, 54, 0.1);
-  padding: 0.75rem;
-  border-radius: 4px;
+  color: #991b1b;
+  background-color: #fee2e2;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   margin-top: 1rem;
-  border-left: 3px solid var(--color-error);
+  border: 1px solid #ef4444;
 }
 
 .persons-list {
@@ -343,15 +349,15 @@ function formatDate(dateString) {
 
 .person-card {
   padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-background);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
   transition: all 0.2s ease;
 }
 
 .person-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(230, 184, 0, 0.1);
+  border-color: #002395;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .person-header {
@@ -361,12 +367,12 @@ function formatDate(dateString) {
 }
 
 .person-info h4 {
-  color: var(--color-text-primary);
+  color: #1e293b;
   margin: 0 0 0.5rem 0;
 }
 
 .person-info p {
-  color: var(--color-text-secondary);
+  color: #64748b;
   margin: 0.25rem 0;
   font-size: 0.9rem;
 }
@@ -387,18 +393,18 @@ function formatDate(dateString) {
 
 .badge.primary {
   background-color: rgba(230, 184, 0, 0.2);
-  color: var(--primary-color);
+  color: #1e293b;
 }
 
 .badge.date {
   background-color: rgba(0, 0, 0, 0.05);
-  color: var(--color-text-secondary);
+  color: #64748b;
 }
 
 .empty-state {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--color-text-secondary);
+  color: #64748b;
 }
 
 .loading {

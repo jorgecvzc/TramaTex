@@ -20,6 +20,11 @@ import (
 	party_handler "github.com/joran-cortez/tramatex/internal/party/interfaces"
 	party_repo "github.com/joran-cortez/tramatex/internal/party/persistence"
 
+	// Product Module Imports
+	product_uc "github.com/joran-cortez/tramatex/internal/product/application"
+	product_repo "github.com/joran-cortez/tramatex/internal/product/infrastructure/persistence"
+	product_handler "github.com/joran-cortez/tramatex/internal/product/interfaces/http/handler"
+
 	// Security Service & Middleware Import
 	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
@@ -116,49 +121,63 @@ func main() {
 
 	// --- Party Module Dependencies ---
 	// 1. Repositories
-	organizationRepo := party_repo.NewPostgreSQLOrganizationRepository(sqlDB)
-	personRepo := party_repo.NewPostgreSQLPersonRepository(sqlDB)
-	addressRepo := party_repo.NewPostgreSQLAddressRepository(sqlDB)
+	partyRepo := party_repo.NewPostgreSQLPartyRepository(sqlDB)
+	partyRelationshipRepo := party_repo.NewPostgreSQLPartyRelationshipRepository(sqlDB)
+	partyAddressRepo := party_repo.NewPostgreSQLPartyAddressRepository(sqlDB)
 
 	// 2. Use Cases
-	createOrgHandler := party_uc.NewCreateOrganizationHandler(organizationRepo)
-	updateOrgHandler := party_uc.NewUpdateOrganizationHandler(organizationRepo)
-	changeOrgStatusHandler := party_uc.NewChangeOrganizationStatusHandler(organizationRepo)
-	getOrgHandler := party_uc.NewGetOrganizationHandler(organizationRepo)
-	listOrgsHandler := party_uc.NewListOrganizationsHandler(organizationRepo)
-	listOrgsByRoleHandler := party_uc.NewListOrganizationsByRoleHandler(organizationRepo)
-
-	addPersonHandler := party_uc.NewAddPersonHandler(organizationRepo, personRepo)
-	getPersonHandler := party_uc.NewGetPersonHandler(personRepo)
-	listPersonsHandler := party_uc.NewListPersonsByOrganizationHandler(personRepo)
-	getPersonByEmailHandler := party_uc.NewGetPersonByEmailHandler(personRepo)
-	getPrimaryContactHandler := party_uc.NewGetPrimaryContactHandler(personRepo)
-
-	addAddressHandler := party_uc.NewAddAddressHandler(organizationRepo, addressRepo)
-	listAddressesHandler := party_uc.NewListAddressesByOrganizationHandler(addressRepo)
-	getPrimaryAddressHandler := party_uc.NewGetPrimaryAddressHandler(addressRepo)
+	createPartyHandler := party_uc.NewCreatePartyHandler(partyRepo)
+	updatePartyHandler := party_uc.NewUpdatePartyHandler(partyRepo)
+	changePartyStatusHandler := party_uc.NewChangePartyStatusHandler(partyRepo)
+	getPartyHandler := party_uc.NewGetPartyHandler(partyRepo)
+	listPartiesHandler := party_uc.NewListPartiesHandler(partyRepo)
+	addPartyRoleHandler := party_uc.NewAddPartyRoleHandler(partyRepo)
+	removePartyRoleHandler := party_uc.NewRemovePartyRoleHandler(partyRepo)
+	addPartyRelationshipHandler := party_uc.NewAddPartyRelationshipHandler(partyRelationshipRepo)
+	listPartyRelationshipsHandler := party_uc.NewListPartyRelationshipsHandler(partyRelationshipRepo)
+	removePartyRelationshipHandler := party_uc.NewRemovePartyRelationshipHandler(partyRelationshipRepo)
+	addContactDetailsHandler := party_uc.NewAddContactDetailsHandler(partyRepo)
+	updateContactDetailsHandler := party_uc.NewUpdateContactDetailsHandler(partyRepo)
+	listContactDetailsHandler := party_uc.NewListContactDetailsHandler(partyRepo)
+	removeContactDetailsHandler := party_uc.NewRemoveContactDetailsHandler(partyRepo)
+	addPartyAddressHandler := party_uc.NewAddPartyAddressHandler(partyAddressRepo)
+	listPartyAddressesHandler := party_uc.NewListPartyAddressesHandler(partyAddressRepo)
 
 	// 3. HTTP Handlers
-	orgHandler := party_handler.NewOrganizationHandler(
-		createOrgHandler,
-		updateOrgHandler,
-		changeOrgStatusHandler,
-		getOrgHandler,
-		listOrgsHandler,
-		listOrgsByRoleHandler,
+	partyHandler := party_handler.NewPartyHandler(
+		createPartyHandler,
+		updatePartyHandler,
+		changePartyStatusHandler,
+		getPartyHandler,
+		listPartiesHandler,
 	)
-	personHandler := party_handler.NewPersonHandler(
-		addPersonHandler,
-		getPersonHandler,
-		listPersonsHandler,
-		getPersonByEmailHandler,
-		getPrimaryContactHandler,
+	partyRoleHandler := party_handler.NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
+	partyRelationshipHandler := party_handler.NewPartyRelationshipHandler(
+		addPartyRelationshipHandler,
+		listPartyRelationshipsHandler,
+		removePartyRelationshipHandler,
 	)
-	addressHandler := party_handler.NewAddressHandler(
-		addAddressHandler,
-		listAddressesHandler,
-		getPrimaryAddressHandler,
+	contactDetailsHandler := party_handler.NewContactDetailsHandler(
+		addContactDetailsHandler,
+		updateContactDetailsHandler,
+		listContactDetailsHandler,
+		removeContactDetailsHandler,
 	)
+	partyAddressHandler := party_handler.NewPartyAddressHandler(addPartyAddressHandler, listPartyAddressesHandler)
+
+	// --- Product Module Dependencies ---
+	// 1. Repositories
+	productRepository := product_repo.NewGORMProductRepository(db)
+	attributeRepository := product_repo.NewGORMAttributeRepository(db)
+	productVariantRepository := product_repo.NewGORMVariantRepository(db)
+	brandRepository := product_repo.NewGORMBrandRepository(db)
+	productGroupRepository := product_repo.NewGORMProductGroupRepository(db)
+
+	// 2. Use Cases
+	productService := product_uc.NewProductService(productRepository, brandRepository, productGroupRepository, attributeRepository, productVariantRepository)
+
+	// 3. HTTP Handlers
+	productHandler := product_handler.NewProductHandler(productService)
 
 	// --- Middleware ---
 	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)
@@ -199,31 +218,71 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(authMiddleware)
 		{
-			organizations := protected.Group("/organizations")
+			parties := protected.Group("/parties")
 			{
-				// Write operations: admin and commercial only
-				organizations.POST("", infra_middleware.RequireRole("admin", "commercial"), orgHandler.CreateOrganization)
-				organizations.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), orgHandler.UpdateOrganization)
-				organizations.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), orgHandler.ChangeStatus)
+				parties.POST("", infra_middleware.RequireRole("admin", "commercial"), partyHandler.CreateParty)
+				parties.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), partyHandler.UpdateParty)
+				parties.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), partyHandler.ChangePartyStatus)
 
-				// Read operations: all authenticated users
-				organizations.GET("", orgHandler.ListOrganizations)
-				organizations.GET("/:id", orgHandler.GetOrganization)
+				parties.GET("", partyHandler.ListParties)
+				parties.GET("/:id", partyHandler.GetParty)
 
-				// Person operations
-				organizations.POST("/:id/persons", infra_middleware.RequireRole("admin", "commercial"), personHandler.AddPerson)
-				organizations.GET("/:id/persons", personHandler.ListPersons)
-				organizations.GET("/:id/primary-contact", personHandler.GetPrimaryContact)
+				parties.POST("/:id/roles", infra_middleware.RequireRole("admin", "commercial"), partyRoleHandler.AddRole)
+				parties.DELETE("/:id/roles/:role", infra_middleware.RequireRole("admin", "commercial"), partyRoleHandler.RemoveRole)
 
-				// Address operations
-				organizations.POST("/:id/addresses", infra_middleware.RequireRole("admin", "commercial"), addressHandler.AddAddress)
-				organizations.GET("/:id/addresses", addressHandler.ListAddresses)
+				parties.POST("/:id/relationships", infra_middleware.RequireRole("admin", "commercial"), partyRelationshipHandler.AddRelationship)
+				parties.GET("/:id/relationships", partyRelationshipHandler.ListRelationships)
+				parties.DELETE("/:id/relationships/:relationship_id", infra_middleware.RequireRole("admin", "commercial"), partyRelationshipHandler.RemoveRelationship)
+
+				parties.POST("/:id/contact-details", infra_middleware.RequireRole("admin", "commercial"), contactDetailsHandler.AddContactDetails)
+				parties.GET("/:id/contact-details", contactDetailsHandler.ListContactDetails)
+				parties.PUT("/:id/contact-details/:contact_id", infra_middleware.RequireRole("admin", "commercial"), contactDetailsHandler.UpdateContactDetails)
+				parties.DELETE("/:id/contact-details/:contact_id", infra_middleware.RequireRole("admin", "commercial"), contactDetailsHandler.RemoveContactDetails)
+
+				parties.POST("/:id/addresses", infra_middleware.RequireRole("admin", "commercial"), partyAddressHandler.AddAddress)
+				parties.GET("/:id/addresses", partyAddressHandler.ListAddresses)
+
+				// New PartyServiceConfiguration routes
+				parties.POST("/:partyId/service-configurations", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreatePartyServiceConfiguration)
+				parties.GET("/:partyId/service-configurations", productHandler.ListPartyServiceConfigurationsByPartyID)
+				parties.GET("/:partyId/service-configurations/:id", productHandler.GetPartyServiceConfigurationByID)
+				parties.PUT("/:partyId/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdatePartyServiceConfiguration)
+				parties.DELETE("/:partyId/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.DeletePartyServiceConfiguration)
 			}
 
-			persons := protected.Group("/persons")
+			products := protected.Group("/products")
 			{
-				persons.GET("/:id", personHandler.GetPerson)
+				products.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateProduct)
+				products.GET("", productHandler.ListProducts) // New
+				products.GET("/:id", productHandler.GetProductByID) // New
+				products.GET("/:id/calculated-option-sets", productHandler.GetCalculatedOptionSetsForProduct) // New
+				products.POST("/:id/groups", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddGroupToProduct)
+				products.POST("/:id/attributes", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddDirectAttributeToProduct)
+				products.PATCH("/:id/sku", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductSKU)
+
+				// Product Variant routes nested under product
+				products.POST("/:productId/variants/generate", infra_middleware.RequireRole("admin", "commercial"), productHandler.GenerateProductVariants) // New
+				products.POST("/:productId/variants/find-or-create", infra_middleware.RequireRole("admin", "commercial"), productHandler.FindOrCreateProductVariant) // New
+				products.GET("/:productId/variants", productHandler.ListProductVariantsByProductID) // New
 			}
+
+			// New: Attributes (ProductOptionSet) routes
+			attributes := protected.Group("/attributes")
+			{
+				attributes.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateAttribute) // New
+				attributes.GET("", productHandler.ListAttributes) // New
+				attributes.GET("/:id", productHandler.GetAttributeByID) // New
+				attributes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateAttribute) // New
+			}
+
+			// New: Top-level Product Variant routes
+			variants := protected.Group("/variants")
+			{
+				variants.GET("/:id", productHandler.GetProductVariantByID) // New
+				variants.GET("", productHandler.GetProductVariantBySKU) // New (using query param sku)
+				variants.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductVariant) // New
+			}
+
 		}
 	}
 	// =========================================================================

@@ -3,9 +3,9 @@ import LoginPage from '@/pages.deprecated/auth/LoginPage.vue'
 import DashboardPage from '@/pages.deprecated/DashboardPage.vue'
 import NotFoundPage from '@/pages.deprecated/NotFoundPage.vue'
 import StyleGuide from '@/components/StyleGuide.vue'
-import OrganizationsList from '@/pages/organizations/List.vue'
-import OrganizationsCreate from '@/pages/organizations/Create.vue'
-import OrganizationsDetail from '@/pages/organizations/Detail.vue'
+import PartiesList from '@/pages/parties/List.vue'
+import PartiesCreate from '@/pages/parties/Create.vue'
+import PartiesDetail from '@/pages/parties/Detail.vue'
 import UsersManagement from '@/pages/admin/UsersManagement.vue'
 import { setupAuthGuards } from './guards'
 
@@ -56,30 +56,30 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/organizations',
-    name: 'Organizations',
-    component: OrganizationsList,
+    path: '/parties',
+    name: 'Parties',
+    component: PartiesList,
     meta: {
       requiresAuth: true,
-      title: 'Organizations - TramaTex'
+      title: 'Entidades - TramaTex'
     }
   },
   {
-    path: '/organizations/new',
-    name: 'CreateOrganization',
-    component: OrganizationsCreate,
+    path: '/parties/new',
+    name: 'CreateParty',
+    component: PartiesCreate,
     meta: {
       requiresAuth: true,
-      title: 'Create Organization - TramaTex'
+      title: 'Crear Entidad - TramaTex'
     }
   },
   {
-    path: '/organizations/:id',
-    name: 'OrganizationDetail',
-    component: OrganizationsDetail,
+    path: '/parties/:id',
+    name: 'PartyDetail',
+    component: PartiesDetail,
     meta: {
       requiresAuth: true,
-      title: 'Organization Details - TramaTex'
+      title: 'Detalle de Entidad - TramaTex'
     }
   },
   {
@@ -90,6 +90,15 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresAdmin: true,
       title: 'Usuarios - TramaTex'
+    }
+  },
+  {
+    path: '/catalogos',
+    name: 'Catalogos',
+    component: () => import('@/pages/CatalogosPage.vue'),
+    meta: {
+      requiresAuth: true,
+      title: 'Catálogos - TramaTex'
     }
   },
   {

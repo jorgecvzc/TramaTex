@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "architecture/adrs/ADR-012-arquitectura-modulo-party.md",
+                "file": "modules/product/use-cases.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ADR-012-arquitectura-modulo-party"
+              "title": "use-cases"
             }
           }
         ]
@@ -182,6 +182,22 @@
   },
   "active": "ea0a1ba2cd19a561",
   "lastOpenFiles": [
+    "modules/product/domain-model.md",
+    "modules/product/use-cases.md",
+    "modules/product/api-contracts.md",
+    "modules/product/diagrams/detailed-domain-models.md",
+    "log/sprints/sprint-05/01-análisis-y-diseño-módulo-party.md",
+    "log/sprints/sprint-05/02-refactorizacion-implementacion-modulo-party.md",
+    "log/sprints/sprint-06/sprint-06-summary.md",
+    "log/sprints/sprint-06/01-product-domain-definition.md",
+    "log/sprints/sprint-06/02-product-api-contracts-definition.md",
+    "Untitled.canvas",
+    "log/sprints/sprint-06/02-definicion-contratos-api-producto.md",
+    "tmp/product_domain_model_v2_proposal.md",
+    "tmp",
+    "architecture/adrs/ADR-012-arquitectura-modulo-party.md",
+    "log/sprints/sprint-04/sprint-04-summary.md",
+    "log/sprints/sprint-04/01-consolidacion-modulo-iam.md",
     "2_architecture/security-overview.md",
     "2_architecture/README.md",
     "2_architecture/glossary.md",
@@ -195,28 +211,13 @@
     "guides/developer/frontend/login-interface-visual.md",
     "guides/developer/github-setup.md",
     "guides/developer/frontend",
-    "guides/developer/ci-cd.md",
     "guides/developer/backend",
     "guides/developer",
-    "guides/01-ssh-keys-setup.md",
     "guides",
-    "4_guides/developer/frontend/improved-files-notes.md",
-    "4_guides/developer/frontend/login-interface-visual.md",
-    "4_guides/developer/backend/README.md",
-    "4_guides/developer/_GUIDE_TEMPLATE.md",
-    "4_guides/developer/github-setup.md",
     "4_guides/developer/frontend",
-    "4_guides/developer/ci-cd.md",
     "4_guides/developer/backend",
     "4_guides/developer",
-    "1_project/technical-debt.md",
-    "1_project/README.md",
-    "1_project/project-handbook.md",
-    "1_project/project-status.md",
-    "project/01-project-charter.md",
-    "archive/milestones/stabilization-report-2026-01-17.md",
     "3_modules/modules/sales",
-    "3_modules/modules/product",
-    "3_modules/modules/pricing"
+    "3_modules/modules/product"
   ]
 }

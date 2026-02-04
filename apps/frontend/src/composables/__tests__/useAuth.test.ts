@@ -43,6 +43,7 @@ describe('useAuth composable', () => {
 
   beforeEach(() => {
     setActivePinia(createPinia())
+    localStorage.clear()
     vi.clearAllMocks()
   })
 

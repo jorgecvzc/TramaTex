@@ -1,78 +1,93 @@
 # Diagrama de Dominio - Módulo Party
 
-**Versión:** 2.0
-**Fecha:** 2026-02-01
-**Autor:** Gemini
-**Propósito:** Visualizar las entidades, value objects y sus relaciones dentro del Bounded Context de "Party", de acuerdo con la implementación actual.
+**Versión:** 1.0
+**Fecha:** 2026-02-03
+**Propósito:** Visualizar las entidades, value objects y sus relaciones dentro del Bounded Context de Party, alineado con ADR-012 y la implementación actual.
 
 ---
 
 ## Diagrama de Clases (UML)
 
-Este diagrama muestra las clases principales del dominio `Party` y cómo se relacionan. El modelo se centra en el agregado `Organization`, que gestiona las entidades `Person` y los value objects `Address`.
+El agregado principal es `Party`, que puede contener un perfil de persona, de organización o ambos. Además gestiona roles, relaciones y contactos de organización.
 
 ```mermaid
 classDiagram
     direction TB
 
-    class Organization {
+    class Party {
         <<Aggregate Root>>
-        -id: OrganizationID
-        -name: string
-        -role: OrganizationRole
-        -status: OrganizationStatus
-        -taxID: TaxID
-        -website: string
-        -notes: string
-        -persons: []*Person
-        -addresses: []*Address
-        +NewOrganization() Organization
-        +UpdateName(name, modifiedBy) error
+        -id: PartyID
+        -status: PartyStatus
+        -personProfile: PersonProfile
+        -organizationProfile: OrganizationProfile
+        -roles: []PartyRole
+        -relationships: []PartyRelationship
         +Activate(modifiedBy) error
         +Deactivate(modifiedBy) error
-        +AddPerson(person) error
-        +AddAddress(address) error
+        +AddRole(role) error
+        +RemoveRole(roleType) error
+        +AddRelationship(rel) error
     }
 
-    class Person {
-        <<Entity>>
-        -id: PersonID
-        -organizationID: OrganizationID
+    class PersonProfile {
         -firstName: string
         -lastName: string
-        -email: Email
+    }
+
+    class OrganizationProfile {
+        -name: string
+        -taxID: TaxID
+        -website: string
+        -contacts: []ContactDetails
+        +AddContact(details) error
+    }
+
+    class ContactDetails {
+        -id: ContactDetailsID
+        -typeDescription: string
         -phone: Phone
-        -jobTitle: string
-        -isPrimaryContact: bool
+        -email: Email
+        -relatedPartyID: PartyID
     }
 
-    class Address {
-        <<Value Object>>
-        -street: string
-        -city: string
-        -province: string
-        -postalCode: string
-        -country: string
+    class PartyRole {
+        -typeValue: PartyRoleType
     }
 
-    class OrganizationRole {
-        <<Enumeration>>
-        CLIENT
-        SUPPLIER
-        BOTH
+    class PartyRelationship {
+        -id: PartyRelationshipID
+        -fromID: PartyID
+        -toID: PartyID
+        -typeValue: RelationshipType
     }
 
-    class OrganizationStatus {
+    class PartyStatus {
         <<Enumeration>>
         ACTIVE
         INACTIVE
-        SUSPENDED
     }
 
-    Organization "1" -- "0..*" Person : contains
-    Organization "1" -- "0..*" Address : has
-    Organization --o OrganizationRole : uses
-    Organization --o OrganizationStatus : uses
+    class PartyRoleType {
+        <<Enumeration>>
+        CLIENT
+        SUPPLIER
+        EMPLOYEE
+    }
+
+    class RelationshipType {
+        <<Enumeration>>
+        IS_EMPLOYEE_OF
+        IS_SUBSIDIARY_OF
+    }
+
+    Party "1" o-- "0..1" PersonProfile : has
+    Party "1" o-- "0..1" OrganizationProfile : has
+    OrganizationProfile "1" o-- "0..*" ContactDetails : contains
+    Party "1" o-- "0..*" PartyRole : roles
+    Party "1" o-- "0..*" PartyRelationship : relationships
+    Party --o PartyStatus : uses
+    PartyRole --o PartyRoleType : uses
+    PartyRelationship --o RelationshipType : uses
 
 ```
 
@@ -80,17 +95,13 @@ classDiagram
 
 ## Descripción del Modelo
 
-1.  **Organization (Raíz del Agregado):** Es la entidad central que representa a un cliente, un proveedor o ambos. Como raíz del agregado, gestiona el ciclo de vida y la consistencia de las entidades `Person` y los value objects `Address` que le pertenecen.
+1. **Party (Raíz del Agregado):** Entidad central que representa una persona, una organización o ambas. Garantiza la consistencia de perfiles, roles y relaciones.
+2. **PersonProfile:** Datos personales básicos (nombre y apellidos).
+3. **OrganizationProfile:** Datos corporativos básicos y contactos asociados.
+4. **ContactDetails:** Detalle de contacto con email/teléfono, opcionalmente vinculado a otra Party.
+5. **Roles y Relaciones:** Modelan el rol que cumple la Party y sus vínculos con otras Parties.
 
-2.  **Person (Entidad):** Representa a una persona de contacto dentro de una `Organization`. Es una entidad porque tiene una identidad única (`PersonID`) y su ciclo de vida está ligado al de la `Organization`.
-
-3.  **Address (Value Object):** Representa una dirección física. Se modela como un `Value Object` porque carece de identidad propia y se define por el valor de sus atributos. Dos direcciones son iguales si todos sus campos son idénticos.
-
-4.  **OrganizationRole (Enumeración):** Define el rol que desempeña una organización en el sistema (Cliente, Proveedor, o Ambos).
-
-5.  **OrganizationStatus (Enumeración):** Define el estado actual de una organización (Activo, Inactivo, etc.).
-
-### Relaciones Clave:
--   Una **Organization** contiene cero o más entidades **Person**. La `Organization` es responsable de añadir o eliminar personas.
--   Una **Organization** tiene cero o más `Value Objects` **Address**.
--   La consistencia del agregado se mantiene a través de los métodos de la `Organization` (ej. `AddPerson`, `AddAddress`).
+### Relaciones Clave
+- Un `Party` puede tener 0 o 1 `PersonProfile` y 0 o 1 `OrganizationProfile`.
+- Un `OrganizationProfile` puede tener múltiples `ContactDetails`.
+- Un `Party` puede tener múltiples roles y relaciones tipadas.

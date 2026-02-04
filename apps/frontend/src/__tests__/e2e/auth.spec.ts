@@ -1,7 +1,12 @@
 import { test, expect, Page } from '@playwright/test'
 
 const BASE_URL = 'http://localhost:5173'
-const API_URL = 'http://localhost:8080/api'
+
+const createMockJwt = (payload: Record<string, unknown>) => {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64')
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64')
+  return `${header}.${body}.signature`
+}
 
 test.describe('Authentication E2E Tests', () => {
   let page: Page
@@ -9,6 +14,49 @@ test.describe('Authentication E2E Tests', () => {
   test.beforeEach(async ({ browser }) => {
     const context = await browser.newContext()
     page = await context.newPage()
+
+    await page.route('**/auth/login', async route => {
+      const body = (route.request().postDataJSON?.() as { email?: string; password?: string }) || {}
+      const { email, password } = body
+
+      if ((email === 'test@example.com' && password === 'TestPassword123!') ||
+          (email === 'user@example.com' && password === 'SecurePassword123!')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            access_token: 'jwt-access-token',
+            refresh_token: 'jwt-refresh-token',
+            expires_in: 3600,
+            user: { id: '123', email }
+          })
+        })
+        return
+      }
+
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ message: 'Invalid credentials' })
+      })
+    })
+
+    await page.route('**/auth/refresh', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: 'new-access-token',
+          refresh_token: 'new-refresh-token',
+          expires_in: 3600
+        })
+      })
+    })
+
+    await page.route('**/auth/logout', async route => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    })
+
     await page.goto(`${BASE_URL}/login`)
   })
 
@@ -17,30 +65,33 @@ test.describe('Authentication E2E Tests', () => {
     await expect(page).toHaveTitle(/.*Login.*/)
     
     // Wait for email input
-    const emailInput = page.locator('input[type="email"]')
-    const passwordInput = page.locator('input[type="password"]')
+    const emailInput = page.locator('#email')
+    const passwordInput = page.locator('#password')
     
     // Fill form
     await emailInput.fill('test@example.com')
     await passwordInput.fill('TestPassword123!')
     
     // Submit login form
-    const loginButton = page.locator('button:has-text("Login")')
-    
-    // Wait for API call to complete
-    await page.waitForResponse(response => 
-      response.url().includes('/api/auth/login') && response.status() === 200
-    )
+    const loginButton = page.locator('button[type="submit"]')
+
+    await Promise.all([
+      page.waitForResponse(response =>
+        response.url().includes('/auth/login') && response.status() === 200
+      ),
+      loginButton.click()
+    ])
     
     // Should redirect to dashboard
     await expect(page).toHaveURL(/.*dashboard.*/)
     
     // Verify user is logged in (check for user info display)
-    const userEmail = page.locator('text=test@example.com')
-    await expect(userEmail).toBeVisible()
+    const userEmail = page.locator('h1')
+    await expect(userEmail).toContainText('test@example.com')
     
     // Click logout button
-    const logoutButton = page.locator('button:has-text("Logout")')
+    await page.locator('.user-menu-toggle').click()
+    const logoutButton = page.locator('button:has-text("Cerrar Sesión")')
     await logoutButton.click()
     
     // Should redirect back to login
@@ -49,20 +100,26 @@ test.describe('Authentication E2E Tests', () => {
 
   test('Session persistence: Stay logged in after page reload', async () => {
     // Pre-login: set tokens in localStorage
-    await page.evaluate(() => {
-      localStorage.setItem('tramatex_auth_token', 'valid-jwt-token')
+    const token = createMockJwt({
+      sub: '123',
+      email: 'persistent@example.com',
+      exp: Math.floor(Date.now() / 1000) + 3600
+    })
+
+    await page.evaluate((value) => {
+      localStorage.setItem('tramatex_auth_token', value)
       localStorage.setItem('tramatex_refresh_token', 'refresh-jwt-token')
       localStorage.setItem('tramatex_user', JSON.stringify({
         id: '123',
         email: 'persistent@example.com'
       }))
-    })
+    }, token)
     
     // Navigate to dashboard
     await page.goto(`${BASE_URL}/dashboard`)
     
     // Verify logged in
-    await expect(page.locator('text=persistent@example.com')).toBeVisible()
+    await expect(page.locator('h1')).toContainText('persistent@example.com')
     
     // Reload page
     await page.reload()
@@ -71,7 +128,7 @@ test.describe('Authentication E2E Tests', () => {
     await expect(page).toHaveURL(/.*dashboard.*/)
     
     // Verify still logged in
-    await expect(page.locator('text=persistent@example.com')).toBeVisible()
+    await expect(page.locator('h1')).toContainText('persistent@example.com')
   })
 
   test('Protected route redirect: Non-authenticated user redirected to login', async () => {
@@ -107,7 +164,7 @@ test.describe('Authentication E2E Tests', () => {
     await page.goto(`${BASE_URL}/dashboard`)
     
     // Should be logged in initially
-    await expect(page.locator('text=test@example.com')).toBeVisible({ timeout: 5000 }).catch(() => {
+    await expect(page.locator('h1')).toContainText('test@example.com', { timeout: 5000 }).catch(() => {
       // If element not visible, that's OK - app might auto-refresh token
     })
     
@@ -120,16 +177,11 @@ test.describe('Authentication E2E Tests', () => {
 
   test('Login form validation: Submit with empty fields shows error', async () => {
     // Try to submit empty form
-    const loginButton = page.locator('button:has-text("Login")')
-    await loginButton.click()
-    
-    // Should show validation errors
-    const emailError = page.locator('text=/email|required/i')
-    const passwordError = page.locator('text=/password|required/i')
-    
-    await expect(emailError).toBeVisible({ timeout: 2000 }).catch(() => {
-      // Validation might be HTML5 validation
-    })
+    const loginButton = page.locator('button[type="submit"]')
+    await expect(loginButton).toBeDisabled()
+
+    // Should remain on login page without API call
+    await expect(page).toHaveURL(/.*login.*/)
     
     // Should NOT make API call
     let apiCalled = false
@@ -146,20 +198,20 @@ test.describe('Authentication E2E Tests', () => {
 
   test('Invalid credentials show error message', async () => {
     // Fill form with wrong credentials
-    await page.locator('input[type="email"]').fill('wrong@example.com')
-    await page.locator('input[type="password"]').fill('WrongPassword123!')
+    await page.locator('#email').fill('wrong@example.com')
+    await page.locator('#password').fill('WrongPassword123!')
     
     // Submit
-    const loginButton = page.locator('button:has-text("Login")')
-    await loginButton.click()
-    
-    // Wait for API response with error
-    const response = await page.waitForResponse(response =>
-      response.url().includes('/api/auth/login') && response.status() === 401
-    )
+    const loginButton = page.locator('button[type="submit"]')
+    await Promise.all([
+      page.waitForResponse(response =>
+        response.url().includes('/auth/login') && response.status() === 401
+      ),
+      loginButton.click()
+    ])
     
     // Should show error message on page
-    const errorMessage = page.locator('text=/invalid|incorrect|failed/i')
+    const errorMessage = page.locator('text=/Credenciales inválidas/i')
     await expect(errorMessage).toBeVisible({ timeout: 2000 })
     
     // Should still be on login page
@@ -168,28 +220,39 @@ test.describe('Authentication E2E Tests', () => {
 
   test('Logout clears all session data', async () => {
     // Pre-login
-    await page.evaluate(() => {
-      localStorage.setItem('tramatex_auth_token', 'test-token')
-      localStorage.setItem('tramatex_user', JSON.stringify({ id: '123', email: 'test@example.com' }))
+    const token = createMockJwt({
+      sub: '123',
+      email: 'test@example.com',
+      exp: Math.floor(Date.now() / 1000) + 3600
     })
+
+    await page.evaluate((value) => {
+      localStorage.setItem('tramatex_auth_token', value)
+      localStorage.setItem('tramatex_user', JSON.stringify({ id: '123', email: 'test@example.com' }))
+    }, token)
     
     // Navigate to dashboard
     await page.goto(`${BASE_URL}/dashboard`)
     
     // Find and click logout
-    const logoutButton = page.locator('button:has-text("Logout")')
+    await page.locator('.user-menu-toggle').click()
+    const logoutButton = page.locator('button:has-text("Cerrar Sesión")')
     await logoutButton.click()
-    
+
+    // Should be on login page
+    await expect(page).toHaveURL(/.*login.*/)
+
     // Verify localStorage cleared
+    await page.waitForFunction(() => {
+      return !localStorage.getItem('tramatex_auth_token') && !localStorage.getItem('tramatex_user')
+    })
+
     const cleared = await page.evaluate(() => ({
       accessToken: localStorage.getItem('tramatex_auth_token'),
       user: localStorage.getItem('tramatex_user')
     }))
-    
+
     expect(cleared.accessToken).toBeNull()
     expect(cleared.user).toBeNull()
-    
-    // Should be on login page
-    await expect(page).toHaveURL(/.*login.*/)
   })
 })

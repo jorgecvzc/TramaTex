@@ -167,7 +167,7 @@ Anotaciones sobre el mismo:
 
 ### Fase 5: Documentación
 
-- [ ] Completar esta tarea en `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md`
+- [ ] Completar esta tarea en `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-[nombre-descriptivo-kebab-case].md`
 - [ ] Actualizar `docs/log/project-status.md`
 - [ ] Commits descriptivos (see section below)
    - [ ] Si es decisión arquitectónica → crear/actualizar ADR (docs/architecture/adrs/)
@@ -206,8 +206,8 @@ Types: feat (feature), fix (bug fix), refactor (restructuring), docs (documentat
 
 | Archivo | Tipo | Descripción |
 |---------|------|------------|
-| `apps/[NOMBRE_APP_BACKEND]/internal/[capa]/[modulo]/[archivo.go]` | NEW | Tarificación domain service |
-| `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-descripcion.md` | NEW | Documentación de esta tarea |
+| `apps/your-backend-app/internal/your-layer/your-module/your-file.go` | NEW | Your service description |
+| `docs/log/sprints/[ID_SPRINT]/[ID_TAREA]-[nombre-descriptivo-kebab-case].md` | NEW | Documentación de esta tarea |
 | `docs/log/project-status.md` | MODIFIED | Updated progress metrics |
 
 ### Métricas de Cambio

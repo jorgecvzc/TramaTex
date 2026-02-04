@@ -1,9 +1,9 @@
 <template>
   <div class="address-manager">
     <div class="manager-header">
-      <h3>Addresses</h3>
+      <h3>Direcciones</h3>
       <button @click="showForm = !showForm" class="btn btn-primary">
-        {{ showForm ? '✕ Close' : '+ Add Address' }}
+        {{ showForm ? '✕ Cerrar' : '+ Agregar dirección' }}
       </button>
     </div>
 
@@ -11,34 +11,34 @@
     <div v-if="showForm" class="form-section">
       <form @submit.prevent="submitForm">
         <div class="form-group">
-          <label for="street">Street Address *</label>
+          <label for="street">Calle y número *</label>
           <input
             id="street"
             v-model="form.street"
             type="text"
-            placeholder="Street and house number"
+            placeholder="Calle y número"
             required
           />
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="city">City *</label>
+            <label for="city">Ciudad *</label>
             <input
               id="city"
               v-model="form.city"
               type="text"
-              placeholder="City"
+              placeholder="Ciudad"
               required
             />
           </div>
           <div class="form-group">
-            <label for="province">Province/State *</label>
+            <label for="province">Provincia/Estado *</label>
             <input
               id="province"
               v-model="form.province"
               type="text"
-              placeholder="Province"
+              placeholder="Provincia"
               required
             />
           </div>
@@ -46,7 +46,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label for="postalCode">Postal Code *</label>
+            <label for="postalCode">Código postal *</label>
             <input
               id="postalCode"
               v-model="form.postalCode"
@@ -56,22 +56,22 @@
             />
           </div>
           <div class="form-group">
-            <label for="country">Country</label>
+            <label for="country">País</label>
             <input
               id="country"
               v-model="form.country"
               type="text"
-              placeholder="Spain"
+              placeholder="España"
             />
           </div>
         </div>
 
         <div class="form-actions">
           <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
-            {{ isSubmitting ? 'Adding...' : 'Add Address' }}
+            {{ isSubmitting ? 'Agregando...' : 'Agregar dirección' }}
           </button>
           <button type="button" @click="resetForm" class="btn btn-secondary">
-            Cancel
+            Cancelar
           </button>
         </div>
       </form>
@@ -91,7 +91,7 @@
             <p v-if="address.country" class="country">🌍 {{ address.country }}</p>
           </div>
           <div class="address-badges">
-            <span v-if="address.is_primary" class="badge primary">Primary</span>
+            <span v-if="address.is_primary" class="badge primary">Principal</span>
             <span class="badge date">{{ formatDate(address.created_at) }}</span>
           </div>
         </div>
@@ -100,13 +100,13 @@
 
     <!-- Empty State -->
     <div v-if="addresses.length === 0 && !showForm" class="empty-state">
-      <p>No addresses yet. Add your first address to get started.</p>
+      <p>No hay direcciones aún. Agrega la primera para empezar.</p>
     </div>
 
     <!-- Loading State -->
     <div v-if="isLoading" class="loading">
       <div class="spinner"></div>
-      <p>Loading addresses...</p>
+      <p>Cargando direcciones...</p>
     </div>
   </div>
 </template>
@@ -116,7 +116,7 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({
-  organizationId: {
+  partyId: {
     type: String,
     required: true,
   },
@@ -140,21 +140,21 @@ onMounted(() => {
   fetchAddresses();
 });
 
-watch(() => props.organizationId, () => {
-  if (props.organizationId) {
+watch(() => props.partyId, () => {
+  if (props.partyId) {
     fetchAddresses();
   }
 });
 
 async function fetchAddresses() {
-  if (!props.organizationId) return;
+  if (!props.partyId) return;
 
   isLoading.value = true;
   try {
-    const response = await partyApi.listAddresses(props.organizationId);
+    const response = await partyApi.listPartyAddresses(props.partyId);
     addresses.value = response.data || [];
   } catch (error) {
-    formError.value = error.message || 'Failed to load addresses';
+    formError.value = error?.message || 'No se pudieron cargar las direcciones';
   } finally {
     isLoading.value = false;
   }
@@ -162,7 +162,7 @@ async function fetchAddresses() {
 
 async function submitForm() {
   if (!form.street || !form.city || !form.province || !form.postalCode) {
-    formError.value = 'Street, city, province, and postal code are required';
+    formError.value = 'Calle, ciudad, provincia y código postal son obligatorios';
     return;
   }
 
@@ -170,7 +170,7 @@ async function submitForm() {
   formError.value = '';
 
   try {
-    await partyApi.addAddress(props.organizationId, {
+    await partyApi.addPartyAddress(props.partyId, {
       id: `addr-${Date.now()}`,
       street: form.street,
       city: form.city,
@@ -182,7 +182,7 @@ async function submitForm() {
     resetForm();
     await fetchAddresses();
   } catch (error) {
-    formError.value = error.message || 'Failed to add address';
+    formError.value = error?.message || 'No se pudo agregar la dirección';
   } finally {
     isSubmitting.value = false;
   }
@@ -211,9 +211,10 @@ function formatDate(dateString) {
 <style scoped>
 .address-manager {
   padding: 1.5rem;
-  background: var(--color-surface);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .manager-header {
@@ -224,16 +225,16 @@ function formatDate(dateString) {
 }
 
 .manager-header h3 {
-  color: var(--color-text-primary);
+  color: #1b3a6b;
   margin: 0;
 }
 
 .form-section {
-  background: rgba(230, 184, 0, 0.05);
+  background: #f8fafc;
   padding: 1.5rem;
-  border-radius: 6px;
+  border-radius: 10px;
   margin-bottom: 1.5rem;
-  border: 1px solid rgba(230, 184, 0, 0.2);
+  border: 1px solid #e2e8f0;
 }
 
 .form-row {
@@ -250,22 +251,27 @@ function formatDate(dateString) {
 }
 
 .form-group label {
-  font-weight: 500;
-  color: var(--color-text-primary);
-  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 0.4rem;
 }
 
 .form-group input {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1e293b;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
+  border-color: #002395;
+  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
 }
 
 .form-actions {
@@ -275,38 +281,38 @@ function formatDate(dateString) {
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
-  color: var(--color-text-on-primary);
+  background: #e6b800;
+  color: #1e293b;
+  font-weight: 700;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-color-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(230, 184, 0, 0.3);
+  background: #d6aa00;
 }
 
 .btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-text-primary);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
 }
 
 .error-message {
-  color: var(--color-error);
-  background-color: rgba(244, 67, 54, 0.1);
-  padding: 0.75rem;
-  border-radius: 4px;
+  color: #991b1b;
+  background-color: #fee2e2;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   margin-top: 1rem;
-  border-left: 3px solid var(--color-error);
+  border: 1px solid #ef4444;
 }
 
 .addresses-list {
@@ -316,15 +322,15 @@ function formatDate(dateString) {
 
 .address-card {
   padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-background);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
   transition: all 0.2s ease;
 }
 
 .address-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(230, 184, 0, 0.1);
+  border-color: #002395;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .address-header {
@@ -334,12 +340,12 @@ function formatDate(dateString) {
 }
 
 .address-info h4 {
-  color: var(--color-text-primary);
+  color: #1e293b;
   margin: 0 0 0.5rem 0;
 }
 
 .address-info p {
-  color: var(--color-text-secondary);
+  color: #64748b;
   margin: 0.25rem 0;
   font-size: 0.9rem;
 }
@@ -360,18 +366,18 @@ function formatDate(dateString) {
 
 .badge.primary {
   background-color: rgba(230, 184, 0, 0.2);
-  color: var(--primary-color);
+  color: #1e293b;
 }
 
 .badge.date {
   background-color: rgba(0, 0, 0, 0.05);
-  color: var(--color-text-secondary);
+  color: #64748b;
 }
 
 .empty-state {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--color-text-secondary);
+  color: #64748b;
 }
 
 .loading {

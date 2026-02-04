@@ -1,8 +1,8 @@
 # ADR-XXX – [Título de la decisión]
 
-**Fecha:** {{FECHA}}  
+**Fecha:** YYYY-MM-DD  
 **Estado:** {{Propuesto / Aceptado / Rechazado / Obsoleto}}  
-**Autores:** {{Nombre(s) del autor o autores}}  
+**Autores:** [Tu Nombre], Gemini  
 
 ---
 

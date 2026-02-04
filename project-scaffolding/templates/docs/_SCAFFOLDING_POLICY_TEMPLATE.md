@@ -59,20 +59,20 @@
 
 | Documentación | Ubicación | Comportamiento |
 |---|---|---|
-| Checkpoint de sesión | **NEXT_SESSION.md (raíz)** | **VOLÁTIL** - Se sobrescribe cada sesión, NO acumula historia |
+| Log de sesiones | **NEXT_SESSION.md (raíz)** | **PERSISTENTE** - Log de múltiples sesiones de trabajo activas o pausadas |
 | Histórico de cambios | **docs/log/project-status.md** | Acumulativo - hitos y progreso |
-| Changelog | **TramaTex raíz** (NO init-project/) | Opcional |
-| Guía de estándares | **Dentro de bootstrap.yaml** o **TramaTex raíz** | 1 |
-| Resumen ejecutivo | **TramaTex raíz** (NO init-project/) | Opcional |
+| Changelog | **PROJECT_NAME raíz** (NO init-project/) | Opcional |
+| Guía de estándares | **Dentro de bootstrap.yaml** o **PROJECT_NAME raíz** | 1 |
+| Resumen ejecutivo | **PROJECT_NAME raíz** (NO init-project/) | Opcional |
 | Arquitectura | **bootstrap.yaml** o **templates/** | 1 |
 | Templates | **project-scaffolding/templates/** | ✓ |
 | Configuración | **bootstrap.yaml** | 1 |
 
 **REGLA CRÍTICA: NEXT_SESSION.md**
-- ❌ NO es un log histórico
-- ✅ Se sobrescribe completamente cada sesión
-- ✅ Vacío = no hay trabajo pendiente
-- ✅ Lo completado → eliminar o mover a project-status.md antes de sobrescribir
+- ✅ ES un log de sesiones persistente
+- ❌ NO se sobrescribe automáticamente
+- ✅ Contiene múltiples sesiones activas/pausadas
+- ✅ Lo completado → se marca como completado y se archiva o remueve manualmente
 
 ---
 
@@ -104,7 +104,7 @@ Yo (MALO) hice:
   ✨ Crear BOOTSTRAP_UPDATE_v1.1.md
   ✨ Crear BOOTSTRAP_COMPLETED.md
   ✨ Crear README_INIT_PROJECT.md
-  ✨ Crear 4 archivos más en TramaTex raíz
+  ✨ Crear 4 archivos más en PROJECT_NAME raíz
   = 8 archivos nuevos ❌❌❌
 
 Debería haber hecho:
@@ -131,7 +131,7 @@ Debería haber hecho:
    - templates/ (intacto)
    - _INPUT_DOCS_HERE/ (intacto)
 
-3. ✅ Documentación va a TramaTex raíz (SOLO si usuario aprueba):
+3. ✅ Documentación va a PROJECT_NAME raíz (SOLO si usuario aprueba):
    - Máximo 1 archivo resumido
    - Si se crea más, PREGUNTAR primero
 
@@ -145,7 +145,7 @@ Debería haber hecho:
 applies_to: "TramaTex development only"
 
 # IMPLICADO: project-scaffolding/ es PARA FUTUROS PROYECTOS
-# NO es para documentación de TramaTex
+# NO es para documentación de PROJECT_NAME
 ```
 
 **Implicación:** project-scaffolding/ debe ser LIMPIO, MÍNIMO, REUTILIZABLE
@@ -195,7 +195,7 @@ De ahora en adelante:
 3. **Modifico bootstrap.yaml** si es lo requerido
 4. **PREGUNTO al usuario** si necesito crear documentación
 5. **Máximo 1 archivo adicional** en project-scaffolding/ (solo si necesario)
-6. Documentación adicional va a **TramaTex raíz o subfolders**, NO a **project-scaffolding/**
+6. Documentación adicional va a **PROJECT_NAME raíz o subfolders**, NO a **project-scaffolding/**
 
 ---
 
@@ -204,7 +204,7 @@ De ahora en adelante:
 ```
 project-scaffolding/ = Template para nuevos proyectos
                = LIMPIO, MÍNIMO, REUTILIZABLE
-               = NO es depósito de documentación TramaTex
+               = NO es depósito de documentación PROJECT_NAME
 ```
 
 ---

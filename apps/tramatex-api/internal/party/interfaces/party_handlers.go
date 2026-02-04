@@ -1,0 +1,517 @@
+package interfaces
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joran-cortez/tramatex/internal/party/application"
+)
+
+// PartyHandler handles party endpoints
+
+type PartyHandler struct {
+	createHandler       *application.CreatePartyHandler
+	updateHandler       *application.UpdatePartyHandler
+	changeStatusHandler *application.ChangePartyStatusHandler
+	getHandler          *application.GetPartyHandler
+	listHandler         *application.ListPartiesHandler
+}
+
+func NewPartyHandler(
+	createHandler *application.CreatePartyHandler,
+	updateHandler *application.UpdatePartyHandler,
+	changeStatusHandler *application.ChangePartyStatusHandler,
+	getHandler *application.GetPartyHandler,
+	listHandler *application.ListPartiesHandler,
+) *PartyHandler {
+	return &PartyHandler{
+		createHandler:       createHandler,
+		updateHandler:       updateHandler,
+		changeStatusHandler: changeStatusHandler,
+		getHandler:          getHandler,
+		listHandler:         listHandler,
+	}
+}
+
+// CreateParty handles POST /parties
+func (h *PartyHandler) CreateParty(c *gin.Context) {
+	var req CreatePartyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	cmd := &application.CreatePartyCommand{
+		ID:        req.ID,
+		Status:    req.Status,
+		Roles:     req.Roles,
+		CreatedBy: getUserIDFromContext(c),
+	}
+
+	if req.PersonProfile != nil {
+		cmd.PersonProfile = &application.PersonProfileInput{
+			FirstName: req.PersonProfile.FirstName,
+			LastName:  req.PersonProfile.LastName,
+		}
+	}
+
+	if req.OrganizationProfile != nil {
+		orgProfile := &application.OrganizationProfileInput{
+			Name:      req.OrganizationProfile.Name,
+			TaxID:     req.OrganizationProfile.TaxID,
+			TaxIDType: req.OrganizationProfile.TaxIDType,
+			Website:   req.OrganizationProfile.Website,
+			Contacts:  make([]application.ContactDetailsInput, 0),
+		}
+		for _, contact := range req.OrganizationProfile.Contacts {
+			orgProfile.Contacts = append(orgProfile.Contacts, application.ContactDetailsInput{
+				ID:              contact.ID,
+				TypeDescription: contact.TypeDescription,
+				Phone:           contact.Phone,
+				Email:           contact.Email,
+				RelatedPartyID:  contact.RelatedPartyID,
+			})
+		}
+		cmd.OrganizationProfile = orgProfile
+	}
+
+	party, err := h.createHandler.Handle(c.Request.Context(), cmd)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MapPartyToDTO(party))
+}
+
+// GetParty handles GET /parties/{id}
+func (h *PartyHandler) GetParty(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
+		return
+	}
+
+	party, err := h.getHandler.Handle(c.Request.Context(), &application.GetPartyQuery{ID: id})
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// ListParties handles GET /parties
+func (h *PartyHandler) ListParties(c *gin.Context) {
+	pageSize := 10
+	if ps := c.Query("page_size"); ps != "" {
+		if size, err := strconv.Atoi(ps); err == nil && size > 0 {
+			pageSize = size
+		}
+	}
+
+	pageNumber := 1
+	if pn := c.Query("page"); pn != "" {
+		if num, err := strconv.Atoi(pn); err == nil && num > 0 {
+			pageNumber = num
+		}
+	}
+
+	query := &application.ListPartiesQuery{
+		Status:     c.Query("status"),
+		Role:       c.Query("role"),
+		Type:       c.Query("type"),
+		Name:       c.Query("name"),
+		TaxID:      c.Query("tax_id"),
+		PageSize:   pageSize,
+		PageNumber: pageNumber,
+	}
+
+	parties, err := h.listHandler.Handle(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dtos := make([]*PartyDTO, len(parties))
+	for i, party := range parties {
+		dtos[i] = MapPartyToDTO(party)
+	}
+
+	response := ListResponse{
+		Data:       dtos,
+		PageNumber: pageNumber,
+		PageSize:   pageSize,
+		Total:      len(parties),
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateParty handles PUT /parties/{id}
+func (h *PartyHandler) UpdateParty(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
+		return
+	}
+
+	var req UpdatePartyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	cmd := &application.UpdatePartyCommand{
+		ID:         id,
+		Status:     req.Status,
+		ModifiedBy: getUserIDFromContext(c),
+	}
+
+	if req.PersonProfile != nil {
+		cmd.PersonProfile = &application.PersonProfileInput{
+			FirstName: req.PersonProfile.FirstName,
+			LastName:  req.PersonProfile.LastName,
+		}
+	}
+
+	if req.OrganizationProfile != nil {
+		cmd.OrganizationProfile = &application.OrganizationProfileInput{
+			Name:      req.OrganizationProfile.Name,
+			TaxID:     req.OrganizationProfile.TaxID,
+			TaxIDType: req.OrganizationProfile.TaxIDType,
+			Website:   req.OrganizationProfile.Website,
+		}
+	}
+
+	party, err := h.updateHandler.Handle(c.Request.Context(), cmd)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// ChangePartyStatus handles PATCH /parties/{id}/status
+func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
+		return
+	}
+
+	var req ChangePartyStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	cmd := &application.ChangePartyStatusCommand{
+		ID:         id,
+		Status:     req.Status,
+		ModifiedBy: getUserIDFromContext(c),
+	}
+
+	party, err := h.changeStatusHandler.Handle(c.Request.Context(), cmd)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// PartyRoleHandler handles role endpoints
+
+type PartyRoleHandler struct {
+	addHandler    *application.AddPartyRoleHandler
+	removeHandler *application.RemovePartyRoleHandler
+}
+
+func NewPartyRoleHandler(addHandler *application.AddPartyRoleHandler, removeHandler *application.RemovePartyRoleHandler) *PartyRoleHandler {
+	return &PartyRoleHandler{addHandler: addHandler, removeHandler: removeHandler}
+}
+
+// AddRole handles POST /parties/{id}/roles
+func (h *PartyRoleHandler) AddRole(c *gin.Context) {
+	id := c.Param("id")
+	var req AddPartyRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	party, err := h.addHandler.Handle(c.Request.Context(), &application.AddPartyRoleCommand{
+		ID:         id,
+		Role:       req.Role,
+		ModifiedBy: getUserIDFromContext(c),
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// RemoveRole handles DELETE /parties/{id}/roles/{role}
+func (h *PartyRoleHandler) RemoveRole(c *gin.Context) {
+	id := c.Param("id")
+	role := c.Param("role")
+
+	party, err := h.removeHandler.Handle(c.Request.Context(), &application.RemovePartyRoleCommand{
+		ID:         id,
+		Role:       role,
+		ModifiedBy: getUserIDFromContext(c),
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// PartyRelationshipHandler handles relationship endpoints
+
+type PartyRelationshipHandler struct {
+	addHandler    *application.AddPartyRelationshipHandler
+	listHandler   *application.ListPartyRelationshipsHandler
+	removeHandler *application.RemovePartyRelationshipHandler
+}
+
+func NewPartyRelationshipHandler(
+	addHandler *application.AddPartyRelationshipHandler,
+	listHandler *application.ListPartyRelationshipsHandler,
+	removeHandler *application.RemovePartyRelationshipHandler,
+) *PartyRelationshipHandler {
+	return &PartyRelationshipHandler{
+		addHandler:    addHandler,
+		listHandler:   listHandler,
+		removeHandler: removeHandler,
+	}
+}
+
+// AddRelationship handles POST /parties/{id}/relationships
+func (h *PartyRelationshipHandler) AddRelationship(c *gin.Context) {
+	id := c.Param("id")
+	var req CreateRelationshipRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	relationship, err := h.addHandler.Handle(c.Request.Context(), &application.AddPartyRelationshipCommand{
+		ID:             id,
+		RelationshipID: req.ID,
+		ToPartyID:      req.ToPartyID,
+		Type:           req.Type,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MapPartyRelationshipToDTO(relationship))
+}
+
+// ListRelationships handles GET /parties/{id}/relationships
+func (h *PartyRelationshipHandler) ListRelationships(c *gin.Context) {
+	id := c.Param("id")
+	relationships, err := h.listHandler.Handle(c.Request.Context(), &application.ListPartyRelationshipsQuery{PartyID: id})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dtos := make([]*PartyRelationshipDTO, len(relationships))
+	for i := range relationships {
+		rel := relationships[i]
+		dtos[i] = MapPartyRelationshipToDTO(&rel)
+	}
+
+	response := ListResponse{Data: dtos, Total: len(dtos)}
+	c.JSON(http.StatusOK, response)
+}
+
+// RemoveRelationship handles DELETE /parties/{id}/relationships/{relationship_id}
+func (h *PartyRelationshipHandler) RemoveRelationship(c *gin.Context) {
+	relID := c.Param("relationship_id")
+	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemovePartyRelationshipCommand{RelationshipID: relID}); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// ContactDetailsHandler handles contact detail endpoints
+
+type ContactDetailsHandler struct {
+	addHandler    *application.AddContactDetailsHandler
+	updateHandler *application.UpdateContactDetailsHandler
+	listHandler   *application.ListContactDetailsHandler
+	removeHandler *application.RemoveContactDetailsHandler
+}
+
+func NewContactDetailsHandler(
+	addHandler *application.AddContactDetailsHandler,
+	updateHandler *application.UpdateContactDetailsHandler,
+	listHandler *application.ListContactDetailsHandler,
+	removeHandler *application.RemoveContactDetailsHandler,
+) *ContactDetailsHandler {
+	return &ContactDetailsHandler{
+		addHandler:    addHandler,
+		updateHandler: updateHandler,
+		listHandler:   listHandler,
+		removeHandler: removeHandler,
+	}
+}
+
+// AddContactDetails handles POST /parties/{id}/contact-details
+func (h *ContactDetailsHandler) AddContactDetails(c *gin.Context) {
+	id := c.Param("id")
+	var req CreateContactDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	contact, err := h.addHandler.Handle(c.Request.Context(), &application.AddContactDetailsCommand{
+		PartyID:         id,
+		ContactID:       req.ID,
+		TypeDescription: req.TypeDescription,
+		Phone:           req.Phone,
+		Email:           req.Email,
+		RelatedPartyID:  req.RelatedPartyID,
+		ModifiedBy:      getUserIDFromContext(c),
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MapContactDetailsToDTO(contact))
+}
+
+// ListContactDetails handles GET /parties/{id}/contact-details
+func (h *ContactDetailsHandler) ListContactDetails(c *gin.Context) {
+	id := c.Param("id")
+	contacts, err := h.listHandler.Handle(c.Request.Context(), &application.ListContactDetailsQuery{PartyID: id})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dtos := make([]*ContactDetailsDTO, len(contacts))
+	for i, contact := range contacts {
+		dtos[i] = MapContactDetailsToDTO(contact)
+	}
+
+	response := ListResponse{Data: dtos, Total: len(dtos)}
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateContactDetails handles PUT /parties/{id}/contact-details/{contact_id}
+func (h *ContactDetailsHandler) UpdateContactDetails(c *gin.Context) {
+	partyID := c.Param("id")
+	contactID := c.Param("contact_id")
+
+	var req UpdateContactDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	contact, err := h.updateHandler.Handle(c.Request.Context(), &application.UpdateContactDetailsCommand{
+		PartyID:         partyID,
+		ContactID:       contactID,
+		TypeDescription: req.TypeDescription,
+		Phone:           req.Phone,
+		Email:           req.Email,
+		RelatedPartyID:  req.RelatedPartyID,
+		ModifiedBy:      getUserIDFromContext(c),
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapContactDetailsToDTO(contact))
+}
+
+// RemoveContactDetails handles DELETE /parties/{id}/contact-details/{contact_id}
+func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
+	partyID := c.Param("id")
+	contactID := c.Param("contact_id")
+
+	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemoveContactDetailsCommand{
+		PartyID:    partyID,
+		ContactID:  contactID,
+		ModifiedBy: getUserIDFromContext(c),
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// PartyAddressHandler handles party address endpoints
+
+type PartyAddressHandler struct {
+	addHandler  *application.AddPartyAddressHandler
+	listHandler *application.ListPartyAddressesHandler
+}
+
+func NewPartyAddressHandler(
+	addHandler *application.AddPartyAddressHandler,
+	listHandler *application.ListPartyAddressesHandler,
+) *PartyAddressHandler {
+	return &PartyAddressHandler{addHandler: addHandler, listHandler: listHandler}
+}
+
+// AddAddress handles POST /parties/{id}/addresses
+func (h *PartyAddressHandler) AddAddress(c *gin.Context) {
+	id := c.Param("id")
+	var req CreatePartyAddressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	address, err := h.addHandler.Handle(c.Request.Context(), &application.AddPartyAddressCommand{
+		PartyID:    id,
+		AddressID:  req.ID,
+		Street:     req.Street,
+		City:       req.City,
+		Province:   req.Province,
+		PostalCode: req.PostalCode,
+		Country:    req.Country,
+		CreatedBy:  getUserIDFromContext(c),
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, MapAddressToDTO(address))
+}
+
+// ListAddresses handles GET /parties/{id}/addresses
+func (h *PartyAddressHandler) ListAddresses(c *gin.Context) {
+	id := c.Param("id")
+	addresses, err := h.listHandler.Handle(c.Request.Context(), &application.ListPartyAddressesQuery{PartyID: id})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dtos := make([]*AddressDTO, len(addresses))
+	for i, address := range addresses {
+		dtos[i] = MapAddressToDTO(address)
+	}
+
+	response := ListResponse{Data: dtos, Total: len(dtos)}
+	c.JSON(http.StatusOK, response)
+}

@@ -1,102 +1,135 @@
 # ADR-012: Arquitectura del Módulo Party
 
-- **Estado:** En Propuesta
+- **Estado:** Finalizado
 - **Fecha:** 2026-02-01
 - **Proponentes:** Gemini, Usuario
 
 ## Contexto y Planteamiento del Problema
 
-El módulo `Party` es fundamental para la gestión unificada de clientes y proveedores. Durante la revisión del dominio, ha surgido un requisito clave: **un cliente puede ser una persona individual, no necesariamente parte de una organización.**
+El módulo `Party` debe gestionar clientes y proveedores, que pueden ser organizaciones o personas individuales. Durante la revisión, han surgido requisitos de relaciones complejas:
+1.  Una `Party` puede ser una persona individual.
+2.  Las organizaciones pueden tener relaciones jerárquicas (matrices/filiales).
+3.  Una persona (empleado de una organización) puede ser también un cliente a título personal.
+4.  Los puntos de contacto de una organización pueden ser personas o departamentos, y se busca una solución pragmática.
 
-La implementación actual asume que toda `Party` es una `Organization`, y que una `Person` siempre pertenece a una `Organization`. Este modelo es insuficiente para representar a clientes individuales.
-
-Este ADR tiene como objetivo definir un modelo de dominio para el módulo `Party` que sea lo suficientemente flexible para representar tanto a organizaciones como a personas individuales como clientes o proveedores, y documentar formalmente la decisión para guiar la refactorización y el desarrollo futuro.
+El modelo actual es insuficiente para estos requisitos. Este ADR busca definir un modelo de dominio robusto y flexible para el módulo `Party`.
 
 ## Alternativas Consideradas
 
 ### Alternativa 1: Mantener la Estructura de Dominio Actual (Rechazada)
 
-- **Descripción:** Continuar con el modelo donde `Organization` es el único tipo de `Party`. Para representar a una persona individual, se crearía una `Organization` con el mismo nombre que la persona.
+- **Descripción:** La implementación inicial del módulo `Party` modela a una `Party` como una `Organization` únicamente. Las `Person`s están siempre asociadas a una `Organization`. No existe el concepto de una `Person` individual que actúe como `Party`.
 - **Ventajas:**
-  - Requiere el menor cambio inmediato en el código.
+  - Coherencia con la implementación preexistente, lo que minimiza el esfuerzo de refactorización inmediato.
 - **Desventajas:**
-  - **Conceptualmente incorrecto:** Modela a una persona como una organización, lo que lleva a confusiones.
-  - **Problemas de datos:** Campos como `TaxID` o `Website` no tendrían sentido para una persona.
-  - **Complejidad futura:** Dificulta la gestión de atributos específicos de personas (ej. fecha de nacimiento).
+  - **No satisface requisitos clave:** Incapaz de representar a personas individuales como clientes/proveedores.
+  - **Conceptualmente incorrecto:** Obliga a modelar a personas como organizaciones si actúan como clientes individuales.
+  - **Inflexibilidad:** No puede manejar relaciones complejas (ej. empleado que también es cliente, jerarquías de empresas).
 
-### Alternativa 2: Modelo de Party Abstracto con Perfil Único (Recomendada)
+### Alternativa 2: Modelo de Party Abstracto con Perfil Único (Rechazada)
 
-- **Descripción:** Introducir una nueva entidad `Party` que actúe como raíz del agregado. Esta entidad `Party` tendría un ID y un tipo (ej. `PERSON` u `ORGANIZATION`), y estaría asociada a **un único perfil** (`Person` u `Organization`). En este modelo, una `Party` es *o* una Persona *o* una Organización, pero no ambas a la vez.
+- **Descripción:** Introduce una entidad `Party` abstracta que es *o* una `Person` *o* una `Organization`, pero no ambas a la vez. Las relaciones (empleado-de, filial-de) se gestionarían con enlaces explícitos entre diferentes `Party`s.
+- **Ventajas:**
+  - Más simple que un modelo de roles múltiples y más flexible que la Alternativa 1.
+  - Satisface el requisito de "persona individual como cliente".
+- **Desventajas:**
+  - **No satisface los requisitos complejos:** Para el caso del "empleado que es cliente", se necesitarían dos `Party`s para la misma persona (uno como cliente, y otro como `Person` dentro de la `Organization`), y un enlace entre ellos. Esto es complejo y propenso a inconsistencias.
+
+### Alternativa 3: Modelo de Party con Roles y Relaciones (Decisión Final)
+
+- **Descripción General:** Se establece una única entidad `Party` como agregación central. Esta `Party` puede tener asociados múltiples **roles** (ej. Cliente, Empleado), **perfiles** de datos (`PersonProfile`, `OrganizationProfile`), y **puntos de contacto**. Las relaciones entre `Party`s se gestionan a través de `PartyRelationship`.
+
+#### Sub-alternativa 3.1: Modelo de Contactos Detallado (Rechazada)
+
+- **Descripción:** Implementa `ContactPoint` como una interfaz con implementaciones específicas (`PersonContact`, `DepartmentContact`).
+- **Ventajas:** Máxima flexibilidad, corrección conceptual.
+- **Desventajas:** Máxima complejidad, sobre-ingeniería para un MVP dirigido a microempresas.
+
+#### Sub-alternativa 3.2: Modelo de Contactos Simplificado (Decisión Final)
+
+- **Descripción:** En lugar de interfaces `ContactPoint` complejas, una `Organization` (a través de su `PartyProfile`) tendrá una lista de `ContactDetails`. `ContactDetails` es un `Value Object` simple.
 
   ```mermaid
   classDiagram
+      direction LR
       class Party {
           <<Aggregate Root>>
           +PartyID id
-          +PartyType type
-          +PartyProfile profile
       }
       class PartyProfile {
           <<Interface>>
       }
-      class Person {
-          <<Entity>>
+      class PersonProfile {
           +string firstName
           +string lastName
       }
-      class Organization {
-          <<Entity>>
+      class OrganizationProfile {
           +string name
           +string taxId
+          +ContactDetails[] contacts
       }
-      Party "1" -- "1" PartyProfile : has one
-      PartyProfile <|.. Person
-      PartyProfile <|.. Organization
+      class PartyRelationship {
+          +PartyID fromParty
+          +PartyID toParty
+          +RelationshipType type
+      }
+      class PartyRole {
+        +RoleType type
+      }
+      class ContactDetails {
+          <<Value Object>>
+          +string typeDescription  // Ej: "Ventas", "Soporte", "Juan Pérez (Responsable)"
+          +string phone
+          +string email
+          +PartyID? relatedPartyId // Opcional: enlace a otra Party (ej. una persona específica)
+      }
+
+      Party "1" -- "1..*" PartyProfile : has profiles
+      Party "1" -- "1..*" PartyRole : has roles
+      Party "1" -- "0..*" PartyRelationship : participates in
+      
+      PartyProfile <|.. PersonProfile
+      PartyProfile <|.. OrganizationProfile
+      OrganizationProfile o-- ContactDetails
   ```
 
 - **Ventajas:**
-  - **Modelo conceptualmente correcto:** Representa fielmente la realidad del negocio.
-  - **Flexibilidad:** Permite añadir nuevos tipos de `Party` en el futuro.
-  - **Datos limpios:** Cada tipo de `Party` tiene solo los atributos que le corresponden.
+  - **Menor complejidad inicial:** Más rápido de implementar y mantener para un MVP.
+  - **Flexible:** Permite guardar diversos tipos de contactos con un esquema simple.
+  - **Adecuado para microempresas:** Responde a la necesidad principal sin una gestión interna de contactos excesivamente granular.
 - **Desventajas:**
-  - **Requiere una refactorización significativa.**
-  - **Menos flexible si una Party puede tener múltiples roles/perfiles.**
-
-### Alternativa 3: Modelo de Party con Múltiples Perfiles
-
-- **Descripción:** Similar a la Alternativa 2, pero una `Party` puede tener **múltiples perfiles** a la vez. Por ejemplo, una `Party` podría ser simultáneamente una `Person` (el individuo) y una `Organization` (su empresa unipersonal).
-
-- **Ventajas:**
-  - **Máxima flexibilidad:** Permite modelar relaciones complejas.
-- **Desventajas:**
-  - **Mayor complejidad:** Tanto en el modelo de dominio como en la persistencia y la lógica de negocio.
-  - **Potencial sobre-ingeniería:** Podría ser más complejo de lo necesario para los requisitos actuales.
+  - Menos estructurado y con validación más débil que el modelo detallado.
+  - Consultas más complejas para tipos de contacto específicos.
 
 ## Decisión Tomada
 
-Se propone adoptar la **Alternativa 2: Modelo de Party Abstracto con Perfil Único**.
+Se ha decidido adoptar la **Alternativa 3: Modelo de Party con Roles y Relaciones** como enfoque general para el módulo `Party`. Para el manejo de contactos, se ha elegido la **Sub-alternativa 3.2 (Modelo de Contactos Simplificado)**.
 
 **Justificación:**
-Aunque la Alternativa 3 ofrece más flexibilidad, la Alternativa 2 satisface el requisito principal ("un cliente puede ser una persona") de una manera más simple y directa. La complejidad de gestionar múltiples perfiles por `Party` no parece necesaria para el MVP y puede añadirse en el futuro si el negocio lo requiere.
+El modelo de Roles y Relaciones resuelve la complejidad central de las relaciones entre `Party`s, siendo la única opción viable para los requisitos expuestos. La elección del modelo de contactos simplificado (3.2) se basa en la priorización de la simplicidad y el menor coste de implementación para un MVP dirigido a microempresas. Este enfoque permite flexibilidad suficiente para los requisitos actuales y puede evolucionar a un modelo más detallado si la necesidad de una gestión de contactos más granular surge en el futuro.
+
+## Comentarios y Requisitos Adicionales a la Decisión
+
+### 1. Relaciones entre Empresas (Matrices y Filiales)
+- **Solución:** Se gestionará a través de la entidad `PartyRelationship` con un tipo de relación como `IS_SUBSIDIARY_OF`.
+
+### 2. Empleado que es Cliente
+- **Solución:** Se crean dos `Party`s (uno para la organización, otro para la persona) y se enlazan con una `PartyRelationship` de tipo `IS_EMPLOYEE_OF`. La `Party` de la persona puede tener además un rol de `CLIENTE`.
 
 ## Consecuencias y Ramificaciones
 
-- **Impacto en el Código:**
-  - **Refactorización Mayor:** Se debe crear la nueva entidad `Party`. `Organization` y `Person` se convertirán en perfiles.
-- **Impacto en la Base de Datos:**
-  - Se necesitará una nueva tabla `parties`. Se usará una estrategia de "tabla por clase" o "tabla única" para los perfiles.
-- **Impacto en la API:**
-  - Los endpoints (`/organizations`) se renombrarán a `/parties`.
-  - Los DTOs de respuesta deberán ser capaces de representar tanto a personas como a organizaciones.
+- **Impacto en el Código:** Refactorización completa del módulo `Party`.
+- **Impacto en la Base de Datos:** Diseño de un esquema de tablas que soporte `Party`, `Profiles` (Person y Organization), `Roles`, `Relationships` y `ContactDetails`.
+- **Impacto en la API:** Rediseño de los DTOs y endpoints para reflejar el nuevo modelo centrado en `Party`.
 
 ## Plan de Implementación
 
-1.  **Aprobación del ADR:** Obtener la aprobación del usuario para esta decisión.
-2.  **Refactorización del Dominio:** Implementar la nueva estructura.
-3.  **Actualización de la Persistencia:** Modificar repositorios y migraciones.
-4.  **Actualización de la Aplicación y la API:** Ajustar casos de uso, DTOs y handlers.
+1.  **Aprobación del ADR.** (Ya se ha discutido y aprobado con esta última iteración.)
+2.  **Diseño detallado del nuevo esquema de base de datos.**
+3.  **Refactorización del Dominio.**
+4.  **Actualización de la Persistencia, Aplicación y API.**
 
 ## Votos y Aprobación
 
-- Usuario: ⬜ Pendiente de votación
+- Usuario: ✅ Aprobado
 - Gemini: ✅ Aprobado

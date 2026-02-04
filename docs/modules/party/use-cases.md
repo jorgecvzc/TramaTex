@@ -2,28 +2,33 @@
 
 **Estado:** Definido y Documentado
 
-Esta sección documenta los casos de uso de la aplicación para el módulo Party, que han sido implementados y expuestos a través de la API.
+Esta sección documenta los casos de uso vigentes del módulo Party, alineados con ADR-012 y los endpoints actuales.
 
-### Casos de Uso de Organización
+## 1. Casos de Uso de Party
 
-- **Crear Organización:** Permite registrar una nueva organización, que puede ser un cliente, un proveedor o ambos.
-- **Listar Organizaciones:** Proporciona una lista paginada de organizaciones, con la capacidad de filtrar por rol y estado.
-- **Obtener Organización:** Recupera los detalles completos de una organización específica por su ID.
-- **Actualizar Organización:** Permite la modificación de los datos de una organización existente.
-- **Cambiar Estado de Organización:** Modifica el estado de una organización (e.g., de "Activo" a "Inactivo").
+- **Crear Party:** Registrar una nueva Party con perfil de persona, organización o ambos.
+- **Listar Parties:** Lista paginada con filtros por rol, tipo, estado, nombre y tax_id.
+- **Obtener Party:** Recuperar una Party por su ID.
+- **Actualizar Party:** Actualizar perfiles (persona/organización) y datos básicos.
+- **Cambiar Estado:** Activar o desactivar una Party.
 
-### Casos de Uso de Persona (Contacto)
+## 2. Casos de Uso de Roles
 
-- **Añadir Persona a Organización:** Agrega una nueva persona de contacto a una organización existente.
-- **Obtener Persona:** Recupera los detalles de una persona de contacto por su ID.
-- **Listar Personas de Organización:** Obtiene una lista de todas las personas de contacto asociadas a una organización.
-- **Obtener Contacto Principal:** Recupera la persona de contacto designada como principal para una organización.
+- **Añadir Rol a Party:** Agregar un rol (`CLIENT`, `SUPPLIER`, `EMPLOYEE`).
+- **Eliminar Rol de Party:** Quitar un rol existente de la Party.
 
-### Casos de Uso de Dirección
+## 3. Casos de Uso de Relaciones
 
-- **Añadir Dirección a Organización:** Agrega una nueva dirección a una organización.
-- **Listar Direcciones de Organización:** Obtiene una lista de todas las direcciones asociadas a una organización.
-- **Obtener Dirección Principal:** Recupera la dirección designada como principal para una organización.
+- **Crear Relación:** Enlazar dos Parties con un tipo (`IS_EMPLOYEE_OF`, `IS_SUBSIDIARY_OF`).
+- **Listar Relaciones:** Obtener relaciones asociadas a una Party.
+- **Eliminar Relación:** Eliminar una relación existente.
+
+## 4. Casos de Uso de ContactDetails (Perfil Organización)
+
+- **Añadir Contacto:** Agregar detalle de contacto a la organización.
+- **Listar Contactos:** Recuperar contactos asociados a la organización.
+- **Actualizar Contacto:** Modificar un contacto existente.
+- **Eliminar Contacto:** Eliminar un contacto existente.
 
 ---
-**Última Actualización:** 2026-02-01
+**Última Actualización:** 2026-02-03

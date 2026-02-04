@@ -85,8 +85,8 @@
 
 ### Acciones de Mejora
 *Acciones concretas para implementar en el próximo sprint.*
-1. **Acción 1:** [Descripción de la acción] (Responsable: [Nombre])
-2. **Acción 2:** [Descripción de la acción] (Responsable: [Nombre])
+1. **Acción 1:** [Descripción de la acción] (Responsable: [Responsable])
+2. **Acción 2:** [Descripción de la acción] (Responsable: [Responsable])
 
 ## 🤖 Para Asistentes de IA
 Una vez completado el sprint, actualiza `sprint-registry.yaml` moviendo el sprint a la sección `completed_sprints` y añadiendo los `key_outcomes` relevantes. Asegúrate de actualizar la fecha `last_updated` en el `sprint-registry.yaml`.

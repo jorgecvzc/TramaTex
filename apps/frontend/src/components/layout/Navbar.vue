@@ -21,6 +21,16 @@
             Clientes
           </RouterLink>
         </li>
+        <li>
+          <RouterLink to="/parties" class="nav-link" active-class="active">
+            Entidades
+          </RouterLink>
+        </li>
+        <li>
+          <RouterLink to="/catalogos" class="nav-link" active-class="active">
+            Catálogos
+          </RouterLink>
+        </li>
         <li v-if="isAdmin">
           <RouterLink to="/admin/users" class="nav-link" active-class="active">
             Usuarios

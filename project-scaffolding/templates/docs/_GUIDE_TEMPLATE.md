@@ -100,7 +100,7 @@
 *Enlaces a otros documentos, ADRs, o recursos externos relevantes.*
 
 - **ADR Relacionado:** [ADR-XXX - Título del ADR](../../architecture/adrs/ADR-XXX.md)
-- **Bitácora de Desarrollo:** [XX - Título de la Bitácora](ruta/a/la/bitacora.md)
+- **Tarea de Sprint:** [ID de Sprint]-[ID de Tarea]: [Título de la Tarea](docs/log/sprints/sprint-XX/XX-nombre-tarea.md)
 - **Documentación Externa:** [Nombre del Recurso](https://ejemplo.com)
 
 ---
