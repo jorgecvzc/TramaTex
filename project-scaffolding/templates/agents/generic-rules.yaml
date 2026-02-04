@@ -59,6 +59,21 @@ directory_structure:
   title: "📂 Standard Directory Structure"
   description: "Recommended project organization"
   
+  root_level_files:
+    - name: "README.md"
+      purpose: "Project overview and navigation"
+      required: true
+    
+    - name: "AGENTS.md"
+      purpose: "AI assistant master guide and entry point"
+      required: true
+    
+    - name: "NEXT_SESSION.md"
+      purpose: "Volatile checkpoint file for session continuity"
+      required: false
+      behavior: "Overwritten each session with pending work; empty = no pending tasks"
+      usage: "Resume half-finished work, track blockers, provide next steps context"
+  
   root_level_folders:
     - name: "/docs/"
       purpose: "All project documentation (Spanish)"
@@ -83,7 +98,7 @@ directory_structure:
       path: "/docs/guides/"
       purpose: "Alberga guías prácticas y tutoriales, tanto para desarrolladores como para usuarios finales."
     log:
-      path: "/docs/log/"
+      path: "docs/log/"
       purpose: "Registro histórico del trabajo realizado, incluyendo sprints y milestones pasados."
       
       sprints:
@@ -104,7 +119,10 @@ directory_structure:
             language: "English (filename), Spanish (content)"
             examples:
               - "sprint-XX/01-initial-module-setup.md"
-              - "sprint-YY/02-feature-implementation.md"
+              - "sprint-XX/02-feature-implementation.md"
+              - "sprint-YY/01-quality-improvements.md"
+              - "sprint-YY/02-documentation-update.md"
+              - "sprint-ZZ/01-security-enhancements.md"
             notes:
               - "ID de tarea es local al sprint (se reinicia en 01 cada sprint)"
               - "Identificación única: combinación sprint-XX + tarea-YY"
@@ -120,8 +138,12 @@ directory_structure:
             examples:
               - "sprint-01-summary.md"
               - "sprint-05-summary.md"
-      
-      terminology: "Use 'Tarea' consistently (not 'Bitácora' or 'Journal')"
+            content:
+              - "Resumen de tareas completadas"
+              - "Métricas agregadas (tests, LOC, tiempo)"
+              - "Logros principales"
+              - "Problemas y soluciones"
+              - "Próximos pasos"
   
   agents_structure:
     path: "/agents/"
@@ -130,7 +152,7 @@ directory_structure:
       - "generic-rules.yaml"
       - "generic-project-context.yaml"
 
-      - "[other domain-specific agents]"
+      - "project/"
 
 root_directory_policy:
   title: "📜 Política de Directorio Raíz Limpio (Regla de Oro)"
@@ -176,6 +198,24 @@ documentation_principles:
     - "Document the change in a task"
     - "Do not leave orphaned files"
 
+diagramming_standards:
+  title: "📊 Diagramming Standards"
+  description: "Rules and best practices for creating and maintaining diagrams."
+  
+  tool:
+    name: "Mermaid"
+    rationale: "Text-based diagramming (diagrams-as-code) for version control, collaboration, and easy maintenance within Markdown files."
+  
+  format:
+    - "Embed Mermaid code blocks directly within `.md` documentation files."
+    - "Use ```mermaid code blocks."
+  
+  best_practices:
+    - "Keep diagrams focused on a single concept or context."
+    - "Use diagrams to complement text, not replace it."
+    - "Add a title and a brief description to each diagram."
+    - "Ensure diagrams are consistent with the architecture and code."
+
 ai_agent_file_structure:
   title: "🤖 AI Agent File Organization"
   
@@ -217,10 +257,10 @@ agents_directory_rules:
       - Keeps agents folder focused and minimal
   
   exception_for_project_specific:
-    location: "/agents/[project-name]/context/"
+    location: "/agents/project/context/"
     allowed: "README.md and INDEX.md for navigation within project context"
     rationale: "Project-specific context agents need internal documentation for their specialized agents"
-    example: "/agents/[your-project-name]/context/README.md is acceptable"
+    example: "/agents/project/context/README.md is acceptable"
   
   verification:
     - "ls /agents/ should show ONLY .yaml files and /[project-name]/ folders"
@@ -330,7 +370,7 @@ workflow_best_practices:
       phase_0:
         title: "Phase 0: Scaffolding & Initial Setup"
         steps:
-          - "1. Create Module Structure: Generate directories in `apps/<backend_app_name>/internal/<module>` and `apps/<frontend_app_name>/src/modules/<module>`."
+          - "1. Create Module Structure: Generate directories in `apps/tramatex-api/internal/<module>` and `apps/frontend/src/modules/<module>`."
           - "2. Create Documentation Hub: Create `docs/modules/<module>/` and populate it from `_MODULE_TEMPLATE.md`."
           - "3. Create Sprint Task: Create a new task file in `docs/log/sprints/` for the module implementation."
       phase_1:
@@ -403,3 +443,107 @@ validation_checklist:
     - "Explains 'what' and 'why'"
     - "References issues/ADRs if applicable"
     - "One logical change per commit"
+
+never_do:
+  title: "🚫 Universal Rules (Always Follow)"
+  rules:
+    - "Push code without tests in critical parts"
+    - "Place business logic outside domain layer"
+    - "Use framework-specific code in domain"
+    - "Hardcode configuration values"
+    - "Create massive functions without documentation"
+    - "Change architecture without documenting decision"
+    - "Make commits without descriptive messages"
+    - "Forget integration tests for workflows"
+    - "Violate project's architecture patterns"
+    - "Use credentials or secrets in code"
+    - "Mark sprints/tasks as completed without human approval"
+
+human_approval_policy:
+  title: "👤 Human Approval Policy"
+  description: "Critical rule ensuring quality control through human review"
+  
+  core_principle:
+    statement: "Sprints and tasks are NOT considered completed until they receive explicit approval from the human development team"
+    rationale: "Ensures all code meets quality standards and has been reviewed by people before being marked as definitively finished"
+  
+  implementation:
+    task_states:
+      - state: "⏳ Planificado"
+        description: "Task planned but not started"
+      
+      - state: "🔄 En Progreso"
+        description: "Task actively being worked on by AI/human"
+      
+      - state: "✅ Completado (AI)"
+        description: "AI considers work done, but awaiting human review"
+      
+      - state: "🔍 Pendiente de Aprobación Humana"
+        description: "Work exists but requires validation/approval"
+      
+      - state: "✅ Completado y Aprobado"
+        description: "Human team has reviewed and approved the work"
+      
+      - state: "🔴 Rechazado"
+        description: "Human review identified issues requiring rework"
+    
+    workflow:
+      step_1: "AI completes implementation"
+      step_2: "AI marks task as '✅ Completado (AI)' or '🔍 Pendiente de Aprobación'"
+      step_3: "Human team reviews code, tests, documentation"
+      step_4: "Human marks as '✅ Completado y Aprobado' or '🔴 Rechazado'"
+      step_5: "If rejected, task returns to '🔄 En Progreso' with feedback"
+  
+  exceptions:
+    none: "This rule has NO exceptions. All work requires human approval."
+  
+  ai_assistant_responsibilities:
+    - "Never mark tasks as definitively completed"
+    - "Always indicate when work is ready for human review"
+    - "Document what needs to be reviewed in task files"
+    - "Respect human feedback and incorporate it"
+    - "Do not proceed with dependent tasks until approval is granted"
+  
+  benefits:
+    - "Maintains high code quality standards"
+    - "Ensures knowledge transfer to human team"
+    - "Catches edge cases AI might miss"
+    - "Provides accountability and traceability"
+    - "Prevents premature progression to dependent work"
+
+communication_style:
+  title: "💡 Recommended Communication Style"
+  
+  with_developers:
+    - "Be clear and concise"
+    - "Cite architecture documents and ADRs"
+    - "Explain 'why' not just 'what'"
+    - "Ask clarifying questions when unsure"
+    - "Suggest improvements respectfully"
+  
+  with_stakeholders:
+    - "Use business terminology"
+    - "Focus on impact and value"
+    - "Reference business requirements"
+    - "Avoid technical jargon"
+  
+  for_code_reviews:
+    - "Be constructive"
+    - "Reference project standards"
+    - "Explain reasoning"
+    - "Acknowledge good practices"
+
+future_extensibility:
+  title: "🚀 Designed for Growth"
+  
+  scalability:
+    - "Agent structure supports adding domain-specific rules"
+    - "Documentation structure supports multiple projects"
+    - "Layer-based architecture supports new modules"
+    - "Technology stack can evolve without restructuring"
+  
+  adding_new_agents:
+    - "Create new agent file (0X-[domain].yaml)"
+    - "Follow same YAML structure"
+    - "Reference from session-initiation agent if needed"
+    - "Keep generic rules separate from domain-specific"

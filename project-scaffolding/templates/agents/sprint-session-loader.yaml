@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-session-loader.yaml"
   location: "agents/sprint-session-loader.yaml"
   version: "1.0"
-  last_updated: "2026-02-01"
+  last_updated: "2026-02-04" # Updated to today's date
   purpose: "Load project context, scan for open sprint tasks, and propose workflow"
   load_order: "first-in-session"
   applies_to: "Any project using modular agent system"
@@ -19,9 +19,26 @@ workflow:
   title: "🚀 Universal Sprint Task Session Loader Workflow"
   description: "Smart initialization that loads context and identifies active sprint tasks"
   
+  step_0_check_next_session: # Added from current project's sprint-session-loader.yaml
+    action: "Check NEXT_SESSION.md file"
+    source: "NEXT_SESSION.md (root directory)"
+    purpose: "Determine if there is pending work from previous session"
+    conditions:
+      if_file_not_empty:
+        action: "Present NEXT_SESSION.md content to user"
+        prompt: "Previous session left pending work. Review NEXT_SESSION.md and choose:"
+        options:
+          - "Continue from checkpoint (recommended)"
+          - "Ignore and start fresh workflow"
+        note: "NEXT_SESSION.md takes priority over normal sprint scanning"
+      if_file_empty_or_missing:
+        action: "Continue to step_1_load_project_context"
+        note: "No pending work - proceed with normal session initialization"
+    outcome: "Decision on whether to resume from checkpoint or start fresh"
+  
   step_1_load_project_context:
     action: "Load project-context.yaml"
-    source: "agents/[your-project-name]/project-context.yaml"
+    source: "agents/project/project-context.yaml" # Changed to reflect bootstrap.yaml decision
     purpose: "Establish project identity, architecture, and standards"
     outcome: "Project context is now active"
   
@@ -98,10 +115,10 @@ context_loading_sequence:
   title: "📚 Recommended Context Loading Sequence"
   
   when_continuing_task:
-    step_1: "Load [your-project-name]/project-context.yaml (already done)"
+    step_1: "Load agents/project/project-context.yaml (already done)" # Changed to reflect bootstrap.yaml decision
     step_2: "Review task's 📋 INFORMACIÓN section"
     step_3: "Identify which Bounded Context the task focuses on"
-    step_4: "Load corresponding context from agents/[your-project-name]/context/"
+    step_4: "Load corresponding context from agents/project/context/"
     step_5: "Review 🎯 OBJETIVOS for uncompleted items"
     step_6: "Check 🚨 BLOQUEADORES for issues"
     step_7: "Begin work on next objective"
@@ -129,7 +146,7 @@ prompts_for_user:
       Available options:
       1. 📝 Start new task for next phase
       2. 🔍 Review specific completed task
-      3. 📊 Check docs/log/project-status.md for guidance
+      3. 📊 Check docs/log/project-status.md for guidance # Changed path
 
 recommendations:
   title: "💡 Best Practices"
@@ -138,4 +155,4 @@ recommendations:
   recommendation_2: "Keep task Estado field updated after each session"
   recommendation_3: "Complete Fecha de Fin before marking task as done"
   recommendation_4: "Use focused tasks (one bounded context per task)"
-  recommendation_5: "Update docs/log/project-status.md when changing phases"
+  recommendation_5: "Update docs/log/project-status.md when changing phases" # Changed path
