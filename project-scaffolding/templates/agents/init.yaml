@@ -1,0 +1,70 @@
+# Entry Point Agent (init.yaml)
+# Version: 1.0
+# Audience: All users, especially new ones
+# Purpose: Guides the user through available functionalities and loads relevant agents.
+
+---
+
+metadata:
+  filename: "init.yaml"
+  version: "1.0"
+  last_updated: "2026-02-04"
+  purpose: "Serves as the main entry point to guide users to specific agent workflows."
+  applies_to: "Any project using the modular agent system."
+  dependencies:
+    - "generic-rules.yaml"
+    - "load-project-context.yaml"
+    - "load-session.yaml" # Or other specific agents you want to offer
+
+workflow:
+  title: "🚀 Asistente de Flujo de Trabajo (Entry Point)"
+  description: "¡Hola! Soy tu asistente de IA. Estoy aquí para ayudarte a comenzar a trabajar en el proyecto. Por favor, dime qué te gustaría hacer hoy."
+  
+  # Step 0: Load foundational contexts
+  step_0_load_foundational_context:
+    action: "Cargar reglas genéricas y contexto del proyecto."
+    load:
+      - "generic-rules.yaml"
+      - "load-project-context.yaml" # This agent handles project-context.yaml and offers modular contexts
+
+  # Step 1: Present main menu options
+  step_1_present_main_menu:
+    action: "Presentar opciones al usuario."
+    prompt: |
+      ¿Qué te gustaría hacer?
+      1. Continuar o iniciar una tarea de desarrollo (Sprints y Tareas)
+      2. Revisar la documentación del proyecto
+      3. Obtener información sobre la arquitectura o estándares de código
+      4. Ver la guía de uso de agentes
+      5. Salir/Terminar
+      
+      Por favor, introduce el número de tu elección:
+    variable_name: "MAIN_MENU_CHOICE"
+
+  # Step 2: Handle user's choice
+  step_2_handle_choice:
+    action: "Dirigir al agente apropiado basado en la elección del usuario."
+    if: "MAIN_MENU_CHOICE == '1'"
+      # Loads the agent responsible for managing development sessions (sprints/tasks)
+      load: "load-session.yaml"
+    else_if: "MAIN_MENU_CHOICE == '2'"
+      # A new agent would be needed here to navigate documentation
+      # For now, we can just point to the main docs README
+      output: "Puedes consultar la documentación principal del proyecto en: docs/README.md"
+      goto: "step_1_present_main_menu" # Return to main menu after showing info
+    else_if: "MAIN_MENU_CHOICE == '3'"
+      # Load a context agent that can answer questions about architecture/standards
+      # Or directly prompt the user for specific questions to codebase_investigator
+      output: |
+        Para preguntas sobre arquitectura y estándares, te recomiendo usar el agente 'load-project-context.yaml' para cargar el contexto y luego hacer tu pregunta.
+        O puedes consultar directamente los archivos en 'agents/project/context/'.
+      goto: "step_1_present_main_menu" # Return to main menu after showing info
+    else_if: "MAIN_MENU_CHOICE == '4'"
+      output: "Puedes encontrar la guía de uso de agentes en: docs/guides/user/agent-usage-guide.md"
+      goto: "step_1_present_main_menu" # Return to main menu after showing info
+    else_if: "MAIN_MENU_CHOICE == '5'"
+      output: "¡Hasta pronto! Si necesitas ayuda de nuevo, no dudes en preguntar."
+      goto: "end"
+    else:
+      output: "Opción no válida. Por favor, intenta de nuevo."
+      goto: "step_1_present_main_menu"

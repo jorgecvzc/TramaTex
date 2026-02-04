@@ -66,7 +66,7 @@ workflow_steps:
   - step_id: "create_docs_subdirectories"
     title: "Crear Subdirectorios de Documentación"
     description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
-    command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
+    command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/architecture/design-system/mockups docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
     next_step: "create_project_status_file"
 
   - step_id: "create_project_status_file"
@@ -152,13 +152,15 @@ workflow_steps:
     files_to_copy_relative_to_project_scaffolding:
       - source: "templates/agents/generic-rules.yaml"
         destination: "agents/generic-rules.yaml"
-      - source: "templates/agents/project/project-context-template.yaml" # Changed source and destination
+      - source: "templates/agents/init.yaml" # New agent
+        destination: "agents/init.yaml"
+      - source: "templates/agents/project/project-context-template.yaml"
         destination: "agents/project/project-context-template.yaml"
-      - source: "templates/agents/load-session.yaml" # Changed source and destination
+      - source: "templates/agents/load-session.yaml"
         destination: "agents/load-session.yaml"
-      - source: "templates/agents/project/sprint-registry.yaml" # Changed destination
+      - source: "templates/agents/project/sprint-registry.yaml"
         destination: "agents/project/sprint-registry.yaml"
-      - source: "templates/agents/load-project-context.yaml" # Added new agent
+      - source: "templates/agents/load-project-context.yaml"
         destination: "agents/load-project-context.yaml"
     next_step: "copy_documentation_templates"
 
@@ -174,6 +176,8 @@ workflow_steps:
         destination: "docs/modules/_MODULE_TEMPLATE.md"
       - source: "templates/docs/_GUIDE_TEMPLATE.md"
         destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
+      - source: "templates/docs/guides/user/_AGENT_USAGE_GUIDE_TEMPLATE.md" # New template
+        destination: "docs/guides/user/agent-usage-guide.md"
       - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
         destination: "docs/guides/developer/governance/project-scaffolding-policy.md"
       - source: "templates/docs/_DIAGRAM_TEMPLATE.md"
@@ -250,15 +254,15 @@ workflow_steps:
           `NEXT_SESSION.md` is now a log file for active or paused development sessions:
           - **Stores multiple sessions**: Each session is a distinct block of work with its own context and tasks.
           - **Not automatically overwritten**: Sessions are managed manually or by agents configured to do so.
-          - **Priority**: Check this file first to identify available sessions before loading `sprint-session-loader.yaml`.
+          - **Priority**: Check this file first to identify available sessions before loading `load-session.yaml`.
           - **Usage**: Allows resuming specific work streams, tracking multiple parallel efforts, and providing detailed context for continuity.
 
           ## 4. Standard Workflow
 
-          1.  **Check NEXT_SESSION.md**: If it contains saved sessions, present them to the user for selection. Otherwise, load `agents/sprint-session-loader.yaml`.
+          1.  **Check NEXT_SESSION.md**: If it contains saved sessions, present them to the user for selection. Otherwise, load `load-session.yaml`.
           2.  **Select Task/Session**: Either continue an existing session/task or start a new one from the backlog.
           3.  **Consult Module Workflow**: If the task is to create a new module, consult the **Standard Module Development Workflow (SMDW)** defined in `agents/generic-rules.yaml`.
-          4.  **Load Context**: Load the specific context agents required for the task from `agents/project/context/`.
+          4.  **Load Context**: Use `load-project-context.yaml` to load the project's context and any modular contexts.
           5.  **Develop (TDD)**: Write tests first, then implement the code, following the SMDW phases.
           6.  **Validate**: Run all tests, linters, and formatters before committing.
           7.  **Document**: Update the sprint task file, `project-status.md`, and any other required module documentation.
@@ -641,7 +645,61 @@ workflow_steps:
       - filename: "agents/project/context/README.md"
         content: |
           # $PROJECT_NAME Modular Context Agents
-          # ...
+
+          This directory contains modular context agents that provide detailed information about the $PROJECT_NAME project. These agents are loaded on-demand by AI assistants to understand specific aspects of the project.
+
+          ## 📚 Available Context Agents
+
+          ### Core Context Files
+
+          | File | Purpose | When to Load |
+          |------|---------|--------------|
+          | [architecture.yaml](./architecture.yaml) | Clean Architecture layers, DDD strategy, architectural patterns | When designing modules, understanding layer boundaries |
+          | [bounded-contexts.yaml](./bounded-contexts.yaml) | Business domains, module dependencies, relationships | When working across modules, understanding domain boundaries |
+          | [tech-stack.yaml](./tech-stack.yaml) | Technology choices, frameworks, tools, build systems | When implementing features, setting up environments |
+          | [code-standards.yaml](./code-standards.yaml) | Code quality criteria, acceptance/rejection rules | Before committing code, during code review |
+
+          ### Design Context
+
+          La documentación del sistema de diseño (paleta de colores, tipografía, etc.) no es un agente de contexto cargable, sino que se encuentra en el directorio de documentación principal:
+          - **Ubicación:** `/docs/architecture/design-system/`
+
+          ## 🎯 Loading Strategy
+
+          **Don't load everything at once.** Follow this pattern:
+
+          ### For New Module Development
+          1. Load `architecture.yaml` - Understand layer structure
+          2. Load `bounded-contexts.yaml` - Understand dependencies
+          3. Load `code-standards.yaml` - Know quality gates
+
+          ### For Feature Implementation
+          1. Load `bounded-contexts.yaml` - Find relevant module
+          2. Load `tech-stack.yaml` - Know tools and frameworks
+          3. Load `code-standards.yaml` - Ensure compliance
+
+          ### For Code Review
+          1. Load `code-standards.yaml` - Review criteria
+          2. Load `architecture.yaml` - Verify layer compliance
+
+          ## 🔗 Parent Context
+
+          These context agents are loaded via the main project context file:
+          - [../project-context.yaml](../project-context.yaml)
+
+          Which in turn is loaded after:
+          - [../../generic-rules.yaml](../../generic-rules.yaml)
+
+          ## 📝 Maintenance
+
+          **When updating context agents:**
+          1. Update the `last_updated` field in metadata
+          2. Ensure consistency with corresponding documentation in `/docs`
+          3. Update this README if adding/removing files
+
+          ---
+
+          **Last Updated:** 2026-02-04
     next_step: "display_project_structure_policy"
 
   - step_id: "display_project_structure_policy"

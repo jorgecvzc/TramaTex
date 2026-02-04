@@ -198,6 +198,15 @@ documentation_principles:
     - "Document the change in a task"
     - "Do not leave orphaned files"
 
+mvp_versioning_policy:
+  title: "🚫 MVP No-Versioning Policy"
+  description: "For MVP development, keep a single functional solution and avoid internal version labels."
+  rules:
+    - "Do NOT use version suffixes in names (v1, v2, v3) for code, docs, or features."
+    - "Remove legacy/obsolete artifacts instead of keeping parallel versions."
+    - "Maintain a single current implementation as the source of truth."
+    - "Versioning will be introduced only after MVP completion."
+
 diagramming_standards:
   title: "📊 Diagramming Standards"
   description: "Rules and best practices for creating and maintaining diagrams."
@@ -220,8 +229,6 @@ ai_agent_file_structure:
 
   title: "🤖 AI Agent File Organization"
 
-  
-
   structure:
 
     generic_rules:
@@ -229,6 +236,14 @@ ai_agent_file_structure:
       file: "generic-rules.yaml"
 
       purpose: "Universal rules (documentation language, directory structure, principles)"
+
+      reusable: true
+
+    init_agent:
+
+      file: "init.yaml"
+
+      purpose: "Entry point agent, guides user to other workflows."
 
       reusable: true
 
@@ -264,13 +279,13 @@ ai_agent_file_structure:
 
       reusable: true
 
-  
-
   loading_order:
 
     - "Generic rules are loaded first by any initiating agent."
 
-    - "Load-session agent manages the overall session flow, including project context loading."
+    - "init.yaml agent is loaded to dispatch to other agents based on user input."
+
+    - "load-session.yaml and load-project-context.yaml are loaded via init.yaml."
 
 agents_directory_rules:
   title: "📁 /agents/ Directory Rules (CRITICAL)"
