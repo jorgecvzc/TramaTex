@@ -98,6 +98,15 @@ func (m *MockAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID
 	return attributes, args.Error(1)
 }
 
+func (m *MockAttributeRepository) FindByScope(ctx context.Context, brandID *uuid.UUID, groupID *uuid.UUID) ([]*domain.Attribute, error) {
+	args := m.Called(ctx, brandID, groupID)
+	var attributes []*domain.Attribute
+	if args.Get(0) != nil {
+		attributes = args.Get(0).([]*domain.Attribute)
+	}
+	return attributes, args.Error(1)
+}
+
 // MockProductVariantRepository is a mock implementation of domain.ProductVariantRepository
 type MockProductVariantRepository struct {
 	mock.Mock
@@ -135,6 +144,38 @@ func (m *MockProductVariantRepository) FindByProductIDAndAttributeValues(ctx con
 	return variant, args.Error(1)
 }
 
+// MockPartyServiceConfigurationRepository is a mock implementation of domain.PartyServiceConfigurationRepository
+type MockPartyServiceConfigurationRepository struct {
+	mock.Mock
+}
+
+func (m *MockPartyServiceConfigurationRepository) Save(ctx context.Context, config *domain.PartyServiceConfiguration) error {
+	args := m.Called(ctx, config)
+	return args.Error(0)
+}
+
+func (m *MockPartyServiceConfigurationRepository) FindByID(ctx context.Context, partyID, id uuid.UUID) (*domain.PartyServiceConfiguration, error) {
+	args := m.Called(ctx, partyID, id)
+	var config *domain.PartyServiceConfiguration
+	if args.Get(0) != nil {
+		config = args.Get(0).(*domain.PartyServiceConfiguration)
+	}
+	return config, args.Error(1)
+}
+
+func (m *MockPartyServiceConfigurationRepository) FindByPartyID(ctx context.Context, partyID uuid.UUID) ([]*domain.PartyServiceConfiguration, error) {
+	args := m.Called(ctx, partyID)
+	var configs []*domain.PartyServiceConfiguration
+	if args.Get(0) != nil {
+		configs = args.Get(0).([]*domain.PartyServiceConfiguration)
+	}
+	return configs, args.Error(1)
+}
+
+func (m *MockPartyServiceConfigurationRepository) Delete(ctx context.Context, partyID, id uuid.UUID) error {
+	args := m.Called(ctx, partyID, id)
+	return args.Error(0)
+}
 
 func TestProductService_CreateProduct(t *testing.T) {
 	mockProductRepo := new(MockProductRepository)
@@ -142,8 +183,9 @@ func TestProductService_CreateProduct(t *testing.T) {
 	mockGroupRepo := new(MockProductGroupRepository)
 	mockAttributeRepo := new(MockAttributeRepository)
 	mockVariantRepo := new(MockProductVariantRepository)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 
-	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.Background()
 
 	brandID := uuid.New()
@@ -277,12 +319,14 @@ func TestProductService_CreateProduct(t *testing.T) {
 	})
 }
 
+func TestProductService_AddGroupToProduct(t *testing.T) {
 	mockProductRepo := new(MockProductRepository)
 	mockBrandRepo := new(MockBrandRepository)
 	mockGroupRepo := new(MockProductGroupRepository)
 	mockAttributeRepo := new(MockAttributeRepository)
 	mockVariantRepo := new(MockProductVariantRepository)
-	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.Background()
 
 	productID := uuid.New()
@@ -367,7 +411,8 @@ func TestProductService_AddDirectAttributeToProduct(t *testing.T) {
 	mockGroupRepo := new(MockProductGroupRepository)
 	mockAttributeRepo := new(MockAttributeRepository)
 	mockVariantRepo := new(MockProductVariantRepository)
-	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.Background()
 
 	productID := uuid.New()
@@ -431,7 +476,8 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 	mockGroupRepo := new(MockProductGroupRepository)
 	mockAttributeRepo := new(MockAttributeRepository)
 	mockVariantRepo := new(MockProductVariantRepository)
-	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.Background()
 
 	productID := uuid.New()

@@ -172,9 +172,10 @@ func main() {
 	productVariantRepository := product_repo.NewGORMVariantRepository(db)
 	brandRepository := product_repo.NewGORMBrandRepository(db)
 	productGroupRepository := product_repo.NewGORMProductGroupRepository(db)
+	partyServiceConfigurationRepository := product_repo.NewGORMPartyServiceConfigurationRepository(db)
 
 	// 2. Use Cases
-	productService := product_uc.NewProductService(productRepository, brandRepository, productGroupRepository, attributeRepository, productVariantRepository)
+	productService := product_uc.NewProductService(productRepository, brandRepository, productGroupRepository, attributeRepository, productVariantRepository, partyServiceConfigurationRepository)
 
 	// 3. HTTP Handlers
 	productHandler := product_handler.NewProductHandler(productService)
@@ -253,33 +254,33 @@ func main() {
 			products := protected.Group("/products")
 			{
 				products.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateProduct)
-				products.GET("", productHandler.ListProducts) // New
-				products.GET("/:id", productHandler.GetProductByID) // New
+				products.GET("", productHandler.ListProducts)                                                 // New
+				products.GET("/:id", productHandler.GetProductByID)                                           // New
 				products.GET("/:id/calculated-option-sets", productHandler.GetCalculatedOptionSetsForProduct) // New
 				products.POST("/:id/groups", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddGroupToProduct)
 				products.POST("/:id/attributes", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddDirectAttributeToProduct)
 				products.PATCH("/:id/sku", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductSKU)
 
 				// Product Variant routes nested under product
-				products.POST("/:productId/variants/generate", infra_middleware.RequireRole("admin", "commercial"), productHandler.GenerateProductVariants) // New
+				products.POST("/:productId/variants/generate", infra_middleware.RequireRole("admin", "commercial"), productHandler.GenerateProductVariants)          // New
 				products.POST("/:productId/variants/find-or-create", infra_middleware.RequireRole("admin", "commercial"), productHandler.FindOrCreateProductVariant) // New
-				products.GET("/:productId/variants", productHandler.ListProductVariantsByProductID) // New
+				products.GET("/:productId/variants", productHandler.ListProductVariantsByProductID)                                                                  // New
 			}
 
 			// New: Attributes (ProductOptionSet) routes
 			attributes := protected.Group("/attributes")
 			{
-				attributes.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateAttribute) // New
-				attributes.GET("", productHandler.ListAttributes) // New
-				attributes.GET("/:id", productHandler.GetAttributeByID) // New
+				attributes.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateAttribute)    // New
+				attributes.GET("", productHandler.ListAttributes)                                                           // New
+				attributes.GET("/:id", productHandler.GetAttributeByID)                                                     // New
 				attributes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateAttribute) // New
 			}
 
 			// New: Top-level Product Variant routes
 			variants := protected.Group("/variants")
 			{
-				variants.GET("/:id", productHandler.GetProductVariantByID) // New
-				variants.GET("", productHandler.GetProductVariantBySKU) // New (using query param sku)
+				variants.GET("/:id", productHandler.GetProductVariantByID)                                                     // New
+				variants.GET("", productHandler.GetProductVariantBySKU)                                                        // New (using query param sku)
 				variants.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductVariant) // New
 			}
 

@@ -186,7 +186,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 func (h *ProductHandler) ListProducts(c *gin.Context) {
 	var query application.ListProductsQuery
 	// TODO: Parse optional query parameters for filtering
-	
+
 	products, err := h.service.ListProducts(c.Request.Context(), query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -357,8 +357,13 @@ func (h *ProductHandler) ListPartyServiceConfigurationsByPartyID(c *gin.Context)
 	}
 
 	query := application.ListPartyServiceConfigurationsByPartyIDQuery{PartyID: partyID}
-	// TODO: Need to implement service method and return DTOs
-	c.JSON(http.StatusOK, gin.H{"message": "not implemented"})
+	configs, err := h.service.ListPartyServiceConfigurationsByPartyID(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, configs)
 }
 
 func (h *ProductHandler) GetPartyServiceConfigurationByID(c *gin.Context) {
@@ -374,8 +379,13 @@ func (h *ProductHandler) GetPartyServiceConfigurationByID(c *gin.Context) {
 	}
 
 	query := application.GetPartyServiceConfigurationByIDQuery{PartyID: partyID, ID: configID}
-	// TODO: Need to implement service method and return DTO
-	c.JSON(http.StatusOK, gin.H{"message": "not implemented"})
+	config, err := h.service.GetPartyServiceConfigurationByID(c.Request.Context(), query)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
 }
 
 func (h *ProductHandler) UpdatePartyServiceConfiguration(c *gin.Context) {

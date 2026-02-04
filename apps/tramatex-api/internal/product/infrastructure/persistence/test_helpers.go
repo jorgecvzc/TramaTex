@@ -43,12 +43,20 @@ func NewTestDB(t *testing.T) *TestDB {
 	}
 }
 
+// Logf logs a formatted message using the underlying test logger.
+func (tdb *TestDB) Logf(format string, args ...interface{}) {
+	if tdb != nil && tdb.t != nil {
+		tdb.t.Logf(format, args...)
+	}
+}
+
 // SetUpProduct initializes product schema for tests
 func (tdb *TestDB) SetUpProduct() error {
 	ctx := context.Background()
 
 	// Drop tables if they exist (for clean state)
 	dropSchema := `
+		DROP TABLE IF EXISTS "party_service_configurations" CASCADE;
 		DROP TABLE IF EXISTS "product_variant_values" CASCADE;
 		DROP TABLE IF EXISTS "product_variants" CASCADE;
 		DROP TABLE IF EXISTS "product_direct_attributes" CASCADE;
@@ -162,6 +170,18 @@ func (tdb *TestDB) SetUpProduct() error {
 			CONSTRAINT "fk_variant" FOREIGN KEY ("variant_id") REFERENCES "product_variants" ("id") ON DELETE CASCADE,
 			CONSTRAINT "fk_attribute_value" FOREIGN KEY ("attribute_value_id") REFERENCES "attribute_values" ("id") ON DELETE CASCADE
 		);
+
+		CREATE TABLE "party_service_configurations" (
+			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			"party_id" UUID NOT NULL,
+			"service_id" VARCHAR(255) NOT NULL,
+			"name" VARCHAR(255) NOT NULL,
+			"configuration_details" JSONB,
+			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"deleted_at" TIMESTAMP WITH TIME ZONE,
+			CONSTRAINT "fk_party_service_configurations_party" FOREIGN KEY ("party_id") REFERENCES "parties" ("id") ON DELETE CASCADE
+		);
 	`
 
 	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
@@ -176,6 +196,7 @@ func (tdb *TestDB) TearDownProduct() error {
 	ctx := context.Background()
 
 	dropSchema := `
+		DROP TABLE IF EXISTS "party_service_configurations" CASCADE;
 		DROP TABLE IF EXISTS "product_variant_values" CASCADE;
 		DROP TABLE IF EXISTS "product_variants" CASCADE;
 		DROP TABLE IF EXISTS "product_direct_attributes" CASCADE;

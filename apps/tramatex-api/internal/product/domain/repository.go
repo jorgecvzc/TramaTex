@@ -44,3 +44,11 @@ type ProductVariantRepository interface {
 	FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*ProductVariant, error)
 	// Add other necessary methods for ProductVariant (e.g., List, UpdateStatus)
 }
+
+// PartyServiceConfigurationRepository defines the interface for interacting with PartyServiceConfiguration data.
+type PartyServiceConfigurationRepository interface {
+	Save(ctx context.Context, config *PartyServiceConfiguration) error
+	FindByID(ctx context.Context, partyID, id uuid.UUID) (*PartyServiceConfiguration, error)
+	FindByPartyID(ctx context.Context, partyID uuid.UUID) ([]*PartyServiceConfiguration, error)
+	Delete(ctx context.Context, partyID, id uuid.UUID) error
+}

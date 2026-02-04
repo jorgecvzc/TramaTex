@@ -1,6 +1,7 @@
 package application
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,8 +28,8 @@ type ProductDTO struct {
 // NewProductDTOFromDomain creates a ProductDTO from a domain.Product entity.
 func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 	var barcode *string
-	if p.Barcode != "" {
-		barcode = &p.Barcode
+	if p.Barcode != nil {
+		barcode = p.Barcode
 	}
 	return &ProductDTO{
 		ID:                 p.ID,
@@ -144,9 +145,9 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*d
 
 // PartyServiceConfigurationDTO represents the data transfer object for a PartyServiceConfiguration.
 type PartyServiceConfigurationDTO struct {
-	ID                   uuid.UUID              `json:"id"`
-	PartyID              uuid.UUID              `json:"partyId"`
-	ServiceID            string                 `json:"serviceId"`
-	Name                 string                 `json:"name"`
-	ConfigurationDetails map[string]interface{} `json:"configurationDetails"` // Flexible JSON object
+	ID                   uuid.UUID       `json:"id"`
+	PartyID              uuid.UUID       `json:"partyId"`
+	ServiceID            string          `json:"serviceId"`
+	Name                 string          `json:"name"`
+	ConfigurationDetails json.RawMessage `json:"configurationDetails"` // Flexible JSON object
 }

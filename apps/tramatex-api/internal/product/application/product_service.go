@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -535,6 +536,22 @@ func (s *ProductService) GetProductVariantByID(ctx context.Context, query GetPro
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
 }
 
+// GetProductVariantBySKU handles fetching a single product variant by its SKU.
+func (s *ProductService) GetProductVariantBySKU(ctx context.Context, query GetProductVariantBySKUQuery) (*ProductVariantDTO, error) {
+	variant, err := s.variantRepo.FindBySKU(ctx, query.SKU)
+	if err != nil {
+		return nil, fmt.Errorf("product variant not found: %w", err)
+	}
+	if variant == nil {
+		return nil, fmt.Errorf("product variant with SKU %s does not exist", query.SKU)
+	}
+	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch attributes for variant: %w", err)
+	}
+	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
+}
+
 // GenerateProductVariants handles UC-P-007: Pre-generate Variants for a Product.
 func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd GenerateProductVariantsCommand) error {
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
@@ -608,6 +625,11 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		}
 	}
 
+	applicableAttributes := make([]*domain.Attribute, 0, len(attrCodeToAttribute))
+	for _, attr := range attrCodeToAttribute {
+		applicableAttributes = append(applicableAttributes, attr)
+	}
+
 	// Validate OptionConfiguration against applicable attributes and values
 	var attributeValueIDs []uuid.UUID
 	var sortedAttributeCodes []string
@@ -655,21 +677,20 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 				return nil, fmt.Errorf("failed to update SKU of existing variant %s: %w", variant.ID, err)
 			}
 		}
-		return NewProductVariantDTOFromDomain(variant, applicableAttributesDTOs), nil
+		return NewProductVariantDTOFromDomain(variant, applicableAttributes), nil
 	}
 
 	// If not found, create new variant
-	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, attributeValueIDs)
+	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new product variant domain entity: %w", err)
 	}
-	newVariant.Status = domain.VariantStatusProvisional // JIT creation is provisional
 
 	if err := s.variantRepo.Save(ctx, newVariant); err != nil {
 		return nil, fmt.Errorf("failed to save new product variant: %w", err)
 	}
 
-	return NewProductVariantDTOFromDomain(newVariant, applicableAttributesDTOs), nil
+	return NewProductVariantDTOFromDomain(newVariant, applicableAttributes), nil
 }
 
 // UpdateProductVariant handles UC-P-008: Modificar una Variante Específica.
@@ -690,9 +711,9 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 	}
 	if cmd.Status != nil {
 		variant.Status = *cmd.Status
-	} else if variant.Status == domain.VariantStatusProvisional {
+	} else if variant.Status == domain.StatusProvisional {
 		// If other fields are updated and status is PROVISIONAL, automatically confirm it.
-		variant.Status = domain.VariantStatusConfirmed
+		variant.Status = domain.StatusConfirmed
 	}
 
 	if err := s.variantRepo.Save(ctx, variant); err != nil {
@@ -749,7 +770,16 @@ func (s *ProductService) ListPartyServiceConfigurationsByPartyID(ctx context.Con
 
 // CreatePartyServiceConfiguration handles creating a new party service configuration.
 func (s *ProductService) CreatePartyServiceConfiguration(ctx context.Context, cmd CreatePartyServiceConfigurationCommand) (*PartyServiceConfigurationDTO, error) {
-	config, err := domain.NewPartyServiceConfiguration(cmd.PartyID, cmd.ServiceID, cmd.Name, cmd.ConfigurationDetails)
+	var configDetails json.RawMessage
+	if cmd.ConfigurationDetails != nil {
+		payload, err := json.Marshal(cmd.ConfigurationDetails)
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize configuration details: %w", err)
+		}
+		configDetails = payload
+	}
+
+	config, err := domain.NewPartyServiceConfiguration(cmd.PartyID, cmd.ServiceID, cmd.Name, configDetails)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create party service configuration domain entity: %w", err)
 	}
@@ -787,7 +817,11 @@ func (s *ProductService) UpdatePartyServiceConfiguration(ctx context.Context, cm
 	}
 	configDetails := config.ConfigurationDetails
 	if cmd.ConfigurationDetails != nil {
-		configDetails = cmd.ConfigurationDetails
+		payload, err := json.Marshal(cmd.ConfigurationDetails)
+		if err != nil {
+			return nil, fmt.Errorf("failed to serialize configuration details: %w", err)
+		}
+		configDetails = payload
 	}
 
 	if err := config.Update(serviceID, name, configDetails); err != nil {
