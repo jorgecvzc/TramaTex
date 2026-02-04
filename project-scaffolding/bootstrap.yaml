@@ -152,12 +152,14 @@ workflow_steps:
     files_to_copy_relative_to_project_scaffolding:
       - source: "templates/agents/generic-rules.yaml"
         destination: "agents/generic-rules.yaml"
-      - source: "templates/agents/generic-project-context.yaml"
-        destination: "agents/generic-project-context.yaml"
-      - source: "templates/agents/sprint-session-loader.yaml"
-        destination: "agents/sprint-session-loader.yaml"
-      - source: "templates/agents/sprint-registry.yaml"
-        destination: "agents/sprint-registry.yaml"
+      - source: "templates/agents/project/project-context-template.yaml" # Changed source and destination
+        destination: "agents/project/project-context-template.yaml"
+      - source: "templates/agents/load-session.yaml" # Changed source and destination
+        destination: "agents/load-session.yaml"
+      - source: "templates/agents/project/sprint-registry.yaml" # Changed destination
+        destination: "agents/project/sprint-registry.yaml"
+      - source: "templates/agents/load-project-context.yaml" # Added new agent
+        destination: "agents/load-project-context.yaml"
     next_step: "copy_documentation_templates"
 
   - step_id: "copy_documentation_templates"

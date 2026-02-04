@@ -217,25 +217,60 @@ diagramming_standards:
     - "Ensure diagrams are consistent with the architecture and code."
 
 ai_agent_file_structure:
+
   title: "🤖 AI Agent File Organization"
-  
-  structure:
-    generic:
-      file: "generic-rules.yaml"
-      purpose: "Universal rules (documentation language, directory structure, principles)"
-      reusable: true
-    
-    project_context:
-      file: "generic-project-context.yaml"
-      purpose: "Project-specific context (stack, architecture, critical modules)"
-      reusable: false
-    
 
   
+
+  structure:
+
+    generic_rules:
+
+      file: "generic-rules.yaml"
+
+      purpose: "Universal rules (documentation language, directory structure, principles)"
+
+      reusable: true
+
+    project_context_template:
+
+      file: "project/project-context-template.yaml"
+
+      purpose: "Template for project-specific context (stack, architecture, critical modules)"
+
+      reusable: false
+
+    sprint_registry:
+
+      file: "project/sprint-registry.yaml"
+
+      purpose: "Central registry of all sprints and tasks, their status, and metadata for a project"
+
+      reusable: false
+
+    load_session_agent:
+
+      file: "load-session.yaml"
+
+      purpose: "Agent to load a development session (from NEXT_SESSION.md or by creating new task)"
+
+      reusable: true
+
+    load_project_context_agent:
+
+      file: "load-project-context.yaml"
+
+      purpose: "Agent to load the main project context and optional modular contexts"
+
+      reusable: true
+
+  
+
   loading_order:
-    - "The main initiation agent loads generic rules first"
-    - "The main initiation agent loads project context second"
-    - "The main initiation agent then executes its startup logic"
+
+    - "Generic rules are loaded first by any initiating agent."
+
+    - "Load-session agent manages the overall session flow, including project context loading."
 
 agents_directory_rules:
   title: "📁 /agents/ Directory Rules (CRITICAL)"

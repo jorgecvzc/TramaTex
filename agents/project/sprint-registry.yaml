@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.1"
-  last_updated: "2026-02-01"
+  last_updated: "2026-02-02"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
   note: "Parsed by sprint-session-loader.yaml for quick discovery"
@@ -43,46 +43,47 @@ active_tasks:
   count: 1
   note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
   
-  task_05_01:
-    id: "05-01"
+  task_05_02:
+    id: "05-02"
     sprint: "05"
-    filename: "01-party-module-quality-validation.md"
-    title: "Implementación del Módulo Party (Validación Post-Normas)"
+    filename: "02-refactorizacion-implementacion-modulo-party.md"
+    title: "Refactorización e Implementación del Módulo Party"
     status: "🔄 En Progreso"
     dates:
-      original_execution: "2026-01-18 to 2026-01-24"
-      pending_review: "(After Sprint 03 completion)"
-    duration_estimated: "4-6 horas"
-    context_focus: "Party module validation against Sprint 03 standards"
+      started: "2026-02-02"
+    context_focus: "Party refactor (dominio, BD, API, frontend) aligned to ADR-012"
     facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    note: "Code exists but requires validation against new quality standards"
-    validation_checklist:
-      - "Coverage ≥ 90% per ADR-011"
-      - "RBAC middleware on endpoints"
-      - "Structured logging integration"
-      - "Linter compliance"
-      - "Pre-commit hooks pass"
+    note: "Inicia la refactorización mayor tras aprobación del diseño"
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
 
-  task_06_01:
-    id: "06-01"
-    sprint: "06"
+  task_05_01:
+    id: "05-01"
+    sprint: "05"
     filename: "01-análisis-y-diseño-módulo-party.md"
     title: "Análisis y Diseño del Módulo Party"
     status: "✅ Completado"
     dates:
       started: "2026-02-01"
-      completed: "2026-02-01"
+      completed: "2026-02-02"
     context_focus: "Party module deep review (dominio, ADR, gap analysis, UI review)"
     facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    key_outcomes:
-      - "Dominio y casos de uso del módulo Party actualizados."
-      - "ADR-012 aprobado con el modelo Party con roles y relaciones."
-      - "Brecha completa detectada entre diseño e implementación actual."
-      - "Revisión de UI completada y cierre aprobado."
+    note: "Aprobado por el usuario; cierre final"
+
+  task_04_02:
+    id: "04-02"
+    sprint: "04"
+    filename: "01-consolidacion-modulo-iam.md"
+    title: "Consolidación del Módulo IAM (Autenticación y Administración)"
+    status: "✅ Completado"
+    dates:
+      completed: "2026-02-01"
+    duration_estimated: "4-6 horas"
+    context_focus: "IAM hardening, admin endpoints, frontend admin UI, security"
+    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
+    note: "Sprint IAM ubicado antes de Party por solicitud del usuario"
   
   task_04_01:
     id: "04-01"

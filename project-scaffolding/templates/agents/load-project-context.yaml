@@ -1,0 +1,52 @@
+# Load Project Context Agent
+# Version: 1.0
+# Audience: AI assistants
+# Purpose: Loads the main project context and optionally specified modular contexts.
+
+---
+
+metadata:
+  filename: "load-project-context.yaml"
+  version: "1.0"
+  last_updated: "2026-02-04"
+  purpose: "Loads the primary project context and selected modular contexts."
+  applies_to: "Any project with modular agent context."
+  dependencies:
+    - "agents/generic-rules.yaml"
+
+how_to_use:
+  title: "🎯 How to Use This Agent"
+  description: |
+    This agent helps to quickly load relevant project context for the current task.
+    It loads `agents/project/project-context.yaml` automatically.
+    You can optionally specify additional modular contexts to load from `agents/project/context/`.
+
+action_plan:
+  - step: "Load main project context"
+    description: "Loads the primary project context file."
+    load: "agents/project/project-context.yaml"
+
+  - step: "Offer to load modular contexts"
+    description: "Presents options to the user to load specific modular context agents."
+    prompt: |
+      Project context loaded. Would you like to load any specific modular contexts?
+      Available modular contexts (choose by number, comma-separated, or 'none'):
+      1. Architecture (agents/project/context/architecture.yaml)
+      2. Bounded Contexts (agents/project/context/bounded-contexts.yaml)
+      3. Tech Stack (agents/project/context/tech-stack.yaml)
+      4. Code Standards (agents/project/context/code-standards.yaml)
+    variable_name: "MODULAR_CONTEXTS_TO_LOAD"
+
+  - step: "Load selected modular contexts"
+    description: "Loads the modular context files specified by the user."
+    if: "MODULAR_CONTEXTS_TO_LOAD != 'none'"
+    foreach_item_in: "MODULAR_CONTEXTS_TO_LOAD"
+    do:
+      - if: "item == '1' || item == 'architecture'"
+        load: "agents/project/context/architecture.yaml"
+      - if: "item == '2' || item == 'bounded-contexts'"
+        load: "agents/project/context/bounded-contexts.yaml"
+      - if: "item == '3' || item == 'tech-stack'"
+        load: "agents/project/context/tech-stack.yaml"
+      - if: "item == '4' || item == 'code-standards'"
+        load: "agents/project/context/code-standards.yaml"
