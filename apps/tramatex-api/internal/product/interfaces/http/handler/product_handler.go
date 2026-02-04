@@ -327,7 +327,7 @@ func (h *ProductHandler) UpdateProductVariant(c *gin.Context) {
 }
 
 func (h *ProductHandler) CreatePartyServiceConfiguration(c *gin.Context) {
-	partyID, err := uuid.Parse(c.Param("partyId"))
+	partyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
@@ -350,7 +350,7 @@ func (h *ProductHandler) CreatePartyServiceConfiguration(c *gin.Context) {
 }
 
 func (h *ProductHandler) ListPartyServiceConfigurationsByPartyID(c *gin.Context) {
-	partyID, err := uuid.Parse(c.Param("partyId"))
+	partyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
@@ -367,7 +367,7 @@ func (h *ProductHandler) ListPartyServiceConfigurationsByPartyID(c *gin.Context)
 }
 
 func (h *ProductHandler) GetPartyServiceConfigurationByID(c *gin.Context) {
-	partyID, err := uuid.Parse(c.Param("partyId"))
+	partyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
@@ -389,7 +389,7 @@ func (h *ProductHandler) GetPartyServiceConfigurationByID(c *gin.Context) {
 }
 
 func (h *ProductHandler) UpdatePartyServiceConfiguration(c *gin.Context) {
-	partyID, err := uuid.Parse(c.Param("partyId"))
+	partyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
@@ -418,7 +418,7 @@ func (h *ProductHandler) UpdatePartyServiceConfiguration(c *gin.Context) {
 }
 
 func (h *ProductHandler) DeletePartyServiceConfiguration(c *gin.Context) {
-	partyID, err := uuid.Parse(c.Param("partyId"))
+	partyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return

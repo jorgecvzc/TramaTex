@@ -244,11 +244,11 @@ func main() {
 				parties.GET("/:id/addresses", partyAddressHandler.ListAddresses)
 
 				// New PartyServiceConfiguration routes
-				parties.POST("/:partyId/service-configurations", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreatePartyServiceConfiguration)
-				parties.GET("/:partyId/service-configurations", productHandler.ListPartyServiceConfigurationsByPartyID)
-				parties.GET("/:partyId/service-configurations/:id", productHandler.GetPartyServiceConfigurationByID)
-				parties.PUT("/:partyId/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdatePartyServiceConfiguration)
-				parties.DELETE("/:partyId/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.DeletePartyServiceConfiguration)
+				parties.POST("/:id/service-configurations", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreatePartyServiceConfiguration)
+				parties.GET("/:id/service-configurations", productHandler.ListPartyServiceConfigurationsByPartyID)
+				parties.GET("/:id/service-configurations/:id", productHandler.GetPartyServiceConfigurationByID)
+				parties.PUT("/:id/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdatePartyServiceConfiguration)
+				parties.DELETE("/:id/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.DeletePartyServiceConfiguration)
 			}
 
 			products := protected.Group("/products")
