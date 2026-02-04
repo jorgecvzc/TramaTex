@@ -658,6 +658,8 @@ workflow_steps:
       📚 ESTRUCTURA DE DOCUMENTACIÓN CLAVE
       ───────────────────────────────────────────────────
       
+      📌 **NEXT_SESSION.md**: ¡Ahora es un registro de sesiones! Permite múltiples sesiones de trabajo activas o pausadas. Consulta `AGENTS.md` para más detalles.
+
       🚀 **Proyecto**: docs/overview/
          El "qué" y el "porqué": Contexto de negocio, planificación, estado.
       
