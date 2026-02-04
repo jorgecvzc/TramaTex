@@ -36,7 +36,6 @@ La documentación del sistema de diseño (paleta de colores, tipografía, etc.) 
 1. Load `design/palette.md` - Color system
 2. Load `design/theme.md` - Theme configuration
 3. Load `design/typography.md` - Font system
-4. Reference `mockups/` - Visual guidelines
 
 ### For Code Review
 1. Load `code-standards.yaml` - Review criteria
