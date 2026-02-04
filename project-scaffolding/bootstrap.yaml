@@ -243,39 +243,36 @@ workflow_steps:
           *   **Clean Architecture & DDD**: The system is a modular monolith that strictly follows Clean Architecture and Domain-Driven Design.
           *   **Test-Driven Development (TDD)**: All business logic must be developed using a test-first approach.
 
-          ## 3. NEXT_SESSION.md - Session Continuity
+          ## 3. NEXT_SESSION.md - Session Log for Continuity
 
-          `NEXT_SESSION.md` is a volatile checkpoint file:
-          - **Overwritten each session** with pending work
-          - **Empty file** = no pending tasks
-          - **Priority**: Check this file first before loading sprint-session-loader
-          - **Usage**: Resume half-finished work, track blockers, provide context
+          `NEXT_SESSION.md` is now a log file for active or paused development sessions:
+          - **Stores multiple sessions**: Each session is a distinct block of work with its own context and tasks.
+          - **Not automatically overwritten**: Sessions are managed manually or by agents configured to do so.
+          - **Priority**: Check this file first to identify available sessions before loading `sprint-session-loader.yaml`.
+          - **Usage**: Allows resuming specific work streams, tracking multiple parallel efforts, and providing detailed context for continuity.
 
           ## 4. Standard Workflow
 
-          1.  **Check NEXT_SESSION.md**: If not empty, resume from there. Otherwise load `agents/sprint-session-loader.yaml`.
-          2.  **Select Task**: Either continue an existing task or start a new one from the backlog.
+          1.  **Check NEXT_SESSION.md**: If it contains saved sessions, present them to the user for selection. Otherwise, load `agents/sprint-session-loader.yaml`.
+          2.  **Select Task/Session**: Either continue an existing session/task or start a new one from the backlog.
           3.  **Consult Module Workflow**: If the task is to create a new module, consult the **Standard Module Development Workflow (SMDW)** defined in `agents/generic-rules.yaml`.
           4.  **Load Context**: Load the specific context agents required for the task from `agents/project/context/`.
           5.  **Develop (TDD)**: Write tests first, then implement the code, following the SMDW phases.
           6.  **Validate**: Run all tests, linters, and formatters before committing.
           7.  **Document**: Update the sprint task file, `project-status.md`, and any other required module documentation.
-          8.  **Update NEXT_SESSION.md**: Overwrite with pending work or clear if complete.
+          8.  **Update NEXT_SESSION.md**: Add new sessions, update existing ones, or mark as complete.
           9.  **Commit**: Use conventional commit messages in English.
 
       - filename: "NEXT_SESSION.md"
         content: |
-          # 📝 Next Session - $PROJECT_NAME
+          # NEXT_SESSION.md - Session Log
           
-          **Last Updated:** [[YYYY-MM-DD]]
-          
-          ## Pending Work
-          
-          (This file is empty - no pending work from previous session)
+          This file acts as a log for active or paused development sessions.
+          Each session below represents a distinct line of work that can be resumed.
           
           ---
           
-          **Note:** This file is overwritten each session. Empty = no pending tasks.
+          (No active or paused sessions currently.)
 
       - filename: ".env.example"
         content: |

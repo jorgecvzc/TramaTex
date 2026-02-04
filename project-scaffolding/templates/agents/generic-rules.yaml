@@ -69,10 +69,10 @@ directory_structure:
       required: true
     
     - name: "NEXT_SESSION.md"
-      purpose: "Volatile checkpoint file for session continuity"
+      purpose: "Log for active or paused development sessions"
       required: false
-      behavior: "Overwritten each session with pending work; empty = no pending tasks"
-      usage: "Resume half-finished work, track blockers, provide next steps context"
+      behavior: "Stores multiple sessions with context and tasks; not automatically overwritten"
+      usage: "Allows resuming specific work streams, tracking multiple parallel efforts."
   
   root_level_folders:
     - name: "/docs/"
