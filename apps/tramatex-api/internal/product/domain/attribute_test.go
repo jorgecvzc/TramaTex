@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewAttribute(t *testing.T) {
@@ -63,5 +63,52 @@ func TestAttribute_AddValue(t *testing.T) {
 		_, _ = attr.AddValue("Medium", "M")
 		_, _ = attr.AddValue("Small", "S")
 		assert.Len(t, attr.Values, 3) // Large, Medium, Small
+	})
+}
+
+func TestAttribute_UpdateValue(t *testing.T) {
+	attr, _ := domain.NewAttribute("Size", "S", 0, nil, nil)
+	val, _ := attr.AddValue("Large", "L")
+
+	t.Run("should update existing value", func(t *testing.T) {
+		err := attr.UpdateValue(val.ID, "XL", "XL")
+		assert.NoError(t, err)
+		assert.Equal(t, "XL", attr.Values[0].Value)
+		assert.Equal(t, "XL", attr.Values[0].Code)
+	})
+
+	t.Run("should fail for empty value", func(t *testing.T) {
+		err := attr.UpdateValue(val.ID, "", "XL")
+		assert.Error(t, err)
+		assert.EqualError(t, err, "attribute value cannot be empty")
+	})
+
+	t.Run("should fail for empty value code", func(t *testing.T) {
+		err := attr.UpdateValue(val.ID, "XL", "")
+		assert.Error(t, err)
+		assert.EqualError(t, err, "attribute value code cannot be empty")
+	})
+
+	t.Run("should fail when value id missing", func(t *testing.T) {
+		err := attr.UpdateValue(uuid.New(), "XL", "XL")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestAttribute_RemoveValue(t *testing.T) {
+	attr, _ := domain.NewAttribute("Size", "S", 0, nil, nil)
+	val, _ := attr.AddValue("Large", "L")
+
+	t.Run("should remove existing value", func(t *testing.T) {
+		err := attr.RemoveValue(val.ID)
+		assert.NoError(t, err)
+		assert.Empty(t, attr.Values)
+	})
+
+	t.Run("should fail when value id missing", func(t *testing.T) {
+		err := attr.RemoveValue(uuid.New())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
 	})
 }

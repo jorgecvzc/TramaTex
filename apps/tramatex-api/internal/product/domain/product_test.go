@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewProduct(t *testing.T) {
@@ -25,15 +25,15 @@ func TestNewProduct(t *testing.T) {
 		expectedError string
 	}{
 		{
-			name:          "Valid Product Creation",
-			sku:           "FYR2040",
-			productName:   "Camiseta",
-			longName:      "Camiseta de Algodón",
-			description:   "Una camiseta cómoda",
-			productType:   domain.ProductTypeTangible,
-			brandID:       brandID,
-			barcode:       &barcode,
-			expectError:   false,
+			name:        "Valid Product Creation",
+			sku:         "FYR2040",
+			productName: "Camiseta",
+			longName:    "Camiseta de Algodón",
+			description: "Una camiseta cómoda",
+			productType: domain.ProductTypeTangible,
+			brandID:     brandID,
+			barcode:     &barcode,
+			expectError: false,
 		},
 		{
 			name:          "Missing SKU",
@@ -144,4 +144,14 @@ func TestProduct_AddDirectAttribute(t *testing.T) {
 	// Test adding duplicate
 	p.AddDirectAttribute(attrID1)
 	assert.Len(t, p.DirectAttributeIDs, 2)
+}
+
+func TestProductHelpers_IDPTR(t *testing.T) {
+	brandID := uuid.New()
+	groupID := uuid.New()
+	brand := domain.Brand{ID: brandID}
+	group := domain.ProductGroup{ID: groupID}
+
+	assert.Equal(t, brandID, *brand.ID_PTR())
+	assert.Equal(t, groupID, *group.ID_PTR())
 }

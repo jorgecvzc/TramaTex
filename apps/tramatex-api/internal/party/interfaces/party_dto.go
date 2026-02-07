@@ -14,10 +14,6 @@ type PartyDTO struct {
 	Roles               []string                `json:"roles"`
 	PersonProfile       *PersonProfileDTO       `json:"person_profile,omitempty"`
 	OrganizationProfile *OrganizationProfileDTO `json:"organization_profile,omitempty"`
-	CreatedBy           string                  `json:"created_by"`
-	CreatedAt           time.Time               `json:"created_at"`
-	ModifiedBy          string                  `json:"modified_by,omitempty"`
-	ModifiedAt          time.Time               `json:"modified_at,omitempty"`
 }
 
 type PersonProfileDTO struct {
@@ -142,10 +138,6 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 		ID:         party.ID().String(),
 		Status:     string(party.Status()),
 		Roles:      make([]string, 0),
-		CreatedBy:  party.CreatedBy(),
-		CreatedAt:  party.CreatedAt(),
-		ModifiedBy: party.ModifiedBy(),
-		ModifiedAt: party.ModifiedAt(),
 	}
 
 	for _, role := range party.Roles() {

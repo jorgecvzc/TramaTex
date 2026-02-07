@@ -59,10 +59,10 @@ $envSetting = Select-String -Path $makefilePath -Pattern "^ENV \?=" | Select-Obj
 if ($envSetting) {
     $envValue = $envSetting.Line -replace "ENV \?= ", ""
     Write-Host "📝 Default environment: $($envValue.ToUpper())" -ForegroundColor Yellow
-    if ($envValue -eq "remote") {
-        Write-Host "✅ Correctly set to REMOTE (pcele)" -ForegroundColor Green
+    if ($envValue -eq "local") {
+        Write-Host "✅ Correctly set to LOCAL (Docker Desktop)" -ForegroundColor Green
     } else {
-        Write-Host "⚠️  Set to LOCAL (may need to be changed)" -ForegroundColor Yellow
+        Write-Host "⚠️  Set to REMOTE (may need to be changed)" -ForegroundColor Yellow
     }
 }
 
@@ -227,13 +227,13 @@ Write-Host @"
 If you're on Windows with WSL2 or without 'make' installed:
 
 OPTION A - Install make:
-  choco install make
+    choco install make
 
-OPTION B - Use docker-compose directly:
-  docker-compose -f docker-compose.remote.yml up
-  
+OPTION B - Use docker-compose directly (local):
+    docker-compose -f docker-compose.local.yml up
+
 OPTION C - Use SSH to run on remote:
-  ssh ele@pcele "docker-compose -f docker-compose.remote.yml up"
+    ssh ele@pcele "docker-compose -f docker-compose.remote.yml up"
 
 "@ -ForegroundColor Yellow
 

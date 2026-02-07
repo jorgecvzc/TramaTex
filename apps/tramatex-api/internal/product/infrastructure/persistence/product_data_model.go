@@ -24,8 +24,8 @@ type ProductDataModel struct {
 	GroupIDs           pq.StringArray `gorm:"type:uuid[]"`
 	DirectAttributeIDs pq.StringArray `gorm:"type:uuid[]"`
 	IsActive           bool           `gorm:"not null;default:true"`
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	CreatedBy          string
+	ModifiedBy         string
 }
 
 func (ProductDataModel) TableName() string {
@@ -46,8 +46,6 @@ func (p *ProductDataModel) ToDomain() *domain.Product {
 		GroupIDs:           uuidArrayFromStringArray(p.GroupIDs),
 		DirectAttributeIDs: uuidArrayFromStringArray(p.DirectAttributeIDs),
 		IsActive:           p.IsActive,
-		CreatedAt:          p.CreatedAt,
-		UpdatedAt:          p.UpdatedAt,
 	}
 }
 
@@ -65,8 +63,6 @@ func FromDomain(p *domain.Product) *ProductDataModel {
 		GroupIDs:           stringArrayFromUUIDArray(p.GroupIDs),
 		DirectAttributeIDs: stringArrayFromUUIDArray(p.DirectAttributeIDs),
 		IsActive:           p.IsActive,
-		CreatedAt:          p.CreatedAt,
-		UpdatedAt:          p.UpdatedAt,
 	}
 }
 

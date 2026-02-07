@@ -16,6 +16,16 @@ bounded_contexts_overview:
   title: "🎯 TramaTex Bounded Contexts"
   description: "Modules organized by business domain"
 
+erp_core_modules:
+  title: "📦 ERP Core Modules"
+  description: "Group of foundational and core business modules that provide the primary ERP functionalities. MES depends on these for core data."
+  modules:
+    - "IAM"
+    - "Party"
+    - "Product"
+    - "Pricing"
+    - "Sales"
+
 core_contexts:
   iam:
     title: "Identity & Access Management (Phase 0)"
@@ -303,51 +313,48 @@ core_contexts:
   
   mes:
     title: "Manufacturing Execution System (Phase 3)"
-    description: "Production planning, execution, and quality control"
-    
+    description: "Production planning, execution, and quality control. Specialized subdomain designed for eventual microservice extraction."
     criticality: "MEDIUM - MVP"
     implementation_phase: "3"
-    
     key_entities:
-      - "ProductionOrder (MES work order)"
-      - "WorkCenter (production stations)"
-      - "QualityCheck (quality control)"
-      - "ProductionStatus (pending, in-progress, completed)"
-    
+      - "ProductionRecipe (Job Definition)"
+      - "ProductionOrder (Job Instance)"
+      - "TaskDefinition"
+      - "TaskInstance"
+      - "WorkCenter"
+      - "QualityCheck"
     domain_concepts:
       - "Production order assignment"
       - "Work center scheduling"
       - "Quality checks and inspection"
       - "Production status tracking"
-    
+      - "Task management and dependencies"
+      - "Recipe-based production"
     dependencies_on:
-      - "Sales (production order source)"
-      - "Product (what to produce)"
-    
+      - "Sales (production order source from ERP Core)"
+      - "Product (what to produce from ERP Core)"
+      - "Party (Client references from ERP Core)"
+      - "IAM (Inspector/User references from ERP Core)"
     depended_on_by:
-      - "Inventory (stock completion)"
-      - "Reports (production metrics)"
+      - "Inventory (stock completion in ERP Core)"
+      - "Reports (production metrics in ERP Core)"
 
 context_dependencies:
   title: "📊 Bounded Context Dependencies"
-  
+
   dependency_graph: |
-    IAM
-     ├─→ Party
-     ├─→ Product
-     └─→ Pricing
-            ├─→ Party (client reference)
-            └─→ Product (costs)
-                 └─→ Sales
-                      └─→ MES
+    ERP Core (IAM, Party, Product, Pricing, Sales)
+     ├─→ MES (Production)
+     └─→ Inventory (Future)
+     └─→ Reports (Future)
 
   implementation_order:
-    1: "IAM - foundational for all modules"
-    2: "Party - required by Product and Pricing"
-    3: "Product - base for pricing calculations"
-    4: "Pricing - core business logic, revenue critical"
-    5: "Sales - uses IAM, Party, Product, Pricing"
-    6: "MES - uses Sales, Product"
+    1: "ERP Core: IAM - foundational"
+    2: "ERP Core: Party - required by Product and Pricing"
+    3: "ERP Core: Product - base for pricing and MES"
+    4: "ERP Core: Pricing - core business logic"
+    5: "ERP Core: Sales - uses ERP Core modules"
+    6: "MES - uses Sales, Product, Party, IAM (from ERP Core)"
   
   blocking_dependencies:
     "Pricing cannot start until": "IAM, Party, Product are complete"

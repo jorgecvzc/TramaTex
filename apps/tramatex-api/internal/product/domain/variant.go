@@ -2,10 +2,11 @@ package domain
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ProductVariant represents a specific, sellable instance of a Product.
@@ -14,11 +15,10 @@ type ProductVariant struct {
 	ProductID       uuid.UUID
 	SKU             string
 	Barcode         *string
+	BaseCost        float64
 	Status          VariantStatus
 	AttributeValues []uuid.UUID // IDs of associated AttributeValues
 	IsActive        bool
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
 }
 
 // NewProductVariant creates a new ProductVariant with validation.
@@ -56,11 +56,10 @@ func NewProductVariant(
 		ProductID:       productID,
 		SKU:             sku,
 		Barcode:         barcode,
+		BaseCost:        0,
 		Status:          status,
 		AttributeValues: attributeValueIDs,
 		IsActive:        true,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
 	}, nil
 }
 

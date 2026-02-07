@@ -20,7 +20,7 @@ func NewPostgreSQLPartyRepository(db *sql.DB) *PostgreSQLPartyRepository {
 	return &PostgreSQLPartyRepository{db: db}
 }
 
-func (r *PostgreSQLPartyRepository) Save(ctx context.Context, party *domain.Party) error {
+func (r *PostgreSQLPartyRepository) Save(ctx context.Context, party *domain.Party, createdBy string, modifiedBy string) error {
 	if party == nil {
 		return fmt.Errorf("party cannot be nil")
 	}
@@ -47,9 +47,9 @@ func (r *PostgreSQLPartyRepository) Save(ctx context.Context, party *domain.Part
 	_, err = tx.ExecContext(ctx, partyQuery,
 		party.ID().Value(),
 		string(party.Status()),
-		party.CreatedBy(),
-		party.CreatedAt(),
-		party.ModifiedBy(),
+		createdBy,
+		now, // created_at always set on creation. For updates, it remains the original.
+		modifiedBy,
 		now,
 	)
 	if err != nil {
@@ -181,15 +181,14 @@ func (r *PostgreSQLPartyRepository) Save(ctx context.Context, party *domain.Part
 
 func (r *PostgreSQLPartyRepository) FindByID(ctx context.Context, id domain.PartyID) (*domain.Party, error) {
 	query := `
-		SELECT id, status, created_by, created_at, modified_by, modified_at
+		SELECT id, status
 		FROM parties
 		WHERE id = $1
 	`
 
-	var partyID, status, createdBy, modifiedBy string
-	var createdAt, modifiedAt time.Time
+	var partyID, status string
 
-	err := r.db.QueryRowContext(ctx, query, id.Value()).Scan(&partyID, &status, &createdBy, &createdAt, &modifiedBy, &modifiedAt)
+	err := r.db.QueryRowContext(ctx, query, id.Value()).Scan(&partyID, &status)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("party not found")
 	}
@@ -220,10 +219,6 @@ func (r *PostgreSQLPartyRepository) FindByID(ctx context.Context, id domain.Part
 	return domain.NewPartyFromPersistence(
 		parsedID,
 		statusEnum,
-		createdBy,
-		createdAt,
-		modifiedBy,
-		modifiedAt,
 		personProfile,
 		organizationProfile,
 		roles,
@@ -483,21 +478,27 @@ func NewPostgreSQLPartyRelationshipRepository(db *sql.DB) *PostgreSQLPartyRelati
 	return &PostgreSQLPartyRelationshipRepository{db: db}
 }
 
-func (r *PostgreSQLPartyRelationshipRepository) Save(ctx context.Context, relationship domain.PartyRelationship) error {
+func (r *PostgreSQLPartyRelationshipRepository) Save(ctx context.Context, relationship domain.PartyRelationship, createdBy string, modifiedBy string) error {
 	query := `
-		INSERT INTO party_relationships (id, from_party_id, to_party_id, type, created_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO party_relationships (id, from_party_id, to_party_id, type, created_by, created_at, modified_by, modified_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id) DO UPDATE SET
 			from_party_id = $2,
 			to_party_id = $3,
-			type = $4
+			type = $4,
+			modified_by = $7,
+			modified_at = $8
 	`
+	now := time.Now()
 	_, err := r.db.ExecContext(ctx, query,
 		relationship.ID().Value(),
 		relationship.FromID().Value(),
 		relationship.ToID().Value(),
 		string(relationship.Type()),
-		time.Now(),
+		createdBy,
+		now,
+		modifiedBy,
+		now,
 	)
 	return err
 }

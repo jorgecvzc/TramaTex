@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
@@ -479,6 +480,9 @@ func (s *ProductService) ListAttributes(ctx context.Context, query ListAttribute
 	// Implement filtering logic based on query.ScopeType, query.BrandID, query.ProductGroupID
 	// For simplicity, let's assume FindByScope can handle all combinations for now.
 	// A more robust implementation would build the query dynamically.
+	if query.ScopeType != nil && !isValidScopeType(*query.ScopeType) {
+		return nil, fmt.Errorf("invalid scope type: %s", *query.ScopeType)
+	}
 
 	attributes, err := s.attributeRepo.FindByScope(ctx, query.BrandID, query.ProductGroupID)
 	if err != nil {
@@ -487,9 +491,11 @@ func (s *ProductService) ListAttributes(ctx context.Context, query ListAttribute
 
 	var dtos []*AttributeDTO
 	for _, attr := range attributes {
+		if !attributeMatchesScopeType(attr, query.ScopeType) {
+			continue
+		}
 		dtos = append(dtos, NewAttributeDTOFromDomain(attr))
 	}
-	// TODO: Further filtering by ScopeType if needed, as FindByScope might not cover all cases
 	return dtos, nil
 }
 
@@ -507,16 +513,91 @@ func (s *ProductService) GetProductByID(ctx context.Context, query GetProductByI
 
 // ListProducts handles fetching a list of products with optional filtering.
 func (s *ProductService) ListProducts(ctx context.Context, query ListProductsQuery) ([]*ProductDTO, error) {
-	// TODO: Implement actual listing with filters based on query parameters.
-	// For now, returning an empty list as a placeholder.
-	return []*ProductDTO{}, nil
+	products, err := s.productRepo.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list products: %w", err)
+	}
+	if len(products) == 0 {
+		return []*ProductDTO{}, nil
+	}
+
+	dtos := make([]*ProductDTO, 0, len(products))
+	for _, product := range products {
+		if !productMatchesQuery(product, query) {
+			continue
+		}
+		dtos = append(dtos, NewProductDTOFromDomain(product))
+	}
+	return dtos, nil
 }
 
 // ListProductVariantsByProductID handles fetching a list of product variants for a given product ID.
 func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, query ListProductVariantsByProductIDQuery) ([]*ProductVariantDTO, error) {
-	// TODO: Implement domain.ProductVariantRepository.FindByProductID
-	// For now, returning an empty list as a placeholder.
-	return []*ProductVariantDTO{}, nil
+	variants, err := s.variantRepo.FindByProductID(ctx, query.ProductID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list product variants: %w", err)
+	}
+	if len(variants) == 0 {
+		return []*ProductVariantDTO{}, nil
+	}
+
+	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch attributes for variants: %w", err)
+	}
+
+	dtos := make([]*ProductVariantDTO, len(variants))
+	for i, variant := range variants {
+		dtos[i] = NewProductVariantDTOFromDomain(variant, allAttributes)
+	}
+	return dtos, nil
+}
+
+func isValidScopeType(scopeType string) bool {
+	switch strings.ToUpper(scopeType) {
+	case "GENERIC", "BRAND", "BRAND_GROUP":
+		return true
+	default:
+		return false
+	}
+}
+
+func attributeMatchesScopeType(attr *domain.Attribute, scopeType *string) bool {
+	if scopeType == nil {
+		return true
+	}
+	switch strings.ToUpper(*scopeType) {
+	case "GENERIC":
+		return attr.ScopeBrandID == nil && attr.ScopeGroupID == nil
+	case "BRAND":
+		return attr.ScopeBrandID != nil && attr.ScopeGroupID == nil
+	case "BRAND_GROUP":
+		return attr.ScopeBrandID != nil && attr.ScopeGroupID != nil
+	default:
+		return false
+	}
+}
+
+func productMatchesQuery(product *domain.Product, query ListProductsQuery) bool {
+	if query.BrandID != nil && product.BrandID != *query.BrandID {
+		return false
+	}
+	if query.GroupID != nil && !productHasGroup(product, *query.GroupID) {
+		return false
+	}
+	if query.IsActive != nil && product.IsActive != *query.IsActive {
+		return false
+	}
+	return true
+}
+
+func productHasGroup(product *domain.Product, groupID uuid.UUID) bool {
+	for _, id := range product.GroupIDs {
+		if id == groupID {
+			return true
+		}
+	}
+	return false
 }
 
 // GetProductVariantByID handles fetching a single product variant by its ID.
@@ -635,14 +716,14 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	var sortedAttributeCodes []string
 	attrCodeToValueCode := make(map[string]string) // For SKU construction
 
-	for _, item := range cmd.OptionConfiguration {
-		attr, attrExists := attrCodeToAttribute[item.AttributeName]
+	for attributeName, value := range cmd.OptionConfiguration {
+		attr, attrExists := attrCodeToAttribute[attributeName]
 		if !attrExists {
-			return nil, fmt.Errorf("attribute '%s' is not applicable to product '%s'", item.AttributeName, product.ID)
+			return nil, fmt.Errorf("attribute '%s' is not applicable to product '%s'", attributeName, product.ID)
 		}
-		val, valExists := attrValueToDomainValue[item.Value]
+		val, valExists := attrValueToDomainValue[value]
 		if !valExists || val.AttributeID != attr.ID { // Ensure value belongs to this attribute
-			return nil, fmt.Errorf("value '%s' is not valid for attribute '%s'", item.Value, item.AttributeName)
+			return nil, fmt.Errorf("value '%s' is not valid for attribute '%s'", value, attributeName)
 		}
 		attributeValueIDs = append(attributeValueIDs, val.ID)
 		sortedAttributeCodes = append(sortedAttributeCodes, attr.Code)
@@ -705,6 +786,9 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 
 	if cmd.Barcode != nil {
 		variant.Barcode = cmd.Barcode
+	}
+	if cmd.BaseCost != nil {
+		variant.BaseCost = *cmd.BaseCost
 	}
 	if cmd.IsActive != nil {
 		variant.IsActive = *cmd.IsActive

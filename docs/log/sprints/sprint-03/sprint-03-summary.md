@@ -9,7 +9,7 @@
 | **ID del Sprint** | sprint-03 |
 | **Título** | Estrategia de Calidad y Testing |
 | **Estado** | ⏳ Planificado |
-| **Facilitador/LLM** | GitHub Copilot (Claude Sonnet 4.5) |
+| **Facilitador/LLM** | GitHub Copilot (GPT-5.2-Codex) |
 | **Fecha de Inicio** | (Por determinar) |
 | **Fecha de Fin** | (Por determinar) |
 | **Duración Estimada** | 2-4 horas |
@@ -23,7 +23,7 @@ Definir y documentar la estrategia de calidad del código, estándares de testin
 
 ### Contexto
 
-Después de completar Sprint 03 (Seguridad y CI/CD), el proyecto cuenta con:
+Después de completar el sprint de Seguridad y CI/CD, el proyecto cuenta con:
 - ✅ 110 tests pasando (100% coverage en módulos core)
 - ✅ CI/CD pipeline automatizado (GitHub Actions)
 - ✅ Controles de seguridad OWASP implementados
@@ -88,7 +88,7 @@ Es momento de formalizar las prácticas de calidad que han funcionado y establec
 
 ## 📚 REFERENCIAS
 
-- Sprint 03: Seguridad y CI/CD (base para quality standards)
+- Sprint de Seguridad y CI/CD (base para quality standards)
 - ADR-010: Security Architecture Decision
 - [Testing Pyramid - Martin Fowler](https://martinfowler.com/articles/practical-test-pyramid.html)
 - [Technical Debt Quadrant](https://martinfowler.com/bliki/TechnicalDebtQuadrant.html)
@@ -98,7 +98,7 @@ Es momento de formalizar las prácticas de calidad que han funcionado y establec
 ## 🔗 DEPENDENCIAS
 
 **Depende de:**
-- Sprint 03 (Security & CI/CD) ✅ Completado
+- Sprint de Seguridad y CI/CD ✅ Completado
 
 **Habilita:**
 - Sprint 04: Implementación del Módulo Party con estándares formalizados

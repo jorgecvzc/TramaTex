@@ -1,126 +1,43 @@
-# Módulo de Party
+# Módulo de Party (Gestión de Terceros)
+
+**Estado:** Aceptado
 
 ## 1. Propósito
 
-*   **Visión del Módulo:** Gestionar Parties (personas, organizaciones o ambas) con roles, relaciones y contactos.
+*   **Visión del Módulo:** Gestionar la información de todos los terceros (clientes, proveedores, empleados) que interactúan con el sistema TramaTex, consolidando sus identidades, roles, perfiles (persona/organización), contactos y relaciones.
 *   **Objetivos Clave:**
-    *   Proporcionar un sistema centralizado para gestionar todos los clientes y proveedores de la empresa.
-    *   Gestionar información de contacto, direcciones, categorías, y relaciones comerciales.
+    *   Proporcionar un sistema centralizado y unificado para la gestión de clientes y proveedores, evitando la duplicación de datos.
+    *   Soportar la complejidad de un mismo tercero asumiendo múltiples roles (ej. cliente y proveedor).
+    *   Gestionar relaciones complejas entre terceros (ej. jerarquías de empresas, empleados de organizaciones).
+    *   Proveer información de Party a otros módulos (Product, Pricing, Sales, IAM).
 
 ## 2. Requisitos
 
-
-
 ### 2.1. Requisitos Funcionales
 
-
-
-*   **RF-001:** Registro de nuevas Parties (persona, organización o ambas).
-
-*   **RF-002:** Gestión de perfiles (persona/organización).
-
-*   **RF-003:** Gestión de contactos de organización.
-
-*   **RF-004:** Gestión de roles y relaciones entre Parties.
-
-*   **RF-005:** Clasificación por categorías. **(Post-MVP)**
-
-*   **RF-006:** Historial de interacciones. **(Post-MVP)**
-
-
+*   **RF-P-001:** Crear y mantener Parties con perfil de persona, organización o ambos.
+*   **RF-P-002:** Gestionar los roles de una Party (ej. Cliente, Proveedor, Empleado).
+*   **RF-P-003:** Gestionar relaciones entre Parties (ej. "es empleado de", "es filial de").
+*   **RF-P-004:** Gestionar puntos de contacto para perfiles de organización.
+*   **RF-P-005:** Listar Parties con filtros por roles, tipo de perfil, estado y datos de perfil.
+*   **RF-P-006:** Activar y desactivar Parties.
 
 ## 3. Casos de Uso
 
+Para una lista completa y detallada de los casos de uso, incluyendo flujos y entradas/salidas, consulte el documento [Casos de Uso - Módulo Party](./use-cases.md).
 
+## 4. Modelo de Dominio
 
-### 3.1. Actores
+Para una descripción detallada del modelo de dominio, incluyendo entidades, Value Objects, agregados y sus relaciones, consulte el documento [Modelo de Dominio - Módulo Party](./domain-model.md).
 
+## 5. Decisiones de Diseño
 
-
-*   **Vendedor:** Empleado que gestiona clientes.
-
-*   **Comprador:** Empleado que gestiona proveedores.
-
-
-
-### 3.2. Casos de Uso Principales (MVP)
-
-
-
-#### Party
-
-- **Crear Party:** Registrar una Party con perfil persona/organización.
-
-- **Actualizar Party:** Actualizar perfiles y datos básicos.
-
-- **Obtener Party:** Obtener detalles por ID.
-
-- **Listar Parties:** Listar con filtros por rol, tipo y estado.
-
-- **Cambiar Estado de Party:** Activar/desactivar.
-
-#### Roles
-
-- **Añadir Rol a Party**
-- **Eliminar Rol de Party**
-
-#### Relaciones
-
-- **Crear Relación entre Parties**
-- **Listar Relaciones**
-- **Eliminar Relación**
-
-#### ContactDetails (Organización)
-
-- **Añadir Contacto**
-- **Listar Contactos**
-- **Actualizar Contacto**
-- **Eliminar Contacto**
-
-
-
-## 4. Historias de Usuario
-
-
-
-*   **HU-001:** Como vendedor, quiero registrar una Party cliente para gestionar sus pedidos.
-
-*   **HU-002:** Como comprador, quiero registrar una Party proveedor para gestionar órdenes de compra.
-
-*   **HU-003:** Como vendedor, quiero agregar múltiples contactos de organización para gestionar comunicación.
-
-
-
-## 5. Criterios de Aceptación
-
-
-
-*   **Para HU-001:**
-
-    *   **Criterio 1:** Dado que ingreso un perfil válido, cuando guardo el formulario, entonces se crea una nueva Party en el sistema.
-
-
-
-
-
-## 7. Decisiones de Diseño
-
-
-
+*   **Patrón Party (Unificado):** Se adopta un modelo de `Party` unificado que puede tener un perfil de persona, de organización, o ambos. Esto elimina la duplicación de datos y permite múltiples roles por Party (`ADR-005`).
+*   **Roles y Relaciones Explícitas:** Los roles (`PartyRole`) y las relaciones (`PartyRelationship`) son entidades de dominio explícitas que definen la función y el vínculo de una Party con otras.
+*   **Contactos Simplificados:** El `OrganizationProfile` gestiona una lista de `ContactDetails` (Value Object), permitiendo flexibilidad sin sobre-ingeniería (`ADR-012`).
+*   **Exclusión de Campos de Auditoría del Dominio:** `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` se gestionan en la capa de infraestructura/persistencia.
 *   **Relaciones con Otros Módulos:**
-
-    *   **IAM**: Cada Party puede estar vinculada a un usuario (opcional).
-
-    *   **Product**: Party compra/vende productos.
-
-    *   **Pricing**: Diferentes precios por categoría de Party.
-
-    *   **Sales**: Órdenes se relacionan con Party.
-
-*   **Fases de Desarrollo:**
-
-    *   [X] Fase 1 (MVP): Casos de uso básicos (Crear, Leer, Actualizar, Listar).
-
-    *   [ ] Fase 2: Categorías y clasificación **(Post-MVP)**.
-
-    *   [ ] Fase 3: Historial de transacciones **(Post-MVP)**.
+    *   **IAM:** Una Party puede vincularse a un usuario de IAM.
+    *   **Product:** Referenciado por `PartyServiceConfiguration` (en el módulo Product).
+    *   **Pricing:** Consume `PartyID` y atributos relevantes del cliente para el cálculo de precios.
+    *   **Sales:** Las órdenes y cotizaciones referencian `PartyID`.

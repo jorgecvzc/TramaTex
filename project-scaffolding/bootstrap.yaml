@@ -67,6 +67,24 @@ workflow_steps:
     title: "Crear Subdirectorios de Documentación"
     description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
     command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/architecture/design-system/mockups docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
+    next_step: "create_design_system_docs"
+
+  - step_id: "create_design_system_docs"
+    title: "Crear Documentación del Sistema de Diseño"
+    description: "Creará la documentación inicial para la paleta de colores, tipografía y tema general en docs/architecture/design-system/."
+    files_to_create:
+      - filename: "docs/architecture/design-system/palette.md"
+        content: |
+          # Especificación de la Paleta de Colores
+          # ... (Template for defining color palette)
+      - filename: "docs/architecture/design-system/typography.md"
+        content: |
+          # Especificación de Tipografía
+          # ... (Template for defining typography)
+      - filename: "docs/architecture/design-system/theme.md"
+        content: |
+          # Especificación del Tema General
+          # ... (Template for defining UI theme)
     next_step: "create_project_status_file"
 
   - step_id: "create_project_status_file"
@@ -108,8 +126,9 @@ workflow_steps:
     title: "📛 Nombrar Componente Backend"
     run_if: "$COMPONENT_TYPES contains 'backend'"
     prompt_user:
-      - question: "Introduce un nombre para tu componente 'backend' (ej. 'user-api', 'data-processor'):"
+      - question: "Introduce un nombre para tu componente 'backend' (ej. 'api', '$PROJECT_NAME-api'). Por defecto: 'api':"
         variable_name: "BACKEND_NAME"
+        default: "api"
     next_step: "create_backend_structure"
 
   - step_id: "create_backend_structure"
@@ -123,8 +142,9 @@ workflow_steps:
     title: "📛 Nombrar Componente Intermediario"
     run_if: "$COMPONENT_TYPES contains 'intermediary'"
     prompt_user:
-      - question: "Introduce un nombre para tu componente 'intermediary' (ej. 'bff', 'graphql-gateway'):"
+      - question: "Introduce un nombre para tu componente 'intermediary' (ej. 'bff', '$PROJECT_NAME-bff'). Por defecto: 'bff':"
         variable_name: "INTERMEDIARY_NAME"
+        default: "bff"
     next_step: "create_intermediary_structure"
 
   - step_id: "create_intermediary_structure"
@@ -138,8 +158,9 @@ workflow_steps:
     title: "📛 Nombrar Componente Frontend"
     run_if: "$COMPONENT_TYPES contains 'frontend'"
     prompt_user:
-      - question: "Introduce un nombre para tu componente 'frontend' (ej. 'web-client', 'admin-panel'):"
+      - question: "Introduce un nombre para tu componente 'frontend' (ej. 'web', '$PROJECT_NAME-web'). Por defecto: 'web':"
         variable_name: "FRONTEND_NAME"
+        default: "web"
     next_step: "create_frontend_structure"
 
   - step_id: "create_frontend_structure"
@@ -155,7 +176,7 @@ workflow_steps:
       - source: "templates/agents/init.yaml" # New agent
         destination: "agents/init.yaml"
       - source: "templates/agents/project/project-context-template.yaml"
-        destination: "agents/project/project-context-template.yaml"
+        destination: "agents/project/project-context.yaml"
       - source: "templates/agents/load-session.yaml"
         destination: "agents/load-session.yaml"
       - source: "templates/agents/project/sprint-registry.yaml"
@@ -292,47 +313,108 @@ workflow_steps:
           JWT_SECRET=supersecretjwtkey
       - filename: "Makefile"
         content: |
-          # Makefile Genérico para $PROJECT_NAME
+          # Makefile para el proyecto $PROJECT_NAME
           #
-          # Instrucciones:
-          # Descomenta y adapta los comandos a la tecnología de tu proyecto.
+          # Este Makefile es generado dinámicamente.
+          # Utiliza 'make help' para ver los comandos disponibles.
 
-          .PHONY: all build run test lint clean help
+          .PHONY: all help clean install-tools
+          .PHONY: backend-build backend-run backend-test backend-lint
+          .PHONY: frontend-build frontend-run frontend-test frontend-lint
+          .PHONY: intermediary-build intermediary-run intermediary-test intermediary-lint
 
+          # ==========================================================
+          # Variables Globales
+          # ==========================================================
+          PROJECT_NAME := $PROJECT_NAME
+          BACKEND_APP_NAME := $(BACKEND_NAME)
+          FRONTEND_APP_NAME := $(FRONTEND_NAME)
+          INTERMEDIARY_APP_NAME := $(INTERMEDIARY_NAME)
+
+          # ==========================================================
+          # Comandos por Tipo de Componente (Rellenados Dinámicamente)
+          # ==========================================================
+
+          # --- Backend ---
+          BACKEND_BUILD_CMD ?= @echo "Backend build command not set."
+          BACKEND_RUN_CMD ?= @echo "Backend run command not set."
+          BACKEND_TEST_CMD ?= @echo "Backend test command not set."
+          BACKEND_LINT_CMD ?= @echo "Backend lint command not set."
+
+          # --- Frontend ---
+          FRONTEND_BUILD_CMD ?= @echo "Frontend build command not set."
+          FRONTEND_RUN_CMD ?= @echo "Frontend run command not set."
+          FRONTEND_TEST_CMD ?= @echo "Frontend test command not set."
+          FRONTEND_LINT_CMD ?= @echo "Frontend lint command not set."
+
+          # --- Intermediary ---
+          INTERMEDIARY_BUILD_CMD ?= @echo "Intermediary build command not set."
+          INTERMEDIARY_RUN_CMD ?= @echo "Intermediary run command not set."
+          INTERMEDIARY_TEST_CMD ?= @echo "Intermediary test command not set."
+          INTERMEDIARY_LINT_CMD ?= @echo "Intermediary lint command not set."
+
+          # ==========================================================
+          # Targets Generales
+          # ==========================================================
           all: build
 
-          # build:
-          # 	@echo "Construyendo el proyecto..."
-          # 	# Ejemplo Go: go build -o bin/app ./cmd/api
-          # 	# Ejemplo Node: npm run build
+          build:
+          	$(BACKEND_BUILD_CMD)
+          	$(FRONTEND_BUILD_CMD)
+          	$(INTERMEDIARY_BUILD_CMD)
 
-          # run:
-          # 	@echo "Iniciando la aplicación..."
-          # 	# Ejemplo Go: ./bin/app
-          # 	# Ejemplo Node: npm start
+          run:
+          	$(BACKEND_RUN_CMD)
+          	$(FRONTEND_RUN_CMD)
+          	$(INTERMEDIARY_RUN_CMD)
 
-          # test:
-          # 	@echo "Ejecutando tests..."
-          # 	# Ejemplo Go: go test -v ./...
-          # 	# Ejemplo Node: npm test
+          test:
+          	$(BACKEND_TEST_CMD)
+          	$(FRONTEND_TEST_CMD)
+          	$(INTERMEDIARY_TEST_CMD)
 
-          # lint:
-          # 	@echo "Ejecutando linters..."
-          # 	# Ejemplo Go: golangci-lint run
-          # 	# Ejemplo Node: npm run lint
+          lint:
+          	$(BACKEND_LINT_CMD)
+          	$(FRONTEND_LINT_CMD)
+          	$(INTERMEDIARY_LINT_CMD)
 
-          # clean:
-          # 	@echo "Limpiando artefactos de build..."
-          # 	# Ejemplo: rm -rf bin/ dist/
+          clean:
+          	@echo "Limpiando artefactos de build..."
+          	rm -rf apps/*/bin apps/*/dist
+
+          install-tools:
+          	@echo "Instalando herramientas de desarrollo..."
 
           help:
-          	@echo "Comandos disponibles:"
-          	@echo "  make build   - Construye los artefactos del proyecto."
-          	@echo "  make run     - Ejecuta la aplicación."
-          	@echo "  make test    - Corre la suite de tests."
-          	@echo "  make lint    - Analiza el código con linters."
-          	@echo "  make clean   - Elimina los artefactos de build."
-    next_step: "create_cicd_directories"
+          	@echo "Makefile para $(PROJECT_NAME)"
+          	@echo ""
+          	@echo "Uso:"
+          	@echo "  make <comando>"
+          	@echo ""
+          	@echo "Comandos Generales:"
+          	@echo "  all             - Ejecuta 'build'."
+          	@echo "  build           - Construye todos los componentes."
+          	@echo "  run             - Inicia todos los componentes."
+          	@echo "  test            - Ejecuta los tests de todos los componentes."
+          	@echo "  lint            - Ejecuta los linters de todos los componentes."
+          	@echo "  clean           - Limpia los artefactos de build."
+          	@echo "  install-tools   - Instala las herramientas de desarrollo necesarias."
+          	@echo "  help            - Muestra este mensaje de ayuda."
+          	@echo ""
+          	@echo "Comandos Específicos por Componente:"
+          	@echo "  backend-build   - $(BACKEND_BUILD_CMD)"
+          	@echo "  backend-run     - $(BACKEND_RUN_CMD)"
+          	@echo "  backend-test    - $(BACKEND_TEST_CMD)"
+          	@echo "  backend-lint    - $(BACKEND_LINT_CMD)"
+          	@echo "  frontend-build  - $(FRONTEND_BUILD_CMD)"
+          	@echo "  frontend-run    - $(FRONTEND_RUN_CMD)"
+          	@echo "  frontend-test   - $(FRONTEND_TEST_CMD)"
+          	@echo "  frontend-lint   - $(FRONTEND_LINT_CMD)"
+          	@echo "  intermediary-build - $(INTERMEDIARY_BUILD_CMD)"
+          	@echo "  intermediary-run   - $(INTERMEDIARY_RUN_CMD)"
+          	@echo "  intermediary-test  - $(INTERMEDIARY_TEST_CMD)"
+          	@echo "  intermediary-lint  - $(INTERMEDIARY_LINT_CMD)"
+    next_step: "populate_makefile_commands"
 
   - step_id: "create_cicd_directories"
     title: "Crear Directorio para CI/CD"
@@ -421,6 +503,10 @@ workflow_steps:
         variable_name: "DATABASE_CHOICE"
       - question: "¿Cuáles son los Bounded Contexts iniciales o módulos clave (separados por coma, ej. Auth, Party, Product)?"
         variable_name: "BOUNDED_CONTEXTS"
+      - question: "¿Qué lenguaje y framework se utilizará para el Backend (ej. Go/Gin, Python/FastAPI, Node.js/Express)?"
+        variable_name: "BACKEND_LANGUAGE_FRAMEWORK"
+      - question: "¿Qué framework se utilizará para el Frontend (ej. Vue/Vite, React/Next.js, Angular/CLI)?"
+        variable_name: "FRONTEND_FRAMEWORK"
     next_step: "generate_initial_adr_001"
 
   - step_id: "generate_initial_adr_001"
@@ -441,9 +527,9 @@ workflow_steps:
 
       ## 2. Decisiones
       ### Backend
-      - **Lenguaje**: [Pendiente de definir]
+      - **Lenguaje/Framework**: $BACKEND_LANGUAGE_FRAMEWORK
       ### Frontend
-      - **Framework**: [Pendiente de definir]
+      - **Framework**: $FRONTEND_FRAMEWORK
       ### Base de Datos
       - **Tipo**: $DATABASE_CHOICE
 
@@ -569,34 +655,35 @@ workflow_steps:
       - question: "He revisado y entiendo que debo adaptar estos ADRs. ¿Continuar? (sí/no)"
         variable_name: "USER_CONFIRMED_ADRS"
         validation: "USER_CONFIRMED_ADRS == 'sí'"
-    next_step: "generate_project_context_agent"
+    next_step: "populate_project_context_agent"
 
-  - step_id: "generate_project_context_agent"
-    title: "Generar Agente de Contexto del Proyecto"
-    description: "Creará el agente de contexto principal para el nuevo proyecto."
-    filename: "agents/project/project-context.yaml"
-    content_template: |
-      # $PROJECT_NAME Project Context Agent
-      # Version: 1.0
-
-      metadata:
-        filename: "project-context.yaml"
-        location: "agents/project/project-context.yaml"
-        project: "$PROJECT_NAME"
-        project_vision: "$PROJECT_VISION"
-        # ... otros metadatos
-      project_identity:
-        vision: "$PROJECT_VISION"
-        domain: "[Dominio de Negocio]"
-      technology_stack:
-        backend:
-          runtime: "[Pendiente de definir]"
-        frontend:
-          framework: "[Pendiente de definir]"
-        database: "$DATABASE_CHOICE"
-      bounded_contexts:
-        - "$BOUNDED_CONTEXTS"
-      # ... más secciones
+  - step_id: "populate_project_context_agent"
+    title: "Popular Agente de Contexto del Proyecto"
+    description: "Rellenará el agente de contexto principal con la información del proyecto."
+    replace_in_file: "agents/project/project-context.yaml"
+    replacements:
+      - find: "YYYY-MM-DD"
+        replace: "[[YYYY-MM-DD]]"
+      - find: "[Project Name]"
+        replace: "$PROJECT_NAME"
+      - find: "project_name: \"\""
+        replace: "project_name: \"$PROJECT_NAME\""
+      - find: "project_vision: \"\""
+        replace: "project_vision: \"$PROJECT_VISION\""
+      - find: "context_agents_location: \"agents/[project-name]/context/\""
+        replace: "context_agents_location: \"agents/project/context/\""
+      - find: "vision: \"[Project Vision]\""
+        replace: "vision: \"$PROJECT_VISION\""
+      - find: "domain: \"[Business Domain]\""
+        replace: "domain: \"[Dominio de Negocio]\""
+      - find: "runtime: \"[Pending]\""
+        replace: "runtime: \"[Pendiente de definir]\""
+      - find: "framework: \"[Pending]\""
+        replace: "framework: \"[Pendiente de definir]\""
+      - find: "database: \"[Pending]\""
+        replace: "database: \"$DATABASE_CHOICE\""
+      - find: "bounded_contexts: []"
+        replace: "bounded_contexts: [$BOUNDED_CONTEXTS]"
     next_step: "generate_modular_context_agents"
 
   - step_id: "generate_modular_context_agents"
@@ -619,18 +706,6 @@ workflow_steps:
         content: |
           # Code Standards for $PROJECT_NAME
           # ... (Template for defining code standards)
-      - filename: "agents/project/context/design/palette.md"
-        content: |
-          # Especificación de la Paleta de Colores
-          # ... (Template for defining color palette)
-      - filename: "agents/project/context/design/typography.md"
-        content: |
-          # Especificación de Tipografía
-          # ... (Template for defining typography)
-      - filename: "agents/project/context/design/theme.md"
-        content: |
-          # Especificación del Tema General
-          # ... (Template for defining UI theme)
       - filename: "agents/project/context/INDEX.md"
         content: |
           # Index for $PROJECT_NAME Context Agents

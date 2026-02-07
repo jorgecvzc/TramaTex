@@ -157,6 +157,119 @@ func TestPostgreSQLPartyAddressRepository_Save_And_ListByParty_Integration(t *te
 	}
 }
 
+func TestPostgreSQLPartyRelationshipRepository_Delete_Integration(t *testing.T) {
+	tdb := NewTestDB(t)
+	if tdb.DB == nil {
+		t.Skip("PostgreSQL not available for integration tests")
+	}
+
+	if err := tdb.SetUpParty(); err != nil {
+		t.Fatalf("Failed to set up party schema: %v", err)
+	}
+	defer func() {
+		if err := tdb.TearDownParty(); err != nil {
+			t.Logf("Failed to tear down party schema: %v", err)
+		}
+	}()
+
+	partyRepo := NewPostgreSQLPartyRepository(tdb.DB)
+	relRepo := NewPostgreSQLPartyRelationshipRepository(tdb.DB)
+	ctx := context.Background()
+
+	partyID1, _ := domain.NewPartyID("party-rel-del-a")
+	partyID2, _ := domain.NewPartyID("party-rel-del-b")
+	personProfile, _ := domain.NewPersonProfile("Rel", "One")
+	orgProfile, _ := domain.NewOrganizationProfile("Rel Org", nil, "")
+
+	partyA, _ := domain.NewParty(partyID1, domain.PartyStatusActive, testUserID, personProfile, nil)
+	partyB, _ := domain.NewParty(partyID2, domain.PartyStatusActive, testUserID, nil, orgProfile)
+
+	if err := partyRepo.Save(ctx, partyA); err != nil {
+		t.Fatalf("Failed to save party A: %v", err)
+	}
+	if err := partyRepo.Save(ctx, partyB); err != nil {
+		t.Fatalf("Failed to save party B: %v", err)
+	}
+
+	relID, _ := domain.NewPartyRelationshipID("rel-del-001")
+	rel, _ := domain.NewPartyRelationship(relID, partyID1, partyID2, domain.RelationshipIsEmployeeOf)
+	if err := relRepo.Save(ctx, rel); err != nil {
+		t.Fatalf("Failed to save relationship: %v", err)
+	}
+
+	if err := relRepo.Delete(ctx, relID); err != nil {
+		t.Fatalf("Delete should not error: %v", err)
+	}
+
+	rels, err := relRepo.FindByPartyID(ctx, partyID1)
+	if err != nil {
+		t.Fatalf("FindByPartyID should not error: %v", err)
+	}
+	if len(rels) != 0 {
+		t.Fatalf("Expected 0 relationships after delete, got %d", len(rels))
+	}
+}
+
+func TestPostgreSQLPartyAddressRepository_FindPrimary_And_Delete_Integration(t *testing.T) {
+	tdb := NewTestDB(t)
+	if tdb.DB == nil {
+		t.Skip("PostgreSQL not available for integration tests")
+	}
+
+	if err := tdb.SetUpParty(); err != nil {
+		t.Fatalf("Failed to set up party schema: %v", err)
+	}
+	defer func() {
+		if err := tdb.TearDownParty(); err != nil {
+			t.Logf("Failed to tear down party schema: %v", err)
+		}
+	}()
+
+	partyRepo := NewPostgreSQLPartyRepository(tdb.DB)
+	addressRepo := NewPostgreSQLPartyAddressRepository(tdb.DB)
+	ctx := context.Background()
+
+	partyID, _ := domain.NewPartyID("party-primary")
+	personProfile, _ := domain.NewPersonProfile("Primary", "Address")
+	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, testUserID, personProfile, nil)
+	if err := partyRepo.Save(ctx, party); err != nil {
+		t.Fatalf("Failed to save party: %v", err)
+	}
+
+	addressID, _ := domain.NewAddressID("addr-primary")
+	address, _ := domain.NewAddress("Calle 9", "Madrid", "Madrid", "28009", "Spain")
+	if err := addressRepo.Save(ctx, address, addressID, partyID, testUserID, testUserID); err != nil {
+		t.Fatalf("Failed to save address: %v", err)
+	}
+
+	if _, err := tdb.DB.ExecContext(ctx, "UPDATE party_addresses SET is_primary = true WHERE id = $1", addressID.Value()); err != nil {
+		t.Fatalf("Failed to mark primary address: %v", err)
+	}
+
+	primary, err := addressRepo.FindPrimary(ctx, partyID)
+	if err != nil {
+		t.Fatalf("FindPrimary should not error: %v", err)
+	}
+	if primary.City() != "Madrid" {
+		t.Fatalf("Expected primary address city Madrid")
+	}
+
+	if err := addressRepo.Delete(ctx, addressID); err != nil {
+		t.Fatalf("Delete should not error: %v", err)
+	}
+
+	if _, err := addressRepo.FindPrimary(ctx, partyID); err == nil {
+		t.Fatalf("Expected error when primary address is missing")
+	}
+	addresses, err := addressRepo.FindByPartyID(ctx, partyID)
+	if err != nil {
+		t.Fatalf("FindByPartyID should not error: %v", err)
+	}
+	if len(addresses) != 0 {
+		t.Fatalf("Expected 0 addresses after delete, got %d", len(addresses))
+	}
+}
+
 func TestPostgreSQLPartyRepository_FindAll_Filters_Integration(t *testing.T) {
 	tdb := NewTestDB(t)
 	if tdb.DB == nil {

@@ -41,8 +41,6 @@ type Product struct {
 	GroupIDs           []uuid.UUID
 	DirectAttributeIDs []uuid.UUID
 	IsActive           bool
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
 }
 
 // NewProduct creates a new Product with validation.
@@ -77,8 +75,6 @@ func NewProduct(
 		GroupIDs:           make([]uuid.UUID, 0),
 		DirectAttributeIDs: make([]uuid.UUID, 0),
 		IsActive:           true,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
 	}, nil
 }
 

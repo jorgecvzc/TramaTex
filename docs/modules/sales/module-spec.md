@@ -26,30 +26,8 @@
 
 ### 3.2. Casos de Uso Principales
 
-*   **CU-001: CreateQuote**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Crear una nueva cotización para un cliente.
-*   **CU-002: ConvertToOrder**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Convertir una cotización aprobada en una orden de venta firme.
-*   **CU-003: AddLineItem**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Agregar un producto a una cotización u orden.
-*   **CU-004: UpdateLineItem**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Modificar la cantidad o el precio de una línea de producto.
-*   **CU-005: RemoveLineItem**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Eliminar un producto de una cotización u orden.
-*   **CU-006: ChangeOrderStatus**
-    *   **Actor:** Vendedor
-    *   **Descripción:** Cambiar el estado de una orden (e.g., de 'Confirmada' a 'En Preparación').
-*   **CU-007: GetOrder**
-    *   **Actor:** Vendedor / Cliente
-    *   **Descripción:** Obtener los detalles de una orden.
-*   **CU-008: ListOrders**
-    *   **Actor:** Vendedor / Cliente
-    *   **Descripción:** Listar órdenes por cliente o estado.
+Para una lista completa y detallada de los casos de uso, incluyendo flujos y entradas/salidas, consulte el documento [Casos de Uso - Módulo Sales](./use-cases.md).
+
 
 ## 4. Historias de Usuario
 

@@ -22,23 +22,16 @@ Recurso base: `/product-option-sets`
 
 ### 1.1. DTOs
 
-#### `ScopeDto`
-```json
-{
-  "type": "GENERIC | BRAND | BRAND_GROUP",
-  "brandId": "string | null",
-  "productGroupId": "string | null"
-}
-```
-
 #### `ProductOptionSetDto`
 ```json
 {
   "id": "string",
   "name": "string",
   "attributeName": "string",
-  "values": ["string"],
-  "scope": { "$ref": "#/1.1.DTOs/ScopeDto" }
+  "sortOrder": "number",
+  "scopeBrandId": "string | null",
+  "scopeGroupId": "string | null",
+  "values": ["string"]
 }
 ```
 
@@ -66,8 +59,8 @@ Recurso base: `/products`
   "description": "string",
   "productType": "TANGIBLE | SERVICE",
   "brandId": "string",
-  "groupId": "string",
-  "directOptionSetIds": ["string"],
+  "groupIds": ["string"],
+  "directAttributeIds": ["string"],
   "isActive": "boolean"
 }
 ```
@@ -76,7 +69,7 @@ Recurso base: `/products`
 
 - `POST /products`: Crea una nueva plantilla de producto. (UC-P-003)
 - `GET /products/{id}`: Obtiene la información de una plantilla de producto.
-- `GET /products`: Obtiene una lista de productos.
+- `GET /products`: Obtiene una lista de productos, con filtros opcionales por `brandId`, `groupId`, `isActive`.
 - `POST /products/{id}/direct-option-sets`: Asigna un conjunto de opciones directamente a un producto. (UC-P-004)
 - `GET /products/{id}/calculated-option-sets`: Obtiene la lista completa de `ProductOptionSet` aplicables a un producto. (UC-P-005)
 

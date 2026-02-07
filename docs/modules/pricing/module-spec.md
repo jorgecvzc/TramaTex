@@ -74,7 +74,7 @@
 - **PartyID**: UUID
 - **Quantity**: Integer
 - **BaseCost**: Decimal
-- **AppliedRules**: List<String>
+- **AppliedRules**: `List<String>`
 - **FinalPrice**: Decimal
 - **CalculatedAt**: DateTime
 

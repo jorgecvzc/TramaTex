@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 )
 
@@ -32,6 +33,7 @@ type ProductRepository interface {
 	Save(ctx context.Context, product *Product) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Product, error)
 	FindBySKU(ctx context.Context, sku string) (*Product, error)
+	FindAll(ctx context.Context) ([]*Product, error)
 	UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error // For the SKU cascade
 	// Add other necessary methods for Product (e.g., Delete, List)
 }
@@ -41,6 +43,7 @@ type ProductVariantRepository interface {
 	Save(ctx context.Context, variant *ProductVariant) error
 	FindByID(ctx context.Context, id uuid.UUID) (*ProductVariant, error)
 	FindBySKU(ctx context.Context, sku string) (*ProductVariant, error)
+	FindByProductID(ctx context.Context, productID uuid.UUID) ([]*ProductVariant, error)
 	FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*ProductVariant, error)
 	// Add other necessary methods for ProductVariant (e.g., List, UpdateStatus)
 }

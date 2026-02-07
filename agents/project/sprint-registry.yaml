@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.1"
-  last_updated: "2026-02-04"
+  last_updated: "2026-02-07" # Corrected date to match current session
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
   note: "Parsed by sprint-session-loader.yaml for quick discovery"
@@ -19,7 +19,7 @@ metadata:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
       location: "docs/log/sprints/sprint-[XX]/"
-      language: "Spanish (Espa\u00f1ol)"
+      language: "Spanish (Español)"
       examples:
         - "sprint-01/04-auditoria-seguridad-owasp.md"
         - "sprint-02/01-refactorizacion-sistema-documentacion.md"
@@ -40,14 +40,67 @@ metadata:
 
 active_tasks:
   title: "🔄 Active/Open Tasks"
-  count: 0
+  count: 1
   note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
+  task_08_02:
+    id: "08-02"
+    sprint: "08"
+    filename: "02-sales-backend-implementation.md"
+    title: "Implementacion backend del modulo Sales"
+    status: "🔄 En Progreso"
+    dates:
+      started: "2026-02-07"
+    context_focus: "Implementacion backend del modulo Sales"
+    facilitator: "GitHub Copilot, Jorge Cortes Villalba"
   
 
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
+
+  task_09_01:
+    id: "09-01"
+    sprint: "09"
+    filename: "01-mes-domain-design.md"
+    title: "Diseño de Dominio MES"
+    status: "✅ Completado"
+    dates:
+      started: "2026-02-07"
+      completed: "2026-02-07"
+    context_focus: "Diseño detallado del dominio para el módulo MES, incluyendo entidades, objetos de valor, servicios y repositorios."
+    facilitator: "Gemini CLI (acting as Lead Architect)"
+    key_outcomes:
+      - "Estructura de directorios del módulo MES creada."
+      - "ADR-018 para la arquitectura de MES (esquema independiente, comunicación) redactado."
+      - "Documentación inicial de 'mes.md' creada y actualizada."
+      - "Entidades, objetos de valor y servicios de dominio de MES definidos en código Go."
+      - "Interfaces de repositorio de MES definidas."
+      - "Concepto de 'ERP Core' introducido y documentado en bounded-contexts.yaml."
+    artifacts:
+      - "apps/tramatex-api/internal/mes"
+      - "apps/tramatex-api/internal/mes/domain/entities.go"
+      - "apps/tramatex-api/internal/mes/domain/value_objects.go"
+      - "apps/tramatex-api/internal/mes/domain/services.go"
+      - "apps/tramatex-api/internal/mes/domain/repository.go"
+      - "docs/architecture/adrs/ADR-018-mes-module-architecture.md"
+      - "docs/modules/mes.md"
+      - "agents/project/context/bounded-contexts.yaml"
+
+  task_08_01:
+    id: "08-01"
+    sprint: "08"
+    filename: "01-sales-backend-implementation-plan.md"
+    title: "Plan de implementacion backend del modulo Sales"
+    status: "✅ Completado"
+    dates:
+      started: "2026-02-07"
+      completed: "2026-02-07"
+    context_focus: "Planificacion tecnica para implementar Sales (backend)"
+    facilitator: "GitHub Copilot, Jorge Cortes Villalba"
+    key_outcomes:
+      - "Plan tecnico por capas definido (domain, application, infrastructure, interfaces)."
+      - "Plan de migraciones, endpoints y estrategia de tests definido."
 
   task_05_02:
     id: "05-02"
@@ -199,7 +252,7 @@ completed_tasks:
   task_02_01:
     id: "02-01"
     sprint: "02"
-    filename: "01-refactorizacion-sistema-documentacion.md"
+    filename: "01-refactorizacion-sistema-de-documentacion.md"
     title: "Refactorizaci\u00f3n del Sistema de Documentaci\u00f3n de Desarrollo"
     status: "✅ Completado"
     dates:
@@ -208,7 +261,7 @@ completed_tasks:
     context_focus: "Documentation system refactoring (sessions to sprints/tasks)"
     facilitator: "Gemini"
     key_outcomes:
-      - "Sistema de documentaci\u00f3n refactorizado de sesiones a sprints/tareas"
+      - "Sistema de documentación refactorizado de sesiones a sprints/tareas"
       - "Plantilla _TASK_TEMPLATE.md creada"
       - "Agente sprint-session-loader.yaml actualizado"
       - "Sesiones antiguas archivadas en milestones"
@@ -325,7 +378,7 @@ session_flow_quick_start:
   
   step_by_step:
     1: "Load: agents/sprint-session-loader.yaml"
-    2: "It will scan docs/log/sprints/ for open tasks"
+    2: "It will scan docs/log/sprints/for open tasks"
     3: "Check: agents/sprint-registry.yaml for status"
     4: "Review: active_tasks list"
     5: "If tasks open → Continue one of them"
@@ -352,4 +405,3 @@ instructions_for_ai:
   
   keep_this_file:
     note: "This is a living document. Update after each task session."
-

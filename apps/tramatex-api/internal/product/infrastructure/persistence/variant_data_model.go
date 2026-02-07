@@ -17,11 +17,12 @@ type VariantDataModel struct {
 	ProductID       uuid.UUID      `gorm:"not null"`
 	SKU             string         `gorm:"uniqueIndex;not null"`
 	Barcode         *string        `gorm:"uniqueIndex"`
+	BaseCost        float64        `gorm:"type:numeric(12,2);not null;default:0"`
 	Status          string         `gorm:"type:variant_status;not null"`
 	AttributeValues pq.StringArray `gorm:"type:uuid[]"`
 	IsActive        bool           `gorm:"not null;default:true"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	CreatedBy       string
+	ModifiedBy      string
 }
 
 func (VariantDataModel) TableName() string {
@@ -35,11 +36,10 @@ func (v *VariantDataModel) ToDomain() *domain.ProductVariant {
 		ProductID:       v.ProductID,
 		SKU:             v.SKU,
 		Barcode:         v.Barcode,
+		BaseCost:        v.BaseCost,
 		Status:          domain.VariantStatus(v.Status),
 		AttributeValues: uuidArrayFromStringArray(v.AttributeValues),
 		IsActive:        v.IsActive,
-		CreatedAt:       v.CreatedAt,
-		UpdatedAt:       v.UpdatedAt,
 	}
 }
 
@@ -50,10 +50,9 @@ func VariantFromDomain(v *domain.ProductVariant) *VariantDataModel {
 		ProductID:       v.ProductID,
 		SKU:             v.SKU,
 		Barcode:         v.Barcode,
+		BaseCost:        v.BaseCost,
 		Status:          string(v.Status),
 		AttributeValues: stringArrayFromUUIDArray(v.AttributeValues),
 		IsActive:        v.IsActive,
-		CreatedAt:       v.CreatedAt,
-		UpdatedAt:       v.UpdatedAt,
 	}
 }

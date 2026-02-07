@@ -55,6 +55,50 @@ func (r *fakePartyRepo) Count(ctx context.Context) (int64, error) {
 	return int64(len(r.parties)), nil
 }
 
+type errorPartyRepo struct {
+	inner     *fakePartyRepo
+	saveErr   error
+	findErr   error
+	existsErr error
+}
+
+func newErrorPartyRepo(saveErr, findErr error) *errorPartyRepo {
+	return &errorPartyRepo{inner: newFakePartyRepo(), saveErr: saveErr, findErr: findErr}
+}
+
+func (r *errorPartyRepo) Save(ctx context.Context, party *domain.Party) error {
+	if r.saveErr != nil {
+		return r.saveErr
+	}
+	return r.inner.Save(ctx, party)
+}
+
+func (r *errorPartyRepo) FindByID(ctx context.Context, id domain.PartyID) (*domain.Party, error) {
+	if r.findErr != nil {
+		return nil, r.findErr
+	}
+	return r.inner.FindByID(ctx, id)
+}
+
+func (r *errorPartyRepo) FindAll(ctx context.Context, filters *persistence.PartyFilters) ([]*domain.Party, error) {
+	return r.inner.FindAll(ctx, filters)
+}
+
+func (r *errorPartyRepo) Delete(ctx context.Context, id domain.PartyID) error {
+	return r.inner.Delete(ctx, id)
+}
+
+func (r *errorPartyRepo) Exists(ctx context.Context, id domain.PartyID) (bool, error) {
+	if r.existsErr != nil {
+		return false, r.existsErr
+	}
+	return r.inner.Exists(ctx, id)
+}
+
+func (r *errorPartyRepo) Count(ctx context.Context) (int64, error) {
+	return r.inner.Count(ctx)
+}
+
 type fakeRelationshipRepo struct {
 	relationships map[string]domain.PartyRelationship
 }
@@ -81,6 +125,38 @@ func (r *fakeRelationshipRepo) FindByPartyID(ctx context.Context, partyID domain
 func (r *fakeRelationshipRepo) Delete(ctx context.Context, id domain.PartyRelationshipID) error {
 	delete(r.relationships, id.String())
 	return nil
+}
+
+type errorRelationshipRepo struct {
+	inner     *fakeRelationshipRepo
+	saveErr   error
+	deleteErr error
+	findErr   error
+}
+
+func newErrorRelationshipRepo(saveErr, deleteErr, findErr error) *errorRelationshipRepo {
+	return &errorRelationshipRepo{inner: newFakeRelationshipRepo(), saveErr: saveErr, deleteErr: deleteErr, findErr: findErr}
+}
+
+func (r *errorRelationshipRepo) Save(ctx context.Context, relationship domain.PartyRelationship) error {
+	if r.saveErr != nil {
+		return r.saveErr
+	}
+	return r.inner.Save(ctx, relationship)
+}
+
+func (r *errorRelationshipRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]domain.PartyRelationship, error) {
+	if r.findErr != nil {
+		return nil, r.findErr
+	}
+	return r.inner.FindByPartyID(ctx, partyID)
+}
+
+func (r *errorRelationshipRepo) Delete(ctx context.Context, id domain.PartyRelationshipID) error {
+	if r.deleteErr != nil {
+		return r.deleteErr
+	}
+	return r.inner.Delete(ctx, id)
 }
 
 type fakePartyAddressRepo struct {
@@ -118,6 +194,26 @@ func (r *fakePartyAddressRepo) FindPrimary(ctx context.Context, partyID domain.P
 
 func (r *fakePartyAddressRepo) Delete(ctx context.Context, id domain.AddressID) error {
 	delete(r.addressesByID, id.String())
+	return nil
+}
+
+type errorPartyAddressRepo struct {
+	saveErr error
+}
+
+func (r *errorPartyAddressRepo) Save(ctx context.Context, address *domain.Address, addressID domain.AddressID, partyID domain.PartyID, createdBy string, modifiedBy string) error {
+	return r.saveErr
+}
+
+func (r *errorPartyAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+	return nil, nil
+}
+
+func (r *errorPartyAddressRepo) FindPrimary(ctx context.Context, partyID domain.PartyID) (*domain.Address, error) {
+	return nil, nil
+}
+
+func (r *errorPartyAddressRepo) Delete(ctx context.Context, id domain.AddressID) error {
 	return nil
 }
 
@@ -184,6 +280,61 @@ func TestCreatePartyHandler_Success(t *testing.T) {
 	}
 }
 
+func TestCreatePartyHandler_InvalidInputs(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewCreatePartyHandler(repo)
+
+	if _, err := handler.Handle(context.Background(), &CreatePartyCommand{ID: "", CreatedBy: "user-1"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if _, err := handler.Handle(context.Background(), &CreatePartyCommand{ID: "party-x", CreatedBy: ""}); err == nil {
+		t.Fatalf("expected error for empty createdBy")
+	}
+	if _, err := handler.Handle(context.Background(), &CreatePartyCommand{
+		ID:            "party-x",
+		Status:        "UNKNOWN",
+		CreatedBy:     "user-1",
+		PersonProfile: &PersonProfileInput{FirstName: "Ana", LastName: "Perez"},
+	}); err == nil {
+		t.Fatalf("expected error for invalid status")
+	}
+}
+
+func TestCreatePartyHandler_InvalidContactDetails(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewCreatePartyHandler(repo)
+
+	cmd := &CreatePartyCommand{
+		ID:        "party-contact",
+		CreatedBy: "user-1",
+		OrganizationProfile: &OrganizationProfileInput{
+			Name: "Org",
+			Contacts: []ContactDetailsInput{
+				{ID: "contact-1", TypeDescription: "Sales", Email: "bad-email"},
+			},
+		},
+	}
+
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected error for invalid email")
+	}
+}
+
+func TestCreatePartyHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	handler := NewCreatePartyHandler(repo)
+
+	cmd := &CreatePartyCommand{
+		ID:            "party-save",
+		CreatedBy:     "user-1",
+		PersonProfile: &PersonProfileInput{FirstName: "Ana", LastName: "Perez"},
+	}
+
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
 func TestUpdatePartyHandler_UpdatesProfilesAndStatus(t *testing.T) {
 	repo := newFakePartyRepo()
 	seedPartyWithProfiles(t, repo, "party-002", false)
@@ -210,6 +361,58 @@ func TestUpdatePartyHandler_UpdatesProfilesAndStatus(t *testing.T) {
 	}
 }
 
+func TestUpdatePartyHandler_InvalidInputs(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewUpdatePartyHandler(repo)
+
+	if _, err := handler.Handle(context.Background(), &UpdatePartyCommand{ID: "", ModifiedBy: "user"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if _, err := handler.Handle(context.Background(), &UpdatePartyCommand{ID: "party-x", ModifiedBy: ""}); err == nil {
+		t.Fatalf("expected error for empty modifiedBy")
+	}
+}
+
+func TestUpdatePartyHandler_InvalidStatus(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-invalid-status", false)
+
+	handler := NewUpdatePartyHandler(repo)
+	if _, err := handler.Handle(context.Background(), &UpdatePartyCommand{ID: "party-invalid-status", Status: "UNKNOWN", ModifiedBy: "user"}); err == nil {
+		t.Fatalf("expected error for invalid status")
+	}
+}
+
+func TestUpdatePartyHandler_OrganizationNameRequired(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-org", false)
+
+	handler := NewUpdatePartyHandler(repo)
+	cmd := &UpdatePartyCommand{
+		ID:                  "party-org",
+		OrganizationProfile: &OrganizationProfileInput{},
+		ModifiedBy:          "user-1",
+	}
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected error for missing organization name")
+	}
+}
+
+func TestUpdatePartyHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	seedPartyWithProfiles(t, repo.inner, "party-save-error", false)
+
+	handler := NewUpdatePartyHandler(repo)
+	cmd := &UpdatePartyCommand{
+		ID:         "party-save-error",
+		Status:     "INACTIVE",
+		ModifiedBy: "user-1",
+	}
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
 func TestChangePartyStatusHandler_Success(t *testing.T) {
 	repo := newFakePartyRepo()
 	seedPartyWithProfiles(t, repo, "party-003", false)
@@ -227,6 +430,36 @@ func TestChangePartyStatusHandler_Success(t *testing.T) {
 	}
 	if party.Status() != domain.PartyStatusInactive {
 		t.Fatalf("Expected status INACTIVE, got %s", party.Status())
+	}
+}
+
+func TestChangePartyStatusHandler_InvalidInputs(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewChangePartyStatusHandler(repo)
+
+	if _, err := handler.Handle(context.Background(), &ChangePartyStatusCommand{ID: "", ModifiedBy: "user"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if _, err := handler.Handle(context.Background(), &ChangePartyStatusCommand{ID: "party-x", ModifiedBy: ""}); err == nil {
+		t.Fatalf("expected error for empty modifiedBy")
+	}
+}
+
+func TestChangePartyStatusHandler_InvalidStatus(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-bad-status", false)
+	handler := NewChangePartyStatusHandler(repo)
+	if _, err := handler.Handle(context.Background(), &ChangePartyStatusCommand{ID: "party-bad-status", Status: "UNKNOWN", ModifiedBy: "user"}); err == nil {
+		t.Fatalf("expected error for invalid status")
+	}
+}
+
+func TestChangePartyStatusHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	seedPartyWithProfiles(t, repo.inner, "party-status-save", false)
+	handler := NewChangePartyStatusHandler(repo)
+	if _, err := handler.Handle(context.Background(), &ChangePartyStatusCommand{ID: "party-status-save", Status: "INACTIVE", ModifiedBy: "user"}); err == nil {
+		t.Fatalf("expected save error")
 	}
 }
 
@@ -259,6 +492,53 @@ func TestAddAndRemovePartyRoleHandlers(t *testing.T) {
 	}
 }
 
+func TestAddPartyRoleHandler_InvalidRole(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-role", false)
+
+	handler := NewAddPartyRoleHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddPartyRoleCommand{ID: "party-role", Role: "BAD"}); err == nil {
+		t.Fatalf("expected error for invalid role")
+	}
+}
+
+func TestAddPartyRoleHandler_PartyNotFound(t *testing.T) {
+	repo := newErrorPartyRepo(nil, fmt.Errorf("not found"))
+	handler := NewAddPartyRoleHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddPartyRoleCommand{ID: "missing", Role: "CLIENT"}); err == nil {
+		t.Fatalf("expected party not found error")
+	}
+}
+
+func TestAddPartyRoleHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	seedPartyWithProfiles(t, repo.inner, "party-role-save", false)
+	handler := NewAddPartyRoleHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddPartyRoleCommand{ID: "party-role-save", Role: "CLIENT"}); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
+func TestRemovePartyRoleHandler_InvalidRole(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-role-remove", false)
+
+	handler := NewRemovePartyRoleHandler(repo)
+	if _, err := handler.Handle(context.Background(), &RemovePartyRoleCommand{ID: "party-role-remove", Role: "BAD"}); err == nil {
+		t.Fatalf("expected error for invalid role")
+	}
+}
+
+func TestRemovePartyRoleHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	seedPartyWithProfiles(t, repo.inner, "party-role-remove-save", false)
+
+	removeHandler := NewRemovePartyRoleHandler(repo)
+	if _, err := removeHandler.Handle(context.Background(), &RemovePartyRoleCommand{ID: "party-role-remove-save", Role: "CLIENT"}); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
 func TestAddPartyRelationshipHandler_Success(t *testing.T) {
 	relRepo := newFakeRelationshipRepo()
 	handler := NewAddPartyRelationshipHandler(relRepo)
@@ -274,6 +554,67 @@ func TestAddPartyRelationshipHandler_Success(t *testing.T) {
 	}
 	if rel.Type() != domain.RelationshipIsEmployeeOf {
 		t.Fatalf("Expected relationship type IS_EMPLOYEE_OF")
+	}
+}
+
+func TestAddPartyRelationshipHandler_InvalidType(t *testing.T) {
+	relRepo := newFakeRelationshipRepo()
+	handler := NewAddPartyRelationshipHandler(relRepo)
+
+	if _, err := handler.Handle(context.Background(), &AddPartyRelationshipCommand{
+		ID:             "party-011",
+		RelationshipID: "rel-bad",
+		ToPartyID:      "party-012",
+		Type:           "BAD",
+	}); err == nil {
+		t.Fatalf("expected error for invalid relationship type")
+	}
+}
+
+func TestAddPartyRelationshipHandler_SaveError(t *testing.T) {
+	relRepo := newErrorRelationshipRepo(fmt.Errorf("save failed"), nil, nil)
+	handler := NewAddPartyRelationshipHandler(relRepo)
+
+	if _, err := handler.Handle(context.Background(), &AddPartyRelationshipCommand{
+		ID:             "party-020",
+		RelationshipID: "rel-020",
+		ToPartyID:      "party-021",
+		Type:           "IS_EMPLOYEE_OF",
+	}); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
+func TestRemovePartyRelationshipHandler_Success(t *testing.T) {
+	relRepo := newFakeRelationshipRepo()
+	relID, _ := domain.NewPartyRelationshipID("rel-010")
+	fromID, _ := domain.NewPartyID("party-010")
+	toID, _ := domain.NewPartyID("party-011")
+	relationship, _ := domain.NewPartyRelationship(relID, fromID, toID, domain.RelationshipIsEmployeeOf)
+	_ = relRepo.Save(context.Background(), relationship)
+
+	handler := NewRemovePartyRelationshipHandler(relRepo)
+	if err := handler.Handle(context.Background(), &RemovePartyRelationshipCommand{RelationshipID: "rel-010"}); err != nil {
+		t.Fatalf("Handle should not error: %v", err)
+	}
+	if _, ok := relRepo.relationships["rel-010"]; ok {
+		t.Fatalf("Expected relationship to be removed")
+	}
+}
+
+func TestRemovePartyRelationshipHandler_InvalidID(t *testing.T) {
+	relRepo := newFakeRelationshipRepo()
+	handler := NewRemovePartyRelationshipHandler(relRepo)
+	if err := handler.Handle(context.Background(), &RemovePartyRelationshipCommand{RelationshipID: ""}); err == nil {
+		t.Fatalf("expected error for empty relationship ID")
+	}
+}
+
+func TestRemovePartyRelationshipHandler_DeleteError(t *testing.T) {
+	relRepo := newErrorRelationshipRepo(nil, fmt.Errorf("delete failed"), nil)
+	handler := NewRemovePartyRelationshipHandler(relRepo)
+	if err := handler.Handle(context.Background(), &RemovePartyRelationshipCommand{RelationshipID: "rel-030"}); err == nil {
+		t.Fatalf("expected delete error")
 	}
 }
 
@@ -294,6 +635,45 @@ func TestAddContactDetailsHandler_Success(t *testing.T) {
 	}
 	if contact.TypeDescription() != "Ventas" {
 		t.Fatalf("Expected contact type Ventas")
+	}
+}
+
+func TestAddContactDetailsHandler_InvalidPartyID(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewAddContactDetailsHandler(repo)
+
+	if _, err := handler.Handle(context.Background(), &AddContactDetailsCommand{PartyID: "", ContactID: "c-1"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+}
+
+func TestAddContactDetailsHandler_NoOrganizationProfile(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-no-org", false)
+
+	handler := NewAddContactDetailsHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddContactDetailsCommand{PartyID: "party-no-org", ContactID: "c-1", TypeDescription: "Ventas"}); err == nil {
+		t.Fatalf("expected error when organization profile missing")
+	}
+}
+
+func TestAddContactDetailsHandler_InvalidPhone(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-bad-phone", true)
+
+	handler := NewAddContactDetailsHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddContactDetailsCommand{PartyID: "party-bad-phone", ContactID: "c-1", TypeDescription: "Ventas", Phone: "bad"}); err == nil {
+		t.Fatalf("expected error for invalid phone")
+	}
+}
+
+func TestAddContactDetailsHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	seedPartyWithProfiles(t, repo.inner, "party-save-contact", true)
+
+	handler := NewAddContactDetailsHandler(repo)
+	if _, err := handler.Handle(context.Background(), &AddContactDetailsCommand{PartyID: "party-save-contact", ContactID: "c-1", TypeDescription: "Ventas"}); err == nil {
+		t.Fatalf("expected save error")
 	}
 }
 
@@ -340,6 +720,104 @@ func TestUpdateAndRemoveContactDetailsHandlers(t *testing.T) {
 	}
 }
 
+func TestUpdateContactDetailsHandler_InvalidInputs(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewUpdateContactDetailsHandler(repo)
+
+	if _, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "", ContactID: "c-1"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if _, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "p-1", ContactID: ""}); err == nil {
+		t.Fatalf("expected error for empty contact ID")
+	}
+	if _, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "p-1", ContactID: "c-1"}); err == nil {
+		t.Fatalf("expected error when no fields provided")
+	}
+}
+
+func TestUpdateContactDetailsHandler_ContactNotFound(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-no-contact", true)
+
+	handler := NewUpdateContactDetailsHandler(repo)
+	updateType := "Soporte"
+	if _, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "party-no-contact", ContactID: "c-missing", TypeDescription: &updateType}); err == nil {
+		t.Fatalf("expected error when contact not found")
+	}
+}
+
+func TestUpdateContactDetailsHandler_InvalidEmail(t *testing.T) {
+	repo := newFakePartyRepo()
+	party := seedPartyWithProfiles(t, repo, "party-bad-email", true)
+	contactID, _ := domain.NewContactDetailsID("contact-301")
+	contact, _ := domain.NewContactDetails(contactID, "Ventas", nil, nil, nil)
+	_ = party.OrganizationProfile().AddContact(contact)
+	_ = repo.Save(context.Background(), party)
+
+	handler := NewUpdateContactDetailsHandler(repo)
+	badEmail := "bad"
+	if _, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "party-bad-email", ContactID: "contact-301", Email: &badEmail}); err == nil {
+		t.Fatalf("expected error for invalid email")
+	}
+}
+
+func TestUpdateContactDetailsHandler_ClearFields(t *testing.T) {
+	repo := newFakePartyRepo()
+	party := seedPartyWithProfiles(t, repo, "party-clear-fields", true)
+	contactID, _ := domain.NewContactDetailsID("contact-401")
+	phone, _ := domain.NewPhone("+34 600 111 222")
+	email, _ := domain.NewEmail("ventas@org.local")
+	contact, _ := domain.NewContactDetails(contactID, "Ventas", phone, email, nil)
+	_ = party.OrganizationProfile().AddContact(contact)
+	_ = repo.Save(context.Background(), party)
+
+	handler := NewUpdateContactDetailsHandler(repo)
+	empty := ""
+	updated, err := handler.Handle(context.Background(), &UpdateContactDetailsCommand{PartyID: "party-clear-fields", ContactID: "contact-401", Phone: &empty, Email: &empty})
+	if err != nil {
+		t.Fatalf("expected update without error: %v", err)
+	}
+	if updated.Phone() != nil || updated.Email() != nil {
+		t.Fatalf("expected phone and email to be cleared")
+	}
+}
+
+func TestRemoveContactDetailsHandler_InvalidInputs(t *testing.T) {
+	repo := newFakePartyRepo()
+	handler := NewRemoveContactDetailsHandler(repo)
+
+	if err := handler.Handle(context.Background(), &RemoveContactDetailsCommand{PartyID: "", ContactID: "c-1"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if err := handler.Handle(context.Background(), &RemoveContactDetailsCommand{PartyID: "p-1", ContactID: ""}); err == nil {
+		t.Fatalf("expected error for empty contact ID")
+	}
+}
+
+func TestRemoveContactDetailsHandler_NoOrganizationProfile(t *testing.T) {
+	repo := newFakePartyRepo()
+	seedPartyWithProfiles(t, repo, "party-no-org-remove", false)
+
+	handler := NewRemoveContactDetailsHandler(repo)
+	if err := handler.Handle(context.Background(), &RemoveContactDetailsCommand{PartyID: "party-no-org-remove", ContactID: "c-1"}); err == nil {
+		t.Fatalf("expected error when organization profile missing")
+	}
+}
+
+func TestRemoveContactDetailsHandler_SaveError(t *testing.T) {
+	repo := newErrorPartyRepo(fmt.Errorf("save failed"), nil)
+	party := seedPartyWithProfiles(t, repo.inner, "party-remove-save", true)
+	contactID, _ := domain.NewContactDetailsID("contact-901")
+	contact, _ := domain.NewContactDetails(contactID, "Ventas", nil, nil, nil)
+	_ = party.OrganizationProfile().AddContact(contact)
+	_ = repo.inner.Save(context.Background(), party)
+
+	handler := NewRemoveContactDetailsHandler(repo)
+	if err := handler.Handle(context.Background(), &RemoveContactDetailsCommand{PartyID: "party-remove-save", ContactID: "contact-901"}); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
 func TestAddPartyAddressHandler_Success(t *testing.T) {
 	addressRepo := newFakePartyAddressRepo()
 	handler := NewAddPartyAddressHandler(addressRepo)
@@ -359,6 +837,54 @@ func TestAddPartyAddressHandler_Success(t *testing.T) {
 	}
 	if address.City() != "Madrid" {
 		t.Fatalf("Expected city Madrid, got %s", address.City())
+	}
+}
+
+func TestAddPartyAddressHandler_InvalidInputs(t *testing.T) {
+	addressRepo := newFakePartyAddressRepo()
+	handler := NewAddPartyAddressHandler(addressRepo)
+
+	if _, err := handler.Handle(context.Background(), &AddPartyAddressCommand{PartyID: "", AddressID: "addr-1"}); err == nil {
+		t.Fatalf("expected error for empty party ID")
+	}
+	if _, err := handler.Handle(context.Background(), &AddPartyAddressCommand{PartyID: "party-1", AddressID: ""}); err == nil {
+		t.Fatalf("expected error for empty address ID")
+	}
+}
+
+func TestAddPartyAddressHandler_SaveError(t *testing.T) {
+	addressRepo := &errorPartyAddressRepo{saveErr: fmt.Errorf("save failed")}
+	handler := NewAddPartyAddressHandler(addressRepo)
+
+	cmd := &AddPartyAddressCommand{
+		PartyID:    "party-addr",
+		AddressID:  "addr-err",
+		Street:     "Calle 1",
+		City:       "Madrid",
+		PostalCode: "28001",
+		Country:    "Spain",
+		CreatedBy:  "user-1",
+	}
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected save error")
+	}
+}
+
+func TestAddPartyAddressHandler_InvalidAddress(t *testing.T) {
+	addressRepo := newFakePartyAddressRepo()
+	handler := NewAddPartyAddressHandler(addressRepo)
+
+	cmd := &AddPartyAddressCommand{
+		PartyID:    "party-addr-bad",
+		AddressID:  "addr-bad",
+		Street:     "Calle 1",
+		City:       "",
+		PostalCode: "28001",
+		Country:    "Spain",
+		CreatedBy:  "user-1",
+	}
+	if _, err := handler.Handle(context.Background(), cmd); err == nil {
+		t.Fatalf("expected error for invalid address")
 	}
 }
 

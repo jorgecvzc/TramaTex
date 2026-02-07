@@ -19,8 +19,8 @@ type AttributeDataModel struct {
 	ScopeBrandID *uuid.UUID
 	ScopeGroupID *uuid.UUID
 	Values       []AttributeValueDataModel `gorm:"foreignKey:AttributeID"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	CreatedBy    string
+	ModifiedBy   string
 }
 
 func (AttributeDataModel) TableName() string {
@@ -34,8 +34,8 @@ type AttributeValueDataModel struct {
 	AttributeID uuid.UUID `gorm:"not null"`
 	Value       string    `gorm:"not null"`
 	Code        string    `gorm:"not null"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedBy   string
+	ModifiedBy  string
 }
 
 func (AttributeValueDataModel) TableName() string {
@@ -57,8 +57,6 @@ func (a *AttributeDataModel) ToDomain() *domain.Attribute {
 		ScopeBrandID: a.ScopeBrandID,
 		ScopeGroupID: a.ScopeGroupID,
 		Values:       values,
-		CreatedAt:    a.CreatedAt,
-		UpdatedAt:    a.UpdatedAt,
 	}
 }
 
@@ -69,8 +67,6 @@ func (av *AttributeValueDataModel) ToDomain() *domain.AttributeValue {
 		AttributeID: av.AttributeID,
 		Value:       av.Value,
 		Code:        av.Code,
-		CreatedAt:   av.CreatedAt,
-		UpdatedAt:   av.UpdatedAt,
 	}
 }
 
@@ -89,8 +85,6 @@ func AttributeFromDomain(a *domain.Attribute) *AttributeDataModel {
 		ScopeBrandID: a.ScopeBrandID,
 		ScopeGroupID: a.ScopeGroupID,
 		Values:       values,
-		CreatedAt:    a.CreatedAt,
-		UpdatedAt:    a.UpdatedAt,
 	}
 }
 
@@ -101,7 +95,5 @@ func AttributeValueFromDomain(av *domain.AttributeValue) *AttributeValueDataMode
 		AttributeID: av.AttributeID,
 		Value:       av.Value,
 		Code:        av.Code,
-		CreatedAt:   av.CreatedAt,
-		UpdatedAt:   av.UpdatedAt,
 	}
 }

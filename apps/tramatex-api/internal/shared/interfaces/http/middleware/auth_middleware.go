@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -42,6 +43,10 @@ func AuthMiddleware(jwtService security.JWTService, blacklist security.TokenBlac
 		c.Set("userID", claims.Subject())
 		c.Set("userEmail", claims.Email())
 		c.Set("userRole", claims.Role())
+
+		ctx := context.WithValue(c.Request.Context(), "userID", claims.Subject())
+		ctx = context.WithValue(ctx, "actorID", claims.Subject())
+		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}

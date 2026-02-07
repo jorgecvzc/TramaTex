@@ -56,14 +56,14 @@ bounded_contexts:
   description: "The system is a modular monolith. Core business domains are separated into Bounded Contexts. For a detailed map, see agents/project/context/bounded-contexts.yaml."
   core_modules:
     - "IAM (Identity & Access Management)"
-    - "Party (Clients & Suppliers)"
+    - "Partye (Clients & Suppliers)"
     - "Product (Catalogue & Variants)"
     - "Pricing (Calculation Engine)"
     - "Sales (Orders)"
     - "MES (Manufacturing Execution System)"
   relationships: "Dependencies flow from foundational modules (IAM, Party, Product) to core logic (Pricing, Sales) and finally to specialized subdomains (MES)."
   criticality:
-    - "CRITICAL: Pricing, Party, Product, IAM"
+    - "CRITICAL: Pricing, Partye, Product, IAM"
     - "HIGH: Sales"
     - "MEDIUM: MES (for MVP)"
 

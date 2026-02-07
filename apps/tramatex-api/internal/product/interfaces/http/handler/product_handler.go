@@ -2,6 +2,8 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -34,11 +36,18 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) AddGroupToProduct(c *gin.Context) {
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+		return
+	}
+
 	var cmd application.AddGroupCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	cmd.ProductID = productID
 
 	product, err := h.service.AddGroupToProduct(c.Request.Context(), cmd)
 	if err != nil {
@@ -50,11 +59,18 @@ func (h *ProductHandler) AddGroupToProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) AddDirectAttributeToProduct(c *gin.Context) {
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+		return
+	}
+
 	var cmd application.AddDirectAttributeCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	cmd.ProductID = productID
 
 	product, err := h.service.AddDirectAttributeToProduct(c.Request.Context(), cmd)
 	if err != nil {
@@ -123,16 +139,25 @@ func (h *ProductHandler) GetAttributeByID(c *gin.Context) {
 
 func (h *ProductHandler) ListAttributes(c *gin.Context) {
 	var query application.ListAttributesQuery
-	// TODO: Parse optional query parameters for filtering (ScopeType, BrandID, ProductGroupID)
-	// For example:
-	// if brandIDStr := c.Query("brandId"); brandIDStr != "" {
-	// 	brandID, err := uuid.Parse(brandIDStr)
-	// 	if err != nil {
-	// 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid brand id"})
-	// 		return
-	// 	}
-	// 	query.BrandID = &brandID
-	// }
+	if scopeType := strings.TrimSpace(c.Query("scopeType")); scopeType != "" {
+		query.ScopeType = &scopeType
+	}
+	if brandIDStr := strings.TrimSpace(c.Query("brandId")); brandIDStr != "" {
+		brandID, err := uuid.Parse(brandIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid brand id"})
+			return
+		}
+		query.BrandID = &brandID
+	}
+	if groupIDStr := strings.TrimSpace(c.Query("productGroupId")); groupIDStr != "" {
+		groupID, err := uuid.Parse(groupIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product group id"})
+			return
+		}
+		query.ProductGroupID = &groupID
+	}
 
 	attributes, err := h.service.ListAttributes(c.Request.Context(), query)
 	if err != nil {
@@ -185,7 +210,30 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 
 func (h *ProductHandler) ListProducts(c *gin.Context) {
 	var query application.ListProductsQuery
-	// TODO: Parse optional query parameters for filtering
+	if brandIDStr := strings.TrimSpace(c.Query("brandId")); brandIDStr != "" {
+		brandID, err := uuid.Parse(brandIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid brand id"})
+			return
+		}
+		query.BrandID = &brandID
+	}
+	if groupIDStr := strings.TrimSpace(c.Query("groupId")); groupIDStr != "" {
+		groupID, err := uuid.Parse(groupIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group id"})
+			return
+		}
+		query.GroupID = &groupID
+	}
+	if isActiveStr := strings.TrimSpace(c.Query("isActive")); isActiveStr != "" {
+		isActive, err := strconv.ParseBool(isActiveStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid isActive value"})
+			return
+		}
+		query.IsActive = &isActive
+	}
 
 	products, err := h.service.ListProducts(c.Request.Context(), query)
 	if err != nil {
@@ -213,7 +261,7 @@ func (h *ProductHandler) GetCalculatedOptionSetsForProduct(c *gin.Context) {
 }
 
 func (h *ProductHandler) GenerateProductVariants(c *gin.Context) {
-	productID, err := uuid.Parse(c.Param("productId"))
+	productID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
 		return
@@ -230,18 +278,24 @@ func (h *ProductHandler) GenerateProductVariants(c *gin.Context) {
 }
 
 func (h *ProductHandler) FindOrCreateProductVariant(c *gin.Context) {
-	productID, err := uuid.Parse(c.Param("productId"))
+	productID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
 		return
 	}
 
-	var cmd application.FindOrCreateProductVariantCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
+	var req struct {
+		OptionConfiguration map[string]string `json:"optionConfiguration"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cmd.ProductID = productID
+
+	cmd := application.FindOrCreateProductVariantCommand{
+		ProductID:           productID,
+		OptionConfiguration: req.OptionConfiguration,
+	}
 
 	variant, err := h.service.FindOrCreateProductVariant(c.Request.Context(), cmd)
 	if err != nil {
@@ -253,7 +307,7 @@ func (h *ProductHandler) FindOrCreateProductVariant(c *gin.Context) {
 }
 
 func (h *ProductHandler) ListProductVariantsByProductID(c *gin.Context) {
-	productID, err := uuid.Parse(c.Param("productId"))
+	productID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
 		return
@@ -372,7 +426,7 @@ func (h *ProductHandler) GetPartyServiceConfigurationByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
 	}
-	configID, err := uuid.Parse(c.Param("id"))
+	configID, err := uuid.Parse(c.Param("configId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid configuration id"})
 		return
@@ -394,7 +448,7 @@ func (h *ProductHandler) UpdatePartyServiceConfiguration(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
 	}
-	configID, err := uuid.Parse(c.Param("id"))
+	configID, err := uuid.Parse(c.Param("configId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid configuration id"})
 		return
@@ -423,7 +477,7 @@ func (h *ProductHandler) DeletePartyServiceConfiguration(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid party id"})
 		return
 	}
-	configID, err := uuid.Parse(c.Param("id"))
+	configID, err := uuid.Parse(c.Param("configId"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid configuration id"})
 		return

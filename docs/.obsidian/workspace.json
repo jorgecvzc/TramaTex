@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "modules/product/use-cases.md",
+                "file": "modules/pricing/module-spec.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "use-cases"
+              "title": "module-spec"
             }
           }
         ]
@@ -182,8 +182,19 @@
   },
   "active": "ea0a1ba2cd19a561",
   "lastOpenFiles": [
-    "modules/product/domain-model.md",
+    "modules/pricing/implementation-guide.md",
+    "modules/pricing/domain-model.md",
+    "modules/pricing/api-contracts.md",
+    "modules/pricing/diagrams/pricing-module-diagrams.md",
+    "modules/pricing/pricing-domain.md",
+    "modules/pricing/module-spec.md",
+    "modules/party/domain-model.md",
+    "modules/pricing/pricing-module-diagrams.md",
+    "modules/pricing/diagrams",
+    "modules/party/diagrams/domain-model.md",
+    "architecture/adrs/ADR-014-pricing-domain-definition.md",
     "modules/product/use-cases.md",
+    "modules/product/domain-model.md",
     "modules/product/api-contracts.md",
     "modules/product/diagrams/detailed-domain-models.md",
     "log/sprints/sprint-05/01-análisis-y-diseño-módulo-party.md",
@@ -200,16 +211,6 @@
     "log/sprints/sprint-04/01-consolidacion-modulo-iam.md",
     "2_architecture/security-overview.md",
     "2_architecture/README.md",
-    "2_architecture/glossary.md",
-    "2_architecture/bounded-contexts.md",
-    "2_architecture/adr/ADR-011-estrategia-testing-coverage.md",
-    "guides/developer/_GUIDE_TEMPLATE.md",
-    "guides/developer/backend/README.md",
-    "guides/developer/frontend/improved-files-notes.md",
-    "README.md",
-    "2_architecture/adr/ADR-010-estrategia-seguridad-defensa-profundidad.md",
-    "guides/developer/frontend/login-interface-visual.md",
-    "guides/developer/github-setup.md",
     "guides/developer/frontend",
     "guides/developer/backend",
     "guides/developer",
@@ -217,7 +218,6 @@
     "4_guides/developer/frontend",
     "4_guides/developer/backend",
     "4_guides/developer",
-    "3_modules/modules/sales",
-    "3_modules/modules/product"
+    "3_modules/modules/sales"
   ]
 }

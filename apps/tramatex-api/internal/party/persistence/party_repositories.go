@@ -9,7 +9,7 @@ import (
 // PartyRepository defines methods for Party aggregate persistence
 // Implementations should persist profiles, roles, and contact details together.
 type PartyRepository interface {
-	Save(ctx context.Context, party *domain.Party) error
+	Save(ctx context.Context, party *domain.Party, createdBy string, modifiedBy string) error
 	FindByID(ctx context.Context, id domain.PartyID) (*domain.Party, error)
 	FindAll(ctx context.Context, filters *PartyFilters) ([]*domain.Party, error)
 	Delete(ctx context.Context, id domain.PartyID) error
@@ -19,7 +19,7 @@ type PartyRepository interface {
 
 // PartyRelationshipRepository defines methods for relationships persistence
 type PartyRelationshipRepository interface {
-	Save(ctx context.Context, relationship domain.PartyRelationship) error
+	Save(ctx context.Context, relationship domain.PartyRelationship, createdBy string, modifiedBy string) error
 	FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]domain.PartyRelationship, error)
 	Delete(ctx context.Context, id domain.PartyRelationshipID) error
 }
@@ -27,7 +27,7 @@ type PartyRelationshipRepository interface {
 // ContactDetailsRepository defines methods for contact details persistence
 // If contacts are persisted as part of Party aggregate, implementations can proxy to PartyRepository.
 type ContactDetailsRepository interface {
-	Save(ctx context.Context, partyID domain.PartyID, details *domain.ContactDetails) error
+	Save(ctx context.Context, partyID domain.PartyID, details *domain.ContactDetails, createdBy string, modifiedBy string) error
 	FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.ContactDetails, error)
 	Delete(ctx context.Context, id domain.ContactDetailsID) error
 }

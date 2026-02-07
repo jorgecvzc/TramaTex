@@ -21,8 +21,6 @@ type ProductDTO struct {
 	GroupIDs           []uuid.UUID        `json:"groupIds"` // Note: api-contracts has single 'groupId', but domain has multiple
 	DirectAttributeIDs []uuid.UUID        `json:"directAttributeIds"`
 	IsActive           bool               `json:"isActive"`
-	CreatedAt          time.Time          `json:"createdAt"`
-	UpdatedAt          time.Time          `json:"updatedAt"`
 }
 
 // NewProductDTOFromDomain creates a ProductDTO from a domain.Product entity.
@@ -43,8 +41,6 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 		GroupIDs:           p.GroupIDs,
 		DirectAttributeIDs: p.DirectAttributeIDs,
 		IsActive:           p.IsActive,
-		CreatedAt:          p.CreatedAt,
-		UpdatedAt:          p.UpdatedAt,
 	}
 }
 
@@ -57,8 +53,6 @@ type AttributeDTO struct {
 	ScopeBrandID  *uuid.UUID `json:"scopeBrandId,omitempty"`
 	ScopeGroupID  *uuid.UUID `json:"scopeGroupId,omitempty"`
 	Values        []string   `json:"values"` // Just the value strings
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
 }
 
 // NewAttributeDTOFromDomain creates an AttributeDTO from a domain.Attribute entity.
@@ -76,8 +70,6 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 		ScopeBrandID:  a.ScopeBrandID,
 		ScopeGroupID:  a.ScopeGroupID,
 		Values:        values,
-		CreatedAt:     a.CreatedAt,
-		UpdatedAt:     a.UpdatedAt,
 	}
 }
 
@@ -87,12 +79,11 @@ type ProductVariantDTO struct {
 	ProductID           uuid.UUID            `json:"productId"`
 	SKU                 string               `json:"sku"`
 	Barcode             *string              `json:"barcode,omitempty"`
+	BaseCost            float64              `json:"baseCost"`
 	Price               float64              `json:"price"` // Missing in domain, assuming it will be added or fetched from pricing
 	Status              domain.VariantStatus `json:"status"`
 	OptionConfiguration map[string]string    `json:"optionConfiguration"` // AttributeName -> Value
 	IsActive            bool                 `json:"isActive"`
-	CreatedAt           time.Time            `json:"createdAt"`
-	UpdatedAt           time.Time            `json:"updatedAt"`
 }
 
 // NewProductVariantDTOFromDomain creates a ProductVariantDTO from a domain.ProductVariant entity.
@@ -134,12 +125,11 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*d
 		ProductID:           v.ProductID,
 		SKU:                 v.SKU,
 		Barcode:             v.Barcode,
+		BaseCost:            v.BaseCost,
 		Price:               0.0, // Placeholder, needs to come from pricing service/domain
 		Status:              v.Status,
 		OptionConfiguration: optionConfig,
 		IsActive:            v.IsActive,
-		CreatedAt:           v.CreatedAt,
-		UpdatedAt:           v.UpdatedAt,
 	}
 }
 

@@ -89,18 +89,32 @@ func (r *fakeRelationshipRepo) Delete(ctx context.Context, id domain.PartyRelati
 	return nil
 }
 
-type fakeAddressRepo struct{}
+type fakeAddressRepo struct {
+	addressesByParty map[string][]*domain.Address
+}
+
+func newFakeAddressRepo() *fakeAddressRepo {
+	return &fakeAddressRepo{addressesByParty: make(map[string][]*domain.Address)}
+}
 
 func (r *fakeAddressRepo) Save(ctx context.Context, address *domain.Address, addressID domain.AddressID, partyID domain.PartyID, createdBy string, modifiedBy string) error {
+	if address == nil {
+		return nil
+	}
+	r.addressesByParty[partyID.String()] = append(r.addressesByParty[partyID.String()], address)
 	return nil
 }
 
 func (r *fakeAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
-	return []*domain.Address{}, nil
+	return r.addressesByParty[partyID.String()], nil
 }
 
 func (r *fakeAddressRepo) FindPrimary(ctx context.Context, partyID domain.PartyID) (*domain.Address, error) {
-	return nil, nil
+	addresses := r.addressesByParty[partyID.String()]
+	if len(addresses) == 0 {
+		return nil, nil
+	}
+	return addresses[0], nil
 }
 
 func (r *fakeAddressRepo) Delete(ctx context.Context, id domain.AddressID) error {
@@ -112,7 +126,7 @@ func setupHandlers() (*gin.Engine, *fakePartyRepo) {
 
 	partyRepo := newFakePartyRepo()
 	relRepo := newFakeRelationshipRepo()
-	addressRepo := &fakeAddressRepo{}
+	addressRepo := newFakeAddressRepo()
 
 	createPartyHandler := application.NewCreatePartyHandler(partyRepo)
 	updatePartyHandler := application.NewUpdatePartyHandler(partyRepo)
@@ -215,6 +229,55 @@ func TestPartyHandler_CreateGetUpdateStatus(t *testing.T) {
 	}
 }
 
+func TestPartyHandler_CreateParty_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodPost, "/parties", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyHandler_UpdateParty_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	createPayload := map[string]interface{}{
+		"id":     "party-101",
+		"status": "ACTIVE",
+		"roles":  []string{},
+		"person_profile": map[string]interface{}{
+			"first_name": "Ana",
+			"last_name":  "Perez",
+		},
+	}
+	_ = performRequest(router, http.MethodPost, "/parties", createPayload)
+
+	resp := performRequest(router, http.MethodPut, "/parties/party-101", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyHandler_ChangeStatus_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	createPayload := map[string]interface{}{
+		"id":     "party-102",
+		"status": "ACTIVE",
+		"roles":  []string{},
+		"person_profile": map[string]interface{}{
+			"first_name": "Ana",
+			"last_name":  "Perez",
+		},
+	}
+	_ = performRequest(router, http.MethodPost, "/parties", createPayload)
+
+	resp := performRequest(router, http.MethodPatch, "/parties/party-102/status", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
 func TestPartyRoleHandler_AddRemove(t *testing.T) {
 	router, _ := setupHandlers()
 
@@ -237,6 +300,69 @@ func TestPartyRoleHandler_AddRemove(t *testing.T) {
 	resp = performRequest(router, http.MethodDelete, "/parties/party-200/roles/CLIENT", nil)
 	if resp.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+}
+
+func TestPartyRoleHandler_AddRole_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	createPayload := map[string]interface{}{
+		"id":     "party-201",
+		"status": "ACTIVE",
+		"roles":  []string{},
+		"person_profile": map[string]interface{}{
+			"first_name": "Ana",
+			"last_name":  "Perez",
+		},
+	}
+	_ = performRequest(router, http.MethodPost, "/parties", createPayload)
+
+	resp := performRequest(router, http.MethodPost, "/parties/party-201/roles", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyRoleHandler_RemoveRole_InvalidRole(t *testing.T) {
+	router, _ := setupHandlers()
+
+	createPayload := map[string]interface{}{
+		"id":     "party-202",
+		"status": "ACTIVE",
+		"roles":  []string{},
+		"person_profile": map[string]interface{}{
+			"first_name": "Ana",
+			"last_name":  "Perez",
+		},
+	}
+	_ = performRequest(router, http.MethodPost, "/parties", createPayload)
+
+	resp := performRequest(router, http.MethodDelete, "/parties/party-202/roles/BAD", nil)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyRelationshipHandler_AddRelationship_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodPost, "/parties/party-300/relationships", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyRelationshipHandler_AddRelationship_InvalidType(t *testing.T) {
+	router, _ := setupHandlers()
+
+	addPayload := map[string]interface{}{
+		"id":          "rel-002",
+		"to_party_id": "party-301",
+		"type":        "BAD",
+	}
+	resp := performRequest(router, http.MethodPost, "/parties/party-300/relationships", addPayload)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
 	}
 }
 
@@ -269,5 +395,187 @@ func TestContactDetailsHandler_AddUpdateRemove(t *testing.T) {
 	resp = performRequest(router, http.MethodDelete, "/parties/party-300/contact-details/contact-1", nil)
 	if resp.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", resp.Code)
+	}
+}
+
+func TestContactDetailsHandler_AddContactDetails_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodPost, "/parties/party-400/contact-details", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestContactDetailsHandler_UpdateContactDetails_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodPut, "/parties/party-400/contact-details/contact-1", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestContactDetailsHandler_ListContactDetails_PartyNotFound(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodGet, "/parties/missing/contact-details", nil)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyAddressHandler_AddAddress_InvalidJSON(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodPost, "/parties/party-500/addresses", "{")
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestGetUserIDFromContext(t *testing.T) {
+	if getUserIDFromContext(nil) != "system" {
+		t.Fatalf("expected system for nil context")
+	}
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("userID", "user-9")
+	if getUserIDFromContext(ctx) != "user-9" {
+		t.Fatalf("expected user-9 from context")
+	}
+}
+
+func TestPartyHandler_ListParties(t *testing.T) {
+	router, _ := setupHandlers()
+
+	createPayload := map[string]interface{}{
+		"id":     "party-400",
+		"status": "ACTIVE",
+		"roles":  []string{"CLIENT"},
+		"person_profile": map[string]interface{}{
+			"first_name": "Mia",
+			"last_name":  "Lopez",
+		},
+	}
+	_ = performRequest(router, http.MethodPost, "/parties", createPayload)
+
+	resp := performRequest(router, http.MethodGet, "/parties?page=2&page_size=5", nil)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+
+	var payload struct {
+		Total      int `json:"total"`
+		PageNumber int `json:"page_number"`
+		PageSize   int `json:"page_size"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if payload.Total != 1 {
+		t.Fatalf("expected total 1, got %d", payload.Total)
+	}
+	if payload.PageNumber != 2 || payload.PageSize != 5 {
+		t.Fatalf("expected page 2 size 5, got %d size %d", payload.PageNumber, payload.PageSize)
+	}
+}
+
+func TestPartyHandler_ListParties_InvalidStatus(t *testing.T) {
+	router, _ := setupHandlers()
+
+	resp := performRequest(router, http.MethodGet, "/parties?status=UNKNOWN", nil)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestPartyRelationshipHandler_AddListRemove(t *testing.T) {
+	router, _ := setupHandlers()
+
+	addPayload := map[string]interface{}{
+		"id":          "rel-001",
+		"to_party_id": "party-501",
+		"type":        "IS_EMPLOYEE_OF",
+	}
+	resp := performRequest(router, http.MethodPost, "/parties/party-500/relationships", addPayload)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.Code)
+	}
+
+	resp = performRequest(router, http.MethodGet, "/parties/party-500/relationships", nil)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+	var listPayload struct {
+		Total int `json:"total"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &listPayload); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if listPayload.Total != 1 {
+		t.Fatalf("expected total 1, got %d", listPayload.Total)
+	}
+
+	resp = performRequest(router, http.MethodDelete, "/parties/party-500/relationships/rel-001", nil)
+	if resp.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", resp.Code)
+	}
+}
+
+func TestContactDetailsHandler_List(t *testing.T) {
+	router, repo := setupHandlers()
+
+	partyID, _ := domain.NewPartyID("party-600")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, "system", nil, orgProfile)
+	contactID, _ := domain.NewContactDetailsID("contact-600")
+	contact, _ := domain.NewContactDetails(contactID, "Ventas", nil, nil, nil)
+	_ = party.OrganizationProfile().AddContact(contact)
+	_ = repo.Save(context.Background(), party)
+
+	resp := performRequest(router, http.MethodGet, "/parties/party-600/contact-details", nil)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+	var payload struct {
+		Total int `json:"total"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if payload.Total != 1 {
+		t.Fatalf("expected total 1, got %d", payload.Total)
+	}
+}
+
+func TestPartyAddressHandler_AddList(t *testing.T) {
+	router, _ := setupHandlers()
+
+	addPayload := map[string]interface{}{
+		"id":          "addr-900",
+		"street":      "Calle 9",
+		"city":        "Valencia",
+		"province":    "Valencia",
+		"postal_code": "46001",
+		"country":     "Spain",
+	}
+	resp := performRequest(router, http.MethodPost, "/parties/party-900/addresses", addPayload)
+	if resp.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.Code)
+	}
+
+	resp = performRequest(router, http.MethodGet, "/parties/party-900/addresses", nil)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+	var payload struct {
+		Total int `json:"total"`
+	}
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+	if payload.Total != 1 {
+		t.Fatalf("expected total 1, got %d", payload.Total)
 	}
 }

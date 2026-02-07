@@ -16,9 +16,24 @@ En Clean Architecture, componente que traduce entre el dominio y sistemas extern
 **Auditoría**
 Registro y seguimiento de cambios significativos en el sistema (quién, qué, cuándo). MVP incluye auditoría mínima de cambios en tarificación y MES.
 
+**Attribute (Atributo)**
+Entidad de dominio que gestiona una característica configurable de un producto (ej. "Talla", "Color") y sus posibles valores. Define su alcance de aplicación y hereda valores a productos.
+
+**AttributeValue (Valor de Atributo)**
+Entidad de dominio que representa un valor específico de un `Attribute` (ej. "Large" para "Talla", "Rojo" para "Color").
+
 ---
 
 ### B
+
+**BaseSalesPriceCache**
+Caché NoSQL (Redis) que almacena los precios base de venta (BaseSalesPrice) precalculados para todos los ProductVariants de un producto base. Optimizado para lectura rápida.
+
+**BaseSalesPriceRule**
+Entidad de dominio que define cómo se construye el precio base de venta de un ProductVariant (a partir de un coste/tarifa más incrementos) antes de aplicar cualquier modificación de venta. Se aplica en la fase de cálculo de caché, con una estricta precedencia por especificidad de producto.
+
+**Brand (Marca)**
+Entidad de dominio que agrupa productos bajo una marca común. Es clave para el pricing y el alcance de los atributos.
 
 **Bounded Context**
 Límite explícito en el que un modelo de dominio es válido. En TramaTex: Party, Producto, Tarificación, Ventas, MES son Bounded Contexts separados pero conectados.
@@ -40,8 +55,14 @@ Gestión de relaciones con clientes. En TramaTex, implementado parcialmente a tr
 **DDD (Domain-Driven Design)**
 Metodología de diseño que prioriza la lógica de negocio (dominio) como estructura central del software.
 
+**DeliveryNote (Albarán)**
+Documento de dominio que registra la entrega física de mercancía al cliente, derivado de uno o varios Pedidos de Venta.
+
+**DeliveryNoteNumber (Value Object)**
+Objeto de Valor inmutable que representa el número único de un Albarán, encapsulando su formato y lógica de generación.
+
 **Descuento**
-Reducción de precio aplicada a un pedido. Tipos: base (cliente), heredado (jerarquía), específico (override puntual).    
+Reducción de precio aplicada a un pedido. Tipos: base (cliente), heredado (jerarquía), específico (override puntual).
 
 **Diseño (en MES)**
 Etapa de producción personalizada donde se crea/aprueba el diseño del producto personalizado.
@@ -51,7 +72,7 @@ Etapa de producción personalizada donde se crea/aprueba el diseño del producto
 ### E
 
 **Entidad (en DDD)**
-Objeto del dominio con identidad única, que puede cambiar de estado a lo largo del tiempo. Ejemplo: Pedido, Party.       
+Objeto del dominio con identidad única, que puede cambiar de estado a lo largo del tiempo. Ejemplo: Pedido, Party.
 
 **Especificación**
 Documento que describe requisitos funcionales, reglas de negocio y contratos de un módulo.
@@ -61,7 +82,7 @@ Documento que describe requisitos funcionales, reglas de negocio y contratos de 
 ### H
 
 **Hardware objetivo**
-Equipo físico en el que TramaTex debe funcionar: i3 8GB RAM (clientes), i3 16GB + SSD (servidor), tablets (taller).      
+Equipo físico en el que TramaTex debe funcionar: i3 8GB RAM (clientes), i3 16GB + SSD (servidor), tablets (taller).
 
 ---
 
@@ -70,12 +91,18 @@ Equipo físico en el que TramaTex debe funcionar: i3 8GB RAM (clientes), i3 16GB
 **i18n (Internacionalización)**
 Soporte para múltiples idiomas. MVP: frontend en español/catalán. Post-MVP: tramatex-api completo.
 
+**Invoice (Factura)**
+Documento de dominio que representa la solicitud legal de pago al cliente, consolidando las ventas.
+
+**InvoiceNumber (Value Object)**
+Objeto de Valor inmutable que representa el número único de una Factura, encapsulando su formato y lógica de generación.
+
 ---
 
 ### J
 
 **JWT (JSON Web Token)**
-Estándar de autenticación stateless utilizado para validar usuarios. En TramaTex: tokens firmados con JWT_SECRET.        
+Estándar de autenticación stateless utilizado para validar usuarios. En TramaTex: tokens firmados con JWT_SECRET.
 
 ---
 
@@ -97,6 +124,9 @@ Sistema de ejecución de manufactura. En TramaTex: gestión de producción perso
 **Modificador de precio**
 Valor (porcentaje o cantidad) asociado a una variante que afecta al cálculo del precio final.
 
+**Moneda (Money - Value Object)**
+Objeto de Valor que representa una cantidad monetaria con su divisa asociada. Para MVP, la divisa es siempre EUR.
+
 **Monolito modular**
 Aplicación única (no distribuida) con módulos internos claramente separados y reutilizables.
 
@@ -117,24 +147,49 @@ Almacenamiento conectado a red. En TramaTex: almacena diseños de pedidos person
 **Organización**
 Estructura empresarial representada como "Party" en el sistema. Puede tener roles de Cliente y/o Proveedor.
 
+**OrderNumber (Value Object)**
+Objeto de Valor inmutable que representa el número único de un Pedido de Venta, encapsulando su formato y lógica de generación.
+
 ---
 
 ### P
 
 **Party / Organización**
-Patrón de modelado que representa cualquier persona u organización en el sistema. Evita duplicación Cliente/Proveedor.   
+Patrón de modelado que representa cualquier persona u organización en el sistema. Evita duplicación Cliente/Proveedor.
 
-**Pedido**
-Solicitud de compra de productos. Tipos: estándar (producción no personalizada), personalizado (MES).
+**PartyServiceConfiguration**
+Entidad de dominio que guarda configuraciones de servicios específicas de un `Party` para un producto de tipo `SERVICE`.
+
+**Pedido (SalesOrder)**
+Entidad de dominio que representa un compromiso de venta firme. Sirve como la base para la ejecución de la venta, la generación de Albaranes y Facturas.
+
+**Porcentaje (Percentage - Value Object)**
+Objeto de Valor inmutable que representa un porcentaje (ej. 0.10 para 10%).
 
 **Persistencia**
 Capa de almacenamiento de datos. En TramaTex: PostgreSQL + GORM (solo en capa de infraestructura).
 
-**Producto**
-Artículo básico del catálogo. Puede tener variantes (talla, color, arreglos).
+**Product (Producto)**
+Entidad de dominio que representa la plantilla o el concepto general de un artículo o servicio vendible.
+
+**ProductGroup (Grupo de Producto)**
+Entidad de dominio que representa una categoría jerárquica para productos.
+
+**ProductType (Tipo de Producto)**
+Enumeración que clasifica un `Product` como `TANGIBLE` (bien físico) o `SERVICE` (servicio).
 
 **Proveed**
 Entidad externa que proporciona productos/materiales al sistema. Representada como Party con rol Proveedor.
+
+---
+
+### Q
+
+**Quote (Cotización / Presupuesto)**
+Entidad de dominio que representa una oferta de precios a un cliente que aún no ha sido confirmada. Puede convertirse en un Pedido de Venta.
+
+**QuoteNumber (Value Object)**
+Objeto de Valor inmutable que representa el número único de una Cotización, encapsulando su formato y lógica de generación.
 
 ---
 
@@ -152,9 +207,18 @@ Atributo de calidad (p.e., "operar con <150MB RAM", "ACID en BD").
 **Rigor asimétrico**
 Aplicación de disciplina arquitectónica proporcional al valor estratégico. En TramaTex: rigor máximo en Tarificación, flexibilidad controlada en CRUDs simples.
 
+**RuleValue (Value Object)**
+Objeto de Valor que encapsula el tipo y el valor del efecto de una regla de pricing (ej. porcentaje de incremento, cantidad monetaria fija, etc.). Implícitamente define si la operación es modificativa o anulativa.
+
 ---
 
 ### S
+
+**SaleModificationRule**
+Entidad de dominio que define cómo se modifica el precio base de venta (ya calculado) en el contexto de una venta específica (basado en cliente, monto mínimo, grupo de productos o fechas de campaña). Se aplica en el momento de la venta.
+
+**SalesOrder (Pedido)**
+Ver **Pedido**.
 
 **Supplier (Proveedor)**
 Especialización de Party con rol Proveedor. Proporciona costes base para productos.
@@ -176,8 +240,11 @@ Desarrollo guiado por pruebas. Obligatorio en dominio crítico de TramaTex.
 
 ### V
 
-**Variante**
-Especificidad de un producto (talla, color, arreglo). Puede afectar precio mediante modificador.
+**ProductVariant (Variante de Producto)**
+Entidad de dominio que representa la instancia final y vendible de un `Product`, compuesta por una combinación única de `AttributeValue`s.
+
+**ProductVariantStatus (Estado de Variante de Producto)**
+Enumeración que indica el estado de una `ProductVariant`: `PROVISIONAL` (creada JIT) o `CONFIRMED` (validada/manual).
 
 **Value Object (Objeto de Valor)**
 Objeto del dominio sin identidad única, inmutable. Ejemplo: Email, Password (en Auth).

@@ -1,6 +1,6 @@
 # TramaTex - Makefile with Dual Docker Support (Windows Local + Linux Remote)
 # Supports: make docker-up ENV=local  OR  make docker-up ENV=remote
-# Default behavior: Uses .env.remote (Linux pcele Server - PRIMARY)
+# Default behavior: Uses .env.local (Docker Desktop - PRIMARY)
 
 .PHONY: help setup docker-build docker-up docker-down docker-logs docker-status \
         tramatex-api-build tramatex-api-run tramatex-api-test tramatex-api-test-unit tramatex-api-coverage \
@@ -14,8 +14,8 @@
 BINARY_NAME=tramatex
 GO=go
 
-# Detect environment (default: remote - PRIMARY)
-ENV ?= remote
+# Detect environment (default: local - PRIMARY)
+ENV ?= local
 ifeq ($(ENV),remote)
     DOCKER_COMPOSE_FILE=docker-compose.remote.yml
     ENV_FILE=.env.remote
@@ -38,11 +38,11 @@ help: ## Show this help message
 	@echo "🏗️  TramaTex - Dual Docker Support (Local + Remote)"
 	@echo ""
 	@echo "USAGE:"
-	@echo "  make TARGET                     (uses REMOTE Linux pcele - DEFAULT)"
+	@echo "  make TARGET                     (uses LOCAL Docker Desktop - DEFAULT)"
 	@echo "  make TARGET ENV=local           (explicitly use Windows Docker Desktop)"
 	@echo "  make TARGET ENV=remote          (explicitly use Linux pcele via SSH)"
 	@echo ""
-	@echo "⭐ DEFAULT: Linux pcele server (PRIMARY ENVIRONMENT)"
+	@echo "⭐ DEFAULT: Local Docker Desktop (PRIMARY ENVIRONMENT)"
 	@echo ""
 	@echo "SETUP FIRST:"
 	@echo "  make env-init                   (Initialize SSH/Docker connections)"
@@ -52,11 +52,11 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-25s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "EXAMPLES:"
-	@echo "  make docker-up                  # Start REMOTE stack (pcele) - DEFAULT"
-	@echo "  make docker-up ENV=remote       # Start REMOTE stack (pcele) - Explicit"
+	@echo "  make docker-up                  # Start LOCAL stack (Windows) - DEFAULT"
 	@echo "  make docker-up ENV=local        # Start LOCAL stack (Windows)"
-	@echo "  make docker-logs                # View logs from remote (default)"
-	@echo "  make docker-logs ENV=local      # View logs from local (Windows)"
+	@echo "  make docker-up ENV=remote       # Start REMOTE stack (pcele) - Explicit"
+	@echo "  make docker-logs                # View logs from local (default)"
+	@echo "  make docker-logs ENV=remote     # View logs from remote (pcele)"
 
 env-init: ## Initialize environment files and test connectivity
 	@echo "🔧 Initializing TramaTex environments..."
@@ -100,12 +100,12 @@ test-connectivity: ## Test connectivity to both Docker environments
 # DOCKER COMMANDS - Dual Environment Support
 # ============================================================================
 
-docker-build: ## Build Docker image (REMOTE by default, use ENV=local for local)
+docker-build: ## Build Docker image (LOCAL by default, use ENV=remote for remote)
 	@echo "🐳 Building Docker image on $(ENV)..."
 	@echo "Using: $(DOCKER_COMPOSE_FILE)"
 	@$(DOCKER_COMPOSE) build
 
-docker-up: ## Start Docker stack (REMOTE by default, use ENV=local for local)
+docker-up: ## Start Docker stack (LOCAL by default, use ENV=remote for remote)
 	@echo "🚀 Starting Docker stack on $(ENV)..."
 	@echo "Environment: $(ENV_FILE)"
 	@echo "Compose file: $(DOCKER_COMPOSE_FILE)"
@@ -116,15 +116,15 @@ docker-up: ## Start Docker stack (REMOTE by default, use ENV=local for local)
 	@sleep 2
 	@make docker-status ENV=$(ENV)
 
-docker-down: ## Stop Docker stack (REMOTE by default, use ENV=local for local)
+docker-down: ## Stop Docker stack (LOCAL by default, use ENV=remote for remote)
 	@echo "⛔ Stopping Docker stack on $(ENV)..."
 	@$(DOCKER_COMPOSE) down
 
-docker-logs: ## Show Docker logs (REMOTE by default, use ENV=local for local)
+docker-logs: ## Show Docker logs (LOCAL by default, use ENV=remote for remote)
 	@echo "📋 Docker logs ($(ENV)):"
 	@$(DOCKER_COMPOSE) logs -f
 
-docker-status: ## Show Docker containers status (REMOTE by default, use ENV=local for local)
+docker-status: ## Show Docker containers status (LOCAL by default, use ENV=remote for remote)
 	@echo "📊 Docker status ($(ENV)):"
 	@echo ""
 	@echo "Environment: $(ENV)"

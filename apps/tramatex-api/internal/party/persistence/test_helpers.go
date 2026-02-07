@@ -67,29 +67,10 @@ func loadTestDBConfig() testDBConfig {
 		SSLMode:  "disable",
 	}
 
-	if env, err := readEnvRemote(); err == nil {
-		if value := env["DB_HOST"]; value != "" {
-			config.Host = value
-		}
-		if value := env["DB_PORT"]; value != "" {
-			config.Port = value
-		}
-		if value := env["DB_USER"]; value != "" {
-			config.User = value
-		}
-		if value := env["DB_PASSWORD"]; value != "" {
-			config.Password = value
-		}
-		if value := env["DB_SSLMODE"]; value != "" {
-			config.SSLMode = value
-		}
-		if config.Host == "postgres" {
-			if sshHost := env["SSH_HOST"]; sshHost != "" {
-				config.Host = sshHost
-			} else {
-				config.Host = "pcele"
-			}
-		}
+	if env, err := readEnvLocal(); err == nil {
+		applyEnvOverrides(&config, env, "localhost")
+	} else if env, err := readEnvRemote(); err == nil {
+		applyEnvOverrides(&config, env, "pcele")
 	}
 
 	if value := os.Getenv("TRAMATEX_TEST_DB_HOST"); value != "" {
@@ -114,11 +95,49 @@ func loadTestDBConfig() testDBConfig {
 	return config
 }
 
+func applyEnvOverrides(config *testDBConfig, env map[string]string, fallbackHost string) {
+	if value := env["DB_HOST"]; value != "" {
+		config.Host = value
+	}
+	if value := env["DB_PORT"]; value != "" {
+		config.Port = value
+	}
+	if value := env["DB_USER"]; value != "" {
+		config.User = value
+	}
+	if value := env["DB_PASSWORD"]; value != "" {
+		config.Password = value
+	}
+	if value := env["DB_NAME"]; value != "" {
+		config.Name = value
+	}
+	if value := env["DB_SSLMODE"]; value != "" {
+		config.SSLMode = value
+	}
+	if config.Host == "postgres" {
+		if sshHost := env["SSH_HOST"]; sshHost != "" {
+			config.Host = sshHost
+		} else {
+			config.Host = fallbackHost
+		}
+	}
+}
+
+func readEnvLocal() (map[string]string, error) {
+	_, currentFile, _, _ := runtime.Caller(0)
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "..", ".."))
+	path := filepath.Join(root, ".env.local")
+	return readEnvFile(path)
+}
+
 func readEnvRemote() (map[string]string, error) {
 	_, currentFile, _, _ := runtime.Caller(0)
 	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "..", ".."))
 	path := filepath.Join(root, ".env.remote")
+	return readEnvFile(path)
+}
 
+func readEnvFile(path string) (map[string]string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

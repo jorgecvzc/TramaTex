@@ -26,6 +26,12 @@ Este overview es el punto de partida. Para profundizar, consulta los siguientes 
     *   [ADR-009](./adrs/ADR-009-project-structure.md): Estructura de Carpetas.
     *   [ADR-010](./adrs/ADR-010-defense-in-depth-security-strategy.md): Estrategia de Seguridad.
     *   [ADR-011](./adrs/ADR-011-testing-coverage-strategy.md): Estrategia de Testing.
+    *   [ADR-012](./adrs/ADR-012-arquitectura-modulo-party.md): Arquitectura del Módulo de Party.
+    *   [ADR-013](./adrs/ADR-013-manejo-de-modificaciones-de-producto.md): Manejo de Modificaciones de Producto.
+    *   [ADR-014](./adrs/ADR-014-iam-module-architecture.md): Arquitectura del Módulo de IAM.
+    *   [ADR-015](./adrs/ADR-015-product-module-architecture.md): Arquitectura del Módulo de Product.
+    *   [ADR-016](./adrs/ADR-016-pricing-module-architecture.md): Arquitectura del Módulo de Pricing.
+    *   [ADR-017](./adrs/ADR-017-sales-module-architecture.md): Arquitectura del Módulo de Sales.
 *   **Diagramas Visuales**: [./diagrams/](./diagrams/)
 
 ## 3. Estructura de Módulos

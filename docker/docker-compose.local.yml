@@ -28,7 +28,7 @@ services:
   # TramaTex API
   api:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     container_name: ${API_CONTAINER:-tramatex_api}
     environment:
@@ -54,7 +54,7 @@ services:
       - tramatex_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

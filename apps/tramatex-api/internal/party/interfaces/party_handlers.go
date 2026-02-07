@@ -46,7 +46,6 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 		ID:        req.ID,
 		Status:    req.Status,
 		Roles:     req.Roles,
-		CreatedBy: getUserIDFromContext(c),
 	}
 
 	if req.PersonProfile != nil {
@@ -165,7 +164,6 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 	cmd := &application.UpdatePartyCommand{
 		ID:         id,
 		Status:     req.Status,
-		ModifiedBy: getUserIDFromContext(c),
 	}
 
 	if req.PersonProfile != nil {
@@ -210,7 +208,6 @@ func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
 	cmd := &application.ChangePartyStatusCommand{
 		ID:         id,
 		Status:     req.Status,
-		ModifiedBy: getUserIDFromContext(c),
 	}
 
 	party, err := h.changeStatusHandler.Handle(c.Request.Context(), cmd)
@@ -245,7 +242,6 @@ func (h *PartyRoleHandler) AddRole(c *gin.Context) {
 	party, err := h.addHandler.Handle(c.Request.Context(), &application.AddPartyRoleCommand{
 		ID:         id,
 		Role:       req.Role,
-		ModifiedBy: getUserIDFromContext(c),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -263,7 +259,6 @@ func (h *PartyRoleHandler) RemoveRole(c *gin.Context) {
 	party, err := h.removeHandler.Handle(c.Request.Context(), &application.RemovePartyRoleCommand{
 		ID:         id,
 		Role:       role,
-		ModifiedBy: getUserIDFromContext(c),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -384,7 +379,6 @@ func (h *ContactDetailsHandler) AddContactDetails(c *gin.Context) {
 		Phone:           req.Phone,
 		Email:           req.Email,
 		RelatedPartyID:  req.RelatedPartyID,
-		ModifiedBy:      getUserIDFromContext(c),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -430,7 +424,6 @@ func (h *ContactDetailsHandler) UpdateContactDetails(c *gin.Context) {
 		Phone:           req.Phone,
 		Email:           req.Email,
 		RelatedPartyID:  req.RelatedPartyID,
-		ModifiedBy:      getUserIDFromContext(c),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -448,7 +441,6 @@ func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
 	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemoveContactDetailsCommand{
 		PartyID:    partyID,
 		ContactID:  contactID,
-		ModifiedBy: getUserIDFromContext(c),
 	}); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -488,7 +480,6 @@ func (h *PartyAddressHandler) AddAddress(c *gin.Context) {
 		Province:   req.Province,
 		PostalCode: req.PostalCode,
 		Country:    req.Country,
-		CreatedBy:  getUserIDFromContext(c),
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

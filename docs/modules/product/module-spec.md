@@ -1,88 +1,48 @@
 # Módulo de Product (Catálogo de Productos)
 
+**Estado:** Aceptado
+
 ## 1. Propósito
 
-*   **Visión del Módulo:** Gestionar el catálogo de productos con variantes y clasificaciones.
+*   **Visión del Módulo:** Gestionar el catálogo completo de productos y servicios de TramaTex, incluyendo la definición de atributos configurables, la creación dinámica de variantes y la clasificación jerárquica.
 *   **Objetivos Clave:**
-    *   Proporcionar un sistema para gestionar el catálogo de productos.
-    *   Soportar variantes de productos como tallas, colores y modificaciones personalizadas.
+    *   Proveer una fuente de verdad para toda la información de productos y variantes.
+    *   Soportar productos configurables mediante un sistema flexible de atributos y valores.
+    *   Permitir la creación "Just-in-Time" (JIT) de `ProductVariant`s para optimizar la gestión de datos.
+    *   Facilitar la integración con los módulos de `Pricing` (para cálculo de precios) y `MES` (para gestión de producción).
 
 ## 2. Requisitos
 
 ### 2.1. Requisitos Funcionales
 
-*   **RF-001:** Crear y mantener productos base.
-*   **RF-002:** Gestionar variantes de productos.
-*   **RF-003:** Asignar SKU único a cada producto y variante.
-*   **RF-004:** Categorización de productos.
-*   **RF-005:** Gestionar disponibilidad de stock (básico).
+*   **RF-P-001:** Crear y mantener atributos y sus valores.
+*   **RF-P-002:** Crear y mantener productos (tangibles o servicios) con sus atributos base, marca y grupos.
+*   **RF-P-003:** Gestionar la asignación y herencia de atributos a productos.
+*   **RF-P-004:** Generar SKUs deterministas para `ProductVariant`s basados en su configuración de atributos.
+*   **RF-P-005:** Crear `ProductVariant`s de forma explícita o "Just-in-Time".
+*   **RF-P-006:** Mantener el estado de las `ProductVariant`s (`PROVISIONAL`, `CONFIRMED`).
+*   **RF-P-007:** Gestionar marcas y grupos de productos (categorización jerárquica).
+*   **RF-P-008:** Gestionar `PartyServiceConfiguration`s asociadas a productos de tipo `SERVICE`.
 
 ## 3. Casos de Uso
 
-### 3.1. Actores
+Para una descripción detallada de los casos de uso, incluyendo flujos y entradas/salidas, consulte el documento [Casos de Uso - Módulo Product](./use-cases.md).
 
-*   **Gerente de Producto:** Define y gestiona el catálogo de productos.
-*   **Vendedor:** Consulta el catálogo para realizar ventas.
+## 4. Modelo de Dominio
 
-### 3.2. Casos de Uso Principales
+Para una descripción detallada del modelo de dominio, incluyendo entidades, Value Objects, agregados y sus relaciones, consulte el documento [Modelo de Dominio - Módulo Product](./domain-model.md).
 
-*   **CU-001: CreateProduct**
-    *   **Actor:** Gerente de Producto
-    *   **Descripción:** Crear un producto base en el catálogo.
-*   **CU-002: CreateVariant**
-    *   **Actor:** Gerente de Producto
-    *   **Descripción:** Agregar una nueva variante (talla, color) a un producto existente.
-*   **CU-003: UpdateProduct**
-    *   **Actor:** Gerente de Producto
-    *   **Descripción:** Actualizar la información de un producto.
-*   **CU-004: GetProduct**
-    *   **Actor:** Vendedor / Gerente de Producto
-    *   **Descripción:** Obtener los detalles de un producto, incluyendo todas sus variantes.
-*   **CU-005: ListProducts**
-    *   **Actor:** Vendedor / Gerente de Producto
-    *   **Descripción:** Listar el catálogo de productos con filtros.
-*   **CU-006: ChangeStatus**
-    *   **Actor:** Gerente de Producto
-    *   **Descripción:** Activar o descontinuar un producto.
+## 5. Decisiones de Diseño
 
-## 4. Historias de Usuario
-
-*   **HU-001:** Como Gerente de Producto, quiero poder crear un nuevo producto con su nombre, SKU y descripción para agregarlo al catálogo.
-*   **HU-002:** Como Gerente de Producto, quiero agregar variantes de talla y color a un producto para ofrecer más opciones a los clientes.
-*   **HU-003:** Como Vendedor, quiero ver todas las variantes de un producto en una sola pantalla para facilitar la cotización.
-
-## 5. Criterios de Aceptación
-
-*   **Para HU-002:**
-    *   **Criterio 1:** Dado un producto existente, cuando agrego una variante con talla "M" y color "Azul", entonces la nueva variante aparece en la lista de variantes del producto.
-
-## 6. Modelo de Dominio
-
-### Product (Raíz de Agregación)
-- **ID**: UUID
-- **Nombre**: String
-- **SKU**: String (único)
-- **Descripción**: String
-- **Categoría**: Enum (Textiles, Personalizables, etc.)
-- **Estado**: Enum (Activo, Descontinuado)
-- **Variantes**: List<ProductVariant>
-- **Metadata**: CreatedAt, UpdatedAt
-
-### ProductVariant
-- **ID**: UUID
-- **Tamaño**: String (S, M, L, XL, etc.)
-- **Color**: String
-- **Modificaciones**: String (personalizaciones)
-- **SKU**: String (único, derivado)
-- **CostoUnitario**: Decimal
-
-## 7. Decisiones de Diseño
-
+*   **Modelo de Atributos/Valores Explícito:** Se utiliza un modelo flexible de `Attribute` y `AttributeValue` para gestionar las características configurables de los productos.
+*   **Herencia de Atributos con Anulación:** Los atributos se heredan de marcas y grupos, permitiendo la anulación en niveles más específicos (directo, grupo+marca, grupo, marca, genérico).
+*   **Creación JIT de `ProductVariant`s:** Las variantes se crean en la base de datos bajo demanda para evitar la pre-generación masiva, comenzando con un estado `PROVISIONAL`.
+*   **Composición de SKU Determinista:** Los SKUs de las variantes se construyen algorítmicamente a partir de los códigos de atributos y valores.
+*   **`ProductType` (`TANGIBLE` vs `SERVICE`):** Permite diferenciar entre bienes físicos y servicios, con un manejo especial para `PartyServiceConfiguration`s en el caso de servicios (ver `ADR-013`).
 *   **Relaciones con Otros Módulos:**
-    *   **Pricing**: Cada variante tiene su precio según la `Party` y el volumen.
-    *   **Sales**: Las órdenes de venta contienen `ProductVariants`.
-    *   **Inventory (futuro):** Se gestionará el stock de cada `ProductVariant`.
-*   **Fases de Desarrollo:**
-    *   [X] Fase 1 (MVP): Producto base + variantes básicas.
-    *   [ ] Fase 2: Categorización y búsqueda avanzada.
-    *   [ ] Fase 3: Historial de cambios del producto.
+    *   **Pricing:** Consume `ProductVariantID`s y sus atributos para el cálculo de precios.
+    *   **Sales:** Las órdenes de venta contienen `ProductVariant`s.
+    *   **Party:** Referenciado por `PartyServiceConfiguration`.
+    *   **MES:** Utiliza `ProductVariant`s para la planificación de la producción.
+
+---

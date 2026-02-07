@@ -15,8 +15,6 @@ type Attribute struct {
 	ScopeBrandID   *uuid.UUID
 	ScopeGroupID   *uuid.UUID
 	Values         []AttributeValue
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
 }
 
 // AttributeValue represents a specific value for an Attribute (e.g., "Large", "Red").
@@ -25,8 +23,6 @@ type AttributeValue struct {
 	AttributeID uuid.UUID
 	Value       string
 	Code        string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
 // NewAttribute creates a new Attribute with validation.
@@ -46,8 +42,6 @@ func NewAttribute(name, code string, sortOrder int, scopeBrandID, scopeGroupID *
 		ScopeBrandID: scopeBrandID,
 		ScopeGroupID: scopeGroupID,
 		Values:       make([]AttributeValue, 0),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
 	}, nil
 }
 
@@ -65,8 +59,6 @@ func (a *Attribute) AddValue(value, code string) (*AttributeValue, error) {
 		AttributeID: a.ID,
 		Value:       value,
 		Code:        code,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
 	}
 
 	a.Values = append(a.Values, newValue)
@@ -86,7 +78,6 @@ func (a *Attribute) UpdateValue(id uuid.UUID, newValue, newCode string) error {
 		if val.ID == id {
 			a.Values[i].Value = newValue
 			a.Values[i].Code = newCode
-			a.Values[i].UpdatedAt = time.Now()
 			return nil
 		}
 	}

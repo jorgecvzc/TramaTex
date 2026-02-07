@@ -117,6 +117,9 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	defer teardownTest(ts)
 
 	ctx := ts.Ctx
+	resetDB := func(t *testing.T) {
+		assert.NoError(t, ts.TestDB.SetUpProduct())
+	}
 
 	// --- Helper functions ---
 	createBrand := func(name string) *domain.Brand {
@@ -132,7 +135,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	}
 
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -163,7 +166,11 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
-			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]} // Simple code generation for test
+			valueCode := "X"
+			if len(v) > 0 {
+				valueCode = v[:1]
+			}
+			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: valueCode} // Simple code generation for test
 		}
 
 		cmd := application.CreateAttributeCommand{
@@ -184,6 +191,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	// --- Test Scenarios ---
 
 	t.Run("Product with only generic attributes", func(t *testing.T) {
+		resetDB(t)
 		brand := createBrand("Brand A")
 		product := createProduct(brand.ID, nil, nil)
 		attrGenericColor := createAttribute("Color", "COL", 1, nil, nil, []string{"Red"})
@@ -197,6 +205,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("Product with brand-scoped attributes overriding generic", func(t *testing.T) {
+		resetDB(t)
 		brandB := createBrand("Brand B")
 		product := createProduct(brandB.ID, nil, nil)
 		attrGenericSize := createAttribute("Size", "SIZ", 1, nil, nil, []string{"M"})
@@ -215,6 +224,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("Product with group-scoped attributes overriding generic", func(t *testing.T) {
+		resetDB(t)
 		brandC := createBrand("Brand C")
 		groupC := createGroup("Group C")
 		product := createProduct(brandC.ID, []uuid.UUID{groupC.ID}, nil)
@@ -234,6 +244,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("Product with direct attributes overriding all others", func(t *testing.T) {
+		resetDB(t)
 		brandD := createBrand("Brand D")
 		groupD := createGroup("Group D")
 		attrGenericSize := createAttribute("Size", "SIZ", 1, nil, nil, []string{"XS"})
@@ -255,6 +266,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("Product with Group+Brand scoped attribute overriding less specific", func(t *testing.T) {
+		resetDB(t)
 		brandE := createBrand("Brand E")
 		groupE := createGroup("Group E")
 		product := createProduct(brandE.ID, []uuid.UUID{groupE.ID}, nil)
@@ -277,6 +289,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("No applicable attributes", func(t *testing.T) {
+		resetDB(t)
 		brandF := createBrand("Brand F")
 		groupF := createGroup("Group F")
 		product := createProduct(brandF.ID, []uuid.UUID{groupF.ID}, nil)
@@ -290,6 +303,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 	})
 
 	t.Run("Product with multiple groups - correct precedence", func(t *testing.T) {
+		resetDB(t)
 		brandG := createBrand("Brand G")
 		groupG1 := createGroup("Group G1")
 		groupG2 := createGroup("Group G2")
@@ -331,7 +345,7 @@ func TestProductService_AddDirectAttributeToProduct_Integration(t *testing.T) {
 	}
 
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -459,7 +473,7 @@ func TestProductService_UpdateProductSKU_Integration(t *testing.T) {
 	}
 
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -525,7 +539,11 @@ func TestProductService_GetAttributeByID_Integration(t *testing.T) {
 	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
-			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
+			valueCode := "X"
+			if len(v) > 0 {
+				valueCode = v[:1]
+			}
+			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: valueCode}
 		}
 		cmd := application.CreateAttributeCommand{
 			Name:         name,
@@ -678,6 +696,9 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 	defer teardownTest(ts)
 
 	ctx := ts.Ctx
+	resetDB := func(t *testing.T) {
+		assert.NoError(t, ts.TestDB.SetUpProduct())
+	}
 
 	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
@@ -700,6 +721,7 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 	}
 
 	t.Run("Successfully update attribute name and sort order", func(t *testing.T) {
+		resetDB(t)
 		attr := createAttribute("Old Name", "OLD", 1, nil, nil, []string{"Val1", "Val2"})
 
 		newName := "New Name"
@@ -725,6 +747,7 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 	})
 
 	t.Run("Successfully update attribute values (add, modify, delete)", func(t *testing.T) {
+		resetDB(t)
 		attr := createAttribute("Test Values", "TV", 1, nil, nil, []string{"A", "B"})
 		valA := attr.Values[0] // Assuming first value is A
 		valB := attr.Values[1] // Assuming second value is B
@@ -792,7 +815,7 @@ func TestProductService_GetProductByID_Integration(t *testing.T) {
 	}
 
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -838,6 +861,9 @@ func TestProductService_ListProducts_Integration(t *testing.T) {
 	defer teardownTest(ts)
 
 	ctx := ts.Ctx
+	resetDB := func(t *testing.T) {
+		assert.NoError(t, ts.TestDB.SetUpProduct())
+	}
 
 	createBrand := func(name string) *domain.Brand {
 		brand := &domain.Brand{ID: uuid.New(), Name: name}
@@ -846,7 +872,7 @@ func TestProductService_ListProducts_Integration(t *testing.T) {
 	}
 
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, sku string) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         sku,
 			Name:        "Test Product",
@@ -865,6 +891,7 @@ func TestProductService_ListProducts_Integration(t *testing.T) {
 	}
 
 	t.Run("List all products when no filters are applied", func(t *testing.T) {
+		resetDB(t)
 		brand := createBrand("Brand X")
 		createProduct(brand.ID, nil, "PROD-1")
 		createProduct(brand.ID, nil, "PROD-2")
@@ -876,6 +903,7 @@ func TestProductService_ListProducts_Integration(t *testing.T) {
 	})
 
 	t.Run("List products with filters (not yet implemented in service)", func(t *testing.T) {
+		resetDB(t)
 		// As the service.ListProducts currently returns an empty slice, this tests that behavior.
 		query := application.ListProductsQuery{} // No filters for now
 		products, err := ts.ProductService.ListProducts(ctx, query)
@@ -896,7 +924,7 @@ func TestProductService_GenerateProductVariants_Integration(t *testing.T) {
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -973,7 +1001,7 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -1033,9 +1061,9 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 		cmd := application.FindOrCreateProductVariantCommand{
 			ProductID: product.ID,
-			OptionConfiguration: []application.OptionConfigurationItem{
-				{AttributeName: attrColor.Code, Value: attrColor.Values[0].Value},
-				{AttributeName: attrSize.Code, Value: attrSize.Values[0].Value},
+			OptionConfiguration: map[string]string{
+				attrColor.Code: attrColor.Values[0].Value,
+				attrSize.Code:  attrSize.Values[0].Value,
 			},
 		}
 
@@ -1054,9 +1082,9 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 		cmd := application.FindOrCreateProductVariantCommand{
 			ProductID: product.ID,
-			OptionConfiguration: []application.OptionConfigurationItem{
-				{AttributeName: attrColor.Code, Value: attrColor.Values[0].Value},
-				{AttributeName: attrSize.Code, Value: attrSize.Values[0].Value},
+			OptionConfiguration: map[string]string{
+				attrColor.Code: attrColor.Values[0].Value,
+				attrSize.Code:  attrSize.Values[0].Value,
 			},
 		}
 
@@ -1075,8 +1103,8 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 		cmd := application.FindOrCreateProductVariantCommand{
 			ProductID: product.ID,
-			OptionConfiguration: []application.OptionConfigurationItem{
-				{AttributeName: "INV_C", Value: "InvalidValue"}, // Invalid value
+			OptionConfiguration: map[string]string{
+				"INV_C": "InvalidValue", // Invalid value
 			},
 		}
 
@@ -1099,7 +1127,7 @@ func TestProductService_ListProductVariantsByProductID_Integration(t *testing.T)
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -1195,7 +1223,7 @@ func TestProductService_GetProductVariantByID_Integration(t *testing.T) {
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -1283,7 +1311,7 @@ func TestProductService_GetProductVariantBySKU_Integration(t *testing.T) {
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -1372,7 +1400,7 @@ func TestProductService_UpdateProductVariant_Integration(t *testing.T) {
 		return brand
 	}
 	createProduct := func(brandID uuid.UUID, groupIDs []uuid.UUID, directAttrIDs []uuid.UUID) *domain.Product {
-		barcode := "12345"
+		barcode := uuid.New().String()
 		cmd := application.CreateProductCommand{
 			SKU:         "PROD-" + uuid.New().String()[:4],
 			Name:        "Test Product",
@@ -1505,11 +1533,7 @@ func TestPartyServiceConfiguration_Integration(t *testing.T) {
 	// Helper function to create a dummy Party (since Party is from another module)
 	createDummyParty := func() uuid.UUID {
 		partyID := uuid.New()
-		// In a real scenario, you'd create a Party entry in the 'parties' table.
-		// For now, we'll just return a new UUID and rely on foreign key to be optional or mocked.
-		// If 'parties' table exists, we should insert a record there.
-		// For this test, we assume a party exists or the FK is not strictly enforced in tests.
-		// TODO: Create a mock Party entity in the database if the FK is enforced.
+		assert.NoError(t, ts.TestDB.DB.Exec("INSERT INTO parties (id) VALUES (?)", partyID).Error)
 		return partyID
 	}
 

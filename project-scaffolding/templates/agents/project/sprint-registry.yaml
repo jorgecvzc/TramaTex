@@ -19,12 +19,12 @@ metadata:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
       location: "docs/log/sprints/sprint-[XX]/"
-      language: "Spanish (Espa\u00f1ol)"
+      language: "English (filename), Spanish (content)"
       examples:
-        - "sprint-01/04-auditoria-seguridad-owasp.md"
-        - "sprint-02/01-refactorizacion-sistema-documentacion.md"
-        - "sprint-02/02-compilacion-y-testeo-del-backend.md"
-        - "sprint-03/01-definicion-sistema-de-diseno.md"
+        - "sprint-01/04-owasp-security-audit.md"
+        - "sprint-02/01-documentation-system-refactoring.md"
+        - "sprint-02/02-backend-compilation-and-testing.md"
+        - "sprint-03/01-design-system-definition.md"
       notes:
         - "Task IDs restart at 01 for each sprint"
         - "Unique ID = sprint-XX + task-YY"
@@ -33,7 +33,7 @@ metadata:
     summary_files:
       pattern: "sprint-[XX]-summary.md"
       location: "docs/log/sprints/sprint-[XX]/"
-      language: "Spanish (Español)"
+      language: "English (filename), Spanish (content)"
       examples:
         - "sprint-01-summary.md"
         - "sprint-04-summary.md"
@@ -41,7 +41,7 @@ metadata:
 active_tasks:
   title: "🔄 Active/Open Tasks"
   count: 0
-  note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
+  note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
   tasks: [] # Keep empty for template
 
 completed_tasks:

@@ -14,16 +14,11 @@ type Party struct {
 	organizationProfile *OrganizationProfile
 	roles               []PartyRole
 	relationships       []PartyRelationship
-	createdBy           string
-	createdAt           time.Time
-	modifiedBy          string
-	modifiedAt          time.Time
 }
 
 func NewParty(
 	id PartyID,
 	status PartyStatus,
-	createdBy string,
 	personProfile *PersonProfile,
 	organizationProfile *OrganizationProfile,
 ) (*Party, error) {
@@ -33,14 +28,10 @@ func NewParty(
 	if !status.IsValid() {
 		return nil, fmt.Errorf("invalid party status: %s", status)
 	}
-	if createdBy == "" {
-		return nil, fmt.Errorf("createdBy user ID cannot be empty")
-	}
 	if personProfile == nil && organizationProfile == nil {
 		return nil, fmt.Errorf("party must have at least one profile")
 	}
 
-	now := time.Now()
 	return &Party{
 		id:                  id,
 		status:              status,
@@ -48,10 +39,6 @@ func NewParty(
 		organizationProfile: organizationProfile,
 		roles:               make([]PartyRole, 0),
 		relationships:       make([]PartyRelationship, 0),
-		createdBy:           createdBy,
-		createdAt:           now,
-		modifiedBy:          createdBy,
-		modifiedAt:          now,
 	}, nil
 }
 
@@ -59,10 +46,6 @@ func NewParty(
 func NewPartyFromPersistence(
 	id PartyID,
 	status PartyStatus,
-	createdBy string,
-	createdAt time.Time,
-	modifiedBy string,
-	modifiedAt time.Time,
 	personProfile *PersonProfile,
 	organizationProfile *OrganizationProfile,
 	roles []PartyRole,
@@ -72,9 +55,6 @@ func NewPartyFromPersistence(
 	}
 	if !status.IsValid() {
 		return nil, fmt.Errorf("invalid party status: %s", status)
-	}
-	if createdBy == "" {
-		return nil, fmt.Errorf("createdBy user ID cannot be empty")
 	}
 	if personProfile == nil && organizationProfile == nil {
 		return nil, fmt.Errorf("party must have at least one profile")
@@ -87,10 +67,6 @@ func NewPartyFromPersistence(
 		organizationProfile: organizationProfile,
 		roles:               roles,
 		relationships:       make([]PartyRelationship, 0),
-		createdBy:           createdBy,
-		createdAt:           createdAt,
-		modifiedBy:          modifiedBy,
-		modifiedAt:          modifiedAt,
 	}, nil
 }
 
@@ -102,45 +78,21 @@ func (p *Party) Status() PartyStatus {
 	return p.status
 }
 
-func (p *Party) CreatedBy() string {
-	return p.createdBy
-}
 
-func (p *Party) CreatedAt() time.Time {
-	return p.createdAt
-}
 
-func (p *Party) ModifiedBy() string {
-	return p.modifiedBy
-}
-
-func (p *Party) ModifiedAt() time.Time {
-	return p.modifiedAt
-}
-
-func (p *Party) Activate(modifiedBy string) error {
-	if modifiedBy == "" {
-		return fmt.Errorf("modifiedBy user ID cannot be empty")
-	}
+func (p *Party) Activate() error {
 	if p.status == PartyStatusActive {
 		return fmt.Errorf("party is already active")
 	}
 	p.status = PartyStatusActive
-	p.modifiedBy = modifiedBy
-	p.modifiedAt = time.Now()
 	return nil
 }
 
-func (p *Party) Deactivate(modifiedBy string) error {
-	if modifiedBy == "" {
-		return fmt.Errorf("modifiedBy user ID cannot be empty")
-	}
+func (p *Party) Deactivate() error {
 	if p.status == PartyStatusInactive {
 		return fmt.Errorf("party is already inactive")
 	}
 	p.status = PartyStatusInactive
-	p.modifiedBy = modifiedBy
-	p.modifiedAt = time.Now()
 	return nil
 }
 
@@ -152,23 +104,13 @@ func (p *Party) OrganizationProfile() *OrganizationProfile {
 	return p.organizationProfile
 }
 
-func (p *Party) SetPersonProfile(profile *PersonProfile, modifiedBy string) error {
-	if modifiedBy == "" {
-		return fmt.Errorf("modifiedBy user ID cannot be empty")
-	}
+func (p *Party) SetPersonProfile(profile *PersonProfile) error {
 	p.personProfile = profile
-	p.modifiedBy = modifiedBy
-	p.modifiedAt = time.Now()
 	return nil
 }
 
-func (p *Party) SetOrganizationProfile(profile *OrganizationProfile, modifiedBy string) error {
-	if modifiedBy == "" {
-		return fmt.Errorf("modifiedBy user ID cannot be empty")
-	}
+func (p *Party) SetOrganizationProfile(profile *OrganizationProfile) error {
 	p.organizationProfile = profile
-	p.modifiedBy = modifiedBy
-	p.modifiedAt = time.Now()
 	return nil
 }
 

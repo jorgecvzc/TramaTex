@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
@@ -15,6 +17,7 @@ type Config struct {
 	DB       DatabaseConfig
 	JWT      JWTConfig
 	Security SecurityConfig
+	Redis    RedisConfig
 }
 
 // ServerConfig holds server configuration
@@ -50,6 +53,15 @@ type SecurityConfig struct {
 	CORSAllowedOrigins string
 }
 
+// RedisConfig holds redis configuration
+type RedisConfig struct {
+	Host     string
+	Port     string
+	Password string
+	DB       int
+	TTL      time.Duration
+}
+
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	// Load .env file if it exists (not required in production)
@@ -81,6 +93,13 @@ func LoadConfig() (*Config, error) {
 			JWTRefreshTTL:      getEnv("JWT_REFRESH_TOKEN_TTL", "7d"),
 			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
 		},
+		Redis: RedisConfig{
+			Host:     getEnv("REDIS_HOST", "localhost"),
+			Port:     getEnv("REDIS_PORT", "6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getEnvInt("REDIS_DB", 0),
+			TTL:      getEnvDuration("REDIS_TTL", "24h"),
+		},
 	}
 
 	return cfg, nil
@@ -100,6 +119,27 @@ func getEnvRequired(key string) string {
 		return value
 	}
 	return ""
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value := getEnv(key, "")
+	if value == "" {
+		return defaultValue
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+	return parsed
+}
+
+func getEnvDuration(key string, defaultValue string) time.Duration {
+	value := getEnv(key, defaultValue)
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		parsed, _ = time.ParseDuration(defaultValue)
+	}
+	return parsed
 }
 
 // DSN returns PostgreSQL connection string

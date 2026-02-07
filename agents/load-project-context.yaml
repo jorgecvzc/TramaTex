@@ -27,26 +27,71 @@ action_plan:
     load: "agents/project/project-context.yaml"
 
   - step: "Offer to load modular contexts"
-    description: "Presents options to the user to load specific modular context agents."
-    prompt: |
-      Project context loaded. Would you like to load any specific modular contexts?
-      Available modular contexts (choose by number, comma-separated, or 'none'):
-      1. Architecture (agents/project/context/architecture.yaml)
-      2. Bounded Contexts (agents/project/context/bounded-contexts.yaml)
-      3. Tech Stack (agents/project/context/tech-stack.yaml)
-      4. Code Standards (agents/project/context/code-standards.yaml)
-    variable_name: "MODULAR_CONTEXTS_TO_LOAD"
+    description: "Dynamically presents options to the user to load specific modular context agents by scanning the agents/project/context/ directory."
+    python_script:
+      code: |
+        import os
+        import json
+
+        context_path = "agents/project/context/"
+        available_contexts = []
+        context_map = {}
+        
+        # Check if the directory exists
+        if os.path.isdir(context_path):
+            for i, filename in enumerate(sorted(os.listdir(context_path))):
+                if filename.endswith(".yaml"):
+                    context_name = os.path.splitext(filename)[0].replace('-', ' ').title()
+                    available_contexts.append(f"{i+1}. {context_name} ({context_path}{filename})")
+                    context_map[str(i+1)] = f"{context_path}{filename}"
+                    context_map[context_name.lower().replace(' ', '-')] = f"{context_path}{filename}" # Allow name selection
+
+        if available_contexts:
+            prompt_message = "Project context loaded. Would you like to load any specific modular contexts?\n"
+            prompt_message += "Available modular contexts (choose by number, comma-separated, 'all', or 'none'):\n"
+            prompt_message += "\n".join(available_contexts)
+            
+            output_json = {
+                "prompt": prompt_message,
+                "context_map": context_map,
+                "available_context_files": list(context_map.values()) # Store all files for 'all' option
+            }
+        else:
+            output_json = {
+                "prompt": "Project context loaded. No modular contexts found in 'agents/project/context/'.",
+                "context_map": {},
+                "available_context_files": []
+            }
+            
+        print(json.dumps(output_json))
+      output_variable: "MODULAR_CONTEXT_INFO"
+    prompt: "$MODULAR_CONTEXT_INFO.prompt"
+    variable_name: "MODULAR_CONTEXTS_TO_LOAD_CHOICE"
+    next_step: "Load selected modular contexts"
 
   - step: "Load selected modular contexts"
-    description: "Loads the modular context files specified by the user."
-    if: "MODULAR_CONTEXTS_TO_LOAD != 'none'"
-    foreach_item_in: "MODULAR_CONTEXTS_TO_LOAD"
+    description: "Loads the modular context files specified by the user or all if 'all' was selected."
+    if: "MODULAR_CONTEXTS_TO_LOAD_CHOICE != 'none' and MODULAR_CONTEXTS_TO_LOAD_CHOICE != ''"
     do:
-      - if: "item == '1' || item == 'architecture'"
-        load: "agents/project/context/architecture.yaml"
-      - if: "item == '2' || item == 'bounded-contexts'"
-        load: "agents/project/context/bounded-contexts.yaml"
-      - if: "item == '3' || item == 'tech-stack'"
-        load: "agents/project/context/tech-stack.yaml"
-      - if: "item == '4' || item == 'code-standards'"
-        load: "agents/project/context/code-standards.yaml"
+      - if: "MODULAR_CONTEXTS_TO_LOAD_CHOICE == 'all'"
+        foreach_item_in: "$MODULAR_CONTEXT_INFO.available_context_files"
+        do:
+          - load: "$item"
+      - else:
+          foreach_item_in: "MODULAR_CONTEXTS_TO_LOAD_CHOICE.split(',')"
+          do:
+            - python_script:
+                code: |
+                  import json
+                  choice = item.strip()
+                  context_map = json.loads('$MODULAR_CONTEXT_INFO.context_map')
+                  file_to_load = context_map.get(choice) or context_map.get(choice.lower().replace(' ', '-'))
+                  if file_to_load:
+                      print(json.dumps({"file": file_to_load}))
+                  else:
+                      print(json.dumps({"file": None, "error": f"Invalid choice: {choice}"}))
+                output_variable: "FILE_TO_LOAD"
+            - if: "$FILE_TO_LOAD.file"
+              load: "$FILE_TO_LOAD.file"
+            - else:
+              output: "ERROR: $FILE_TO_LOAD.error"

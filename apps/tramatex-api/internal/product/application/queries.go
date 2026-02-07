@@ -11,7 +11,7 @@ type GetAttributeByIDQuery struct {
 
 // ListAttributesQuery defines the query for listing attributes with optional filtering.
 type ListAttributesQuery struct {
-	ScopeType      *string    // GENERIC | BRAND | BRAND_GROUP
+	ScopeType      *string // GENERIC | BRAND | BRAND_GROUP
 	BrandID        *uuid.UUID
 	ProductGroupID *uuid.UUID
 }
@@ -23,11 +23,9 @@ type GetProductByIDQuery struct {
 
 // ListProductsQuery defines the query for listing products with optional filtering.
 type ListProductsQuery struct {
-	// Add filtering parameters here (e.g., BrandID, GroupID, IsActive)
-	// For example:
-	// BrandID *uuid.UUID
-	// GroupID *uuid.UUID
-	// IsActive *bool
+	BrandID  *uuid.UUID
+	GroupID  *uuid.UUID
+	IsActive *bool
 }
 
 // ListProductVariantsByProductIDQuery defines the query for listing product variants by product ID.

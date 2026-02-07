@@ -40,7 +40,6 @@ type CreatePartyCommand struct {
 	Roles               []string
 	PersonProfile       *PersonProfileInput
 	OrganizationProfile *OrganizationProfileInput
-	CreatedBy           string
 }
 
 // CreatePartyHandler handles party creation
@@ -56,9 +55,6 @@ func NewCreatePartyHandler(partyRepo persistence.PartyRepository) *CreatePartyHa
 func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand) (*domain.Party, error) {
 	if cmd.ID == "" {
 		return nil, fmt.Errorf("party ID cannot be empty")
-	}
-	if cmd.CreatedBy == "" {
-		return nil, fmt.Errorf("createdBy user ID cannot be empty")
 	}
 
 	partyID, err := domain.NewPartyID(cmd.ID)
@@ -153,7 +149,7 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 		}
 	}
 
-	party, err := domain.NewParty(partyID, status, cmd.CreatedBy, personProfile, organizationProfile)
+	party, err := domain.NewParty(partyID, status, personProfile, organizationProfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create party: %w", err)
 	}
@@ -186,7 +182,6 @@ type UpdatePartyCommand struct {
 	Status              string
 	PersonProfile       *PersonProfileInput
 	OrganizationProfile *OrganizationProfileInput
-	ModifiedBy          string
 }
 
 // UpdatePartyHandler handles party updates
@@ -202,9 +197,6 @@ func NewUpdatePartyHandler(partyRepo persistence.PartyRepository) *UpdatePartyHa
 func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand) (*domain.Party, error) {
 	if cmd.ID == "" {
 		return nil, fmt.Errorf("party ID cannot be empty")
-	}
-	if cmd.ModifiedBy == "" {
-		return nil, fmt.Errorf("modifiedBy user ID cannot be empty")
 	}
 
 	partyID, err := domain.NewPartyID(cmd.ID)
@@ -223,11 +215,11 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			return nil, fmt.Errorf("invalid party status: %s", cmd.Status)
 		}
 		if status == domain.PartyStatusActive {
-			if err := party.Activate(cmd.ModifiedBy); err != nil {
+			if err := party.Activate(); err != nil {
 				return nil, err
 			}
 		} else {
-			if err := party.Deactivate(cmd.ModifiedBy); err != nil {
+			if err := party.Deactivate(); err != nil {
 				return nil, err
 			}
 		}
@@ -249,7 +241,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 		if err != nil {
 			return nil, fmt.Errorf("invalid person profile: %w", err)
 		}
-		if err := party.SetPersonProfile(profile, cmd.ModifiedBy); err != nil {
+		if err := party.SetPersonProfile(profile); err != nil {
 			return nil, err
 		}
 	}
@@ -288,7 +280,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			return nil, fmt.Errorf("invalid organization profile: %w", err)
 		}
 
-		if err := party.SetOrganizationProfile(profile, cmd.ModifiedBy); err != nil {
+		if err := party.SetOrganizationProfile(profile); err != nil {
 			return nil, err
 		}
 	}
@@ -305,7 +297,6 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 type ChangePartyStatusCommand struct {
 	ID         string
 	Status     string
-	ModifiedBy string
 }
 
 // ChangePartyStatusHandler handles status changes
@@ -321,9 +312,6 @@ func NewChangePartyStatusHandler(partyRepo persistence.PartyRepository) *ChangeP
 func (h *ChangePartyStatusHandler) Handle(ctx context.Context, cmd *ChangePartyStatusCommand) (*domain.Party, error) {
 	if cmd.ID == "" {
 		return nil, fmt.Errorf("party ID cannot be empty")
-	}
-	if cmd.ModifiedBy == "" {
-		return nil, fmt.Errorf("modifiedBy user ID cannot be empty")
 	}
 
 	partyID, err := domain.NewPartyID(cmd.ID)
@@ -342,11 +330,11 @@ func (h *ChangePartyStatusHandler) Handle(ctx context.Context, cmd *ChangePartyS
 	}
 
 	if status == domain.PartyStatusActive {
-		if err := party.Activate(cmd.ModifiedBy); err != nil {
+		if err := party.Activate(); err != nil {
 			return nil, err
 		}
 	} else {
-		if err := party.Deactivate(cmd.ModifiedBy); err != nil {
+		if err := party.Deactivate(); err != nil {
 			return nil, err
 		}
 	}
@@ -363,7 +351,6 @@ func (h *ChangePartyStatusHandler) Handle(ctx context.Context, cmd *ChangePartyS
 type AddPartyRoleCommand struct {
 	ID         string
 	Role       string
-	ModifiedBy string
 }
 
 // AddPartyRoleHandler handles adding a role
@@ -412,7 +399,6 @@ func (h *AddPartyRoleHandler) Handle(ctx context.Context, cmd *AddPartyRoleComma
 type RemovePartyRoleCommand struct {
 	ID         string
 	Role       string
-	ModifiedBy string
 }
 
 // RemovePartyRoleHandler handles removing a role
@@ -542,7 +528,6 @@ type AddContactDetailsCommand struct {
 	Phone           string
 	Email           string
 	RelatedPartyID  string
-	ModifiedBy      string
 }
 
 // AddContactDetailsHandler handles contact details
@@ -626,7 +611,6 @@ type UpdateContactDetailsCommand struct {
 	Phone           *string
 	Email           *string
 	RelatedPartyID  *string
-	ModifiedBy      string
 }
 
 // UpdateContactDetailsHandler handles updating contact details
@@ -744,7 +728,6 @@ func (h *UpdateContactDetailsHandler) Handle(ctx context.Context, cmd *UpdateCon
 type RemoveContactDetailsCommand struct {
 	PartyID    string
 	ContactID  string
-	ModifiedBy string
 }
 
 // RemoveContactDetailsHandler handles removing contact details
@@ -806,7 +789,6 @@ type AddPartyAddressCommand struct {
 	Province   string
 	PostalCode string
 	Country    string
-	CreatedBy  string
 }
 
 // AddPartyAddressHandler handles adding addresses
@@ -835,7 +817,7 @@ func (h *AddPartyAddressHandler) Handle(ctx context.Context, cmd *AddPartyAddres
 		return nil, err
 	}
 
-	if err := h.addressRepo.Save(ctx, address, addressID, partyID, cmd.CreatedBy, cmd.CreatedBy); err != nil {
+	if err := h.addressRepo.Save(ctx, address, addressID, partyID); err != nil {
 		return nil, fmt.Errorf("failed to save address: %w", err)
 	}
 

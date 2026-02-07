@@ -53,7 +53,27 @@ func createUsersForMigration(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, "CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY)"); err != nil {
 		return err
 	}
-	_, err := db.ExecContext(ctx, "INSERT INTO users (id) VALUES ('00000000-0000-0000-0000-000000000011'), ('00000000-0000-0000-0000-000000000012') ON CONFLICT DO NOTHING")
+	if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255)"); err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255)"); err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50)"); err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN"); err != nil {
+		return err
+	}
+
+	insertSQL := `
+		INSERT INTO users (id, email, password, role, is_active)
+		VALUES
+			('00000000-0000-0000-0000-000000000011', 'migration.user1@tramatex.local', 'hashed-password', 'operator', true),
+			('00000000-0000-0000-0000-000000000012', 'migration.user2@tramatex.local', 'hashed-password', 'operator', true)
+		ON CONFLICT DO NOTHING
+	`
+	_, err := db.ExecContext(ctx, insertSQL)
 	return err
 }
 

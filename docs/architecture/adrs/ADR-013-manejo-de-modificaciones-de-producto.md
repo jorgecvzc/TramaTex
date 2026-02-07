@@ -63,16 +63,27 @@ En este modelo, una modificación es un producto en sí mismo, de un tipo especi
 
 ## 4. Decisión Adoptada
 
-**{{PENDIENTE DE DECISIÓN}}**
+Se adopta la **Alternativa B: Modificaciones como Productos Separados (Tipo "Servicio")**.
 
 **Justificación:**
-- {{Se rellenará tras la discusión y análisis de las alternativas.}}
+Esta alternativa ofrece un modelo más claro y explícito para la gestión de servicios y modificaciones. Al tratar las modificaciones como productos de tipo "Servicio" independientes:
+-   **Claridad y Simplicidad:** Diferenciamos claramente entre bienes tangibles y servicios, lo que simplifica la comprensión del catálogo y la gestión en Ventas y MES.
+-   **Flexibilidad:** Los servicios pueden venderse de forma independiente o asociados a productos del cliente, lo cual es crucial para nuestro negocio.
+-   **Impacto en Módulos:** Facilita la lógica en Pricing (reglas de precios para servicios son independientes) y en MES (tareas discretas de producción).
+-   **Alineación con PartyServiceConfiguration:** Esta decisión habilita la extensión de `PartyServiceConfiguration` para guardar plantillas de servicios por cliente, una funcionalidad avanzada necesaria.
 
 ---
 
 ## 5. Consecuencias
 
-{{Se rellenará tras la decisión.}}
+### Positivas
+-   **Modelo de Dominio Claro:** El catálogo es más intuitivo, separando productos de servicios.
+-   **Mayor Flexibilidad:** Los servicios se gestionan de forma independiente, cubriendo el caso de "producto del cliente" de forma natural.
+-   **Integración MES Simplificada:** MES ve los servicios como tareas de producción claras.
+-   **Extensibilidad:** Facilita la evolución de la lógica de precios y producción para servicios.
+
+### Negativas
+-   **Asociación Implícita:** La relación entre un producto y el servicio que se le aplica en una orden de venta es implícita (múltiples líneas de pedido) y puede requerir lógica de aplicación adicional si se necesita una vinculación fuerte. Esto se mitigará mediante el diseño de la UI y los casos de uso del módulo `Sales`.
 
 ---
 

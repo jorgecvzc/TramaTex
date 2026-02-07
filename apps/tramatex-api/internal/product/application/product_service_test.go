@@ -37,6 +37,15 @@ func (m *MockProductRepository) FindBySKU(ctx context.Context, sku string) (*dom
 	return args.Get(0).(*domain.Product), args.Error(1)
 }
 
+func (m *MockProductRepository) FindAll(ctx context.Context) ([]*domain.Product, error) {
+	args := m.Called(ctx)
+	var products []*domain.Product
+	if args.Get(0) != nil {
+		products = args.Get(0).([]*domain.Product)
+	}
+	return products, args.Error(1)
+}
+
 func (m *MockProductRepository) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
 	args := m.Called(ctx, productID, newSKU)
 	return args.Error(0)
@@ -133,6 +142,15 @@ func (m *MockProductVariantRepository) FindBySKU(ctx context.Context, sku string
 		variant = args.Get(0).(*domain.ProductVariant)
 	}
 	return variant, args.Error(1)
+}
+
+func (m *MockProductVariantRepository) FindByProductID(ctx context.Context, productID uuid.UUID) ([]*domain.ProductVariant, error) {
+	args := m.Called(ctx, productID)
+	var variants []*domain.ProductVariant
+	if args.Get(0) != nil {
+		variants = args.Get(0).([]*domain.ProductVariant)
+	}
+	return variants, args.Error(1)
 }
 
 func (m *MockProductVariantRepository) FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*domain.ProductVariant, error) {
@@ -558,5 +576,164 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to update product SKU and cascade to variants")
 		assert.Nil(t, productDTO)
 		mockProductRepo.AssertExpectations(t)
+	})
+}
+
+func TestProductService_ListProducts(t *testing.T) {
+	mockProductRepo := new(MockProductRepository)
+	mockBrandRepo := new(MockBrandRepository)
+	mockGroupRepo := new(MockProductGroupRepository)
+	mockAttributeRepo := new(MockAttributeRepository)
+	mockVariantRepo := new(MockProductVariantRepository)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
+	ctx := context.Background()
+
+	brandID := uuid.New()
+	groupID := uuid.New()
+
+	products := []*domain.Product{
+		{
+			ID:        uuid.New(),
+			SKU:       "P-1",
+			Name:      "Product 1",
+			BrandID:   brandID,
+			GroupIDs:  []uuid.UUID{groupID},
+			IsActive:  true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			ID:        uuid.New(),
+			SKU:       "P-2",
+			Name:      "Product 2",
+			BrandID:   uuid.New(),
+			GroupIDs:  []uuid.UUID{uuid.New()},
+			IsActive:  false,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+	}
+
+	t.Run("should filter products by brand, group, and active", func(t *testing.T) {
+		mockProductRepo.ExpectedCalls = nil
+		query := application.ListProductsQuery{
+			BrandID:  &brandID,
+			GroupID:  &groupID,
+			IsActive: func() *bool { v := true; return &v }(),
+		}
+
+		mockProductRepo.On("FindAll", ctx).Return(products, nil).Once()
+
+		result, err := productService.ListProducts(ctx, query)
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, products[0].ID, result[0].ID)
+		mockProductRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return empty list when no products", func(t *testing.T) {
+		mockProductRepo.ExpectedCalls = nil
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
+
+		result, err := productService.ListProducts(ctx, application.ListProductsQuery{})
+
+		assert.NoError(t, err)
+		assert.Empty(t, result)
+		mockProductRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when repository fails", func(t *testing.T) {
+		mockProductRepo.ExpectedCalls = nil
+		mockProductRepo.On("FindAll", ctx).Return(nil, assert.AnError).Once()
+
+		result, err := productService.ListProducts(ctx, application.ListProductsQuery{})
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockProductRepo.AssertExpectations(t)
+	})
+}
+
+func TestProductService_ListProductVariantsByProductID(t *testing.T) {
+	mockProductRepo := new(MockProductRepository)
+	mockBrandRepo := new(MockBrandRepository)
+	mockGroupRepo := new(MockProductGroupRepository)
+	mockAttributeRepo := new(MockAttributeRepository)
+	mockVariantRepo := new(MockProductVariantRepository)
+	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
+	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
+	ctx := context.Background()
+
+	productID := uuid.New()
+	attrID := uuid.New()
+	attrValueID := uuid.New()
+	attributes := []*domain.Attribute{
+		{
+			ID:   attrID,
+			Name: "Color",
+			Values: []domain.AttributeValue{
+				{ID: attrValueID, AttributeID: attrID, Value: "Red", Code: "R"},
+			},
+		},
+	}
+
+	variants := []*domain.ProductVariant{
+		{
+			ID:              uuid.New(),
+			ProductID:       productID,
+			SKU:             "P-1-RED",
+			Status:          domain.StatusConfirmed,
+			AttributeValues: []uuid.UUID{attrValueID},
+			IsActive:        true,
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		},
+	}
+
+	t.Run("should list variants and map options", func(t *testing.T) {
+		mockVariantRepo.ExpectedCalls = nil
+		mockAttributeRepo.ExpectedCalls = nil
+		query := application.ListProductVariantsByProductIDQuery{ProductID: productID}
+
+		mockVariantRepo.On("FindByProductID", ctx, productID).Return(variants, nil).Once()
+		mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return(attributes, nil).Once()
+
+		result, err := productService.ListProductVariantsByProductID(ctx, query)
+
+		assert.NoError(t, err)
+		assert.Len(t, result, 1)
+		assert.Equal(t, variants[0].ID, result[0].ID)
+		assert.Equal(t, "Red", result[0].OptionConfiguration["Color"])
+		mockVariantRepo.AssertExpectations(t)
+		mockAttributeRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return empty list when no variants", func(t *testing.T) {
+		mockVariantRepo.ExpectedCalls = nil
+		mockAttributeRepo.ExpectedCalls = nil
+		query := application.ListProductVariantsByProductIDQuery{ProductID: productID}
+
+		mockVariantRepo.On("FindByProductID", ctx, productID).Return([]*domain.ProductVariant{}, nil).Once()
+
+		result, err := productService.ListProductVariantsByProductID(ctx, query)
+
+		assert.NoError(t, err)
+		assert.Empty(t, result)
+		mockVariantRepo.AssertExpectations(t)
+	})
+
+	t.Run("should return error when repository fails", func(t *testing.T) {
+		mockVariantRepo.ExpectedCalls = nil
+		query := application.ListProductVariantsByProductIDQuery{ProductID: productID}
+
+		mockVariantRepo.On("FindByProductID", ctx, productID).Return(nil, assert.AnError).Once()
+
+		result, err := productService.ListProductVariantsByProductID(ctx, query)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockVariantRepo.AssertExpectations(t)
 	})
 }

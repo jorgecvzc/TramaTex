@@ -10,8 +10,8 @@
 - Identificación única: Combinación sprint-XX + tarea-YY
 - Ubicación: `docs/log/sprints/sprint-[XX]/`
 - Ejemplos:
-  - `sprint-XX/01-initial-task-setup.md` (tarea XX-01)
-  - `sprint-YY/02-feature-implementation.md` (tarea YY-02)
+  - `sprint-XX/01-initial-task-setup.md` (task XX-01)
+  - `sprint-YY/02-feature-implementation.md` (task YY-02)
 
 Anotaciones sobre el mismo:
 - Los títulos y explicaciones tienen que estar en castellano.
@@ -28,7 +28,7 @@ Anotaciones sobre el mismo:
 | **ID de Tarea** | XX |
 | **ID de Sprint** | sprint-XX |
 | **Título** | [Nombre Descriptivo de la Tarea o Funcionalidad] |
-| **Estado** | ⏳ En Progreso / ✅ Completado / ❌ Cancelado |
+| **Estado** | ⏳ Planificado / 🔄 En Progreso / ✅ Completado (AI) / 🔍 Pendiente de Aprobación Humana / ✅ Completado y Aprobado / 🔴 Rechazado / ❌ Cancelado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Anthropic / Gemini |
 | **Fecha de Inicio** | YYYY-MM-DD |
 | **Fecha de Fin** | YYYY-MM-DD |

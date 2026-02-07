@@ -5,37 +5,29 @@ Each session below represents a distinct line of work that can be resumed.
 
 ---
 
-## Session: Party Module Refactoring & Implementation (2026-02-02 - 2026-02-04)
+## Session: Sales Module Backend Implementation (Sprint 08)
 
-### Status: Completed
+### Status: Active
 ### Context/Last Known State:
-The Party module refactor aligned to ADR-012 is complete. Backend `/parties` endpoints, migrations, tests, and documentation are validated. Frontend is consolidated to `/parties` with Party components and unified `partyApi`, and legacy artifacts removed.
+Sales domain is defined and documentation loaded. Starting backend planning for Sales module.
+
+Key progress:
+- Sprint 08 plan completed (task 08-01).
+- Sprint 08 implementation task started (task 08-02).
 
 ### Tasks to Follow:
-- None. Party workstream closed.
+- Implementar migraciones base del modulo Sales.
+- Implementar dominio y casos de uso CU-S-001..020.
+- Implementar repositorios GORM y data models.
+- Implementar handlers y rutas HTTP segun contratos.
+- Agregar tests de dominio, repos y application.
 
 ### Relevant Context Files:
-- `agents/sprint-session-loader.yaml`
-- `agents/project/project-context.yaml`
-- `project-scaffolding/tmp/module-deep-review/SKILL.md`
-- `project-scaffolding/tmp/module-deep-review/references/module-review-guide.md`
-- `docs/architecture/adrs/ADR-012-arquitectura-modulo-party.md`
-- `docs/log/sprints/sprint-05/02-refactorizacion-implementacion-modulo-party.md`
+- `docs/modules/sales/`
+- `docs/log/sprints/sprint-08/01-sales-backend-implementation-plan.md`
+- `docs/log/sprints/sprint-08/02-sales-backend-implementation.md`
+- `agents/project/context/architecture.yaml`
 - `agents/project/context/code-standards.yaml`
-- `agents/project/context/tech-stack.yaml`
-- `docs/architecture/design-system/`
-- `docs/modules/party/use-cases.md`
-- `docs/modules/party/domain-model.md`
-- `apps/tramatex-api/migrations/007_create_party_tables.sql`
-- `apps/tramatex-api/migrations/008_migrate_party_data.sql`
-- `apps/tramatex-api/internal/party/` (domain/application/persistence/interfaces)
-- `apps/tramatex-api/cmd/api/main.go`
-- `apps/tramatex-api/internal/party/interfaces/gin_handlers.go`
-- `apps/tramatex-api/internal/party/application/commands.go`
-- `apps/tramatex-api/internal/party/application/queries.go`
-- `apps/frontend/src/components/party/`
-- `apps/frontend/src/services/partyApi.js`
-- `apps/frontend/src/router/`
 
 ---
 
@@ -49,11 +41,14 @@ The Party module refactor aligned to ADR-012 is complete. Backend `/parties` end
 Key progress:
 - DB Migration: `009_create_product_tables.sql` created.
 - Domain Layer: Entities (`Attribute`, `Product`, `ProductVariant`, etc.) and unit tests implemented in `internal/product/domain/`.
-- Application Layer: Initial structure (`commands.go`, `queries.go`), `product_service.go` with use cases, updated dependency injection, and unit tests (`product_service_test.go`) with mocked repositories (`AttributeRepository`, `ProductVariantRepository`). Repository interfaces defined.
+- Application Layer: Initial structure (`commands.go`, `queries.go`), `product_service.go` with use cases, updated dependency injection, and unit tests (`product_service_integration_test.go`) with mocked repositories (`AttributeRepository`, `ProductVariantRepository`). Repository interfaces defined.
 - Infrastructure (Persistence): All GORM repositories (`BrandRepository`, `ProductGroupRepository`, `AttributeRepository`, `ProductRepository`, `ProductVariantRepository`) and data models created.
 - Interfaces (HTTP): `product_handler.go` implemented. Repositories, services, and handlers integrated into `apps/tramatex-api/cmd/api/main.go`.
 
 ### Tasks to Follow:
+- Revisar en profundidad el backend por el crash en pcele: el contenedor `tramatex_api` reinicia por conflicto de rutas Gin con el wildcard `:partyId` vs `:id` en `/api/parties/...`.
+- Verificar que el fix de rutas use `/:id/service-configurations` (y handlers con `Param("id")`) esté en producción; si no, hacer `git pull` en pcele y redeploy con docker-compose.
+- Confirmar salud: `docker logs --tail 200 tramatex_api`, `curl http://localhost:8080/api/health`.
 - PostgreSQL for integration tests (`product_service_integration_test.go`) is active and available in Docker.
 - Continue developing integration tests for remaining use cases.
 - Implement remaining HTTP handlers in `internal/product/interfaces/` to expose use cases via API, following `api-contracts.md`.
@@ -63,3 +58,29 @@ Key progress:
 - `agents/project/context/architecture.yaml`
 - `agents/project/context/code-standards.yaml`
 - `apps/tramatex-api/internal/product/`
+
+---
+
+## Session: IAM Module Architectural Review
+
+### Status: Active
+### Context/Last Known State:
+Starting architectural review of the IAM module. Party module design is complete.
+
+### Tasks to Follow:
+- Review existing IAM module documentation:
+  - `docs/modules/iam/module-spec.md`
+  - `docs/modules/iam/domain-model.md`
+  - `docs/modules/iam/use-cases.md`
+  - `docs/modules/iam/api-contracts.md`
+- Identify alignment with established principles (Clean Architecture, DDD).
+- Analyze integration points with Pricing, Product, Party, and Sales modules.
+- Propose refinements to domain model, use cases, or API contracts.
+
+### Relevant Context Files:
+- `docs/architecture/**`
+- `docs/modules/iam/**`
+- `docs/modules/pricing/**` (for integration)
+- `docs/modules/product/**` (for integration)
+- `docs/modules/party/**` (for integration)
+- `docs/modules/sales/**` (for integration)

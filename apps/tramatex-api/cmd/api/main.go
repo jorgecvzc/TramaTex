@@ -25,6 +25,19 @@ import (
 	product_repo "github.com/joran-cortez/tramatex/internal/product/infrastructure/persistence"
 	product_handler "github.com/joran-cortez/tramatex/internal/product/interfaces/http/handler"
 
+	// Pricing Module Imports
+	pricing_uc "github.com/joran-cortez/tramatex/internal/pricing/application"
+	pricing_cache "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/cache"
+	pricing_repo "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/persistence"
+	pricing_productclient "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/productclient"
+	pricing_handler "github.com/joran-cortez/tramatex/internal/pricing/interfaces/http/handler"
+	"github.com/redis/go-redis/v9"
+
+	// Sales Module Imports
+	sales_uc "github.com/joran-cortez/tramatex/internal/sales/application"
+	sales_repo "github.com/joran-cortez/tramatex/internal/sales/infrastructure/persistence"
+	sales_handler "github.com/joran-cortez/tramatex/internal/sales/interfaces/http/handler"
+
 	// Security Service & Middleware Import
 	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
@@ -180,6 +193,57 @@ func main() {
 	// 3. HTTP Handlers
 	productHandler := product_handler.NewProductHandler(productService)
 
+	// --- Pricing Module Dependencies ---
+	pricingRuleRepo := pricing_repo.NewGORMPricingRuleRepository(db)
+	clientPricingRepo := pricing_repo.NewGORMClientPricingRepository(db)
+	brandMarginRepo := pricing_repo.NewGORMBrandProfitMarginRepository(db)
+	discountRuleRepo := pricing_repo.NewGORMSalesDiscountRuleRepository(db)
+	calculationRepo := pricing_repo.NewGORMPriceCalculationRepository(db)
+	productPricingClient := pricing_productclient.NewProductPricingClient(db)
+	pricingService := pricing_uc.NewPricingService(
+		pricingRuleRepo,
+		clientPricingRepo,
+		brandMarginRepo,
+		discountRuleRepo,
+		calculationRepo,
+		productPricingClient,
+	)
+	pricingHandler := pricing_handler.NewPricingHandler(pricingService)
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+	basePriceCache := pricing_cache.NewRedisBasePriceCache(redisClient, cfg.Redis.TTL)
+	baseRuleRepo := pricing_repo.NewGORMBaseSalesPriceRuleRepository(db)
+	saleRuleRepo := pricing_repo.NewGORMSaleModificationRuleRepository(db)
+	pricingEngineService := pricing_uc.NewPricingEngineService(
+		baseRuleRepo,
+		saleRuleRepo,
+		productPricingClient,
+		basePriceCache,
+	)
+	pricingEngineHandler := pricing_handler.NewPricingEngineHandler(pricingEngineService)
+
+	// --- Sales Module Dependencies ---
+	quoteRepo := sales_repo.NewGORMQuoteRepository(db)
+	orderRepo := sales_repo.NewGORMSalesOrderRepository(db)
+	deliveryRepo := sales_repo.NewGORMDeliveryNoteRepository(db)
+	invoiceRepo := sales_repo.NewGORMInvoiceRepository(db)
+	numberGenerator := sales_repo.NewTimeBasedNumberGenerator()
+	partyLookup := sales_repo.NewPartyLookupAdapter(partyRepo)
+	salesService := sales_uc.NewSalesService(
+		quoteRepo,
+		orderRepo,
+		deliveryRepo,
+		invoiceRepo,
+		numberGenerator,
+		pricingEngineService,
+		partyLookup,
+	)
+	salesHandler := sales_handler.NewSalesHandler(salesService)
+
 	// --- Middleware ---
 	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)
 
@@ -246,9 +310,9 @@ func main() {
 				// New PartyServiceConfiguration routes
 				parties.POST("/:id/service-configurations", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreatePartyServiceConfiguration)
 				parties.GET("/:id/service-configurations", productHandler.ListPartyServiceConfigurationsByPartyID)
-				parties.GET("/:id/service-configurations/:id", productHandler.GetPartyServiceConfigurationByID)
-				parties.PUT("/:id/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdatePartyServiceConfiguration)
-				parties.DELETE("/:id/service-configurations/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.DeletePartyServiceConfiguration)
+				parties.GET("/:id/service-configurations/:configId", productHandler.GetPartyServiceConfigurationByID)
+				parties.PUT("/:id/service-configurations/:configId", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdatePartyServiceConfiguration)
+				parties.DELETE("/:id/service-configurations/:configId", infra_middleware.RequireRole("admin", "commercial"), productHandler.DeletePartyServiceConfiguration)
 			}
 
 			products := protected.Group("/products")
@@ -259,12 +323,13 @@ func main() {
 				products.GET("/:id/calculated-option-sets", productHandler.GetCalculatedOptionSetsForProduct) // New
 				products.POST("/:id/groups", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddGroupToProduct)
 				products.POST("/:id/attributes", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddDirectAttributeToProduct)
+				products.POST("/:id/direct-option-sets", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddDirectAttributeToProduct)
 				products.PATCH("/:id/sku", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductSKU)
 
 				// Product Variant routes nested under product
-				products.POST("/:productId/variants/generate", infra_middleware.RequireRole("admin", "commercial"), productHandler.GenerateProductVariants)          // New
-				products.POST("/:productId/variants/find-or-create", infra_middleware.RequireRole("admin", "commercial"), productHandler.FindOrCreateProductVariant) // New
-				products.GET("/:productId/variants", productHandler.ListProductVariantsByProductID)                                                                  // New
+				products.POST("/:id/variants/generate", infra_middleware.RequireRole("admin", "commercial"), productHandler.GenerateProductVariants)          // New
+				products.POST("/:id/variants/find-or-create", infra_middleware.RequireRole("admin", "commercial"), productHandler.FindOrCreateProductVariant) // New
+				products.GET("/:id/variants", productHandler.ListProductVariantsByProductID)                                                                  // New
 			}
 
 			// New: Attributes (ProductOptionSet) routes
@@ -276,12 +341,76 @@ func main() {
 				attributes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateAttribute) // New
 			}
 
+			// API contract alias: ProductOptionSet
+			productOptionSets := protected.Group("/product-option-sets")
+			{
+				productOptionSets.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateAttribute)
+				productOptionSets.GET("", productHandler.ListAttributes)
+				productOptionSets.GET("/:id", productHandler.GetAttributeByID)
+				productOptionSets.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateAttribute)
+			}
+
 			// New: Top-level Product Variant routes
 			variants := protected.Group("/variants")
 			{
 				variants.GET("/:id", productHandler.GetProductVariantByID)                                                     // New
 				variants.GET("", productHandler.GetProductVariantBySKU)                                                        // New (using query param sku)
 				variants.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductVariant) // New
+			}
+
+			pricing := protected.Group("/pricing")
+			{
+				pricing.POST("/calculate", pricingHandler.CalculatePrice)
+				pricing.GET("/rules", pricingHandler.ListPricingRules)
+				pricing.POST("/rules", infra_middleware.RequireRole("admin", "commercial"), pricingHandler.CreatePricingRule)
+				pricing.POST("/client-overrides", infra_middleware.RequireRole("admin", "commercial"), pricingHandler.CreateClientPricingOverride)
+				pricing.GET("/history/:variantId", pricingHandler.GetPricingHistory)
+
+				pricing.POST("/base-sales-rules", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.CreateBaseSalesPriceRule)
+				pricing.PUT("/base-sales-rules/:id", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.UpdateBaseSalesPriceRule)
+				pricing.POST("/sale-modification-rules", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.CreateSaleModificationRule)
+				pricing.PUT("/sale-modification-rules/:id", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.UpdateSaleModificationRule)
+				pricing.POST("/base-sales-price/calculate", pricingEngineHandler.CalculateBaseSalesPrice)
+				pricing.POST("/final-sale-price/calculate", pricingEngineHandler.CalculateFinalSalePrice)
+			}
+
+			sales := protected.Group("/sales")
+			{
+				quotes := sales.Group("/quotes")
+				{
+					quotes.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateQuote)
+					quotes.GET("", salesHandler.ListQuotes)
+					quotes.GET("/:id", salesHandler.GetQuote)
+					quotes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateQuote)
+					quotes.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeQuoteStatus)
+					quotes.POST("/:id/convert", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ConvertQuoteToOrder)
+				}
+
+				orders := sales.Group("/orders")
+				{
+					orders.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateOrder)
+					orders.GET("", salesHandler.ListOrders)
+					orders.GET("/:id", salesHandler.GetOrder)
+					orders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateOrderDetails)
+					orders.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeOrderStatus)
+					orders.POST("/:id/line-items", infra_middleware.RequireRole("admin", "commercial"), salesHandler.AddOrderLineItem)
+					orders.PUT("/:id/line-items/:lineItemId", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateOrderLineItem)
+					orders.DELETE("/:id/line-items/:lineItemId", infra_middleware.RequireRole("admin", "commercial"), salesHandler.RemoveOrderLineItem)
+				}
+
+				deliveryNotes := sales.Group("/delivery-notes")
+				{
+					deliveryNotes.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateDeliveryNote)
+					deliveryNotes.GET("", salesHandler.ListDeliveryNotes)
+					deliveryNotes.GET("/:id", salesHandler.GetDeliveryNote)
+				}
+
+				invoices := sales.Group("/invoices")
+				{
+					invoices.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateInvoice)
+					invoices.GET("", salesHandler.ListInvoices)
+					invoices.GET("/:id", salesHandler.GetInvoice)
+				}
 			}
 
 		}
