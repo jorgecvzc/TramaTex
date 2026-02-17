@@ -152,8 +152,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
-import salesApi from '@/services/salesApi.js';
-import partyApi from '@/services/partyApi.js';
+import salesApi from '@/services/salesApi';
+import partyApi from '@/services/partyApi';
 
 const router = useRouter();
 

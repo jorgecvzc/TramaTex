@@ -235,7 +235,7 @@ export interface ListProductsFilters {
 }
 
 export interface ListVariantsFilters {
-  isActive?: boolean
+  isActive?: boolean | ''
   minStock?: number
   pageNumber?: number
   pageSize?: number

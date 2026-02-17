@@ -191,7 +191,7 @@ import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
-import salesApi from '@/services/salesApi.js';
+import salesApi from '@/services/salesApi';
 
 const router = useRouter();
 

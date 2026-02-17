@@ -129,7 +129,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
-import salesApi from '@/services/salesApi.js';
+import salesApi from '@/services/salesApi';
 
 const route = useRoute();
 const router = useRouter();

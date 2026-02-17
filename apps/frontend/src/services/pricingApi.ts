@@ -5,23 +5,42 @@
  * Handles price calculations, pricing rules, and client-specific overrides
  */
 
-import { fetchWithAuth } from './apiBase'
+import type {
+  PriceCalculationResult,
+  BaseSalesPriceResult,
+  FinalSalePriceResult,
+  SaleItem,
+  PricingRule,
+  CreatePricingRuleRequest,
+} from '../types/pricing'
 
 const BASE_URL = '/api/pricing'
 
 /**
- * Calculate price for a specific product variant, client, and quantity
- * @param {string} productVariantId - UUID of the product variant
- * @param {string} clientId - UUID of the client
- * @param {number} quantity - Quantity to calculate price for
- * @returns {Promise<Object>} Price calculation result with breakdown
+ * Get authorization header with user token
  */
-export async function calculatePrice(productVariantId, clientId, quantity) {
-  const response = await fetchWithAuth(`${BASE_URL}/calculate`, {
+function getHeaders(): Record<string, string> {
+  const token = localStorage.getItem('tramatex_auth_token')
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+  return headers
+}
+
+/**
+ * Calculate price for a specific product variant, client, and quantity
+ */
+export async function calculatePrice(
+  productVariantId: string,
+  clientId: string,
+  quantity: number
+): Promise<PriceCalculationResult> {
+  const response = await fetch(`${BASE_URL}/calculate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify({
       product_variant_id: productVariantId,
       client_id: clientId,
@@ -39,16 +58,14 @@ export async function calculatePrice(productVariantId, clientId, quantity) {
 
 /**
  * Calculate base sales price for a product variant (ADR-015)
- * @param {string} productId - UUID of the product
- * @param {string} variantId - UUID of the variant
- * @returns {Promise<Object>} Base sales price calculation
  */
-export async function calculateBaseSalesPrice(productId, variantId) {
-  const response = await fetchWithAuth(`${BASE_URL}/base-sales-price/calculate`, {
+export async function calculateBaseSalesPrice(
+  productId: string,
+  variantId: string
+): Promise<BaseSalesPriceResult> {
+  const response = await fetch(`${BASE_URL}/base-sales-price/calculate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify({
       productId: productId,
       variantId: variantId,
@@ -65,17 +82,15 @@ export async function calculateBaseSalesPrice(productId, variantId) {
 
 /**
  * Calculate final sale price with modifications (ADR-015)
- * @param {Array<Object>} saleItems - Array of {productVariantId, quantity}
- * @param {string} clientId - UUID of the client
- * @param {Date} saleDate - Sale date for calculations
- * @returns {Promise<Object>} Final sale price with all modifications applied
  */
-export async function calculateFinalSalePrice(saleItems, clientId, saleDate) {
-  const response = await fetchWithAuth(`${BASE_URL}/final-sale-price/calculate`, {
+export async function calculateFinalSalePrice(
+  saleItems: SaleItem[],
+  clientId: string,
+  saleDate: Date
+): Promise<FinalSalePriceResult> {
+  const response = await fetch(`${BASE_URL}/final-sale-price/calculate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify({
       saleItems: saleItems,
       clientId: clientId,
@@ -93,11 +108,11 @@ export async function calculateFinalSalePrice(saleItems, clientId, saleDate) {
 
 /**
  * List all pricing rules
- * @returns {Promise<Array>} Array of pricing rules
  */
-export async function listPricingRules() {
-  const response = await fetchWithAuth(`${BASE_URL}/rules`, {
+export async function listPricingRules(): Promise<PricingRule[]> {
+  const response = await fetch(`${BASE_URL}/rules`, {
     method: 'GET',
+    headers: getHeaders(),
   })
 
   if (!response.ok) {
@@ -109,15 +124,11 @@ export async function listPricingRules() {
 
 /**
  * Create a new pricing rule
- * @param {Object} ruleData - Pricing rule data
- * @returns {Promise<Object>} Created pricing rule
  */
-export async function createPricingRule(ruleData) {
-  const response = await fetchWithAuth(`${BASE_URL}/rules`, {
+export async function createPricingRule(ruleData: CreatePricingRuleRequest): Promise<PricingRule> {
+  const response = await fetch(`${BASE_URL}/rules`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify(ruleData),
   })
 
@@ -131,12 +142,11 @@ export async function createPricingRule(ruleData) {
 
 /**
  * Get pricing history for a specific variant
- * @param {string} variantId - UUID of the product variant
- * @returns {Promise<Array>} Array of price calculations
  */
-export async function getPricingHistory(variantId) {
-  const response = await fetchWithAuth(`${BASE_URL}/history/${variantId}`, {
+export async function getPricingHistory(variantId: string): Promise<PriceCalculationResult[]> {
+  const response = await fetch(`${BASE_URL}/history/${variantId}`, {
     method: 'GET',
+    headers: getHeaders(),
   })
 
   if (!response.ok) {
@@ -148,27 +158,18 @@ export async function getPricingHistory(variantId) {
 
 /**
  * Create client-specific pricing override
- * @param {string} clientId - UUID of the client
- * @param {string} productVariantId - UUID of the product variant
- * @param {number} fixedPrice - Fixed price for this client
- * @param {string} currency - Currency code (e.g., 'EUR')
- * @param {Date} effectiveFrom - Start date for this override
- * @param {Date|null} effectiveTo - Optional end date
- * @returns {Promise<Object>} Created client pricing override
  */
 export async function createClientPricingOverride(
-  clientId,
-  productVariantId,
-  fixedPrice,
-  currency = 'EUR',
-  effectiveFrom = new Date(),
-  effectiveTo = null
-) {
-  const response = await fetchWithAuth(`${BASE_URL}/client-overrides`, {
+  clientId: string,
+  productVariantId: string,
+  fixedPrice: number,
+  currency: string = 'EUR',
+  effectiveFrom: Date = new Date(),
+  effectiveTo: Date | null = null
+): Promise<any> {
+  const response = await fetch(`${BASE_URL}/client-overrides`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify({
       client_id: clientId,
       product_variant_id: productVariantId,
@@ -189,11 +190,11 @@ export async function createClientPricingOverride(
 
 /**
  * List base sales price rules (ADR-015)
- * @returns {Promise<Array>} Array of base sales price rules
  */
-export async function listBaseSalesPriceRules() {
-  const response = await fetchWithAuth(`${BASE_URL}/base-sales-rules`, {
+export async function listBaseSalesPriceRules(): Promise<any[]> {
+  const response = await fetch(`${BASE_URL}/base-sales-rules`, {
     method: 'GET',
+    headers: getHeaders(),
   })
 
   if (!response.ok) {
@@ -205,15 +206,11 @@ export async function listBaseSalesPriceRules() {
 
 /**
  * Create base sales price rule (ADR-015)
- * @param {Object} ruleData - Base sales price rule data
- * @returns {Promise<Object>} Created rule
  */
-export async function createBaseSalesPriceRule(ruleData) {
-  const response = await fetchWithAuth(`${BASE_URL}/base-sales-rules`, {
+export async function createBaseSalesPriceRule(ruleData: any): Promise<any> {
+  const response = await fetch(`${BASE_URL}/base-sales-rules`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify(ruleData),
   })
 
@@ -227,16 +224,11 @@ export async function createBaseSalesPriceRule(ruleData) {
 
 /**
  * Update base sales price rule (ADR-015)
- * @param {string} ruleId - UUID of the rule
- * @param {Object} ruleData - Updated rule data
- * @returns {Promise<Object>} Updated rule
  */
-export async function updateBaseSalesPriceRule(ruleId, ruleData) {
-  const response = await fetchWithAuth(`${BASE_URL}/base-sales-rules/${ruleId}`, {
+export async function updateBaseSalesPriceRule(ruleId: string, ruleData: any): Promise<any> {
+  const response = await fetch(`${BASE_URL}/base-sales-rules/${ruleId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify(ruleData),
   })
 
@@ -250,15 +242,11 @@ export async function updateBaseSalesPriceRule(ruleId, ruleData) {
 
 /**
  * Create sale modification rule (ADR-015)
- * @param {Object} ruleData - Sale modification rule data
- * @returns {Promise<Object>} Created rule
  */
-export async function createSaleModificationRule(ruleData) {
-  const response = await fetchWithAuth(`${BASE_URL}/sale-modification-rules`, {
+export async function createSaleModificationRule(ruleData: any): Promise<any> {
+  const response = await fetch(`${BASE_URL}/sale-modification-rules`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify(ruleData),
   })
 
@@ -272,16 +260,11 @@ export async function createSaleModificationRule(ruleData) {
 
 /**
  * Update sale modification rule (ADR-015)
- * @param {string} ruleId - UUID of the rule
- * @param {Object} ruleData - Updated rule data
- * @returns {Promise<Object>} Updated rule
  */
-export async function updateSaleModificationRule(ruleId, ruleData) {
-  const response = await fetchWithAuth(`${BASE_URL}/sale-modification-rules/${ruleId}`, {
+export async function updateSaleModificationRule(ruleId: string, ruleData: any): Promise<any> {
+  const response = await fetch(`${BASE_URL}/sale-modification-rules/${ruleId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeaders(),
     body: JSON.stringify(ruleData),
   })
 
