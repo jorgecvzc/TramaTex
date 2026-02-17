@@ -8,11 +8,11 @@
 metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
-  version: "1.1"
-  last_updated: "2026-02-07" # Corrected date to match current session
+  version: "1.2"
+  last_updated: "2026-02-17"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
-  note: "Parsed by sprint-session-loader.yaml for quick discovery"
+  note: "Parsed by load-session.yaml for quick discovery"
   
   naming_conventions:
     task_files:
@@ -41,349 +41,143 @@ metadata:
 active_tasks:
   title: "🔄 Active/Open Tasks"
   count: 1
-  note: "List tasks with Estado: 🔄 En Progreso, ⏸️ En Pausa, 🔍 En Revisión"
-  task_08_02:
-    id: "08-02"
-    sprint: "08"
-    filename: "02-sales-backend-implementation.md"
-    title: "Implementacion backend del modulo Sales"
-    status: "🔄 En Progreso"
-    dates:
-      started: "2026-02-07"
-    context_focus: "Implementacion backend del modulo Sales"
-    facilitator: "GitHub Copilot, Jorge Cortes Villalba"
+  note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
+  tasks:
+    task_11_02:
+      id: "11-02"
+      sprint: "11"
+      filename: "02-critical-remediation-plan.md"
+      title: "Critical Remediation Plan - ERP Core"
+      status: "🔄 En Progreso"
+      dates:
+        started: "2026-02-17"
+      context_focus: "Technical Debt Remediation - Critical Items"
+      facilitator: "AI Assistant"
+      description: "Plan de remediación crítica basado en hallazgos Sprint 11-01. Resolver bloqueadores críticos identificados (artifacts management, TypeScript migration, Frontend tests) antes de proceder con MES Module"
+      phases:
+        - "FASE 1: Cleanup Artifacts & .gitignore (1-2h) - PRIORITY"
+        - "FASE 2: TypeScript Migration - API Services (8-12h)"
+        - "FASE 3: Frontend ERP Core Tests (24-32h)"
+      key_objectives:
+        - "Limpiar 30+ archivos coverage dispersos"
+        - "Arreglar .gitignore corrupto"
+        - "Eliminar binarios del repositorio"
+        - "Migrar 2,192 líneas JS a TypeScript"
+        - "Alcanzar ≥70% coverage Frontend ERP Core"
+      artifacts_expected:
+        - "docs/log/sprints/sprint-11/02-critical-remediation-plan.md"
+        - ".gitignore corregido"
+        - "API services en TypeScript (partyApi.ts, productApi.ts, pricingApi.ts, salesApi.ts)"
+        - "Tests Frontend Party/Product/Pricing/Sales"
+      estimated_effort: "33-46 horas"
+      blocking: "MES Module (cannot proceed until complete)"
+  structure: |
+    # Example task structure:
+    # task_XX_YY:
+    #   id: "XX-YY"
+    #   sprint: "XX"
+    #   filename: "YY-descriptive-name.md"
+    #   title: "Task Title"
+    #   status: "⏳ Planificado / 🔄 En Progreso / ✅ Completado (AI) / 🔍 Pendiente de Aprobación Humana"
+    #   dates:
+    #     started: "YYYY-MM-DD"
+    #     completed: "YYYY-MM-DD" # Only if completed
+    #   context_focus: "Module or context area"
+    #   facilitator: "AI Assistant or Team Member"
+    #   key_outcomes:
+    #     - "Outcome 1"
+    #     - "Outcome 2"
+    #   # Additional fields as needed
   
 
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
-
-  task_09_01:
-    id: "09-01"
-    sprint: "09"
-    filename: "01-mes-domain-design.md"
-    title: "Diseño de Dominio MES"
-    status: "✅ Completado"
-    dates:
-      started: "2026-02-07"
-      completed: "2026-02-07"
-    context_focus: "Diseño detallado del dominio para el módulo MES, incluyendo entidades, objetos de valor, servicios y repositorios."
-    facilitator: "Gemini CLI (acting as Lead Architect)"
-    key_outcomes:
-      - "Estructura de directorios del módulo MES creada."
-      - "ADR-018 para la arquitectura de MES (esquema independiente, comunicación) redactado."
-      - "Documentación inicial de 'mes.md' creada y actualizada."
-      - "Entidades, objetos de valor y servicios de dominio de MES definidos en código Go."
-      - "Interfaces de repositorio de MES definidas."
-      - "Concepto de 'ERP Core' introducido y documentado en bounded-contexts.yaml."
-    artifacts:
-      - "apps/tramatex-api/internal/mes"
-      - "apps/tramatex-api/internal/mes/domain/entities.go"
-      - "apps/tramatex-api/internal/mes/domain/value_objects.go"
-      - "apps/tramatex-api/internal/mes/domain/services.go"
-      - "apps/tramatex-api/internal/mes/domain/repository.go"
-      - "docs/architecture/adrs/ADR-018-mes-module-architecture.md"
-      - "docs/modules/mes.md"
-      - "agents/project/context/bounded-contexts.yaml"
-
-  task_08_01:
-    id: "08-01"
-    sprint: "08"
-    filename: "01-sales-backend-implementation-plan.md"
-    title: "Plan de implementacion backend del modulo Sales"
-    status: "✅ Completado"
-    dates:
-      started: "2026-02-07"
-      completed: "2026-02-07"
-    context_focus: "Planificacion tecnica para implementar Sales (backend)"
-    facilitator: "GitHub Copilot, Jorge Cortes Villalba"
-    key_outcomes:
-      - "Plan tecnico por capas definido (domain, application, infrastructure, interfaces)."
-      - "Plan de migraciones, endpoints y estrategia de tests definido."
-
-  task_05_02:
-    id: "05-02"
-    sprint: "05"
-    filename: "02-refactorizacion-implementacion-modulo-party.md"
-    title: "Refactorización e Implementación del Módulo Party"
-    status: "✅ Completado"
-    dates:
-      started: "2026-02-02"
-      completed: "2026-02-04"
-    context_focus: "Party refactor (dominio, BD, API, frontend) aligned to ADR-012"
-    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    key_outcomes:
-      - "Backend Party implementado con migraciones, repositorios y handlers /parties."
-      - "Tests backend e integración validados; limpieza de artefactos legacy completada."
-      - "Frontend Party consolidado con rutas /parties y API unificada."
-
-  task_05_03:
-    id: "05-03"
-    sprint: "05"
-    filename: "03-consolidacion-frontend-party.md"
-    title: "Consolidación Frontend Party"
-    status: "✅ Completado"
-    dates:
-      started: "2026-02-04"
-      completed: "2026-02-04"
-    context_focus: "Frontend consolidation (rutas, UI copy, servicios) para Party/Parties"
-    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    key_outcomes:
-      - "Rutas y páginas consolidadas en /parties; alias legacy eliminado."
-      - "Componentes renombrados a Party* y UI sin nomenclatura legacy."
-      - "partyApi normalizado y tests frontend OK."
-
-  task_05_01:
-    id: "05-01"
-    sprint: "05"
-    filename: "01-análisis-y-diseño-módulo-party.md"
-    title: "Análisis y Diseño del Módulo Party"
-    status: "✅ Completado"
-    dates:
-      started: "2026-02-01"
-      completed: "2026-02-02"
-    context_focus: "Party module deep review (dominio, ADR, gap analysis, UI review)"
-    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    note: "Aprobado por el usuario; cierre final"
-
-  task_04_02:
-    id: "04-02"
-    sprint: "04"
-    filename: "01-consolidacion-modulo-iam.md"
-    title: "Consolidación del Módulo IAM (Autenticación y Administración)"
-    status: "✅ Completado"
-    dates:
-      completed: "2026-02-01"
-    duration_estimated: "4-6 horas"
-    context_focus: "IAM hardening, admin endpoints, frontend admin UI, security"
-    facilitator: "GitHub Copilot, Jorge Cortés Villalba"
-    note: "Sprint IAM ubicado antes de Party por solicitud del usuario"
-  
-  task_04_01:
-    id: "04-01"
-    sprint: "04"
-    filename: "01-estrategia-calidad-deuda-tecnica.md"
-    title: "Fundaciones de Seguridad y Calidad (OWASP, CI/CD, Deuda Técnica)"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-27"
-      completed: "2026-01-27"
-    context_focus: "Security, CI/CD, Quality Standards, Technical Debt"
-    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
-    key_outcomes:
-      - "Controles de seguridad OWASP implementados (RBAC mejorado, logging estructurado)."
-      - "Workflows de CI/CD para backend y frontend creados en .github/workflows/."
-      - "Documentos fundacionales de calidad creados (ADR-011, CONTRIBUTING.md, technical-debt.md)."
-  
-  task_01_01:
-    id: "01-01"
-    sprint: "01"
-    filename: "01-diseño-y-arquitectura-inicial.md"
-    title: "Diseño y Arquitectura Inicial del Proyecto"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-06"
-      completed: "2026-01-11"
-    context_focus: "Project architecture, ADRs, documentation structure"
-    facilitator: "Jorge Cortés Villalba, Gemini"
-    key_outcomes:
-      - "9 ADRs iniciales definiendo arquitectura del proyecto"
-      - "Estructura de monorepo establecida"
-      - "Sistema de documentación inicial creado"
-      - "Bounded contexts definidos"
-      - "Tech stack seleccionado y documentado"
-  
-  task_01_02:
-    id: "01-02"
-    sprint: "01"
-    filename: "02-implementacion-modulo-autenticacion.md"
-    title: "Implementación del Módulo de Autenticación (Full-Stack)"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-11"
-      completed: "2026-01-13"
-    context_focus: "IAM module implementation (backend + frontend)"
-    facilitator: "Jorge Cortés Villalba, Gemini"
-    key_outcomes:
-      - "Módulo IAM backend implementado (dominio, casos de uso, persistencia)"
-      - "API REST de autenticación completada"
-      - "Frontend de login implementado en Vue 3"
-      - "Tests unitarios del módulo IAM"
-      - "Integración backend-frontend validada"
-  
-  task_01_03:
-    id: "01-03"
-    sprint: "01"
-    filename: "03-configuracion-entorno-dual-docker.md"
-    title: "Configuración de Entorno de Desarrollo Dual con Docker"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-14"
-      completed: "2026-01-15"
-    context_focus: "Docker environment setup (local + remote)"
-    facilitator: "Jorge Cortés Villalba"
-    key_outcomes:
-      - "Docker Compose configurado para desarrollo local"
-      - "Docker Compose configurado para servidor remoto"
-      - "PostgreSQL containerizado funcionando"
-      - "Makefile con comandos de gestión creado"
-      - "Scripts de instalación y verificación"
-  
-  task_01_04:
-    id: "01-04"
-    sprint: "01"
-    filename: "04-auditoria-seguridad-owasp.md"
-    title: "Auditoría de Seguridad basada en OWASP Top 10"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-24"
-      completed: "2026-01-25"
-    context_focus: "Security audit across all modules (IAM, Party)"
-    facilitator: "GitHub Copilot (Claude Sonnet 4.5)"
-    key_outcomes:
-      - "Auditoría completa OWASP Top 10 2021 realizada"
-      - "15 hallazgos documentados (2 críticos, 1 alto, 6 medios, 6 bajos)"
-      - "3 categorías sin vulnerabilidades (Injection, Components, SSRF)"
-      - "Plan de mitigación priorizado creado"
-      - "Riesgos aceptados para MVP documentados"
-      - "Informe ejecutivo con métricas de seguridad"
-  
-  task_02_01:
-    id: "02-01"
-    sprint: "02"
-    filename: "01-refactorizacion-sistema-de-documentacion.md"
-    title: "Refactorizaci\u00f3n del Sistema de Documentaci\u00f3n de Desarrollo"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-17"
-      completed: "2026-01-17"
-    context_focus: "Documentation system refactoring (sessions to sprints/tasks)"
-    facilitator: "Gemini"
-    key_outcomes:
-      - "Sistema de documentación refactorizado de sesiones a sprints/tareas"
-      - "Plantilla _TASK_TEMPLATE.md creada"
-      - "Agente sprint-session-loader.yaml actualizado"
-      - "Sesiones antiguas archivadas en milestones"
-      - "Nueva estructura docs/log/sprints/ establecida"
-  
-  task_02_02:
-    id: "02-02"
-    sprint: "02"
-    filename: "02-compilacion-y-testeo-del-backend.md"
-    title: "Compilación, Testeo y Refactorización del tramatex-api"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-17"
-      completed: "2026-01-18"
-    context_focus: "Backend compilation, testing, initial Party domain setup"
-    facilitator: "Gemini"
-    key_outcomes:
-      - "Backend compilado correctamente"
-      - "Sistema de testing configurado"
-      - "Primeras pruebas de concepto del dominio Party"
-      - "Migraciones SQL básicas creadas"
-    note: "Trabajo inicial de Party - implementación completa se hizo en Sprint 05"
-  
-  task_04_01:
-    id: "04-01"
-    sprint: "04"
-    filename: "01-definicion-sistema-de-diseno.md"
-    title: "Definición e Implementación del Sistema de Diseño"
-    status: "✅ Completado"
-    dates:
-      started: "2026-01-18"
-      completed: "2026-01-18"
-    context_focus: "Design System implementation"
-    facilitator: "Gemini, GitHub Copilot, Jorge Cortés Villalba"
-    key_outcomes:
-      - "Sistema de diseño CSS implementado"
-      - "StyleGuide.vue component creado"
-      - "Ruta /style-guide accesible"
-      - "Contexto de diseño para agentes creado"
+  tasks:
+    task_11_01:
+      id: "11-01"
+      sprint: "11"
+      filename: "01-erp-core-validation-qa.md"
+      title: "ERP Core Validation & Quality Assurance"
+      status: "✅ Completado"
+      dates:
+        started: "2026-02-15"
+        completed: "2026-02-17"
+      context_focus: "Quality Assurance - All ERP Core Modules"
+      facilitator: "AI Assistant"
+      key_outcomes:
+        - "Validación exhaustiva de 4 módulos (Party, Product, Pricing, Sales)"
+        - "Coverage medido: Backend 70.8%, Frontend 6.6%"
+        - "41 items technical debt documentados (~98-135h)"
+        - "Quality Baseline Checklist v1.0 creado"
+        - "Executive Summary y decisión NO-GO para MES"
+        - "+49 tests mejorados durante validación"
+      artifacts:
+        - "docs/log/sprints/sprint-11/01-erp-core-validation-qa.md"
+        - "docs/log/ERP_CORE_COMPLETION.md (actualizado con métricas)"
+  structure: |
+    # Example task structure:
+    # task_XX_YY:
+    #   id: "XX-YY"
+    #   sprint: "XX"
+    #   filename: "YY-descriptive-name.md"
+    #   title: "Task Title"
+    #   status: "✅ Completado"
+    #   dates:
+    #     started: "YYYY-MM-DD"
+    #     completed: "YYYY-MM-DD"
+    #   context_focus: "Module or context area"
+    #   facilitator: "AI Assistant or Team Member"
+    #   key_outcomes:
+    #     - "Outcome 1"
+    #     - "Outcome 2"
+    #   artifacts:
+    #     - "path/to/artifact1"
+    #     - "path/to/artifact2"
 
 task_backlog:
   title: "📋 Recommended Next Tasks (Backlog)"
-  note: "Sprint 04 (Security/Quality) must be completed and Sprint 05 (Party) must be approved before continuing with domain modules"
-  
-  candidate_1:
-    priority: "HIGH"
-    focus: "Validate and approve Sprint 05: Módulo Party"
-    tasks:
-      - "Human review of existing code"
-      - "Validation against ADR-011 and ADR-010"
-      - "Apply Sprint 04 quality standards"
-  
-  candidate_2:
-    priority: "HIGH"
-    focus: "Implement Product module (Catalogue)"
-    context_to_load:
-      - "agents/project/context/bounded-contexts.yaml"
-      - "agents/project/context/architecture.yaml"
-      - "agents/project/context/tech-stack.yaml"
-    suggested_title: "sprint-06-implement-product-module"
-    estimated_duration: "6-8 hours"
-    key_actions:
-      - "Design Product domain model"
-      - "Implement product catalogue CRUD"
-      - "Create product categories"
-      - "Add product variants support"
-      - "Frontend UI for product management"
-  
-  candidate_3:
-    priority: "MEDIUM"
-    focus: "Implement Pricing module"
-    context_to_load:
-      - "agents/project/context/bounded-contexts.yaml"
-      - "agents/project/context/architecture.yaml"
-    suggested_title: "sprint-07-implement-pricing-module"
-    estimated_duration: "6-8 hours"
-    key_actions:
-      - "Design pricing strategies (tiered, volume, etc)"
-      - "Implement price calculation engine"
-      - "Create price lists"
-      - "Frontend UI for pricing management"
+  note: "This section should list high-level tasks that are planned for future sprints."
+  candidates: [] # Keep empty for template
+  structure: |
+    # Example candidate structure:
+    # candidate_X:
+    #   priority: "HIGH|MEDIUM|LOW"
+    #   focus: "Your next big task"
+    #   context_to_load:
+    #     - "agents/project/context/your-context.yaml"
+    #   suggested_title: "sprint-XX-descriptive-module-task"
+    #   estimated_duration: "X hours"
+    #   key_actions:
+    #     - "Action 1"
+    #     - "Action 2"
 
 phase_status:
   title: "🎯 Project Phase Status"
-  
-  phase_0:
-    name: "Fase 0: Fundaciones Técnicas"
-    status: "✅ COMPLETED"
-    modules_completed:
-      - "IAM (Authentication)"
-      - "Docker environment"
-      - "Git workflow"
-      - "Initial CI/CD"
-    estimated_total_hours: "20-25"
-    completion_date: "Q1 2026"
-  
-  phase_1:
-    name: "Fase 1: Dominio Base"
-    status: "🔄 IN PROGRESS"
-    modules_completed:
-      - "Party (Organizations, Contacts, Addresses)"
-      - "Design System"
-      - "OWASP Security Audit"
-    modules_in_progress: []
-    modules_planned:
-      - "Product (Catalogue)"
-      - "Pricing (Price Engine)"
-      - "Security improvements"
-    estimated_total_hours: "30-40"
-    target_completion: "Q2-Q4 2026"
+  phases: [] # Keep empty for template
+  structure: |
+    # Example phase structure:
+    # phase_X:
+    #   name: "Phase Name"
+    #   status: "✅ COMPLETED|🔄 IN PROGRESS|⏳ BLOCKED"
+    #   modules_completed: []
+    #   modules_in_progress: []
+    #   modules_planned: []
+    #   estimated_total_hours: "X-Y"
+    #   target_completion: "Q1 YYYY"
 
 session_flow_quick_start:
   title: "🚀 When You Start a New Session"
   
   step_by_step:
-    1: "Load: agents/sprint-session-loader.yaml"
-    2: "It will scan docs/log/sprints/for open tasks"
-    3: "Check: agents/sprint-registry.yaml for status"
+    1: "Load: agents/load-session.yaml"
+    2: "It will scan docs/log/sprints/ for open tasks"
+    3: "Check: agents/project/sprint-registry.yaml for status"
     4: "Review: active_tasks list"
-    5: "If tasks open → Continue one of them"
-    6: "If all completed → Check task_backlog"
-    7: "Load relevant context from agents/[PROJECT]/context/"
+    5: "If active_tasks.count > 0 → Continue one of them"
+    6: "If active_tasks.count = 0 → Check task_backlog.candidates"
+    7: "Load relevant context from agents/project/context/"
     8: "Begin work following TDD approach"
 
 instructions_for_ai:
@@ -392,8 +186,8 @@ instructions_for_ai:
   when_session_starts:
     step_1: "Parse this file (sprint-registry.yaml)"
     step_2: "Note 'active_tasks.count' - how many are open"
-    step_3: "If count > 0, propose continuing one"
-    step_4: "If count = 0, propose from task_backlog"
+    step_3: "If active_tasks.count > 0, propose continuing one"
+    step_4: "If active_tasks.count = 0, propose from task_backlog.candidates"
     step_5: "Use phase_status to understand timeline"
   
   when_task_completes:
