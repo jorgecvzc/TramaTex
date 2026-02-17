@@ -1,5 +1,5 @@
 # Generic Project Context Agent Template
-# Version: 1.1
+# Version: 1.0
 # Audience: Any software development project
 # Purpose: A template for creating a project-specific context agent.
 
@@ -19,13 +19,13 @@ If generic-rules.yaml is not loaded, load it now.
 metadata:
   filename: "project-context.yaml"
   version: "1.0"
-  last_updated: "YYYY-MM-DD"
-  purpose: "Provides the main, high-level context for the [Project Name] project."
-  scope: "[Project Name] Project"
+  last_updated: "[[YYYY-MM-DD]]"
+  purpose: "Provides the main, high-level context for the $PROJECT_NAME project."
+  scope: "$PROJECT_NAME Project"
   load_order: "after generic-rules.yaml"
   dependencies:
     - "generic-rules.yaml"
-  context_agents_location: "agents/[project-name]/context/"
+  context_agents_location: "agents/project/context/"
 
 how_to_use:
   title: "🎯 How to Use This File"

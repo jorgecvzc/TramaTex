@@ -32,3 +32,29 @@ func (r *GORMProductGroupRepository) FindByID(ctx context.Context, id uuid.UUID)
 	}
 	return dataModel.ToDomain(), nil
 }
+
+// FindAll finds all product groups
+func (r *GORMProductGroupRepository) FindAll(ctx context.Context) ([]*domain.ProductGroup, error) {
+	var dataModels []ProductGroupDataModel
+	err := r.db.WithContext(ctx).Order("name ASC").Find(&dataModels).Error
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]*domain.ProductGroup, len(dataModels))
+	for i, dm := range dataModels {
+		groups[i] = dm.ToDomain()
+	}
+	return groups, nil
+}
+
+// Save saves or updates a product group
+func (r *GORMProductGroupRepository) Save(ctx context.Context, group *domain.ProductGroup) error {
+	dataModel := ProductGroupFromDomain(group)
+	return r.db.WithContext(ctx).Save(dataModel).Error
+}
+
+// Delete deletes a product group by its ID
+func (r *GORMProductGroupRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&ProductGroupDataModel{}, "id = ?", id).Error
+}

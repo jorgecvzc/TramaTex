@@ -1,7 +1,5 @@
 package domain
 
-import "fmt"
-
 // ProductType represents the type of a product, either tangible or a service.
 type ProductType string
 
@@ -16,7 +14,7 @@ func (pt ProductType) IsValid() error {
 	case ProductTypeTangible, ProductTypeService:
 		return nil
 	}
-	return fmt.Errorf("invalid ProductType: %s", pt)
+	return NewValidationErrorf("invalid ProductType: %s", pt)
 }
 
 // VariantStatus represents the state of a product variant.
@@ -33,5 +31,5 @@ func (vs VariantStatus) IsValid() error {
 	case StatusProvisional, StatusConfirmed:
 		return nil
 	}
-	return fmt.Errorf("invalid VariantStatus: %s", vs)
+	return NewValidationErrorf("invalid VariantStatus: %s", vs)
 }

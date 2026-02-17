@@ -1,7 +1,5 @@
 package domain
 
-import "fmt"
-
 // PersonProfile holds person-specific data for a Party
 // Optional: a Party may have a person profile, an organization profile, or both.
 type PersonProfile struct {
@@ -11,7 +9,7 @@ type PersonProfile struct {
 
 func NewPersonProfile(firstName, lastName string) (*PersonProfile, error) {
 	if firstName == "" || lastName == "" {
-		return nil, fmt.Errorf("first name and last name are required")
+		return nil, NewValidationError("first name and last name are required")
 	}
 	return &PersonProfile{firstName: firstName, lastName: lastName}, nil
 }
@@ -34,7 +32,7 @@ type OrganizationProfile struct {
 
 func NewOrganizationProfile(name string, taxID *TaxID, website string) (*OrganizationProfile, error) {
 	if name == "" {
-		return nil, fmt.Errorf("organization name is required")
+		return nil, NewValidationError("organization name is required")
 	}
 	return &OrganizationProfile{
 		name:     name,
@@ -62,11 +60,11 @@ func (o *OrganizationProfile) Contacts() []*ContactDetails {
 
 func (o *OrganizationProfile) AddContact(details *ContactDetails) error {
 	if details == nil {
-		return fmt.Errorf("contact details cannot be nil")
+		return NewValidationError("contact details cannot be nil")
 	}
 	for _, c := range o.contacts {
 		if c.ID() == details.ID() {
-			return fmt.Errorf("contact details already exist")
+			return NewConflictError("contact details already exist")
 		}
 	}
 	o.contacts = append(o.contacts, details)
@@ -75,7 +73,7 @@ func (o *OrganizationProfile) AddContact(details *ContactDetails) error {
 
 func (o *OrganizationProfile) UpdateContact(details *ContactDetails) error {
 	if details == nil {
-		return fmt.Errorf("contact details cannot be nil")
+		return NewValidationError("contact details cannot be nil")
 	}
 	for i, c := range o.contacts {
 		if c.ID() == details.ID() {
@@ -83,7 +81,7 @@ func (o *OrganizationProfile) UpdateContact(details *ContactDetails) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("contact details not found")
+	return NewNotFoundError("contact details not found")
 }
 
 func (o *OrganizationProfile) RemoveContact(id ContactDetailsID) error {
@@ -93,7 +91,7 @@ func (o *OrganizationProfile) RemoveContact(id ContactDetailsID) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("contact details not found")
+	return NewNotFoundError("contact details not found")
 }
 
 // ContactDetails is a value object for organization contacts
@@ -115,10 +113,10 @@ func NewContactDetails(
 	relatedPartyID *PartyID,
 ) (*ContactDetails, error) {
 	if id.String() == "" {
-		return nil, fmt.Errorf("contact details ID cannot be empty")
+		return nil, NewValidationError("contact details ID cannot be empty")
 	}
 	if typeDescription == "" {
-		return nil, fmt.Errorf("contact type description cannot be empty")
+		return nil, NewValidationError("contact type description cannot be empty")
 	}
 	return &ContactDetails{
 		id:              id,

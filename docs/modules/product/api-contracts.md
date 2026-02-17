@@ -1,10 +1,23 @@
 # Product Module: API Contracts
 
-- **Version:** 1.0.0
-- **Status:** Borrador
+- **Version:** 1.1.0
+- **Status:** Implementado (MVP parcial)
 - **Related Documents:** [Domain Model](./domain-model.md), [Use Cases](./use-cases.md)
 
 Este documento define la API para el módulo de `product`.
+
+---
+
+## Estado de Implementación
+
+### ✅ Endpoints Implementados
+- **Gestión de Attributes**: API completa con CRUD funcional
+- **DTOs actualizados**: `AttributeDTO` y `AttributeValueDTO` con estructura completa
+
+### 🚧 Pendiente
+- Gestión de Products
+- Gestión de ProductVariants
+- Gestión de PartyServiceConfiguration
 
 ---
 
@@ -16,35 +29,198 @@ Este documento define la API para el módulo de `product`.
 
 ---
 
-## 1. Gestión de `ProductOptionSet`
+## 1. Gestión de `Attribute` ✅
 
-Recurso base: `/product-option-sets`
+Recurso base: `/attributes`
+
+> **Estado**: ✅ Implementado y funcional (MVP)
 
 ### 1.1. DTOs
 
-#### `ProductOptionSetDto`
+#### `AttributeDTO`
 ```json
 {
-  "id": "string",
+  "id": "uuid",
   "name": "string",
-  "attributeName": "string",
+  "code": "string",
   "sortOrder": "number",
-  "scopeBrandId": "string | null",
-  "scopeGroupId": "string | null",
-  "values": ["string"]
+  "values": [
+    {
+      "id": "uuid",
+      "value": "string",
+      "code": "string"
+    }
+  ]
 }
 ```
 
-### 1.2. Endpoints
+**Notas:**
+- `code`: Código único del atributo usado para construcción de SKUs (ej. "T" para Talla, "C" para Color)
+- `values`: Array de objetos `AttributeValueDTO` con estructura completa incluyendo IDs
+- Los IDs son UUIDs generados automáticamente por el sistema
+- Soporte completo para UTF-8 (caracteres españoles: ñ, á, é, etc.)
 
-- `POST /product-option-sets`: Crea un nuevo conjunto de opciones. (UC-P-001)
-- `GET /product-option-sets`: Obtiene una lista de conjuntos de opciones, con filtros opcionales por `scopeType`, `brandId`, `productGroupId`.
-- `GET /product-option-sets/{id}`: Obtiene un conjunto de opciones específico.
-- `PUT /product-option-sets/{id}`: Actualiza un conjunto de opciones. (UC-P-002)
+#### `AttributeValueDTO`
+```json
+{
+  "id": "uuid",
+  "value": "string",
+  "code": "string"
+}
+```
+
+**Notas:**
+- `value`: Nombre descriptivo del valor (ej. "Large", "Rojo")
+- `code`: Código corto usado en SKUs (ej. "L", "R")
+- Este DTO se retorna dentro de `AttributeDTO.values` con estructura completa para permitir edición
+
+### 1.2. Endpoints ✅
+
+#### `POST /api/attributes` ✅
+Crea un nuevo atributo con sus valores.
+
+**Request Body:**
+```json
+{
+  "name": "Talla",
+  "code": "T",
+  "sortOrder": 1,
+  "values": [
+    {"value": "Small", "code": "S"},
+    {"value": "Medium", "code": "M"},
+    {"value": "Large", "code": "L"}
+  ]
+}
+```
+
+**Notas sobre el request:**
+- No incluir `id` en el payload (auto-generado)
+- `values`: Enviar solo `value` y `code` (sin IDs para creación)
+- `sortOrder` en camelCase
+
+**Response:** `201 Created`
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Talla",
+  "code": "T",
+  "sortOrder": 1,
+  "values": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "value": "Small",
+      "code": "S"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440002",
+      "value": "Medium",
+      "code": "M"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440003",
+      "value": "Large",
+      "code": "L"
+    }
+  ]
+}
+```
 
 ---
 
-## 2. Gestión de `Product`
+#### `GET /api/attributes` ✅
+Obtiene la lista completa de atributos.
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Talla",
+    "code": "T",
+    "sortOrder": 1,
+    "values": [
+      {"id": "660e8400-e29b-41d4-a716-446655440001", "value": "Small", "code": "S"},
+      {"id": "660e8400-e29b-41d4-a716-446655440002", "value": "Medium", "code": "M"}
+    ]
+  }
+]
+```
+
+---
+
+#### `GET /api/attributes/:id` ✅
+Obtiene un atributo específico por su ID.
+
+**Response:** `200 OK`
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Talla",
+  "code": "T",
+  "sortOrder": 1,
+  "values": [
+    {"id": "660e8400-e29b-41d4-a716-446655440001", "value": "Small", "code": "S"}
+  ]
+}
+```
+
+---
+
+#### `PUT /api/attributes/:id` ✅
+Actualiza un atributo existente.
+
+**Request Body:**
+```json
+{
+  "name": "Talla Actualizada",
+  "code": "T",
+  "sortOrder": 2,
+  "values": [
+    {"id": "660e8400-e29b-41d4-a716-446655440001", "value": "Extra Small", "code": "XS"},
+    {"value": "Extra Large", "code": "XL"}
+  ]
+}
+```
+
+**Notas importantes:**
+- Para **editar** un valor existente: incluir su `id`
+- Para **agregar** un nuevo valor: enviarlo sin `id` (se auto-genera)
+- Para **eliminar** un valor: no incluirlo en el array
+- Los valores con IDs presentes se actualizan, sin IDs se crean nuevos
+
+**Response:** `200 OK`
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Talla Actualizada",
+  "code": "T",
+  "sortOrder": 2,
+  "values": [
+    {"id": "660e8400-e29b-41d4-a716-446655440001", "value": "Extra Small", "code": "XS"},
+    {"id": "770e8400-e29b-41d4-a716-446655440004", "value": "Extra Large", "code": "XL"}
+  ]
+}
+```
+
+---
+
+### 1.3. Errores Comunes
+
+#### 400 Bad Request
+- Payload mal formado o campos requeridos faltantes
+- `code` duplicado (debe ser único por atributo)
+
+#### 404 Not Found
+- El `id` del atributo no existe
+
+#### 500 Internal Server Error
+- Error de base de datos o conexión
+
+---
+
+## 2. Gestión de `Product` 🚧
+
+> **Estado**: 🚧 Pendiente de implementación
 
 Recurso base: `/products`
 
@@ -75,7 +251,9 @@ Recurso base: `/products`
 
 ---
 
-## 3. Gestión de `ProductVariant`
+## 3. Gestión de `ProductVariant` 🚧
+
+> **Estado**: 🚧 Pendiente de implementación
 
 Recurso base: `/products/{productId}/variants` y `/variants`
 
@@ -123,7 +301,9 @@ Recurso base: `/products/{productId}/variants` y `/variants`
 
 ---
 
-## 4. Gestión de `PartyServiceConfiguration`
+## 4. Gestión de `PartyServiceConfiguration` 🚧
+
+> **Estado**: 🚧 Pendiente de implementación
 
 Recurso base: `/parties/{partyId}/service-configurations`
 

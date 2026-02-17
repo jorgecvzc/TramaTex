@@ -1,0 +1,215 @@
+# Root Files Creation Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Creates essential files in the project's root directory, adhering to the Clean Root Policy.
+
+---
+
+metadata:
+  filename: "root-files-creation.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the creation of critical root files like README.md, AGENTS.md, .gitignore, and Makefile."
+  applies_to: "Project scaffolding structural phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "create_root_files"
+    title: "Crear Archivos Raíz del Proyecto (POLÍTICA: Raíz Limpia)"
+    description: "Creará solo los archivos esenciales en raíz. POLÍTICA: Solo README.md y AGENTS.md como documentación en raíz. Todo lo demás va en docs/ (incluyendo next-session.md en docs/log/). Archivos de config (.gitignore, .env.example, Makefile, etc.) sí van en raíz."
+    files_to_create:
+      - filename: ".gitignore"
+        content: |
+          # Go
+          bin/
+          *.exe
+
+          # Node
+          node_modules/
+          dist/
+          .env
+
+          # OS-specific
+          .DS_Store
+          Thumbs.db
+      - filename: "README.md"
+        content: |
+          # $PROJECT_NAME
+
+          **Visión**: $PROJECT_VISION
+
+          Este es el README principal del proyecto. Para más información, consulta la documentación en `docs/`.
+
+          ## Comandos Rápidos
+          - `make build`: Construir el proyecto
+          - `make test`: Ejecutar tests
+          - `make dev`: Iniciar entorno de desarrollo
+
+          ## 📚 Documentación
+
+          **POLÍTICAS DE ESTE PROYECTO:**
+          - ✅ README.md → Navegación general (este archivo)
+          - ✅ AGENTS.md → Punto de entrada para Asistentes de IA
+          - ✅ docs/log/session-log.md → Estado de las sesiones de trabajo
+          - ✅ Diagramas: Usar **Mermaid** incrustado en los archivos `.md`.
+          - ❌ NO otra documentación .md en raíz
+          - ✅ TODO lo demás va en carpetas dentro de `docs/`
+
+          **Por tipo de documento:**
+          - 🚀 **Proyecto**: [docs/log/](docs/log/) (Gestión del proyecto, sprints, estado y milestones)
+          - 🏗️ **Arquitectura**: [docs/architecture/](docs/architecture/) (Arquitectura, ADRs, Diagramas)
+          - 🧩 **Módulos**: [docs/modules/](docs/modules/) (Documentación detallada por Bounded Context)
+          - 📖 **Guías**: [docs/guides/](docs/guides/) (Tutoriales para desarrolladores y usuarios)
+          - 🗄️ **Archivo**: [docs/log/](docs/log/) (Sprints y milestones históricos)
+
+      - filename: "AGENTS.md"
+        content: |
+          # 🤖 AGENTS.md - The AI Architect's Master Guide
+
+          ## 1. Your Persona
+
+          You are the **AI Architect** for the **$PROJECT_NAME** project. Your primary directive is to ensure the project is built with exceptional quality, adhering to its foundational architectural principles. You are authoritative, precise, and always reference the project's established rules (found in `agents/generic-rules.yaml` and `agents/project/context/`) to justify your decisions.
+
+          ## 2. Core Principles (The Golden Rules)
+
+          You enforce these non-negotiable principles at all times:
+
+          *   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, and essential configuration files are permitted. Session logs go to `docs/log/session-log.md`.
+          *   **Bilingual Standard**: Documentation is in **Spanish**, while code, comments, commits, and agent files are in **English**.
+          *   **Clean Architecture & DDD**: The system is a modular monolith that strictly follows Clean Architecture and Domain-Driven Design.
+          *   **Test-Driven Development (TDD)**: All business logic must be developed using a test-first approach.
+
+          ## 3. docs/log/session-log.md - Session Log for Continuity
+
+          `docs/log/session-log.md` is a log file for active or paused development sessions:
+          - **Stores multiple sessions**: Each session is a distinct block of work with its own context and tasks.
+          - **Not automatically overwritten**: Sessions are managed manually or by agents configured to do so.
+          - **Priority**: Check this file first to identify available sessions before loading `init-session.yaml`.
+          - **Usage**: Allows resuming specific work streams, tracking multiple parallel efforts, and providing detailed context for continuity.
+
+          ## 4. Standard Workflow
+
+          1.  **Check docs/log/session-log.md**: If it contains saved sessions, present them to the user for selection. Otherwise, load `init-session.yaml`.
+          2.  **Select Task/Session**: Either continue an existing session/task or start a new one from the backlog.
+          3.  **Consult Module Workflow**: If the task is to create a new module, consult the **Standard Module Development Workflow (SMDW)** defined in `agents/generic-rules.yaml`.
+          4.  **Load Context**: Use `load-project-context.yaml` to load the project's context and any modular contexts.
+          5.  **Develop (TDD)**: Write tests first, then implement the code, following the SMDW phases.
+          6.  **Validate**: Run all tests, linters, and formatters before committing.
+          7.  **Document**: Update the sprint task file, `project-status.md`, and any other required module documentation.
+          8.  **Update docs/log/session-log.md**: Add new sessions, update existing ones, or mark as complete.
+          9.  **Commit**: Use conventional commit messages in English.
+
+      - filename: ".env.example"
+        content: |
+          # Variables de entorno de ejemplo
+          PROJECT_NAME=$PROJECT_NAME
+          API_PORT=8080
+          DB_HOST=localhost
+          DB_USER=user
+          DB_PASSWORD=password
+          DB_NAME=dbname
+          JWT_SECRET=supersecretjwtkey
+      - filename: "Makefile"
+        content: |
+          # Makefile para el proyecto $PROJECT_NAME
+          #
+          # Este Makefile es generado dinámicamente.
+          # Utiliza 'make help' para ver los comandos disponibles.
+
+          .PHONY: all help clean install-tools
+          .PHONY: backend-build backend-run backend-test backend-lint
+          .PHONY: frontend-build frontend-run frontend-test frontend-lint
+          .PHONY: intermediary-build intermediary-run intermediary-test intermediary-lint
+
+          # ==========================================================
+          # Variables Globales
+          # ==========================================================
+          PROJECT_NAME := $PROJECT_NAME
+          BACKEND_APP_NAME := $(BACKEND_NAME)
+          FRONTEND_APP_NAME := $(FRONTEND_NAME)
+          INTERMEDIARY_APP_NAME := $(INTERMEDIARY_NAME)
+
+          # ==========================================================
+          # Comandos por Tipo de Componente (Rellenados Dinámicamente)
+          # ==========================================================
+
+          # --- Backend ---
+          BACKEND_BUILD_CMD ?= @echo "Backend build command not set."
+          BACKEND_RUN_CMD ?= @echo "Backend run command not set."
+          BACKEND_TEST_CMD ?= @echo "Backend test command not set."
+          BACKEND_LINT_CMD ?= @echo "Backend lint command not set."
+
+          # --- Frontend ---
+          FRONTEND_BUILD_CMD ?= @echo "Frontend build command not set."
+          FRONTEND_RUN_CMD ?= @echo "Frontend run command not set."
+          FRONTEND_TEST_CMD ?= @echo "Frontend test command not set."
+          FRONTEND_LINT_CMD ?= @echo "Frontend lint command not set."
+
+          # --- Intermediary ---
+          INTERMEDIARY_BUILD_CMD ?= @echo "Intermediary build command not set."
+          INTERMEDIARY_RUN_CMD ?= @echo "Intermediary run command not set."
+          INTERMEDIARY_TEST_CMD ?= @echo "Intermediary test command not set."
+          INTERMEDIARY_LINT_CMD ?= @echo "Intermediary lint command not set."
+
+          # ==========================================================
+          # Targets Generales
+          # ==========================================================
+          all: build
+
+          build:
+          	$(BACKEND_BUILD_CMD)
+          	$(FRONTEND_BUILD_CMD)
+          	$(INTERMEDIARY_BUILD_CMD)
+
+          run:
+          	$(BACKEND_RUN_CMD)
+          	$(FRONTEND_RUN_CMD)
+          	$(INTERMEDIARY_RUN_CMD)
+
+          test:
+          	$(BACKEND_TEST_CMD)
+          	$(FRONTEND_TEST_CMD)
+          	$(INTERMEDIARY_TEST_CMD)
+
+          lint:
+          	$(BACKEND_LINT_CMD)
+          	$(FRONTEND_LINT_CMD)
+          	$(INTERMEDIARY_LINT_CMD)
+
+          clean:
+          	@echo "Limpiando artefactos de build..."
+          	rm -rf apps/*/bin apps/*/dist
+
+          install-tools:
+          	@echo "Instalando herramientas de desarrollo..."
+
+          help:
+          	@echo "Makefile para $(PROJECT_NAME)"
+          	@echo ""
+          	@echo "Uso:"
+          	@echo "  make <comando>"
+          	@echo ""
+          	@echo "Comandos Generales:"
+          	@echo "  all             - Ejecuta 'build'."
+          	@echo "  build           - Construye todos los componentes."
+          	@echo "  run             - Inicia todos los componentes."
+          	@echo "  test            - Ejecuta los tests de todos los componentes."
+          	@echo "  lint            - Ejecuta los linters de todos los componentes."
+          	@echo "  clean           - Limpia los artefactos de build."
+          	@echo "  install-tools   - Instala las herramientas de desarrollo necesarias."
+          	@echo "  help            - Muestra este mensaje de ayuda."
+          	@echo ""
+          	@echo "Comandos Específicos por Componente:"
+          	@echo "  backend-build   - $(BACKEND_BUILD_CMD)"
+          	@echo "  backend-run     - $(BACKEND_RUN_CMD)"
+          	@echo "  backend-test    - $(BACKEND_TEST_CMD)"
+          	@echo "  backend-lint    - $(BACKEND_LINT_CMD)"
+          	@echo "  frontend-build  - $(FRONTEND_BUILD_CMD)"
+          	@echo "  frontend-run    - $(FRONTEND_RUN_CMD)"
+          	@echo "  frontend-test   - $(FRONTEND_TEST_CMD)"
+          	@echo "  frontend-lint   - $(FRONTEND_LINT_CMD)"
+          	@echo "  intermediary-build - $(INTERMEDIARY_BUILD_CMD)"
+          	@echo "  intermediary-run   - $(INTERMEDIARY_RUN_CMD)"
+          	@echo "  intermediary-test  - $(INTERMEDIARY_TEST_CMD)"
+          	@echo "  intermediary-lint  - $(INTERMEDIARY_LINT_CMD)"
+    next_step: "end"

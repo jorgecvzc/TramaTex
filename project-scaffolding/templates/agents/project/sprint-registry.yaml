@@ -1,6 +1,6 @@
 # Universal Sprint Registry Template
-# Version: 1.1
-# Purpose: Track sprint and task status for quick lookup by session loader
+# Version: 1.0
+# Purpose: Track journal status for quick lookup by session loader
 # Audience: Project teams, AI assistants
 
 ---
@@ -9,22 +9,22 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.1"
-  last_updated: "2026-02-04" # Updated to today's date
+  last_updated: "2026-02-15"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
-  note: "Parsed by sprint-session-loader.yaml for quick discovery"
+  note: "Parsed by load-session.yaml for quick discovery"
   
   naming_conventions:
     task_files:
       pattern: "[ID_TAREA]-descriptive-name.md"
       id_format: "Local sequential per sprint (01, 02, 03... resets each sprint)"
       location: "docs/log/sprints/sprint-[XX]/"
-      language: "English (filename), Spanish (content)"
+      language: "Spanish (Español)"
       examples:
-        - "sprint-01/04-owasp-security-audit.md"
-        - "sprint-02/01-documentation-system-refactoring.md"
-        - "sprint-02/02-backend-compilation-and-testing.md"
-        - "sprint-03/01-design-system-definition.md"
+        - "sprint-01/04-auditoria-seguridad-owasp.md"
+        - "sprint-02/01-refactorizacion-sistema-documentacion.md"
+        - "sprint-02/02-compilacion-y-testeo-del-backend.md"
+        - "sprint-03/01-definicion-sistema-de-diseno.md"
       notes:
         - "Task IDs restart at 01 for each sprint"
         - "Unique ID = sprint-XX + task-YY"
@@ -33,7 +33,7 @@ metadata:
     summary_files:
       pattern: "sprint-[XX]-summary.md"
       location: "docs/log/sprints/sprint-[XX]/"
-      language: "English (filename), Spanish (content)"
+      language: "Spanish (Español)"
       examples:
         - "sprint-01-summary.md"
         - "sprint-04-summary.md"
@@ -43,59 +43,92 @@ active_tasks:
   count: 0
   note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
   tasks: [] # Keep empty for template
+  structure: |
+    # Example task structure:
+    # task_XX_YY:
+    #   id: "XX-YY"
+    #   sprint: "XX"
+    #   filename: "YY-descriptive-name.md"
+    #   title: "Task Title"
+    #   status: "⏳ Planificado / 🔄 En Progreso / ✅ Completado (AI) / 🔍 Pendiente de Aprobación Humana"
+    #   dates:
+    #     started: "2026-02-15"
+    #     completed: "2026-02-15" # Only if completed
+    #   context_focus: "Module or context area"
+    #   facilitator: "AI Assistant or Team Member"
+    #   key_outcomes:
+    #     - "Outcome 1"
+    #     - "Outcome 2"
+    #   # Additional fields as needed
+  
+
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
   tasks: [] # Keep empty for template
   structure: |
-    task_XX_YY:
-      id: "XX-YY"
-      sprint: "XX"
-      filename: "YY-descriptive-name.md"
-      title: "Task Title"
-      status: "✅ Completado"
-      dates:
-        started: "YYYY-MM-DD"
-        completed: "YYYY-MM-DD"
-      context_focus: "Module or context area"
-      facilitator: "AI Assistant or Team Member"
-      key_outcomes:
-        - "Outcome 1"
-        - "Outcome 2"
+    # Example task structure:
+    # task_XX_YY:
+    #   id: "XX-YY"
+    #   sprint: "XX"
+    #   filename: "YY-descriptive-name.md"
+    #   title: "Task Title"
+    #   status: "✅ Completado"
+    #   dates:
+    #     started: "2026-02-15"
+    #     completed: "2026-02-15"
+    #   context_focus: "Module or context area"
+    #   facilitator: "AI Assistant or Team Member"
+    #   key_outcomes:
+    #     - "Outcome 1"
+    #     - "Outcome 2"
+    #   artifacts:
+    #     - "path/to/artifact1"
+    #     - "path/to/artifact2"
 
 task_backlog:
   title: "📋 Recommended Next Tasks (Backlog)"
+  note: "This section should list high-level tasks that are planned for future sprints."
+  candidates: [] # Keep empty for template
   structure: |
-    candidate_X:
-      priority: "HIGH|MEDIUM|LOW"
-      focus: "Description of next work"
-      context_to_load: "agents/project/context/[module].yaml" # Changed from [YOUR_PROJECT_NAME]
-      suggested_title: "Sprint-ID_Task-ID_name"
-      estimated_duration: "X hours"
+    # Example candidate structure:
+    # candidate_X:
+    #   priority: "HIGH|MEDIUM|LOW"
+    #   focus: "Your next big task"
+    #   context_to_load:
+    #     - "agents/project/context/your-context.yaml"
+    #   suggested_title: "sprint-XX-descriptive-module-task"
+    #   estimated_duration: "X hours"
+    #   key_actions:
+    #     - "Action 1"
+    #     - "Action 2"
 
 phase_status:
   title: "🎯 Project Phase Status"
+  phases: [] # Keep empty for template
   structure: |
-    phase_X:
-      name: "Phase Name"
-      status: "✅ COMPLETED|🔄 IN PROGRESS|⏳ BLOCKED"
-      modules_completed: []
-      modules_in_progress: []
-      modules_planned: []
-      estimated_total_hours: "X-Y"
+    # Example phase structure:
+    # phase_X:
+    #   name: "Phase Name"
+    #   status: "✅ COMPLETED|🔄 IN PROGRESS|⏳ BLOCKED"
+    #   modules_completed: []
+    #   modules_in_progress: []
+    #   modules_planned: []
+    #   estimated_total_hours: "X-Y"
+    #   target_completion: "Q1 YYYY"
 
 session_flow_quick_start:
   title: "🚀 When You Start a New Session"
   
   step_by_step:
-    1: "Load: agents/sprint-session-loader.yaml"
+    1: "Load: agents/load-session.yaml"
     2: "It will scan docs/log/sprints/ for open tasks"
-    3: "Check: agents/sprint-registry.yaml for status"
+    3: "Check: agents/project/sprint-registry.yaml for status"
     4: "Review: active_tasks list"
-    5: "If tasks open → Continue one of them"
-    6: "If all completed → Check task_backlog"
-    7: "Load relevant context from agents/project/context/" # Changed from [PROJECT]
+    5: "If active_tasks.count > 0 → Continue one of them"
+    6: "If active_tasks.count = 0 → Check task_backlog.candidates"
+    7: "Load relevant context from agents/project/context/"
     8: "Begin work following TDD approach"
 
 instructions_for_ai:
@@ -104,8 +137,8 @@ instructions_for_ai:
   when_session_starts:
     step_1: "Parse this file (sprint-registry.yaml)"
     step_2: "Note 'active_tasks.count' - how many are open"
-    step_3: "If count > 0, propose continuing one"
-    step_4: "If count = 0, propose from task_backlog"
+    step_3: "If active_tasks.count > 0, propose continuing one"
+    step_4: "If active_tasks.count = 0, propose from task_backlog.candidates"
     step_5: "Use phase_status to understand timeline"
   
   when_task_completes:

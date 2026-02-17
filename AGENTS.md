@@ -1,6 +1,10 @@
 # 🧑‍💻 Guía para el Usuario sobre el Sistema de Agentes
 
-Este documento explica el propósito y funcionamiento del sistema de agentes de IA para los usuarios y desarrolladores del proyecto.
+> **📖 Guías Rápidas:**
+> - **Para usuarios:** Ver [guia-agents.md](guia-agents.md) (guía concisa ≤40 líneas)
+> - **Para desarrolladores:** Ver [agents/guia-desarrollo-agents.md](agents/guia-desarrollo-agents.md) (crear/modificar agentes)
+
+Este documento es la referencia completa del sistema de agentes de IA para usuarios y desarrolladores del proyecto.
 
 ## ¿Qué son los "Agentes"?
 
@@ -23,7 +27,7 @@ El usuario no necesita gestionar estos archivos directamente, pero puede consult
 -   `generic-rules.yaml`: Define las reglas universales del proyecto, como los idiomas para código y documentación, la estructura de directorios y los principios de arquitectura.
 -   `project-context.yaml`: Proporciona el contexto de alto nivel del proyecto TramaTex, incluyendo su visión, stack tecnológico y módulos principales.
 -   `sprint-registry.yaml`: Es el registro central de todos los sprints y tareas. Define qué tareas están activas, completadas o pendientes.
--   `load-session.yaml`: Contiene la lógica que el asistente de IA usa para gestionar sesiones de desarrollo (sprints y tareas), incluyendo la lectura de `NEXT_SESSION.md`.
+-   `init-session.yaml`: Contiene la lógica que el asistente de IA usa para gestionar sesiones de desarrollo (sprints y tareas), incluyendo la lectura de `session-log.md`.
 -   `agents/project/context/`: Contiene agentes modulares con información detallada sobre aspectos específicos como la arquitectura, los bounded contexts, el stack tecnológico y los estándares de código.
 
 ## Prompt para Iniciar una Nueva Sesión de Trabajo
@@ -42,4 +46,12 @@ Para una descripción detallada de los agentes de contexto específicos del proy
 -   **[agents/project/context/README.md](./agents/project/context/README.md)**
 
 ---
-*Última actualización: 2026-02-01*
+
+## 📚 Recursos Adicionales
+
+- **[guia-agents.md](guia-agents.md)** - Guía de uso concisa (inicio rápido)
+- **[agents/guia-desarrollo-agents.md](agents/guia-desarrollo-agents.md)** - Guía para desarrollar agentes
+- **[agents/project/context/README.md](agents/project/context/README.md)** - Documentación de contextos modulares
+
+---
+*Última actualización: 2026-02-05*

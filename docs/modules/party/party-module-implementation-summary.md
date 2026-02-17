@@ -1,123 +1,16 @@
-# Party Module - Implementation Summary
+# Party Module - Implementation Summary (Archived)
 
-Este documento fue retirado como parte de la política de MVP: se mantiene una única solución vigente sin versionado interno. La documentación actual está en:
+Este documento es historico y no refleja el estado actual del modulo. La documentacion vigente esta en:
 
+- docs/modules/party/README.md
 - docs/modules/party/domain-model.md
 - docs/modules/party/use-cases.md
 - docs/modules/party/api-contracts.md
-- ✅ GET /organizations - List with filters
-- ✅ GET /organizations/{id} - Get single
-- ✅ PUT /organizations/{id} - Update
-- ✅ PATCH /organizations/{id}/status - Change status
+- docs/modules/party/implementation-guide.md
 
-**Persons/Contacts (4 endpoints):**
-- ✅ POST /organizations/{org_id}/persons - Add
-- ✅ GET /persons/{id} - Get single
-- ✅ GET /organizations/{org_id}/persons - List
-- ✅ GET /organizations/{org_id}/primary-contact - Get primary
+Si necesitas un resumen actualizado, consulta el informe de mejoras del modulo:
 
-**Addresses (4 endpoints):**
-- ✅ POST /organizations/{org_id}/addresses - Add
-- ✅ GET /organizations/{org_id}/addresses - List
-- ✅ GET /organizations/{org_id}/primary-address - Get primary
-
-### Frontend Pages (3/3 = 100%)
-
-- ✅ `/organizations` - List all organizations with filters
-- ✅ `/organizations/new` - Create new organization
-- ✅ `/organizations/:id` - View/edit organization with contacts & addresses
-
-### Frontend Components (5/5 = 100%)
-
-- ✅ **OrganizationForm** - Create/edit organizations
-- ✅ **OrganizationList** - List with search/filter
-- ✅ **OrganizationDetail** - Unified detail view
-- ✅ **PersonManager** - Add/view contacts
-- ✅ **AddressManager** - Add/view addresses
-
----
-
-## 🔒 Security & Validation
-
-### tramatex-api Validation
-- ✅ Input validation at all layers (domain, application, interface)
-- ✅ Type-safe IDs prevent injection attacks
-- ✅ SQL parameterized queries (injection-safe)
-- ✅ Email validation (format + case-insensitive)
-- ✅ Phone validation (international formats)
-- ✅ Tax ID validation (multiple formats)
-- ✅ Address validation (required fields)
-
-### Frontend Validation
-- ✅ Client-side field validation
-- ✅ Real-time error messages
-- ✅ Required field enforcement
-- ✅ Format validation (email, URL)
-- ✅ Error boundary handling
-
-### Error Handling
-- ✅ Meaningful error messages
-- ✅ HTTP status codes
-- ✅ User-friendly error display
-- ✅ Network error handling
-- ✅ Timeout handling
-
----
-
-## 🎨 Design System Integration
-
-All components follow the TramaTex design system:
-
-**Colors:**
-- ✅ Primary: #E6B800 (used for buttons, active states, badges)
-- ✅ Secondary: Various grays for UI elements
-- ✅ Status indicators: Green (active), Gray (inactive)
-- ✅ Role badges: Different colors per role
-
-**Typography:**
-- ✅ Consistent heading hierarchy
-- ✅ Readable font sizes
-- ✅ Proper contrast ratios
-- ✅ Icon usage (emojis + symbols)
-
-**Responsive Design:**
-- ✅ Mobile-first approach
-- ✅ Tablet breakpoints
-- ✅ Desktop optimization
-- ✅ Touch-friendly buttons
-
----
-
-## 📁 Complete File Structure
-
-### tramatex-api Files
-```
-apps/tramatex-api/
-├── internal/party/
-│   ├── domain/
-│   │   ├── organization.go      # Organization aggregate
-│   │   ├── person.go            # Person entity
-│   │   ├── value_objects.go     # Email, Phone, TaxID, Address
-│   │   ├── enums.go             # OrganizationRole, Status
-│   │   └── *_test.go            # 33 domain tests
-│   │
-│   ├── persistence/
-│   │   ├── repository.go         # Interface definitions
-│   │   ├── *_inmemory.go        # In-memory implementations
-│   │   ├── *_postgres.go        # PostgreSQL implementations
-│   │   └── *_test.go            # 12 persistence tests
-│   │
-│   ├── application/
-│   │   ├── commands.go           # 5 command handlers
-│   │   ├── queries.go            # 9 query handlers
-│   │   └── *_test.go             # 18 application tests
-│   │
-│   └── interfaces/
-│       ├── dto.go                # DTOs & mappers
-│       ├── handlers.go           # HTTP handlers
-│       └── handlers_test.go      # 12 interface tests
-│
-├── migrations/
+- docs/modules/party/party-improvements.md
 │   └── 002_create_party_tables.sql  # Database schema
 │
 └── SPRINT_*.md                      # Sprint summaries

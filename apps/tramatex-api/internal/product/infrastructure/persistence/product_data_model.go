@@ -1,8 +1,6 @@
 package persistence
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
@@ -13,19 +11,17 @@ import (
 // ProductDataModel represents the product entity in the database.
 type ProductDataModel struct {
 	gorm.Model
-	ID                 uuid.UUID      `gorm:"type:uuid;primary_key;"`
-	SKU                string         `gorm:"uniqueIndex;not null"`
-	Name               string         `gorm:"not null"`
+	ID                 uuid.UUID `gorm:"type:uuid;primary_key;"`
+	SKU                string    `gorm:"uniqueIndex;not null"`
+	Name               string    `gorm:"not null"`
 	LongName           string
-	Barcode            *string        `gorm:"uniqueIndex"`
+	Barcode            *string `gorm:"uniqueIndex"`
 	Description        string
 	ProductType        string         `gorm:"type:product_type;not null"`
 	BrandID            uuid.UUID      `gorm:"not null"`
 	GroupIDs           pq.StringArray `gorm:"type:uuid[]"`
 	DirectAttributeIDs pq.StringArray `gorm:"type:uuid[]"`
 	IsActive           bool           `gorm:"not null;default:true"`
-	CreatedBy          string
-	ModifiedBy         string
 }
 
 func (ProductDataModel) TableName() string {

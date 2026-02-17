@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/application"
@@ -12,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+const testActorID = "test-actor"
 
 // MockProductRepository is a mock implementation of domain.ProductRepository
 type MockProductRepository struct {
@@ -34,7 +35,11 @@ func (m *MockProductRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 
 func (m *MockProductRepository) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
 	args := m.Called(ctx, sku)
-	return args.Get(0).(*domain.Product), args.Error(1)
+	var product *domain.Product
+	if args.Get(0) != nil {
+		product = args.Get(0).(*domain.Product)
+	}
+	return product, args.Error(1)
 }
 
 func (m *MockProductRepository) FindAll(ctx context.Context) ([]*domain.Product, error) {
@@ -65,6 +70,25 @@ func (m *MockBrandRepository) FindByID(ctx context.Context, id uuid.UUID) (*doma
 	return brand, args.Error(1)
 }
 
+func (m *MockBrandRepository) Save(ctx context.Context, brand *domain.Brand) error {
+	args := m.Called(ctx, brand)
+	return args.Error(0)
+}
+
+func (m *MockBrandRepository) FindAll(ctx context.Context) ([]*domain.Brand, error) {
+	args := m.Called(ctx)
+	var brands []*domain.Brand
+	if args.Get(0) != nil {
+		brands = args.Get(0).([]*domain.Brand)
+	}
+	return brands, args.Error(1)
+}
+
+func (m *MockBrandRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 // MockProductGroupRepository is a mock implementation of domain.ProductGroupRepository
 type MockProductGroupRepository struct {
 	mock.Mock
@@ -77,6 +101,25 @@ func (m *MockProductGroupRepository) FindByID(ctx context.Context, id uuid.UUID)
 		group = args.Get(0).(*domain.ProductGroup)
 	}
 	return group, args.Error(1)
+}
+
+func (m *MockProductGroupRepository) Save(ctx context.Context, group *domain.ProductGroup) error {
+	args := m.Called(ctx, group)
+	return args.Error(0)
+}
+
+func (m *MockProductGroupRepository) FindAll(ctx context.Context) ([]*domain.ProductGroup, error) {
+	args := m.Called(ctx)
+	var groups []*domain.ProductGroup
+	if args.Get(0) != nil {
+		groups = args.Get(0).([]*domain.ProductGroup)
+	}
+	return groups, args.Error(1)
+}
+
+func (m *MockProductGroupRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }
 
 // MockAttributeRepository is a mock implementation of domain.AttributeRepository
@@ -114,6 +157,20 @@ func (m *MockAttributeRepository) FindByScope(ctx context.Context, brandID *uuid
 		attributes = args.Get(0).([]*domain.Attribute)
 	}
 	return attributes, args.Error(1)
+}
+
+func (m *MockAttributeRepository) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
+	args := m.Called(ctx, code)
+	var attribute *domain.Attribute
+	if args.Get(0) != nil {
+		attribute = args.Get(0).(*domain.Attribute)
+	}
+	return attribute, args.Error(1)
+}
+
+func (m *MockAttributeRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }
 
 // MockProductVariantRepository is a mock implementation of domain.ProductVariantRepository
@@ -204,7 +261,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	brandID := uuid.New()
 	groupID1 := uuid.New()
@@ -216,6 +273,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.CreateProductCommand{
+			ActorID:     testActorID,
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			LongName:    "Long Test Product Name",
@@ -229,6 +287,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(&domain.Brand{ID: brandID, Name: "TestBrand"}, nil).Once()
 		mockGroupRepo.On("FindByID", ctx, groupID1).Return(&domain.ProductGroup{ID: groupID1, Name: "Group1"}, nil).Once()
 		mockGroupRepo.On("FindByID", ctx, groupID2).Return(&domain.ProductGroup{ID: groupID2, Name: "Group2"}, nil).Once()
+		mockProductRepo.On("FindBySKU", ctx, "TEST-SKU").Return(nil, nil).Once()
 
 		mockProductRepo.On("Save", ctx, mock.AnythingOfType("*domain.Product")).Return(nil).Once()
 
@@ -251,6 +310,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockGroupRepo.ExpectedCalls = nil
 		invalidBrandID := uuid.New()
 		cmd := application.CreateProductCommand{
+			ActorID:     testActorID,
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
@@ -273,6 +333,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockGroupRepo.ExpectedCalls = nil
 		invalidGroupID := uuid.New()
 		cmd := application.CreateProductCommand{
+			ActorID:     testActorID,
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
@@ -297,6 +358,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.CreateProductCommand{
+			ActorID:     testActorID,
 			SKU:         "", // Invalid SKU
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
@@ -304,6 +366,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		}
 
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(&domain.Brand{ID: brandID, Name: "TestBrand"}, nil).Once()
+		mockProductRepo.On("FindBySKU", ctx, "").Return(nil, nil).Once()
 
 		productDTO, err := productService.CreateProduct(ctx, cmd)
 
@@ -318,6 +381,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.CreateProductCommand{
+			ActorID:     testActorID,
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
@@ -325,6 +389,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 		}
 
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(&domain.Brand{ID: brandID, Name: "TestBrand"}, nil).Once()
+		mockProductRepo.On("FindBySKU", ctx, "TEST-SKU").Return(nil, nil).Once()
 		mockProductRepo.On("Save", ctx, mock.AnythingOfType("*domain.Product")).Return(assert.AnError).Once()
 
 		productDTO, err := productService.CreateProduct(ctx, cmd)
@@ -345,19 +410,17 @@ func TestProductService_AddGroupToProduct(t *testing.T) {
 	mockVariantRepo := new(MockProductVariantRepository)
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	productID := uuid.New()
 	existingBrandID := uuid.New()
 	newGroupID := uuid.New()
 	existingProduct := &domain.Product{
-		ID:        productID,
-		SKU:       "PROD1",
-		Name:      "Product 1",
-		BrandID:   existingBrandID,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:       productID,
+		SKU:      "PROD1",
+		Name:     "Product 1",
+		BrandID:  existingBrandID,
+		IsActive: true,
 	}
 
 	t.Run("should add group to product successfully", func(t *testing.T) {
@@ -365,6 +428,7 @@ func TestProductService_AddGroupToProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.AddGroupCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			GroupID:   newGroupID,
 		}
@@ -387,6 +451,7 @@ func TestProductService_AddGroupToProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.AddGroupCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			GroupID:   newGroupID,
 		}
@@ -406,6 +471,7 @@ func TestProductService_AddGroupToProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.AddGroupCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			GroupID:   newGroupID,
 		}
@@ -431,19 +497,17 @@ func TestProductService_AddDirectAttributeToProduct(t *testing.T) {
 	mockVariantRepo := new(MockProductVariantRepository)
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	productID := uuid.New()
 	existingBrandID := uuid.New()
 	newAttributeID := uuid.New()
 	existingProduct := &domain.Product{
-		ID:        productID,
-		SKU:       "PROD1",
-		Name:      "Product 1",
-		BrandID:   existingBrandID,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:       productID,
+		SKU:      "PROD1",
+		Name:     "Product 1",
+		BrandID:  existingBrandID,
+		IsActive: true,
 	}
 
 	t.Run("should add direct attribute to product successfully", func(t *testing.T) {
@@ -452,6 +516,7 @@ func TestProductService_AddDirectAttributeToProduct(t *testing.T) {
 		mockGroupRepo.ExpectedCalls = nil
 		mockAttributeRepo.ExpectedCalls = nil
 		cmd := application.AddDirectAttributeCommand{
+			ActorID:     testActorID,
 			ProductID:   productID,
 			AttributeID: newAttributeID,
 		}
@@ -473,6 +538,7 @@ func TestProductService_AddDirectAttributeToProduct(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.AddDirectAttributeCommand{
+			ActorID:     testActorID,
 			ProductID:   productID,
 			AttributeID: newAttributeID,
 		}
@@ -496,28 +562,24 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 	mockVariantRepo := new(MockProductVariantRepository)
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	productID := uuid.New()
 	oldSKU := "OLD-SKU"
 	newSKU := "NEW-SKU"
 	existingProduct := &domain.Product{
-		ID:        productID,
-		SKU:       oldSKU,
-		Name:      "Product to Update",
-		BrandID:   uuid.New(),
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:       productID,
+		SKU:      oldSKU,
+		Name:     "Product to Update",
+		BrandID:  uuid.New(),
+		IsActive: true,
 	}
 	updatedProduct := &domain.Product{
-		ID:        productID,
-		SKU:       newSKU,
-		Name:      "Product to Update",
-		BrandID:   uuid.New(),
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:       productID,
+		SKU:      newSKU,
+		Name:     "Product to Update",
+		BrandID:  uuid.New(),
+		IsActive: true,
 	}
 
 	t.Run("should update product SKU and cascade successfully", func(t *testing.T) {
@@ -525,6 +587,7 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.UpdateProductSKUCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			NewSKU:    newSKU,
 		}
@@ -546,6 +609,7 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
 		mockGroupRepo.ExpectedCalls = nil
 		cmd := application.UpdateProductSKUCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			NewSKU:    newSKU,
 		}
@@ -562,6 +626,7 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 
 	t.Run("should return error if cascade update fails", func(t *testing.T) {
 		cmd := application.UpdateProductSKUCommand{
+			ActorID:   testActorID,
 			ProductID: productID,
 			NewSKU:    newSKU,
 		}
@@ -587,31 +652,27 @@ func TestProductService_ListProducts(t *testing.T) {
 	mockVariantRepo := new(MockProductVariantRepository)
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	brandID := uuid.New()
 	groupID := uuid.New()
 
 	products := []*domain.Product{
 		{
-			ID:        uuid.New(),
-			SKU:       "P-1",
-			Name:      "Product 1",
-			BrandID:   brandID,
-			GroupIDs:  []uuid.UUID{groupID},
-			IsActive:  true,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:       uuid.New(),
+			SKU:      "P-1",
+			Name:     "Product 1",
+			BrandID:  brandID,
+			GroupIDs: []uuid.UUID{groupID},
+			IsActive: true,
 		},
 		{
-			ID:        uuid.New(),
-			SKU:       "P-2",
-			Name:      "Product 2",
-			BrandID:   uuid.New(),
-			GroupIDs:  []uuid.UUID{uuid.New()},
-			IsActive:  false,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:       uuid.New(),
+			SKU:      "P-2",
+			Name:     "Product 2",
+			BrandID:  uuid.New(),
+			GroupIDs: []uuid.UUID{uuid.New()},
+			IsActive: false,
 		},
 	}
 
@@ -664,7 +725,7 @@ func TestProductService_ListProductVariantsByProductID(t *testing.T) {
 	mockVariantRepo := new(MockProductVariantRepository)
 	mockPartyServiceConfigRepo := new(MockPartyServiceConfigurationRepository)
 	productService := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
-	ctx := context.Background()
+	ctx := context.WithValue(context.Background(), "actorID", testActorID)
 
 	productID := uuid.New()
 	attrID := uuid.New()
@@ -687,8 +748,6 @@ func TestProductService_ListProductVariantsByProductID(t *testing.T) {
 			Status:          domain.StatusConfirmed,
 			AttributeValues: []uuid.UUID{attrValueID},
 			IsActive:        true,
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
 		},
 	}
 

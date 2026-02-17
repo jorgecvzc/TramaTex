@@ -40,28 +40,58 @@ func NewProductService(
 	}
 }
 
+func withActorID(ctx context.Context, actorID string) (context.Context, error) {
+	actorID = strings.TrimSpace(actorID)
+	if actorID == "" {
+		if existing, ok := ctx.Value("actorID").(string); ok && strings.TrimSpace(existing) != "" {
+			return ctx, nil
+		}
+		if existing, ok := ctx.Value("userID").(string); ok && strings.TrimSpace(existing) != "" {
+			return context.WithValue(ctx, "actorID", strings.TrimSpace(existing)), nil
+		}
+		return ctx, domain.NewValidationError("actor ID is required")
+	}
+	if existing, ok := ctx.Value("actorID").(string); ok && strings.TrimSpace(existing) == actorID {
+		return ctx, nil
+	}
+	return context.WithValue(ctx, "actorID", actorID), nil
+}
+
 // CreateProduct handles the UC-P-003: Create a Product.
 func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCommand) (*ProductDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	// 1. Validate Brand and Groups exist (external aggregates)
 	brand, err := s.brandRepo.FindByID(ctx, cmd.BrandID)
 	if err != nil {
-		return nil, fmt.Errorf("brand not found: %w", err)
+		return nil, domain.WrapPersistence("brand not found", err)
 	}
 	if brand == nil {
-		return nil, fmt.Errorf("brand with ID %s does not exist", cmd.BrandID)
+		return nil, domain.NewNotFoundErrorf("brand with ID %s does not exist", cmd.BrandID)
 	}
 
 	for _, groupID := range cmd.GroupIDs {
 		group, err := s.groupRepo.FindByID(ctx, groupID)
 		if err != nil {
-			return nil, fmt.Errorf("product group not found: %w", err)
+			return nil, domain.WrapPersistence("product group not found", err)
 		}
 		if group == nil {
-			return nil, fmt.Errorf("product group with ID %s does not exist", groupID)
+			return nil, domain.NewNotFoundErrorf("product group with ID %s does not exist", groupID)
 		}
 	}
 
-	// 2. Create Product domain entity
+	// 2. Check if SKU already exists
+	existingProduct, err := s.productRepo.FindBySKU(ctx, cmd.SKU)
+	if err != nil {
+		return nil, domain.WrapPersistence("error checking SKU uniqueness", err)
+	}
+	if existingProduct != nil {
+		return nil, domain.NewConflictErrorf("producto con SKU '%s' ya existe", cmd.SKU)
+	}
+
+	// 3. Create Product domain entity
 	product, err := domain.NewProduct(
 		cmd.SKU,
 		cmd.Name,
@@ -72,7 +102,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		cmd.Barcode,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create product domain entity: %w", err)
+		return nil, domain.WrapValidation("failed to create product domain entity", err)
 	}
 
 	// Add groups to product
@@ -80,9 +110,21 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		product.AddGroup(groupID)
 	}
 
-	// 3. Persist Product
+	// 4. Validate and add direct attributes
+	for _, attrID := range cmd.DirectAttributeIDs {
+		attr, err := s.attributeRepo.FindByID(ctx, attrID)
+		if err != nil {
+			return nil, domain.WrapPersistence("attribute not found", err)
+		}
+		if attr == nil {
+			return nil, domain.NewNotFoundErrorf("attribute with ID %s does not exist", attrID)
+		}
+		product.AddDirectAttribute(attrID)
+	}
+
+	// 5. Persist Product
 	if err := s.productRepo.Save(ctx, product); err != nil {
-		return nil, fmt.Errorf("failed to save product: %w", err)
+		return nil, domain.WrapPersistence("failed to save product", err)
 	}
 
 	return NewProductDTOFromDomain(product), nil
@@ -90,26 +132,30 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 
 // AddGroupToProduct handles the UC-P-XXX: Add a group to an existing Product.
 func (s *ProductService) AddGroupToProduct(ctx context.Context, cmd AddGroupCommand) (*ProductDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", cmd.ProductID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
 	}
 
 	group, err := s.groupRepo.FindByID(ctx, cmd.GroupID)
 	if err != nil {
-		return nil, fmt.Errorf("product group not found: %w", err)
+		return nil, domain.WrapPersistence("product group not found", err)
 	}
 	if group == nil {
-		return nil, fmt.Errorf("product group with ID %s does not exist", cmd.GroupID)
+		return nil, domain.NewNotFoundErrorf("product group with ID %s does not exist", cmd.GroupID)
 	}
 
 	product.AddGroup(cmd.GroupID)
 
 	if err := s.productRepo.Save(ctx, product); err != nil {
-		return nil, fmt.Errorf("failed to add group to product: %w", err)
+		return nil, domain.WrapPersistence("failed to add group to product", err)
 	}
 
 	return NewProductDTOFromDomain(product), nil
@@ -117,27 +163,31 @@ func (s *ProductService) AddGroupToProduct(ctx context.Context, cmd AddGroupComm
 
 // AddDirectAttributeToProduct handles the UC-P-XXX: Add a direct attribute to an existing Product.
 func (s *ProductService) AddDirectAttributeToProduct(ctx context.Context, cmd AddDirectAttributeCommand) (*ProductDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", cmd.ProductID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
 	}
 
 	// Validate attribute exists using attributeRepo
 	attribute, err := s.attributeRepo.FindByID(ctx, cmd.AttributeID)
 	if err != nil {
-		return nil, fmt.Errorf("attribute not found: %w", err)
+		return nil, domain.WrapPersistence("attribute not found", err)
 	}
 	if attribute == nil {
-		return nil, fmt.Errorf("attribute with ID %s does not exist", cmd.AttributeID)
+		return nil, domain.NewNotFoundErrorf("attribute with ID %s does not exist", cmd.AttributeID)
 	}
 
 	product.AddDirectAttribute(cmd.AttributeID)
 
 	if err := s.productRepo.Save(ctx, product); err != nil {
-		return nil, fmt.Errorf("failed to add direct attribute to product: %w", err)
+		return nil, domain.WrapPersistence("failed to add direct attribute to product", err)
 	}
 
 	return NewProductDTOFromDomain(product), nil
@@ -145,12 +195,16 @@ func (s *ProductService) AddDirectAttributeToProduct(ctx context.Context, cmd Ad
 
 // UpdateProductSKU handles the UC-P-006: Modificar SKU de Producto.
 func (s *ProductService) UpdateProductSKU(ctx context.Context, cmd UpdateProductSKUCommand) (*ProductDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", cmd.ProductID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
 	}
 
 	// Update product's own SKU
@@ -158,43 +212,88 @@ func (s *ProductService) UpdateProductSKU(ctx context.Context, cmd UpdateProduct
 
 	// This method in the repository is expected to handle the cascade update of ProductVariant SKUs
 	if err := s.productRepo.UpdateSKUs(ctx, product.ID, cmd.NewSKU); err != nil {
-		return nil, fmt.Errorf("failed to update product SKU and cascade to variants: %w", err)
+		return nil, domain.WrapPersistence("failed to update product SKU and cascade to variants", err)
 	}
 
 	// The product returned from repo.FindByID will have the old SKU. We need to fetch the updated product
 	// or ensure the Save method updates the entity in memory
 	updatedProduct, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve updated product: %w", err)
+		return nil, domain.WrapPersistence("failed to retrieve updated product", err)
 	}
 	if updatedProduct == nil {
-		return nil, fmt.Errorf("updated product with ID %s does not exist", cmd.ProductID)
+		return nil, domain.NewNotFoundErrorf("updated product with ID %s does not exist", cmd.ProductID)
+	}
+
+	return NewProductDTOFromDomain(updatedProduct), nil
+}
+
+// UpdateProduct updates a product's general information (name, description, brand, groups, attributes).
+func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCommand) (*ProductDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
+
+	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("product not found", err)
+	}
+	if product == nil {
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
+	}
+
+	// Update fields only if provided
+	if cmd.Name != nil {
+		product.Name = *cmd.Name
+	}
+	if cmd.LongName != nil {
+		product.LongName = *cmd.LongName
+	}
+	if cmd.Description != nil {
+		product.Description = *cmd.Description
+	}
+	if cmd.BrandID != nil {
+		product.BrandID = *cmd.BrandID
+	}
+	if cmd.GroupIDs != nil {
+		product.GroupIDs = cmd.GroupIDs
+	}
+	if cmd.DirectAttributeIDs != nil {
+		product.DirectAttributeIDs = cmd.DirectAttributeIDs
+	}
+
+	if err := s.productRepo.Save(ctx, product); err != nil {
+		return nil, domain.WrapPersistence("failed to update product", err)
+	}
+
+	// Fetch updated product to ensure we return the latest state
+	updatedProduct, err := s.productRepo.FindByID(ctx, cmd.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to retrieve updated product", err)
+	}
+	if updatedProduct == nil {
+		return nil, domain.NewNotFoundErrorf("updated product with ID %s does not exist", cmd.ProductID)
 	}
 
 	return NewProductDTOFromDomain(updatedProduct), nil
 }
 
 // CreateAttribute handles the UC-P-001: Create an Attribute.
+// Note: Scope validations removed for MVP simplicity.
 func (s *ProductService) CreateAttribute(ctx context.Context, cmd CreateAttributeCommand) (*AttributeDTO, error) {
-	// 1. Validate ScopeBrandID and ScopeGroupID if provided
-	if cmd.ScopeBrandID != nil {
-		brand, err := s.brandRepo.FindByID(ctx, *cmd.ScopeBrandID)
-		if err != nil {
-			return nil, fmt.Errorf("scope brand not found: %w", err)
-		}
-		if brand == nil {
-			return nil, fmt.Errorf("brand with ID %s does not exist", *cmd.ScopeBrandID)
-		}
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
 	}
 
-	if cmd.ScopeGroupID != nil {
-		group, err := s.groupRepo.FindByID(ctx, *cmd.ScopeGroupID)
-		if err != nil {
-			return nil, fmt.Errorf("scope product group not found: %w", err)
-		}
-		if group == nil {
-			return nil, fmt.Errorf("product group with ID %s does not exist", *cmd.ScopeGroupID)
-		}
+	// 1. Check if an attribute with this code already exists
+	existing, err := s.attributeRepo.FindByCode(ctx, cmd.Code)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to check for existing attribute", err)
+	}
+	if existing != nil {
+		return nil, domain.NewValidationErrorf("Ya existe un atributo con el código '%s': %s", cmd.Code, existing.Name)
 	}
 
 	// 2. Create Attribute domain entity
@@ -202,61 +301,43 @@ func (s *ProductService) CreateAttribute(ctx context.Context, cmd CreateAttribut
 		cmd.Name,
 		cmd.Code,
 		cmd.SortOrder,
-		cmd.ScopeBrandID,
-		cmd.ScopeGroupID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create attribute domain entity: %w", err)
+		return nil, domain.WrapValidation("failed to create attribute domain entity", err)
 	}
 
 	// 3. Add values to the attribute
 	for _, valCmd := range cmd.Values {
 		_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
 		if err != nil {
-			return nil, fmt.Errorf("failed to add attribute value: %w", err)
+			return nil, domain.WrapValidation("failed to add attribute value", err)
 		}
 	}
 
 	// 4. Persist Attribute
 	if err := s.attributeRepo.Save(ctx, attribute); err != nil {
-		return nil, fmt.Errorf("failed to save attribute: %w", err)
+		return nil, domain.WrapPersistence("failed to save attribute", err)
 	}
 
 	return NewAttributeDTOFromDomain(attribute), nil
 }
 
 // UpdateAttribute handles the UC-P-002: Modify an Attribute.
+// Note: Scope validations removed for MVP simplicity.
 func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttributeCommand) (*AttributeDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	attribute, err := s.attributeRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
-		return nil, fmt.Errorf("attribute not found: %w", err)
+		return nil, domain.WrapPersistence("attribute not found", err)
 	}
 	if attribute == nil {
-		return nil, fmt.Errorf("attribute with ID %s does not exist", cmd.ID)
+		return nil, domain.NewNotFoundErrorf("attribute with ID %s does not exist", cmd.ID)
 	}
 
-	// 1. Validate ScopeBrandID and ScopeGroupID if provided and changed
-	if cmd.ScopeBrandID != nil && (attribute.ScopeBrandID == nil || *attribute.ScopeBrandID != *cmd.ScopeBrandID) {
-		brand, err := s.brandRepo.FindByID(ctx, *cmd.ScopeBrandID)
-		if err != nil {
-			return nil, fmt.Errorf("scope brand not found: %w", err)
-		}
-		if brand == nil {
-			return nil, fmt.Errorf("brand with ID %s does not exist", *cmd.ScopeBrandID)
-		}
-	}
-
-	if cmd.ScopeGroupID != nil && (attribute.ScopeGroupID == nil || *attribute.ScopeGroupID != *cmd.ScopeGroupID) {
-		group, err := s.groupRepo.FindByID(ctx, *cmd.ScopeGroupID)
-		if err != nil {
-			return nil, fmt.Errorf("scope product group not found: %w", err)
-		}
-		if group == nil {
-			return nil, fmt.Errorf("product group with ID %s does not exist", *cmd.ScopeGroupID)
-		}
-	}
-
-	// 2. Update top-level attribute fields
+	// 1. Update top-level attribute fields
 	if cmd.Name != nil {
 		attribute.Name = *cmd.Name
 	}
@@ -266,14 +347,8 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 	if cmd.SortOrder != nil {
 		attribute.SortOrder = *cmd.SortOrder
 	}
-	if cmd.ScopeBrandID != nil {
-		attribute.ScopeBrandID = cmd.ScopeBrandID
-	}
-	if cmd.ScopeGroupID != nil {
-		attribute.ScopeGroupID = cmd.ScopeGroupID
-	}
 
-	// 3. Handle AttributeValue updates (add, modify, delete)
+	// 2. Handle AttributeValue updates (add, modify, delete)
 	// Map existing values for efficient lookup
 	existingValuesMap := make(map[uuid.UUID]domain.AttributeValue)
 	for _, val := range attribute.Values {
@@ -284,17 +359,17 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 		if valCmd.ID == nil { // New value
 			_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
 			if err != nil {
-				return nil, fmt.Errorf("failed to add new attribute value: %w", err)
+				return nil, domain.WrapValidation("failed to add new attribute value", err)
 			}
 		} else { // Existing value, potentially updated
 			if _, exists := existingValuesMap[*valCmd.ID]; exists {
 				err := attribute.UpdateValue(*valCmd.ID, valCmd.Value, valCmd.Code)
 				if err != nil {
-					return nil, fmt.Errorf("failed to update attribute value %s: %w", valCmd.ID.String(), err)
+					return nil, domain.WrapValidationf(err, "failed to update attribute value %s", valCmd.ID.String())
 				}
 				delete(existingValuesMap, *valCmd.ID) // Mark as processed
 			} else {
-				return nil, fmt.Errorf("attribute value with ID %s not found in existing values", valCmd.ID.String())
+				return nil, domain.NewNotFoundErrorf("attribute value with ID %s not found in existing values", valCmd.ID.String())
 			}
 		}
 	}
@@ -303,159 +378,46 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 	for id := range existingValuesMap {
 		err := attribute.RemoveValue(id)
 		if err != nil {
-			return nil, fmt.Errorf("failed to remove attribute value %s: %w", id.String(), err)
+			return nil, domain.WrapNotFoundf(err, "failed to remove attribute value %s", id.String())
 		}
 	}
 
 	// 4. Persist updated Attribute
 	if err := s.attributeRepo.Save(ctx, attribute); err != nil {
-		return nil, fmt.Errorf("failed to save updated attribute: %w", err)
+		return nil, domain.WrapPersistence("failed to save updated attribute", err)
 	}
 
 	return NewAttributeDTOFromDomain(attribute), nil
 }
 
 // GetApplicableAttributesForProduct handles UC-P-005: Consultar Atributos Aplicables de un Producto.
+// Note: Simplified for MVP - only returns directly assigned attributes.
 func (s *ProductService) GetApplicableAttributesForProduct(ctx context.Context, productID uuid.UUID) ([]*AttributeDTO, error) {
 	product, err := s.productRepo.FindByID(ctx, productID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", productID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", productID)
 	}
 
-	// Map to store the winning attribute for each code based on precedence
-	// Key: Attribute.Code, Value: *domain.Attribute
-	// This map will store the highest precedence attribute for each code encountered.
-	finalAttributesMap := make(map[string]*domain.Attribute)
-
-	// Helper function to get precedence score (lower is higher precedence)
-	// Precedence order: Direct (0), Group+Brand (1), Group (2), Brand (3), Generic (4)
-	getAttributePrecedence := func(attr *domain.Attribute) int {
-		// Check for direct attribute - highest precedence
-		for _, directAttrID := range product.DirectAttributeIDs {
-			if attr.ID == directAttrID {
-				return 0 // Direct
-			}
-		}
-
-		isScopedToProductBrand := attr.ScopeBrandID != nil && *attr.ScopeBrandID == product.BrandID
-		isScopedToProductGroup := false
-		for _, productGroupID := range product.GroupIDs {
-			if attr.ScopeGroupID != nil && *attr.ScopeGroupID == productGroupID {
-				isScopedToProductGroup = true
-				break
-			}
-		}
-
-		if isScopedToProductBrand && isScopedToProductGroup {
-			return 1 // Group + Brand
-		}
-		if isScopedToProductGroup {
-			return 2 // Product Group
-		}
-		if isScopedToProductBrand {
-			return 3 // Brand
-		}
-
-		return 4 // Generic (lowest precedence)
-	}
-
-	// Fetch all candidate attributes and score them
-	var scoredAttributes []struct {
-		Attribute  *domain.Attribute
-		Precedence int
-	}
-
-	// 1. Fetch Generic attributes
-	genericAttrs, err := s.attributeRepo.FindByScope(ctx, nil, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch generic attributes: %w", err)
-	}
-	for _, attr := range genericAttrs {
-		scoredAttributes = append(scoredAttributes, struct {
-			Attribute  *domain.Attribute
-			Precedence int
-		}{Attribute: attr, Precedence: getAttributePrecedence(attr)})
-	}
-
-	// 2. Fetch Brand scoped attributes
-	brandScopedAttrs, err := s.attributeRepo.FindByScope(ctx, &product.BrandID, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch brand scoped attributes: %w", err)
-	}
-	for _, attr := range brandScopedAttrs {
-		scoredAttributes = append(scoredAttributes, struct {
-			Attribute  *domain.Attribute
-			Precedence int
-		}{Attribute: attr, Precedence: getAttributePrecedence(attr)})
-	}
-
-	// 3. Fetch Group scoped attributes
-	for _, groupID := range product.GroupIDs {
-		groupScopedAttrs, err := s.attributeRepo.FindByScope(ctx, nil, &groupID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch group %s scoped attributes: %w", groupID.String(), err)
-		}
-		for _, attr := range groupScopedAttrs {
-			scoredAttributes = append(scoredAttributes, struct {
-				Attribute  *domain.Attribute
-				Precedence int
-			}{Attribute: attr, Precedence: getAttributePrecedence(attr)})
-		}
-	}
-
-	// 4. Fetch Group + Brand scoped attributes (if any, using direct calls to repo)
-	for _, groupID := range product.GroupIDs {
-		groupBrandScopedAttrs, err := s.attributeRepo.FindByScope(ctx, &product.BrandID, &groupID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch group %s and brand %s scoped attributes: %w", groupID.String(), product.BrandID.String(), err)
-		}
-		for _, attr := range groupBrandScopedAttrs {
-			scoredAttributes = append(scoredAttributes, struct {
-				Attribute  *domain.Attribute
-				Precedence int
-			}{Attribute: attr, Precedence: getAttributePrecedence(attr)})
-		}
-	}
-
-	// 5. Fetch Direct attributes
-	for _, attrID := range product.DirectAttributeIDs {
-		directAttr, err := s.attributeRepo.FindByID(ctx, attrID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch direct attribute %s: %w", attrID.String(), err)
-		}
-		if directAttr != nil {
-			scoredAttributes = append(scoredAttributes, struct {
-				Attribute  *domain.Attribute
-				Precedence int
-			}{Attribute: directAttr, Precedence: getAttributePrecedence(directAttr)})
-		}
-	}
-
-	// Sort attributes: first by precedence (lower is better), then by SortOrder
-	sort.Slice(scoredAttributes, func(i, j int) bool {
-		if scoredAttributes[i].Precedence != scoredAttributes[j].Precedence {
-			return scoredAttributes[i].Precedence < scoredAttributes[j].Precedence
-		}
-		return scoredAttributes[i].Attribute.SortOrder < scoredAttributes[j].Attribute.SortOrder
-	})
-
-	// Apply precedence: populate final map, only adding if no attribute with that code exists
-	// or if the new attribute has higher precedence.
-	// Since we've sorted by precedence, simply iterating will ensure the first one for each code wins.
-	for _, sa := range scoredAttributes {
-		if existing, exists := finalAttributesMap[sa.Attribute.Code]; !exists || getAttributePrecedence(sa.Attribute) < getAttributePrecedence(existing) {
-			finalAttributesMap[sa.Attribute.Code] = sa.Attribute
-		}
-	}
-
-	// Convert map values to slice of DTOs, sorted by SortOrder
+	// Fetch only directly assigned attributes
 	var result []*AttributeDTO
-	for _, attr := range finalAttributesMap {
-		result = append(result, NewAttributeDTOFromDomain(attr))
+	if len(product.DirectAttributeIDs) == 0 {
+		return result, nil
 	}
+
+	directAttrs, err := s.attributeRepo.FindByIDs(ctx, product.DirectAttributeIDs)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to fetch direct attributes", err)
+	}
+
+	// Convert to DTOs and sort by SortOrder
+	for i := range directAttrs {
+		attr := directAttrs[i]
+		result = append(result, NewAttributeDTOFromDomain(&attr))
+	}
+
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].SortOrder < result[j].SortOrder
 	})
@@ -463,37 +425,35 @@ func (s *ProductService) GetApplicableAttributesForProduct(ctx context.Context, 
 	return result, nil
 }
 
+// GetApplicableAttributesForProductLegacy is the old complex implementation kept for reference.
+// Can be removed in future versions.
+func (s *ProductService) GetApplicableAttributesForProductLegacy(ctx context.Context, productID uuid.UUID) ([]*AttributeDTO, error) {
+	// [Legacy code removed for brevity - see git history if needed]
+	return nil, domain.NewNotFoundError("legacy method not implemented")
+}
+
 // GetAttributeByID handles fetching a single attribute by its ID.
 func (s *ProductService) GetAttributeByID(ctx context.Context, query GetAttributeByIDQuery) (*AttributeDTO, error) {
 	attribute, err := s.attributeRepo.FindByID(ctx, query.ID)
 	if err != nil {
-		return nil, fmt.Errorf("attribute not found: %w", err)
+		return nil, domain.WrapPersistence("attribute not found", err)
 	}
 	if attribute == nil {
-		return nil, fmt.Errorf("attribute with ID %s does not exist", query.ID)
+		return nil, domain.NewNotFoundErrorf("attribute with ID %s does not exist", query.ID)
 	}
 	return NewAttributeDTOFromDomain(attribute), nil
 }
 
-// ListAttributes handles fetching a list of attributes with optional filtering.
+// ListAttributes handles fetching a list of attributes.
+// Note: Scope-based filtering removed for MVP simplicity - all attributes are generic.
 func (s *ProductService) ListAttributes(ctx context.Context, query ListAttributesQuery) ([]*AttributeDTO, error) {
-	// Implement filtering logic based on query.ScopeType, query.BrandID, query.ProductGroupID
-	// For simplicity, let's assume FindByScope can handle all combinations for now.
-	// A more robust implementation would build the query dynamically.
-	if query.ScopeType != nil && !isValidScopeType(*query.ScopeType) {
-		return nil, fmt.Errorf("invalid scope type: %s", *query.ScopeType)
-	}
-
-	attributes, err := s.attributeRepo.FindByScope(ctx, query.BrandID, query.ProductGroupID)
+	attributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list attributes: %w", err)
+		return nil, domain.WrapPersistence("failed to list attributes", err)
 	}
 
 	var dtos []*AttributeDTO
 	for _, attr := range attributes {
-		if !attributeMatchesScopeType(attr, query.ScopeType) {
-			continue
-		}
 		dtos = append(dtos, NewAttributeDTOFromDomain(attr))
 	}
 	return dtos, nil
@@ -503,10 +463,10 @@ func (s *ProductService) ListAttributes(ctx context.Context, query ListAttribute
 func (s *ProductService) GetProductByID(ctx context.Context, query GetProductByIDQuery) (*ProductDTO, error) {
 	product, err := s.productRepo.FindByID(ctx, query.ID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", query.ID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", query.ID)
 	}
 	return NewProductDTOFromDomain(product), nil
 }
@@ -515,7 +475,7 @@ func (s *ProductService) GetProductByID(ctx context.Context, query GetProductByI
 func (s *ProductService) ListProducts(ctx context.Context, query ListProductsQuery) ([]*ProductDTO, error) {
 	products, err := s.productRepo.FindAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list products: %w", err)
+		return nil, domain.WrapPersistence("failed to list products", err)
 	}
 	if len(products) == 0 {
 		return []*ProductDTO{}, nil
@@ -535,7 +495,7 @@ func (s *ProductService) ListProducts(ctx context.Context, query ListProductsQue
 func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, query ListProductVariantsByProductIDQuery) ([]*ProductVariantDTO, error) {
 	variants, err := s.variantRepo.FindByProductID(ctx, query.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list product variants: %w", err)
+		return nil, domain.WrapPersistence("failed to list product variants", err)
 	}
 	if len(variants) == 0 {
 		return []*ProductVariantDTO{}, nil
@@ -543,7 +503,7 @@ func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, que
 
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch attributes for variants: %w", err)
+		return nil, domain.WrapPersistence("failed to fetch attributes for variants", err)
 	}
 
 	dtos := make([]*ProductVariantDTO, len(variants))
@@ -551,31 +511,6 @@ func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, que
 		dtos[i] = NewProductVariantDTOFromDomain(variant, allAttributes)
 	}
 	return dtos, nil
-}
-
-func isValidScopeType(scopeType string) bool {
-	switch strings.ToUpper(scopeType) {
-	case "GENERIC", "BRAND", "BRAND_GROUP":
-		return true
-	default:
-		return false
-	}
-}
-
-func attributeMatchesScopeType(attr *domain.Attribute, scopeType *string) bool {
-	if scopeType == nil {
-		return true
-	}
-	switch strings.ToUpper(*scopeType) {
-	case "GENERIC":
-		return attr.ScopeBrandID == nil && attr.ScopeGroupID == nil
-	case "BRAND":
-		return attr.ScopeBrandID != nil && attr.ScopeGroupID == nil
-	case "BRAND_GROUP":
-		return attr.ScopeBrandID != nil && attr.ScopeGroupID != nil
-	default:
-		return false
-	}
 }
 
 func productMatchesQuery(product *domain.Product, query ListProductsQuery) bool {
@@ -604,15 +539,15 @@ func productHasGroup(product *domain.Product, groupID uuid.UUID) bool {
 func (s *ProductService) GetProductVariantByID(ctx context.Context, query GetProductVariantByIDQuery) (*ProductVariantDTO, error) {
 	variant, err := s.variantRepo.FindByID(ctx, query.ID)
 	if err != nil {
-		return nil, fmt.Errorf("product variant not found: %w", err)
+		return nil, domain.WrapPersistence("product variant not found", err)
 	}
 	if variant == nil {
-		return nil, fmt.Errorf("product variant with ID %s does not exist", query.ID)
+		return nil, domain.NewNotFoundErrorf("product variant with ID %s does not exist", query.ID)
 	}
 	// Need to fetch all attributes to populate OptionConfiguration in ProductVariantDTO
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil) // Fetch all attributes for now
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch attributes for variant: %w", err)
+		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
 }
@@ -621,14 +556,14 @@ func (s *ProductService) GetProductVariantByID(ctx context.Context, query GetPro
 func (s *ProductService) GetProductVariantBySKU(ctx context.Context, query GetProductVariantBySKUQuery) (*ProductVariantDTO, error) {
 	variant, err := s.variantRepo.FindBySKU(ctx, query.SKU)
 	if err != nil {
-		return nil, fmt.Errorf("product variant not found: %w", err)
+		return nil, domain.WrapPersistence("product variant not found", err)
 	}
 	if variant == nil {
-		return nil, fmt.Errorf("product variant with SKU %s does not exist", query.SKU)
+		return nil, domain.NewNotFoundErrorf("product variant with SKU %s does not exist", query.SKU)
 	}
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch attributes for variant: %w", err)
+		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
 }
@@ -637,16 +572,16 @@ func (s *ProductService) GetProductVariantBySKU(ctx context.Context, query GetPr
 func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd GenerateProductVariantsCommand) error {
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return fmt.Errorf("product not found: %w", err)
+		return domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return fmt.Errorf("product with ID %s does not exist", cmd.ProductID)
+		return domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
 	}
 
 	// UC-P-005: Get Applicable Attributes
 	applicableAttributes, err := s.GetApplicableAttributesForProduct(ctx, product.ID)
 	if err != nil {
-		return fmt.Errorf("failed to get applicable attributes for product %s: %w", product.ID, err)
+		return domain.WrapPersistencef(err, "failed to get applicable attributes for product %s", product.ID)
 	}
 
 	// Convert AttributeDTOs back to domain.Attribute for internal use
@@ -658,7 +593,7 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 		var fullDomainAttribute *domain.Attribute
 		fullDomainAttribute, err = s.attributeRepo.FindByID(ctx, attrDTO.ID)
 		if err != nil || fullDomainAttribute == nil {
-			return fmt.Errorf("failed to retrieve full domain attribute %s: %w", attrDTO.ID, err)
+			return domain.WrapPersistencef(err, "failed to retrieve full domain attribute %s", attrDTO.ID)
 		}
 		domainAttributes = append(domainAttributes, fullDomainAttribute)
 	}
@@ -678,18 +613,22 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 
 // FindOrCreateProductVariant handles UC-P-009: Obtener o Crear Variante (Find or Create).
 func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd FindOrCreateProductVariantCommand) (*ProductVariantDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
 	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
+		return nil, domain.WrapPersistence("product not found", err)
 	}
 	if product == nil {
-		return nil, fmt.Errorf("product with ID %s does not exist", cmd.ProductID)
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
 	}
 
 	// Get applicable attributes for validation and SKU construction
 	applicableAttributesDTOs, err := s.GetApplicableAttributesForProduct(ctx, product.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get applicable attributes for product %s: %w", product.ID, err)
+		return nil, domain.WrapPersistencef(err, "failed to get applicable attributes for product %s", product.ID)
 	}
 
 	// Map AttributeCode to domain.Attribute and AttributeValue
@@ -698,7 +637,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	for _, attrDTO := range applicableAttributesDTOs {
 		fullDomainAttribute, err := s.attributeRepo.FindByID(ctx, attrDTO.ID)
 		if err != nil || fullDomainAttribute == nil {
-			return nil, fmt.Errorf("failed to retrieve full domain attribute %s: %w", attrDTO.ID, err)
+			return nil, domain.WrapPersistencef(err, "failed to retrieve full domain attribute %s", attrDTO.ID)
 		}
 		attrCodeToAttribute[fullDomainAttribute.Code] = fullDomainAttribute
 		for _, val := range fullDomainAttribute.Values {
@@ -719,11 +658,11 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	for attributeName, value := range cmd.OptionConfiguration {
 		attr, attrExists := attrCodeToAttribute[attributeName]
 		if !attrExists {
-			return nil, fmt.Errorf("attribute '%s' is not applicable to product '%s'", attributeName, product.ID)
+			return nil, domain.NewValidationErrorf("attribute '%s' is not applicable to product '%s'", attributeName, product.ID)
 		}
 		val, valExists := attrValueToDomainValue[value]
 		if !valExists || val.AttributeID != attr.ID { // Ensure value belongs to this attribute
-			return nil, fmt.Errorf("value '%s' is not valid for attribute '%s'", value, attributeName)
+			return nil, domain.NewValidationErrorf("value '%s' is not valid for attribute '%s'", value, attributeName)
 		}
 		attributeValueIDs = append(attributeValueIDs, val.ID)
 		sortedAttributeCodes = append(sortedAttributeCodes, attr.Code)
@@ -755,7 +694,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		if variant.SKU != generatedSKU {
 			variant.SKU = generatedSKU
 			if err := s.variantRepo.Save(ctx, variant); err != nil { // Save might update
-				return nil, fmt.Errorf("failed to update SKU of existing variant %s: %w", variant.ID, err)
+				return nil, domain.WrapPersistencef(err, "failed to update SKU of existing variant %s", variant.ID)
 			}
 		}
 		return NewProductVariantDTOFromDomain(variant, applicableAttributes), nil
@@ -764,11 +703,11 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	// If not found, create new variant
 	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new product variant domain entity: %w", err)
+		return nil, domain.WrapValidation("failed to create new product variant domain entity", err)
 	}
 
 	if err := s.variantRepo.Save(ctx, newVariant); err != nil {
-		return nil, fmt.Errorf("failed to save new product variant: %w", err)
+		return nil, domain.WrapPersistence("failed to save new product variant", err)
 	}
 
 	return NewProductVariantDTOFromDomain(newVariant, applicableAttributes), nil
@@ -776,12 +715,16 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 
 // UpdateProductVariant handles UC-P-008: Modificar una Variante Específica.
 func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdateProductVariantCommand) (*ProductVariantDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	variant, err := s.variantRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
-		return nil, fmt.Errorf("product variant not found: %w", err)
+		return nil, domain.WrapPersistence("product variant not found", err)
 	}
 	if variant == nil {
-		return nil, fmt.Errorf("product variant with ID %s does not exist", cmd.ID)
+		return nil, domain.NewNotFoundErrorf("product variant with ID %s does not exist", cmd.ID)
 	}
 
 	if cmd.Barcode != nil {
@@ -801,13 +744,13 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 	}
 
 	if err := s.variantRepo.Save(ctx, variant); err != nil {
-		return nil, fmt.Errorf("failed to save updated product variant: %w", err)
+		return nil, domain.WrapPersistence("failed to save updated product variant", err)
 	}
 
 	// Need to fetch all attributes to populate OptionConfiguration in ProductVariantDTO
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch attributes for variant: %w", err)
+		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
 
 	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
@@ -817,10 +760,10 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 func (s *ProductService) GetPartyServiceConfigurationByID(ctx context.Context, query GetPartyServiceConfigurationByIDQuery) (*PartyServiceConfigurationDTO, error) {
 	config, err := s.partyServiceConfigRepo.FindByID(ctx, query.PartyID, query.ID)
 	if err != nil {
-		return nil, fmt.Errorf("party service configuration not found: %w", err)
+		return nil, domain.WrapPersistence("party service configuration not found", err)
 	}
 	if config == nil {
-		return nil, fmt.Errorf("party service configuration with ID %s for party %s does not exist", query.ID, query.PartyID)
+		return nil, domain.NewNotFoundErrorf("party service configuration with ID %s for party %s does not exist", query.ID, query.PartyID)
 	}
 	// Assuming a NewPartyServiceConfigurationDTOFromDomain function exists or create inline
 	return &PartyServiceConfigurationDTO{
@@ -836,7 +779,7 @@ func (s *ProductService) GetPartyServiceConfigurationByID(ctx context.Context, q
 func (s *ProductService) ListPartyServiceConfigurationsByPartyID(ctx context.Context, query ListPartyServiceConfigurationsByPartyIDQuery) ([]*PartyServiceConfigurationDTO, error) {
 	configs, err := s.partyServiceConfigRepo.FindByPartyID(ctx, query.PartyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list party service configurations: %w", err)
+		return nil, domain.WrapPersistence("failed to list party service configurations", err)
 	}
 
 	var dtos []*PartyServiceConfigurationDTO
@@ -854,22 +797,26 @@ func (s *ProductService) ListPartyServiceConfigurationsByPartyID(ctx context.Con
 
 // CreatePartyServiceConfiguration handles creating a new party service configuration.
 func (s *ProductService) CreatePartyServiceConfiguration(ctx context.Context, cmd CreatePartyServiceConfigurationCommand) (*PartyServiceConfigurationDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	var configDetails json.RawMessage
 	if cmd.ConfigurationDetails != nil {
 		payload, err := json.Marshal(cmd.ConfigurationDetails)
 		if err != nil {
-			return nil, fmt.Errorf("failed to serialize configuration details: %w", err)
+			return nil, domain.WrapValidation("failed to serialize configuration details", err)
 		}
 		configDetails = payload
 	}
 
 	config, err := domain.NewPartyServiceConfiguration(cmd.PartyID, cmd.ServiceID, cmd.Name, configDetails)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create party service configuration domain entity: %w", err)
+		return nil, domain.WrapValidation("failed to create party service configuration domain entity", err)
 	}
 
 	if err := s.partyServiceConfigRepo.Save(ctx, config); err != nil {
-		return nil, fmt.Errorf("failed to save party service configuration: %w", err)
+		return nil, domain.WrapPersistence("failed to save party service configuration", err)
 	}
 	return &PartyServiceConfigurationDTO{
 		ID:                   config.ID,
@@ -882,12 +829,16 @@ func (s *ProductService) CreatePartyServiceConfiguration(ctx context.Context, cm
 
 // UpdatePartyServiceConfiguration handles updating an existing party service configuration.
 func (s *ProductService) UpdatePartyServiceConfiguration(ctx context.Context, cmd UpdatePartyServiceConfigurationCommand) (*PartyServiceConfigurationDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
 	config, err := s.partyServiceConfigRepo.FindByID(ctx, cmd.PartyID, cmd.ID)
 	if err != nil {
-		return nil, fmt.Errorf("party service configuration not found: %w", err)
+		return nil, domain.WrapPersistence("party service configuration not found", err)
 	}
 	if config == nil {
-		return nil, fmt.Errorf("party service configuration with ID %s for party %s does not exist", cmd.ID, cmd.PartyID)
+		return nil, domain.NewNotFoundErrorf("party service configuration with ID %s for party %s does not exist", cmd.ID, cmd.PartyID)
 	}
 
 	// Apply updates
@@ -903,17 +854,17 @@ func (s *ProductService) UpdatePartyServiceConfiguration(ctx context.Context, cm
 	if cmd.ConfigurationDetails != nil {
 		payload, err := json.Marshal(cmd.ConfigurationDetails)
 		if err != nil {
-			return nil, fmt.Errorf("failed to serialize configuration details: %w", err)
+			return nil, domain.WrapValidation("failed to serialize configuration details", err)
 		}
 		configDetails = payload
 	}
 
 	if err := config.Update(serviceID, name, configDetails); err != nil {
-		return nil, fmt.Errorf("failed to update party service configuration domain entity: %w", err)
+		return nil, domain.WrapValidation("failed to update party service configuration domain entity", err)
 	}
 
 	if err := s.partyServiceConfigRepo.Save(ctx, config); err != nil {
-		return nil, fmt.Errorf("failed to save updated party service configuration: %w", err)
+		return nil, domain.WrapPersistence("failed to save updated party service configuration", err)
 	}
 	return &PartyServiceConfigurationDTO{
 		ID:                   config.ID,
@@ -926,9 +877,317 @@ func (s *ProductService) UpdatePartyServiceConfiguration(ctx context.Context, cm
 
 // DeletePartyServiceConfiguration handles deleting a party service configuration.
 func (s *ProductService) DeletePartyServiceConfiguration(ctx context.Context, cmd DeletePartyServiceConfigurationCommand) error {
-	err := s.partyServiceConfigRepo.Delete(ctx, cmd.PartyID, cmd.ID)
+	ctx, err := withActorID(ctx, cmd.ActorID)
 	if err != nil {
-		return fmt.Errorf("failed to delete party service configuration: %w", err)
+		return err
 	}
+	err = s.partyServiceConfigRepo.Delete(ctx, cmd.PartyID, cmd.ID)
+	if err != nil {
+		return domain.WrapPersistence("failed to delete party service configuration", err)
+	}
+	return nil
+}
+
+// ============================================================================
+// Brand Queries
+// ============================================================================
+
+// BrandDTO represents a brand for API responses
+type BrandDTO struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	IsActive bool      `json:"isActive"`
+}
+
+// ListBrands retrieves all brands
+func (s *ProductService) ListBrands(ctx context.Context) ([]BrandDTO, error) {
+	brands, err := s.brandRepo.FindAll(ctx)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to list brands", err)
+	}
+
+	result := make([]BrandDTO, len(brands))
+	for i, brand := range brands {
+		result[i] = BrandDTO{
+			ID:       brand.ID,
+			Name:     brand.Name,
+			IsActive: brand.IsActive,
+		}
+	}
+	return result, nil
+}
+
+// GetBrandByID retrieves a brand by ID
+func (s *ProductService) GetBrandByID(ctx context.Context, id uuid.UUID) (*BrandDTO, error) {
+	brand, err := s.brandRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, domain.WrapPersistence("brand not found", err)
+	}
+	if brand == nil {
+		return nil, domain.NewNotFoundErrorf("brand with ID %s does not exist", id)
+	}
+
+	return &BrandDTO{
+		ID:       brand.ID,
+		Name:     brand.Name,
+		IsActive: brand.IsActive,
+	}, nil
+}
+
+// ============================================================================
+// Product Group Queries
+// ============================================================================
+
+// ProductGroupDTO represents a product group for API responses
+type ProductGroupDTO struct {
+	ID            uuid.UUID  `json:"id"`
+	Name          string     `json:"name"`
+	ParentGroupID *uuid.UUID `json:"parent_group_id,omitempty"`
+	IsActive      bool       `json:"isActive"`
+}
+
+// ListProductGroups retrieves all product groups
+func (s *ProductService) ListProductGroups(ctx context.Context) ([]ProductGroupDTO, error) {
+	groups, err := s.groupRepo.FindAll(ctx)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to list product groups", err)
+	}
+
+	result := make([]ProductGroupDTO, len(groups))
+	for i, group := range groups {
+		result[i] = ProductGroupDTO{
+			ID:            group.ID,
+			Name:          group.Name,
+			ParentGroupID: group.ParentGroupID,
+			IsActive:      group.IsActive,
+		}
+	}
+	return result, nil
+}
+
+// GetProductGroupByID retrieves a product group by ID
+func (s *ProductService) GetProductGroupByID(ctx context.Context, id uuid.UUID) (*ProductGroupDTO, error) {
+	group, err := s.groupRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, domain.WrapPersistence("product group not found", err)
+	}
+	if group == nil {
+		return nil, domain.NewNotFoundErrorf("product group with ID %s does not exist", id)
+	}
+
+	return &ProductGroupDTO{
+		ID:            group.ID,
+		Name:          group.Name,
+		ParentGroupID: group.ParentGroupID,
+		IsActive:      group.IsActive,
+	}, nil
+}
+
+// CreateBrand creates a new brand
+func (s *ProductService) CreateBrand(ctx context.Context, cmd CreateBrandCommand) (*BrandDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
+
+	brand, err := domain.NewBrand(cmd.Name, cmd.IsActive)
+	if err != nil {
+		return nil, domain.WrapValidation("failed to create brand domain entity", err)
+	}
+
+	if err := s.brandRepo.Save(ctx, brand); err != nil {
+		return nil, domain.WrapPersistence("failed to save brand", err)
+	}
+
+	return &BrandDTO{
+		ID:       brand.ID,
+		Name:     brand.Name,
+		IsActive: brand.IsActive,
+	}, nil
+}
+
+// UpdateBrand updates an existing brand
+func (s *ProductService) UpdateBrand(ctx context.Context, cmd UpdateBrandCommand) (*BrandDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
+
+	brand, err := s.brandRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, domain.WrapPersistence("brand not found", err)
+	}
+	if brand == nil {
+		return nil, domain.NewNotFoundErrorf("brand with ID %s does not exist", cmd.ID)
+	}
+
+	if cmd.Name != nil {
+		if err := brand.UpdateName(*cmd.Name); err != nil {
+			return nil, domain.WrapValidation("failed to update brand name", err)
+		}
+	}
+
+	if cmd.IsActive != nil {
+		brand.IsActive = *cmd.IsActive
+	}
+
+	if err := s.brandRepo.Save(ctx, brand); err != nil {
+		return nil, domain.WrapPersistence("failed to save brand", err)
+	}
+
+	return &BrandDTO{
+		ID:       brand.ID,
+		Name:     brand.Name,
+		IsActive: brand.IsActive,
+	}, nil
+}
+
+// DeleteBrand deletes a brand
+func (s *ProductService) DeleteBrand(ctx context.Context, cmd DeleteBrandCommand) error {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return err
+	}
+
+	brand, err := s.brandRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return domain.WrapPersistence("brand not found", err)
+	}
+	if brand == nil {
+		return domain.NewNotFoundErrorf("brand with ID %s does not exist", cmd.ID)
+	}
+
+	if err := s.brandRepo.Delete(ctx, cmd.ID); err != nil {
+		return domain.WrapPersistence("failed to delete brand", err)
+	}
+
+	return nil
+}
+
+// CreateProductGroup creates a new product group
+func (s *ProductService) CreateProductGroup(ctx context.Context, cmd CreateProductGroupCommand) (*ProductGroupDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate parent exists if provided
+	if cmd.ParentID != nil {
+		parent, err := s.groupRepo.FindByID(ctx, *cmd.ParentID)
+		if err != nil {
+			return nil, domain.WrapPersistence("parent group not found", err)
+		}
+		if parent == nil {
+			return nil, domain.NewNotFoundErrorf("parent group with ID %s does not exist", *cmd.ParentID)
+		}
+	}
+
+	group, err := domain.NewProductGroup(cmd.Name, cmd.ParentID, cmd.IsActive)
+	if err != nil {
+		return nil, domain.WrapValidation("failed to create product group domain entity", err)
+	}
+
+	if err := s.groupRepo.Save(ctx, group); err != nil {
+		return nil, domain.WrapPersistence("failed to save product group", err)
+	}
+
+	return &ProductGroupDTO{
+		ID:            group.ID,
+		Name:          group.Name,
+		ParentGroupID: group.ParentGroupID,
+		IsActive:      group.IsActive,
+	}, nil
+}
+
+// UpdateProductGroup updates an existing product group
+func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProductGroupCommand) (*ProductGroupDTO, error) {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return nil, err
+	}
+
+	group, err := s.groupRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, domain.WrapPersistence("product group not found", err)
+	}
+	if group == nil {
+		return nil, domain.NewNotFoundErrorf("product group with ID %s does not exist", cmd.ID)
+	}
+
+	if cmd.Name != nil {
+		if err := group.UpdateName(*cmd.Name); err != nil {
+			return nil, domain.WrapValidation("failed to update product group name", err)
+		}
+	}
+
+	if cmd.ParentID != nil {
+		// Validate parent exists
+		parent, err := s.groupRepo.FindByID(ctx, *cmd.ParentID)
+		if err != nil {
+			return nil, domain.WrapPersistence("parent group not found", err)
+		}
+		if parent == nil {
+			return nil, domain.NewNotFoundErrorf("parent group with ID %s does not exist", *cmd.ParentID)
+		}
+		group.ParentGroupID = cmd.ParentID
+	}
+
+	if cmd.IsActive != nil {
+		group.IsActive = *cmd.IsActive
+	}
+
+	if err := s.groupRepo.Save(ctx, group); err != nil {
+		return nil, domain.WrapPersistence("failed to save product group", err)
+	}
+
+	return &ProductGroupDTO{
+		ID:            group.ID,
+		Name:          group.Name,
+		ParentGroupID: group.ParentGroupID,
+		IsActive:      group.IsActive,
+	}, nil
+}
+
+// DeleteProductGroup deletes a product group
+func (s *ProductService) DeleteProductGroup(ctx context.Context, cmd DeleteProductGroupCommand) error {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return err
+	}
+
+	group, err := s.groupRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return domain.WrapPersistence("product group not found", err)
+	}
+	if group == nil {
+		return domain.NewNotFoundErrorf("product group with ID %s does not exist", cmd.ID)
+	}
+
+	if err := s.groupRepo.Delete(ctx, cmd.ID); err != nil {
+		return domain.WrapPersistence("failed to delete product group", err)
+	}
+
+	return nil
+}
+
+// DeleteAttribute deletes an attribute
+func (s *ProductService) DeleteAttribute(ctx context.Context, cmd DeleteAttributeCommand) error {
+	ctx, err := withActorID(ctx, cmd.ActorID)
+	if err != nil {
+		return err
+	}
+
+	attribute, err := s.attributeRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return domain.WrapPersistence("attribute not found", err)
+	}
+	if attribute == nil {
+		return domain.NewNotFoundErrorf("attribute with ID %s does not exist", cmd.ID)
+	}
+
+	if err := s.attributeRepo.Delete(ctx, cmd.ID); err != nil {
+		return domain.WrapPersistence("failed to delete attribute", err)
+	}
+
 	return nil
 }

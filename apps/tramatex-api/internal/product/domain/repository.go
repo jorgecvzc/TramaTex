@@ -8,22 +8,28 @@ import (
 
 // BrandRepository defines the interface for interacting with Brand data.
 type BrandRepository interface {
+	Save(ctx context.Context, brand *Brand) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Brand, error)
-	// Add other necessary methods for Brand
+	FindAll(ctx context.Context) ([]*Brand, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // ProductGroupRepository defines the interface for interacting with ProductGroup data.
 type ProductGroupRepository interface {
+	Save(ctx context.Context, group *ProductGroup) error
 	FindByID(ctx context.Context, id uuid.UUID) (*ProductGroup, error)
-	// Add other necessary methods for ProductGroup
+	FindAll(ctx context.Context) ([]*ProductGroup, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // AttributeRepository defines the interface for interacting with Attribute data.
 type AttributeRepository interface {
 	Save(ctx context.Context, attribute *Attribute) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Attribute, error)
+	FindByCode(ctx context.Context, code string) (*Attribute, error)
 	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]Attribute, error)
 	FindByScope(ctx context.Context, brandID *uuid.UUID, groupID *uuid.UUID) ([]*Attribute, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 	// FindApplicableAttributes(ctx context.Context, productID uuid.UUID, brandID uuid.UUID, groupIDs []uuid.UUID) ([]Attribute, error)
 	// Add other necessary methods for Attribute (e.g., GetAttributeValues)
 }

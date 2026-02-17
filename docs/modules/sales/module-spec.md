@@ -16,6 +16,11 @@
 *   **RF-003:** Gestionar líneas de orden (productos, cantidades, precios).
 *   **RF-004:** Realizar seguimiento del estado de la orden.
 *   **RF-005:** Mantener un historial de cambios en la orden.
+*   **RF-006:** Emitir facturas completas (B2B) con datos fiscales completos del cliente (ADR-020).
+*   **RF-007:** Emitir facturas simplificadas/tickets para ventas retail < 3.000 EUR según legislación española (ADR-020).
+*   **RF-008:** Gestionar series de numeración diferenciadas por tipo de factura y año fiscal (ADR-020).
+*   **RF-009:** Validar límites legales en facturas simplificadas (< 3.000 EUR).
+*   **RF-010:** Soportar Party genérico "CONSUMIDOR_FINAL" para ventas sin cliente identificado.
 
 ## 3. Casos de Uso
 
@@ -34,6 +39,8 @@ Para una lista completa y detallada de los casos de uso, incluyendo flujos y ent
 *   **HU-001:** Como Vendedor, quiero crear una cotización para un cliente potencial para presentarle una oferta formal.
 *   **HU-002:** Como Vendedor, quiero convertir una cotización en una orden de venta cuando el cliente la aprueba para iniciar el proceso de producción.
 *   **HU-003:** Como Vendedor, quiero poder ver el estado de todas mis órdenes para hacer seguimiento con los clientes.
+*   **HU-004:** Como Cajero, quiero emitir tickets (facturas simplificadas) para ventas de mostrador < 3.000 EUR de forma rápida y sin necesidad de datos completos del cliente.
+*   **HU-005:** Como Administrador, quiero configurar series de numeración diferenciadas (facturas completas, tickets, etc.) para cumplir con normativa AEAT.
 
 ## 5. Criterios de Aceptación
 

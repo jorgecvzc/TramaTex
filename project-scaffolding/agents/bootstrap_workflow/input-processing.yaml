@@ -1,0 +1,668 @@
+# Input Processing Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Handles user input, document extraction, and initial configuration validation for new projects.
+
+---
+
+metadata:
+  filename: "input-processing.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Manages all steps related to gathering project information, from document extraction to user prompts and initial validation."
+  applies_to: "Project scaffolding initialization phase."
+  dependencies: []
+
+workflow_steps:
+  # ═══════════════════════════════════════════════════════════════
+  # FASE 0: EXTRACCIÓN INTELIGENTE DE DOCUMENTACIÓN
+  # ═══════════════════════════════════════════════════════════════
+
+  - step_id: "check_input_docs_early"
+    title: "🔍 Verificar Documentación de Entrada"
+    description: "Busca documentación inicial en 'project-scaffolding/user-input-docs' ANTES de hacer cualquier pregunta al usuario."
+    order: 1
+    instructions: |
+      Analizar el directorio 'project-scaffolding/user-input-docs' para detectar cualquier documentación que el usuario haya proporcionado.
+
+      ACCIÓN DE LA IA:
+      1. Listar todos los archivos en 'project-scaffolding/user-input-docs' (ignorar .placeholder, .gitkeep)
+      2. Si hay archivos → go_to 'process_input_documents_early'
+      3. Si NO hay archivos → go_to 'prompt_for_initial_documents'
+    check_folder: "project-scaffolding/user-input-docs"
+    exclude_files: [".placeholder", ".gitkeep", ".gitignore"]
+    next_step:
+      - if: "files_found > 0"
+        go_to: "process_input_documents_early"
+      - if: "files_found == 0"
+        go_to: "prompt_for_initial_documents"
+
+  - step_id: "prompt_for_initial_documents"
+    title: "📄 ¿Tienes Documentación del Proyecto?"
+    order: 2
+    description: "No se encontró documentación. Preguntar al usuario si tiene algún documento antes de proceder con preguntas manuales."
+    output_message: |
+
+      📂 No se encontró documentación en 'project-scaffolding/user-input-docs'
+      ═══════════════════════════════════════════════════════════════
+
+      Puedo ayudarte a configurar el proyecto de dos formas:
+
+      1️⃣  Si tienes documentación (especificaciones, requisitos, arquitectura, etc.)
+         → La analizaré automáticamente y solo te preguntaré lo que falte
+
+      2️⃣  Si no tienes documentación
+         → Te haré una serie de preguntas para recopilar la información necesaria
+
+      ¿Qué prefieres?
+
+    prompt_user:
+      - question: |
+          Selecciona una opción:
+          1 - Tengo documentación (déjame añadirla ahora)
+          2 - No tengo documentación (responderé preguntas)
+          3 - Tengo la info pero prefiero responder preguntas
+
+        variable_name: "HAS_INPUT_DOCS"
+        valid_options: ["1", "2", "3"]
+    next_step:
+      - if: "HAS_INPUT_DOCS == '1'"
+        go_to: "wait_for_documents_upload"
+      - if: "HAS_INPUT_DOCS == '2' OR HAS_INPUT_DOCS == '3'"
+        go_to: "prompt_project_info_manual"
+
+  - step_id: "wait_for_documents_upload"
+    title: "⏳ Esperando Documentos..."
+    order: 3
+    description: "Pausa el flujo para que el usuario añada documentos al directorio de entrada."
+    output_message: |
+
+      📥 INSTRUCCIONES PARA AÑADIR DOCUMENTOS
+      ═══════════════════════════════════════════════════════════════
+
+            Por favor, copia tus documentos a la carpeta: 📁 'project-scaffolding/user-input-docs/'
+
+      ✅ Formatos soportados:
+         • Markdown (.md)
+         • Texto plano (.txt)
+         • YAML (.yaml, .yml)
+         • JSON (.json)
+         • Word (.docx)
+         • PDF (.pdf)
+
+      💡 TIP: Puedes incluir cualquier documento que contenga:
+         • Nombre del proyecto
+         • Visión/propósito
+         • Arquitectura propuesta
+         • Tecnologías a usar
+         • Requisitos funcionales
+         • Bounded contexts / módulos
+         • Cualquier otra información relevante
+
+      ═══════════════════════════════════════════════════════════════
+      Cuando hayas terminado, presiona Enter para continuar...
+
+    wait_for_user_input: true
+    next_step: "check_input_docs_early"
+
+  - step_id: "process_input_documents_early"
+    title: "📖 Procesando Documentación"
+    order: 4
+    description: "Extrae inteligentemente metadata del proyecto de los documentos proporcionados usando análisis avanzado."
+    output_message: |
+
+      🔄 ANALIZANDO DOCUMENTACIÓN...
+      ═══════════════════════════════════════════════════════════════
+
+    ai_extraction_instructions: |
+      INSTRUCCIONES PARA LA IA - EXTRACCIÓN INTELIGENTE DE METADATA:
+
+      📁 UBICACIÓN: 'project-scaffolding/user-input-docs/'
+
+      🎯 OBJETIVO: Extraer la siguiente información de TODOS los documentos encontrados:
+
+      ═══════════════════════════════════════════════════════════════
+      1️⃣  NOMBRE DEL PROYECTO (PROJECT_NAME)
+      ═══════════════════════════════════════════════════════════════
+      Buscar en:
+      • Títulos principales (# Título en Markdown)
+      • Líneas que contengan: "Nombre del Proyecto:", "Project Name:", "Proyecto:", "Title:"
+      • Nombres de directorios mencionados
+      • Campo "name:" o "project:" en YAML/JSON
+
+      Formato esperado: String corto, puede ser kebab-case, PascalCase o palabras separadas
+      Ejemplo: "mi-proyecto", "MiProyecto", "Sistema de Gestión"
+
+
+      ═══════════════════════════════════════════════════════════════
+      2️⃣  VISIÓN DEL PROYECTO (PROJECT_VISION)
+      ═══════════════════════════════════════════════════════════════
+      Buscar en:
+      • Secciones: "Visión", "Vision", "Propósito", "Purpose", "Objetivo", "Goal", "Resumen", "Summary"
+      • Líneas que contengan: "visión:", "vision:", "propósito:", "objetivo:"
+      • Campo "vision:" o "purpose:" en YAML/JSON
+      • Primer párrafo descriptivo del documento
+      • Sección "Contexto" o "Context"
+
+      Formato esperado: String descriptivo (1-3 oraciones)
+      Ejemplo: "Sistema para gestionar clientes y pedidos en tiempo real"
+
+
+      ═══════════════════════════════════════════════════════════════
+      3️⃣  TIPOS DE COMPONENTES (COMPONENT_TYPES)
+      ═══════════════════════════════════════════════════════════════
+      INFERIR de menciones de:
+
+      Backend indicators:
+      • Palabras clave: "API", "REST", "GraphQL", "backend", "servidor", "server"
+      • Menciones de: "base de datos", "database", "endpoints", "microservicio"
+      • Tecnologías: Go, Python, Node.js, Java, .NET, Ruby
+
+      Frontend indicators:
+      • Palabras clave: "interfaz", "UI", "frontend", "web app", "aplicación web"
+      • Menciones de: "usuario", "pantalla", "vista", "página"
+      • Tecnologías: Vue, React, Angular, Svelte
+
+      Intermediary indicators:
+      • Palabras clave: "BFF", "Backend for Frontend", "intermediario", "gateway"
+      • Menciones de: "agregación", "orquestación", "middleware"
+
+      Formato esperado: Lista separada por comas
+      Ejemplo: "backend,frontend" o "backend,intermediary,frontend"
+
+
+      ═══════════════════════════════════════════════════════════════
+      4️⃣  TECNOLOGÍAS (TECHNOLOGIES)
+      ═══════════════════════════════════════════════════════════════
+      Detectar menciones de:
+
+      Backend:
+      • Lenguajes: Go, Python, Node.js, Java, C#, Ruby, PHP, Rust
+      • Frameworks: Gin, FastAPI, Express, Spring Boot, Django, Flask, ASP.NET
+
+      Frontend:
+      • Frameworks: Vue, React, Angular, Svelte, Next.js, Nuxt
+      • Herramientas: Vite, Webpack, TypeScript
+
+      Bases de datos:
+      • SQL: PostgreSQL, MySQL, MariaDB, SQL Server
+      • NoSQL: MongoDB, Redis, Elasticsearch
+
+      Infraestructura:
+      • Contenedores: Docker, Kubernetes
+      • Cloud: AWS, Azure, GCP
+
+      Formato esperado: Objeto/diccionario categorizado
+
+
+      ═══════════════════════════════════════════════════════════════
+      5️⃣  BASE DE DATOS (DATABASE_CHOICE)
+      ═══════════════════════════════════════════════════════════════
+      Buscar menciones explícitas de bases de datos
+      Prioridad: PostgreSQL > MySQL > MongoDB > otros
+
+
+      ═══════════════════════════════════════════════════════════════
+      6️⃣  BOUNDED CONTEXTS / MÓDULOS (BOUNDED_CONTEXTS)
+      ═══════════════════════════════════════════════════════════════
+      Buscar en:
+      • Secciones de arquitectura
+      • Listas de módulos o dominios
+      • Diagramas de contexto
+      • Menciones de subdominios
+
+      Formato esperado: Lista separada por comas
+      Ejemplo: "Auth, Users, Products, Orders"
+
+
+      ═══════════════════════════════════════════════════════════════
+      7️⃣  FRAMEWORKS ESPECÍFICOS
+      ═══════════════════════════════════════════════════════════════
+      Backend (BACKEND_LANGUAGE_FRAMEWORK):
+      • Ejemplo: "Go/Gin", "Python/FastAPI", "Node.js/Express"
+
+      Frontend (FRONTEND_FRAMEWORK):
+      • Ejemplo: "Vue/Vite", "React/Next.js", "Angular"
+
+
+      ═══════════════════════════════════════════════════════════════
+      8️⃣  NOMBRES DE APLICACIONES
+      ═══════════════════════════════════════════════════════════════
+      Si se mencionan nombres específicos para componentes:
+      • BACKEND_NAME (default: "api")
+      • FRONTEND_NAME (default: "web")
+      • INTERMEDIARY_NAME (default: "bff")
+
+
+      ═══════════════════════════════════════════════════════════════
+      🔍 ESTRATEGIA DE ANÁLISIS:
+      ═══════════════════════════════════════════════════════════════
+
+      1. Leer TODOS los archivos en el directorio
+      2. Para cada documento:
+         a. Identificar el formato (MD, TXT, YAML, JSON, etc.)
+         b. Extraer toda la información relevante
+         c. Marcar nivel de confianza (alta/media/baja)
+
+      3. Consolidar información:
+         a. Si múltiples documentos mencionan lo mismo → usar el valor más específico
+         b. Si hay conflictos → marcar para pregunta al usuario
+         c. Mantener referencia de dónde se extrajo cada dato
+
+      4. Calcular completitud:
+         a. Campos críticos: PROJECT_NAME, PROJECT_VISION
+         b. Campos importantes: COMPONENT_TYPES, DATABASE_CHOICE
+         c. Campos opcionales: BOUNDED_CONTEXTS, tecnologías específicas
+
+      5. Generar resumen de extracción para mostrar al usuario
+
+
+      ═══════════════════════════════════════════════════════════════
+      📊 FORMATO DE SALIDA ESPERADO:
+      ═══════════════════════════════════════════════════════════════
+
+      Guardar las variables extraídas con prefijo _EXTRACTED:
+
+      PROJECT_NAME_EXTRACTED = "[valor o NULL]"
+      PROJECT_NAME_CONFIDENCE = "[alta|media|baja]"
+      PROJECT_NAME_SOURCE = "[nombre_archivo:línea]"
+
+      PROJECT_VISION_EXTRACTED = "[valor o NULL]"
+      PROJECT_VISION_CONFIDENCE = "[alta|media/baja]"
+      PROJECT_VISION_SOURCE = "[nombre_archivo:línea]"
+
+      COMPONENT_TYPES_EXTRACTED = "[valor o NULL]"
+      COMPONENT_TYPES_CONFIDENCE = "[alta|media/baja]"
+      COMPONENT_TYPES_SOURCE = "[inferido de: lista de indicadores]"
+
+      ... (similar para todos los campos)
+
+      COMPLETENESS_SCORE = X% (porcentaje de campos encontrados)
+      DOCS_PROCESSED_COUNT = X
+      CONFLICTS_DETECTED = ["lista de conflictos si los hay"]
+
+    files_location: "project-scaffolding/user-input-docs/"
+    save_extracted_to: "PROJECT_METADATA_EXTRACTED"
+    next_step: "display_extracted_metadata"
+
+  - step_id: "display_extracted_metadata"
+    title: "✅ Información Extraída de Documentos"
+    order: 5
+    description: "Muestra al usuario toda la información extraída y solicita confirmación o correcciones."
+    output_message: |
+
+      ✅ ANÁLISIS COMPLETADO
+      ═══════════════════════════════════════════════════════════════
+
+      He analizado ${DOCS_PROCESSED_COUNT} documento(s) y extraído la siguiente información:
+
+      📝 NOMBRE DEL PROYECTO:
+         ${PROJECT_NAME_EXTRACTED or '❌ No encontrado'}
+         ${PROJECT_NAME_SOURCE ? '   └─ Fuente: ' + PROJECT_NAME_SOURCE : ''}
+         ${PROJECT_NAME_CONFIDENCE ? '   └─ Confianza: ' + PROJECT_NAME_CONFIDENCE : ''}
+
+      🎯 VISIÓN DEL PROYECTO:
+         ${PROJECT_VISION_EXTRACTED or '❌ No encontrada'}
+         ${PROJECT_VISION_SOURCE ? '   └─ Fuente: ' + PROJECT_VISION_SOURCE : ''}
+         ${PROJECT_VISION_CONFIDENCE ? '   └─ Confianza: ' + PROJECT_VISION_CONFIDENCE : ''}
+
+      🏗️  COMPONENTES DETECTADOS:
+         ${COMPONENT_TYPES_EXTRACTED or '❌ No detectados'}
+         ${COMPONENT_TYPES_SOURCE ? '   └─ Inferido de: ' + COMPONENT_TYPES_SOURCE : ''}
+
+      💾 BASE DE DATOS:
+         ${DATABASE_CHOICE_EXTRACTED or '❌ No especificada'}
+         ${DATABASE_CHOICE_SOURCE ? '   └─ Fuente: ' + DATABASE_CHOICE_SOURCE : ''}
+
+      ⚙️  TECNOLOGÍAS DETECTADAS:
+         Backend: ${BACKEND_LANGUAGE_FRAMEWORK_EXTRACTED or '❌ No especificado'}
+         Frontend: ${FRONTEND_FRAMEWORK_EXTRACTED or '❌ No especificado'}
+
+      🧩 BOUNDED CONTEXTS / MÓDULOS:
+         ${BOUNDED_CONTEXTS_EXTRACTED or '❌ No especificados'}
+
+      ═══════════════════════════════════════════════════════════════
+      📊 Completitud: ${COMPLETENESS_SCORE}%
+
+      ${CONFLICTS_DETECTED ? '⚠️  CONFLICTOS DETECTADOS:\n' + CONFLICTS_DETECTED : ''}
+
+    next_step: "handle_extraction_results"
+
+  - step_id: "handle_extraction_results"
+    title: "🔀 Determinar Información Faltante"
+    order: 6
+    description: "Analiza qué información falta y decide el siguiente paso: preguntar solo lo necesario o confirmar todo."
+    logic: |
+      Calcular campos_faltantes = lista de campos críticos sin valor
+
+      Si COMPLETENESS_SCORE == 100%:
+        → go_to 'confirm_extracted_configuration'
+
+      Si COMPLETENESS_SCORE >= 50%:
+        → go_to 'prompt_for_missing_fields_only'
+
+      Si COMPLETENESS_SCORE < 50%:
+        → go_to 'prompt_all_fields_with_suggestions'
+    next_step:
+      - if: "COMPLETENESS_SCORE == 100"
+        go_to: "confirm_extracted_configuration"
+      - if: "COMPLETENESS_SCORE >= 50 AND COMPLETENESS_SCORE < 100"
+        go_to: "prompt_for_missing_fields_only"
+      - if: "COMPLETENESS_SCORE < 50"
+        go_to: "prompt_all_fields_with_suggestions"
+
+  - step_id: "confirm_extracted_configuration"
+    title: "🔍 Confirmar Configuración Extraída"
+    order: 7
+    description: "Toda la información necesaria fue encontrada. Pedir confirmación al usuario."
+    output_message: |
+
+      ✅ ¡Información completa extraída!
+      ═══════════════════════════════════════════════════════════════
+
+      He encontrado toda la información necesaria en tus documentos.
+
+    prompt_user:
+      - question: |
+          ¿Es correcta toda esta información?
+
+          1 - Sí, continuar con esta configuración
+          2 - No, quiero modificar algunos campos
+
+        variable_name: "CONFIG_CONFIRMED"
+        valid_options: ["1", "2"]
+    next_step:
+      - if: "CONFIG_CONFIRMED == '1'"
+        go_to: "merge_and_finalize_metadata"
+      - if: "CONFIG_CONFIRMED == '2'"
+        go_to: "prompt_all_fields_with_suggestions"
+
+  - step_id: "prompt_for_missing_fields_only"
+    title: "❓ Completar Información Faltante"
+    order: 8
+    description: "Solo pregunta por los campos que no se pudieron extraer de los documentos."
+    output_message: |
+
+      📋 COMPLETAR INFORMACIÓN
+      ═══════════════════════════════════════════════════════════════
+
+      Necesito algunos datos adicionales que no encontré en la documentación:
+
+    conditional_prompts:
+      - field: "PROJECT_NAME"
+        if: "PROJECT_NAME_EXTRACTED is empty"
+        question: "📝 ¿Cuál es el nombre del proyecto?"
+        variable: "PROJECT_NAME_MANUAL"
+
+      - field: "PROJECT_VISION"
+        if: "PROJECT_VISION_EXTRACTED is empty"
+        question: "🎯 ¿Cuál es la visión/propósito del proyecto? (1-3 oraciones)"
+        variable: "PROJECT_VISION_MANUAL"
+
+      - field: "COMPONENT_TYPES"
+        if: "COMPONENT_TYPES_EXTRACTED is empty"
+        question: |
+          🏗️  ¿Qué tipos de componentes incluirá el proyecto?
+          (Opciones: backend, frontend, intermediary - separados por coma)
+          Ejemplo: backend,frontend
+        variable: "COMPONENT_TYPES_MANUAL"
+
+      - field: "DATABASE_CHOICE"
+        if: "DATABASE_CHOICE_EXTRACTED is empty"
+        question: "💾 ¿Qué base de datos se utilizará? (ej: PostgreSQL, MySQL, MongoDB)"
+        variable: "DATABASE_CHOICE_MANUAL"
+
+      - field: "BACKEND_LANGUAGE_FRAMEWORK"
+        if: "BACKEND_LANGUAGE_FRAMEWORK_EXTRACTED is empty AND 'backend' in COMPONENT_TYPES"
+        question: "⚙️  ¿Qué lenguaje/framework para el Backend? (ej: Go/Gin, Python/FastAPI, Node.js/Express)"
+        variable: "BACKEND_LANGUAGE_FRAMEWORK_MANUAL"
+
+      - field: "FRONTEND_FRAMEWORK"
+        if: "FRONTEND_FRAMEWORK_EXTRACTED is empty AND 'frontend' in COMPONENT_TYPES"
+        question: "🎨 ¿Qué framework para el Frontend? (ej: Vue/Vite, React/Next.js, Angular)"
+        variable: "FRONTEND_FRAMEWORK_MANUAL"
+
+      - field: "BOUNDED_CONTEXTS"
+        if: "BOUNDED_CONTEXTS_EXTRACTED is empty"
+        question: "🧩 ¿Cuáles son los Bounded Contexts o módulos principales? (separados por coma, ej: Auth,Users,Products)"
+        variable: "BOUNDED_CONTEXTS_MANUAL"
+    next_step: "merge_and_finalize_metadata"
+
+  - step_id: "prompt_all_fields_with_suggestions"
+    title: "📝 Configuración del Proyecto (Con Sugerencias)"
+    order: 9
+    description: "Pregunta por todos los campos pero muestra valores extraídos como sugerencias/defaults."
+    output_message: |
+
+      📋 CONFIGURACIÓN DEL PROYECTO
+      ═══════════════════════════════════════════════════════════════
+
+      Por favor, proporciona o confirma la siguiente información.
+      (Los valores entre corchetes son sugerencias extraídas de tus documentos)
+
+    prompt_user:
+      - question: "📝 Nombre del proyecto ${PROJECT_NAME_EXTRACTED ? '[' + PROJECT_NAME_EXTRACTED + ']' : ''}:"
+        variable_name: "PROJECT_NAME_MANUAL"
+        default: "${PROJECT_NAME_EXTRACTED}"
+
+      - question: "🎯 Visión del proyecto ${PROJECT_VISION_EXTRACTED ? '[' + PROJECT_VISION_EXTRACTED + ']' : ''}:"
+        variable_name: "PROJECT_VISION_MANUAL"
+        default: "${PROJECT_VISION_EXTRACTED}"
+
+      - question: "🏗️  Componentes ${COMPONENT_TYPES_EXTRACTED ? '[' + COMPONENT_TYPES_EXTRACTED + ']' : '(backend,frontend,intermediary)'}:"
+        variable_name: "COMPONENT_TYPES_MANUAL"
+        default: "${COMPONENT_TYPES_EXTRACTED}"
+
+      - question: "💾 Base de datos ${DATABASE_CHOICE_EXTRACTED ? '[' + DATABASE_CHOICE_EXTRACTED + ']' : '(PostgreSQL, MySQL, MongoDB)'}:"
+        variable_name: "DATABASE_CHOICE_MANUAL"
+        default: "${DATABASE_CHOICE_EXTRACTED}"
+
+      - question: "⚙️  Backend (lenguaje/framework) ${BACKEND_LANGUAGE_FRAMEWORK_EXTRACTED ? '[' + BACKEND_LANGUAGE_FRAMEWORK_EXTRACTED + ']' : '(Go/Gin, Python/FastAPI)'}:"
+        variable_name: "BACKEND_LANGUAGE_FRAMEWORK_MANUAL"
+        default: "${BACKEND_LANGUAGE_FRAMEWORK_EXTRACTED}"
+
+      - question: "🎨 Frontend (framework) ${FRONTEND_FRAMEWORK_EXTRACTED ? '[' + FRONTEND_FRAMEWORK_EXTRACTED + ']' : '(Vue/Vite, React/Next.js, Angular)'}:"
+        variable_name: "FRONTEND_FRAMEWORK_MANUAL"
+        default: "${FRONTEND_FRAMEWORK_EXTRACTED}"
+
+      - question: "🧩 Bounded Contexts ${BOUNDED_CONTEXTS_EXTRACTED ? '[' + BOUNDED_CONTEXTS_EXTRACTED + ']' : '(Auth,Users,Products)'}:"
+        variable_name: "BOUNDED_CONTEXTS_MANUAL"
+        default: "${BOUNDED_CONTEXTS_EXTRACTED}"
+    next_step: "merge_and_finalize_metadata"
+
+  - step_id: "merge_and_finalize_metadata"
+    title: "🔄 Consolidar Configuración Final"
+    order: 10
+    description: "Combina valores extraídos con valores manuales (los manuales tienen prioridad) y establece las variables finales."
+    logic: |
+      Para cada campo:
+        Si existe [CAMPO]_MANUAL y no está vacío:
+          [CAMPO] = [CAMPO]_MANUAL  # Usuario tiene prioridad
+        Sino:
+          [CAMPO] = [CAMPO]_EXTRACTED
+
+      Establecer variables finales del proyecto:
+        PROJECT_NAME = valor final
+        PROJECT_VISION = valor final
+        COMPONENT_TYPES = valor final
+        DATABASE_CHOICE = valor final
+        BACKEND_LANGUAGE_FRAMEWORK = valor final
+        FRONTEND_FRAMEWORK = valor final
+        BOUNDED_CONTEXTS = valor final
+
+      Generar nombres por defecto si no se especificaron:
+        Si 'backend' en COMPONENT_TYPES y BACKEND_NAME vacío:
+          BACKEND_NAME = "api"
+        Si 'frontend' en COMPONENT_TYPES y FRONTEND_NAME vacío:
+          FRONTEND_NAME = "web"
+        Si 'intermediary' en COMPONENT_TYPES y INTERMEDIARY_NAME vacío:
+          INTERMEDIARY_NAME = "bff"
+
+      # Inicializar contador de intentos si no existe
+      Si CONFIGURATION_ATTEMPT_COUNT no existe:
+        CONFIGURATION_ATTEMPT_COUNT = 0
+
+      Incrementar CONFIGURATION_ATTEMPT_COUNT
+    next_step: "display_final_configuration"
+
+  - step_id: "display_final_configuration"
+    title: "📋 Configuración Final del Proyecto"
+    order: 11
+    description: "Muestra un resumen completo de la configuración final antes de comenzar la creación."
+    output_message: |
+
+      ✅ CONFIGURACIÓN FINAL (Intento ${CONFIGURATION_ATTEMPT_COUNT}/${max_configuration_attempts})
+      ═══════════════════════════════════════════════════════════════
+
+      📝 Nombre del Proyecto: ${PROJECT_NAME}
+      🎯 Visión: ${PROJECT_VISION}
+
+      🏗️  Arquitectura:
+         └─ Componentes: ${COMPONENT_TYPES}
+         └─ Base de Datos: ${DATABASE_CHOICE}
+
+      ⚙️  Stack Tecnológico:
+         └─ Backend: ${BACKEND_LANGUAGE_FRAMEWORK}
+         └─ Frontend: ${FRONTEND_FRAMEWORK}
+
+      🧩 Bounded Contexts: ${BOUNDED_CONTEXTS}
+
+      📁 Nombres de Aplicaciones:
+         ${BACKEND_NAME ? '└─ Backend: ' + BACKEND_NAME : ''}
+         ${FRONTEND_NAME ? '└─ Frontend: ' + FRONTEND_NAME : ''}
+         ${INTERMEDIARY_NAME ? '└─ Intermediary: ' + INTERMEDIARY_NAME : ''}
+
+      ═══════════════════════════════════════════════════════════════
+
+    prompt_user:
+      - question: |
+          ¿Deseas continuar con esta configuración?
+
+          1 - Sí, crear el proyecto con esta configuración
+          2 - No, quiero modificar algo
+
+        variable_name: "FINAL_CONFIRMATION"
+        valid_options: ["1", "2"]
+    next_step:
+      - if: "FINAL_CONFIRMATION == '1'"
+        go_to: "validate_project_name"
+      - if: "FINAL_CONFIRMATION == '2' AND CONFIGURATION_ATTEMPT_COUNT < max_configuration_attempts"
+        go_to: "prompt_all_fields_with_suggestions"
+      - if: "FINAL_CONFIRMATION == '2' AND CONFIGURATION_ATTEMPT_COUNT >= max_configuration_attempts"
+        go_to: "max_attempts_reached"
+
+  - step_id: "max_attempts_reached"
+    title: "⚠️ Máximo de Intentos Alcanzado"
+    order: 12
+    description: "Se alcanzó el límite de intentos de configuración. Proceder con la última configuración o cancelar."
+    output_message: |
+
+      ⚠️ MÁXIMO DE INTENTOS ALCANZADO
+      ═══════════════════════════════════════════════════════════════
+
+      Has modificado la configuración ${max_configuration_attempts} veces.
+      Para evitar un ciclo infinito, debes decidir ahora:
+
+      1 - Usar la configuración actual y continuar
+      2 - Cancelar y reiniciar el proceso desde cero
+
+      ═══════════════════════════════════════════════════════════════
+
+    prompt_user:
+      - question: "¿Qué deseas hacer?"
+        variable_name: "MAX_ATTEMPTS_ACTION"
+        valid_options: ["1", "2"]
+    next_step:
+      - if: "MAX_ATTEMPTS_ACTION == '1'"
+        go_to: "validate_configuration_before_creation"
+      - if: "MAX_ATTEMPTS_ACTION == '2'"
+        go_to: "cancel_bootstrap"
+
+  - step_id: "cancel_bootstrap"
+    title: "❌ Cancelar Bootstrap"
+    order: 13
+    description: "El usuario ha decidido cancelar el proceso."
+    output_message: |
+
+      ❌ PROCESO CANCELADO
+      ═══════════════════════════════════════════════════════════════
+
+      El proceso de bootstrap ha sido cancelado.
+
+      Para reiniciar:
+      1. Revisa tu documentación en 'user-input-docs/'
+      2. Asegúrate de tener clara la configuración
+      3. Ejecuta el bootstrap nuevamente
+
+      ═══════════════════════════════════════════════════════════════
+
+    next_step: "end"
+
+  - step_id: "prompt_project_info_manual"
+    title: "📝 Configuración Manual del Proyecto"
+    order: 14
+    description: "Flujo alternativo para usuarios que prefieren responder preguntas directamente sin documentación."
+    output_message: |
+
+      📝 CONFIGURACIÓN MANUAL
+      ═══════════════════════════════════════════════════════════════
+
+      Por favor, responde las siguientes preguntas para configurar el proyecto:
+
+    prompt_user:
+      - question: "📝 ¿Cuál es el nombre del proyecto? (ej: 'mi-proyecto', 'MiProyecto')"
+        variable_name: "PROJECT_NAME_MANUAL"
+
+      - question: "🎯 ¿Cuál es la visión/propósito del proyecto? (1-3 oraciones)"
+        variable_name: "PROJECT_VISION_MANUAL"
+
+      - question: "🏗️  ¿Qué tipos de componentes incluirá? (backend, frontend, intermediary - separados por coma)"
+        variable_name: "COMPONENT_TYPES_MANUAL"
+
+      - question: "💾 ¿Qué base de datos utilizarás? (ej: PostgreSQL, MySQL, MongoDB)"
+        variable_name: "DATABASE_CHOICE_MANUAL"
+
+      - question: "⚙️  ¿Qué lenguaje/framework para el Backend? (ej: Go/Gin, Python/FastAPI, Node.js/Express)"
+        variable_name: "BACKEND_LANGUAGE_FRAMEWORK_MANUAL"
+
+      - question: "🎨 ¿Qué framework para el Frontend? (ej: Vue/Vite, React/Next.js, Angular)"
+        variable_name: "FRONTEND_FRAMEWORK_MANUAL"
+
+      - question: "🧩 ¿Cuáles son los Bounded Contexts o módulos principales? (separados por coma, ej: Auth,Users,Products)"
+        variable_name: "BOUNDED_CONTEXTS_MANUAL"
+    next_step: "merge_and_finalize_metadata"
+
+  - step_id: "validate_configuration_before_creation"
+    title: "✅ Validar Configuración Final"
+    order: 15
+    description: "Valida que todas las variables críticas estén configuradas antes de crear el proyecto."
+    validation:
+      critical_variables:
+        - name: "PROJECT_NAME"
+          check: "not_null_and_not_empty"
+          error_message: "El nombre del proyecto es obligatorio"
+        - name: "PROJECT_VISION"
+          check: "not_null_and_not_empty"
+          error_message: "La visión del proyecto es obligatoria"
+        - name: "COMPONENT_TYPES"
+          check: "not_null_and_not_empty"
+          error_message: "Debe especificar al menos un tipo de componente"
+    on_validation_failure:
+      output_message: |
+        ❌ ERROR DE VALIDACIÓN
+        ═══════════════════════════════════════════════════════════════
+
+        ${VALIDATION_ERRORS}
+
+        No se puede continuar sin esta información crítica.
+
+        ═══════════════════════════════════════════════════════════════
+      next_step: "prompt_all_fields_with_suggestions"
+    on_validation_success:
+      next_step: "validate_project_name"
+
+  - step_id: "validate_project_name"
+    title: "Validar Nombre del Proyecto"
+    description: "Verifica que el nombre del proyecto coincida con el directorio que contiene la carpeta de init-project."
+    check_project_name: "$PROJECT_NAME"
+    next_step: "create_core_directories"

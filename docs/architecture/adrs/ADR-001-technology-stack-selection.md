@@ -49,7 +49,7 @@ Las decisiones se tomaron considerando:
 
 1. Consumo de recursos en hardware limitado  
 2. Facilidad de mantenimiento por terceros  
-3. Capacidad de testeo (TDD, alto coverage en dominio)  
+3. Capacidad de testeo (enfoque iterativo, alto coverage en dominio)  
 4. Claridad y protección del modelo de dominio  
 5. Escalabilidad futura (local → SaaS)  
 6. Carga operativa del servidor  

@@ -27,7 +27,7 @@ TramaTex requiere una estructura de proyecto que:
 **Riesgos si no se define estructura:**
 
 - Mezcla de capas (dominio con infraestructura)
-- Dificultad para aplicar TDD
+- Dificultad para aplicar un desarrollo guiado por pruebas estricto.
 - Pérdida de trazabilidad entre módulos
 - Código difícil de navegar y mantener
 - Imposibilidad de extraer módulos a servicios independientes en el futuro
@@ -37,15 +37,6 @@ TramaTex requiere una estructura de proyecto que:
 ## 2. Alternativas Consideradas
 
 ### Alternativa A – Estructura plana por tipo de archivo
-
-```
-tramatex/
-├── controllers/
-├── models/
-├── services/
-├── repositories/
-└── views/
-```
 
 **Ventajas:**
 
@@ -63,14 +54,6 @@ tramatex/
 
 ### Alternativa B – Estructura por capas técnicas
 
-```
-tramatex/
-├── domain/
-├── application/
-├── infrastructure/
-└── interfaces/
-```
-
 **Ventajas:**
 
 - Respeta capas de Clean Architecture
@@ -84,33 +67,6 @@ tramatex/
 - No facilita extracción de módulos
 
 ### Alternativa C – Estructura por módulos de dominio (Clean Architecture modular)
-
-```
-tramatex/
-├── apps/tramatex-api/
-│   └── internal/
-│       ├── domain/
-│       │   ├── party/
-│       │   ├── product/
-│       │   ├── pricing/
-│       │   └── sales/
-│       ├── application/
-│       │   ├── party/
-│       │   └── product/
-│       └── infrastructure/
-│           └── persistence/
-│               └── postgres/
-├── apps/frontend/
-│   └── src/
-│       ├── views/
-│       │   ├── party/
-│       │   └── product/
-│       └── stores/
-└── docs/
-    └── modules/
-        ├── party/
-        └── product/
-```
 
 **Ventajas:**
 
@@ -127,17 +83,6 @@ tramatex/
 - Requiere disciplina para mantener separación
 
 ### Alternativa D – Monorepo con workspaces independientes
-
-```
-tramatex/
-├── packages/
-│   ├── party-service/
-│   ├── product-service/
-│   └── shared/
-└── apps/
-    ├── apps/tramatex-api/
-    └── apps/frontend/
-```
 
 **Ventajas:**
 
@@ -161,7 +106,7 @@ Se adopta **Alternativa C: Estructura por módulos de dominio con Clean Architec
 
 - **Refleja el dominio de negocio:** Party, Producto, Tarificación, Ventas, MES son módulos visibles
 - **Soporta Clean Architecture:** Capas separadas dentro de cada módulo
-- **Facilita TDD:** Tests están junto al código que prueban
+- **Facilita el desarrollo guiado por pruebas:** Tests están junto al código que prueban
 - **Escalabilidad controlada:** Módulos pueden extraerse a servicios sin refactoring masivo
 - **Navegación intuitiva:** Toda la lógica de Party está en carpetas `*/party/`
 - **Desarrollo incremental:** Cada fase del ADR-007 tiene carpetas claras donde trabajar
@@ -193,7 +138,7 @@ Se adopta **Alternativa C: Estructura por módulos de dominio con Clean Architec
 
 - **Profundidad:** IDEs modernos (VSCode, GoLand) manejan bien rutas largas
 - **Duplicación:** Es intencional, cada capa tiene responsabilidades diferentes
-- **Disciplina:** TDD obligatorio ayuda a mantener separación
+- **Disciplina:** El desarrollo guiado por pruebas ayuda a mantener separación
 - **Curva:** Documentación clara de la estructura en README.md
 
 ---
@@ -231,328 +176,30 @@ Este ADR define:
 ## 7. Notas Adicionales / Consideraciones Especiales
 
 ### Estructura Completa del Proyecto
-
-```
-tramatex/
-│
-├── README.md                          # Documentación principal del proyecto
-├── LICENSE                            # Licencia del software
-├── .gitignore                         # Archivos ignorados por Git
-├── Makefile                           # Comandos comunes (build, test, run, etc.)
-│
-├── docs/                              # DOCUMENTACIÓN (en Español)
-│   ├── architecture/                  # Arquitectura del sistema (ADRs, diagramas)
-│   │   ├── adr/                       # Architecture Decision Records
-│   │   │   └── ...
-│   │   └── diagrams/                  # Diagramas (C4, ER, etc.)
-│   │
-│   ├── guides/                        # Guías y tutoriales (desarrolladores, usuarios)
-│   │   ├── developer/
-│   │   └── user/
-│   │
-│   ├── modules/                       # Documentación detallada por Bounded Context (specs, diagramas)
-│   │   ├── _MODULE_TEMPLATE.md
-│   │   ├── iam/
-│   │   ├── party/
-│   │   └── ...
-│   │
-│   └── log/                           # Registros del proyecto (sprints, hitos, gobernanza)
-│       ├── sprints/                  # Planificación y logs de Sprints y Tareas
-│       │   ├── _SPRINT_TEMPLATE.md
-│       │   ├── _TASK_TEMPLATE.md
-│       │   └── sprint-01/
-│       │       └── ...
-│       ├── milestones/                # Hitos históricos y reportes de estado
-│       │   └── ...
-│       └── governance/                # Políticas del proyecto
-│           └── ...
-│
-├── apps/
-│   ├── tramatex-api/                  # Backend API (Go)
-│   │   ├── cmd/api/main.go
-│   │   ├── internal/
-│   │   │   ├── iam/                   # Bounded Context: IAM
-│   │   │   │   ├── domain/
-│   │   │   │   ├── application/
-│   │   │   │   ├── infrastructure/
-│   │   │   │   └── interfaces/
-│   │   │   ├── party/                 # Bounded Context: Party
-│   │   │   │   └── ...
-│   │   │   ├── product/
-│   │   │   ├── pricing/
-│   │   │   ├── sales/
-│   │   │   ├── mes/
-│   │   │   └── shared/                # Código compartido entre Bounded Contexts
-│   │   ├── pkg/
-│   │   └── ...
-│   │
-│   └── frontend/                      # Frontend (Vue.js 3)
-│       ├── src/
-│       │   ├── components/
-│       │   ├── views/
-│       │   ├── stores/
-│       │   ├── services/
-│       │   ├── composables/
-│       │   └── ...
-│       └── ...
-│
-├── docker/                            # Configuración de Docker
-│   └── ...
-│
-└── .github/                           # CI/CD (GitHub Actions)
-    └── ...
-```
-
----
+Para una vista detallada de la estructura de carpetas del proyecto, consulte [Guía de Detalles de la Estructura del Proyecto](../../guides/developer/project-structure-details.md).
 
 ### Convenciones de Nombres
-
-**Regla Global de Nomenclatura:** Para mantener la consistencia y la compatibilidad con herramientas internacionales, se establece la siguiente política:
-- **Nombres de Archivos y Carpetas:** **Inglés**, usando `kebab-case` para archivos de documentación (ej: `01-initial-architecture.md`) y el case apropiado para código fuente (ej: `userRepository.go`, `UserCard.vue`).
-- **Contenido de Archivos:** **Español** para toda la documentación (`/docs`), **Inglés** para todo el código fuente, comentarios y mensajes de commit.
-
-#### tramatex-api (Go)
-
-**Archivos:**
-
-- Snake case: `party_repository.go`, `pricing_engine.go`
-- Tests: sufijo `_test.go`
-- Interfaces: sufijo `_interface.go` solo si no es obvio (ej: `repository.go` es suficiente)
-
-**Paquetes:**
-
-- Todo en minúsculas, sin guiones bajos
-- Singular preferido: `party`, `product`, no `parties`, `products`
-
-**Entidades y Value Objects:**
-
-- PascalCase: `Party`, `Customer`, `Money`
-
-**Funciones:**
-
-- PascalCase (exportadas): `CreateParty`, `CalculatePrice`
-- camelCase (privadas): `validateNIF`, `applyDiscount`
-
-#### Frontend (Vue.js)
-
-**Archivos:**
-
-- PascalCase para componentes: `PartyList.vue`, `ProductCard.vue`
-- camelCase para servicios/stores: `partyService.js`, `auth.js`
-
-**Componentes:**
-
-- Siempre multi-palabra: `PartyList` (bien), `List` (mal)
-- Prefijos descriptivos: `TheHeader`, `BaseButton`, `AppSidebar`
-
-**Stores (Pinia):**
-
-- Singular: `party.js`, no `parties.js`
-- Export default: `usePartyStore`, `useProductStore`
-
-#### Base de Datos (PostgreSQL)
-
-**Tablas:**
-
-- Snake case, plural: `parties`, `products`, `orders`
-
-**Columnas:**
-
-- Snake case: `party_id`, `created_at`, `supplier_cost`
-
-**Índices:**
-
-- Prefijo `idx_`: `idx_parties_nif`, `idx_orders_customer_id`
-
-**Constraints:**
-
-- Foreign keys: `fk_[tabla]_[columna]`
-- Unique: `uk_[tabla]_[columna]`
-- Check: `ck_[tabla]_[condicion]`
+Para las convenciones de nomenclatura detalladas en el proyecto, consulte [Guía de Convenciones de Nomenclatura](../../guides/developer/naming-conventions.md).
 
 ---
 
 ### Ubicación de Tests
-
-#### Tests Unitarios
-
-**Ubicación:** Mismo paquete que el código que prueban
-
-```
-domain/party/
-├── party.go
-└── party_test.go
-```
-
-#### Tests de Integración
-
-**Ubicación:** Mismo paquete que el adaptador
-
-```
-infrastructure/persistence/postgres/
-├── party_repository.go
-└── party_repository_test.go
-```
-
-#### Tests End-to-End
-
-**Ubicación:** Carpeta separada (opcional, Post-MVP)
-
-```
-apps/tramatex-api/
-└── test/
-    └── e2e/
-        └── party_e2e_test.go
-```
+Para la guía detallada sobre la ubicación de los tests, consulte [Guía de Ubicación de Tests](../../guides/developer/testing-guidelines.md).
 
 ---
 
 ### Gestión de Configuraciones
-
-**Variables de entorno:**
-
-- Archivo `.env` en raíz (NO subir a Git, en `.gitignore`)
-- Archivo `.env.example` con plantilla (SÍ subir a Git)
-
-**Archivos de configuración:**
-
-- `config/config.yaml` → Configuración por defecto
-- `config/config.dev.yaml` → Sobreescribe valores para desarrollo
-- `config/config.prod.yaml` → Sobreescribe valores para producción
-
-**Carga de configuración:**
-
-```go
-// Carga primero config.yaml, luego sobreescribe con config.{env}.yaml
-config.Load("config.yaml")
-config.LoadEnv(os.Getenv("ENV")) // dev, prod
-```
+Para la gestión detallada de configuraciones, consulte [Guía de Gestión de Configuraciones](../../guides/developer/configuration-management.md).
 
 ---
 
 ### Comandos Make (Makefile)
-
-**tramatex-api:**
-
-```makefile
-# Desarrollo
-make run              # Ejecutar aplicación
-make test             # Ejecutar tests
-make test-coverage    # Cobertura de tests
-make lint             # Linter
-make fmt              # Formatear código
-
-# Base de datos
-make migrate-up       # Aplicar migraciones
-make migrate-down     # Revertir última migración
-make seed             # Seed de datos
-
-# Build
-make build            # Compilar binario
-make docker-build     # Build imagen Docker
-make docker-up        # Levantar stack completo
-make docker-down      # Detener stack
-```
-
-**Frontend:**
-
-```makefile
-make dev              # Servidor de desarrollo
-make build            # Build para producción
-make preview          # Preview del build
-make lint             # ESLint
-make format           # Prettier
-```
+Para una lista de comandos `make` comunes, consulte [Comandos Make Comunes](../../guides/developer/makefile-commands.md).
 
 ---
 
 ### Flujo de Creación de Carpetas por Fase
-
-#### Fase 0 (Fundaciones)
-
-```
-tramatex/
-├── docs/
-│   └── adr/
-├── apps/tramatex-api/
-│   ├── cmd/api/
-│   ├── internal/
-│   │   ├── infrastructure/security/  # JWT, RBAC
-│   │   └── interfaces/http/
-│   │       ├── middleware/
-│   │       └── handlers/
-│   └── config/
-├── apps/frontend/
-│   └── src/
-│       ├── views/auth/
-│       ├── stores/
-│       └── services/
-└── docker/
-```
-
-#### Fase 1 (Party + Producto + Tarificación)
-
-```
-# Se añaden:
-apps/tramatex-api/internal/domain/
-├── party/
-├── product/
-└── pricing/
-
-apps/tramatex-api/internal/application/
-├── party/
-├── product/
-└── pricing/
-
-apps/tramatex-api/internal/infrastructure/persistence/postgres/
-├── party_repository.go
-├── product_repository.go
-└── pricing_repository.go
-
-apps/tramatex-api/internal/infrastructure/persistence/migrations/
-├── 000002_create_parties.up.sql
-├── 000003_create_products.up.sql
-└── 000004_create_pricing.up.sql
-
-apps/frontend/src/
-├── views/party/
-├── views/product/
-├── views/pricing/
-├── components/party/
-├── components/product/
-└── components/pricing/
-
-docs/modules/
-├── party/
-├── product/
-└── pricing/
-```
-
-#### Fase 2 (Pedidos)
-
-```
-# Se añaden:
-apps/tramatex-api/internal/domain/sales/
-apps/tramatex-api/internal/application/sales/
-apps/tramatex-api/internal/infrastructure/persistence/postgres/order_repository.go
-apps/frontend/src/views/sales/
-apps/frontend/src/components/sales/
-docs/modules/sales/
-```
-
-#### Fase 3 (MES)
-
-```
-# Se añaden:
-apps/tramatex-api/internal/domain/mes/
-apps/tramatex-api/internal/application/mes/
-apps/tramatex-api/internal/infrastructure/
-├── persistence/postgres/mes_repository.go
-└── storage/nas/
-apps/frontend/src/views/mes/
-apps/frontend/src/components/mes/
-docs/modules/mes/
-```
+Para el flujo detallado de creación de carpetas por fase, consulte [Guía de Bootstrapping del Proyecto](../../guides/developer/project-bootstrapping-guide.md).
 
 ---
 

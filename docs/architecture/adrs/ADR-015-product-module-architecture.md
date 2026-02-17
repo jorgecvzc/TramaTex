@@ -1,8 +1,60 @@
 # ADR-015 – Arquitectura del Módulo de Product
 
 **Fecha:** viernes, 6 de febrero de 2026  
-**Estado:** Propuesto  
+**Última actualización:** 13 de febrero de 2026 (Correcciones de Implementación)  
+**Estado:** Implementado  
 **Autores:** Gemini CLI
+
+---
+
+## ACTUALIZACIÓN: Correcciones de Implementación (2026-02-13)
+
+**Correcciones realizadas en la implementación del MVP:**
+
+### Backend - DTOs y Data Models
+1. **AttributeDTO mejorado:**
+   - Creado `AttributeValueDTO` con estructura completa: `{ id: UUID, value: string, code: string }`
+   - Modificado `AttributeDTO.Values` de `[]string` a `[]AttributeValueDTO`
+   - Cambiado campo `AttributeName` → `Code` para consistencia con el dominio
+   - **Impacto:** Permite edición correcta de atributos en UI al incluir IDs de valores
+
+2. **Data Models simplificados:**
+   - Eliminados campos `CreatedBy` y `ModifiedBy` de `AttributeDataModel` y `AttributeValueDataModel`
+   - **Razón:** Campos no existen en el esquema de base de datos actual
+   - **Solución:** Auditoría se maneja con `CreatedAt`, `UpdatedAt`, `DeletedAt` (gorm.Model)
+
+### Frontend - API Integration
+3. **Servicios API corregidos:**
+   - `createAttribute()`: Payload corregido (removido `id`, usar `sortOrder` en camelCase)
+   - `updateAttribute()`: Formateado correcto con estructura completa de valores
+   - `AttributeForm.vue`: Preserva IDs de valores existentes al editar
+
+### Testing Completado
+4. **CRUD de Atributos verificado:**
+   - ✅ GET /api/attributes → Lista completa con valores estructurados
+   - ✅ POST /api/attributes → Creación exitosa con UTF-8
+   - ✅ PUT /api/attributes/:id → Actualización con preservación de IDs
+   - ✅ UI funcionando: crear, editar, listar con encoding correcto
+
+**Estado actual:** Sistema de Atributos completamente funcional en MVP.
+
+---
+
+## NOTA IMPORTANTE: Simplificación para MVP (2026-02-12)
+
+**Decisión:** El sistema de scope (brand/group) de atributos ha sido simplificado para el MVP.
+
+**Cambios:**
+- Los campos `scope_brand_id` y `scope_group_id` se han eliminado de la entidad `Attribute`
+- Los atributos ahora son globales; la asignación correcta es responsabilidad del usuario
+- Ejemplo: crear "Talla FYR" y asignarlo manualmente a productos FYR
+- Sistema de scope completo diferido para post-MVP
+
+**Impacto:**
+- Reduce complejidad de implementación inicial
+- No afecta la filosofía de Pricing
+- Simplifica UIs y lógica de dominio
+- **La documentación técnica a continuación refleja el diseño original completo, pero debe considerarse la simplificación para el MVP actual**
 
 ---
 

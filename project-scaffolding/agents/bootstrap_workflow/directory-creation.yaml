@@ -1,0 +1,142 @@
+# Directory Creation Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Creates the core directory structure for a new project based on selected components.
+
+---
+
+metadata:
+  filename: "directory-creation.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Manages the creation of all essential directories (core, apps, docs subdirectories) for the new project."
+  applies_to: "Project scaffolding structural phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "create_core_directories"
+    title: "Crear Directorios Principales"
+    description: "Creará los directorios de alto nivel para el nuevo proyecto (docs, agents, scripts)."
+    command: "mkdir docs agents scripts"
+    next_step: "select_component_types"
+
+  - step_id: "select_component_types"
+    title: "🏗️ Seleccionar Tipos de Aplicación"
+    description: "Elige los tipos de componentes que conformarán tu proyecto. Puedes seleccionar varios."
+    prompt_user:
+      - question: "Selecciona los tipos de componentes a crear (separados por coma, ej: backend,frontend):"
+        options: ["backend", "intermediary", "frontend"]
+        variable_name: "COMPONENT_TYPES"
+    next_step: "create_apps_directory"
+
+  - step_id: "create_apps_directory"
+    title: "Crear Directorio Contenedor 'apps'"
+    description: "Crea el directorio 'apps/' que contendrá todos los componentes principales."
+    command: "mkdir apps"
+    next_step: "create_docs_subdirectories"
+
+  - step_id: "create_docs_subdirectories"
+    title: "Crear Subdirectorios de Documentación"
+    description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
+    command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/architecture/design-system/mockups docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
+    next_step: "create_design_system_docs"
+
+  - step_id: "create_design_system_docs"
+    title: "Crear Documentación del Sistema de Diseño"
+    description: "Creará la documentación inicial para la paleta de colores, tipografía y tema general en docs/architecture/design-system/."
+    files_to_create:
+      - filename: "docs/architecture/design-system/palette.md"
+        content: |
+          # Especificación de la Paleta de Colores
+          # ... (Template for defining color palette)
+      - filename: "docs/architecture/design-system/typography.md"
+        content: |
+          # Especificación de Tipografía
+          # ... (Template for defining typography)
+      - filename: "docs/architecture/design-system/theme.md"
+        content: |
+          # Especificación del Tema General
+          # ... (Template for defining UI theme)
+    next_step: "create_project_status_file"
+
+  - step_id: "create_project_status_file"
+    title: "Crear Archivo de Estado del Proyecto"
+    description: "Creará el archivo `project-status.md` dentro de `docs/log/`."
+    files_to_create:
+      - filename: "docs/log/project-status.md"
+        content: |
+          # Estado del Proyecto: $PROJECT_NAME
+
+          **Nombre del Proyecto:** $PROJECT_NAME
+          **Visión:** $PROJECT_VISION
+          **Fase Actual:** Inicial
+          **Última Actualización:** [[YYYY-MM-DD]]
+
+          ## Progreso
+          - [ ] Fase 0: Fundaciones Técnicas
+          - [ ] Fase 1: Dominio Base
+          - [ ] Fase 2: Casos de Uso Core
+          - [ ] Fase 3: Subdominio MES
+
+          ## Bloqueadores Actuales
+          Ninguno (proyecto recién inicializado)
+
+          ## Próximos Pasos
+          1. Definir la arquitectura detallada (ADRs y Agentes de Contexto).
+          2. Crear la primera tarea del sprint.
+    next_step: "create_project_agent_directories"
+
+
+  - step_id: "create_project_agent_directories"
+    title: "Crear Directorios de Agentes del Proyecto"
+    description: "Creará el directorio para los agentes específicos del proyecto (agents/$PROJECT_NAME/) y su subdirectorio de contexto (agents/$PROJECT_NAME/context/)."
+    command: "mkdir -p agents/project/context"
+    next_step: "prompt_for_backend_name"
+
+  - step_id: "prompt_for_backend_name"
+    title: "📛 Nombrar Componente Backend"
+    run_if: "$COMPONENT_TYPES contains 'backend'"
+    prompt_user:
+      - question: "Introduce un nombre para tu componente 'backend' (ej. 'api', '$PROJECT_NAME-api'). Por defecto: 'api':"
+        variable_name: "BACKEND_NAME"
+        default: "api"
+    next_step: "create_backend_structure"
+
+  - step_id: "create_backend_structure"
+    title: "Crear Estructura para Backend '$BACKEND_NAME'"
+    run_if: "$COMPONENT_TYPES contains 'backend'"
+    description: "Creará la estructura de directorios para el componente en apps/$BACKEND_NAME."
+    command: "mkdir -p apps/$BACKEND_NAME/cmd/api apps/$BACKEND_NAME/internal/{domain,application,infrastructure,interfaces,config} apps/$BACKEND_NAME/migrations apps/$BACKEND_NAME/pkg/errors apps/$BACKEND_NAME/tests/{unit,integration}"
+    next_step: "prompt_for_intermediary_name"
+
+  - step_id: "prompt_for_intermediary_name"
+    title: "📛 Nombrar Componente Intermediario"
+    run_if: "$COMPONENT_TYPES contains 'intermediary'"
+    prompt_user:
+      - question: "Introduce un nombre para tu componente 'intermediary' (ej. 'bff', '$PROJECT_NAME-bff'). Por defecto: 'bff':"
+        variable_name: "INTERMEDIARY_NAME"
+        default: "bff"
+    next_step: "create_intermediary_structure"
+
+  - step_id: "create_intermediary_structure"
+    title: "Crear Estructura para Intermediario '$INTERMEDIARY_NAME'"
+    run_if: "$COMPONENT_TYPES contains 'intermediary'"
+    description: "Creará la estructura de directorios para el componente en apps/$INTERMEDIARY_NAME."
+    command: "mkdir -p apps/$INTERMEDIARY_NAME/{src,tests,config}"
+    next_step: "prompt_for_frontend_name"
+
+  - step_id: "prompt_for_frontend_name"
+    title: "📛 Nombrar Componente Frontend"
+    run_if: "$COMPONENT_TYPES contains 'frontend'"
+    prompt_user:
+      - question: "Introduce un nombre para tu componente 'frontend' (ej. 'web', '$PROJECT_NAME-web'). Por defecto: 'web':"
+        variable_name: "FRONTEND_NAME"
+        default: "web"
+    next_step: "create_frontend_structure"
+
+  - step_id: "create_frontend_structure"
+    title: "Crear Estructura para Frontend '$FRONTEND_NAME'"
+    run_if: "$COMPONENT_TYPES contains 'frontend'"
+    description: "Creará la estructura de directorios para el componente en apps/$FRONTEND_NAME."
+    command: "mkdir -p apps/$FRONTEND_NAME/src/{components,stores,composables,services,views,types,design-system} apps/$FRONTEND_NAME/tests apps/$FRONTEND_NAME/public"
+    next_step: "copy_universal_agents"

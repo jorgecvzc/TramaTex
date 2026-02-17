@@ -1,0 +1,318 @@
+# Code Standards Agent
+# Version: 1.0
+# Purpose: Code acceptance criteria and quality standards
+
+---
+
+metadata:
+  filename: "code-standards.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  last_updated: "2026-02-15" # Dynamically updated
+
+# The detailed content of these standards is maintained in the /docs/ directory.
+# This agent serves as a high-level summary and reference point for AI assistants.
+# References:
+# - docs/architecture/adrs/ADR-011-testing-coverage-strategy.md
+# - docs/guides/developer/CONTRIBUTING.md
+
+acceptance_criteria:
+  title: "✅ Code Acceptance Criteria"
+
+backend_go_standards:
+  title: "$BACKEND_APP_NAME Code (Go)"
+  
+  accepted:
+    domain_layer:
+      - "Domain layer has NO external dependencies (no frameworks, no GORM)"
+      - "Business rules encapsulated as entities, value objects, domain services"
+      - "All persistence abstracted via repository interfaces"
+      - "DTOs/HTTP models NOT in domain (only in interfaces layer)"
+      - "Errors are typed, not strings (custom error types)"
+      - "Context properly propagated through call chains"
+    
+    use_cases:
+      - "Use cases orchestrate domain and infrastructure"
+      - "No business logic in use cases (delegated to domain)"
+      - "Clear dependency injection"
+      - "Transactions at application layer"
+    
+    infrastructure:
+      - "GORM models and queries only here"
+      - "Repositories implement domain interfaces"
+      - "External service clients isolated"
+      - "NO business logic"
+    
+    interfaces:
+      - "HTTP handlers as thin adapters"
+      - "DTOs for request/response contracts"
+      - "Input validation (surface level)"
+      - "Error translation to HTTP status codes"
+    
+    testing:
+      - "Unit tests for domain: Coverage targets as defined in Tiered Testing Strategy"
+      - "Integration tests for critical use cases"
+      - "Tests use clear fixtures and setup/teardown"
+      - "Test coverage tools properly configured"
+      - "All tests passing before commit"
+    
+    code_quality:
+      - "Zero [LINTER_TOOL_BACKEND] warnings"
+      - "[COMANDO_FORMATTER_BACKEND_NO_DEFINIDO] properly applied"
+      - "[COMANDO_ANALISIS_ESTATICO_BACKEND_NO_DEFINIDO] passes"
+      - "No hardcoded values or credentials"
+      - "No obvious comments (only 'why', not 'what')"
+      - "Proper error handling (no silent failures)"
+    
+    documentation:
+      - "Interfaces documented with contract"
+      - "Complex algorithms explained"
+      - "Public functions have godoc comments"
+  
+  rejected:
+    - "Business logic outside domain layer"
+    - "GORM or ORM queries in application or interfaces"
+    - "DTOs defined in domain package"
+    - "Tests without fixtures or setup"
+    - "Hardcoded configuration or magic numbers"
+    - "Untested functions in critical domain"
+    - "String-based error handling"
+    - "Obvious/redundant comments"
+    - "Functions exceeding 50 lines without clear subsections"
+    - "Commits without descriptive messages"
+    - "Linting or formatting issues"
+
+frontend_vue_standards:
+  title: "$FRONTEND_NAME Code ($FRONTEND_FRAMEWORK)"
+  
+  accepted:
+    framework_usage:
+      - "Composition API exclusively (no Options API)"
+      - "[NOMBRE_HERRAMIENTA_GESTION_ESTADO_NO_DEFINIDO] stores for global state (not component-local)"
+      - "[TIPO_LOGICA_REUTILIZABLE_NO_DEFINIDO] for reusable logic (custom hooks pattern)"
+      - "Services layer for API calls (no direct fetch in components)"
+    
+    component_design:
+      - "Components are small and focused (max 100 lines)"
+      - "Clear props and emits contracts"
+      - "Proper separation of concerns"
+      - "Accessible basics (labels, ARIA roles)"
+    
+    styling:
+      - "Tailwind CSS exclusively (no inline styles)"
+      - "CSS classes follow Tailwind conventions"
+      - "Responsive design with Tailwind breakpoints"
+      - "No raw CSS files for component styling"
+    
+    form_handling:
+      - "Form validation in [TIPO_LOGICA_REUTILIZABLE_NO_DEFINIDO] or stores (not templates)"
+      - "Reusable validation logic"
+      - "Clear error messages to users"
+    
+    state_management:
+      - "Global state in [NOMBRE_HERRAMIENTA_GESTION_ESTADO_NO_DEFINIDO] stores"
+      - "Store actions for state mutations"
+      - "Computed properties for derived state"
+      - "No passing state through many levels of props"
+    
+    testing:
+      - "Critical business logic in stores has tests"
+      - "Vitest configured and running"
+      - "≥80% coverage for critical [TIPO_LOGICA_REUTILIZABLE_NO_DEFINIDO]"
+    
+    code_quality:
+      - "TypeScript strict mode (no 'any')"
+      - "ESLint passes without warnings"
+      - "Prettier formatting applied"
+      - "No console.log in production code"
+      - "No commented-out code"
+  
+  rejected:
+    - "Options API"
+    - "Vuex state management"
+    - "Global state in component data"
+    - "Inline styles or raw CSS"
+    - "Direct API calls in components"
+    - "Template-level data validation"
+    - "Components over 100 lines"
+    - "Missing TypeScript types (no 'any')"
+    - "Linting or formatting issues"
+    - "Untested critical business logic"
+
+cross_layer_rules:
+  title: "🔄 Cross-Layer Rules"
+  
+  testing_philosophy:
+    principle: "Test at the layer that makes sense"
+    
+    domain_tests:
+      - "Unit test domain entities and services in isolation"
+      - "Mock nothing (pure functions, pure data)"
+      - "Test business rules, not infrastructure"
+    
+    application_tests:
+      - "Integration tests that exercise use cases"
+      - "Mock external dependencies (repositories, services)"
+      - "Test workflow orchestration"
+    
+    infrastructure_tests:
+      - "Test repository implementations"
+      - "Test external service adapters"
+      - "Use test databases or containers"
+    
+    interfaces_tests:
+      - "Test HTTP contract (request/response)"
+      - "Test error translation"
+      - "Test middleware"
+    
+    ui_tests:
+      - "Test store mutations"
+      - "Test [TIPO_LOGICA_REUTILIZABLE_NO_DEFINIDO] logic"
+      - "Test complex component interactions"
+      - "UI behavior NOT tested in $BACKEND_NAME tests"
+  
+  error_handling:
+    principle: "Errors flow up, typed throughout"
+    
+    domain:
+      - "Define custom error types"
+      - "Each domain error has code + message"
+    
+    application:
+      - "Catch domain errors"
+      - "Add context (use case, user, timestamp)"
+      - "Don't suppress errors"
+    
+    infrastructure:
+      - "Catch technical errors (DB, network)"
+      - "Translate to domain errors if business-relevant"
+      - "Log unexpected technical errors"
+    
+    interfaces:
+      - "HTTP layer translates errors to status codes"
+      - "Return meaningful error messages to client"
+      - "Log what needs to be logged"
+
+git_commit_standards:
+  title: "📝 Git Commit Standards"
+  
+  commit_message_format:
+    structure: "[type] [scope]: [subject] - [body]"
+    
+    type:
+      - "feat: New feature"
+      - "fix: Bug fix"
+      - "refactor: Code restructure (no logic change)"
+      - "docs: Documentation"
+      - "test: Test additions"
+      - "style: Formatting, linting"
+    
+    scope:
+      - "Bounded context (auth, party, product, pricing, sales, mes)"
+      - "Layer (domain, app, infra, interfaces)"
+      - "Infrastructure (docker, config, ci-cd)"
+    
+    subject:
+      - "Imperative mood ('add', not 'added')"
+      - "Under 50 characters"
+      - "No period at end"
+    
+    body:
+      - "Explain WHAT changed and WHY"
+      - "Reference related issues"
+      - "Mention breaking changes if any"
+  
+  examples:
+    good:
+      - "feat(pricing): add volume discount calculation - Implements tiered discount rules based on order quantity"
+      - "fix(party): resolve organization hierarchy loop - Add cycle detection in parent-child relationships"
+      - "refactor(domain): extract money operations to value object - Improves reusability and testability"
+    
+    bad:
+      - "update code"
+      - "fix bug"
+      - "changes"
+      - "wip"
+  
+  commit_granularity:
+    principle: "One logical change per commit"
+    
+    do_commit:
+      - "One feature complete and tested"
+      - "One bug fix with tests"
+      - "Refactoring of one component"
+    
+    dont_commit:
+      - "Mix of unrelated features"
+      - "Partial implementations"
+      - "Code with failing tests"
+      - "Uncommitted documentation"
+
+validation_checklist:
+  title: "✔️ Pre-Commit Validation"
+  
+  backend_app: # (e.g., Go, Python, Node.js)
+    - "[COMANDO_TEST_BACKEND_NO_DEFINIDO] ← All tests pass"
+    - "[COMANDO_LINTER_BACKEND_NO_DEFINIDO] ← Zero warnings"
+    - "[COMANDO_FORMATTER_BACKEND_NO_DEFINIDO] ← Code formatted"
+    - "[COMANDO_ANALISIS_ESTATICO_BACKEND_NO_DEFINIDO] ← Passes"
+    - "Commit message is descriptive"
+  
+  frontend:
+    - "[COMANDO_LINTER_FRONTEND_NO_DEFINIDO] ← Passes"
+    - "[COMANDO_TEST_FRONTEND_NO_DEFINIDO] ← Passes"
+    - "[COMANDO_BUILD_FRONTEND_NO_DEFINIDO] ← Succeeds"
+    - "[COMANDO_TYPE_CHECK_FRONTEND_NO_DEFINIDO] ← Passes"
+    - "Commit message is descriptive"
+  
+  always:
+    - "No hardcoded secrets or credentials"
+    - "No debug logging left behind"
+    - "No commented-out code"
+    - "Documentation updated"
+    - "Session file updated"
+
+code_review_focus:
+  title: "👀 Code Review Checklist"
+  
+  architecture:
+    - "Does it follow Clean Architecture?"
+    - "Is business logic in domain?"
+    - "Are layer boundaries respected?"
+    - "Are dependencies correct (no upward deps)?"
+  
+  testing:
+    - "Are critical paths tested?"
+    - "Does coverage meet targets?"
+    - "Are tests clear and maintainable?"
+    - "Do tests validate behavior, not implementation?"
+  
+  code_quality:
+    - "Is code readable and well-named?"
+    - "Are complex sections explained?"
+    - "Is error handling proper?"
+    - "Are there any obvious improvements?"
+  
+  domain_specific:
+    - "Does it respect business rules?"
+    - "Are edge cases handled?"
+    - "Is the ubiquitous language used?"
+    - "Could another module be affected?"
+
+special_criticality_rules:
+  title: "⚠️ Modules with Special Rules"
+  description: "Define special quality rules for critical modules here. Examples below."
+  
+  example_critical_module_1:
+    rule: "Your critical rule here"
+    reason: "Explain why it's critical"
+    requirements:
+      - "Specific requirement 1"
+      - "Specific requirement 2"
+  
+  example_critical_module_2:
+    rule: "Another critical rule"
+    reason: "Explain why this one is critical"
+    requirements:
+      - "Another specific requirement 1"
+      - "Another specific requirement 2"

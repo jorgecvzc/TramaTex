@@ -1,9 +1,44 @@
 # Product Module: Domain Model
 
-- **Version:** 1.1.0
-- **Status:** En Revisión
+- **Version:** 1.2.0
+- **Status:** Implementado (MVP parcial)
 
 Este documento define el modelo de dominio para el módulo de `product`, basado en los requisitos iniciales y las decisiones tomadas en el [ADR-013](./../../architecture/adrs/ADR-013-manejo-de-modificaciones-de-producto.md). Esta versión incorpora un modelo de Atributos/Valores con SKUs jerárquicos.
+
+---
+
+## Estado de Implementación
+
+### ✅ Componentes Implementados (MVP)
+
+1. **Agregado Attribute (CRUD Completo)**
+   - Entidades `Attribute` y `AttributeValue` completamente funcionales
+   - Operaciones: Crear, Leer, Actualizar, Listar atributos
+   - API REST: `GET /api/attributes`, `POST /api/attributes`, `PUT /api/attributes/:id`, `GET /api/attributes/:id`
+   - UI funcional: Formulario de creación/edición, lista de atributos
+   - Soporte completo para UTF-8 (caracteres españoles: ñ, á, é, etc.)
+   - DTOs retornan estructura completa de `AttributeValue` incluyendo ID para operaciones de edición
+
+2. **Entidades Base**
+   - `Brand`: Modelo de datos y estructura básica definida
+   - `ProductGroup`: Modelo de datos y estructura básica definida
+
+### 🚧 Simplificaciones del MVP vs Diseño Completo
+
+1. **Scopes de Atributos**: La implementación actual **no incluye** la lógica completa de herencia y anulación de atributos por Brand/ProductGroup. Los atributos son actualmente **genéricos** (sin scope específico).
+
+2. **Campos de Auditoría**: Los campos `CreatedBy` y `ModifiedBy` descritos en el diseño original fueron **removidos** del modelo de datos actual. Solo se mantienen timestamps automáticos (`CreatedAt`, `UpdatedAt`).
+
+3. **Agregados Product y ProductVariant**: Aún **no implementados**. La lógica de construcción de SKUs jerárquicos y creación JIT de variantes está pendiente.
+
+### 📋 Pendiente
+
+- Implementación del Agregado `Product`
+- Implementación del Agregado `ProductVariant`
+- Lógica de herencia de atributos con scopes (Brand, ProductGroup, combinados)
+- Construcción automática de SKUs jerárquicos
+- Creación Just-in-Time de variantes
+- Validación de configuraciones de variantes
 
 ---
 

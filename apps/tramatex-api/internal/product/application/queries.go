@@ -10,10 +10,9 @@ type GetAttributeByIDQuery struct {
 }
 
 // ListAttributesQuery defines the query for listing attributes with optional filtering.
+// Note: Scope-based filtering removed for MVP simplicity.
 type ListAttributesQuery struct {
-	ScopeType      *string // GENERIC | BRAND | BRAND_GROUP
-	BrandID        *uuid.UUID
-	ProductGroupID *uuid.UUID
+	// No filters needed for MVP - all attributes are generic
 }
 
 // GetProductByIDQuery defines the query for fetching a single product by ID.

@@ -8,23 +8,71 @@
 metadata:
   filename: "load-project-context.yaml"
   version: "1.0"
-  last_updated: "2026-02-04"
+  last_updated: "2026-02-15"
   purpose: "Loads the primary project context and selected modular contexts."
   applies_to: "Any project with modular agent context."
   dependencies:
     - "agents/generic-rules.yaml"
 
 how_to_use:
-  title: "🎯 How to Use This Agent"
+  title: "🎯 Cómo Usar Este Agente"
   description: |
-    This agent helps to quickly load relevant project context for the current task.
-    It loads `agents/project/project-context.yaml` automatically.
-    You can optionally specify additional modular contexts to load from `agents/project/context/`.
+    Este agente ayuda a cargar rápidamente el contexto relevante del proyecto para la tarea actual.
+    Carga `agents/project/project-context.yaml` automáticamente.
+    Opcionalmente, puedes especificar contextos modulares adicionales para cargar desde `agents/project/context/`.
 
 action_plan:
   - step: "Load main project context"
     description: "Loads the primary project context file."
     load: "agents/project/project-context.yaml"
+
+  - step: "Summarize project status"
+    description: "Reads docs/log/project-status.md and provides a summary of the current project status."
+    output_message: |
+      📋 ESTADO GENERAL DEL PROYECTO:
+      -------------------------------
+      [Aquí se insertará un resumen dinámico de project-status.md]
+    python_script:
+      code: |
+        import re
+        import os
+        import json
+
+        def summarize_project_status(file_path):
+            if not os.path.exists(file_path):
+                return "Archivo docs/log/project-status.md no encontrado."
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            summary_lines = []
+
+            # Extract "Estado del Proyecto" section
+            match_status_section = re.search(r'## Estado del Proyecto Después del Sprint \d+\n(```.*?```)', content, re.DOTALL)
+            if match_status_section:
+                summary_lines.append("Estado general del proyecto:\n" + match_status_section.group(1))
+
+            # Extract "Progreso" section (first few lines)
+            match_progress_section = re.search(r'## Progreso\n(- \[(x| )\]\s.+?)\n(\S)', content, re.DOTALL)
+            if match_progress_section:
+                progress_lines = match_progress_section.group(1).split('\n')
+                if progress_lines:
+                    summary_lines.append("\nProgreso reciente:\n" + "\n".join(progress_lines[:5])) # Take first 5 progress lines
+
+            # Extract "Hitos Recientes" (first one)
+            match_milestones = re.search(r'## Hitos Recientes\n\n### (.+?)\n', content, re.DOTALL)
+            if match_milestones:
+                summary_lines.append(f"\nÚltimo hito: {match_milestones.group(1).strip()}")
+            
+            if not summary_lines:
+                return "No se pudo extraer un resumen claro del estado del proyecto."
+
+            return "\n".join(summary_lines)
+
+        project_status_summary = summarize_project_status("docs/log/project-status.md")
+        print(json.dumps({"summary": project_status_summary}))
+      output_variable: "PROJECT_STATUS_SUMMARY_JSON"
+    output: "$PROJECT_STATUS_SUMMARY_JSON.summary"
 
   - step: "Offer to load modular contexts"
     description: "Dynamically presents options to the user to load specific modular context agents by scanning the agents/project/context/ directory."

@@ -91,7 +91,7 @@ func LoadConfig() (*Config, error) {
 			JWTSecret:          getEnvRequired("JWT_SECRET"),
 			JWTAccessTTL:       getEnv("JWT_ACCESS_TOKEN_TTL", "15m"),
 			JWTRefreshTTL:      getEnv("JWT_REFRESH_TOKEN_TTL", "7d"),
-			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
+			CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"),
 		},
 		Redis: RedisConfig{
 			Host:     getEnv("REDIS_HOST", "localhost"),

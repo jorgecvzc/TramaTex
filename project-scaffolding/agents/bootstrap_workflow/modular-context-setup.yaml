@@ -1,0 +1,113 @@
+# Modular Context Setup Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Generates and populates project-specific modular context agents.
+
+---
+
+metadata:
+  filename: "modular-context-setup.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the creation and initial population of modular context agents for project-specific information."
+  applies_to: "Project scaffolding context configuration phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "generate_modular_context_agents"
+    title: "Generar Agentes de Contexto Modulares"
+    description: "Creará los agentes de contexto modulares básicos para el nuevo proyecto."
+    files_to_create:
+      - filename: "agents/project/context/architecture.yaml"
+        content: |
+          # Architecture Context for $PROJECT_NAME
+          # ... (Standard Clean Architecture template)
+      - filename: "agents/project/context/bounded-contexts.yaml"
+        content: |
+          # Bounded Contexts for $PROJECT_NAME
+          # ... (Template for defining bounded contexts)
+      - filename: "agents/project/context/tech-stack.yaml"
+        content: |
+          # Tech Stack for $PROJECT_NAME
+          # ... (Template for defining tech stack details)
+      - filename: "agents/project/context/code-standards.yaml"
+        content: |
+          # Code Standards for $PROJECT_NAME
+          # ... (Template for defining code standards)
+      - filename: "agents/project/context/INDEX.md"
+        content: |
+          # Index for $PROJECT_NAME Context Agents
+
+          agents_available:
+            # ...
+            design:
+              filename: "design/"
+              topics: "Color palette, typography, UI theme"
+              load_if: "Working on UI/UX"
+          # ...
+      - filename: "agents/project/context/README.md"
+        content: |
+          # $PROJECT_NAME Modular Context Agents
+
+          This directory contains modular context agents that provide detailed information about the $PROJECT_NAME project. These agents are loaded on-demand by AI assistants to understand specific aspects of the project.
+
+          ## 📚 Available Context Agents
+
+          ### Core Context Files
+
+          | File | Purpose | When to Load |
+          |------|---------|--------------|
+          | [architecture.yaml](./architecture.yaml) | Clean Architecture layers, DDD strategy, architectural patterns | When designing modules, understanding layer boundaries |
+          | [bounded-contexts.yaml](./bounded-contexts.yaml) | Business domains, module dependencies, relationships | When working across modules, understanding domain boundaries |
+          | [tech-stack.yaml](./tech-stack.yaml) | Technology choices, frameworks, tools, build systems | When implementing features, setting up environments |
+            | [code-standards.yaml](./code-standards.yaml) | Code quality criteria, acceptance/rejection rules | Before committing code, during code review |
+
+          ### Design Context
+
+          La documentación del sistema de diseño (paleta de colores, tipografía, etc.) no es un agente de contexto cargable, sino que se encuentra en el directorio de documentación principal:
+          - **Ubicación:** `/docs/architecture/design-system/`
+
+          ## 🎯 Loading Strategy
+
+          **Don't load everything at once.** Follow this pattern:
+
+          ### For New Module Development
+          1. Load `architecture.yaml` - Understand layer structure
+          2. Load `bounded-contexts.yaml` - Understand dependencies
+          3. Load `code-standards.yaml` - Know quality gates
+
+          ### For Feature Implementation
+          1. Load `bounded-contexts.yaml` - Find relevant module
+          2. Load `tech-stack.yaml` - Know tools and frameworks
+          3. Load `code-standards.yaml` - Ensure compliance
+
+          ### For Code Review
+          1. Load `code-standards.yaml` - Review criteria
+          2. Load `architecture.yaml` - Verify layer compliance
+
+          ## 🔗 Parent Context
+
+          These context agents are loaded via the main project context file:
+          - [../project-context.yaml](../project-context.yaml)
+
+          Which in turn is loaded after:
+          - [../../generic-rules.yaml](../../generic-rules.yaml)
+
+          ## 📝 Maintenance
+
+          **When updating context agents:**
+          1. Update the `last_updated` field in metadata
+          2. Ensure consistency with corresponding documentation in `/docs`
+          3. Update this README if adding/removing files
+
+          ---
+
+          **Last Updated:** 2026-02-04
+    next_step: "populate_modular_context_agents"
+
+  - step_id: "populate_modular_context_agents"
+    title: "Poblar Agentes de Contexto Modulares"
+    description: "Ejecutará el script para extraer información de los ADRs y poblar los agentes de contexto modulares."
+    command: "python agents/scripts/doc_to_agent_context.py"
+    next_step: "end" # Changed this
+

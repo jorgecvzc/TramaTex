@@ -1,10 +1,6 @@
 package interfaces
 
-import (
-	"time"
-
-	"github.com/joran-cortez/tramatex/internal/party/domain"
-)
+import "github.com/joran-cortez/tramatex/internal/party/domain"
 
 // PartyDTO represents a party in API responses
 
@@ -135,9 +131,9 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 	}
 
 	dto := &PartyDTO{
-		ID:         party.ID().String(),
-		Status:     string(party.Status()),
-		Roles:      make([]string, 0),
+		ID:     party.ID().String(),
+		Status: string(party.Status()),
+		Roles:  make([]string, 0),
 	}
 
 	for _, role := range party.Roles() {
@@ -232,4 +228,36 @@ func MapAddressToDTO(address *domain.Address) *AddressDTO {
 		PostalCode: address.PostalCode(),
 		Country:    address.Country(),
 	}
+}
+
+// PartyBatchDTO is a minimal DTO for batch operations
+type PartyBatchDTO struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	TaxID     string `json:"tax_id,omitempty"`
+	TaxIDType string `json:"tax_id_type,omitempty"`
+}
+
+// MapPartyToBatchDTO maps a Party domain model to a minimal batch DTO
+func MapPartyToBatchDTO(party *domain.Party) PartyBatchDTO {
+	if party == nil {
+		return PartyBatchDTO{}
+	}
+
+	dto := PartyBatchDTO{
+		ID: party.ID().String(),
+	}
+
+	// Extract name from organization or person profile
+	if orgProfile := party.OrganizationProfile(); orgProfile != nil {
+		dto.Name = orgProfile.Name()
+		if taxID := orgProfile.TaxID(); taxID != nil {
+			dto.TaxID = taxID.Value()
+			dto.TaxIDType = taxID.Type()
+		}
+	} else if personProfile := party.PersonProfile(); personProfile != nil {
+		dto.Name = personProfile.FirstName() + " " + personProfile.LastName()
+	}
+
+	return dto
 }

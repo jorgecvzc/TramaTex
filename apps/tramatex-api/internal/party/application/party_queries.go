@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/joran-cortez/tramatex/internal/party/domain"
@@ -27,17 +26,17 @@ func NewGetPartyHandler(partyRepo persistence.PartyRepository) *GetPartyHandler 
 
 func (h *GetPartyHandler) Handle(ctx context.Context, query *GetPartyQuery) (*domain.Party, error) {
 	if query.ID == "" {
-		return nil, fmt.Errorf("party ID cannot be empty")
+		return nil, domain.NewValidationError("party ID cannot be empty")
 	}
 
 	partyID, err := domain.NewPartyID(query.ID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid party ID: %w", err)
+		return nil, domain.WrapValidation("invalid party ID", err)
 	}
 
 	party, err := h.partyRepo.FindByID(ctx, partyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch party: %w", err)
+		return nil, domain.WrapNotFound("failed to fetch party", err)
 	}
 
 	return party, nil
@@ -84,7 +83,7 @@ func (h *ListPartiesHandler) Handle(ctx context.Context, query *ListPartiesQuery
 	if query.Status != "" {
 		status := domain.PartyStatus(strings.ToUpper(query.Status))
 		if !status.IsValid() {
-			return nil, fmt.Errorf("invalid status: %s", query.Status)
+			return nil, domain.NewValidationErrorf("invalid status: %s", query.Status)
 		}
 		filters.Status = &status
 	}
@@ -92,14 +91,14 @@ func (h *ListPartiesHandler) Handle(ctx context.Context, query *ListPartiesQuery
 	if query.Role != "" {
 		role := domain.PartyRoleType(strings.ToUpper(query.Role))
 		if !role.IsValid() {
-			return nil, fmt.Errorf("invalid role: %s", query.Role)
+			return nil, domain.NewValidationErrorf("invalid role: %s", query.Role)
 		}
 		filters.Role = &role
 	}
 
 	parties, err := h.partyRepo.FindAll(ctx, filters)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list parties: %w", err)
+		return nil, domain.WrapPersistence("failed to list parties", err)
 	}
 
 	return parties, nil
@@ -124,12 +123,12 @@ func NewListPartyRelationshipsHandler(relRepo persistence.PartyRelationshipRepos
 func (h *ListPartyRelationshipsHandler) Handle(ctx context.Context, query *ListPartyRelationshipsQuery) ([]domain.PartyRelationship, error) {
 	partyID, err := domain.NewPartyID(query.PartyID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid party ID: %w", err)
+		return nil, domain.WrapValidation("invalid party ID", err)
 	}
 
 	relationships, err := h.relRepo.FindByPartyID(ctx, partyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list relationships: %w", err)
+		return nil, domain.WrapPersistence("failed to list relationships", err)
 	}
 
 	return relationships, nil
@@ -154,12 +153,12 @@ func NewListContactDetailsHandler(partyRepo persistence.PartyRepository) *ListCo
 func (h *ListContactDetailsHandler) Handle(ctx context.Context, query *ListContactDetailsQuery) ([]*domain.ContactDetails, error) {
 	partyID, err := domain.NewPartyID(query.PartyID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid party ID: %w", err)
+		return nil, domain.WrapValidation("invalid party ID", err)
 	}
 
 	party, err := h.partyRepo.FindByID(ctx, partyID)
 	if err != nil {
-		return nil, fmt.Errorf("party not found: %w", err)
+		return nil, domain.WrapNotFound("party not found", err)
 	}
 
 	orgProfile := party.OrganizationProfile()
@@ -189,13 +188,59 @@ func NewListPartyAddressesHandler(addressRepo persistence.PartyAddressRepository
 func (h *ListPartyAddressesHandler) Handle(ctx context.Context, query *ListPartyAddressesQuery) ([]*domain.Address, error) {
 	partyID, err := domain.NewPartyID(query.PartyID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid party ID: %w", err)
+		return nil, domain.WrapValidation("invalid party ID", err)
 	}
 
 	addresses, err := h.addressRepo.FindByPartyID(ctx, partyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list addresses: %w", err)
+		return nil, domain.WrapPersistence("failed to list addresses", err)
 	}
 
 	return addresses, nil
+}
+
+// GetPartiesBatchQuery represents a query to get multiple parties by IDs
+
+type GetPartiesBatchQuery struct {
+	IDs []string
+}
+
+// GetPartiesBatchHandler handles batch retrieval of parties
+
+type GetPartiesBatchHandler struct {
+	partyRepo persistence.PartyRepository
+}
+
+func NewGetPartiesBatchHandler(partyRepo persistence.PartyRepository) *GetPartiesBatchHandler {
+	return &GetPartiesBatchHandler{partyRepo: partyRepo}
+}
+
+func (h *GetPartiesBatchHandler) Handle(ctx context.Context, query *GetPartiesBatchQuery) ([]*domain.Party, error) {
+	if len(query.IDs) == 0 {
+		return []*domain.Party{}, nil
+	}
+
+	// Validate all IDs first
+	partyIDs := make([]domain.PartyID, 0, len(query.IDs))
+	for _, idStr := range query.IDs {
+		partyID, err := domain.NewPartyID(idStr)
+		if err != nil {
+			return nil, domain.WrapValidation("invalid party ID", err)
+		}
+		partyIDs = append(partyIDs, partyID)
+	}
+
+	// Fetch all parties - use individual calls for now
+	// In a future optimization, we can add FindByIDs to the repository interface
+	parties := make([]*domain.Party, 0, len(partyIDs))
+	for _, partyID := range partyIDs {
+		party, err := h.partyRepo.FindByID(ctx, partyID)
+		if err != nil {
+			// Skip parties that don't exist instead of failing
+			continue
+		}
+		parties = append(parties, party)
+	}
+
+	return parties, nil
 }

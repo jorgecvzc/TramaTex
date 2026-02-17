@@ -1,0 +1,57 @@
+# Template Copying Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Copies universal agent and documentation templates into the new project structure.
+
+---
+
+metadata:
+  filename: "template-copying.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the copying of pre-defined templates for agents and documentation into the scaffolded project."
+  applies_to: "Project scaffolding structural phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "copy_universal_agents"
+    files_to_copy_relative_to_project_scaffolding:
+      - source: "templates/agents/generic-rules.yaml"
+        destination: "agents/generic-rules.yaml"
+      - source: "templates/agents/align-context-agents.yaml"
+        destination: "agents/align-context-agents.yaml"
+      - source: "templates/agents/init.yaml" # New agent
+        destination: "agents/init.yaml"
+      - source: "templates/agents/project/project-context-template.yaml"
+        destination: "agents/project/project-context.yaml"
+      - source: "templates/agents/load-session.yaml"
+        destination: "agents/load-session.yaml"
+      - source: "templates/agents/close-session.yaml"
+        destination: "agents/close-session.yaml"
+      - source: "templates/agents/project/sprint-registry.yaml"
+        destination: "agents/project/sprint-registry.yaml"
+      - source: "templates/agents/load-project-context.yaml"
+        destination: "agents/load-project-context.yaml"
+    next_step: "copy_documentation_templates"
+
+  - step_id: "copy_documentation_templates"
+    title: "Copiar Plantillas de Documentación"
+    description: "Copiará las plantillas de documentación universales a la carpeta 'docs/' del nuevo proyecto."
+    files_to_copy_relative_to_project_scaffolding:
+      - source: "templates/docs/adr-template.md"
+        destination: "docs/architecture/adrs/adr-template.md"
+      - source: "templates/docs/task-template.md"
+        destination: "docs/log/sprints/task-template.md"
+      - source: "templates/docs/module-template.md"
+        destination: "docs/modules/module-template.md"
+      - source: "templates/docs/_GUIDE_TEMPLATE.md"
+        destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
+      - source: "templates/docs/guides/user/_AGENT_USAGE_GUIDE_TEMPLATE.md" # New template
+        destination: "docs/guides/user/agent-usage-guide.md"
+      - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
+        destination: "docs/guides/developer/governance/project-scaffolding-policy.md"
+      - source: "templates/docs/guides/developer/_DIAGRAM_TEMPLATE.md"
+        destination: "docs/architecture/diagrams/_DIAGRAM_TEMPLATE.md"
+      - source: "templates/docs/guides/developer/agent-developer-guide-template.md"
+        destination: "docs/guides/developer/agent-developer-guide.md"
+    next_step: "create_root_files"

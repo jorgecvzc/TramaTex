@@ -102,3 +102,18 @@ type CreateInvoiceCommand struct {
 	DueDate         time.Time   `json:"dueDate"`
 	PaymentTerms    *string     `json:"paymentTerms"`
 }
+
+// OrderLineItemInputSimplified is a simplified version for quick ticket creation
+type OrderLineItemInputSimplified struct {
+	ProductVariantID uuid.UUID `json:"productVariantId"`
+	Quantity         int       `json:"quantity"`
+}
+
+// CreateSimplifiedInvoiceCommand creates a ticket (factura simplificada) for retail sales < 3,000 EUR
+// This is optimized for fast TPV/POS workflow without requiring full order creation
+type CreateSimplifiedInvoiceCommand struct {
+	PartyID     uuid.UUID                      `json:"partyId"` // Can be CONSUMIDOR_FINAL generic party
+	InvoiceDate time.Time                      `json:"invoiceDate"`
+	Items       []OrderLineItemInputSimplified `json:"items"` // Simple: just variant ID + quantity
+	// Series defaults to "TKT" for tickets
+}

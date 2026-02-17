@@ -45,7 +45,7 @@ El sistema utiliza varios agentes auxiliares para funciones específicas:
 -   **`generic-rules.yaml`**: Define las reglas fundamentales del proyecto (idioma, estructura de directorios, principios de calidad). Este agente se carga automáticamente al inicio de cualquier sesión.
 -   **`project/project-context.yaml`**: Contiene el contexto de alto nivel del proyecto (visión, stack tecnológico, bounded contexts). Se carga a través de `load-project-context.yaml`.
 -   **`load-project-context.yaml`**: Se encarga de cargar el contexto principal del proyecto y te ofrece cargar contextos modulares específicos (ej. `architecture.yaml`, `bounded-contexts.yaml`).
--   **`load-session.yaml`**: Gestiona las sesiones de trabajo. Te permite continuar tareas pendientes de `NEXT_SESSION.md` o iniciar nuevas tareas de desarrollo (`_TASK_TEMPLATE.md`).
+-   **`init-session.yaml`**: Gestiona las sesiones de trabajo. Te permite continuar tareas pendientes de `session-log.md` o iniciar nuevas tareas de desarrollo.
 -   **Agentes de Contexto (`agents/project/context/*.yaml`)**: Proporcionan información detallada sobre aspectos específicos del proyecto (ej. `architecture.yaml`, `tech-stack.yaml`, `code-standards.yaml`). Se cargan bajo demanda.
 
 ---

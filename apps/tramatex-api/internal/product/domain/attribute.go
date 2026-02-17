@@ -1,20 +1,16 @@
 package domain
 
-import (
-	"fmt"
-	"github.com/google/uuid"
-	"time"
-)
+import "github.com/google/uuid"
 
 // Attribute represents a configurable characteristic of a product (e.g., "Size", "Color").
+// Note: Scope (brand/group) restrictions removed for MVP simplicity.
+// Users are responsible for assigning appropriate attributes to products.
 type Attribute struct {
-	ID             uuid.UUID
-	Name           string
-	Code           string
-	SortOrder      int
-	ScopeBrandID   *uuid.UUID
-	ScopeGroupID   *uuid.UUID
-	Values         []AttributeValue
+	ID        uuid.UUID
+	Name      string
+	Code      string
+	SortOrder int
+	Values    []AttributeValue
 }
 
 // AttributeValue represents a specific value for an Attribute (e.g., "Large", "Red").
@@ -26,32 +22,30 @@ type AttributeValue struct {
 }
 
 // NewAttribute creates a new Attribute with validation.
-func NewAttribute(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID) (*Attribute, error) {
+func NewAttribute(name, code string, sortOrder int) (*Attribute, error) {
 	if name == "" {
-		return nil, fmt.Errorf("attribute name cannot be empty")
+		return nil, NewValidationError("attribute name cannot be empty")
 	}
 	if code == "" {
-		return nil, fmt.Errorf("attribute code cannot be empty")
+		return nil, NewValidationError("attribute code cannot be empty")
 	}
 
 	return &Attribute{
-		ID:           uuid.New(),
-		Name:         name,
-		Code:         code,
-		SortOrder:    sortOrder,
-		ScopeBrandID: scopeBrandID,
-		ScopeGroupID: scopeGroupID,
-		Values:       make([]AttributeValue, 0),
+		ID:        uuid.New(),
+		Name:      name,
+		Code:      code,
+		SortOrder: sortOrder,
+		Values:    make([]AttributeValue, 0),
 	}, nil
 }
 
 // AddValue creates a new AttributeValue and adds it to the Attribute.
 func (a *Attribute) AddValue(value, code string) (*AttributeValue, error) {
 	if value == "" {
-		return nil, fmt.Errorf("attribute value cannot be empty")
+		return nil, NewValidationError("attribute value cannot be empty")
 	}
 	if code == "" {
-		return nil, fmt.Errorf("attribute value code cannot be empty")
+		return nil, NewValidationError("attribute value code cannot be empty")
 	}
 
 	newValue := AttributeValue{
@@ -68,10 +62,10 @@ func (a *Attribute) AddValue(value, code string) (*AttributeValue, error) {
 // UpdateValue updates an existing AttributeValue.
 func (a *Attribute) UpdateValue(id uuid.UUID, newValue, newCode string) error {
 	if newValue == "" {
-		return fmt.Errorf("attribute value cannot be empty")
+		return NewValidationError("attribute value cannot be empty")
 	}
 	if newCode == "" {
-		return fmt.Errorf("attribute value code cannot be empty")
+		return NewValidationError("attribute value code cannot be empty")
 	}
 
 	for i, val := range a.Values {
@@ -81,7 +75,7 @@ func (a *Attribute) UpdateValue(id uuid.UUID, newValue, newCode string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("attribute value with ID %s not found", id)
+	return NewNotFoundErrorf("attribute value with ID %s not found", id)
 }
 
 // RemoveValue removes an AttributeValue by its ID.
@@ -92,5 +86,5 @@ func (a *Attribute) RemoveValue(id uuid.UUID) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("attribute value with ID %s not found", id)
+	return NewNotFoundErrorf("attribute value with ID %s not found", id)
 }

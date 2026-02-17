@@ -1,0 +1,92 @@
+# Project Context
+# Version: 1.0
+# Purpose: Main context agent for the $PROJECT_NAME project.
+
+---
+
+metadata:
+  filename: "project-context.yaml"
+  version: "1.0"
+  last_updated: "2026-02-13"
+  purpose: "Provides the main, high-level context for the $PROJECT_NAME project."
+  scope: "$PROJECT_NAME Project"
+  load_order: "after generic-rules.yaml"
+  dependencies:
+    - "generic-rules.yaml"
+  context_agents_location: "agents/project/context/"
+
+project_identity:
+  vision: "Your project's vision (1-2 sentences)."
+  domain: "Your project's business domain (e.g., E-commerce, Healthcare, FinTech)."
+  key_characteristics: # 2-3 defining traits of your project.
+    - "Characteristic 1"
+    - "Characteristic 2"
+  problem_statement: "What problem does your project solve? (1-2 sentences)"
+
+technology_stack:
+  backend:
+    language: "<backend_language>"
+    framework: "<backend_framework>"
+    orm: "<backend_orm>"
+  frontend:
+    framework: "<frontend_framework>"
+    styling: "<frontend_styling>"
+    state_management: "<frontend_state_management>"
+  database:
+    engine: "<database_engine>"
+  infrastructure:
+    containerization: "<containerization_tool>"
+  ci_cd:
+    platform: "<ci_cd_platform>"
+
+project_structure:
+  component_layout:
+    - "apps/<backend_app_name>: <backend_language> backend application."
+    - "apps/<frontend_app_name>: <frontend_framework> frontend application."
+    - "internal/{module}/...: Backend code organized by Bounded Context."
+    - "src/{components,pages,services,stores}/...: Frontend code structure."
+  documentation_layout:
+    - "docs/architecture: Technical documentation (architecture, ADRs)."
+    - "docs/modules: Detailed documentation for each Bounded Context."
+    - "docs/guides: Developer and user guides."
+    - "docs/log: Historical records (sprints, milestones)."
+
+bounded_contexts:
+  description: "Define your project's bounded contexts and their relationships here."
+  core_modules: # List your core modules/bounded contexts
+    - "YourCoreModule1 (Description)"
+    - "YourCoreModule2 (Description)"
+  relationships: "Describe how your bounded contexts interact and their dependencies."
+  criticality: # Assign criticality levels to your modules (CRITICAL, HIGH, MEDIUM, LOW)
+    - "CRITICAL: Module A, Module B"
+    - "HIGH: Module C"
+
+code_quality_standards:
+  description: "Code quality is enforced via CI/CD, linters, and mandatory testing. For full details, see agents/project/context/code-standards.yaml."
+  backend_testing: "Unit test coverage targets as defined in agents/project/context/code-standards.yaml."
+  frontend_testing: "Frontend testing strategy and coverage as defined in agents/project/context/code-standards.yaml."
+  linting:
+    - "Backend: <backend_linter_tool_name>"
+    - "Frontend: <frontend_linter_tool_name> + <frontend_formatter_tool_name>"
+
+architecture_decisions:
+  description: "Key architectural decisions are documented as ADRs. For detailed patterns, see agents/project/context/architecture.yaml."
+  principles:
+    - "Clean Architecture (ADR-002)"
+    - "Domain-Driven Design with Asymmetric Rigor (ADR-002)"
+    - "Modular Monolith (ADR-003)"
+    - "Development Driven by Domain (ADR-006)"
+  key_adrs: # List your project's key Architecture Decision Records (ADRs) here.
+    - "ADR-XXX: Your First Key ADR"
+    - "ADR-YYY: Your Second Key ADR"
+
+workflow:
+  development_workflow: "Feature-branch workflow with Pull Requests. Commits must follow Conventional Commits standard."
+  testing_strategy: "Define your project's testing strategy here. E.g., TDD is mandatory for critical domain logic. See related ADRs or documentation for full testing strategy."
+  deployment_process: "Docker Compose for local and remote MVP deployment. CI/CD pipeline managed by GitHub Actions."
+
+  references:
+    - "[Project Handbook](docs/architecture/project-vision-and-scope.md) (Primary Entry Point)"
+    - "[Architecture Overview](docs/architecture/architecture-vision.md)"
+    - "[Module Documentation](docs/modules/)"
+    - "[Active Sprints](docs/log/sprints/)"

@@ -186,7 +186,7 @@ test.describe('Authentication E2E Tests', () => {
     // Should NOT make API call
     let apiCalled = false
     page.on('response', response => {
-      if (response.url().includes('/api/auth/login')) {
+      if (response.url().includes('/auth/login')) {
         apiCalled = true
       }
     })

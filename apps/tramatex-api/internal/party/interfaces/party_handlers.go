@@ -3,6 +3,7 @@ package interfaces
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joran-cortez/tramatex/internal/party/application"
@@ -16,6 +17,32 @@ type PartyHandler struct {
 	changeStatusHandler *application.ChangePartyStatusHandler
 	getHandler          *application.GetPartyHandler
 	listHandler         *application.ListPartiesHandler
+	getBatchHandler     *application.GetPartiesBatchHandler
+}
+
+func actorIDFromContext(c *gin.Context) (string, bool) {
+	value, ok := c.Get("userID")
+	if !ok {
+		return "", false
+	}
+	actorID, ok := value.(string)
+	if !ok || actorID == "" {
+		return "", false
+	}
+	return actorID, true
+}
+
+// SplitAndTrim splits a string by separator and trims whitespace from each part
+func SplitAndTrim(s, sep string) []string {
+	parts := strings.Split(s, sep)
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 func NewPartyHandler(
@@ -24,6 +51,7 @@ func NewPartyHandler(
 	changeStatusHandler *application.ChangePartyStatusHandler,
 	getHandler *application.GetPartyHandler,
 	listHandler *application.ListPartiesHandler,
+	getBatchHandler *application.GetPartiesBatchHandler,
 ) *PartyHandler {
 	return &PartyHandler{
 		createHandler:       createHandler,
@@ -31,11 +59,17 @@ func NewPartyHandler(
 		changeStatusHandler: changeStatusHandler,
 		getHandler:          getHandler,
 		listHandler:         listHandler,
+		getBatchHandler:     getBatchHandler,
 	}
 }
 
 // CreateParty handles POST /parties
 func (h *PartyHandler) CreateParty(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	var req CreatePartyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -43,9 +77,10 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 	}
 
 	cmd := &application.CreatePartyCommand{
-		ID:        req.ID,
-		Status:    req.Status,
-		Roles:     req.Roles,
+		ID:      req.ID,
+		Status:  req.Status,
+		Roles:   req.Roles,
+		ActorID: actorID,
 	}
 
 	if req.PersonProfile != nil {
@@ -101,6 +136,42 @@ func (h *PartyHandler) GetParty(c *gin.Context) {
 	c.JSON(http.StatusOK, MapPartyToDTO(party))
 }
 
+// GetPartiesBatch handles GET /parties/batch?ids=uuid1,uuid2,uuid3
+func (h *PartyHandler) GetPartiesBatch(c *gin.Context) {
+	idsParam := c.Query("ids")
+	if idsParam == "" {
+		c.JSON(http.StatusOK, []PartyBatchDTO{})
+		return
+	}
+
+	// Split comma-separated IDs
+	ids := []string{}
+	for _, id := range SplitAndTrim(idsParam, ",") {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+
+	if len(ids) == 0 {
+		c.JSON(http.StatusOK, []PartyBatchDTO{})
+		return
+	}
+
+	parties, err := h.getBatchHandler.Handle(c.Request.Context(), &application.GetPartiesBatchQuery{IDs: ids})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Map to minimal DTOs for batch operations
+	dtos := make([]PartyBatchDTO, len(parties))
+	for i, party := range parties {
+		dtos[i] = MapPartyToBatchDTO(party)
+	}
+
+	c.JSON(http.StatusOK, dtos)
+}
+
 // ListParties handles GET /parties
 func (h *PartyHandler) ListParties(c *gin.Context) {
 	pageSize := 10
@@ -149,6 +220,11 @@ func (h *PartyHandler) ListParties(c *gin.Context) {
 
 // UpdateParty handles PUT /parties/{id}
 func (h *PartyHandler) UpdateParty(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
@@ -162,8 +238,9 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 	}
 
 	cmd := &application.UpdatePartyCommand{
-		ID:         id,
-		Status:     req.Status,
+		ID:      id,
+		Status:  req.Status,
+		ActorID: actorID,
 	}
 
 	if req.PersonProfile != nil {
@@ -193,6 +270,11 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 
 // ChangePartyStatus handles PATCH /parties/{id}/status
 func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	if id == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
@@ -206,8 +288,9 @@ func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
 	}
 
 	cmd := &application.ChangePartyStatusCommand{
-		ID:         id,
-		Status:     req.Status,
+		ID:      id,
+		Status:  req.Status,
+		ActorID: actorID,
 	}
 
 	party, err := h.changeStatusHandler.Handle(c.Request.Context(), cmd)
@@ -232,6 +315,11 @@ func NewPartyRoleHandler(addHandler *application.AddPartyRoleHandler, removeHand
 
 // AddRole handles POST /parties/{id}/roles
 func (h *PartyRoleHandler) AddRole(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	var req AddPartyRoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -240,8 +328,9 @@ func (h *PartyRoleHandler) AddRole(c *gin.Context) {
 	}
 
 	party, err := h.addHandler.Handle(c.Request.Context(), &application.AddPartyRoleCommand{
-		ID:         id,
-		Role:       req.Role,
+		ID:      id,
+		Role:    req.Role,
+		ActorID: actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -253,12 +342,18 @@ func (h *PartyRoleHandler) AddRole(c *gin.Context) {
 
 // RemoveRole handles DELETE /parties/{id}/roles/{role}
 func (h *PartyRoleHandler) RemoveRole(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	role := c.Param("role")
 
 	party, err := h.removeHandler.Handle(c.Request.Context(), &application.RemovePartyRoleCommand{
-		ID:         id,
-		Role:       role,
+		ID:      id,
+		Role:    role,
+		ActorID: actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -290,6 +385,11 @@ func NewPartyRelationshipHandler(
 
 // AddRelationship handles POST /parties/{id}/relationships
 func (h *PartyRelationshipHandler) AddRelationship(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	var req CreateRelationshipRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -302,6 +402,7 @@ func (h *PartyRelationshipHandler) AddRelationship(c *gin.Context) {
 		RelationshipID: req.ID,
 		ToPartyID:      req.ToPartyID,
 		Type:           req.Type,
+		ActorID:        actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -365,6 +466,11 @@ func NewContactDetailsHandler(
 
 // AddContactDetails handles POST /parties/{id}/contact-details
 func (h *ContactDetailsHandler) AddContactDetails(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	var req CreateContactDetailsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -379,6 +485,7 @@ func (h *ContactDetailsHandler) AddContactDetails(c *gin.Context) {
 		Phone:           req.Phone,
 		Email:           req.Email,
 		RelatedPartyID:  req.RelatedPartyID,
+		ActorID:         actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -408,6 +515,11 @@ func (h *ContactDetailsHandler) ListContactDetails(c *gin.Context) {
 
 // UpdateContactDetails handles PUT /parties/{id}/contact-details/{contact_id}
 func (h *ContactDetailsHandler) UpdateContactDetails(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	partyID := c.Param("id")
 	contactID := c.Param("contact_id")
 
@@ -424,6 +536,7 @@ func (h *ContactDetailsHandler) UpdateContactDetails(c *gin.Context) {
 		Phone:           req.Phone,
 		Email:           req.Email,
 		RelatedPartyID:  req.RelatedPartyID,
+		ActorID:         actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -435,12 +548,18 @@ func (h *ContactDetailsHandler) UpdateContactDetails(c *gin.Context) {
 
 // RemoveContactDetails handles DELETE /parties/{id}/contact-details/{contact_id}
 func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	partyID := c.Param("id")
 	contactID := c.Param("contact_id")
 
 	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemoveContactDetailsCommand{
-		PartyID:    partyID,
-		ContactID:  contactID,
+		PartyID:   partyID,
+		ContactID: contactID,
+		ActorID:   actorID,
 	}); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -465,6 +584,11 @@ func NewPartyAddressHandler(
 
 // AddAddress handles POST /parties/{id}/addresses
 func (h *PartyAddressHandler) AddAddress(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 	id := c.Param("id")
 	var req CreatePartyAddressRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -480,6 +604,7 @@ func (h *PartyAddressHandler) AddAddress(c *gin.Context) {
 		Province:   req.Province,
 		PostalCode: req.PostalCode,
 		Country:    req.Country,
+		ActorID:    actorID,
 	})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

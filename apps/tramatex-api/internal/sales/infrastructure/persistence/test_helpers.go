@@ -167,6 +167,7 @@ func (tdb *TestDB) SetUpSales() error {
 		DROP TYPE IF EXISTS sales_order_status;
 		DROP TYPE IF EXISTS delivery_note_status;
 		DROP TYPE IF EXISTS invoice_status;
+		DROP TYPE IF EXISTS invoice_type;
 	`
 
 	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
@@ -215,6 +216,14 @@ func (tdb *TestDB) SetUpSales() error {
 				'PAGADA',
 				'VENCIDA',
 				'ANULADA'
+			);
+		EXCEPTION
+			WHEN duplicate_object THEN null;
+		END $$;
+		DO $$ BEGIN
+			CREATE TYPE invoice_type AS ENUM (
+				'COMPLETA',
+				'SIMPLIFICADA'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
@@ -338,6 +347,10 @@ func (tdb *TestDB) SetUpSales() error {
 		CREATE TABLE "invoices" (
 			"id" UUID PRIMARY KEY,
 			"invoice_number" VARCHAR(50) NOT NULL,
+			"type" invoice_type NOT NULL DEFAULT 'COMPLETA',
+			"series_code" VARCHAR(10) NOT NULL DEFAULT 'A',
+			"series_year" INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
+			"series_prefix" VARCHAR(10) NOT NULL DEFAULT 'A',
 			"party_id" UUID NOT NULL,
 			"invoice_date" TIMESTAMP WITH TIME ZONE NOT NULL,
 			"due_date" TIMESTAMP WITH TIME ZONE NOT NULL,

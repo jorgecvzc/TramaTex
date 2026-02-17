@@ -24,11 +24,10 @@ func NewGORMProductRepository(db *gorm.DB) *GORMProductRepository {
 // Save saves a product to the database
 func (r *GORMProductRepository) Save(ctx context.Context, product *domain.Product) error {
 	dataModel := FromDomain(product)
-	actorID := actorIDFromContext(ctx)
 
 	// Check if record exists to determine if it's an insert or update
 	var existing ProductDataModel
-	result := r.db.WithContext(ctx).Select("id", "created_at", "created_by").First(&existing, "id = ?", dataModel.ID)
+	result := r.db.WithContext(ctx).Select("id", "created_at").First(&existing, "id = ?", dataModel.ID)
 
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return result.Error
@@ -36,13 +35,9 @@ func (r *GORMProductRepository) Save(ctx context.Context, product *domain.Produc
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		// New record, GORM's Model hook will handle CreatedAt
-		dataModel.CreatedBy = actorID
 	} else {
-		// Existing record, preserve original CreatedAt and CreatedBy
+		// Existing record, preserve original CreatedAt
 		dataModel.CreatedAt = existing.CreatedAt
-		dataModel.CreatedBy = existing.CreatedBy
-		// Update ModifiedBy for existing record
-		dataModel.ModifiedBy = actorID
 	}
 
 	return r.db.WithContext(ctx).Save(dataModel).Error
@@ -91,10 +86,8 @@ func (r *GORMProductRepository) FindAll(ctx context.Context) ([]*domain.Product,
 // UpdateSKUs updates the SKU of a product.
 
 func (r *GORMProductRepository) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
-	actorID := actorIDFromContext(ctx)
 	return r.db.WithContext(ctx).Model(&ProductDataModel{}).Where("id = ?", productID).Updates(map[string]interface{}{
-		"sku":         newSKU,
-		"modified_by": actorID,
-		"updated_at":  time.Now(), // Explicitly update updated_at since we're using Updates with a map
+		"sku":        newSKU,
+		"updated_at": time.Now(), // Explicitly update updated_at since we're using Updates with a map
 	}).Error
 }

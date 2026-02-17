@@ -8,7 +8,7 @@ func TestPartyGettersAndSetters(t *testing.T) {
 	taxID, _ := NewTaxID("B12345", "CIF")
 	orgProfile, _ := NewOrganizationProfile("Org", taxID, "https://org.local")
 
-	party, err := NewParty(partyID, PartyStatusActive, "user-1", personProfile, orgProfile)
+	party, err := NewParty(partyID, PartyStatusActive, personProfile, orgProfile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -32,10 +32,7 @@ func TestPartyGettersAndSetters(t *testing.T) {
 	}
 
 	newPerson, _ := NewPersonProfile("Luis", "Lopez")
-	if err := party.SetPersonProfile(newPerson, ""); err == nil {
-		t.Fatalf("expected error for empty modifiedBy")
-	}
-	if err := party.SetPersonProfile(newPerson, "user-2"); err != nil {
+	if err := party.SetPersonProfile(newPerson); err != nil {
 		t.Fatalf("unexpected error setting person profile: %v", err)
 	}
 	if party.PersonProfile().FirstName() != "Luis" {
@@ -43,10 +40,7 @@ func TestPartyGettersAndSetters(t *testing.T) {
 	}
 
 	newOrg, _ := NewOrganizationProfile("Org 2", taxID, "https://org2.local")
-	if err := party.SetOrganizationProfile(newOrg, ""); err == nil {
-		t.Fatalf("expected error for empty modifiedBy")
-	}
-	if err := party.SetOrganizationProfile(newOrg, "user-2"); err != nil {
+	if err := party.SetOrganizationProfile(newOrg); err != nil {
 		t.Fatalf("unexpected error setting organization profile: %v", err)
 	}
 	if party.OrganizationProfile().Name() != "Org 2" {
@@ -140,5 +134,31 @@ func TestValueObjectsAndIDValues(t *testing.T) {
 	address, _ := NewAddress("Calle 1", "Madrid", "Madrid", "28001", "Spain")
 	if address.Province() != "Madrid" || address.PostalCode() != "28001" || address.Country() != "Spain" {
 		t.Fatalf("expected address fields to match input")
+	}
+}
+
+func TestPartyStatusTransitions(t *testing.T) {
+	partyID, _ := NewPartyID("party-g6")
+	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
+
+	if err := party.Activate(); err == nil {
+		t.Fatalf("expected conflict when activating active party")
+	}
+	if err := party.Deactivate(); err != nil {
+		t.Fatalf("expected to deactivate, got %v", err)
+	}
+	if err := party.Deactivate(); err == nil {
+		t.Fatalf("expected conflict when deactivating inactive party")
+	}
+}
+
+func TestPartyRoleTypeGetter(t *testing.T) {
+	role, err := NewPartyRole(PartyRoleSupplier, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if role.Type() != PartyRoleSupplier {
+		t.Fatalf("expected role SUPPLIER")
 	}
 }

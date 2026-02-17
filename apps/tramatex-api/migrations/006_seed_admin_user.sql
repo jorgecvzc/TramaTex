@@ -6,7 +6,7 @@ INSERT INTO users (id, email, password, role, is_active)
 VALUES (
   'f47ac10b-58cc-4372-a567-0e02b2c3d479',
   'admin@tramatex.local',
-  '$2a$10$hIiYQQFTS.n4cKfowxZlR.XPrywCir4r.kDbEUIqfwSVvrHFQ26S2',
+  '$2a$10$Gd8.JP/L3j.vNvap81EpjuX7G4u5KKLmf10TSxmu779Mq/HdC/B9e',
   'admin',
   true
 )

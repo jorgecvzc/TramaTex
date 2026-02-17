@@ -1,0 +1,78 @@
+# Load Module Context Agent
+# Version: 1.0
+# Audience: AI assistants
+# Purpose: Loads project context relevant to a specific module, dynamically loading core context agents.
+
+---
+
+metadata:
+  filename: "load-module-context.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Loads the primary project context and then all core modular context agents (architecture, bounded contexts, tech stack, code standards) for a specified module."
+  applies_to: "Specific module development or review tasks within any project using the modular agent system."
+  dependencies:
+    - "load-project-context.yaml"
+    - "agents/project/context/architecture.yaml"
+    - "agents/project/context/bounded-contexts.yaml"
+    - "agents/project/context/tech-stack.yaml"
+    - "agents/project/context/code-standards.yaml"
+
+workflow:
+  title: "📦 Carga de Contexto por Módulo"
+  description: "Carga el contexto principal del proyecto y los agentes de contexto modular relevantes para un módulo específico."
+
+  args:
+    module_name:
+      description: "El nombre del módulo para el cual se cargará el contexto (ej. 'party', 'product', 'pricing')."
+      type: "string"
+
+  step_1_load_project_context:
+    action: "Cargar el contexto principal del proyecto."
+    load: "load-project-context.yaml"
+    outcome: "Contexto principal del proyecto cargado."
+
+  step_2_load_core_module_contexts:
+    action: "Cargar agentes de contexto modular centrales relevantes para el módulo especificado."
+    python_script:
+      code: |
+        import json
+        import os
+
+        module_name = "$args.module_name"
+        context_files = []
+        # These are the general modular contexts that provide high-level context
+        # and may contain sections specific to a module_name
+        base_contexts = [
+            "agents/project/context/architecture.yaml",
+            "agents/project/context/bounded-contexts.yaml",
+            "agents/project/context/tech-stack.yaml",
+            "agents/project/context/code-standards.yaml"
+        ]
+
+        # Check if the module has its own specific context file (e.g., product-context.yaml)
+        # This allows for module-specific overrides or additional context if needed
+        specific_module_context_file = f"agents/project/context/{module_name}-context.yaml"
+        if os.path.exists(specific_module_context_file):
+            context_files.append(specific_module_context_file)
+
+        # Always load the base modular contexts as they contain general information
+        # and may contain sections relevant to the specific module.
+        context_files.extend(base_contexts)
+        
+        output_json = {
+            "files_to_load": context_files,
+            "message": f"Identificando archivos de contexto para el módulo '{module_name}'."
+        }
+        print(json.dumps(output_json))
+      output_variable: "MODULE_CONTEXT_FILES"
+    output: "$MODULE_CONTEXT_FILES.message"
+    foreach_item_in: "$MODULE_CONTEXT_FILES.files_to_load"
+    do:
+      - load: "$item"
+    outcome: "Agentes de contexto modular centrales cargados para el módulo '$args.module_name'."
+
+  step_3_confirm_module_context_loaded:
+    action: "Confirmar que el contexto del módulo ha sido cargado."
+    output: "¡Contexto para el módulo '$args.module_name' cargado y listo! Puedes empezar a trabajar."
+    goto: "end"

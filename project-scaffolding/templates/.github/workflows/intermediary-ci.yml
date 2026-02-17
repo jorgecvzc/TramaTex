@@ -6,21 +6,21 @@
 #
 # INSTRUCTIONS:
 # 1. Adapt this to your specific technology (e.g., if using Deno, Bun, or another language).
-# 2. Replace placeholders like '<your-app-name>'.
+# 2. Replace placeholders like '$INTERMEDIARY_NAME'.
 # 3. Adjust the test, lint, and build commands to match your project's scripts.
 
-name: Intermediary CI for <your-app-name>
+name: Intermediary CI for $INTERMEDIARY_NAME
 
 on:
   push:
     branches: [ "main", "develop" ]
     paths:
-      - 'apps/<your-app-name>/**'
-      - '.github/workflows/<your-app-name>-ci.yml'
+      - 'apps/$INTERMEDIARY_NAME/**'
+      - '.github/workflows/$INTERMEDIARY_NAME-ci.yml'
   pull_request:
     branches: [ "main", "develop" ]
     paths:
-      - 'apps/<your-app-name>/**'
+      - 'apps/$INTERMEDIARY_NAME/**'
 
 jobs:
   test_lint_build:
@@ -34,30 +34,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '[YOUR_NODE_VERSION]'
           cache: 'npm'
-          cache-dependency-path: apps/<your-app-name>/package-lock.json
+          cache-dependency-path: apps/$INTERMEDIARY_NAME/[YOUR_PACKAGE_LOCK_FILE]
 
       - name: Install dependencies
         run: npm ci
-        working-directory: apps/<your-app-name>
+        working-directory: apps/$INTERMEDIARY_NAME
 
       - name: Run Linters
         run: npm run lint
-        working-directory: apps/<your-app-name>
+        working-directory: apps/$INTERMEDIARY_NAME
         
       - name: Run Tests
         run: npm run test
-        working-directory: apps/<your-app-name>
+        working-directory: apps/$INTERMEDIARY_NAME
 
       - name: Build
         # For Node.js backends, this might be a TypeScript compilation step
         run: npm run build
-        working-directory: apps/<your-app-name>
+        working-directory: apps/$INTERMEDIARY_NAME
 
       - name: Upload Build Artifact
         # This is useful if your build produces a distributable bundle
         uses: actions/upload-artifact@v4
         with:
-          name: <your-app-name>-build
-          path: apps/<your-app-name>/dist # Or wherever your build output is
+          name: $INTERMEDIARY_NAME-build
+          path: apps/$INTERMEDIARY_NAME/dist # Or wherever your build output is

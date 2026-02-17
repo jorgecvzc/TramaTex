@@ -1,13 +1,13 @@
-# TramaTex Project Context
+# Project Context
 # Version: 1.0
-# Purpose: Main context agent for the TramaTex project.
+# Purpose: Main context agent for the $PROJECT_NAME project.
 
 ---
 
 metadata:
   filename: "project-context.yaml"
   version: "1.0"
-  last_updated: "2026-02-01"
+  last_updated: "2026-02-15"
   purpose: "Provides the main, high-level context for the TramaTex project."
   scope: "TramaTex Project"
   load_order: "after generic-rules.yaml"
@@ -16,29 +16,28 @@ metadata:
   context_agents_location: "agents/project/context/"
 
 project_identity:
-  vision: "An ERP/MES for textile micro-enterprises, focusing on local-first operation, maintainability, and custom order management."
-  domain: "Textile manufacturing, EPIs (Personal Protective Equipment), order management, and custom production workflows."
-  key_characteristics:
-    - "Local-first: Operates on limited local hardware without mandatory cloud dependency."
-    - "Modular Monolith: Built with Clean Architecture and DDD for maintainability and future scalability."
-    - "User-Centric: Separate interfaces for sales/finance (desktop) and workshop (tablet)."
-  problem_statement: "To provide a reliable and traceable system for managing the complete lifecycle of standard and custom orders, which is affordable and maintainable for micro-enterprises."
+  vision: "Your project's vision (1-2 sentences)."
+  domain: "Your project's business domain (e.g., E-commerce, Healthcare, FinTech)."
+  key_characteristics: # 2-3 defining traits of your project.
+    - "Characteristic 1"
+    - "Characteristic 2"
+  problem_statement: "What problem does your project solve? (1-2 sentences)"
 
 technology_stack:
   backend:
-    language: "Go 1.21+"
+    language: "Go"
     framework: "Gin Gonic"
-    orm: "GORM (in infrastructure layer only)"
+    orm: "GORM"
   frontend:
-    framework: "Vue.js 3 (Composition API)"
+    framework: "Vue.js 3"
     styling: "Tailwind CSS"
     state_management: "Pinia"
   database:
-    engine: "PostgreSQL 15+"
+    engine: "PostgreSQL"
   infrastructure:
-    containerization: "Docker & Docker Compose"
+    containerization: "Docker"
   ci_cd:
-    platform: "GitHub Actions (planned)"
+    platform: "GitHub Actions"
 
 project_structure:
   component_layout:
@@ -53,24 +52,19 @@ project_structure:
     - "docs/log: Historical records (sprints, milestones)."
 
 bounded_contexts:
-  description: "The system is a modular monolith. Core business domains are separated into Bounded Contexts. For a detailed map, see agents/project/context/bounded-contexts.yaml."
-  core_modules:
-    - "IAM (Identity & Access Management)"
-    - "Partye (Clients & Suppliers)"
-    - "Product (Catalogue & Variants)"
-    - "Pricing (Calculation Engine)"
-    - "Sales (Orders)"
-    - "MES (Manufacturing Execution System)"
-  relationships: "Dependencies flow from foundational modules (IAM, Party, Product) to core logic (Pricing, Sales) and finally to specialized subdomains (MES)."
-  criticality:
-    - "CRITICAL: Pricing, Partye, Product, IAM"
-    - "HIGH: Sales"
-    - "MEDIUM: MES (for MVP)"
+  description: "Define your project's bounded contexts and their relationships here."
+  core_modules: # List your core modules/bounded contexts
+    - "YourCoreModule1 (Description)"
+    - "YourCoreModule2 (Description)"
+  relationships: "Describe how your bounded contexts interact and their dependencies."
+  criticality: # Assign criticality levels to your modules (CRITICAL, HIGH, MEDIUM, LOW)
+    - "CRITICAL: Module A, Module B"
+    - "HIGH: Module C"
 
 code_quality_standards:
   description: "Code quality is enforced via CI/CD, linters, and mandatory testing. For full details, see agents/project/context/code-standards.yaml."
-  backend_testing: "Unit test coverage targets: Pricing (100%), Party (>=90%), Product (>=85%). Overall >=75%."
-  frontend_testing: "Vitest for unit tests on critical composables and stores. E2E tests with Playwright for key user flows."
+  backend_testing: "Unit test coverage targets as defined in agents/project/context/code-standards.yaml."
+  frontend_testing: "Frontend testing strategy and coverage as defined in agents/project/context/code-standards.yaml."
   linting:
     - "Backend: golangci-lint"
     - "Frontend: ESLint + Prettier"
@@ -82,14 +76,13 @@ architecture_decisions:
     - "Domain-Driven Design with Asymmetric Rigor (ADR-002)"
     - "Modular Monolith (ADR-003)"
     - "Development Driven by Domain (ADR-006)"
-  key_adrs:
-    - "ADR-001: Tech Stack Selection"
-    - "ADR-007: Module Implementation Order"
-    - "ADR-010: Security Strategy"
+  key_adrs: # List your project's key Architecture Decision Records (ADRs) here.
+    - "ADR-XXX: Your First Key ADR"
+    - "ADR-YYY: Your Second Key ADR"
 
 workflow:
   development_workflow: "Feature-branch workflow with Pull Requests. Commits must follow Conventional Commits standard."
-  testing_strategy: "TDD is mandatory for critical domain logic (Pricing). See ADR-011 for full testing strategy."
+  testing_strategy: "Define your project's testing strategy here. E.g., TDD is mandatory for critical domain logic. See related ADRs or documentation for full testing strategy."
   deployment_process: "Docker Compose for local and remote MVP deployment. CI/CD pipeline managed by GitHub Actions."
 
   references:

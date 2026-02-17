@@ -26,15 +26,17 @@ func (BrandDataModel) TableName() string {
 // ToDomain converts the brand data model to a domain model.
 func (b *BrandDataModel) ToDomain() *domain.Brand {
 	return &domain.Brand{
-		ID:   b.ID,
-		Name: b.Name,
+		ID:       b.ID,
+		Name:     b.Name,
+		IsActive: b.IsActive,
 	}
 }
 
 // BrandFromDomain converts a brand domain model to a data model.
 func BrandFromDomain(b *domain.Brand) *BrandDataModel {
 	return &BrandDataModel{
-		ID:   b.ID,
-		Name: b.Name,
+		ID:       b.ID,
+		Name:     b.Name,
+		IsActive: b.IsActive,
 	}
 }

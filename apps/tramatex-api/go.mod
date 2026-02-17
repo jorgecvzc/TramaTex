@@ -5,6 +5,7 @@ go 1.23
 replace github.com/joran-cortez/tramatex => ./
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0

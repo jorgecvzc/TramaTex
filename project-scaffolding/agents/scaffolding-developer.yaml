@@ -1,0 +1,327 @@
+# Scaffolding Developer Agent
+# Purpose: Guide AI assistants when modifying or improving the project scaffolding system
+# Audience: AI/LLM developers working on the scaffolding
+
+---
+metadata:
+  filename: "scaffolding-developer.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Provides rules and guidelines for modifying the scaffolding system"
+  applies_to: "AI assistants modifying project-scaffolding/"
+  load_order: "load_when_modifying_scaffolding"
+
+core_principles:
+  title: "Principios Fundamentales del Scaffolding"
+
+  no_versioning_in_filenames:
+    rule: "NUNCA usar versiones en nombres de archivos"
+    examples:
+      bad: ["guia-v2.0.md", "bootstrap-v1.yaml", "readme-2024.md"]
+      good: ["user-guide.md", "bootstrap.yaml", "README.md"]
+    rationale: "Siempre se ejecuta la última versión. El historial no es necesario."
+    exception: "Versionado permitido SOLO dentro del contenido como referencia informativa"
+
+  file_naming:
+    rule: "kebab-case para todos los archivos"
+    description: "Nombres en minúsculas con guiones (lowercase-with-hyphens)"
+    examples:
+      correct:
+        [
+          "user-guide.md",
+          "bootstrap.yaml",
+          "project-context.yaml",
+          "_adr-template.md",
+        ]
+      incorrect:
+        [
+          "GUIA_DE_USO.md",
+          "Bootstrap.yaml",
+          "Project_Context.yaml",
+          "_adr-template.md",
+          "ADR_TEMPLATE.md",
+        ]
+    exceptions:
+      - name: "Estándares universales en raíz"
+        files: ["README.md", "LICENSE", "CONTRIBUTING.md"]
+      - name: "Templates con prefijo _"
+        pattern: "_kebab-case-template.md"
+        examples:
+          ["_adr-template.md", "_task-template.md", "_module-template.md"]
+        rationale: "Identificación visual inmediata como meta-archivo"
+    rationale: "Consistencia, legibilidad, multiplataforma, estándar open source"
+
+  no_changelog:
+    rule: "NO mantener CHANGELOG ni historial de cambios"
+    rationale: "El scaffolding evoluciona continuamente sin necesidad de tracking de versiones"
+    what_to_do: "Documentar decisiones importantes en bootstrap.yaml → metadata → decision_log"
+
+  concise_documentation:
+    rule: "Documentación clara y concisa - máximo 40 líneas para entender cómo proceder"
+    rationale: "Sin curva de aprendizaje. Usuario debe entender rápidamente qué hacer."
+    structure:
+      - "Ir directo al grano"
+      - "Ejemplos concretos mejor que explicaciones largas"
+      - "Tablas y listas sobre párrafos extensos"
+
+  two_key_documents:
+    rule: "Solo dos guías fundamentales en la raíz"
+    files:
+      - name: "guides/user-guide.md"
+        purpose: "Para usuarios que crean proyectos"
+        max_lines: 40
+      - name: "guides/development-guide.md"
+        purpose: "Para modificar y mejorar el scaffolding"
+        max_lines: "Concisa, directa al grano"
+
+file_structure:
+  title: "Estructura de Archivos del Scaffolding"
+
+  root_level:
+    required_files:
+      - "bootstrap.yaml" # Configuración principal
+      - "user-guide.md" # Para usuarios
+      - "development-guide.md" # Para desarrolladores
+
+    directories:
+      - name: "user-input-docs/"
+        purpose: "Entrada de documentos del usuario"
+
+      - name: "agents/"
+        purpose: "Agentes específicos del scaffolding"
+        contains: ["scaffolding-developer.yaml (este archivo)"]
+
+      - name: "templates/"
+        purpose: "Templates para nuevos proyectos"
+        subdirs: ["agents/", "docs/", ".github/"]
+
+modifying_bootstrap_flow:
+  title: "Modificar el Flujo de Bootstrapping"
+
+  main_file: "bootstrap.yaml"
+
+  structure:
+    metadata:
+      version: "Solo informativo, no afecta ejecución"
+      decision_log: "Registrar decisiones arquitectónicas importantes"
+      format: |
+        - date: "YYYY-MM-DD"
+          decision: "Qué se decidió"
+          rationale: "Por qué se decidió"
+          impact: "Qué afecta"
+
+    workflow_steps:
+      phases:
+        - phase: "Fase 0 (pasos 1-12)"
+          purpose: "Extracción inteligente de documentos"
+        - phase: "Fase 1"
+          purpose: "Validación y creación de estructura"
+        - phase: "Fase 2"
+          purpose: "Generación de ADRs y agentes"
+        - phase: "Fase 3"
+          purpose: "Finalización"
+
+  adding_new_step:
+    required_fields:
+      - step_id: "nombre_unico_descriptivo"
+      - title: "Título visible al usuario"
+      - order: "Número de orden de ejecución"
+      - description: "Qué hace este paso"
+      - next_step: "ID del siguiente paso"
+
+    optional_fields:
+      - prompt_user: "Para hacer preguntas"
+      - files_to_create: "Para generar archivos"
+      - command: "Para ejecutar comandos"
+      - logic: "Para decisiones condicionales"
+
+  variable_system:
+    extracted_from_docs:
+      pattern: "[CAMPO]_EXTRACTED"
+      confidence: "[CAMPO]_CONFIDENCE (alta|media|baja)"
+      source: "[CAMPO]_SOURCE (archivo:línea)"
+
+    final_variables:
+      - PROJECT_NAME
+      - PROJECT_VISION
+      - COMPONENT_TYPES
+      - DATABASE_CHOICE
+      - BACKEND_LANGUAGE_FRAMEWORK
+      - FRONTEND_FRAMEWORK
+      - BOUNDED_CONTEXTS
+      - BACKEND_NAME
+      - FRONTEND_NAME
+      - INTERMEDIARY_NAME
+
+intelligent_extraction_system:
+  title: "Sistema de Extracción Inteligente"
+
+  location: "Step process_input_documents_early en bootstrap.yaml"
+
+  how_it_works:
+    - "Lee TODOS los archivos en user-input-docs/"
+    - "Extrae usando múltiples estrategias:"
+    - "  • Búsqueda explícita (Nombre:, Visión:)"
+    - "  • Inferencia contextual (API REST → backend)"
+    - "  • Análisis estructural (H1 = nombre)"
+    - "Asigna nivel de confianza"
+    - "Detecta conflictos entre documentos"
+    - "Calcula completitud %"
+
+  adding_new_field:
+    location: "ai_extraction_instructions en process_input_documents_early"
+    format: |
+      ═══════════════════════════════════════════════════════════════
+      X️⃣  NOMBRE_CAMPO (VARIABLE_NAME)
+      ═══════════════════════════════════════════════════════════════
+      Buscar en:
+      • Secciones: "Keyword1", "Keyword2"
+      • Líneas que contengan: "pattern:", "otro pattern:"
+      • Campo "yaml_field:" en YAML/JSON
+
+      Formato esperado: tipo de dato
+      Ejemplo: "valor esperado"
+
+  confidence_levels:
+    alta: "Valor explícito y claro"
+    media: "Inferido con contexto sólido"
+    baja: "Ambiguo o genérico - pregunta al usuario"
+
+modifying_templates:
+  title: "Modificar Templates"
+
+  location: "templates/"
+
+  categories:
+    agents: "Templates de agentes IA"
+    docs: "Templates de documentación"
+    github: "Templates de CI/CD workflows"
+
+  using_variables:
+    format: "$VARIABLE_NAME"
+    examples:
+      - "$PROJECT_NAME"
+      - "$PROJECT_VISION"
+      - "$BACKEND_LANGUAGE_FRAMEWORK"
+
+  adding_new_template:
+    steps:
+      - "Crear archivo en directorio correspondiente"
+      - "Usar variables del sistema con $ prefix"
+      - "Referenciar en bootstrap.yaml en paso de copia"
+
+best_practices:
+  title: "Mejores Prácticas al Modificar"
+
+  rules:
+    - principle: "Mantén el flujo simple"
+      detail: "Cada paso debe tener un propósito claro y único"
+
+    - principle: "Extrae antes de preguntar"
+      detail: "Siempre intenta obtener información de documentos primero"
+
+    - principle: "Muestra lo extraído"
+      detail: "Transparencia - usuario debe ver qué se encontró y dónde"
+
+    - principle: "Pregunta solo lo necesario"
+      detail: "Evita preguntas redundantes basándose en completitud"
+
+    - principle: "Valida antes de crear"
+      detail: "Confirma configuración final antes de generar archivos"
+
+    - principle: "Documenta decisiones importantes"
+      detail: "Usa decision_log en metadata para cambios arquitectónicos"
+
+checklist_when_modifying:
+  title: "Checklist al Hacer Cambios"
+
+  items:
+    - "[ ] Cambio reflejado en bootstrap.yaml"
+    - "[ ] Variables nuevas documentadas si aplica"
+    - "[ ] decision_log actualizado si es cambio arquitectónico"
+    - "[ ] user-guide.md actualizada si afecta usuarios"
+    - "[ ] development-guide.md actualizada si cambia forma de desarrollo"
+    - "[ ] Sin versiones en nombres de archivos"
+    - "[ ] Documentación concisa (máx 40 líneas en guías)"
+    - "[ ] Probado con casos: docs completos, parciales, sin docs"
+
+testing_changes:
+  title: "Probar Cambios"
+
+  test_cases:
+    - case: "Documentación completa"
+      setup: "README + arquitectura.yaml + requisitos.md en user-input-docs/"
+      expected: "Completitud 100%, 0 preguntas adicionales"
+
+    - case: "Documentación parcial"
+      setup: "Solo README básico con nombre y visión"
+      expected: "Completitud 40-60%, solo pregunta campos faltantes"
+
+    - case: "Sin documentación"
+      setup: "Directorio user-input-docs/ vacío"
+      expected: "Pregunta todo, flujo tradicional completo"
+
+common_issues:
+  title: "Resolver Problemas Comunes"
+
+  extraction_not_working:
+    symptoms: "No extrae campos esperados"
+    solutions:
+      - "Verificar patrones en ai_extraction_instructions"
+      - "Revisar formatos soportados de archivos"
+      - "Ajustar nivel de confianza si es muy estricto"
+
+  skipping_steps:
+    symptoms: "Flujo salta pasos inesperadamente"
+    solutions:
+      - "Revisar next_step en cada paso"
+      - "Verificar condiciones if en pasos condicionales"
+      - "Comprobar que step_id referenciado existe"
+
+  variables_not_available:
+    symptoms: "Variable no definida en paso posterior"
+    solutions:
+      - "Verificar que se genera en paso previo"
+      - "Revisar merge_and_finalize_metadata"
+      - "Confirmar orden de ejecución correcto"
+
+documentation_style:
+  title: "Estilo de Documentación"
+
+  format:
+    use_tables: "Para información estructurada"
+    use_lists: "Para pasos o items secuenciales"
+    use_code_blocks: "Para ejemplos de código/YAML"
+    avoid_long_paragraphs: "Máximo 3-4 líneas por párrafo"
+
+  tone:
+    - "Directo y claro"
+    - "Ejemplos sobre explicaciones"
+    - "Conciso sin sacrificar claridad"
+
+ai_assistant_guidelines:
+  title: "Directrices para Asistentes IA"
+
+  when_modifying_scaffolding:
+    - "Lee guides/development-guide.md primero"
+    - "Consulta este agente (scaffolding-developer.yaml)"
+    - "Verifica estructura actual antes de cambiar"
+    - "Mantén consistencia con principios existentes"
+    - "Prueba cambios antes de confirmar"
+
+  when_user_asks_to_improve:
+    - "Pregunta qué específicamente quiere mejorar"
+    - "Muestra estado actual vs propuesta"
+    - "Explica impacto del cambio"
+    - "Confirma antes de implementar"
+
+  remember:
+    - "Sin versiones en nombres de archivos"
+    - "Documentación concisa (≤40 líneas guías)"
+    - "Sin CHANGELOG"
+    - "decision_log para cambios importantes"
+
+---
+# Este agente debe cargarse cuando se modifique el scaffolding
+# Para usuarios normales: cargar user-guide.md
+# Para desarrolladores del scaffolding: cargar este agente + development-guide.md

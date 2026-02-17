@@ -18,8 +18,9 @@ apps/tramatex-api/internal/party/
 │   └── ...
 ├── persistence/
 │   ├── repository.go
-│   ├── postgresql.go
-│   └── in_memory.go
+│   ├── gorm_party.go
+│   ├── party_data_model.go
+│   └── test_helpers.go
 └── interfaces/
     ├── party_handlers.go
     ├── party_dto.go
@@ -37,6 +38,6 @@ apps/tramatex-api/internal/party/
 1. **Definir Modelo de Dominio:** `party.go`, `party_profiles.go`, `party_types.go`, `value_objects.go`.
 2. **Definir Interfaces de Repositorio:** `persistence/repository.go`.
 3. **Implementar Casos de Uso:** `party_commands.go` y `party_queries.go` en `application`.
-4. **Implementar Repositorio:** `persistence/postgresql.go` + `in_memory.go`.
+4. **Implementar Repositorio:** `persistence/gorm_party.go` + `party_data_model.go`.
 5. **Exponer Handlers HTTP:** `party_handlers.go` y mappers en `party_dto.go`.
 6. **Añadir Pruebas:** unitarias y de integración por capa.

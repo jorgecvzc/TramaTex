@@ -7,13 +7,16 @@ import (
 	"github.com/joran-cortez/tramatex/internal/product/domain"
 )
 
+// COMMENTED OUT: attributeMatchesScopeType function was removed during scope refactoring
+// This test is obsolete since the system now uses DirectAttributeIDs instead of scope-based inheritance
+/*
 func TestAttributeMatchesScopeType(t *testing.T) {
-	brandID := uuid.New()
-	groupID := uuid.New()
+	// brandID := uuid.New()
+	// groupID := uuid.New()
 
-	genericAttr, _ := domain.NewAttribute("Generic", "G", 1, nil, nil)
-	brandAttr, _ := domain.NewAttribute("Brand", "B", 1, &brandID, nil)
-	groupBrandAttr, _ := domain.NewAttribute("GroupBrand", "GB", 1, &brandID, &groupID)
+	genericAttr, _ := domain.NewAttribute("Generic", "G", 1)
+	brandAttr, _ := domain.NewAttribute("Brand", "B", 1)
+	groupBrandAttr, _ := domain.NewAttribute("GroupBrand", "GB", 1)
 
 	if !attributeMatchesScopeType(genericAttr, nil) {
 		t.Fatalf("expected nil scope type to match")
@@ -45,6 +48,7 @@ func TestAttributeMatchesScopeType(t *testing.T) {
 		t.Fatalf("expected invalid scope to not match")
 	}
 }
+*/
 
 func TestProductMatchesQueryAndHasGroup(t *testing.T) {
 	brandID := uuid.New()

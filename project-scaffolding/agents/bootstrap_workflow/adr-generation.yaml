@@ -1,0 +1,165 @@
+# ADR Generation Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Generates initial Architecture Decision Records (ADRs) and prompts for user validation.
+
+---
+
+metadata:
+  filename: "adr-generation.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the creation of foundational ADRs (Technology Stack, Security, Quality/Testing) and guides the user through their initial review."
+  applies_to: "Project scaffolding initial architecture documentation phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "generate_initial_adr_001"
+    title: "Generar ADR-001 (Stack Tecnológico)"
+    description: "Creará el primer ADR detallando las decisiones del stack tecnológico."
+    files_to_create:
+      - filename: "docs/architecture/adrs/ADR-001-technology-stack-selection.md"
+        content: |
+          # ADR-001 – Selección del Stack Tecnológico y Estrategia Tecnológica Base
+
+          **Fecha:** [[YYYY-MM-DD]]
+          **Estado:** Propuesto
+          **Autores:** [Tu Nombre], Gemini
+
+          ---
+
+          ## 1. Contexto
+          Este ADR define el stack tecnológico base para el proyecto $PROJECT_NAME, cuya visión es: "$PROJECT_VISION".
+
+          ## 2. Decisiones
+          ### Backend
+          - **Lenguaje/Framework**: $BACKEND_LANGUAGE_FRAMEWORK
+          ### Frontend
+          - **Framework**: $FRONTEND_FRAMEWORK
+          ### Base de Datos
+          - **Tipo**: $DATABASE_CHOICE
+
+          ## 3. Consecuencias
+          [Detallar consecuencias positivas y negativas]
+
+          ---
+    next_step: "generate_quality_security_adrs"
+
+  - step_id: "generate_quality_security_adrs"
+    title: "Generar ADRs Fundacionales (Seguridad y Calidad)"
+    description: "Creará los ADRs iniciales para la estrategia de seguridad y calidad, incorporando principios clave desde el inicio."
+    files_to_create:
+      - filename: "docs/architecture/adrs/ADR-002-estrategia-seguridad.md"
+        content_template: |
+          # ADR-002 – Estrategia de Seguridad (Security by Design)
+
+          **Fecha:** [[YYYY-MM-DD]]
+          **Estado:** Propuesto
+          **Autores:** [Tu Nombre], Gemini
+
+          ---
+
+          ## 1. Contexto
+          Se establece la estrategia de seguridad para $PROJECT_NAME, aplicando los principios de **Security by Design** y **Security by Default**. El objetivo es construir un sistema resiliente y seguro desde su concepción.
+
+          ## 2. Decisión
+          Se adoptará un enfoque de **Defensa en Profundidad**, cubriendo múltiples capas: Red, Identidad, Aplicación, Datos y Operaciones. Cada nueva funcionalidad debe ser evaluada contra los principios de OWASP Top 10.
+
+          ### Principios Clave:
+          - **Menor Privilegio**: Los componentes y usuarios solo tendrán los permisos estrictamente necesarios.
+          - **Superficie de Ataque Mínima**: No se expondrán endpoints o servicios innecesarios.
+          - **Límites (Boundary) Claros**: Se definirán y protegerán los límites entre los Bounded Contexts.
+
+          ## 3. Consecuencias
+          - **Positivas**: Mayor resiliencia, reducción de vulnerabilidades, confianza del cliente.
+          - **Negativas**: Posible incremento en el tiempo de desarrollo inicial.
+      - filename: "docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md"
+        content_template: |
+          # ADR-003 – Estrategia de Calidad y Testing Estratégico (100/80/0)
+
+          **Fecha:** [[YYYY-MM-DD]]
+          **Estado:** Propuesto
+          **Autores:** [Tu Nombre], Gemini
+
+          ---
+
+          ## 1. Contexto
+          Para asegurar la máxima calidad y fiabilidad en `$PROJECT_NAME`, se rechaza la métrica de "cobertura de tests global" por ser engañosa. En su lugar, se adopta una **Cobertura Estratégica** basada en el riesgo de negocio. La pregunta clave no es "¿cuánto código está cubierto?", sino **"¿está cubierto el código que puede quebrar el negocio?"**.
+
+          ## 2. Decisión
+          Se implementa una política de testing multinivel, denominada **"90/85/0"**, que clasifica el código en tres tiers según su criticidad. Además, se complementará con la monitorización de **métricas DORA** para evaluar la salud del ciclo de vida de desarrollo.
+
+          ### Tier 1: CORE (Coverage Objetivo: ≥90%)
+          - **Definición**: Lógica de negocio absolutamente crítica. Si falla, el negocio pierde dinero, datos o confianza de forma directa.
+          - **Ejemplos**: Cálculos de precios, procesamiento de pagos, algoritmos de seguridad, validaciones de dominio críticas.
+          - **Requisito**: Cobertura ≥90% en statements, branches y funciones. TDD es obligatorio.
+
+          ### Tier 2: IMPORTANT (Coverage Objetivo: ≥85%)
+          - **Definición**: Funcionalidades con las que el usuario interactúa directamente. Si fallan, la experiencia de usuario se degrada y genera frustración.
+          - **Ejemplos**: Componentes de UI, flujos de usuario, validaciones de formularios, controladores de API.
+          - **Requisito**: Cobertura ≥85%. Se priorizan los "happy paths" y los errores más comunes, omitiendo casos de uso muy rebuscados.
+
+          ### Tier 3: INFRASTRUCTURE (Coverage Objetivo: 0%)
+          - **Definición**: Código sin lógica de negocio, cuya correctitud es garantizada por otras herramientas (como el compilador de TypeScript) o es trivial.
+          - **Ejemplos**: Interfaces, tipos de datos, constantes, archivos de configuración, código generado.
+          - **Requisito**: Excluido del cálculo de cobertura. Testearlo se considera un anti-patrón que no aporta valor.
+
+          ### Métricas DORA
+          Para una visión holística de la calidad y velocidad, se medirán (post-MVP):
+          1. **Lead Time for Changes**: Tiempo desde el commit hasta el despliegue.
+          2. **Deployment Frequency**: Frecuencia de los despliegues.
+          3. **Change Failure Rate**: Tasa de fallos por cambio.
+          4. **Time to Restore Service**: Tiempo de recuperación ante un fallo.
+
+          ## 3. Consecuencias
+          - **Positivas**: Foco del esfuerzo de testing en áreas de alto impacto. Reducción de bugs críticos en producción. Mayor confianza para refactorizar.
+          - **Negativas**: Requiere un análisis inicial para clasificar el código en tiers. Puede generar discusiones sobre qué es "CORE".
+
+          ## 4. Ejemplo de Implementación (Conceptual)
+          La configuración del runner de tests (ej. Jest, Vitest) deberá ser parametrizada para forzar estos umbrales por directorios o patrones de archivo.
+
+          ```yaml
+          # Esto es un ejemplo conceptual y agnóstico a la tecnología.
+          # La sintaxis real dependerá de la herramienta de testing.
+          coverage_thresholds:
+            # 🎯 TIER CORE (≥90%)
+            'paths/to/business-logic/**':
+              statements: 100, branches: 100, functions: 100, lines: 100
+
+            # 🔧 TIER IMPORTANT (80%)
+            'paths/to/ui-components/**':
+              statements: 80, functions: 80
+
+            # 🏗️ TIER INFRASTRUCTURE (0%)
+            'paths/to/types/**':
+              statements: 0
+          ```
+
+      ---
+    next_step: "prompt_user_to_validate_adrs"
+
+  - step_id: "prompt_user_to_validate_adrs"
+    title: "🔬 Validar ADRs Fundacionales"
+    description: "Se han generado los ADRs iniciales de Seguridad y Calidad. Es CRÍTICO que los revises y adaptes a las necesidades específicas de tu proyecto."
+    output_message: |
+
+      ✅ ADRs de Seguridad y Calidad generados.
+
+      ACCIÓN REQUERIDA:
+      ─────────────────
+      Por favor, revisa y modifica los siguientes archivos antes de continuar:
+
+      1. 📄 docs/architecture/adrs/ADR-002-estrategia-seguridad.md
+         - Define los principios de seguridad. Adáptalo a tus requerimientos.
+
+      2. 📄 docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md
+         - Define la estrategia de "Strategic Coverage (100/80/0)".
+         - DEBES clasificar tus futuros directorios en los tiers CORE, IMPORTANT o INFRASTRUCTURE.
+
+      La IA ha propuesto una base, pero la decisión final sobre estos estándares es tuya.
+    prompt_user:
+      - question: "He revisado y entiendo que debo adaptar estos ADRs. ¿Continuar? (sí/no)"
+        variable_name: "USER_CONFIRMED_ADRS"
+        validation: "USER_CONFIRMED_ADRS == 'sí'"
+    next_step: "end" # Changed this
+

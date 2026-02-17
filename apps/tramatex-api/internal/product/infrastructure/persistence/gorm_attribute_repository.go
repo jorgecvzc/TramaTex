@@ -23,27 +23,18 @@ func NewGORMAttributeRepository(db *gorm.DB) *GORMAttributeRepository {
 // Save saves an attribute to the database
 func (r *GORMAttributeRepository) Save(ctx context.Context, attribute *domain.Attribute) error {
 	dataModel := AttributeFromDomain(attribute)
-	actorID := actorIDFromContext(ctx)
-	dataModel.CreatedBy = actorID
-	dataModel.ModifiedBy = actorID
 
 	// Check if record exists to determine if it's an insert or update
 	var existing AttributeDataModel
-	result := r.db.WithContext(ctx).Select("id", "created_at", "created_by").First(&existing, "id = ?", dataModel.ID)
+	result := r.db.WithContext(ctx).Select("id", "created_at").First(&existing, "id = ?", dataModel.ID)
 
 	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return result.Error
 	}
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		// New record, set CreatedAt (GORM's Model hook will handle this if not explicitly set)
-		// and use the provided createdBy
-		dataModel.CreatedBy = actorID
-	} else {
-		// Existing record, preserve original CreatedAt and CreatedBy
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		// Existing record, preserve original CreatedAt
 		dataModel.CreatedAt = existing.CreatedAt
-		dataModel.CreatedBy = existing.CreatedBy
-		dataModel.ModifiedBy = actorID
 	}
 
 	values := dataModel.Values
@@ -56,23 +47,17 @@ func (r *GORMAttributeRepository) Save(ctx context.Context, attribute *domain.At
 	}
 	for i := range values {
 		values[i].AttributeID = dataModel.ID
-		values[i].CreatedBy = actorID // Default for new values
-		values[i].ModifiedBy = actorID
 
 		// Check if AttributeValue record exists to determine if it's an insert or update
 		var existingValue AttributeValueDataModel
-		valueResult := r.db.WithContext(ctx).Select("id", "created_at", "created_by").First(&existingValue, "id = ?", values[i].ID)
+		valueResult := r.db.WithContext(ctx).Select("id", "created_at").First(&existingValue, "id = ?", values[i].ID)
 
 		if valueResult.Error != nil && !errors.Is(valueResult.Error, gorm.ErrRecordNotFound) {
 			return valueResult.Error
 		}
 
-		if errors.Is(valueResult.Error, gorm.ErrRecordNotFound) {
-			values[i].CreatedBy = actorID
-		} else {
+		if !errors.Is(valueResult.Error, gorm.ErrRecordNotFound) {
 			values[i].CreatedAt = existingValue.CreatedAt
-			values[i].CreatedBy = existingValue.CreatedBy
-			values[i].ModifiedBy = actorID
 		}
 	}
 	ids := make([]uuid.UUID, 0, len(values))
@@ -98,6 +83,19 @@ func (r *GORMAttributeRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 	return dataModel.ToDomain(), nil
 }
 
+// FindByCode finds an attribute by its code
+func (r *GORMAttributeRepository) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
+	var dataModel AttributeDataModel
+	err := r.db.WithContext(ctx).Preload("Values").First(&dataModel, "code = ?", code).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return dataModel.ToDomain(), nil
+}
+
 // FindByIDs finds attributes by their IDs
 func (r *GORMAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Attribute, error) {
 	var dataModels []AttributeDataModel
@@ -114,27 +112,12 @@ func (r *GORMAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID
 	return attributes, nil
 }
 
-// FindByScope finds attributes based on optional brandID and groupID.
-// If both are nil, it returns generic attributes.
+// FindByScope returns all attributes.
+// Note: Scope filtering removed for MVP simplicity. This method now returns all attributes
+// regardless of brandID/groupID parameters (kept for backwards compatibility).
 func (r *GORMAttributeRepository) FindByScope(ctx context.Context, brandID *uuid.UUID, groupID *uuid.UUID) ([]*domain.Attribute, error) {
 	var dataModels []AttributeDataModel
-	query := r.db.WithContext(ctx).Preload("Values")
-
-	if brandID != nil && groupID != nil {
-		// Scoped to both brand and group
-		query = query.Where("scope_brand_id = ? AND scope_group_id = ?", *brandID, *groupID)
-	} else if brandID != nil {
-		// Scoped to only brand
-		query = query.Where("scope_brand_id = ? AND scope_group_id IS NULL", *brandID)
-	} else if groupID != nil {
-		// Scoped to only group
-		query = query.Where("scope_group_id = ? AND scope_brand_id IS NULL", *groupID)
-	} else {
-		// Generic attributes (not scoped to any brand or group)
-		query = query.Where("scope_brand_id IS NULL AND scope_group_id IS NULL")
-	}
-
-	err := query.Find(&dataModels).Error
+	err := r.db.WithContext(ctx).Preload("Values").Find(&dataModels).Error
 	if err != nil {
 		return nil, err
 	}
@@ -145,4 +128,14 @@ func (r *GORMAttributeRepository) FindByScope(ctx context.Context, brandID *uuid
 	}
 
 	return attributes, nil
+}
+
+// Delete deletes an attribute and its values by its ID
+func (r *GORMAttributeRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// First delete all associated attribute values
+	if err := r.db.WithContext(ctx).Where("attribute_id = ?", id).Delete(&AttributeValueDataModel{}).Error; err != nil {
+		return err
+	}
+	// Then delete the attribute itself
+	return r.db.WithContext(ctx).Delete(&AttributeDataModel{}, "id = ?", id).Error
 }

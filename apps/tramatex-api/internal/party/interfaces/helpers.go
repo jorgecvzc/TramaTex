@@ -9,3 +9,18 @@ type ListResponse struct {
 	PageSize   int         `json:"page_size,omitempty"`
 	Total      int         `json:"total"`
 }
+
+func getUserIDFromContext(c *gin.Context) string {
+	if c == nil {
+		return "system"
+	}
+	userID, ok := c.Get("userID")
+	if !ok {
+		return "system"
+	}
+	value, ok := userID.(string)
+	if !ok || value == "" {
+		return "system"
+	}
+	return value
+}

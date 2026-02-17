@@ -72,12 +72,6 @@ func main() {
 	logging.Logger.Info("✓ Database connected")
 	fmt.Println("✓ Database connected")
 
-	// Get underlying SQL DB from GORM for repositories that need *sql.DB
-	sqlDB, err := db.DB()
-	if err != nil {
-		log.Fatalf("Failed to get SQL database instance: %v", err)
-	}
-
 	// Run migrations
 	fmt.Println("🔄 Starting migrations...")
 	if err := migrations.RunMigrations(db); err != nil {
@@ -134,9 +128,9 @@ func main() {
 
 	// --- Party Module Dependencies ---
 	// 1. Repositories
-	partyRepo := party_repo.NewPostgreSQLPartyRepository(sqlDB)
-	partyRelationshipRepo := party_repo.NewPostgreSQLPartyRelationshipRepository(sqlDB)
-	partyAddressRepo := party_repo.NewPostgreSQLPartyAddressRepository(sqlDB)
+	partyRepo := party_repo.NewGORMPartyRepository(db)
+	partyRelationshipRepo := party_repo.NewGORMPartyRelationshipRepository(db)
+	partyAddressRepo := party_repo.NewGORMPartyAddressRepository(db)
 
 	// 2. Use Cases
 	createPartyHandler := party_uc.NewCreatePartyHandler(partyRepo)
@@ -144,6 +138,7 @@ func main() {
 	changePartyStatusHandler := party_uc.NewChangePartyStatusHandler(partyRepo)
 	getPartyHandler := party_uc.NewGetPartyHandler(partyRepo)
 	listPartiesHandler := party_uc.NewListPartiesHandler(partyRepo)
+	getPartiesBatchHandler := party_uc.NewGetPartiesBatchHandler(partyRepo)
 	addPartyRoleHandler := party_uc.NewAddPartyRoleHandler(partyRepo)
 	removePartyRoleHandler := party_uc.NewRemovePartyRoleHandler(partyRepo)
 	addPartyRelationshipHandler := party_uc.NewAddPartyRelationshipHandler(partyRelationshipRepo)
@@ -163,6 +158,7 @@ func main() {
 		changePartyStatusHandler,
 		getPartyHandler,
 		listPartiesHandler,
+		getPartiesBatchHandler,
 	)
 	partyRoleHandler := party_handler.NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
 	partyRelationshipHandler := party_handler.NewPartyRelationshipHandler(
@@ -290,6 +286,7 @@ func main() {
 				parties.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), partyHandler.ChangePartyStatus)
 
 				parties.GET("", partyHandler.ListParties)
+				parties.GET("/batch", partyHandler.GetPartiesBatch)
 				parties.GET("/:id", partyHandler.GetParty)
 
 				parties.POST("/:id/roles", infra_middleware.RequireRole("admin", "commercial"), partyRoleHandler.AddRole)
@@ -318,8 +315,9 @@ func main() {
 			products := protected.Group("/products")
 			{
 				products.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateProduct)
-				products.GET("", productHandler.ListProducts)                                                 // New
-				products.GET("/:id", productHandler.GetProductByID)                                           // New
+				products.GET("", productHandler.ListProducts)       // New
+				products.GET("/:id", productHandler.GetProductByID) // New
+				products.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProduct)
 				products.GET("/:id/calculated-option-sets", productHandler.GetCalculatedOptionSetsForProduct) // New
 				products.POST("/:id/groups", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddGroupToProduct)
 				products.POST("/:id/attributes", infra_middleware.RequireRole("admin", "commercial"), productHandler.AddDirectAttributeToProduct)
@@ -339,6 +337,7 @@ func main() {
 				attributes.GET("", productHandler.ListAttributes)                                                           // New
 				attributes.GET("/:id", productHandler.GetAttributeByID)                                                     // New
 				attributes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateAttribute) // New
+				attributes.DELETE("/:id", infra_middleware.RequireRole("admin"), productHandler.DeleteAttribute)            // New
 			}
 
 			// API contract alias: ProductOptionSet
@@ -356,6 +355,26 @@ func main() {
 				variants.GET("/:id", productHandler.GetProductVariantByID)                                                     // New
 				variants.GET("", productHandler.GetProductVariantBySKU)                                                        // New (using query param sku)
 				variants.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductVariant) // New
+			}
+
+			// Brand routes
+			brands := protected.Group("/brands")
+			{
+				brands.GET("", productHandler.ListBrands)
+				brands.GET("/:id", productHandler.GetBrandByID)
+				brands.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateBrand)
+				brands.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateBrand)
+				brands.DELETE("/:id", infra_middleware.RequireRole("admin"), productHandler.DeleteBrand)
+			}
+
+			// Product Group routes
+			productGroups := protected.Group("/product-groups")
+			{
+				productGroups.GET("", productHandler.ListProductGroups)
+				productGroups.GET("/:id", productHandler.GetProductGroupByID)
+				productGroups.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateProductGroup)
+				productGroups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), productHandler.UpdateProductGroup)
+				productGroups.DELETE("/:id", infra_middleware.RequireRole("admin"), productHandler.DeleteProductGroup)
 			}
 
 			pricing := protected.Group("/pricing")
@@ -408,6 +427,7 @@ func main() {
 				invoices := sales.Group("/invoices")
 				{
 					invoices.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateInvoice)
+					invoices.POST("/simplified", infra_middleware.RequireRole("admin", "commercial", "cashier"), salesHandler.CreateSimplifiedInvoice)
 					invoices.GET("", salesHandler.ListInvoices)
 					invoices.GET("/:id", salesHandler.GetInvoice)
 				}

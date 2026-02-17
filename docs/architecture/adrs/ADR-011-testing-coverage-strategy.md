@@ -21,7 +21,7 @@ Se adopta una estrategia de testing multi-capa que se alinea con la Arquitectura
 La estrategia se basa en los siguientes puntos clave:
 
 1.  **Pirámide de Testing:** Se favorece una base sólida de tests unitarios rápidos, complementados por menos tests de integración y un número muy selectivo de tests E2E. La proporción recomendada como guía es **70% Unitarios, 25% Integración, 5% E2E**.
-2.  **Test-Driven Development (TDD):** Es **obligatorio** para el desarrollo de toda la lógica de negocio ubicada en la capa de Dominio, especialmente en módulos críticos.
+2.  **Enfoque Iterativo de Desarrollo ("Afinación Continua"):** Se sigue un enfoque iterativo de "construir y refinar", donde el desarrollo avanza a través de la implementación de dominio, casos de uso, infraestructura y UI, seguido de una fase de comprobación y afinación, reiniciando el ciclo si es necesario. Aunque se prioriza la escritura de tests en todas las capas, la aplicación estricta de TDD se reserva para decisiones específicas y se aborda de forma pragmática según la criticidad del módulo y el contexto del desarrollo.
 3.  **Objetivos de Cobertura (Coverage):** Se establecen mínimos de cobertura de código para garantizar que la lógica crítica esté adecuadamente probada.
 
 ### Objetivos de Cobertura por Fase (MVP vs Post-MVP)
@@ -34,10 +34,10 @@ Backend (Go):
 
 | Módulo | Cobertura Mínima | Criticidad | Justificación |
 |---|---|---|---|
-| **Pricing** | **100%** | Económica | Errores impactan directamente en la facturación y rentabilidad. |
-| **Party** | ≥ 90% | Funcional | Errores en la gestión de clientes/proveedores impactan toda la operativa. |
+| **Pricing** | **≥ 90%** | Económica | Errores impactan directamente en la facturación y rentabilidad. |
+| **Party** | ≥ 85% | Funcional | Errores en la gestión de clientes/proveedores impactan toda la operativa. |
 | **Product** | ≥ 85% | Funcional | La correcta definición de productos es clave para precios y ventas. |
-| **General** | **≥ 75%** | Calidad Base | Mínimo aceptable para cualquier otro módulo de backend. |
+| **General** | **≥ 85%** | Calidad Base | Mínimo aceptable para cualquier otro módulo de backend. |
 
 Frontend (Vue): cobertura **≥80%** para lógica de negocio crítica (stores de Pinia, composables reutilizables).
 

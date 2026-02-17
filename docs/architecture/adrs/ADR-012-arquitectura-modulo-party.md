@@ -3,6 +3,7 @@
 - **Estado:** Finalizado
 - **Fecha:** 2026-02-01
 - **Proponentes:** Gemini, Usuario
+ - **Ultima actualizacion:** 2026-02-08
 
 ## Contexto y Planteamiento del Problema
 
@@ -121,6 +122,17 @@ El modelo de Roles y Relaciones resuelve la complejidad central de las relacione
 - **Impacto en el Código:** Refactorización completa del módulo `Party`.
 - **Impacto en la Base de Datos:** Diseño de un esquema de tablas que soporte `Party`, `Profiles` (Person y Organization), `Roles`, `Relationships` y `ContactDetails`.
 - **Impacto en la API:** Rediseño de los DTOs y endpoints para reflejar el nuevo modelo centrado en `Party`.
+
+## Estado de implementacion (2026-02-08)
+
+- **Persistencia:** Repositorios implementados con GORM en la capa `persistence`.
+- **Manejo de errores:** Errores tipados en dominio y aplicacion, segun `code-standards.yaml`.
+- **Cobertura de pruebas:** El modulo Party cumple el umbral de MVP (>= 85%) definido en ADR-011.
+
+Referencias:
+- [docs/modules/party/implementation-guide.md](../../modules/party/implementation-guide.md)
+- [docs/modules/party/party-improvements.md](../../modules/party/party-improvements.md)
+- [docs/architecture/adrs/ADR-011-testing-coverage-strategy.md](./ADR-011-testing-coverage-strategy.md)
 
 ## Plan de Implementación
 

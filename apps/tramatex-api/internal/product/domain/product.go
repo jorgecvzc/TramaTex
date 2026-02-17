@@ -1,15 +1,33 @@
 package domain
 
-import (
-	"fmt"
-	"github.com/google/uuid"
-	"time"
-)
+import "github.com/google/uuid"
 
 // Brand represents an external aggregate root, defined here for context.
 type Brand struct {
-	ID   uuid.UUID
-	Name string
+	ID       uuid.UUID
+	Name     string
+	IsActive bool
+}
+
+// NewBrand creates a new Brand with validation.
+func NewBrand(name string, isActive bool) (*Brand, error) {
+	if name == "" {
+		return nil, NewValidationError("brand name is required")
+	}
+	return &Brand{
+		ID:       uuid.New(),
+		Name:     name,
+		IsActive: isActive,
+	}, nil
+}
+
+// UpdateName updates the brand name with validation.
+func (b *Brand) UpdateName(name string) error {
+	if name == "" {
+		return NewValidationError("brand name is required")
+	}
+	b.Name = name
+	return nil
 }
 
 // ID_PTR returns a pointer to the Brand's ID.
@@ -19,8 +37,32 @@ func (b *Brand) ID_PTR() *uuid.UUID {
 
 // ProductGroup represents an external aggregate root, defined here for context.
 type ProductGroup struct {
-	ID   uuid.UUID
-	Name string
+	ID            uuid.UUID
+	Name          string
+	ParentGroupID *uuid.UUID
+	IsActive      bool
+}
+
+// NewProductGroup creates a new ProductGroup with validation.
+func NewProductGroup(name string, parentID *uuid.UUID, isActive bool) (*ProductGroup, error) {
+	if name == "" {
+		return nil, NewValidationError("product group name is required")
+	}
+	return &ProductGroup{
+		ID:            uuid.New(),
+		Name:          name,
+		ParentGroupID: parentID,
+		IsActive:      isActive,
+	}, nil
+}
+
+// UpdateName updates the product group name with validation.
+func (pg *ProductGroup) UpdateName(name string) error {
+	if name == "" {
+		return NewValidationError("product group name is required")
+	}
+	pg.Name = name
+	return nil
 }
 
 // ID_PTR returns a pointer to the ProductGroup's ID.
@@ -51,16 +93,16 @@ func NewProduct(
 	barcode *string,
 ) (*Product, error) {
 	if sku == "" {
-		return nil, fmt.Errorf("product SKU cannot be empty")
+		return nil, NewValidationError("product SKU cannot be empty")
 	}
 	if name == "" {
-		return nil, fmt.Errorf("product name cannot be empty")
+		return nil, NewValidationError("product name cannot be empty")
 	}
 	if err := productType.IsValid(); err != nil {
 		return nil, err
 	}
 	if brandID == uuid.Nil {
-		return nil, fmt.Errorf("product must be associated with a brand")
+		return nil, NewValidationError("product must be associated with a brand")
 	}
 
 	return &Product{

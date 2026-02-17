@@ -302,7 +302,7 @@ Tests infraestructura:
 - GORM repository CRUD for each aggregate.
 
 Cobertura objetivo:
-- Sales domain >= 85%, resto >= 75%.
+- Sales domain >= 85%, resto >= 85%.
 ```
 
 ---

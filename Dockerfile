@@ -28,6 +28,9 @@ RUN apk --no-cache add ca-certificates
 # Copy binary from builder
 COPY --from=builder /app/tramatex .
 
+# Copy migrations directory
+COPY --from=builder /app/migrations /app/migrations
+
 # Expose API port
 EXPOSE 8080
 

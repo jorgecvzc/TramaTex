@@ -179,7 +179,7 @@ npm run format        # Prettier
 
 - **Backend:** Go testing + assertions manuales
 - **Frontend:** Vitest (similar a Jest)
-- **Cobertura objetivo:** ≥75% global, 100% en Pricing
+- **Cobertura objetivo:** ≥85% global, ≥90% en Pricing
 
 ### Code Style
 

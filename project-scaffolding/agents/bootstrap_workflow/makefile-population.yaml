@@ -1,0 +1,46 @@
+# Makefile Population Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Populates the project's Makefile with commands specific to chosen technologies.
+
+---
+
+metadata:
+  filename: "makefile-population.yaml"
+  version: "1.0"
+  last_updated: "2026-02-16"
+  purpose: "Handles the dynamic replacement of command placeholders within the generated Makefile."
+  applies_to: "Project scaffolding configuration phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "populate_makefile_commands"
+    title: "Popular Comandos del Makefile"
+    description: "Rellenará el Makefile con los comandos específicos de los lenguajes/frameworks elegidos."
+    replace_in_file: "Makefile"
+    replacements:
+      - find: "BACKEND_BUILD_CMD ?= @echo \"Backend build command not set.\""
+        replace: "BACKEND_BUILD_CMD := $BACKEND_BUILD_CMD_VAR"
+      - find: "BACKEND_RUN_CMD ?= @echo \"Backend run command not set.\""
+        replace: "BACKEND_RUN_CMD := $BACKEND_RUN_CMD_VAR"
+      - find: "BACKEND_TEST_CMD ?= @echo \"Backend test command not set.\""
+        replace: "BACKEND_TEST_CMD := $BACKEND_TEST_CMD_VAR"
+      - find: "BACKEND_LINT_CMD ?= @echo \"Backend lint command not set.\""
+        replace: "BACKEND_LINT_CMD := $BACKEND_LINT_CMD_VAR"
+      - find: "FRONTEND_BUILD_CMD ?= @echo \"Frontend build command not set.\""
+        replace: "FRONTEND_BUILD_CMD := $FRONTEND_BUILD_CMD_VAR"
+      - find: "FRONTEND_RUN_CMD ?= @echo \"Frontend run command not set.\""
+        replace: "FRONTEND_RUN_CMD := $FRONTEND_RUN_CMD_VAR"
+      - find: "FRONTEND_TEST_CMD ?= @echo \"Frontend test command not set.\""
+        replace: "FRONTEND_TEST_CMD := $FRONTEND_TEST_CMD_VAR"
+      - find: "FRONTEND_LINT_CMD ?= @echo \"Frontend lint command not set.\""
+        replace: "FRONTEND_LINT_CMD := $FRONTEND_LINT_CMD_VAR"
+      - find: "INTERMEDIARY_BUILD_CMD ?= @echo \"Intermediary build command not set.\""
+        replace: "INTERMEDIARY_BUILD_CMD := $INTERMEDIARY_BUILD_CMD_VAR"
+      - find: "INTERMEDIARY_RUN_CMD ?= @echo \"Intermediary run command not set.\""
+        replace: "INTERMEDIARY_RUN_CMD := $INTERMEDIARY_RUN_CMD_VAR"
+      - find: "INTERMEDIARY_TEST_CMD ?= @echo \"Intermediary test command not set.\""
+        replace: "INTERMEDIARY_TEST_CMD := $INTERMEDIARY_TEST_CMD_VAR"
+      - find: "INTERMEDIARY_LINT_CMD ?= @echo \"Intermediary lint command not set.\""
+        replace: "INTERMEDIARY_LINT_CMD := $INTERMEDIARY_LINT_CMD_VAR"
+    next_step: "end"

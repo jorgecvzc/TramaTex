@@ -37,6 +37,17 @@ Las reglas de pricing se persisten en una base de datos relacional (PostgreSQL) 
 
 ---
 
+## Cobertura de Pruebas
+
+El modulo de Pricing requiere **≥90% de cobertura unitaria** en dominio. Para generar un reporte local:
+
+```bash
+cd apps/tramatex-api
+make coverage-pricing
+```
+
+El reporte HTML queda en `apps/tramatex-api/coverage-pricing.html`.
+
 ## Contratos de API (DTOs)
 
 Los siguientes DTOs (Data Transfer Objects) definen los contratos para la interacción con el módulo de Pricing, tanto para la gestión de reglas como para los casos de uso de cálculo.

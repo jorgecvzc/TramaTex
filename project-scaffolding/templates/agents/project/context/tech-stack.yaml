@@ -1,0 +1,296 @@
+# Tech Stack Context Agent
+# Version: 1.0
+# Purpose: Technology stack details and tool-specific guidelines
+
+---
+
+metadata:
+  filename: "tech-stack.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  last_updated: "2026-02-15"
+  references:
+    - "ADR-001-technology-stack-selection.md"
+
+backend_stack:
+  title: "🔧 $BACKEND_NAME Stack ($BACKEND_LANGUAGE_FRAMEWORK)"
+  
+  runtime:
+    language: "Go 1.21+"
+    rationale: "Fast compilation, single binary, good concurrency, suitable for local-first"
+  
+  web_framework:
+    library: "Gin Gonic"
+    purpose: "HTTP routing, middleware"
+    usage: "Interfaces layer only"
+  
+  database:
+    engine: "PostgreSQL 15+"
+    connection: "pgx via GORM"
+    rationale: "Reliable, supports complex queries, local deployment friendly"
+  
+  orm:
+    library: "GORM"
+    location: "Infrastructure layer ONLY"
+    rule: "NO GORM in domain or application layers"
+    models: "Define alongside repositories in infrastructure/"
+  
+  error_handling:
+    package: "apps/$BACKEND_NAME/pkg/errors"
+    style: "Custom typed errors, not string errors"
+  
+  logging:
+    approach: "Structured logging with levels (Debug, Info, Warn, Error)"
+    tools: "[To be defined - consider logrus or zap]"
+  
+  testing:
+    framework: "Go testing package (built-in)"
+    assertions: "testify/assert or similar"
+    databases: "Test containers or in-memory SQLite for unit tests"
+  
+  build_and_deployment:
+    containerization: "Docker + Dockerfile"
+    orchestration: "Docker Compose"
+    configuration: "Environment variables, config files in /apps/$BACKEND_NAME/cmd/$BACKEND_MAIN_ENTRYPOINT_FOLDER/"
+
+frontend_stack:
+  title: "🎨 $FRONTEND_NAME Stack ($FRONTEND_FRAMEWORK)"
+  
+  framework:
+    library: "Vue.js 3"
+    composition_api: "REQUIRED (no Options API)"
+    rationale: "Modern, reactive, composition-based code organization"
+  
+  build_tool:
+    tool: "Vite"
+    purpose: "Fast dev server, optimized builds"
+    config: "vite.config.js"
+  
+  state_management:
+    library: "[NOMBRE_HERRAMIENTA_GESTION_ESTADO_NO_DEFINIDO]"
+    approach: "Stores for global state (not component-local)"
+    rationale: "Replaces Vuex, simpler and more Vue 3 native"
+  
+  styling:
+    css_framework: "Tailwind CSS"
+    rule: "NO inline styles, NO raw CSS"
+    approach: "Utility-first CSS classes"
+  
+  type_safety:
+    language: "TypeScript"
+    config: "tsconfig.json"
+    requirement: "Strict type checking, no 'any'"
+  
+  api_communication:
+    pattern: "Services layer for API calls"
+    rule: "NO direct fetch/axios in components"
+    approach: "Services → Composables → Components"
+  
+  form_validation:
+    location: "Composables or Stores (not templates)"
+    approach: "Reusable validation logic"
+  
+  testing:
+    framework: "Vitest"
+    config: "vitest.config.ts"
+    scope: "Critical business logic in stores and composables"
+    tools: "Vitest + Vue Test Utils"
+    coverage: "≥80% for critical logic"
+  
+  accessibility:
+    baseline: "Minimal (WCAG 2.0 level A)"
+    requirements:
+      - "Form labels properly associated"
+      - "ARIA roles for complex widgets"
+      - "Keyboard navigation for dialogs"
+  
+  build_output:
+    location: "dist/"
+    format: "SPA (Single Page Application)"
+    deployment: "Static file server or embedded in $BACKEND_NAME"
+
+infrastructure_and_deployment:
+  title: "🐳 Infrastructure & Deployment"
+  
+  containerization:
+    base_image:
+      $BACKEND_NAME: "$BACKEND_BASE_IMAGE (multistage build)"
+      $FRONTEND_NAME: "$FRONTEND_BASE_IMAGE (build stage) → $FRONTEND_SERVER_IMAGE (serve)"
+  
+  orchestration:
+    tool: "Docker Compose"
+    scope: "MVP development and small deployments"
+    services:
+      - "$BACKEND_NAME service ($BACKEND_LANGUAGE_FRAMEWORK)"
+      - "$FRONTEND_NAME service ($FRONTEND_FRAMEWORK via $FRONTEND_SERVER_IMAGE)"
+      - "postgresql service (database)"
+      - "volumes for data persistence"
+    
+    file: "docker-compose.yml"
+  
+  local_first_design:
+    principle: "Operate without cloud dependencies"
+    requirements:
+      - "All data stays in local PostgreSQL"
+      - "No required cloud services"
+      - "NAS for file storage (optional, future)"
+      - "Possible future: optional cloud backup"
+  
+  networking:
+    $BACKEND_NAME_api: "http://localhost:$BACKEND_PORT (development)"
+    $FRONTEND_NAME: "http://localhost:$FRONTEND_PORT (development, $FRONTEND_BUILD_TOOL)"
+    production: "[To be defined]"
+  
+  security:
+    authentication: "JWT (JSON Web Tokens)"
+    token_storage: "LocalStorage ($FRONTEND_NAME) - be aware of XSS"
+    password_hashing: "bcrypt (Go crypto/bcrypt)"
+    https: "TLS/SSL (post-MVP or for production)"
+  
+  configuration:
+    $BACKEND_NAME:
+      method: "Environment variables + config files"
+      location: "apps/$BACKEND_NAME/internal/config/"
+      example_vars:
+        - "DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD"
+        - "JWT_SECRET"
+        - "API_PORT"
+    
+    $FRONTEND_NAME:
+      method: "Environment variables (Vite) or runtime config"
+      location: "apps/$FRONTEND_NAME/.env, .env.local"
+      example_vars:
+        - "VITE_API_URL"
+
+development_workflow:
+  title: "⚙️ Development Workflow"
+  
+  backend_development:
+    run_locally:
+      - "Start PostgreSQL (Docker or local)"
+      - "$BACKEND_RUN_COMMAND"
+      - "Or use: docker-compose up $BACKEND_NAME"
+    
+    testing:
+      - "go test ./..."
+      - "go test -cover ./..."
+      - "go test -v ./..."
+    
+    linting:
+      - "golangci-lint run ./..."
+      - "golangci-lint run ./... --fix"
+    
+    formatting:
+      - "go fmt ./..."
+      - "go vet ./..."
+  
+  frontend_development:
+    run_locally:
+      - "cd apps/$FRONTEND_NAME"
+      - "npm install"
+      - "npm run dev"
+      - "Vite server runs on http://localhost:5173"
+    
+    testing:
+      - "npm run test"
+      - "npm run test:ui (Vitest UI)"
+    
+    linting:
+      - "npm run lint"
+      - "npm run lint -- --fix"
+    
+    building:
+      - "$FRONTEND_BUILD_COMMAND"
+      - "Output: apps/$FRONTEND_NAME/$FRONTEND_DIST_FOLDER/"
+  
+  docker_compose_workflow:
+    development:
+      - "docker-compose up"
+      - "$BACKEND_NAME: http://localhost:$BACKEND_PORT"
+      - "$FRONTEND_NAME: http://localhost:$FRONTEND_PORT (via $FRONTEND_BUILD_TOOL in compose)"
+    
+    production_build:
+      - "docker-compose -f docker-compose.prod.yml up"
+      - "[Post-MVP]"
+  
+  database_workflow:
+    migrations:
+      - "Migrations stored: apps/$BACKEND_NAME/migrations/"
+      - "Format: YYYYMMDD_description.sql (sequentially numbered)"
+      - "Apply on startup: [Migration tool TBD]"
+    
+    testing:
+      - "Use in-memory SQLite for unit tests"
+      - "Use test PostgreSQL container for integration tests"
+
+browser_and_client_support:
+  title: "🌐 Browser Support"
+  
+  desktop:
+    browsers:
+      - "Chrome/Chromium 90+"
+      - "Firefox 88+"
+      - "Safari 14+"
+    
+    rationale: "Modern browsers, HTML5, ES2020+"
+  
+  tablet:
+    os:
+      - "iPad OS 14+ (Safari)"
+      - "Android 10+ (Chrome)"
+    
+    considerations:
+      - "Touch-friendly interfaces"
+      - "Responsive design (Tailwind)"
+      - "Performance optimized"
+  
+  no_mobile_phones_in_mvp:
+    scope: "Desktop and tablet focus"
+    rationale: "Core users are shop assistants, designers, production staff"
+
+performance_considerations:
+  title: "⚡ Performance Targets"
+  
+  backend_app:
+    response_times:
+      - "Standard queries: <100ms"
+      - "Complex calculations (pricing): <500ms"
+      - "Bulk operations: <5s"
+    
+    database:
+      - "Indexes on foreign keys and frequent filters"
+      - "Query optimization per ADR"
+    
+    concurrency:
+      - "Handle 50-100 concurrent users"
+      - "Go goroutines for I/O-bound tasks"
+  
+  frontend_app:
+    page_load:
+      - "First Contentful Paint: <2s"
+      - "Time to Interactive: <3s"
+    
+    bundle_size:
+      - "Gzip: <500KB (excluding vendor)"
+    
+    optimization:
+      - "Code splitting via Vite"
+      - "Lazy loading of routes"
+      - "Image optimization (future)"
+
+future_technology_decisions:
+  title: "🚀 Post-MVP Technology Decisions"
+  
+  database_evolution:
+    - "Possible: Read replicas"
+    - "Possible: Redis caching (high-volume scenarios)"
+  
+  frontend_app_evolution:
+    - "PWA capabilities (offline support)"
+    - "i18n (internationalization)"
+    - "Advanced charting (business intelligence)"
+  
+  infrastructure_evolution:
+    - "Kubernetes (if scaling to multiple deployments)"
+    - "Cloud backup (optional, post-MVP)"
+    - "Microservices split (if business justifies)"

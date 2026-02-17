@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -32,17 +31,17 @@ func NewProductVariant(
 	attributeValueIDs []uuid.UUID,
 ) (*ProductVariant, error) {
 	if productID == uuid.Nil {
-		return nil, fmt.Errorf("product variant must be associated with a product")
+		return nil, NewValidationError("product variant must be associated with a product")
 	}
 	if sku == "" {
-		return nil, fmt.Errorf("product variant SKU cannot be empty")
+		return nil, NewValidationError("product variant SKU cannot be empty")
 	}
 	if err := status.IsValid(); err != nil {
 		return nil, err
 	}
 	// A variant must be defined by at least one attribute value to distinguish it
 	if len(attributeValueIDs) == 0 {
-		return nil, fmt.Errorf("product variant must have at least one attribute value")
+		return nil, NewValidationError("product variant must have at least one attribute value")
 	}
 
 	// Sort attributeValueIDs for deterministic comparison and consistency
@@ -69,7 +68,7 @@ func NewProductVariant(
 // by Attribute.SortOrder to ensure a deterministic SKU.
 func GenerateVariantSKU(productSKU string, attributeCodeValuePairs []struct{ AttributeCode, ValueCode string }) (string, error) {
 	if productSKU == "" {
-		return "", fmt.Errorf("product SKU cannot be empty for variant SKU generation")
+		return "", NewValidationError("product SKU cannot be empty for variant SKU generation")
 	}
 	// A variant SKU will always start with the product SKU
 	if len(attributeCodeValuePairs) == 0 {
@@ -79,7 +78,7 @@ func GenerateVariantSKU(productSKU string, attributeCodeValuePairs []struct{ Att
 	var parts []string
 	for _, pair := range attributeCodeValuePairs {
 		if pair.AttributeCode == "" || pair.ValueCode == "" {
-			return "", fmt.Errorf("attribute code and value code cannot be empty for variant SKU generation")
+			return "", NewValidationError("attribute code and value code cannot be empty for variant SKU generation")
 		}
 		parts = append(parts, fmt.Sprintf("%s.%s", pair.AttributeCode, pair.ValueCode))
 	}

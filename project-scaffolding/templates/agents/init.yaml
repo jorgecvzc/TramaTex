@@ -8,7 +8,7 @@
 metadata:
   filename: "init.yaml"
   version: "1.0"
-  last_updated: "2026-02-04"
+  last_updated: "2026-02-15"
   purpose: "Serves as the main entry point to guide users to specific agent workflows."
   applies_to: "Any project using the modular agent system."
   dependencies:
@@ -19,52 +19,65 @@ metadata:
 workflow:
   title: "🚀 Asistente de Flujo de Trabajo (Entry Point)"
   description: "¡Hola! Soy tu asistente de IA. Estoy aquí para ayudarte a comenzar a trabajar en el proyecto. Por favor, dime qué te gustaría hacer hoy."
-  
-  # Step 0: Load foundational contexts
-  step_0_load_foundational_context:
-    action: "Cargar reglas genéricas y contexto del proyecto."
-    load:
-      - "generic-rules.yaml"
-      - "load-project-context.yaml" # This agent handles project-context.yaml and offers modular contexts
+
+
 
   # Step 1: Present main menu options
   step_1_present_main_menu:
-    action: "Presentar opciones al usuario."
+    action: "Present options to the user."
     prompt: |
       ¿Qué te gustaría hacer?
       1. Continuar o iniciar una tarea de desarrollo (Sprints y Tareas)
-      2. Revisar la documentación del proyecto
-      3. Obtener información sobre la arquitectura o estándares de código
-      4. Ver la guía de uso de agentes
-      5. Salir/Terminar
-      
+      2. Obtener información del proyecto (documentación, arquitectura, agentes)
+      3. Salir/Terminar
+
       Por favor, introduce el número de tu elección:
     variable_name: "MAIN_MENU_CHOICE"
 
   # Step 2: Handle user's choice
   step_2_handle_choice:
-    action: "Dirigir al agente apropiado basado en la elección del usuario."
+    action: "Direct to the appropriate agent based on user choice."
     if: "MAIN_MENU_CHOICE == '1'"
       # Loads the agent responsible for managing development sessions (sprints/tasks)
       load: "load-session.yaml"
     else_if: "MAIN_MENU_CHOICE == '2'"
-      # A new agent would be needed here to navigate documentation
-      # For now, we can just point to the main docs README
-      output: "Puedes consultar la documentación principal del proyecto en: docs/README.md"
-      goto: "step_1_present_main_menu" # Return to main menu after showing info
+      goto: "step_2_project_info_menu"
     else_if: "MAIN_MENU_CHOICE == '3'"
-      # Load a context agent that can answer questions about architecture/standards
-      # Or directly prompt the user for specific questions to codebase_investigator
-      output: |
-        Para preguntas sobre arquitectura y estándares, te recomiendo usar el agente 'load-project-context.yaml' para cargar el contexto y luego hacer tu pregunta.
-        O puedes consultar directamente los archivos en 'agents/project/context/'.
-      goto: "step_1_present_main_menu" # Return to main menu after showing info
-    else_if: "MAIN_MENU_CHOICE == '4'"
-      output: "Puedes encontrar la guía de uso de agentes en: docs/guides/user/agent-usage-guide.md"
-      goto: "step_1_present_main_menu" # Return to main menu after showing info
-    else_if: "MAIN_MENU_CHOICE == '5'"
       output: "¡Hasta pronto! Si necesitas ayuda de nuevo, no dudes en preguntar."
       goto: "end"
     else:
       output: "Opción no válida. Por favor, intenta de nuevo."
       goto: "step_1_present_main_menu"
+
+  step_2_project_info_menu:
+    action: "Present project information options."
+    prompt: |
+      ¿Qué tipo de información del proyecto te gustaría obtener?
+      1. Documentación general (docs/README.md)
+      2. Contexto de agentes (agents/project/context/)
+      3. Guía de uso de agentes (agents/agent-development-guide.md)
+      4. Alinear agentes de contexto con la documentación (docs/)
+      5. Volver al menú principal
+      Por favor, introduce el número de tu elección:
+    variable_name: "PROJECT_INFO_CHOICE"
+    next_step: "step_2_handle_project_info_choice"
+
+  step_2_handle_project_info_choice:
+    action: "Handle project information choice."
+    if: "PROJECT_INFO_CHOICE == '1'"
+      output: "Puedes consultar la documentación principal en: docs/README.md"
+      goto: "step_2_project_info_menu"
+    else_if: "PROJECT_INFO_CHOICE == '2'"
+      output: "Puedes usar el agente 'load-project-context.yaml' para cargar contexto arquitectónico o de estándares, o explorar directamente en 'agents/project/context/'."
+      goto: "step_2_project_info_menu"
+    else_if: "PROJECT_INFO_CHOICE == '3'"
+      output: "Puedes ver la guía de uso de agentes en: agents/agent-development-guide.md"
+      goto: "step_2_project_info_menu"
+    else_if: "PROJECT_INFO_CHOICE == '4'"
+      load: "align-context-agents.yaml"
+      goto: "step_2_project_info_menu"
+    else_if: "PROJECT_INFO_CHOICE == '5'"
+      goto: "step_1_present_main_menu"
+    else:
+      output: "Opción no válida. Por favor, intenta de nuevo."
+      goto: "step_2_project_info_menu"

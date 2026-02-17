@@ -1,10 +1,5 @@
 package domain
 
-import (
-	"fmt"
-	"time"
-)
-
 // Party is the aggregate root for the Party module
 // It can contain a PersonProfile, OrganizationProfile, or both.
 type Party struct {
@@ -23,13 +18,13 @@ func NewParty(
 	organizationProfile *OrganizationProfile,
 ) (*Party, error) {
 	if id.String() == "" {
-		return nil, fmt.Errorf("party ID cannot be empty")
+		return nil, NewValidationError("party ID cannot be empty")
 	}
 	if !status.IsValid() {
-		return nil, fmt.Errorf("invalid party status: %s", status)
+		return nil, NewValidationErrorf("invalid party status: %s", status)
 	}
 	if personProfile == nil && organizationProfile == nil {
-		return nil, fmt.Errorf("party must have at least one profile")
+		return nil, NewValidationError("party must have at least one profile")
 	}
 
 	return &Party{
@@ -51,13 +46,13 @@ func NewPartyFromPersistence(
 	roles []PartyRole,
 ) (*Party, error) {
 	if id.String() == "" {
-		return nil, fmt.Errorf("party ID cannot be empty")
+		return nil, NewValidationError("party ID cannot be empty")
 	}
 	if !status.IsValid() {
-		return nil, fmt.Errorf("invalid party status: %s", status)
+		return nil, NewValidationErrorf("invalid party status: %s", status)
 	}
 	if personProfile == nil && organizationProfile == nil {
-		return nil, fmt.Errorf("party must have at least one profile")
+		return nil, NewValidationError("party must have at least one profile")
 	}
 
 	return &Party{
@@ -78,11 +73,9 @@ func (p *Party) Status() PartyStatus {
 	return p.status
 }
 
-
-
 func (p *Party) Activate() error {
 	if p.status == PartyStatusActive {
-		return fmt.Errorf("party is already active")
+		return NewConflictError("party is already active")
 	}
 	p.status = PartyStatusActive
 	return nil
@@ -90,7 +83,7 @@ func (p *Party) Activate() error {
 
 func (p *Party) Deactivate() error {
 	if p.status == PartyStatusInactive {
-		return fmt.Errorf("party is already inactive")
+		return NewConflictError("party is already inactive")
 	}
 	p.status = PartyStatusInactive
 	return nil
@@ -120,11 +113,11 @@ func (p *Party) Roles() []PartyRole {
 
 func (p *Party) AddRole(role PartyRole) error {
 	if !role.Type().IsValid() {
-		return fmt.Errorf("invalid party role: %s", role.Type())
+		return NewValidationErrorf("invalid party role: %s", role.Type())
 	}
 	for _, r := range p.roles {
 		if r.Type() == role.Type() {
-			return fmt.Errorf("role already exists")
+			return NewConflictError("role already exists")
 		}
 	}
 	p.roles = append(p.roles, role)
@@ -138,7 +131,7 @@ func (p *Party) RemoveRole(roleType PartyRoleType) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("role not found")
+	return NewNotFoundError("role not found")
 }
 
 func (p *Party) Relationships() []PartyRelationship {
@@ -147,7 +140,7 @@ func (p *Party) Relationships() []PartyRelationship {
 
 func (p *Party) AddRelationship(rel PartyRelationship) error {
 	if !rel.Type().IsValid() {
-		return fmt.Errorf("invalid relationship type: %s", rel.Type())
+		return NewValidationErrorf("invalid relationship type: %s", rel.Type())
 	}
 	p.relationships = append(p.relationships, rel)
 	return nil
@@ -155,18 +148,26 @@ func (p *Party) AddRelationship(rel PartyRelationship) error {
 
 // PartyRole links a party to a role type
 type PartyRole struct {
-	typeValue PartyRoleType
+	typeValue          PartyRoleType
+	creationIdentifier *string
 }
 
-func NewPartyRole(roleType PartyRoleType) (PartyRole, error) {
+func NewPartyRole(roleType PartyRoleType, creationIdentifier *string) (PartyRole, error) {
 	if !roleType.IsValid() {
-		return PartyRole{}, fmt.Errorf("invalid party role: %s", roleType)
+		return PartyRole{}, NewValidationErrorf("invalid party role: %s", roleType)
 	}
-	return PartyRole{typeValue: roleType}, nil
+	return PartyRole{
+		typeValue:          roleType,
+		creationIdentifier: creationIdentifier,
+	}, nil
 }
 
 func (r PartyRole) Type() PartyRoleType {
 	return r.typeValue
+}
+
+func (r PartyRole) CreationIdentifier() *string {
+	return r.creationIdentifier
 }
 
 // PartyRelationship links two parties with a relationship type
@@ -179,13 +180,13 @@ type PartyRelationship struct {
 
 func NewPartyRelationship(id PartyRelationshipID, fromID PartyID, toID PartyID, relType RelationshipType) (PartyRelationship, error) {
 	if id.String() == "" {
-		return PartyRelationship{}, fmt.Errorf("relationship ID cannot be empty")
+		return PartyRelationship{}, NewValidationError("relationship ID cannot be empty")
 	}
 	if fromID.String() == "" || toID.String() == "" {
-		return PartyRelationship{}, fmt.Errorf("from/to party IDs cannot be empty")
+		return PartyRelationship{}, NewValidationError("from/to party IDs cannot be empty")
 	}
 	if !relType.IsValid() {
-		return PartyRelationship{}, fmt.Errorf("invalid relationship type: %s", relType)
+		return PartyRelationship{}, NewValidationErrorf("invalid relationship type: %s", relType)
 	}
 	return PartyRelationship{
 		id:        id,

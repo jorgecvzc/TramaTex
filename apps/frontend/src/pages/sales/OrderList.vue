@@ -1,0 +1,563 @@
+<template>
+  <Navbar />
+  <div class="orders-list-container">
+    <!-- Header -->
+    <div class="page-header">
+      <h1>Pedidos</h1>
+      <button class="btn btn-primary" @click="navigateToCreate">
+        <span class="icon">+</span>
+        Nuevo Pedido
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-card">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <PartySelector
+            v-model="filters.partyId"
+            label="Cliente"
+            placeholder="Buscar cliente..."
+            role-filter="CLIENT"
+            :required="false"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.status" class="filter-select">
+            <option value="">Todos</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="CONFIRMED">Confirmado</option>
+            <option value="IN_PROGRESS">En Progreso</option>
+            <option value="COMPLETED">Completado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Desde</label>
+          <input
+            v-model="filters.fromDate"
+            type="date"
+            class="filter-input"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Hasta</label>
+          <input
+            v-model="filters.toDate"
+            type="date"
+            class="filter-input"
+          />
+        </div>
+      </div>
+
+      <div class="filters-actions">
+        <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
+          Limpiar Filtros
+        </button>
+        <button class="btn btn-primary" @click="applyFilters">
+          Buscar
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando pedidos...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-state">
+      <p class="error-message">{{ error }}</p>
+      <button class="btn btn-secondary" @click="fetchOrders">Reintentar</button>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="orders.length === 0" class="empty-state">
+      <p>No se encontraron pedidos</p>
+      <button class="btn btn-primary" @click="navigateToCreate">
+        Crear Primer Pedido
+      </button>
+    </div>
+
+    <!-- Orders Table -->
+    <div v-else class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Número</th>
+            <th>Cliente</th>
+            <th>Fecha Pedido</th>
+            <th>Fecha Entrega</th>
+            <th>Estado</th>
+            <th>Total</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="order in orders" :key="order.id" @click="navigateToDetail(order.id)" class="clickable-row">
+            <td class="order-number">{{ order.orderNumber }}</td>
+            <td>{{ formatPartyId(order.partyId) }}</td>
+            <td>{{ formatDate(order.orderDate) }}</td>
+            <td>{{ formatDate(order.deliveryDate) }}</td>
+            <td>
+              <span :class="['status-badge', `status-${salesApi.getStatusClass(order.status)}`]">
+                {{ salesApi.getStatusLabel(order.status) }}
+              </span>
+            </td>
+            <td class="amount">{{ salesApi.formatMoney(order.total) }}</td>
+            <td class="actions-cell" @click.stop>
+              <button 
+                class="btn-icon" 
+                @click="navigateToDetail(order.id)"
+                title="Ver detalle"
+              >
+                👁️
+              </button>
+              <button 
+                v-if="order.status === 'PENDING'"
+                class="btn-icon" 
+                @click="confirmOrder(order.id)"
+                title="Confirmar pedido"
+              >
+                ✓
+              </button>
+              <button 
+                v-if="canCancel(order.status)"
+                class="btn-icon danger" 
+                @click="cancelOrder(order.id)"
+                title="Cancelar pedido"
+              >
+                ✕
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Summary -->
+      <div class="table-summary">
+        <p>Mostrando {{ orders.length }} pedido(s)</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import Navbar from '@/components/layout/Navbar.vue';
+import PartySelector from '@/components/party/PartySelector.vue';
+import salesApi from '@/services/salesApi.js';
+import partyApi from '@/services/partyApi.js';
+
+const router = useRouter();
+
+const orders = ref([]);
+const isLoading = ref(false);
+const error = ref('');
+const partiesCache = ref({});
+
+const filters = ref({
+  partyId: '',
+  status: '',
+  fromDate: '',
+  toDate: '',
+});
+
+const hasFilters = computed(() => {
+  return filters.value.partyId !== '' || 
+         filters.value.status !== '' || 
+         filters.value.fromDate !== '' || 
+         filters.value.toDate !== '';
+});
+
+onMounted(() => {
+  // Set default date range (last 30 days)
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  
+  filters.value.fromDate = thirtyDaysAgo.toISOString().split('T')[0];
+  filters.value.toDate = today.toISOString().split('T')[0];
+  
+  fetchOrders();
+});
+
+async function fetchOrders() {
+  isLoading.value = true;
+  error.value = '';
+
+  try {
+    const apiFilters = {};
+    
+    if (filters.value.partyId) apiFilters.partyId = filters.value.partyId;
+    if (filters.value.status) apiFilters.status = filters.value.status;
+    if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
+    if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
+
+    const response = await salesApi.listOrders(apiFilters);
+    orders.value = Array.isArray(response) ? response : (response.data || []);
+    
+    // Load party names for display
+    await loadPartyNames();
+  } catch (err) {
+    error.value = err?.message || 'No se pudieron cargar los pedidos';
+    console.error('Error loading orders:', err);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function loadPartyNames() {
+  const partyIds = [...new Set(orders.value.map(o => o.partyId).filter(Boolean))];
+  
+  // Filter out already cached parties
+  const uncachedIds = partyIds.filter(id => !partiesCache.value[id]);
+  
+  if (uncachedIds.length === 0) {
+    return;
+  }
+
+  try {
+    const partiesMap = await partyApi.getPartiesBatch(uncachedIds);
+    
+    // Update cache with batch results
+    for (const partyId of uncachedIds) {
+      if (partiesMap[partyId]) {
+        partiesCache.value[partyId] = partiesMap[partyId].name || 'Desconocido';
+      } else {
+        partiesCache.value[partyId] = 'No encontrado';
+      }
+    }
+  } catch (err) {
+    console.error('Error loading party names:', err);
+    // Fallback: mark as error
+    for (const partyId of uncachedIds) {
+      if (!partiesCache.value[partyId]) {
+        partiesCache.value[partyId] = 'Error al cargar';
+      }
+    }
+  }
+}
+
+function applyFilters() {
+  fetchOrders();
+}
+
+function clearFilters() {
+  filters.value.partyId = '';
+  filters.value.status = '';
+  filters.value.fromDate = '';
+  filters.value.toDate = '';
+  fetchOrders();
+}
+
+function navigateToCreate() {
+  router.push('/sales/orders/new');
+}
+
+function navigateToDetail(orderId) {
+  router.push(`/sales/orders/${orderId}`);
+}
+
+async function confirmOrder(orderId) {
+  if (!confirm('¿Confirmar este pedido?')) return;
+
+  try {
+    await salesApi.changeOrderStatus(orderId, 'CONFIRMED');
+    await fetchOrders();
+  } catch (err) {
+    alert(err?.message || 'No se pudo confirmar el pedido');
+  }
+}
+
+async function cancelOrder(orderId) {
+  if (!confirm('¿Cancelar este pedido? Esta acción no se puede deshacer.')) return;
+
+  try {
+    await salesApi.changeOrderStatus(orderId, 'CANCELLED');
+    await fetchOrders();
+  } catch (err) {
+    alert(err?.message || 'No se pudo cancelar el pedido');
+  }
+}
+
+function canCancel(status) {
+  return ['PENDING', 'CONFIRMED'].includes(status);
+}
+
+function formatDate(dateString) {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function formatPartyId(partyId) {
+  if (!partyId) return '—';
+  return partiesCache.value[partyId] || 'Cargando...';
+}
+</script>
+
+<style scoped>
+.orders-list-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.filters-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 0.25rem;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #E6B800;
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
+}
+
+.filters-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: #E6B800;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #d4a700;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #4a5568;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border: 3px solid #f3f4f6;
+  border-top-color: #E6B800;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background: #f9fafb;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  letter-spacing: 0.05em;
+}
+
+.data-table td {
+  padding: 1rem;
+  border-top: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #1f2937;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #f9fafb;
+}
+
+.order-number {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #002395;
+}
+
+.amount {
+  font-weight: 600;
+  text-align: right;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.status-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-primary {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-secondary {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 1.25rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+  opacity: 1;
+}
+
+.btn-icon.danger:hover {
+  color: #dc2626;
+}
+
+.table-summary {
+  padding: 1rem;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+</style>

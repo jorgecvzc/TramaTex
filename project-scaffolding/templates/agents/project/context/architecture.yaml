@@ -1,0 +1,25 @@
+# Architecture Context Agent
+# Version: 1.0
+# Purpose: Clean Architecture, DDD strategy, and architectural decisions
+
+---
+
+metadata:
+  filename: "architecture.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  last_updated: "2026-02-15" # This will be updated by the script
+  references:
+    - "ADR-002-clean-architecture-ddd-adoption.md"
+    - "ADR-006-domain-driven-development-strategy.md"
+    - "ADR-011-testing-coverage-strategy.md"
+
+# The following sections are dynamically populated by scripts/doc_to_agent_context.py
+# from the ADRs and other architectural documentation in docs/architecture/adrs/.
+# DO NOT EDIT MANUALLY.
+clean_architecture_layers: # Dynamically populated
+ddd_strategy: # Dynamically populated
+repository_pattern: # Dynamically populated
+value_objects: # Dynamically populated
+testing_strategy: # Dynamically populated
+error_handling: # Dynamically populated

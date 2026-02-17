@@ -44,3 +44,17 @@ func TestPricingRuleAppliesTo(t *testing.T) {
 	rule.IsActive = false
 	require.False(t, rule.AppliesTo(variantID, 5, time.Now()))
 }
+
+func TestPricingRuleAppliesToMaxQuantityAnyVariant(t *testing.T) {
+	p, _ := NewPercentage(0.1)
+	variantID := uuid.New()
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+	max := 10
+
+	rule, err := NewPricingRule("rule", nil, nil, p, 0, &max, start, &end)
+	require.NoError(t, err)
+
+	require.True(t, rule.AppliesTo(variantID, 10, time.Now()))
+	require.False(t, rule.AppliesTo(variantID, 11, time.Now()))
+}

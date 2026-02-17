@@ -3,7 +3,6 @@ package persistence
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,8 +37,6 @@ func (m *PartyServiceConfigurationModel) ToDomain() (*domain.PartyServiceConfigu
 		ServiceID:            m.ServiceID,
 		Name:                 m.Name,
 		ConfigurationDetails: configDetails,
-		CreatedAt:            m.CreatedAt,
-		UpdatedAt:            m.UpdatedAt,
 	}, nil
 }
 
@@ -47,7 +44,7 @@ func (m *PartyServiceConfigurationModel) ToDomain() (*domain.PartyServiceConfigu
 func PartyServiceConfigurationFromDomain(d *domain.PartyServiceConfiguration) (*PartyServiceConfigurationModel, error) {
 	detailsBytes, err := d.ConfigurationDetails.MarshalJSON()
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal ConfigurationDetails to JSON: %w", err)
+		return nil, domain.WrapPersistence("failed to marshal ConfigurationDetails to JSON", err)
 	}
 
 	return &PartyServiceConfigurationModel{
@@ -56,7 +53,5 @@ func PartyServiceConfigurationFromDomain(d *domain.PartyServiceConfiguration) (*
 		ServiceID:            d.ServiceID,
 		Name:                 d.Name,
 		ConfigurationDetails: detailsBytes,
-		CreatedAt:            d.CreatedAt,
-		UpdatedAt:            d.UpdatedAt,
 	}, nil
 }

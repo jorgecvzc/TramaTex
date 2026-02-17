@@ -1,8 +1,8 @@
 import axios, { AxiosInstance } from 'axios'
 import type { Usuario, UserRole } from '@/types/auth'
-import { getApiBase } from './apiBase'
+import { getAuthBase } from './apiBase'
 
-const API_URL = getApiBase()
+const API_URL = getAuthBase()
 
 class IamService {
   private apiClient: AxiosInstance

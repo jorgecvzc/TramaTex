@@ -32,6 +32,7 @@ type DeliveryNoteFilter struct {
 type InvoiceFilter struct {
 	PartyID  *uuid.UUID
 	Status   *InvoiceStatus
+	Type     *InvoiceType // Filter by COMPLETA or SIMPLIFICADA
 	FromDate *time.Time
 	ToDate   *time.Time
 }

@@ -44,3 +44,17 @@ func TestClientPricingAppliesTo(t *testing.T) {
 	override.IsActive = false
 	require.False(t, override.AppliesTo(clientID, variantID, time.Now()))
 }
+
+func TestClientPricingAppliesToBoundaryTimes(t *testing.T) {
+	price, _ := NewMoney(10, DefaultCurrency)
+	clientID := uuid.New()
+	variantID := uuid.New()
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+
+	override, err := NewClientPricing(clientID, variantID, price, start, &end)
+	require.NoError(t, err)
+
+	require.True(t, override.AppliesTo(clientID, variantID, start))
+	require.True(t, override.AppliesTo(clientID, variantID, end))
+}

@@ -20,33 +20,37 @@ func TestPartyMigration_Integration(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	sqlDB, err := tdb.DB.DB()
+	if err != nil {
+		t.Fatalf("Failed to get sql DB: %v", err)
+	}
 	defer func() {
-		_ = dropPartySchema(ctx, tdb.DB)
+		_ = dropPartySchema(ctx, sqlDB)
 		if err := tdb.TearDown(); err != nil {
 			t.Logf("Failed to tear down legacy schema: %v", err)
 		}
 	}()
 
-	if _, err := tdb.DB.ExecContext(ctx, "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS tax_id_type VARCHAR(20)"); err != nil {
+	if _, err := sqlDB.ExecContext(ctx, "ALTER TABLE organizations ADD COLUMN IF NOT EXISTS tax_id_type VARCHAR(20)"); err != nil {
 		t.Fatalf("Failed to add tax_id_type column: %v", err)
 	}
 
-	if err := createUsersForMigration(ctx, tdb.DB); err != nil {
+	if err := createUsersForMigration(ctx, sqlDB); err != nil {
 		t.Fatalf("Failed to create users: %v", err)
 	}
 
-	if err := seedV1Data(ctx, tdb.DB); err != nil {
+	if err := seedV1Data(ctx, sqlDB); err != nil {
 		t.Fatalf("Failed to seed v1 data: %v", err)
 	}
 
-	if err := execMigrationFile(ctx, tdb.DB, "007_create_party_tables.sql"); err != nil {
+	if err := execMigrationFile(ctx, sqlDB, "007_create_party_tables.sql"); err != nil {
 		t.Fatalf("Failed to run migration 007: %v", err)
 	}
-	if err := execMigrationFile(ctx, tdb.DB, "008_migrate_party_data.sql"); err != nil {
+	if err := execMigrationFile(ctx, sqlDB, "008_migrate_party_data.sql"); err != nil {
 		t.Fatalf("Failed to run migration 008: %v", err)
 	}
 
-	assertMigrationResults(t, ctx, tdb.DB)
+	assertMigrationResults(t, ctx, sqlDB)
 }
 
 func createUsersForMigration(ctx context.Context, db *sql.DB) error {

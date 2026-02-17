@@ -49,3 +49,30 @@ func TestSaleModificationRuleAppliesTo(t *testing.T) {
 	rule.IsActive = false
 	require.False(t, rule.AppliesTo(clientID, &groupID, orderTotal, time.Now()))
 }
+
+func TestSaleModificationRuleAppliesToCurrencyMismatch(t *testing.T) {
+	p, _ := NewPercentage(0.1)
+	value, _ := NewRuleValue(RuleValuePercentageMarkup, &p, nil)
+	minOrder := Money{amount: 100, currency: DefaultCurrency}
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+
+	rule, err := NewSaleModificationRule("rule", nil, nil, &minOrder, value, 1, start, &end)
+	require.NoError(t, err)
+
+	orderTotal := Money{amount: 200, currency: "USD"}
+	require.False(t, rule.AppliesTo(uuid.New(), nil, orderTotal, time.Now()))
+}
+
+func TestSaleModificationRuleAppliesToNoFilters(t *testing.T) {
+	p, _ := NewPercentage(0.1)
+	value, _ := NewRuleValue(RuleValuePercentageMarkup, &p, nil)
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+
+	rule, err := NewSaleModificationRule("rule", nil, nil, nil, value, 1, start, &end)
+	require.NoError(t, err)
+
+	orderTotal := Money{amount: 1, currency: DefaultCurrency}
+	require.True(t, rule.AppliesTo(uuid.New(), nil, orderTotal, time.Now()))
+}

@@ -1,4 +1,4 @@
-# Universal Sprint Task Session Loader Agent
+# Load Session Agent
 # Version: 1.0
 # Purpose: Load project context, scan for open journals, and propose workflow
 # Audience: Any AI assistant starting a development session on any project
@@ -7,25 +7,25 @@
 
 metadata:
   filename: "load-session.yaml"
-  location: "agents/load-session.yaml"
   version: "1.0"
-  last_updated: "2026-02-04" # Updated date
-  purpose: "Manages development sessions, including loading project context, scanning for open sprint tasks, and proposing workflows. Typically dispatched by init.yaml."
+  last_updated: "2026-02-15" # Updated date
+  purpose: "Loads and manages development sessions, including loading project context, scanning for active sessions, and proposing workflows. Typically dispatched by init.yaml."
   applies_to: "Any project using modular agent system"
   dependencies: # Added dependency on init.yaml, as it's typically called by it
     - "init.yaml"
   note: "Generic version - each project loads its own project-context.yaml"
 
 workflow:
-  title: "🚀 Universal Session Loader Workflow"
-  description: "Smart initialization that manages session continuity and context loading."
-  
+  load: "agents/load-generic-rules.yaml" # Ensures generic rules are always loaded first
+  title: "🚀 Flujo de Carga de Sesiones Universal"
+  description: "Inicialización inteligente que gestiona la continuidad de la sesión y la carga de contexto."
+
   args: # Define expected arguments
     session_id:
-      description: "Optional. The identifier of a specific session to load from NEXT_SESSION.md."
+      description: "Opcional. El identificador de una sesión específica a cargar de docs/log/session-log.md."
       type: "string"
     start_new:
-      description: "Optional. If 'true', forces starting a new session without checking NEXT_SESSION.md."
+      description: "Opcional. Si es 'true', fuerza el inicio de una nueva sesión sin verificar docs/log/session-log.md."
       type: "boolean"
 
   # Step 0: Initial decision point based on arguments or user prompt
@@ -35,36 +35,128 @@ workflow:
       goto: "step_1_load_specified_session"
     else_if: "args.start_new == true" # If start_new is true, bypass NEXT_SESSION.md
       goto: "step_1_start_new_workflow"
-    else: # No direct arguments, check NEXT_SESSION.md or prompt user
-      # Read NEXT_SESSION.md content (assuming an internal tool or capability)
-      # Then, based on parsed content, decide next step
-      # For descriptive YAML, we define possible branches.
+    else: # No direct arguments, check session-log.md or prompt user
       goto: "step_1_check_next_session"
 
-  # Step 1.1: Check NEXT_SESSION.md for existing sessions
+  # Step 1.1: Check session-log.md for existing sessions
   step_1_check_next_session:
-    action: "Check and parse NEXT_SESSION.md for active sessions"
-    source: "NEXT_SESSION.md (root directory)"
-    purpose: "Identify existing active or paused sessions for continuity"
-    conditions:
-      if_sessions_found:
-        action: "Present available sessions to user for selection."
-        prompt: |
-          Found active/paused sessions in NEXT_SESSION.md:
-          [List available sessions by title/identifier from NEXT_SESSION.md here]
-          
-          Would you like to:
-          1. Resume an existing session (enter its number/ID)
-          2. Start a fresh new workflow
-          3. Review a specific completed task
-          4. Check docs/log/project-status.md for general guidance
-        variable_name: "USER_SESSION_CHOICE_FROM_LIST"
-        outcome: "User's choice of session to resume or to start a new workflow."
-        goto: "step_2_process_user_session_choice"
-      if_no_sessions_found:
-        action: "No active or paused sessions found in NEXT_SESSION.md. Proceed to prompt for new workflow."
-        goto: "step_1_start_new_workflow"
+    action: "Check and parse session-log.md for open sessions from the 'SESIONES ABIERTAS' section."
+    python_script:
+      code: |
+        import json
+        import os
+        import re
+
+        session_log_path = "docs/log/session-log.md"
+        open_sessions_details = []
+        session_id_to_index = {} # Map index to actual session ID
+
+        if not os.path.exists(session_log_path):
+            # If session log doesn't exist, create it with placeholder content
+            initial_content = """# Bitácora de Sesiones de Desarrollo
+
+<!--
+Este archivo registra las sesiones de desarrollo.
+
+SECCIONES:
+1. SESIONES ABIERTAS: Contiene las sesiones de trabajo que están en progreso, pausadas o bloqueadas. El objetivo es detallar el contexto y los próximos pasos.
+2. REGISTRO DE SESIONES CERRADAS: Un archivo histórico de todas las sesiones completadas, conservando solo metadatos esenciales.
+
+ESTRUCTURA DE UNA SESIÓN ABIERTA:
+- Título (##): Un H2 con un título descriptivo y único.
+- Metadatos:
+  - **Session ID:** `identificador-unico-kebab-case` (OBLIGATORIO Y ÚNICO)
+  - **Status:** (En Progreso | En Pausa | Bloqueado)
+  - **Sprint:** Sprint XX
+  - **Started:** Fecha de inicio (YYYY-MM-DD).
+- Contexto: Breve descripción del objetivo de la sesión.
+- Próximos Pasos: Checklist de las tareas pendientes.
+- Archivos de Contexto: Lista de archivos clave.
+
+ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
+- Una línea de lista con: **[Título]** | Iniciada: [Fecha YYYY-MM-DD] | Finalizada: [Fecha YYYY-MM-DD]
+-->
+
+---
+# SESIONES ABIERTAS
+---
+
+_No hay sesiones abiertas actualmente._
+
+---
+# REGISTRO DE SESIONES CERRADAS
+---
+"""
+            with open(session_log_path, 'w', encoding='utf-8') as f:
+                f.write(initial_content)
+            content = initial_content
+        else:
+            with open(session_log_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+        # Split content to get the 'SESIONES ABIERTAS' section
+        open_sessions_start_tag = "## SESIONES ABIERTAS"
+        closed_sessions_start_tag = "## REGISTRO DE SESIONES CERRADAS"
+
+        open_sessions_section_content = ""
+        parts = re.split(f"({open_sessions_start_tag})", content, maxsplit=1)
+        if len(parts) > 2:
+            rest_after_open_tag = parts[2]
+            parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
+            open_sessions_section_content = parts_after_open[0]
+        
+        # Pattern to find a full session block
+        session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
+        
+        # Specific patterns to extract info from the block
+        session_id_pattern = re.compile(r"- \*\*Session ID:\*\* `(.*?)`")
+        session_title_pattern = re.compile(r"^## (.*?)$", re.MULTILINE)
+        session_status_pattern = re.compile(r"- \*\*Status:\*\* (.*)")
+
+        user_choices_str = ""
+        for i, match in enumerate(session_block_pattern.finditer(open_sessions_section_content)):
+            block_content = match.group(0)
+            id_match = session_id_pattern.search(block_content)
+            title_match = session_title_pattern.search(block_content)
+            status_match = session_status_pattern.search(block_content)
+            
+            session_id = id_match.group(1).strip() if id_match else "N/A"
+            session_title = title_match.group(1).strip() if title_match else "UNKNOWN TITLE"
+            session_status = status_match.group(1).strip() if status_match else "N/A"
+            
+            open_sessions_details.append({
+                "index": i + 1,
+                "id": session_id,
+                "title": session_title,
+                "status": session_status
+            })
+            session_id_to_index[str(i+1)] = session_id # Map 1-based index to actual ID
+
+            user_choices_str += f"{i+1}. {session_title} (ID: {session_id}, Status: {session_status})\n"
+
+        if open_sessions_details:
+            prompt_message = f"Found open sessions in docs/log/session-log.md (section 'SESIONES ABIERTAS'):\n{user_choices_str}\n"
+            prompt_message += "What would you like to do?\n"
+            prompt_message += "1. Resume an existing session (enter its NUMBER or ID)\n"
+            prompt_message += "2. Start a fresh new workflow\n"
+            prompt_message += "3. Review a specific completed task (from 'REGISTRO DE SESIONES CERRADAS')\n"
+            prompt_message += "4. Check docs/log/project-status.md for general guidance"
+            next_step_goto = "step_2_process_user_session_choice"
+        else:
+            prompt_message = "No open sessions found in docs/log/session-log.md. Proceeding to prompt for new workflow."
+            next_step_goto = "step_1_start_new_workflow"
+
+        output_json = {
+            "prompt": prompt_message,
+            "next_step": next_step_goto,
+            "session_id_map": session_id_to_index
+        }
+        print(json.dumps(output_json))
+      output_variable: "SESSION_CHECK_RESULT"
+    prompt: "$SESSION_CHECK_RESULT.prompt"
+    variable_name: "USER_SESSION_CHOICE_FROM_LIST"
     outcome: "Decision on which session to resume or if a new workflow should be started."
+    goto: "$SESSION_CHECK_RESULT.next_step"
 
   # Step 1.2: Start a brand new workflow if no session is chosen or forced
   step_1_start_new_workflow:
@@ -72,65 +164,233 @@ workflow:
     prompt: |
       No existing sessions selected. What kind of new session would you like to start?
       1. Create a new Sprint Task (e.g., implement a new feature)
-      2. Conduct a module deep review (e.g., for Party, Product)
-      3. Other (Describe what you want to do)
+      2. Conduct a module deep review (specify module name, e.g., 'party', 'product')
+      3. Review a specific completed task (from 'REGISTRO DE SESIONES CERRADAS')
+      4. Check docs/log/project-status.md for general guidance
+      5. Other (Describe what you want to do)
     variable_name: "NEW_SESSION_TYPE_CHOICE"
     outcome: "Initiation of a new session based on user's choice."
-    goto: "step_2_handle_new_session_type"
+    next_step: "step_2_handle_new_session_type" 
 
   # Step 1.3: Load a session specified directly by an argument
   step_1_load_specified_session:
-    action: "Load session directly from NEXT_SESSION.md using provided ID."
-    purpose: "Bypass user selection if session_id is provided as an argument."
-    # Internal logic to parse NEXT_SESSION.md for matching session_id and extract context files
-    # For now, this is a descriptive step, assuming the agent has the capability.
-    outcome: "Context of the specified session is loaded."
+    action: "Load session directly from docs/log/session-log.md using provided ID."
+    python_script:
+      code: |
+        import json
+        import os
+        import re
+
+        session_id_to_load = "$args.session_id"
+        session_log_path = "docs/log/session-log.md"
+
+        if not os.path.exists(session_log_path):
+            print(json.dumps({"status": "error", "message": f"Session log file not found: {session_log_path}"}))
+            exit()
+
+        with open(session_log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # This function will attempt to extract context for the specified session.
+        # For full implementation, this would involve reading the session's block
+        # and extracting relevant 'Archivos de Contexto' and 'Contexto' sections.
+        def get_session_context(session_id, log_content):
+            session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `(.*?)`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+            
+            for match in session_block_pattern.finditer(log_content):
+                block = match.group(0)
+                current_id_match = re.search(r"- \*\*Session ID:\*\* `(.*?)`", block)
+                if current_id_match and current_id_match.group(1) == session_id:
+                    context_match = re.search(r"- Contexto: (.*?)$", block, re.MULTILINE)
+                    files_match = re.search(r"- Archivos de Contexto: (.*?)$", block, re.MULTILINE)
+                    return {
+                        "title": re.search(r"^## (.*?)$", block, re.MULTILINE).group(1).strip(),
+                        "context": context_match.group(1).strip() if context_match else "No context found.",
+                        "files": files_match.group(1).strip() if files_match else "No specific files listed."
+                    }
+            return None
+
+        session_context = get_session_context(session_id_to_load, content)
+
+        if session_context:
+            output_message = f"Cargando sesi�n con ID: '{session_id_to_load}'.\nT�tulo: {session_context['title']}\nContexto: {session_context['context']}\nArchivos de Contexto: {session_context['files']}\n"
+            print(json.dumps({"status": "success", "message": output_message, "session_id": session_id_to_load, "session_context": session_context}))
+        else:
+            print(json.dumps({"status": "error", "message": f"Session with ID '{session_id_to_load}' not found in session log."}))
+      output_variable: "SPECIFIED_SESSION_LOAD_RESULT"
+    output: "$SPECIFIED_SESSION_LOAD_RESULT.message"
+    outcome: "Context of the specified session is simulated to be loaded."
     goto: "step_2_load_project_context"
 
   # Step 2.1: Process user's choice from the list of existing sessions
   step_2_process_user_session_choice:
     action: "Process user's choice from the presented sessions or new workflow options."
-    if: "USER_SESSION_CHOICE_FROM_LIST == '2'" # User chose to start new workflow
-      goto: "step_1_start_new_workflow"
-    else: # User chose an existing session
-      # Internal logic to parse NEXT_SESSION.md, find session by USER_SESSION_CHOICE_FROM_LIST, extract context.
-      outcome: "Context of the chosen session is loaded, proceeding to establish project context."
-      goto: "step_2_load_project_context"
+    if: "USER_SESSION_CHOICE_FROM_LIST == '2' or USER_SESSION_CHOICE_FROM_LIST == '3' or USER_SESSION_CHOICE_FROM_LIST == '4'" # User chose to start new workflow or review
+      goto: "step_1_start_new_workflow" # For '3' and '4', we will handle it in step_2_handle_new_session_type
+    else: # User chose an existing session to resume
+      python_script:
+        code: |
+          import json
+          import re
+          import os
+
+          user_choice = "$USER_SESSION_CHOICE_FROM_LIST"
+          session_id_map = json.loads('$SESSION_CHECK_RESULT.session_id_map')
+          session_id_to_resume = None
+
+          # Try to get session ID by number first
+          if user_choice.isdigit() and user_choice in session_id_map:
+              session_id_to_resume = session_id_map[user_choice]
+          else: # Otherwise, assume user entered the ID directly
+              session_id_to_resume = user_choice
+          
+          session_log_path = "docs/log/session-log.md"
+          log_content = ""
+          if os.path.exists(session_log_path):
+              with open(session_log_path, 'r', encoding='utf-8') as f:
+                  log_content = f.read()
+
+          # This function will attempt to extract context for the specified session.
+          def get_session_context(session_id, content):
+              session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `(.*?)`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+              
+              for match in session_block_pattern.finditer(content):
+                  block = match.group(0)
+                  current_id_match = re.search(r"- \*\*Session ID:\*\* `(.*?)`", block)
+                  if current_id_match and current_id_match.group(1) == session_id:
+                      context_match = re.search(r"- Contexto: (.*?)$", block, re.MULTILINE)
+                      files_match = re.search(r"- Archivos de Contexto: (.*?)$", block, re.MULTILINE)
+                      return {
+                          "title": re.search(r"^## (.*?)$", block, re.MULTILINE).group(1).strip(),
+                          "context": context_match.group(1).strip() if context_match else "No context found.",
+                          "files": files_match.group(1).strip() if files_match else "No specific files listed."
+                      }
+              return None
+
+          session_context = get_session_context(session_id_to_resume, log_content)
+
+          if session_context:
+              output_message = f"Reanudando sesi�n con ID: '{session_id_to_resume}'.\nT�tulo: {session_context['title']}\nContexto: {session_context['context']}\nArchivos de Contexto: {session_context['files']}\n"
+              print(json.dumps({"status": "success", "message": output_message, "session_id": session_id_to_resume, "session_context": session_context}))
+          else:
+              print(json.dumps({"status": "error", "message": f"Session with ID '{session_id_to_resume}' not found in 'SESIONES ABIERTAS'."}))
+      output_variable: "USER_SESSION_PROCESS_RESULT"
+    output: "$USER_SESSION_PROCESS_RESULT.message"
+    outcome: "Context of the chosen session is simulated to be loaded, proceeding to establish project context."
+    goto: "step_2_load_project_context"
 
   # Step 2.2: Handle the type of new session to be created
   step_2_handle_new_session_type:
     action: "Based on user's choice, prepare for the specific new session type."
-    # Example branches for different new session types
-    if: "NEW_SESSION_TYPE_CHOICE == '1'"
-      # Logic to create new sprint task
-      outcome: "New sprint task creation initiated."
-    else_if: "NEW_SESSION_TYPE_CHOICE == '2'"
-      # Logic to initiate module deep review
-      outcome: "Module deep review initiated."
-    else:
-      # Default or other actions
-      outcome: "Other session type initiated or further clarification needed."
-    # All new session paths should eventually lead to loading project context
-    goto: "step_2_load_project_context"
+    if: "NEW_SESSION_TYPE_CHOICE == '1'" # Create a new Sprint Task
+      python_script:
+        code: |
+          import json
+          output_message = "Iniciando la creación de una nueva Tarea de Sprint. Por favor, proporciona los detalles de la nueva tarea."
+          print(json.dumps({"status": "success", "message": output_message, "outcome_status": "New sprint task creation initiated."}))
+        output_variable: "NEW_SESSION_HANDLE_RESULT"
+      output: "$NEW_SESSION_HANDLE_RESULT.message"
+      outcome: "$NEW_SESSION_HANDLE_RESULT.outcome_status"
+      goto: "step_2_load_project_context"
+    else_if: "NEW_SESSION_TYPE_CHOICE == '2'" # Conduct a module deep review
+      prompt: "Por favor, introduce el nombre del módulo (ej. 'party', 'product'):"
+      variable_name: "MODULE_NAME_FOR_REVIEW"
+      next_step: "step_2_load_module_context"
+    else_if: "NEW_SESSION_TYPE_CHOICE == '3'" # Review a specific completed task
+      python_script:
+        code: |
+          import json
+          output_message = "Preparando la búsqueda de una tarea completada específica. Por favor, proporciona los detalles (ej. palabras clave, ID de Sprint)."
+          print(json.dumps({"status": "success", "message": output_message, "outcome_status": "Review specific completed task initiated."}))
+        output_variable: "NEW_SESSION_HANDLE_RESULT"
+      output: "$NEW_SESSION_HANDLE_RESULT.message"
+      outcome: "$NEW_SESSION_HANDLE_RESULT.outcome_status"
+      goto: "step_2_load_project_context"
+    else_if: "NEW_SESSION_TYPE_CHOICE == '4'" # Check docs/log/project-status.md
+      python_script:
+        code: |
+          import json
+          output_message = "Redirigiendo al estado del proyecto. El archivo project-status.md será resumido por load-project-context.yaml."
+          print(json.dumps({"status": "success", "message": output_message, "outcome_status": "Project status check initiated."}))
+        output_variable: "NEW_SESSION_HANDLE_RESULT"
+      output: "$NEW_SESSION_HANDLE_RESULT.message"
+      outcome: "$NEW_SESSION_HANDLE_RESULT.outcome_status"
+      goto: "step_2_load_project_context"
+    else: # Other (Describe what you want to do) or an invalid choice
+      python_script:
+        code: |
+          import json
+          new_session_type_choice = "$NEW_SESSION_TYPE_CHOICE"
+          output_message = f"Manejando tipo de sesión 'Otro': '{new_session_type_choice}'. Podría ser necesaria una mayor clarificación."
+          print(json.dumps({"status": "success", "message": output_message, "outcome_status": "Other session type initiated or further clarification needed."}))
+        output_variable: "NEW_SESSION_HANDLE_RESULT"
+      output: "$NEW_SESSION_HANDLE_RESULT.message"
+      outcome: "$NEW_SESSION_HANDLE_RESULT.outcome_status"
+      goto: "step_2_load_project_context"
+
+  step_2_load_module_context:
+    action: "Cargar el contexto específico para el módulo solicitado."
+    load: "load-module-context.yaml"
+    args:
+      module_name: "$MODULE_NAME_FOR_REVIEW"
+    outcome: "Contexto del módulo '$MODULE_NAME_FOR_REVIEW' cargado."
+    goto: "step_3_load_session_context_files" # Skip loading generic project context again 
 
   # Step 3: Load the core project context (common to all paths)
   step_2_load_project_context: # Renamed to step_3, but keeping step_2 as it's the next logical for all paths
     action: "Load the core project context."
-    load: "agents/load-project-context.yaml" # Call the new agent
+    load:
+      - "load-generic-rules.yaml"
+      - "agents/load-project-context.yaml" # Call the new agent
     outcome: "Core project context is active."
     goto: "step_3_load_session_context_files"
 
   # Step 4: Load context files specific to the chosen/new session
   step_3_load_session_context_files:
     action: "Load context files specific to the chosen/new session."
-    purpose: "This step assumes the agent has internal capability to interpret 'Relevant Context Files' from NEXT_SESSION.md or generate context for new sessions."
-    # If resuming an existing session, load files from its "Relevant Context Files" list found by parsing NEXT_SESSION.md block.
-    # If starting a new session, based on NEW_SESSION_TYPE_CHOICE, load default context files relevant to that type.
-    outcome: "All necessary context for the current session is loaded."
-    goto: "step_4_begin_work"
+    python_script:
+      code: |
+        import json
+
+        session_context = None
+        # Check if a session was loaded by ID (from step_1_load_specified_session)
+        if '$SPECIFIED_SESSION_LOAD_RESULT.session_context' != 'None':
+            session_context = json.loads('$SPECIFIED_SESSION_LOAD_RESULT.session_context')
+        # Check if a session was resumed from the list (from step_2_process_user_session_choice)
+        elif '$USER_SESSION_PROCESS_RESULT.session_context' != 'None':
+            session_context = json.loads('$USER_SESSION_PROCESS_RESULT.session_context')
+        
+        files_to_load = []
+        if session_context and session_context.get('files') and session_context['files'] != "No specific files listed.":
+            # Assuming files are comma-separated and relative to project root
+            files_to_load = [f.strip() for f in session_context['files'].split(',') if f.strip()]
+        
+        output_message = "No hay archivos de contexto específicos de la sesión para cargar."
+        if files_to_load:
+            output_message = f"Archivos de contexto específicos de la sesión identificados: {', '.join(files_to_load)}"
+        
+        print(json.dumps({"status": "success", "message": output_message, "files": files_to_load}))
+      output_variable: "SESSION_CONTEXT_LOAD_RESULT"
+    output: "$SESSION_CONTEXT_LOAD_RESULT.message"
+    outcome: "Identified session-specific context files for loading."
+    if: "$SESSION_CONTEXT_LOAD_RESULT.files" # Only proceed if there are files to load
+    do:
+      - foreach_item_in: "$SESSION_CONTEXT_LOAD_RESULT.files"
+        do:
+          - load: "$item"
+    next_step: "step_4_begin_work"
 
   # Step 5: Final step to signal readiness for work
   step_4_begin_work:
     action: "Begin development work based on the loaded context."
     purpose: "This step signals that the environment is fully set up, and the agent is ready to receive further instructions related to the task."
     outcome: "Agent is ready for task execution."
+
+  # Step 5: Prompt to end session
+  step_5_prompt_to_end_session:
+    action: "Prompt user to end the session."
+    output: |
+      Para finalizar tu sesión de trabajo de forma adecuada y guardar todo el progreso, por favor, llama al agente `agents/end-session.yaml`.
+      Esto asegurará que tu trabajo quede reflejado, actualizado y delimitado.
+    goto: "end"
+

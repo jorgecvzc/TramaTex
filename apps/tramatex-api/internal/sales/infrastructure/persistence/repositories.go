@@ -351,6 +351,9 @@ func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceF
 	if filter.Status != nil {
 		query = query.Where("status = ?", string(*filter.Status))
 	}
+	if filter.Type != nil {
+		query = query.Where("type = ?", string(*filter.Type))
+	}
 	if filter.FromDate != nil {
 		query = query.Where("invoice_date >= ?", *filter.FromDate)
 	}
@@ -385,7 +388,7 @@ func (r *GORMInvoiceRepository) ListBySalesOrderID(ctx context.Context, orderID 
 		Joins("JOIN invoice_line_items ON invoice_line_items.invoice_id = invoices.id").
 		Joins("JOIN order_line_items ON order_line_items.id = invoice_line_items.sales_order_line_item_id").
 		Where("order_line_items.sales_order_id = ?", orderID).
-		Distinct("invoices.id")
+		Distinct("invoices.*")
 
 	if err := query.Find(&data).Error; err != nil {
 		return nil, err

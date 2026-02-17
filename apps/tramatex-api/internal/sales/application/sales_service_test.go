@@ -384,3 +384,458 @@ func TestSalesService_CreateInvoice_FromDeliveredOrder(t *testing.T) {
 	assert.NotNil(t, savedOrder)
 	assert.Equal(t, domain.SalesOrderStatusInvoiced, savedOrder.Status)
 }
+
+// ===== Query Tests =====
+
+func TestSalesService_GetQuote_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Test quote",
+	)
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	query := application.GetQuoteByIDQuery{ID: quote.ID}
+	result, err := service.GetQuote(ctx, query)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, quote.ID, result.ID)
+	assert.Equal(t, partyID, result.PartyID)
+	quoteRepo.AssertExpectations(t)
+}
+
+func TestSalesService_GetQuote_NotFound(t *testing.T) {
+	ctx := context.Background()
+	quoteID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	quoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, domain.NewNotFoundError("quote not found"))
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	query := application.GetQuoteByIDQuery{ID: quoteID}
+	result, err := service.GetQuote(ctx, query)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	quoteRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ListQuotes_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber1, _ := domain.NewQuoteNumber("Q/2026/0001")
+	quoteNumber2, _ := domain.NewQuoteNumber("Q/2026/0002")
+	variantID := uuid.New()
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote1, _ := domain.NewQuote(quoteNumber1, partyID, time.Now(), time.Now().Add(30*24*time.Hour), []domain.QuoteLineItem{lineItem}, taxAmount, "")
+	quote2, _ := domain.NewQuote(quoteNumber2, partyID, time.Now(), time.Now().Add(30*24*time.Hour), []domain.QuoteLineItem{lineItem}, taxAmount, "")
+
+	quotes := []*domain.Quote{quote1, quote2}
+	filter := domain.QuoteFilter{PartyID: &partyID}
+
+	quoteRepo.On("List", mock.Anything, filter).Return(quotes, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	query := application.ListQuotesQuery{PartyID: &partyID}
+	results, err := service.ListQuotes(ctx, query)
+
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
+	assert.Equal(t, quote1.ID, results[0].ID)
+	assert.Equal(t, quote2.ID, results[1].ID)
+	quoteRepo.AssertExpectations(t)
+}
+
+func TestSalesService_GetOrder_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-001")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem},
+		taxAmount,
+		"Test order",
+	)
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	query := application.GetOrderByIDQuery{ID: order.ID}
+	result, err := service.GetOrder(ctx, query)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, order.ID, result.ID)
+	assert.Equal(t, partyID, result.PartyID)
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ListOrders_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber1, _ := domain.NewOrderNumber("SO-001")
+	orderNumber2, _ := domain.NewOrderNumber("SO-002")
+	variantID := uuid.New()
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order1, _ := domain.NewSalesOrder(orderNumber1, partyID, time.Now(), time.Now().Add(7*24*time.Hour), []domain.OrderLineItem{lineItem}, taxAmount, "")
+	order2, _ := domain.NewSalesOrder(orderNumber2, partyID, time.Now(), time.Now().Add(7*24*time.Hour), []domain.OrderLineItem{lineItem}, taxAmount, "")
+
+	orders := []*domain.SalesOrder{order1, order2}
+	filter := domain.SalesOrderFilter{PartyID: &partyID}
+
+	orderRepo.On("List", mock.Anything, filter).Return(orders, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	query := application.ListOrdersQuery{PartyID: &partyID}
+	results, err := service.ListOrders(ctx, query)
+
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
+	assert.Equal(t, order1.ID, results[0].ID)
+	assert.Equal(t, order2.ID, results[1].ID)
+	orderRepo.AssertExpectations(t)
+}
+
+// ===== ConvertQuoteToOrder Tests =====
+
+func TestSalesService_ConvertQuoteToOrder_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	numbers := new(MockNumberGenerator)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Test quote",
+	)
+	_ = quote.ChangeStatus(domain.QuoteStatusSent)
+	_ = quote.ChangeStatus(domain.QuoteStatusApproved)
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
+
+	orderNumber, _ := domain.NewOrderNumber("SO-001")
+	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil)
+
+	cmd := application.ConvertQuoteToOrderCommand{
+		QuoteID:      quote.ID,
+		DeliveryDate: time.Now().Add(7 * 24 * time.Hour),
+	}
+
+	result, err := service.ConvertQuoteToOrder(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, partyID, result.PartyID)
+	assert.Equal(t, "PENDIENTE", string(result.Status))
+	quoteRepo.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+	numbers.AssertExpectations(t)
+}
+
+func TestSalesService_ConvertQuoteToOrder_QuoteNotApproved(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	numbers := new(MockNumberGenerator)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Test quote",
+	)
+	// Quote is in DRAFT status, not APPROVED
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+
+	// Note: Service generates order number before validation - this is a code smell
+	// but we need to mock it for the test to run
+	orderNumber, _ := domain.NewOrderNumber("SO-999")
+	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil)
+
+	cmd := application.ConvertQuoteToOrderCommand{
+		QuoteID:      quote.ID,
+		DeliveryDate: time.Now().Add(7 * 24 * time.Hour),
+	}
+
+	result, err := service.ConvertQuoteToOrder(ctx, cmd)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	quoteRepo.AssertExpectations(t)
+}
+
+// ===== UpdateQuote Tests =====
+
+func TestSalesService_UpdateQuote_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Original notes",
+	)
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	newNotes := "Updated notes"
+	cmd := application.UpdateQuoteCommand{
+		QuoteID: quote.ID,
+		Notes:   &newNotes,
+	}
+
+	result, err := service.UpdateQuote(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, quote.ID, result.ID)
+	quoteRepo.AssertExpectations(t)
+}
+
+// ===== ChangeQuoteStatus Tests =====
+
+func TestSalesService_ChangeQuoteStatus_DraftToSent_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Test quote",
+	)
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	cmd := application.ChangeQuoteStatusCommand{
+		QuoteID:   quote.ID,
+		NewStatus: string(domain.QuoteStatusSent),
+	}
+
+	result, err := service.ChangeQuoteStatus(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "ENVIADA", string(result.Status))
+	quoteRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeQuoteStatus_InvalidTransition_Fail(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0001")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(42, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		taxAmount,
+		"Test quote",
+	)
+	// Quote is in DRAFT status
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	// Try to change directly from DRAFT to APPROVED (invalid - must go through SENT first)
+	cmd := application.ChangeQuoteStatusCommand{
+		QuoteID:   quote.ID,
+		NewStatus: string(domain.QuoteStatusApproved),
+	}
+
+	result, err := service.ChangeQuoteStatus(ctx, cmd)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	quoteRepo.AssertExpectations(t)
+}
+
+// ===== ChangeOrderStatus Tests =====
+
+func TestSalesService_ChangeOrderStatus_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-001")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, nil, nil)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem},
+		taxAmount,
+		"Test order",
+	)
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil)
+
+	cmd := application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusInPreparation),
+	}
+
+	result, err := service.ChangeOrderStatus(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "EN_PREPARACION", string(result.Status))
+	orderRepo.AssertExpectations(t)
+}

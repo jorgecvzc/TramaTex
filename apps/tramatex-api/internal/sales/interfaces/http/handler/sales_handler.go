@@ -400,6 +400,24 @@ func (h *SalesHandler) CreateInvoice(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+// CreateSimplifiedInvoice creates a ticket (factura simplificada) for retail sales < 3,000 EUR
+// POST /api/sales/invoices/simplified
+func (h *SalesHandler) CreateSimplifiedInvoice(c *gin.Context) {
+	var cmd application.CreateSimplifiedInvoiceCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	result, err := h.service.CreateSimplifiedInvoice(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
+}
+
 func (h *SalesHandler) GetInvoice(c *gin.Context) {
 	id, ok := parseUUIDParam(c, "id")
 	if !ok {
@@ -492,10 +510,15 @@ func parseTimeQuery(c *gin.Context, name string) (*time.Time, bool) {
 	if value == "" {
 		return nil, true
 	}
+	// Try RFC3339 format first (2006-01-02T15:04:05Z)
 	parsed, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + name})
-		return nil, false
+		// Try date-only format (2006-01-02)
+		parsed, err = time.Parse("2006-01-02", value)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + name + ". Expected format: YYYY-MM-DD or RFC3339"})
+			return nil, false
+		}
 	}
 	return &parsed, true
 }

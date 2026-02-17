@@ -1,8 +1,6 @@
 package persistence
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -10,17 +8,14 @@ import (
 )
 
 // AttributeDataModel represents the attribute entity in the database.
+// Note: Scope fields removed for MVP simplicity.
 type AttributeDataModel struct {
 	gorm.Model
-	ID           uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Name         string    `gorm:"not null"`
-	Code         string    `gorm:"uniqueIndex;not null"`
-	SortOrder    int       `gorm:"not null;default:0"`
-	ScopeBrandID *uuid.UUID
-	ScopeGroupID *uuid.UUID
-	Values       []AttributeValueDataModel `gorm:"foreignKey:AttributeID"`
-	CreatedBy    string
-	ModifiedBy   string
+	ID        uuid.UUID                 `gorm:"type:uuid;primary_key;"`
+	Name      string                    `gorm:"not null"`
+	Code      string                    `gorm:"uniqueIndex;not null"`
+	SortOrder int                       `gorm:"not null;default:0"`
+	Values    []AttributeValueDataModel `gorm:"foreignKey:AttributeID"`
 }
 
 func (AttributeDataModel) TableName() string {
@@ -34,8 +29,6 @@ type AttributeValueDataModel struct {
 	AttributeID uuid.UUID `gorm:"not null"`
 	Value       string    `gorm:"not null"`
 	Code        string    `gorm:"not null"`
-	CreatedBy   string
-	ModifiedBy  string
 }
 
 func (AttributeValueDataModel) TableName() string {
@@ -50,13 +43,11 @@ func (a *AttributeDataModel) ToDomain() *domain.Attribute {
 	}
 
 	return &domain.Attribute{
-		ID:           a.ID,
-		Name:         a.Name,
-		Code:         a.Code,
-		SortOrder:    a.SortOrder,
-		ScopeBrandID: a.ScopeBrandID,
-		ScopeGroupID: a.ScopeGroupID,
-		Values:       values,
+		ID:        a.ID,
+		Name:      a.Name,
+		Code:      a.Code,
+		SortOrder: a.SortOrder,
+		Values:    values,
 	}
 }
 
@@ -78,13 +69,11 @@ func AttributeFromDomain(a *domain.Attribute) *AttributeDataModel {
 	}
 
 	return &AttributeDataModel{
-		ID:           a.ID,
-		Name:         a.Name,
-		Code:         a.Code,
-		SortOrder:    a.SortOrder,
-		ScopeBrandID: a.ScopeBrandID,
-		ScopeGroupID: a.ScopeGroupID,
-		Values:       values,
+		ID:        a.ID,
+		Name:      a.Name,
+		Code:      a.Code,
+		SortOrder: a.SortOrder,
+		Values:    values,
 	}
 }
 

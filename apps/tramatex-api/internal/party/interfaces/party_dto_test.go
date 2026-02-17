@@ -19,8 +19,8 @@ func TestMapPartyToDTO(t *testing.T) {
 	contact, _ := domain.NewContactDetails(contactID, "Ventas", phone, email, &relatedPartyID)
 	_ = orgProfile.AddContact(contact)
 
-	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, "user-1", personProfile, orgProfile)
-	role, _ := domain.NewPartyRole(domain.PartyRoleClient)
+	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, orgProfile)
+	role, _ := domain.NewPartyRole(domain.PartyRoleClient, nil)
 	_ = party.AddRole(role)
 
 	dto := MapPartyToDTO(party)
@@ -50,6 +50,22 @@ func TestMapContactDetailsToDTO(t *testing.T) {
 	}
 }
 
+func TestMapContactDetailsToDTO_WithFields(t *testing.T) {
+	contactID, _ := domain.NewContactDetailsID("contact-201")
+	phone, _ := domain.NewPhone("+34 600 111 222")
+	email, _ := domain.NewEmail("ventas@org.local")
+	relatedPartyID, _ := domain.NewPartyID("party-201")
+	contact, _ := domain.NewContactDetails(contactID, "Ventas", phone, email, &relatedPartyID)
+
+	dto := MapContactDetailsToDTO(contact)
+	if dto == nil {
+		t.Fatalf("expected dto")
+	}
+	if dto.Phone != "+34 600 111 222" || dto.Email != "ventas@org.local" || dto.RelatedPartyID != "party-201" {
+		t.Fatalf("expected phone, email, and related party ID to be mapped")
+	}
+}
+
 func TestMapPartyRelationshipToDTO(t *testing.T) {
 	relID, _ := domain.NewPartyRelationshipID("rel-200")
 	fromID, _ := domain.NewPartyID("party-a")
@@ -59,5 +75,28 @@ func TestMapPartyRelationshipToDTO(t *testing.T) {
 	dto := MapPartyRelationshipToDTO(&relationship)
 	if dto == nil || dto.ID != "rel-200" || dto.Type != "IS_EMPLOYEE_OF" {
 		t.Fatalf("Relationship mapping failed")
+	}
+}
+
+func TestMapAddressToDTO(t *testing.T) {
+	address, _ := domain.NewAddress("Calle 1", "Madrid", "Madrid", "28001", "Spain")
+	dto := MapAddressToDTO(address)
+	if dto == nil || dto.City != "Madrid" {
+		t.Fatalf("Address mapping failed")
+	}
+}
+
+func TestMapDTOs_NilInputs(t *testing.T) {
+	if MapPartyToDTO(nil) != nil {
+		t.Fatalf("expected nil party dto")
+	}
+	if MapContactDetailsToDTO(nil) != nil {
+		t.Fatalf("expected nil contact dto")
+	}
+	if MapPartyRelationshipToDTO(nil) != nil {
+		t.Fatalf("expected nil relationship dto")
+	}
+	if MapAddressToDTO(nil) != nil {
+		t.Fatalf("expected nil address dto")
 	}
 }

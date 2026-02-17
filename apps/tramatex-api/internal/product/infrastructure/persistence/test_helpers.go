@@ -7,12 +7,25 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+var productTestDBLock sync.Mutex
+
+// LockProductTestDB serializes product DB setup/teardown across packages.
+func LockProductTestDB() {
+	productTestDBLock.Lock()
+}
+
+// UnlockProductTestDB releases the product test DB lock.
+func UnlockProductTestDB() {
+	productTestDBLock.Unlock()
+}
 
 // TestDB provides database connection for integration tests
 type TestDB struct {
@@ -188,6 +201,8 @@ func (tdb *TestDB) SetUpProduct() error {
 
 	// Create enums and tables (same as migration)
 	createSchema := `
+		CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 		DO $$ BEGIN
 			CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE');
 		EXCEPTION

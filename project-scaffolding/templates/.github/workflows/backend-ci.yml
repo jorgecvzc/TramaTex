@@ -12,12 +12,12 @@ on:
   push:
     branches: [ "main", "develop" ]
     paths:
-      - 'apps/[YOUR_BACKEND_APP_NAME]/**'
+      - 'apps/$BACKEND_NAME/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
     branches: [ "main", "develop" ]
     paths:
-      - 'apps/[YOUR_BACKEND_APP_NAME]/**'
+      - 'apps/$BACKEND_NAME/**'
 
 jobs:
   test:
@@ -48,7 +48,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '[YOUR_GO_VERSION]' # e.g., '1.22'
+          go-version: '[GO_VERSION_NO_DEFINIDO]' # e.g., '1.22'
 
       # --- Node.js Example ---
       # - name: Setup Node.js
@@ -64,12 +64,12 @@ jobs:
 
       - name: Install dependencies
         # Example for Go. Adapt for your package manager (npm, pip, etc.)
-        working-directory: apps/[YOUR_BACKEND_APP_NAME]
+        working-directory: apps/$BACKEND_NAME
 
       - name: Run tests
         # Example for Go. Replace with your test command (e.g., 'npm test', 'pytest').
-        run: [YOUR_TEST_COMMAND_BACKEND] # e.g., 'go test -v ./...'
-        working-directory: apps/[YOUR_BACKEND_APP_NAME]
+        run: [COMANDO_TEST_BACKEND_NO_DEFINIDO] # e.g., 'go test -v ./...'
+        working-directory: apps/$BACKEND_NAME
         # env:
         #   DATABASE_URL: "postgres://testuser:testpassword@localhost:5432/testdb?sslmode=disable"
 
@@ -80,13 +80,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-          go-version: '[YOUR_GO_VERSION]' # e.g., '1.22'
+          go-version: '[GO_VERSION_NO_DEFINIDO]' # e.g., '1.22'
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
-          working-directory: apps/[YOUR_BACKEND_APP_NAME]
+          working-directory: apps/$BACKEND_NAME
           args: --timeout=5m
   
   build:
@@ -100,8 +100,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '[YOUR_GO_VERSION]' # e.g., '1.22'
+          go-version: '[GO_VERSION_NO_DEFINIDO]' # e.g., '1.22'
 
       - name: Build
-        run: [YOUR_BUILD_COMMAND_BACKEND] # e.g., 'go build -v -o app_binary ./cmd/api'
-        working-directory: apps/[YOUR_BACKEND_APP_NAME]
+        run: [COMANDO_BUILD_BACKEND_NO_DEFINIDO] # e.g., 'go build -v -o app_binary ./cmd/api'
+        working-directory: apps/$BACKEND_NAME

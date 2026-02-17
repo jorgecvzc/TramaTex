@@ -52,3 +52,14 @@ func TestSalesDiscountRuleAppliesTo(t *testing.T) {
 	rule.IsActive = false
 	require.False(t, rule.AppliesTo(clientID, variantID, 5, time.Now()))
 }
+
+func TestSalesDiscountRuleAppliesToGlobalRule(t *testing.T) {
+	p, _ := NewPercentage(0.1)
+	start := time.Now().Add(-time.Hour)
+	end := time.Now().Add(time.Hour)
+
+	rule, err := NewSalesDiscountRule("rule", nil, nil, nil, DiscountTypePercentage, &p, nil, 0, start, &end)
+	require.NoError(t, err)
+
+	require.True(t, rule.AppliesTo(uuid.New(), uuid.New(), 1, time.Now()))
+}

@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,11 +10,14 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // TestDB provides database connection for integration tests
+// Uses GORM with raw SQL for setup/teardown.
 type TestDB struct {
-	DB *sql.DB
+	DB *gorm.DB
 	t  *testing.T
 }
 
@@ -32,13 +34,18 @@ func NewTestDB(t *testing.T) *TestDB {
 		config.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Skipf("Could not connect to PostgreSQL: %v. Skipping integration tests.", err)
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Skipf("Could not get sql.DB: %v. Skipping integration tests.", err)
+	}
+
 	// Verify connection
-	if err := db.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		t.Skipf("Could not ping PostgreSQL: %v. Skipping integration tests.", err)
 	}
 
@@ -167,7 +174,6 @@ func readEnvFile(path string) (map[string]string, error) {
 func (tdb *TestDB) SetUp() error {
 	ctx := context.Background()
 
-	// Drop tables if they exist (for clean state)
 	dropSchema := `
 		DROP TABLE IF EXISTS addresses CASCADE;
 		DROP TABLE IF EXISTS persons CASCADE;
@@ -176,11 +182,10 @@ func (tdb *TestDB) SetUp() error {
 		DROP TYPE IF EXISTS organization_status CASCADE;
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, dropSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
 		return fmt.Errorf("failed to drop schema: %w", err)
 	}
 
-	// Create enums and tables (same as migration)
 	createSchema := `
 		CREATE TYPE organization_role AS ENUM ('CLIENT', 'SUPPLIER', 'BOTH');
 		CREATE TYPE organization_status AS ENUM ('ACTIVE', 'INACTIVE');
@@ -242,7 +247,7 @@ func (tdb *TestDB) SetUp() error {
 		CREATE INDEX idx_addresses_is_primary ON addresses(is_primary);
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, createSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
@@ -261,11 +266,15 @@ func (tdb *TestDB) TearDown() error {
 		DROP TYPE IF EXISTS organization_status CASCADE;
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, dropSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
 		return fmt.Errorf("failed to drop schema: %w", err)
 	}
 
-	return tdb.DB.Close()
+	sqlDB, err := tdb.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 // SetUpParty initializes Party schema for tests
@@ -283,7 +292,7 @@ func (tdb *TestDB) SetUpParty() error {
 		DROP TABLE IF EXISTS users CASCADE;
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, dropSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
 		return fmt.Errorf("failed to drop party schema: %w", err)
 	}
 
@@ -329,7 +338,10 @@ func (tdb *TestDB) SetUpParty() error {
 			from_party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
 			to_party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
 			type VARCHAR(50) NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+			created_by UUID NOT NULL REFERENCES users(id),
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			modified_by UUID NOT NULL REFERENCES users(id),
+			modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 
 		CREATE TABLE contact_details (
@@ -357,7 +369,7 @@ func (tdb *TestDB) SetUpParty() error {
 		);
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, createSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
 		return fmt.Errorf("failed to create party schema: %w", err)
 	}
 
@@ -379,9 +391,13 @@ func (tdb *TestDB) TearDownParty() error {
 		DROP TABLE IF EXISTS users CASCADE;
 	`
 
-	if _, err := tdb.DB.ExecContext(ctx, dropSchema); err != nil {
+	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
 		return fmt.Errorf("failed to drop party schema: %w", err)
 	}
 
-	return tdb.DB.Close()
+	sqlDB, err := tdb.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }

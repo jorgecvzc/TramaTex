@@ -1,247 +1,161 @@
-# TramaTex Architecture Context Agent
-# Version: 1.0
-# Purpose: Clean Architecture, DDD strategy, and architectural decisions
-
----
-
 metadata:
-  filename: "architecture.yaml"
-  version: "1.0"
-  location: "/agents/context/"
-  last_updated: "2026-02-01"
+  filename: architecture.yaml
+  version: '1.0'
+  location: /agents/context/
+  last_updated: '2026-02-15'
   references:
-    - "ADR-002-clean-architecture-ddd-adoption.md"
-    - "ADR-006-domain-driven-development-strategy.md"
-
+  - ADR-002-clean-architecture-ddd-adoption.md
+  - ADR-006-domain-driven-development-strategy.md
 clean_architecture_layers:
-  title: "🏗️ Clean Architecture Layers"
-  
+  title: "\U0001F3D7\uFE0F Clean Architecture Layers"
   domain_layer:
-    name: "Domain (Core Business Logic)"
-    location: "apps/tramatex-api/internal/domain"
-    purpose: "Pure business logic, entities, value objects, domain services"
-    
+    name: Domain (Core Business Logic)
+    location: apps/tramatex-api/internal/domain
+    purpose: Pure business logic, entities, value objects, domain services
     rules:
-      - "NO external dependencies (no frameworks, no GORM, no HTTP)"
-      - "Pure Go: only standard library concepts"
-      - "Interfaces for external concerns (repositories, services)"
-      - "All business rules encapsulated here"
-      - "Completely testeable in isolation"
-      - "Typed errors (not strings)"
-    
+    - NO external dependencies (no frameworks, no GORM, no HTTP)
+    - 'Pure Go: only standard library concepts'
+    - Interfaces for external concerns (repositories, services)
+    - All business rules encapsulated here
+    - Completely testeable in isolation
+    - Typed errors (not strings)
     contains:
-      - "Entities: Domain objects with identity"
-      - "Value Objects: Immutable domain concepts"
-      - "Domain Services: Cross-entity business logic"
-      - "Repositories: Interfaces (not implementations)"
-      - "Domain Events: (future enhancement)"
-    
-    test_coverage:
-      pricing: "100% (non-negotiable)"
-      party: "≥90%"
-      product: "≥85%"
-      general: "≥75% minimum"
-  
+    - 'Entities: Domain objects with identity'
+    - 'Value Objects: Immutable domain concepts'
+    - 'Domain Services: Cross-entity business logic'
+    - 'Repositories: Interfaces (not implementations)'
+    - 'Domain Events: (future enhancement)'
   application_layer:
-    name: "Application (Orchestration)"
-    location: "apps/tramatex-api/internal/application"
-    purpose: "Use cases, orchestration of domain and infrastructure"
-    
+    name: Application (Orchestration)
+    location: apps/tramatex-api/internal/application
+    purpose: Use cases, orchestration of domain and infrastructure
     rules:
-      - "NO business logic (delegated to domain)"
-      - "Orchestrates domain and infrastructure"
-      - "Creates DTOs for layer boundaries"
-      - "Handles transactions and workflows"
-      - "Can inject dependencies (repositories, services)"
-    
+    - NO business logic (delegated to domain)
+    - Orchestrates domain and infrastructure
+    - Creates DTOs for layer boundaries
+    - Handles transactions and workflows
+    - Can inject dependencies (repositories, services)
     contains:
-      - "Use Cases: Business workflows"
-      - "Application Services: Orchestrators"
-      - "DTOs: Layer boundary models"
-      - "Mappers: Domain ↔ Application ↔ Infrastructure"
-  
+    - 'Use Cases: Business workflows'
+    - 'Application Services: Orchestrators'
+    - 'DTOs: Layer boundary models'
+    - "Mappers: Domain \u2194 Application \u2194 Infrastructure"
   infrastructure_layer:
-    name: "Infrastructure (Technical Concerns)"
-    location: "apps/tramatex-api/internal/infrastructure"
-    purpose: "External concerns: database, APIs, libraries, technical plumbing"
-    
+    name: Infrastructure (Technical Concerns)
+    location: apps/tramatex-api/internal/infrastructure
+    purpose: 'External concerns: database, APIs, libraries, technical plumbing'
     rules:
-      - "Implements domain interfaces (repositories)"
-      - "Contains framework-specific code (GORM, HTTP clients)"
-      - "NO business logic"
-      - "Substitutable: can swap implementations"
-      - "Technical, not strategic"
-    
+    - Implements domain interfaces (repositories)
+    - Contains framework-specific code (GORM, HTTP clients)
+    - NO business logic
+    - 'Substitutable: can swap implementations'
+    - Technical, not strategic
     contains:
-      - "Repository Implementations: GORM models + queries"
-      - "External Service Clients: 3rd party API wrappers"
-      - "Adapters: Technical translations"
-      - "Configuration: Database, logging, etc."
-  
+    - 'Repository Implementations: GORM models + queries'
+    - 'External Service Clients: 3rd party API wrappers'
+    - 'Adapters: Technical translations'
+    - 'Configuration: Database, logging, etc.'
   interfaces_layer:
-    name: "Interfaces (Entry Points)"
-    location: "apps/tramatex-api/internal/interfaces"
-    purpose: "HTTP handlers, DTOs, request/response mapping"
-    
+    name: Interfaces (Entry Points)
+    location: apps/tramatex-api/internal/interfaces
+    purpose: HTTP handlers, DTOs, request/response mapping
     rules:
-      - "Controllers/Handlers: HTTP entry points"
-      - "Request/Response DTOs: HTTP contracts"
-      - "Input validation (basic, detailed in domain)"
-      - "Error translation to HTTP status codes"
-      - "No business logic"
-    
+    - 'Controllers/Handlers: HTTP entry points'
+    - 'Request/Response DTOs: HTTP contracts'
+    - Input validation (basic, detailed in domain)
+    - Error translation to HTTP status codes
+    - No business logic
     contains:
-      - "HTTP Handlers: Route handlers"
-      - "DTOs: HTTP request/response models"
-      - "Middleware: Logging, auth, CORS"
-      - "Error Handlers: HTTP error translation"
-
+    - 'HTTP Handlers: Route handlers'
+    - 'DTOs: HTTP request/response models'
+    - 'Middleware: Logging, auth, CORS'
+    - 'Error Handlers: HTTP error translation'
 ddd_strategy:
-  title: "📚 Domain-Driven Design Strategy"
-  
+  title: "\U0001F4DA Domain-Driven Design Strategy"
   asymmetric_rigor:
-    concept: "Apply strict architecture where it adds value, relax where it's mechanical"
-    
+    concept: Apply strict architecture where it adds value, relax where it's mechanical
     strict_rigor_applied_to:
-      - "Pricing (economically critical core engine)"
-      - "Party (foundation for all operations)"
-      - "Product (base for pricing calculations)"
-      - "Sales (main business flow)"
-      - "Authentication (security-critical)"
-    
+    - Pricing (economically critical core engine)
+    - Party (foundation for all operations)
+    - Product (base for pricing calculations)
+    - Sales (main business flow)
+    - Authentication (security-critical)
     relaxed_rigor_applied_to:
-      - "Simple CRUDs of lookup data"
-      - "Data migrations and utilities"
-      - "Admin panels (post-MVP)"
-      - "Simple reporting (no complex logic)"
-    
-    principle: |
-      Rule: If module has business logic → STRICT
-             If module is technical plumbing → PRAGMATIC
-  
-  bounded_contexts:
-    iam:
-      description: "User authentication and authorization"
-      criticality: "CRITICAL"
-      strategy: "Strict domain for user entity, pragmatic for JWT plumbing"
-    
-    party:
-      description: "Clients and suppliers management"
-      criticality: "CRITICAL - Foundation"
-      strategy: "100% strict architecture, high test coverage"
-    
-    product:
-      description: "Product catalog and variants"
-      criticality: "CRITICAL - Base for pricing"
-      strategy: "100% strict architecture, high test coverage"
-    
-    pricing:
-      description: "Pricing engine and calculations"
-      criticality: "CRITICAL - Economically critical"
-      strategy: "100% strict (most critical module)"
-    
-    sales:
-      description: "Orders and transactions"
-      criticality: "HIGH - Business flow"
-      strategy: "Strict for core logic, pragmatic for reporting"
-
+    - Simple CRUDs of lookup data
+    - Data migrations and utilities
+    - Admin panels (post-MVP)
+    - Simple reporting (no complex logic)
+    principle: "Rule: If module has business logic \u2192 STRICT\nIf module is technical\
+      \ plumbing \u2192 PRAGMATIC"
 repository_pattern:
-  title: "Repository Pattern (Interfaces in Domain)"
-  
+  title: Repository Pattern (Interfaces in Domain)
   design:
-    - "Repository interfaces defined in domain/"
-    - "Implementations in infrastructure/"
-    - "Domain depends on abstraction, not concretion"
-    - "Easy to test domain with mock repositories"
-    - "Easy to swap database implementations"
-  
-  example_structure: |
-    apps/tramatex-api/internal/
-    ├── domain/
-    │   ├── party/
-    │   │   ├── entity.go
-    │   │   ├── service.go
-    │   │   └── repository.go        ← INTERFACE
-    │   └── product/
-    │       ├── entity.go
-    │       └── repository.go        ← INTERFACE
-    │
-    └── infrastructure/
-        ├── party/
-        │   └── gorm_repository.go   ← IMPLEMENTATION
-        └── product/
-            └── gorm_repository.go   ← IMPLEMENTATION
-
+  - Repository interfaces defined in domain/
+  - Implementations in infrastructure/
+  - Domain depends on abstraction, not concretion
+  - Easy to test domain with mock repositories
+  - Easy to swap database implementations
 value_objects:
-  title: "Value Objects (Domain Primitives)"
-  
-  concept: "Encapsulate domain concepts as immutable objects with validation"
-  
+  title: Value Objects (Domain Primitives)
+  concept: Encapsulate domain concepts as immutable objects with validation
   examples:
     email:
-      validation: "RFC 5322 format"
+      validation: RFC 5322 format
       immutable: true
-      example: "type Email struct { value string }"
-    
+      example: type Email struct { value string }
     money:
-      validation: "Positive value, decimal precision"
+      validation: Positive value, decimal precision
       immutable: true
-      example: "type Money struct { amount decimal.Decimal, currency string }"
-    
+      example: type Money struct { amount decimal.Decimal, currency string }
     product_code:
-      validation: "Format and uniqueness constraints"
+      validation: Format and uniqueness constraints
       immutable: true
-      example: "type ProductCode struct { code string }"
-
+      example: type ProductCode struct { code string }
 testing_strategy:
-  title: "🧪 Testing Strategy in TramaTex"
-  
+  mvp_coverage_targets:
+    '**pricing**':
+      coverage: "**\u2265 90%**"
+      criticality: "Econ\xF3mica"
+      justification: "Errores impactan directamente en la facturaci\xF3n y rentabilidad."
+    '**party**':
+      coverage: "\u2265 85%"
+      criticality: Funcional
+      justification: "Errores en la gesti\xF3n de clientes/proveedores impactan toda\
+        \ la operativa."
+    '**product**':
+      coverage: "\u2265 85%"
+      criticality: Funcional
+      justification: "La correcta definici\xF3n de productos es clave para precios\
+        \ y ventas."
+    '**general**':
+      coverage: "**\u2265 85%**"
+      criticality: Calidad Base
+      justification: "M\xEDnimo aceptable para cualquier otro m\xF3dulo de backend."
   unit_tests:
-    location: "In domain, application layers"
-    scope: "Individual entities, value objects, services"
-    coverage_targets:
-      pricing: "100%"
-      party: "≥90%"
-      product: "≥85%"
-      general: "≥75% minimum"
-    
-    tools: "Go testing + testify/assert"
-  
+    location: In domain, application layers
+    scope: Individual entities, value objects, services
+    tools: Go testing + testify/assert
   integration_tests:
-    location: "In tests/integration/"
-    scope: "End-to-end use case validation with real database"
+    location: In tests/integration/
+    scope: End-to-end use case validation with real database
     focus:
-      - "Complete workflows (login → create order → pricing)"
-      - "Repository interactions"
-      - "Transaction boundaries"
-    
-    tools: "Go testing + database fixtures"
-  
-  no_ui_tests_in_tramatex-api:
-    rule: "tramatex-api tests domain and use cases, NOT HTTP handlers"
-    reason: "HTTP concerns tested separately or in frontend"
-
+    - "Complete workflows (login \u2192 create order \u2192 pricing)"
+    - Repository interactions
+    - Transaction boundaries
+    tools: Go testing + database fixtures
+  no_ui_tests_in_<backend_app_name>:
+    rule: tramatex-api tests domain and use cases, NOT HTTP handlers
+    reason: HTTP concerns tested separately or in frontend
 error_handling:
-  title: "Error Handling in TramaTex"
-  
-  principle: "Typed errors, not strings"
-  
+  title: Error Handling in TramaTex
+  principle: Typed errors, not strings
   domain_errors:
-    location: "apps/tramatex-api/pkg/errors/"
+    location: apps/tramatex-api/pkg/errors/
     contains:
-      - "Custom error types (InvalidEmail, ProductNotFound, etc.)"
-      - "Error codes (numeric or string constants)"
-      - "Error context (what went wrong, why, where)"
-    
-    example: |
-      type ValidationError struct {
-        Code    string
-        Message string
-        Field   string
-      }
-  
+    - Custom error types (InvalidEmail, ProductNotFound, etc.)
+    - Error codes (numeric or string constants)
+    - Error context (what went wrong, why, where)
   application_errors:
-    handling: "Catch domain errors, wrap for use case context"
-  
+    handling: Catch domain errors, wrap for use case context
   http_errors:
-    translation: "Infrastructure layer translates to HTTP status codes"
+    translation: Infrastructure layer translates to HTTP status codes

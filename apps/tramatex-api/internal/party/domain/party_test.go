@@ -2,12 +2,11 @@ package domain
 
 import (
 	"testing"
-	"time"
 )
 
 func TestNewPartyRequiresProfile(t *testing.T) {
 	partyID, _ := NewPartyID("party-001")
-	if _, err := NewParty(partyID, PartyStatusActive, "user-1", nil, nil); err == nil {
+	if _, err := NewParty(partyID, PartyStatusActive, nil, nil); err == nil {
 		t.Fatalf("expected error when no profiles provided")
 	}
 }
@@ -15,41 +14,26 @@ func TestNewPartyRequiresProfile(t *testing.T) {
 func TestNewPartyValidatesStatus(t *testing.T) {
 	partyID, _ := NewPartyID("party-002")
 	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	if _, err := NewParty(partyID, PartyStatus("INVALID"), "user-1", personProfile, nil); err == nil {
+	if _, err := NewParty(partyID, PartyStatus("INVALID"), personProfile, nil); err == nil {
 		t.Fatalf("expected error for invalid status")
-	}
-}
-
-func TestNewPartySetsAuditFields(t *testing.T) {
-	partyID, _ := NewPartyID("party-003")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	party, err := NewParty(partyID, PartyStatusActive, "user-1", personProfile, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if party.CreatedBy() != "user-1" || party.ModifiedBy() != "user-1" {
-		t.Fatalf("audit fields not set correctly")
-	}
-	if party.CreatedAt().IsZero() || party.ModifiedAt().IsZero() {
-		t.Fatalf("timestamps should be set")
 	}
 }
 
 func TestPartyActivateDeactivate(t *testing.T) {
 	partyID, _ := NewPartyID("party-004")
 	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	party, _ := NewParty(partyID, PartyStatusActive, "user-1", personProfile, nil)
+	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
-	if err := party.Activate("user-2"); err == nil {
+	if err := party.Activate(); err == nil {
 		t.Fatalf("expected error when activating already active party")
 	}
-	if err := party.Deactivate("user-2"); err != nil {
+	if err := party.Deactivate(); err != nil {
 		t.Fatalf("unexpected error deactivating party: %v", err)
 	}
-	if err := party.Deactivate("user-2"); err == nil {
+	if err := party.Deactivate(); err == nil {
 		t.Fatalf("expected error when deactivating already inactive party")
 	}
-	if err := party.Activate("user-2"); err != nil {
+	if err := party.Activate(); err != nil {
 		t.Fatalf("unexpected error activating party: %v", err)
 	}
 }
@@ -57,9 +41,9 @@ func TestPartyActivateDeactivate(t *testing.T) {
 func TestPartyRolesAddRemove(t *testing.T) {
 	partyID, _ := NewPartyID("party-005")
 	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	party, _ := NewParty(partyID, PartyStatusActive, "user-1", personProfile, nil)
+	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
-	role, _ := NewPartyRole(PartyRoleClient)
+	role, _ := NewPartyRole(PartyRoleClient, nil)
 	if err := party.AddRole(role); err != nil {
 		t.Fatalf("unexpected error adding role: %v", err)
 	}
@@ -77,7 +61,7 @@ func TestPartyRolesAddRemove(t *testing.T) {
 func TestPartyRelationshipAdd(t *testing.T) {
 	partyID, _ := NewPartyID("party-006")
 	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	party, _ := NewParty(partyID, PartyStatusActive, "user-1", personProfile, nil)
+	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
 	invalidRel := PartyRelationship{typeValue: RelationshipType("INVALID")}
 	if err := party.AddRelationship(invalidRel); err == nil {
@@ -178,17 +162,11 @@ func TestPartyTypesValidation(t *testing.T) {
 func TestNewPartyFromPersistence(t *testing.T) {
 	partyID, _ := NewPartyID("party-008")
 	personProfile, _ := NewPersonProfile("Ana", "Perez")
-	createdAt := time.Now().Add(-time.Hour)
-	modifiedAt := time.Now()
 
-	role, _ := NewPartyRole(PartyRoleClient)
+	role, _ := NewPartyRole(PartyRoleClient, nil)
 	party, err := NewPartyFromPersistence(
 		partyID,
 		PartyStatusActive,
-		"user-1",
-		createdAt,
-		"user-2",
-		modifiedAt,
 		personProfile,
 		nil,
 		[]PartyRole{role},
@@ -196,8 +174,8 @@ func TestNewPartyFromPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if party.CreatedAt() != createdAt || party.ModifiedAt() != modifiedAt {
-		t.Fatalf("expected timestamps to match persisted values")
+	if party.ID() != partyID {
+		t.Fatalf("expected party ID to match input")
 	}
 }
 

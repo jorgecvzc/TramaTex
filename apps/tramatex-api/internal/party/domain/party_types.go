@@ -1,7 +1,5 @@
 package domain
 
-import "fmt"
-
 // PartyStatus defines the status of a party
 type PartyStatus string
 
@@ -59,7 +57,7 @@ type PartyID string
 
 func NewPartyID(id string) (PartyID, error) {
 	if id == "" {
-		return "", fmt.Errorf("party ID cannot be empty")
+		return "", NewValidationError("party ID cannot be empty")
 	}
 	return PartyID(id), nil
 }
@@ -77,7 +75,7 @@ type PartyRelationshipID string
 
 func NewPartyRelationshipID(id string) (PartyRelationshipID, error) {
 	if id == "" {
-		return "", fmt.Errorf("relationship ID cannot be empty")
+		return "", NewValidationError("relationship ID cannot be empty")
 	}
 	return PartyRelationshipID(id), nil
 }
@@ -95,7 +93,7 @@ type ContactDetailsID string
 
 func NewContactDetailsID(id string) (ContactDetailsID, error) {
 	if id == "" {
-		return "", fmt.Errorf("contact details ID cannot be empty")
+		return "", NewValidationError("contact details ID cannot be empty")
 	}
 	return ContactDetailsID(id), nil
 }
@@ -113,7 +111,7 @@ type AddressID string
 
 func NewAddressID(id string) (AddressID, error) {
 	if id == "" {
-		return "", fmt.Errorf("address ID cannot be empty")
+		return "", NewValidationError("address ID cannot be empty")
 	}
 	return AddressID(id), nil
 }

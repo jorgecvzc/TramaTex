@@ -14,6 +14,7 @@ help:
 	@echo "make test-unit   - Run unit tests only"
 	@echo "make test-integration - Run integration tests only"
 	@echo "make coverage    - Run tests with coverage report"
+	@echo "make coverage-pricing - Run pricing tests with coverage report"
 	@echo "make deps        - Download and tidy dependencies"
 	@echo "make fmt         - Format code (gofmt)"
 	@echo "make lint        - Run linter (if available)"
@@ -49,9 +50,16 @@ test-integration:
 # Run tests with coverage
 coverage:
 	@echo "📊 Running tests with coverage..."
-	@go test ./... -v -coverprofile=coverage.out
-	@go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report: coverage.html"
+	@go test ./... -v -coverprofile=coverage-reports/coverage.out
+	@go tool cover -html=coverage-reports/coverage.out -o coverage-reports/coverage.html
+	@echo "✅ Coverage report: coverage-reports/coverage.html"
+
+# Run pricing tests with coverage
+coverage-pricing:
+	@echo "📊 Running pricing tests with coverage..."
+	@go test ./internal/pricing/... -v -coverprofile=coverage-reports/coverage-pricing.out
+	@go tool cover -html=coverage-reports/coverage-pricing.out -o coverage-reports/coverage-pricing.html
+	@echo "✅ Pricing coverage report: coverage-reports/coverage-pricing.html"
 
 # Download and tidy dependencies
 deps:
@@ -77,7 +85,7 @@ lint:
 clean:
 	@echo "🧹 Cleaning build artifacts..."
 	@rm -f $(BINARY_NAME)
-	@rm -f coverage.out coverage.html
+	@rm -f coverage.out coverage.html coverage-reports/*.out coverage-reports/*.html
 	@go clean
 	@echo "✅ Clean complete"
 

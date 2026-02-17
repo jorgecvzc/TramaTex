@@ -137,6 +137,10 @@ type InvoiceDataModel struct {
 	gorm.Model
 	ID               uuid.UUID `gorm:"type:uuid;primary_key;"`
 	InvoiceNumber    string    `gorm:"column:invoice_number;not null"`
+	Type             string    `gorm:"type:invoice_type;not null"` // COMPLETA | SIMPLIFICADA
+	SeriesCode       string    `gorm:"column:series_code;not null"`
+	SeriesYear       int       `gorm:"column:series_year;not null"`
+	SeriesPrefix     string    `gorm:"column:series_prefix;not null"`
 	PartyID          uuid.UUID `gorm:"column:party_id;not null"`
 	InvoiceDate      time.Time `gorm:"column:invoice_date;not null"`
 	DueDate          time.Time `gorm:"column:due_date;not null"`
@@ -318,6 +322,10 @@ func invoiceFromDomain(invoice *domain.Invoice) (*InvoiceDataModel, error) {
 	return &InvoiceDataModel{
 		ID:               invoice.ID,
 		InvoiceNumber:    invoice.InvoiceNumber.String(),
+		Type:             string(invoice.Type),
+		SeriesCode:       invoice.Series.Code(),
+		SeriesYear:       invoice.Series.Year(),
+		SeriesPrefix:     invoice.Series.Prefix(),
 		PartyID:          invoice.PartyID,
 		InvoiceDate:      invoice.InvoiceDate,
 		DueDate:          invoice.DueDate,
@@ -589,9 +597,21 @@ func invoiceToDomain(invoice *InvoiceDataModel, items []InvoiceLineItemDataModel
 		return nil, err
 	}
 
+	invoiceType := domain.InvoiceType(invoice.Type)
+	if err := invoiceType.IsValid(); err != nil {
+		return nil, err
+	}
+
+	series, err := domain.NewInvoiceSeriesWithPrefix(invoice.SeriesCode, invoice.SeriesYear, invoice.SeriesPrefix)
+	if err != nil {
+		return nil, err
+	}
+
 	return &domain.Invoice{
 		ID:            invoice.ID,
 		InvoiceNumber: invoiceNumber,
+		Type:          invoiceType,
+		Series:        series,
 		PartyID:       invoice.PartyID,
 		InvoiceDate:   invoice.InvoiceDate,
 		DueDate:       invoice.DueDate,

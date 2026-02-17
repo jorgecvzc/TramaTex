@@ -1,0 +1,58 @@
+# Application Scaffolding Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Manages the creation of application directories and CI/CD workflows based on user-defined applications.
+
+---
+
+metadata:
+  filename: "application-scaffolding.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the creation of application-specific directories and CI/CD workflows during project bootstrapping."
+  applies_to: "Project scaffolding application creation phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "create_cicd_directories"
+    title: "Crear Directorio para CI/CD"
+    description: "Creará el directorio .github/workflows para las plantillas de CI/CD."
+    command: "mkdir -p .github/workflows"
+    next_step: "prompt_for_applications"
+
+  - step_id: "prompt_for_applications"
+    title: "🏗️ Definir Aplicaciones del Proyecto"
+    description: "Define todas las aplicaciones que compondrán tu proyecto. Usa el formato 'tipo:nombre' y sepáralas por comas."
+    prompt_user:
+      - question: "Ejemplo: backend:user-api, backend:orders-api, frontend:admin-panel, intermediary:mobile-bff"
+        variable_name: "APPLICATIONS_TO_CREATE"
+    next_step: "create_application_components"
+
+  - step_id: "create_application_components"
+    title: "Creando Estructuras de Aplicación y Workflows de CI/CD"
+    description: "Crea dinámicamente los directorios y los workflows de CI/CD para cada aplicación definida."
+    create_apps_from_spec:
+      spec_variable: "$APPLICATIONS_TO_CREATE"
+      base_apps_dir: "apps/"
+      base_workflow_dir: ".github/workflows/"
+      templates:
+        backend:
+          structure:
+            - "cmd/api"
+            - "internal/{domain,application,infrastructure,interfaces,config}"
+            - "migrations"
+            - "pkg/errors"
+            - "tests/{unit,integration}"
+          ci_template: "templates/.github/workflows/backend-ci.yml"
+        frontend:
+          structure:
+            - "src/{components,stores,composables,services,views,types,design-system}"
+            - "tests"
+            - "public"
+          ci_template: "templates/.github/workflows/frontend-ci.yml"
+        intermediary:
+          structure:
+            - "src/{handlers,services,tests,config}"
+          ci_template: "templates/.github/workflows/intermediary-ci.yml"
+    next_step: "end"
+

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -15,14 +14,14 @@ type Email struct {
 func NewEmail(value string) (*Email, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return nil, fmt.Errorf("email cannot be empty")
+		return nil, NewValidationError("email cannot be empty")
 	}
 
 	// Email regex: allows plus-addressing and more flexible formats
 	// Matches: test@example.com, test+tag@example.com, test.email@example.com
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	if !emailRegex.MatchString(value) {
-		return nil, fmt.Errorf("invalid email format: %s", value)
+		return nil, NewValidationErrorf("invalid email format: %s", value)
 	}
 
 	return &Email{value: strings.ToLower(value)}, nil
@@ -55,14 +54,14 @@ type Phone struct {
 func NewPhone(value string) (*Phone, error) {
 	value = strings.TrimSpace(value)
 	if value == "" {
-		return nil, fmt.Errorf("phone cannot be empty")
+		return nil, NewValidationError("phone cannot be empty")
 	}
 
 	// Basic phone regex: allows +, -, spaces, and digits
 	// Example: +34 666 123456 or 666123456
 	phoneRegex := regexp.MustCompile(`^[\+]?[\d\s\-()]{8,}$`)
 	if !phoneRegex.MatchString(value) {
-		return nil, fmt.Errorf("invalid phone format: %s", value)
+		return nil, NewValidationErrorf("invalid phone format: %s", value)
 	}
 
 	return &Phone{value: value}, nil
@@ -98,16 +97,16 @@ func NewTaxID(value, typ string) (*TaxID, error) {
 	typ = strings.TrimSpace(strings.ToUpper(typ))
 
 	if value == "" {
-		return nil, fmt.Errorf("tax ID cannot be empty")
+		return nil, NewValidationError("tax ID cannot be empty")
 	}
 	if typ == "" {
-		return nil, fmt.Errorf("tax ID type cannot be empty")
+		return nil, NewValidationError("tax ID type cannot be empty")
 	}
 
 	// Basic validation: must be alphanumeric, 5-20 chars
 	taxIDRegex := regexp.MustCompile(`^[A-Z0-9]{5,20}$`)
 	if !taxIDRegex.MatchString(value) {
-		return nil, fmt.Errorf("invalid tax ID format: %s (type: %s)", value, typ)
+		return nil, NewValidationErrorf("invalid tax ID format: %s (type: %s)", value, typ)
 	}
 
 	return &TaxID{value: value, typ: typ}, nil
@@ -154,11 +153,11 @@ func NewAddress(street, city, province, postalCode, country string) (*Address, e
 	country = strings.TrimSpace(country)
 
 	if street == "" || city == "" || postalCode == "" || country == "" {
-		return nil, fmt.Errorf("address requires street, city, postal code, and country")
+		return nil, NewValidationError("address requires street, city, postal code, and country")
 	}
 
 	if len(postalCode) < 3 || len(postalCode) > 10 {
-		return nil, fmt.Errorf("invalid postal code format: %s", postalCode)
+		return nil, NewValidationErrorf("invalid postal code format: %s", postalCode)
 	}
 
 	return &Address{

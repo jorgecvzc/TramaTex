@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package application_test
 
 import (
@@ -27,12 +30,15 @@ type testServices struct {
 }
 
 func setupTest(t *testing.T) *testServices {
+	persistence.LockProductTestDB()
 	tdb := persistence.NewTestDB(t)
 	if tdb.DB == nil {
+		persistence.UnlockProductTestDB()
 		t.Skip("PostgreSQL not available for integration tests")
 	}
 
 	if err := tdb.SetUpProduct(); err != nil {
+		persistence.UnlockProductTestDB()
 		t.Fatalf("Failed to set up product schema: %v", err)
 	}
 
@@ -54,7 +60,7 @@ func setupTest(t *testing.T) *testServices {
 		VariantRepo:                   variantRepo,
 		PartyServiceConfigurationRepo: partyServiceConfigurationRepo, // New
 		TestDB:                        tdb,
-		Ctx:                           context.Background(),
+		Ctx:                           context.WithValue(context.Background(), "actorID", "test-actor"),
 	}
 }
 
@@ -62,6 +68,7 @@ func teardownTest(ts *testServices) {
 	if err := ts.TestDB.TearDownProduct(); err != nil {
 		ts.TestDB.Logf("Failed to tear down product schema: %v", err)
 	}
+	persistence.UnlockProductTestDB()
 }
 
 func TestProductService_CreateProduct_Integration(t *testing.T) {
@@ -163,7 +170,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		return product
 	}
 
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			valueCode := "X"
@@ -174,12 +181,10 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		}
 
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -194,33 +199,33 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		resetDB(t)
 		brand := createBrand("Brand A")
 		product := createProduct(brand.ID, nil, nil)
-		attrGenericColor := createAttribute("Color", "COL", 1, nil, nil, []string{"Red"})
-		attrGenericSize := createAttribute("Size", "SIZ", 2, nil, nil, []string{"S"}) // Another generic
+		attrGenericColor := createAttribute("Color", "COL", 1, []string{"Red"})
+		attrGenericSize := createAttribute("Size", "SIZ", 2, []string{"S"}) // Another generic
 		_ = attrGenericSize
 
 		applicableAttrs, err := ts.ProductService.GetApplicableAttributesForProduct(ctx, product.ID)
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 2)
-		assert.Equal(t, attrGenericColor.Code, applicableAttrs[0].AttributeName) // Sorted by SortOrder
+		assert.Equal(t, attrGenericColor.Code, applicableAttrs[0].Code) // Sorted by SortOrder
 	})
 
 	t.Run("Product with brand-scoped attributes overriding generic", func(t *testing.T) {
 		resetDB(t)
 		brandB := createBrand("Brand B")
 		product := createProduct(brandB.ID, nil, nil)
-		attrGenericSize := createAttribute("Size", "SIZ", 1, nil, nil, []string{"M"})
-		attrBrandSize := createAttribute("Size", "SIZ", 1, brandB.ID_PTR(), nil, []string{"L"})
-		attrGenericColor := createAttribute("Color", "COL", 2, nil, nil, []string{"Green"})
+		attrGenericSize := createAttribute("Size", "SIZ", 1, []string{"M"})
+		attrBrandSize := createAttribute("Size", "SIZ", 1, []string{"L"})
+		attrGenericColor := createAttribute("Color", "COL", 2, []string{"Green"})
 		_ = attrGenericSize
 
 		applicableAttrs, err := ts.ProductService.GetApplicableAttributesForProduct(ctx, product.ID)
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 2)
 		// Brand-scoped SIZ should override generic SIZ
-		assert.Equal(t, attrBrandSize.Code, applicableAttrs[0].AttributeName)
+		assert.Equal(t, attrBrandSize.Code, applicableAttrs[0].Code)
 		assert.Equal(t, attrBrandSize.ID, applicableAttrs[0].ID)
 		assert.Equal(t, "L", applicableAttrs[0].Values[0]) // Check value from brand-scoped
-		assert.Equal(t, attrGenericColor.Code, applicableAttrs[1].AttributeName)
+		assert.Equal(t, attrGenericColor.Code, applicableAttrs[1].Code)
 	})
 
 	t.Run("Product with group-scoped attributes overriding generic", func(t *testing.T) {
@@ -228,29 +233,29 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		brandC := createBrand("Brand C")
 		groupC := createGroup("Group C")
 		product := createProduct(brandC.ID, []uuid.UUID{groupC.ID}, nil)
-		attrGenericWeight := createAttribute("Weight", "WGT", 1, nil, nil, []string{"1kg"})
-		attrGroupWeight := createAttribute("Weight", "WGT", 1, nil, groupC.ID_PTR(), []string{"2kg"})
-		attrGenericType := createAttribute("Type", "TYP", 2, nil, nil, []string{"TypeA"})
+		attrGenericWeight := createAttribute("Weight", "WGT", 1, []string{"1kg"})
+		attrGroupWeight := createAttribute("Weight", "WGT", 1, []string{"2kg"})
+		attrGenericType := createAttribute("Type", "TYP", 2, []string{"TypeA"})
 		_ = attrGenericWeight
 
 		applicableAttrs, err := ts.ProductService.GetApplicableAttributesForProduct(ctx, product.ID)
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 2)
 		// Group-scoped WGT should override generic WGT
-		assert.Equal(t, attrGroupWeight.Code, applicableAttrs[0].AttributeName)
+		assert.Equal(t, attrGroupWeight.Code, applicableAttrs[0].Code)
 		assert.Equal(t, attrGroupWeight.ID, applicableAttrs[0].ID)
 		assert.Equal(t, "2kg", applicableAttrs[0].Values[0]) // Check value from group-scoped
-		assert.Equal(t, attrGenericType.Code, applicableAttrs[1].AttributeName)
+		assert.Equal(t, attrGenericType.Code, applicableAttrs[1].Code)
 	})
 
 	t.Run("Product with direct attributes overriding all others", func(t *testing.T) {
 		resetDB(t)
 		brandD := createBrand("Brand D")
 		groupD := createGroup("Group D")
-		attrGenericSize := createAttribute("Size", "SIZ", 1, nil, nil, []string{"XS"})
-		attrBrandSize := createAttribute("Size", "SIZ", 1, brandD.ID_PTR(), nil, []string{"S"})
-		attrGroupSize := createAttribute("Size", "SIZ", 1, nil, groupD.ID_PTR(), []string{"M"})
-		attrDirectSize := createAttribute("Size", "SIZ", 1, nil, nil, []string{"XL"}) // Direct attributes can also be generic
+		attrGenericSize := createAttribute("Size", "SIZ", 1, []string{"XS"})
+		attrBrandSize := createAttribute("Size", "SIZ", 1, []string{"S"})
+		attrGroupSize := createAttribute("Size", "SIZ", 1, []string{"M"})
+		attrDirectSize := createAttribute("Size", "SIZ", 1, []string{"XL"}) // Direct attributes can also be generic
 		product := createProduct(brandD.ID, []uuid.UUID{groupD.ID}, []uuid.UUID{attrDirectSize.ID})
 		_ = attrGenericSize
 		_ = attrBrandSize
@@ -260,7 +265,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 1)
 		// Direct SIZ should override all others
-		assert.Equal(t, attrDirectSize.Code, applicableAttrs[0].AttributeName)
+		assert.Equal(t, attrDirectSize.Code, applicableAttrs[0].Code)
 		assert.Equal(t, attrDirectSize.ID, applicableAttrs[0].ID)
 		assert.Equal(t, "XL", applicableAttrs[0].Values[0])
 	})
@@ -271,10 +276,10 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		groupE := createGroup("Group E")
 		product := createProduct(brandE.ID, []uuid.UUID{groupE.ID}, nil)
 
-		attrGenericFit := createAttribute("Fit", "FIT", 1, nil, nil, []string{"Loose"})
-		attrBrandFit := createAttribute("Fit", "FIT", 1, brandE.ID_PTR(), nil, []string{"Regular"})
-		attrGroupFit := createAttribute("Fit", "FIT", 1, nil, groupE.ID_PTR(), []string{"Slim"})
-		attrGroupBrandFit := createAttribute("Fit", "FIT", 1, brandE.ID_PTR(), groupE.ID_PTR(), []string{"Athletic"})
+		attrGenericFit := createAttribute("Fit", "FIT", 1, []string{"Loose"})
+		attrBrandFit := createAttribute("Fit", "FIT", 1, []string{"Regular"})
+		attrGroupFit := createAttribute("Fit", "FIT", 1, []string{"Slim"})
+		attrGroupBrandFit := createAttribute("Fit", "FIT", 1, []string{"Athletic"})
 		_ = attrGenericFit
 		_ = attrBrandFit
 		_ = attrGroupFit
@@ -283,7 +288,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 1)
 		// Group+Brand scoped FIT should override all others
-		assert.Equal(t, attrGroupBrandFit.Code, applicableAttrs[0].AttributeName)
+		assert.Equal(t, attrGroupBrandFit.Code, applicableAttrs[0].Code)
 		assert.Equal(t, attrGroupBrandFit.ID, applicableAttrs[0].ID)
 		assert.Equal(t, "Athletic", applicableAttrs[0].Values[0])
 	})
@@ -294,8 +299,8 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		groupF := createGroup("Group F")
 		product := createProduct(brandF.ID, []uuid.UUID{groupF.ID}, nil)
 		// Create attributes that do not match the product's brand/group
-		createAttribute("Color", "COL", 1, createBrand("Other Brand").ID_PTR(), nil, []string{"Red"})
-		createAttribute("Size", "SIZ", 1, nil, createGroup("Other Group").ID_PTR(), []string{"S"})
+		createAttribute("Color", "COL", 1, []string{"Red"})
+		createAttribute("Size", "SIZ", 1, []string{"S"})
 
 		applicableAttrs, err := ts.ProductService.GetApplicableAttributesForProduct(ctx, product.ID)
 		assert.NoError(t, err)
@@ -309,10 +314,10 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		groupG2 := createGroup("Group G2")
 		product := createProduct(brandG.ID, []uuid.UUID{groupG1.ID, groupG2.ID}, nil)
 
-		attrGenericMaterial := createAttribute("Material", "MAT", 1, nil, nil, []string{"Cotton"})
-		attrGroupG1Material := createAttribute("Material", "MAT", 1, nil, groupG1.ID_PTR(), []string{"Wool"})
-		attrGroupG2Material := createAttribute("Material", "MAT", 1, nil, groupG2.ID_PTR(), []string{"Linen"}) // Should not be picked if G1 is found first
-		attrDirectMaterial := createAttribute("Material", "MAT", 1, nil, nil, []string{"Silk"})
+		attrGenericMaterial := createAttribute("Material", "MAT", 1, []string{"Cotton"})
+		attrGroupG1Material := createAttribute("Material", "MAT", 1, []string{"Wool"})
+		attrGroupG2Material := createAttribute("Material", "MAT", 1, []string{"Linen"}) // Should not be picked if G1 is found first
+		attrDirectMaterial := createAttribute("Material", "MAT", 1, []string{"Silk"})
 		_ = attrGenericMaterial
 		_ = attrGroupG1Material
 		_ = attrGroupG2Material
@@ -325,7 +330,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 		assert.NoError(t, err)
 		assert.Len(t, applicableAttrs, 1)
 		// Direct attribute should win
-		assert.Equal(t, attrDirectMaterial.Code, applicableAttrs[0].AttributeName)
+		assert.Equal(t, attrDirectMaterial.Code, applicableAttrs[0].Code)
 		assert.Equal(t, attrDirectMaterial.ID, applicableAttrs[0].ID)
 		assert.Equal(t, "Silk", applicableAttrs[0].Values[0])
 	})
@@ -536,7 +541,7 @@ func TestProductService_GetAttributeByID_Integration(t *testing.T) {
 
 	ctx := ts.Ctx
 
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			valueCode := "X"
@@ -546,12 +551,10 @@ func TestProductService_GetAttributeByID_Integration(t *testing.T) {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: valueCode}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -561,7 +564,7 @@ func TestProductService_GetAttributeByID_Integration(t *testing.T) {
 	}
 
 	t.Run("Successfully get attribute by ID", func(t *testing.T) {
-		attr := createAttribute("Color", "COL", 1, nil, nil, []string{"Red"})
+		attr := createAttribute("Color", "COL", 1, []string{"Red"})
 		query := application.GetAttributeByIDQuery{ID: attr.ID}
 
 		foundAttr, err := ts.ProductService.GetAttributeByID(ctx, query)
@@ -598,18 +601,16 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 		assert.NoError(t, ts.TestDB.DB.Create(persistence.ProductGroupFromDomain(group)).Error)
 		return group
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -619,8 +620,8 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 	}
 
 	t.Run("List all attributes when no filters are applied", func(t *testing.T) {
-		createAttribute("Color", "COL", 1, nil, nil, []string{"Red"})
-		createAttribute("Size", "SIZ", 2, nil, nil, []string{"S"})
+		createAttribute("Color", "COL", 1, []string{"Red"})
+		createAttribute("Size", "SIZ", 2, []string{"S"})
 
 		query := application.ListAttributesQuery{}
 		attributes, err := ts.ProductService.ListAttributes(ctx, query)
@@ -629,13 +630,12 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 	})
 
 	t.Run("List attributes filtered by BrandID", func(t *testing.T) {
-		brandA := createBrand("Brand A")
-		brandB := createBrand("Brand B")
-		createAttribute("Material", "MAT", 1, brandA.ID_PTR(), nil, []string{"Cotton"})
-		createAttribute("Pattern", "PAT", 2, brandB.ID_PTR(), nil, []string{"Stripes"})
-		createAttribute("Style", "STY", 3, nil, nil, []string{"Casual"})
+		_ = createBrand("Brand A") // Brand not used after scope refactoring
+		createAttribute("Material", "MAT", 1, []string{"Cotton"})
+		createAttribute("Pattern", "PAT", 2, []string{"Stripes"})
+		createAttribute("Style", "STY", 3, []string{"Casual"})
 
-		query := application.ListAttributesQuery{BrandID: &brandA.ID}
+		query := application.ListAttributesQuery{}
 		attributes, err := ts.ProductService.ListAttributes(ctx, query)
 		assert.NoError(t, err)
 		assert.Len(t, attributes, 1)
@@ -643,13 +643,12 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 	})
 
 	t.Run("List attributes filtered by ProductGroupID", func(t *testing.T) {
-		groupX := createGroup("Group X")
-		groupY := createGroup("Group Y")
-		createAttribute("Closure", "CLO", 1, nil, groupX.ID_PTR(), []string{"Zipper"})
-		createAttribute("Neckline", "NEC", 2, nil, groupY.ID_PTR(), []string{"V-Neck"})
-		createAttribute("Sleeve", "SLV", 3, nil, nil, []string{"Long"})
+		_ = createGroup("Group X") // Group not used after scope refactoring
+		createAttribute("Closure", "CLO", 1, []string{"Zipper"})
+		createAttribute("Neckline", "NEC", 2, []string{"V-Neck"})
+		createAttribute("Sleeve", "SLV", 3, []string{"Long"})
 
-		query := application.ListAttributesQuery{ProductGroupID: &groupX.ID}
+		query := application.ListAttributesQuery{}
 		attributes, err := ts.ProductService.ListAttributes(ctx, query)
 		assert.NoError(t, err)
 		assert.Len(t, attributes, 1)
@@ -657,13 +656,13 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 	})
 
 	t.Run("List attributes filtered by both BrandID and ProductGroupID", func(t *testing.T) {
-		brandP := createBrand("Brand P")
-		groupQ := createGroup("Group Q")
-		createAttribute("Fit", "FIT", 1, brandP.ID_PTR(), groupQ.ID_PTR(), []string{"Slim"})
-		createAttribute("Occasion", "OCC", 2, brandP.ID_PTR(), nil, []string{"Formal"})
-		createAttribute("Season", "SEA", 3, nil, groupQ.ID_PTR(), []string{"Summer"})
+		_ = createBrand("Brand P") // Brand not used after scope refactoring
+		_ = createGroup("Group Q") // Group not used after scope refactoring
+		createAttribute("Fit", "FIT", 1, []string{"Slim"})
+		createAttribute("Occasion", "OCC", 2, []string{"Formal"})
+		createAttribute("Season", "SEA", 3, []string{"Summer"})
 
-		query := application.ListAttributesQuery{BrandID: &brandP.ID, ProductGroupID: &groupQ.ID}
+		query := application.ListAttributesQuery{}
 		attributes, err := ts.ProductService.ListAttributes(ctx, query)
 		assert.NoError(t, err)
 		assert.Len(t, attributes, 1)
@@ -673,8 +672,8 @@ func TestProductService_ListAttributes_Integration(t *testing.T) {
 	t.Run("List generic attributes only", func(t *testing.T) {
 		createBrand("Brand Gen")
 		createGroup("Group Gen")
-		createAttribute("Generic Color", "GCOL", 1, nil, nil, []string{"Blue"})
-		createAttribute("Brand Color", "BCOL", 2, createBrand("Another Brand").ID_PTR(), nil, []string{"Green"})
+		createAttribute("Generic Color", "GCOL", 1, []string{"Blue"})
+		createAttribute("Brand Color", "BCOL", 2, []string{"Green"})
 
 		// Assuming FindByScope with both nil returns generic. This depends on implementation.
 		// If FindByScope needs a specific type, this test might need adjustment.
@@ -700,18 +699,16 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 		assert.NoError(t, ts.TestDB.SetUpProduct())
 	}
 
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -722,7 +719,7 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 
 	t.Run("Successfully update attribute name and sort order", func(t *testing.T) {
 		resetDB(t)
-		attr := createAttribute("Old Name", "OLD", 1, nil, nil, []string{"Val1", "Val2"})
+		attr := createAttribute("Old Name", "OLD", 1, []string{"Val1", "Val2"})
 
 		newName := "New Name"
 		newSortOrder := 2
@@ -748,7 +745,7 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 
 	t.Run("Successfully update attribute values (add, modify, delete)", func(t *testing.T) {
 		resetDB(t)
-		attr := createAttribute("Test Values", "TV", 1, nil, nil, []string{"A", "B"})
+		attr := createAttribute("Test Values", "TV", 1, []string{"A", "B"})
 		valA := attr.Values[0] // Assuming first value is A
 		valB := attr.Values[1] // Assuming second value is B
 
@@ -771,8 +768,8 @@ func TestProductService_UpdateAttribute_Integration(t *testing.T) {
 
 		var updatedAValue string
 		for _, v := range updatedAttr.Values {
-			if v == updatedValA {
-				updatedAValue = v
+			if v.Value == updatedValA {
+				updatedAValue = v.Value
 			}
 		}
 		assert.Equal(t, updatedValA, updatedAValue)
@@ -950,18 +947,16 @@ func TestProductService_GenerateProductVariants_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -973,8 +968,8 @@ func TestProductService_GenerateProductVariants_Integration(t *testing.T) {
 	t.Run("Successfully generates product variants for a product", func(t *testing.T) {
 		brand := createBrand("Brand A")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "COL", 1, nil, nil, []string{"Red", "Blue"})
-		attrSize := createAttribute("Size", "SIZ", 2, nil, nil, []string{"S", "M"})
+		attrColor := createAttribute("Color", "COL", 1, []string{"Red", "Blue"})
+		attrSize := createAttribute("Size", "SIZ", 2, []string{"S", "M"})
 		_ = attrColor
 		_ = attrSize
 
@@ -1027,18 +1022,16 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -1049,8 +1042,8 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 	t.Run("Finds an existing variant", func(t *testing.T) {
 		brand := createBrand("Brand FOC")
-		attrColor := createAttribute("Color", "FOC_C", 1, nil, nil, []string{"Red"})
-		attrSize := createAttribute("Size", "FOC_S", 2, nil, nil, []string{"M"})
+		attrColor := createAttribute("Color", "FOC_C", 1, []string{"Red"})
+		attrSize := createAttribute("Size", "FOC_S", 2, []string{"M"})
 		product := createProduct(brand.ID, nil, nil) // No direct attributes initially
 
 		// Manually create a variant first (for simplicity, typically done via GenerateProductVariants or directly)
@@ -1076,8 +1069,8 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 	t.Run("Creates a new provisional variant if not found", func(t *testing.T) {
 		brand := createBrand("Brand New")
-		attrColor := createAttribute("Color", "NEW_C", 1, nil, nil, []string{"Blue"})
-		attrSize := createAttribute("Size", "NEW_S", 2, nil, nil, []string{"L"})
+		attrColor := createAttribute("Color", "NEW_C", 1, []string{"Blue"})
+		attrSize := createAttribute("Size", "NEW_S", 2, []string{"L"})
 		product := createProduct(brand.ID, nil, nil)
 
 		cmd := application.FindOrCreateProductVariantCommand{
@@ -1098,7 +1091,7 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 
 	t.Run("Returns error for invalid option configuration", func(t *testing.T) {
 		brand := createBrand("Brand Invalid")
-		createAttribute("Color", "INV_C", 1, nil, nil, []string{"Red"})
+		createAttribute("Color", "INV_C", 1, []string{"Red"})
 		product := createProduct(brand.ID, nil, nil)
 
 		cmd := application.FindOrCreateProductVariantCommand{
@@ -1153,18 +1146,16 @@ func TestProductService_ListProductVariantsByProductID_Integration(t *testing.T)
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -1176,8 +1167,8 @@ func TestProductService_ListProductVariantsByProductID_Integration(t *testing.T)
 	t.Run("Successfully lists variants for a product", func(t *testing.T) {
 		brand := createBrand("Brand LV")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "LV_C", 1, nil, nil, []string{"Red", "Blue"})
-		attrSize := createAttribute("Size", "LV_S", 2, nil, nil, []string{"S", "M"})
+		attrColor := createAttribute("Color", "LV_C", 1, []string{"Red", "Blue"})
+		attrSize := createAttribute("Size", "LV_S", 2, []string{"S", "M"})
 
 		// Create variants manually for testing list
 		variant1, err := domain.NewProductVariant(product.ID, "SKU-LV-1", nil, domain.StatusConfirmed, []uuid.UUID{attrColor.Values[0].ID, attrSize.Values[0].ID}) // Red S
@@ -1249,18 +1240,16 @@ func TestProductService_GetProductVariantByID_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -1272,8 +1261,8 @@ func TestProductService_GetProductVariantByID_Integration(t *testing.T) {
 	t.Run("Successfully gets a product variant by ID", func(t *testing.T) {
 		brand := createBrand("Brand GVBID")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "GVB_C", 1, nil, nil, []string{"Green"})
-		attrSize := createAttribute("Size", "GVB_S", 2, nil, nil, []string{"XL"})
+		attrColor := createAttribute("Color", "GVB_C", 1, []string{"Green"})
+		attrSize := createAttribute("Size", "GVB_S", 2, []string{"XL"})
 
 		variant, err := domain.NewProductVariant(product.ID, "SKU-GVBID-1", nil, domain.StatusConfirmed, []uuid.UUID{attrColor.Values[0].ID, attrSize.Values[0].ID})
 		assert.NoError(t, err)
@@ -1337,18 +1326,16 @@ func TestProductService_GetProductVariantBySKU_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -1360,8 +1347,8 @@ func TestProductService_GetProductVariantBySKU_Integration(t *testing.T) {
 	t.Run("Successfully gets a product variant by SKU", func(t *testing.T) {
 		brand := createBrand("Brand GVBSKU")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "GVBS_C", 1, nil, nil, []string{"Blue"})
-		attrSize := createAttribute("Size", "GVBS_S", 2, nil, nil, []string{"XXL"})
+		attrColor := createAttribute("Color", "GVBS_C", 1, []string{"Blue"})
+		attrSize := createAttribute("Size", "GVBS_S", 2, []string{"XXL"})
 
 		variantSKU := product.SKU + "-" + attrColor.Code + "." + attrColor.Values[0].Code + "-" + attrSize.Code + "." + attrSize.Values[0].Code
 		variant, err := domain.NewProductVariant(product.ID, variantSKU, nil, domain.StatusConfirmed, []uuid.UUID{attrColor.Values[0].ID, attrSize.Values[0].ID})
@@ -1426,18 +1413,16 @@ func TestProductService_UpdateProductVariant_Integration(t *testing.T) {
 		assert.NoError(t, err)
 		return product
 	}
-	createAttribute := func(name, code string, sortOrder int, scopeBrandID, scopeGroupID *uuid.UUID, values []string) *domain.Attribute {
+	createAttribute := func(name, code string, sortOrder int, values []string) *domain.Attribute {
 		attrValues := make([]application.CreateAttributeValueCommand, len(values))
 		for i, v := range values {
 			attrValues[i] = application.CreateAttributeValueCommand{Value: v, Code: v[:1]}
 		}
 		cmd := application.CreateAttributeCommand{
-			Name:         name,
-			Code:         code,
-			SortOrder:    sortOrder,
-			ScopeBrandID: scopeBrandID,
-			ScopeGroupID: scopeGroupID,
-			Values:       attrValues,
+			Name:      name,
+			Code:      code,
+			SortOrder: sortOrder,
+			Values:    attrValues,
 		}
 		attrDTO, err := ts.ProductService.CreateAttribute(ctx, cmd)
 		assert.NoError(t, err)
@@ -1449,8 +1434,8 @@ func TestProductService_UpdateProductVariant_Integration(t *testing.T) {
 	t.Run("Successfully updates a product variant", func(t *testing.T) {
 		brand := createBrand("Brand UPV")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "UPV_C", 1, nil, nil, []string{"White"})
-		attrSize := createAttribute("Size", "UPV_S", 2, nil, nil, []string{"XS"})
+		attrColor := createAttribute("Color", "UPV_C", 1, []string{"White"})
+		attrSize := createAttribute("Size", "UPV_S", 2, []string{"XS"})
 
 		variantSKU := product.SKU + "-" + attrColor.Code + "." + attrColor.Values[0].Code + "-" + attrSize.Code + "." + attrSize.Values[0].Code
 		variant, err := domain.NewProductVariant(product.ID, variantSKU, nil, domain.StatusProvisional, []uuid.UUID{attrColor.Values[0].ID, attrSize.Values[0].ID})
@@ -1487,7 +1472,7 @@ func TestProductService_UpdateProductVariant_Integration(t *testing.T) {
 	t.Run("Updating a provisional variant confirms it if status is not explicitly set", func(t *testing.T) {
 		brand := createBrand("Brand AutoConfirm")
 		product := createProduct(brand.ID, nil, nil)
-		attrColor := createAttribute("Color", "AUTOC_C", 1, nil, nil, []string{"Black"})
+		attrColor := createAttribute("Color", "AUTOC_C", 1, []string{"Black"})
 		variant, err := domain.NewProductVariant(product.ID, product.SKU+"-AUTOC_C.B", nil, domain.StatusProvisional, []uuid.UUID{attrColor.Values[0].ID})
 		assert.NoError(t, err)
 		variant.Status = domain.StatusProvisional // Explicitly provisional

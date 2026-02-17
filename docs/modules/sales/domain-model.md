@@ -15,7 +15,9 @@ Los siguientes Value Objects son fundamentales para la consistencia del módulo 
 *   **`OrderNumber`:** String (Value Object para números de pedido únicos, encapsula formato y generación).
 *   **`QuoteNumber`:** String (Value Object para números de cotización únicos).
 *   **`DeliveryNoteNumber`:** String (Value Object para números de albarán únicos).
-*   **`InvoiceNumber`:** String (Value Object para números de factura únicos).
+*   **`InvoiceNumber`:** String (Value Object para números de factura únicos, incluye serie).
+*   **`InvoiceType`:** Enum (`COMPLETA`, `SIMPLIFICADA`). Define si es factura completa B2B o ticket (factura simplificada) según legislación española.
+*   **`InvoiceSeries`:** Value Object que encapsula la serie de numeración (código, año, prefijo). Permite gestionar series diferenciadas por tipo de documento y año fiscal.
 
 ---
 
@@ -121,14 +123,16 @@ Los siguientes Value Objects son fundamentales para la consistencia del módulo 
 
 ---
 
-### **4. Entidad: `Invoice` (Factura)**
+### **4. Entidad: `Invoice` (Factura / Ticket)**
 
 *   **Agregado Raíz:** `Invoice`
-*   **Propósito:** Documento legal para solicitar el pago al cliente y registrar el aspecto financiero de la venta.
+*   **Propósito:** Documento legal para solicitar el pago al cliente y registrar el aspecto financiero de la venta. Soporta facturas completas (B2B) y facturas simplificadas/tickets (retail) según legislación española (ADR-020).
 *   **Atributos:**
     *   `ID`: UUID
-    *   `InvoiceNumber`: `InvoiceNumber` (Value Object)
-    *   `PartyID`: `PartyID`
+    *   `InvoiceNumber`: `InvoiceNumber` (Value Object, incluye serie)
+    *   `Type`: `InvoiceType` (`COMPLETA` | `SIMPLIFICADA`)
+    *   `Series`: `InvoiceSeries` (Value Object, gestiona código de serie, año, prefijo)
+    *   `PartyID`: `PartyID` (Cliente. Para tipo `SIMPLIFICADA` puede ser "CONSUMIDOR_FINAL")
     *   `InvoiceDate`: `DateTime` (Fecha de emisión de la factura)
     *   `DueDate`: `DateTime` (Fecha de vencimiento del pago)
     *   `Status`: Enum (`BORRADOR`, `EMITIDA`, `PAGADA`, `VENCIDA`, `ANULADA`)
@@ -140,6 +144,7 @@ Los siguientes Value Objects son fundamentales para la consistencia del módulo 
     *   `PaymentTerms`: String (Condiciones de pago).
 *   **Comportamiento Clave:**
     *   `MarcarComoPagada()`: Actualiza el estado de la factura.
+    *   `ValidarLimitesLegales()`: Para tipo `SIMPLIFICADA`, valida que `Total` < 3.000 EUR según normativa española.
 
 #### **4.1. Entidad: `InvoiceLineItem`**
 

@@ -7,828 +7,124 @@
 
 metadata:
   filename: "bootstrap.yaml"
-  version: "1.1"
-  last_updated: "2026-02-01"
-  purpose: "Interactively bootstrap a new project with complete structure and initial architecture documentation"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Interactively bootstrap a new project with complete structure and initial architecture documentation with intelligent document processing."
   triggers: "When starting a new software project from the project-scaffolding starter kit"
   load_order: "independent"
   dependencies: []
 
-  decision_log:
-    - date: "2026-01-24"
-      decision: "El directorio de agentes específicos del proyecto se llamará 'agents/project/' y no 'agents/[nombre-del-proyecto]' (ej. 'agents/tramatex')."
-      rationale: "Preferencia del usuario. El directorio raíz del proyecto ya contiene el nombre del mismo, por lo que un subdirectorio genérico 'project' para los agentes se considera suficiente y más limpio."
-      impact: "El paso 'create_project_agent_directories' en este archivo de bootstrap permanecerá codificado como 'agents/project'. La documentación (ej. AGENTS.md) debe reflejar esta estructura específica para este proyecto."
+  max_configuration_attempts: 3  # Prevenir loop infinito en confirmación
 
-  
+  decision_log:
+    - date: "2026-02-05"
+      decision: "Añadir contador de intentos de configuración y validación de variables críticas."
+      rationale: "Prevenir loop infinito cuando el usuario modifica la configuración repetidamente. Garantizar que variables críticas (PROJECT_NAME, PROJECT_VISION, COMPONENT_TYPES) no estén vacías antes de crear el proyecto."
+      impact: "Máximo 3 intentos de configuración. Validación automática antes de creación. Pasos añadidos: max_attempts_reached, cancel_bootstrap, validate_configuration_before_creation."
+
+    - date: "2026-02-05"
+      decision: "El procesamiento de documentos de entrada se realiza PRIMERO, antes de hacer cualquier pregunta al usuario."
+      rationale: "Evita preguntar información que ya puede estar disponible en documentos existentes. Mejora la experiencia del usuario."
+      impact: "El flujo de trabajo comienza con 'check_input_docs_early' extrayendo automáticamente metadata antes de preguntar."
+
+    - date: "2026-01-24"
+      decision: "El directorio de agentes específicos del proyecto se llamará 'agents/project/' y no 'agents/[nombre-del-proyecto]'."
+      rationale: "El directorio raíz del proyecto ya contiene el nombre del mismo, por lo que un subdirectorio genérico 'project' es más limpio."
+      impact: "El paso 'create_project_agent_directories' usa ruta 'agents/project'."
+
+
 project_standards:
-  organization_policy: "CLEAN ROOT - Only README.md, AGENTS.md, NEXT_SESSION.md, and essential config files in root"
+  organization_policy: "CLEAN ROOT - Only README.md, AGENTS.md, and essential config files in root. Session log at docs/log/session-log.md"
   documentation_structure: "All documentation organized in docs/ with clear categories for engineering, guides, and project management"
 
 workflow_steps:
-  - step_id: "start_scaffolding"
-    title: "🚀 Iniciar Scaffolding de Proyecto"
-    description: "Este agente guiará la creación de la estructura base de un nuevo proyecto. Los archivos se crearán en el directorio SUPERIOR a 'project-scaffolding'."
-    prompt_user:
-      - question: "Por favor, introduce el nombre del nuevo proyecto (ej. 'MiNuevoProyecto'):"
-        variable_name: "PROJECT_NAME"
-      - question: "Describe brevemente la visión del proyecto (ej. 'Sistema de gestión de clientes para PYMES'):"
-        variable_name: "PROJECT_VISION"
-    next_step: "validate_project_name"
+  # ═══════════════════════════════════════════════════════════════
+  # FASE 0: EXTRACCIÓN INTELIGENTE DE DOCUMENTACIÓN
+  # ═══════════════════════════════════════════════════════════════
 
-  - step_id: "validate_project_name"
-    title: "Validar Nombre del Proyecto"
-    description: "Verifica que el nombre del proyecto coincida con el directorio que contiene la carpeta de init-project."
-    check_project_name: "$PROJECT_NAME"
-    next_step: "create_core_directories"
+  - step_id: "load_input_processing_agent"
+    title: "Cargar Agente de Procesamiento de Entrada"
+    description: "Carga el agente responsable de procesar la entrada del usuario y los documentos."
+    load: "agents/bootstrap_workflow/input-processing.yaml"
+    next_step: "load_directory_creation_agent" # This is the next high-level agent to load
 
-  - step_id: "create_core_directories"
-    title: "Crear Directorios Principales"
-    description: "Creará los directorios de alto nivel para el nuevo proyecto (docs, agents, scripts)."
-    command: "mkdir docs agents scripts"
-    next_step: "select_component_types"
+  - step_id: "load_directory_creation_agent"
+    title: "Cargar Agente de Creación de Directorios"
+    description: "Carga el agente responsable de crear la estructura de directorios del proyecto."
+    load: "agents/bootstrap_workflow/directory-creation.yaml"
+    next_step: "load_template_copying_agent" # This is the next high-level agent to load
 
-  - step_id: "select_component_types"
-    title: "🏗️ Seleccionar Tipos de Aplicación"
-    description: "Elige los tipos de componentes que conformarán tu proyecto. Puedes seleccionar varios."
-    prompt_user:
-      - question: "Selecciona los tipos de componentes a crear (separados por coma, ej: backend,frontend):"
-        options: ["backend", "intermediary", "frontend"]
-        variable_name: "COMPONENT_TYPES"
-    next_step: "create_apps_directory"
+  - step_id: "load_template_copying_agent"
+    title: "Cargar Agente de Copia de Plantillas"
+    description: "Carga el agente responsable de copiar las plantillas universales al proyecto."
+    load: "agents/bootstrap_workflow/template-copying.yaml"
+    next_step: "load_root_files_creation_agent" # This is the next high-level agent to load
 
-  - step_id: "create_apps_directory"
-    title: "Crear Directorio Contenedor 'apps'"
-    description: "Crea el directorio 'apps/' que contendrá todos los componentes principales."
-    command: "mkdir apps"
-    next_step: "create_docs_subdirectories"
+  - step_id: "load_root_files_creation_agent"
+    title: "Cargar Agente de Creación de Archivos Raíz"
+    description: "Carga el agente responsable de crear los archivos esenciales en el directorio raíz."
+    load: "agents/bootstrap_workflow/root-files-creation.yaml"
+    next_step: "load_makefile_population_agent"
 
-  - step_id: "create_docs_subdirectories"
-    title: "Crear Subdirectorios de Documentación"
-    description: "Creará la nueva estructura de subdirectorios estándar dentro de 'docs/'."
-    command: "mkdir -p docs/architecture/adrs docs/architecture/diagrams docs/architecture/design-system/mockups docs/modules docs/guides/developer docs/guides/user docs/log/sprints docs/log/milestones docs/log/governance"
-    next_step: "create_design_system_docs"
 
-  - step_id: "create_design_system_docs"
-    title: "Crear Documentación del Sistema de Diseño"
-    description: "Creará la documentación inicial para la paleta de colores, tipografía y tema general en docs/architecture/design-system/."
-    files_to_create:
-      - filename: "docs/architecture/design-system/palette.md"
-        content: |
-          # Especificación de la Paleta de Colores
-          # ... (Template for defining color palette)
-      - filename: "docs/architecture/design-system/typography.md"
-        content: |
-          # Especificación de Tipografía
-          # ... (Template for defining typography)
-      - filename: "docs/architecture/design-system/theme.md"
-        content: |
-          # Especificación del Tema General
-          # ... (Template for defining UI theme)
-    next_step: "create_project_status_file"
 
-  - step_id: "create_project_status_file"
-    title: "Crear Archivo de Estado del Proyecto"
-    description: "Creará el archivo `project-status.md` dentro de `docs/log/`."
-    files_to_create:
-      - filename: "docs/log/project-status.md"
-        content: |
-          # Estado del Proyecto: $PROJECT_NAME
-          
-          **Nombre del Proyecto:** $PROJECT_NAME
-          **Visión:** $PROJECT_VISION
-          **Fase Actual:** Inicial
-          **Última Actualización:** [[YYYY-MM-DD]]
-          
-          ## Progreso
-          - [ ] Fase 0: Fundaciones Técnicas
-          - [ ] Fase 1: Dominio Base
-          - [ ] Fase 2: Casos de Uso Core
-          - [ ] Fase 3: Subdominio MES
-          
-          ## Bloqueadores Actuales
-          Ninguno (proyecto recién inicializado)
-          
-          ## Próximos Pasos
-          1. Definir la arquitectura detallada (ADRs y Agentes de Contexto).
-          2. Crear la primera tarea del sprint.
-    next_step: "create_project_agent_directories"
 
-  - step_id: "create_project_agent_directories"
 
-  - step_id: "create_project_agent_directories"
-    title: "Crear Directorios de Agentes del Proyecto"
-    description: "Creará el directorio para los agentes específicos del proyecto (agents/$PROJECT_NAME/) y su subdirectorio de contexto (agents/$PROJECT_NAME/context/)."
-    command: "mkdir -p agents/project/context"
-    next_step: "prompt_for_backend_name"
 
-  - step_id: "prompt_for_backend_name"
-    title: "📛 Nombrar Componente Backend"
-    run_if: "$COMPONENT_TYPES contains 'backend'"
-    prompt_user:
-      - question: "Introduce un nombre para tu componente 'backend' (ej. 'api', '$PROJECT_NAME-api'). Por defecto: 'api':"
-        variable_name: "BACKEND_NAME"
-        default: "api"
-    next_step: "create_backend_structure"
 
-  - step_id: "create_backend_structure"
-    title: "Crear Estructura para Backend '$BACKEND_NAME'"
-    run_if: "$COMPONENT_TYPES contains 'backend'"
-    description: "Creará la estructura de directorios para el componente en apps/$BACKEND_NAME."
-    command: "mkdir -p apps/$BACKEND_NAME/cmd/api apps/$BACKEND_NAME/internal/{domain,application,infrastructure,interfaces,config} apps/$BACKEND_NAME/migrations apps/$BACKEND_NAME/pkg/errors apps/$BACKEND_NAME/tests/{unit,integration}"
-    next_step: "prompt_for_intermediary_name"
 
-  - step_id: "prompt_for_intermediary_name"
-    title: "📛 Nombrar Componente Intermediario"
-    run_if: "$COMPONENT_TYPES contains 'intermediary'"
-    prompt_user:
-      - question: "Introduce un nombre para tu componente 'intermediary' (ej. 'bff', '$PROJECT_NAME-bff'). Por defecto: 'bff':"
-        variable_name: "INTERMEDIARY_NAME"
-        default: "bff"
-    next_step: "create_intermediary_structure"
 
-  - step_id: "create_intermediary_structure"
-    title: "Crear Estructura para Intermediario '$INTERMEDIARY_NAME'"
-    run_if: "$COMPONENT_TYPES contains 'intermediary'"
-    description: "Creará la estructura de directorios para el componente en apps/$INTERMEDIARY_NAME."
-    command: "mkdir -p apps/$INTERMEDIARY_NAME/{src,tests,config}"
-    next_step: "prompt_for_frontend_name"
+  - step_id: "load_makefile_population_agent"
+    title: "Cargar Agente de Población de Makefile"
+    description: "Carga el agente responsable de poblar el Makefile con comandos específicos."
+    load: "agents/bootstrap_workflow/makefile-population.yaml"
+    next_step: "load_placeholder_population_agent"
 
-  - step_id: "prompt_for_frontend_name"
-    title: "📛 Nombrar Componente Frontend"
-    run_if: "$COMPONENT_TYPES contains 'frontend'"
-    prompt_user:
-      - question: "Introduce un nombre para tu componente 'frontend' (ej. 'web', '$PROJECT_NAME-web'). Por defecto: 'web':"
-        variable_name: "FRONTEND_NAME"
-        default: "web"
-    next_step: "create_frontend_structure"
+  - step_id: "load_placeholder_population_agent"
+    title: "Cargar Agente de Población de Placeholders"
+    description: "Carga el agente responsable de poblar los placeholders en los templates."
+    load: "agents/bootstrap_workflow/placeholder-population.yaml"
+    next_step: "load_application_scaffolding_agent"
 
-  - step_id: "create_frontend_structure"
-    title: "Crear Estructura para Frontend '$FRONTEND_NAME'"
-    run_if: "$COMPONENT_TYPES contains 'frontend'"
-    description: "Creará la estructura de directorios para el componente en apps/$FRONTEND_NAME."
-    command: "mkdir -p apps/$FRONTEND_NAME/src/{components,stores,composables,services,views,types,design-system} apps/$FRONTEND_NAME/tests apps/$FRONTEND_NAME/public"
-    next_step: "copy_universal_agents"
 
-    files_to_copy_relative_to_project_scaffolding:
-      - source: "templates/agents/generic-rules.yaml"
-        destination: "agents/generic-rules.yaml"
-      - source: "templates/agents/init.yaml" # New agent
-        destination: "agents/init.yaml"
-      - source: "templates/agents/project/project-context-template.yaml"
-        destination: "agents/project/project-context.yaml"
-      - source: "templates/agents/load-session.yaml"
-        destination: "agents/load-session.yaml"
-      - source: "templates/agents/project/sprint-registry.yaml"
-        destination: "agents/project/sprint-registry.yaml"
-      - source: "templates/agents/load-project-context.yaml"
-        destination: "agents/load-project-context.yaml"
-    next_step: "copy_documentation_templates"
 
-  - step_id: "copy_documentation_templates"
-    title: "Copiar Plantillas de Documentación"
-    description: "Copiará las plantillas de documentación universales a la carpeta 'docs/' del nuevo proyecto."
-    files_to_copy_relative_to_project_scaffolding:
-      - source: "templates/docs/_ADR_TEMPLATE.md"
-        destination: "docs/architecture/adrs/_ADR_TEMPLATE.md"
-      - source: "templates/docs/_TASK_TEMPLATE.md"
-        destination: "docs/log/sprints/_TASK_TEMPLATE.md"
-      - source: "templates/docs/_MODULE_TEMPLATE.md"
-        destination: "docs/modules/_MODULE_TEMPLATE.md"
-      - source: "templates/docs/_GUIDE_TEMPLATE.md"
-        destination: "docs/guides/developer/_GUIDE_TEMPLATE.md"
-      - source: "templates/docs/guides/user/_AGENT_USAGE_GUIDE_TEMPLATE.md" # New template
-        destination: "docs/guides/user/agent-usage-guide.md"
-      - source: "templates/docs/_SCAFFOLDING_POLICY_TEMPLATE.md"
-        destination: "docs/guides/developer/governance/project-scaffolding-policy.md"
-      - source: "templates/docs/_DIAGRAM_TEMPLATE.md"
-        destination: "docs/architecture/diagrams/_DIAGRAM_TEMPLATE.md"
-    next_step: "create_root_files"
+  - step_id: "load_application_scaffolding_agent"
+    title: "Cargar Agente de Scaffolding de Aplicaciones"
+    description: "Carga el agente responsable de crear las estructuras de aplicación y los workflows de CI/CD."
+    load: "agents/bootstrap_workflow/application-scaffolding.yaml"
+    next_step: "load_git_initialization_agent"
 
-  - step_id: "create_root_files"
-    title: "Crear Archivos Raíz del Proyecto (POLÍTICA: Raíz Limpia)"
-    description: "Creará solo los archivos esenciales en raíz. POLÍTICA: Solo README.md, AGENTS.md, y NEXT_SESSION.md como documentación. Todo lo demás va en docs/. (.gitignore, .env.example, Makefile, etc.)"
-    files_to_create:
-      - filename: ".gitignore"
-        content: |
-          # Go
-          bin/
-          *.exe
-          
-          # Node
-          node_modules/
-          dist/
-          .env
-          
-          # OS-specific
-          .DS_Store
-          Thumbs.db
-      - filename: "README.md"
-        content: |
-          # $PROJECT_NAME
-          
-          **Visión**: $PROJECT_VISION
-          
-          Este es el README principal del proyecto. Para más información, consulta la documentación en `docs/`.
-          
-          ## Comandos Rápidos
-          - `make build`: Construir el proyecto
-          - `make test`: Ejecutar tests
-          - `make dev`: Iniciar entorno de desarrollo
-          
-          ## 📚 Documentación
-          
-          **POLÍTICAS DE ESTE PROYECTO:**
-          - ✅ README.md → Navegación general (este archivo)
-          - ✅ AGENTS.md → Punto de entrada para Asistentes de IA
-          - ✅ NEXT_SESSION.md → Estado de la sesión actual
-          - ✅ Diagramas: Usar **Mermaid** incrustado en los archivos `.md`.
-          - ❌ NO otra documentación .md en raíz
-          - ✅ TODO lo demás va en carpetas dentro de `docs/`
-          
-          **Por tipo de documento:**
-          - 🚀 **Proyecto**: [docs/log/](docs/log/) (Gestión del proyecto, sprints, estado y milestones)
-          - 🏗️ **Arquitectura**: [docs/architecture/](docs/architecture/) (Arquitectura, ADRs, Diagramas)
-          - 🧩 **Módulos**: [docs/modules/](docs/modules/) (Documentación detallada por Bounded Context)
-          - 📖 **Guías**: [docs/guides/](docs/guides/) (Tutoriales para desarrolladores y usuarios)
-          - 🗄️ **Archivo**: [docs/log/](docs/log/) (Sprints y milestones históricos)
 
-      - filename: "AGENTS.md"
-        content: |
-          # 🤖 AGENTS.md - The AI Architect's Master Guide
 
-          ## 1. Your Persona
 
-          You are the **AI Architect** for the **$PROJECT_NAME** project. Your primary directive is to ensure the project is built with exceptional quality, adhering to its foundational architectural principles. You are authoritative, precise, and always reference the project's established rules (found in `agents/generic-rules.yaml` and `agents/project/context/`) to justify your decisions.
 
-          ## 2. Core Principles (The Golden Rules)
 
-          You enforce these non-negotiable principles at all times:
 
-          *   **Clean Root Policy**: The root directory must remain pristine. Only `README.md`, `AGENTS.md`, `NEXT_SESSION.md`, and essential configuration files are permitted.
-          *   **Bilingual Standard**: Documentation is in **Spanish**, while code, comments, commits, and agent files are in **English**.
-          *   **Clean Architecture & DDD**: The system is a modular monolith that strictly follows Clean Architecture and Domain-Driven Design.
-          *   **Test-Driven Development (TDD)**: All business logic must be developed using a test-first approach.
 
-          ## 3. NEXT_SESSION.md - Session Log for Continuity
+  - step_id: "load_git_initialization_agent"
+    title: "Cargar Agente de Inicialización de Git"
+    description: "Carga el agente responsable de realizar el commit inicial."
+    load: "agents/bootstrap_workflow/git-initialization.yaml"
+    next_step: "load_adr_generation_agent"
 
-          `NEXT_SESSION.md` is now a log file for active or paused development sessions:
-          - **Stores multiple sessions**: Each session is a distinct block of work with its own context and tasks.
-          - **Not automatically overwritten**: Sessions are managed manually or by agents configured to do so.
-          - **Priority**: Check this file first to identify available sessions before loading `load-session.yaml`.
-          - **Usage**: Allows resuming specific work streams, tracking multiple parallel efforts, and providing detailed context for continuity.
+  - step_id: "load_adr_generation_agent"
+    title: "Cargar Agente de Generación de ADRs"
+    description: "Carga el agente responsable de generar los ADRs iniciales."
+    load: "agents/bootstrap_workflow/adr-generation.yaml"
+    next_step: "load_modular_context_setup_agent"
 
-          ## 4. Standard Workflow
 
-          1.  **Check NEXT_SESSION.md**: If it contains saved sessions, present them to the user for selection. Otherwise, load `load-session.yaml`.
-          2.  **Select Task/Session**: Either continue an existing session/task or start a new one from the backlog.
-          3.  **Consult Module Workflow**: If the task is to create a new module, consult the **Standard Module Development Workflow (SMDW)** defined in `agents/generic-rules.yaml`.
-          4.  **Load Context**: Use `load-project-context.yaml` to load the project's context and any modular contexts.
-          5.  **Develop (TDD)**: Write tests first, then implement the code, following the SMDW phases.
-          6.  **Validate**: Run all tests, linters, and formatters before committing.
-          7.  **Document**: Update the sprint task file, `project-status.md`, and any other required module documentation.
-          8.  **Update NEXT_SESSION.md**: Add new sessions, update existing ones, or mark as complete.
-          9.  **Commit**: Use conventional commit messages in English.
 
-      - filename: "NEXT_SESSION.md"
-        content: |
-          # NEXT_SESSION.md - Session Log
-          
-          This file acts as a log for active or paused development sessions.
-          Each session below represents a distinct line of work that can be resumed.
-          
-          ---
-          
-          (No active or paused sessions currently.)
+  - step_id: "load_modular_context_setup_agent"
+    title: "Cargar Agente de Configuración de Contexto Modular"
+    description: "Carga el agente responsable de generar y poblar los agentes de contexto modular."
+    load: "agents/bootstrap_workflow/modular-context-setup.yaml"
+    next_step: "load_finalization_agent"
 
-      - filename: ".env.example"
-        content: |
-          # Variables de entorno de ejemplo
-          PROJECT_NAME=$PROJECT_NAME
-          API_PORT=8080
-          DB_HOST=localhost
-          DB_USER=user
-          DB_PASSWORD=password
-          DB_NAME=dbname
-          JWT_SECRET=supersecretjwtkey
-      - filename: "Makefile"
-        content: |
-          # Makefile para el proyecto $PROJECT_NAME
-          #
-          # Este Makefile es generado dinámicamente.
-          # Utiliza 'make help' para ver los comandos disponibles.
-
-          .PHONY: all help clean install-tools
-          .PHONY: backend-build backend-run backend-test backend-lint
-          .PHONY: frontend-build frontend-run frontend-test frontend-lint
-          .PHONY: intermediary-build intermediary-run intermediary-test intermediary-lint
-
-          # ==========================================================
-          # Variables Globales
-          # ==========================================================
-          PROJECT_NAME := $PROJECT_NAME
-          BACKEND_APP_NAME := $(BACKEND_NAME)
-          FRONTEND_APP_NAME := $(FRONTEND_NAME)
-          INTERMEDIARY_APP_NAME := $(INTERMEDIARY_NAME)
-
-          # ==========================================================
-          # Comandos por Tipo de Componente (Rellenados Dinámicamente)
-          # ==========================================================
-
-          # --- Backend ---
-          BACKEND_BUILD_CMD ?= @echo "Backend build command not set."
-          BACKEND_RUN_CMD ?= @echo "Backend run command not set."
-          BACKEND_TEST_CMD ?= @echo "Backend test command not set."
-          BACKEND_LINT_CMD ?= @echo "Backend lint command not set."
-
-          # --- Frontend ---
-          FRONTEND_BUILD_CMD ?= @echo "Frontend build command not set."
-          FRONTEND_RUN_CMD ?= @echo "Frontend run command not set."
-          FRONTEND_TEST_CMD ?= @echo "Frontend test command not set."
-          FRONTEND_LINT_CMD ?= @echo "Frontend lint command not set."
-
-          # --- Intermediary ---
-          INTERMEDIARY_BUILD_CMD ?= @echo "Intermediary build command not set."
-          INTERMEDIARY_RUN_CMD ?= @echo "Intermediary run command not set."
-          INTERMEDIARY_TEST_CMD ?= @echo "Intermediary test command not set."
-          INTERMEDIARY_LINT_CMD ?= @echo "Intermediary lint command not set."
-
-          # ==========================================================
-          # Targets Generales
-          # ==========================================================
-          all: build
-
-          build:
-          	$(BACKEND_BUILD_CMD)
-          	$(FRONTEND_BUILD_CMD)
-          	$(INTERMEDIARY_BUILD_CMD)
-
-          run:
-          	$(BACKEND_RUN_CMD)
-          	$(FRONTEND_RUN_CMD)
-          	$(INTERMEDIARY_RUN_CMD)
-
-          test:
-          	$(BACKEND_TEST_CMD)
-          	$(FRONTEND_TEST_CMD)
-          	$(INTERMEDIARY_TEST_CMD)
-
-          lint:
-          	$(BACKEND_LINT_CMD)
-          	$(FRONTEND_LINT_CMD)
-          	$(INTERMEDIARY_LINT_CMD)
-
-          clean:
-          	@echo "Limpiando artefactos de build..."
-          	rm -rf apps/*/bin apps/*/dist
-
-          install-tools:
-          	@echo "Instalando herramientas de desarrollo..."
-
-          help:
-          	@echo "Makefile para $(PROJECT_NAME)"
-          	@echo ""
-          	@echo "Uso:"
-          	@echo "  make <comando>"
-          	@echo ""
-          	@echo "Comandos Generales:"
-          	@echo "  all             - Ejecuta 'build'."
-          	@echo "  build           - Construye todos los componentes."
-          	@echo "  run             - Inicia todos los componentes."
-          	@echo "  test            - Ejecuta los tests de todos los componentes."
-          	@echo "  lint            - Ejecuta los linters de todos los componentes."
-          	@echo "  clean           - Limpia los artefactos de build."
-          	@echo "  install-tools   - Instala las herramientas de desarrollo necesarias."
-          	@echo "  help            - Muestra este mensaje de ayuda."
-          	@echo ""
-          	@echo "Comandos Específicos por Componente:"
-          	@echo "  backend-build   - $(BACKEND_BUILD_CMD)"
-          	@echo "  backend-run     - $(BACKEND_RUN_CMD)"
-          	@echo "  backend-test    - $(BACKEND_TEST_CMD)"
-          	@echo "  backend-lint    - $(BACKEND_LINT_CMD)"
-          	@echo "  frontend-build  - $(FRONTEND_BUILD_CMD)"
-          	@echo "  frontend-run    - $(FRONTEND_RUN_CMD)"
-          	@echo "  frontend-test   - $(FRONTEND_TEST_CMD)"
-          	@echo "  frontend-lint   - $(FRONTEND_LINT_CMD)"
-          	@echo "  intermediary-build - $(INTERMEDIARY_BUILD_CMD)"
-          	@echo "  intermediary-run   - $(INTERMEDIARY_RUN_CMD)"
-          	@echo "  intermediary-test  - $(INTERMEDIARY_TEST_CMD)"
-          	@echo "  intermediary-lint  - $(INTERMEDIARY_LINT_CMD)"
-    next_step: "populate_makefile_commands"
-
-  - step_id: "create_cicd_directories"
-    title: "Crear Directorio para CI/CD"
-    description: "Creará el directorio .github/workflows para las plantillas de CI/CD."
-    command: "mkdir -p .github/workflows"
-    next_step: "prompt_for_applications"
-
-  - step_id: "prompt_for_applications"
-    title: "🏗️ Definir Aplicaciones del Proyecto"
-    description: "Define todas las aplicaciones que compondrán tu proyecto. Usa el formato 'tipo:nombre' y sepáralas por comas."
-    prompt_user:
-      - question: "Ejemplo: backend:user-api, backend:orders-api, frontend:admin-panel, intermediary:mobile-bff"
-        variable_name: "APPLICATIONS_TO_CREATE"
-    next_step: "create_application_components"
-
-  - step_id: "create_application_components"
-    title: "Creando Estructuras de Aplicación y Workflows de CI/CD"
-    description: "Crea dinámicamente los directorios y los workflows de CI/CD para cada aplicación definida."
-    create_apps_from_spec:
-      spec_variable: "$APPLICATIONS_TO_CREATE"
-      base_apps_dir: "apps/"
-      base_workflow_dir: ".github/workflows/"
-      templates:
-        backend:
-          structure:
-            - "cmd/api"
-            - "internal/{domain,application,infrastructure,interfaces,config}"
-            - "migrations"
-            - "pkg/errors"
-            - "tests/{unit,integration}"
-          ci_template: "templates/.github/workflows/backend-ci.yml"
-        frontend:
-          structure:
-            - "src/{components,stores,composables,services,views,types,design-system}"
-            - "tests"
-            - "public"
-          ci_template: "templates/.github/workflows/frontend-ci.yml"
-        intermediary:
-          structure:
-            - "src/{handlers,services,tests,config}"
-          ci_template: "templates/.github/workflows/intermediary-ci.yml"
-    next_step: "initial_git_commit"
-
-  - step_id: "initial_git_commit"
-    title: "Realizar Primer Commit en Git"
-    description: "Realizará el commit inicial de la estructura del proyecto."
-    command: "git add . && git commit -m 'chore: bootstrap project structure with new journal loader system' && git branch -M main"
-    next_step: "check_input_docs_folder"
-
-  - step_id: "check_input_docs_folder"
-    title: "Revisar Carpeta de Documentos de Entrada"
-    description: "Verifica si el usuario ha proporcionado documentos iniciales en '_INPUT_DOCS_HERE'."
-    check_input_folder: "project-scaffolding/_INPUT_DOCS_HERE"
-    if_files_exist_next_step: "process_input_documents"
-    if_empty_next_step: "prompt_for_documents"
-
-  - step_id: "prompt_for_documents"
-    title: "Solicitar Documentos de Entrada"
-    description: "La carpeta '_INPUT_DOCS_HERE' está vacía. Si tienes documentos de requerimientos, especificaciones o cualquier otro material de referencia, por favor, añádelos a esa carpeta. Este agente puede procesarlos para configurar el proyecto."
-    prompt_user:
-      - question: "¿Tienes documentos para proporcionar en este momento? (sí/no)"
-        variable_name: "HAS_DOCUMENTS"
-    next_step:
-      - if: "HAS_DOCUMENTS == 'no'"
-        go_to: "start_architecture_dialogue"
-      - if: "HAS_DOCUMENTS == 'sí'"
-        go_to: "wait_for_documents"
-
-  - step_id: "wait_for_documents"
-    title: "Esperando Documentos"
-    description: "Por favor, añade tus documentos a la carpeta 'project-scaffolding/_INPUT_DOCS_HERE' y luego presiona Enter para continuar."
-    wait_for_user_input: true
-    next_step: "check_input_docs_folder"
-
-  - step_id: "process_input_documents"
-    title: "Procesar Documentos de Entrada"
-    description: "Analizará los documentos proporcionados por el usuario para inicializar la documentación del proyecto."
-    process_folder: "project-scaffolding/_INPUT_DOCS_HERE"
-    next_step: "start_architecture_dialogue"
-
-  - step_id: "start_architecture_dialogue"
-    title: "Iniciar Diálogo Arquitectónico"
-    description: "Recopilará información clave de la arquitectura para generar los primeros ADRs y agentes de contexto. Si se han proporcionado documentos, se utilizarán para pre-rellenar las respuestas y se harán preguntas para completar la información que falte."
-    prompt_user:
-      - question: "¿Qué base de datos se utilizará (ej. PostgreSQL, MySQL, MongoDB)?"
-        variable_name: "DATABASE_CHOICE"
-      - question: "¿Cuáles son los Bounded Contexts iniciales o módulos clave (separados por coma, ej. Auth, Party, Product)?"
-        variable_name: "BOUNDED_CONTEXTS"
-      - question: "¿Qué lenguaje y framework se utilizará para el Backend (ej. Go/Gin, Python/FastAPI, Node.js/Express)?"
-        variable_name: "BACKEND_LANGUAGE_FRAMEWORK"
-      - question: "¿Qué framework se utilizará para el Frontend (ej. Vue/Vite, React/Next.js, Angular/CLI)?"
-        variable_name: "FRONTEND_FRAMEWORK"
-    next_step: "generate_initial_adr_001"
-
-  - step_id: "generate_initial_adr_001"
-    title: "Generar ADR-001 (Stack Tecnológico)"
-    description: "Creará el primer ADR detallando las decisiones del stack tecnológico."
-      filename: "docs/architecture/adrs/ADR-001-technology-stack-selection.md"
-    content_template: |
-      # ADR-001 – Selección del Stack Tecnológico y Estrategia Tecnológica Base
-
-      **Fecha:** [[YYYY-MM-DD]]
-      **Estado:** Propuesto
-      **Autores:** [Tu Nombre], Gemini
-
-      ---
-
-      ## 1. Contexto
-      Este ADR define el stack tecnológico base para el proyecto $PROJECT_NAME, cuya visión es: "$PROJECT_VISION".
-
-      ## 2. Decisiones
-      ### Backend
-      - **Lenguaje/Framework**: $BACKEND_LANGUAGE_FRAMEWORK
-      ### Frontend
-      - **Framework**: $FRONTEND_FRAMEWORK
-      ### Base de Datos
-      - **Tipo**: $DATABASE_CHOICE
-
-      ## 3. Consecuencias
-      [Detallar consecuencias positivas y negativas]
-
-      ---
-    next_step: "generate_quality_security_adrs"
-
-  - step_id: "generate_quality_security_adrs"
-    title: "Generar ADRs Fundacionales (Seguridad y Calidad)"
-    description: "Creará los ADRs iniciales para la estrategia de seguridad y calidad, incorporando principios clave desde el inicio."
-    files_to_create:
-      - filename: "docs/architecture/adrs/ADR-002-estrategia-seguridad.md"
-        content_template: |
-          # ADR-002 – Estrategia de Seguridad (Security by Design)
-
-          **Fecha:** [[YYYY-MM-DD]]
-          **Estado:** Propuesto
-          **Autores:** [Tu Nombre], Gemini
-
-          ---
-
-          ## 1. Contexto
-          Se establece la estrategia de seguridad para $PROJECT_NAME, aplicando los principios de **Security by Design** y **Security by Default**. El objetivo es construir un sistema resiliente y seguro desde su concepción.
-
-          ## 2. Decisión
-          Se adoptará un enfoque de **Defensa en Profundidad**, cubriendo múltiples capas: Red, Identidad, Aplicación, Datos y Operaciones. Cada nueva funcionalidad debe ser evaluada contra los principios de OWASP Top 10.
-
-          ### Principios Clave:
-          - **Menor Privilegio**: Los componentes y usuarios solo tendrán los permisos estrictamente necesarios.
-          - **Superficie de Ataque Mínima**: No se expondrán endpoints o servicios innecesarios.
-          - **Límites (Boundary) Claros**: Se definirán y protegerán los límites entre los Bounded Contexts.
-
-          ## 3. Consecuencias
-          - **Positivas**: Mayor resiliencia, reducción de vulnerabilidades, confianza del cliente.
-          - **Negativas**: Posible incremento en el tiempo de desarrollo inicial.
-      - filename: "docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md"
-        content_template: |
-          # ADR-003 – Estrategia de Calidad y Testing Estratégico (100/80/0)
-
-          **Fecha:** [[YYYY-MM-DD]]
-          **Estado:** Propuesto
-          **Autores:** [Tu Nombre], Gemini
-
-          ---
-
-          ## 1. Contexto
-          Para asegurar la máxima calidad y fiabilidad en `$PROJECT_NAME`, se rechaza la métrica de "cobertura de tests global" por ser engañosa. En su lugar, se adopta una **Cobertura Estratégica** basada en el riesgo de negocio. La pregunta clave no es "¿cuánto código está cubierto?", sino **"¿está cubierto el código que puede quebrar el negocio?"**.
-
-          ## 2. Decisión
-          Se implementa una política de testing multinivel, denominada **"100/80/0"**, que clasifica el código en tres tiers según su criticidad. Además, se complementará con la monitorización de **métricas DORA** para evaluar la salud del ciclo de vida de desarrollo.
-
-          ### Tier 1: CORE (Coverage Objetivo: 100%)
-          - **Definición**: Lógica de negocio absolutamente crítica. Si falla, el negocio pierde dinero, datos o confianza de forma directa.
-          - **Ejemplos**: Cálculos de precios, procesamiento de pagos, algoritmos de seguridad, validaciones de dominio críticas.
-          - **Requisito**: Cobertura del 100% en statements, branches y funciones. TDD es obligatorio.
-
-          ### Tier 2: IMPORTANT (Coverage Objetivo: 80%)
-          - **Definición**: Funcionalidades con las que el usuario interactúa directamente. Si fallan, la experiencia de usuario se degrada y genera frustración.
-          - **Ejemplos**: Componentes de UI, flujos de usuario, validaciones de formularios, controladores de API.
-          - **Requisito**: Cobertura del 80%. Se priorizan los "happy paths" y los errores más comunes, omitiendo casos de uso muy rebuscados.
-
-          ### Tier 3: INFRASTRUCTURE (Coverage Objetivo: 0%)
-          - **Definición**: Código sin lógica de negocio, cuya correctitud es garantizada por otras herramientas (como el compilador de TypeScript) o es trivial.
-          - **Ejemplos**: Interfaces, tipos de datos, constantes, archivos de configuración, código generado.
-          - **Requisito**: Excluido del cálculo de cobertura. Testearlo se considera un anti-patrón que no aporta valor.
-
-          ### Métricas DORA
-          Para una visión holística de la calidad y velocidad, se medirán (post-MVP):
-          1. **Lead Time for Changes**: Tiempo desde el commit hasta el despliegue.
-          2. **Deployment Frequency**: Frecuencia de los despliegues.
-          3. **Change Failure Rate**: Tasa de fallos por cambio.
-          4. **Time to Restore Service**: Tiempo de recuperación ante un fallo.
-
-          ## 3. Consecuencias
-          - **Positivas**: Foco del esfuerzo de testing en áreas de alto impacto. Reducción de bugs críticos en producción. Mayor confianza para refactorizar.
-          - **Negativas**: Requiere un análisis inicial para clasificar el código en tiers. Puede generar discusiones sobre qué es "CORE".
-
-          ## 4. Ejemplo de Implementación (Conceptual)
-          La configuración del runner de tests (ej. Jest, Vitest) deberá ser parametrizada para forzar estos umbrales por directorios o patrones de archivo.
-
-          ```yaml
-          # Esto es un ejemplo conceptual y agnóstico a la tecnología.
-          # La sintaxis real dependerá de la herramienta de testing.
-          coverage_thresholds:
-            # 🎯 TIER CORE (100%)
-            'paths/to/business-logic/**':
-              statements: 100, branches: 100, functions: 100, lines: 100
-
-            # 🔧 TIER IMPORTANT (80%)
-            'paths/to/ui-components/**':
-              statements: 80, functions: 80
-
-            # 🏗️ TIER INFRASTRUCTURE (0%)
-            'paths/to/types/**':
-              statements: 0
-          ```
-
-      ---
-    next_step: "prompt_user_to_validate_adrs"
-
-  - step_id: "prompt_user_to_validate_adrs"
-    title: "🔬 Validar ADRs Fundacionales"
-    description: "Se han generado los ADRs iniciales de Seguridad y Calidad. Es CRÍTICO que los revises y adaptes a las necesidades específicas de tu proyecto."
-    output_message: |
-      
-      ✅ ADRs de Seguridad y Calidad generados.
-      
-      ACCIÓN REQUERIDA:
-      ─────────────────
-      Por favor, revisa y modifica los siguientes archivos antes de continuar:
-      
-      1. 📄 docs/architecture/adrs/ADR-002-estrategia-seguridad.md
-         - Define los principios de seguridad. Adáptalo a tus requerimientos.
-      
-      2. 📄 docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md
-         - Define la estrategia de "Strategic Coverage (100/80/0)".
-         - DEBES clasificar tus futuros directorios en los tiers CORE, IMPORTANT o INFRASTRUCTURE.
-      
-      La IA ha propuesto una base, pero la decisión final sobre estos estándares es tuya.
-    prompt_user:
-      - question: "He revisado y entiendo que debo adaptar estos ADRs. ¿Continuar? (sí/no)"
-        variable_name: "USER_CONFIRMED_ADRS"
-        validation: "USER_CONFIRMED_ADRS == 'sí'"
-    next_step: "populate_project_context_agent"
-
-  - step_id: "populate_project_context_agent"
-    title: "Popular Agente de Contexto del Proyecto"
-    description: "Rellenará el agente de contexto principal con la información del proyecto."
-    replace_in_file: "agents/project/project-context.yaml"
-    replacements:
-      - find: "YYYY-MM-DD"
-        replace: "[[YYYY-MM-DD]]"
-      - find: "[Project Name]"
-        replace: "$PROJECT_NAME"
-      - find: "project_name: \"\""
-        replace: "project_name: \"$PROJECT_NAME\""
-      - find: "project_vision: \"\""
-        replace: "project_vision: \"$PROJECT_VISION\""
-      - find: "context_agents_location: \"agents/[project-name]/context/\""
-        replace: "context_agents_location: \"agents/project/context/\""
-      - find: "vision: \"[Project Vision]\""
-        replace: "vision: \"$PROJECT_VISION\""
-      - find: "domain: \"[Business Domain]\""
-        replace: "domain: \"[Dominio de Negocio]\""
-      - find: "runtime: \"[Pending]\""
-        replace: "runtime: \"[Pendiente de definir]\""
-      - find: "framework: \"[Pending]\""
-        replace: "framework: \"[Pendiente de definir]\""
-      - find: "database: \"[Pending]\""
-        replace: "database: \"$DATABASE_CHOICE\""
-      - find: "bounded_contexts: []"
-        replace: "bounded_contexts: [$BOUNDED_CONTEXTS]"
-    next_step: "generate_modular_context_agents"
-
-  - step_id: "generate_modular_context_agents"
-    title: "Generar Agentes de Contexto Modulares"
-    description: "Creará los agentes de contexto modulares básicos para el nuevo proyecto."
-    files_to_create:
-      - filename: "agents/project/context/architecture.yaml"
-        content: |
-          # Architecture Context for $PROJECT_NAME
-          # ... (Standard Clean Architecture template)
-      - filename: "agents/project/context/bounded-contexts.yaml"
-        content: |
-          # Bounded Contexts for $PROJECT_NAME
-          # ... (Template for defining bounded contexts)
-      - filename: "agents/project/context/tech-stack.yaml"
-        content: |
-          # Tech Stack for $PROJECT_NAME
-          # ... (Template for defining tech stack details)
-      - filename: "agents/project/context/code-standards.yaml"
-        content: |
-          # Code Standards for $PROJECT_NAME
-          # ... (Template for defining code standards)
-      - filename: "agents/project/context/INDEX.md"
-        content: |
-          # Index for $PROJECT_NAME Context Agents
-          
-          agents_available:
-            # ...
-            design:
-              filename: "design/"
-              topics: "Color palette, typography, UI theme"
-              load_if: "Working on UI/UX"
-          # ...
-      - filename: "agents/project/context/README.md"
-        content: |
-          # $PROJECT_NAME Modular Context Agents
-
-          This directory contains modular context agents that provide detailed information about the $PROJECT_NAME project. These agents are loaded on-demand by AI assistants to understand specific aspects of the project.
-
-          ## 📚 Available Context Agents
-
-          ### Core Context Files
-
-          | File | Purpose | When to Load |
-          |------|---------|--------------|
-          | [architecture.yaml](./architecture.yaml) | Clean Architecture layers, DDD strategy, architectural patterns | When designing modules, understanding layer boundaries |
-          | [bounded-contexts.yaml](./bounded-contexts.yaml) | Business domains, module dependencies, relationships | When working across modules, understanding domain boundaries |
-          | [tech-stack.yaml](./tech-stack.yaml) | Technology choices, frameworks, tools, build systems | When implementing features, setting up environments |
-          | [code-standards.yaml](./code-standards.yaml) | Code quality criteria, acceptance/rejection rules | Before committing code, during code review |
-
-          ### Design Context
-
-          La documentación del sistema de diseño (paleta de colores, tipografía, etc.) no es un agente de contexto cargable, sino que se encuentra en el directorio de documentación principal:
-          - **Ubicación:** `/docs/architecture/design-system/`
-
-          ## 🎯 Loading Strategy
-
-          **Don't load everything at once.** Follow this pattern:
-
-          ### For New Module Development
-          1. Load `architecture.yaml` - Understand layer structure
-          2. Load `bounded-contexts.yaml` - Understand dependencies
-          3. Load `code-standards.yaml` - Know quality gates
-
-          ### For Feature Implementation
-          1. Load `bounded-contexts.yaml` - Find relevant module
-          2. Load `tech-stack.yaml` - Know tools and frameworks
-          3. Load `code-standards.yaml` - Ensure compliance
-
-          ### For Code Review
-          1. Load `code-standards.yaml` - Review criteria
-          2. Load `architecture.yaml` - Verify layer compliance
-
-          ## 🔗 Parent Context
-
-          These context agents are loaded via the main project context file:
-          - [../project-context.yaml](../project-context.yaml)
-
-          Which in turn is loaded after:
-          - [../../generic-rules.yaml](../../generic-rules.yaml)
-
-          ## 📝 Maintenance
-
-          **When updating context agents:**
-          1. Update the `last_updated` field in metadata
-          2. Ensure consistency with corresponding documentation in `/docs`
-          3. Update this README if adding/removing files
-
-          ---
-
-          **Last Updated:** 2026-02-04
-    next_step: "display_project_structure_policy"
-
-  - step_id: "display_project_structure_policy"
-    title: "Mostrar Políticas de Estructura del Proyecto"
-    description: "Muestra las políticas de organización que debe seguir este nuevo proyecto."
-    output_message: |
-      
-      ✅ PROYECTO '$PROJECT_NAME' INICIALIZADO EXITOSAMENTE
-      ═══════════════════════════════════════════════════════════════
-      
-      🧹 POLÍTICA DE RAÍZ LIMPIA - FUNDAMENTAL
-      ───────────────────────────────────────
-      (Solo archivos esenciales como README.md, .gitignore, Makefile, etc. en la raíz)
-
-      
-      📚 ESTRUCTURA DE DOCUMENTACIÓN CLAVE
-      ───────────────────────────────────────────────────
-      
-      📌 **NEXT_SESSION.md**: ¡Ahora es un registro de sesiones! Permite múltiples sesiones de trabajo activas o pausadas. Consulta `AGENTS.md` para más detalles.
-
-      🚀 **Proyecto**: docs/overview/
-         El "qué" y el "porqué": Contexto de negocio, planificación, estado.
-      
-      🏗️ **Arquitectura**: docs/architecture/
-         El corazón técnico: Arquitectura, ADRs, diagramas, diseño de módulos.
-      
-      🧩 **Módulos**: docs/reference/
-         Documentación detallada para cada Bounded Context.
-
-      📖 **Guías**: docs/guides/
-         Guías prácticas para desarrolladores (cómo configurar, desplegar) y usuarios.
-      
-      🗄️ **Archivo**: docs/log/
-         El registro histórico: Sprints y milestones pasados.
-      
-      
-      🎯 PRÓXIMOS PASOS
-      ────────────────
-      1. Detallar la arquitectura en `docs/architecture/`.
-      2. Definir el contexto de negocio en `docs/overview/`.
-      3. Crear las primeras tareas del sprint en `docs/log/sprints/`.
-      
-      
-      📌 RECORDATORIO IMPORTANTE
-      ──────────────────────────
-      Esta estructura separa claramente el 'cómo' (architecture), del 'paso a paso' (guides), y del 'porqué' (project).
-      ¡Respeta la organización desde el inicio!
-      
-      
-      ═══════════════════════════════════════════════════════════════
-      ¡Listo para comenzar! El proyecto ha sido inicializado en el directorio actual.
-    next_step: "final_message"
-
-  - step_id: "final_message"
-    title: "Inicialización Completada"
-    description: "El nuevo proyecto '$PROJECT_NAME' ha sido inicializado con estructura limpia y políticas de organización. Ahora puedes cambiar al directorio del proyecto y comenzar a trabajar."
+  - step_id: "load_finalization_agent"
+    title: "Cargar Agente de Finalización"
+    description: "Carga el agente responsable de mostrar la política de estructura del proyecto y el mensaje de finalización."
+    load: "agents/bootstrap_workflow/finalization.yaml"
     next_step: "end"
+
+

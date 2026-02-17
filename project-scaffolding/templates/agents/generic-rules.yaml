@@ -4,11 +4,10 @@
 # Purpose: Universal rules applicable to any software development project
 
 ---
-
 metadata:
   filename: "generic-rules.yaml"
   version: "1.0"
-  last_updated: "2026-02-01"
+  last_updated: "2026-02-15"
   purpose: "Generic foundational rules for AI agents"
   applies_to: "Any software development project"
   load_order: "first"
@@ -17,7 +16,7 @@ metadata:
 documentation_language_rules:
   title: "📝 Language Conventions"
   description: "Consistent language policy across project"
-  
+
   documentation:
     language: "Spanish (Español)"
     scope: "All documentation in /docs/"
@@ -28,7 +27,7 @@ documentation_language_rules:
       - "Module documentation"
       - "Registro de trabajo (sprints y tareas)"
       - "User guides"
-  
+
   code_and_comments:
     language: "English"
     scope: "Source code, identifiers, and file system names"
@@ -39,54 +38,135 @@ documentation_language_rules:
       - "API documentation strings"
       - "Error messages"
       - "Commit messages (preferably English)"
-  
+
   rationale: "Documentation in native language (Spanish) for stakeholders; code and all technical identifiers (including filenames) in English for international developer community and tooling compatibility."
+
+file_naming_conventions:
+  title: "📁 File Naming Conventions"
+  description: "Standard naming convention for all files in the project"
+
+  rule: "kebab-case universal"
+
+  standard:
+    description: "All files use kebab-case (lowercase-with-hyphens)"
+    examples:
+      correct:
+        - "guia-de-uso.md"
+        - "project-context.yaml"
+        - "load-session.yaml"
+        - "adr-template.md"
+        - "bounded-contexts.yaml"
+      incorrect:
+        - "GUIA_DE_USO.md"
+        - "Project_Context.yaml"
+        - "LoadSession.yaml"
+        - "ADR_TEMPLATE.md"
+        - "Bounded_Contexts.yaml"
+
+  exceptions:
+    - name: "Universal standard files in project root"
+      files:
+        - "README.md"
+        - "LICENSE"
+        - "CONTRIBUTING.md"
+        - "CHANGELOG.md"
+      rationale: "Universally recognized standards in open source projects"
+
+    - name: "Template files with underscore prefix"
+      pattern: "_kebab-case-template.md"
+      description: "Templates are meta-files, not actual documentation"
+      examples:
+        - "_adr-template.md"
+        - "_task-template.md"
+        - "_module-template.md"
+        - "_sprint-summary-template.md"
+      rationale: |
+        Templates need immediate visual distinction from regular files.
+        The underscore prefix:
+        - Makes them appear first in directory listings
+        - Signals they are tools/meta-files, not documentation
+        - Is a recognized convention (Jekyll, Sass, etc.)
+        - Maintains kebab-case while adding minimal distinction
+
+  why_kebab_case:
+    - "Consistency: Single simple rule to remember"
+    - "Readability: Easier to read than SCREAMING_SNAKE_CASE"
+    - "Cross-platform: No case-sensitivity issues"
+    - "Standard: Used by majority of open source projects"
+    - "URLs: Works well in web contexts without encoding"
+
+  note_on_templates:
+    pattern: "_kebab-case-template.md"
+    why_underscore_prefix: "Immediate visual identification as meta-file, appears first in listings"
+    correct_examples:
+      - "_adr-template.md"
+      - "_task-template.md"
+      - "_module-template.md"
+    incorrect_examples:
+      - "ADR_TEMPLATE.md" # Uppercase, not kebab-case
+      - "adr-template.md" # Missing underscore prefix for template
+      - "task-template.md" # Missing underscore prefix for template
 
 agent_language_rules:
   title: "🤖 Agent Language Conventions"
   description: "Language policy for AI agent files"
-  
-  agents:
+
+  internal_content:
+    language: "English"
+    scope: "Internal fields within agent YAML files"
+    includes:
+      - "metadata fields (filename, version, purpose, applies_to, dependencies, etc.)"
+      - "workflow step IDs (step_1_do_something, etc.)"
+      - "action descriptions (action: 'Process data')"
+      - "conditional logic (if: 'variable == value')"
+      - "argument descriptions"
+    rationale: "Aligns with code and technical documentation standards for global accessibility and tool compatibility."
+
+  user_facing_content:
+    language: "Spanish (Español)"
+    scope: "User-facing elements defined within agent YAML files"
+    includes:
+      - "workflow titles (title: 'Título del Flujo')"
+      - "workflow descriptions (description: 'Descripción para el usuario')"
+      - "step titles (title: 'Título del Paso')"
+      - "prompt messages (prompt: 'Pregunta al usuario')"
+      - "output messages (output: 'Mensaje de salida')"
+    rationale: "Ensures clear and direct communication with the human user in their native language."
+
+  agents_files_in_general:
     language: "English"
     scope: "All agent-related files (`.md` or `.yaml`) in /agents/ or root."
     includes:
       - "AGENTS.md"
       - "All files in /agents/ folder and its subdirectories"
-    
-  rationale: "Agents are part of the technical implementation and should be in English to align with code and commit messages."
+    rationale: "Agents files as a whole are considered technical implementation artifacts."
 
 directory_structure:
   title: "📂 Standard Directory Structure"
   description: "Recommended project organization"
-  
+
   root_level_files:
     - name: "README.md"
       purpose: "Project overview and navigation"
       required: true
-    
+
     - name: "AGENTS.md"
       purpose: "AI assistant master guide and entry point"
       required: true
-    
-    - name: "NEXT_SESSION.md"
-      purpose: "Log for active or paused development sessions"
-      required: false
-      behavior: "Stores multiple sessions with context and tasks; not automatically overwritten"
-      usage: "Allows resuming specific work streams, tracking multiple parallel efforts."
-  
+
   root_level_folders:
     - name: "/docs/"
       purpose: "All project documentation (Spanish)"
       visibility: "User-facing"
-    
+
     - name: "/agents/"
       purpose: "AI agent instructions and prompts (outside /docs/)"
       visibility: "Internal AI configuration"
-    
+
     - name: "/apps/"
       purpose: "All application components (services, clients, etc.)"
       visibility: "Developer"
-  
+
   docs_structure:
     architecture:
       path: "docs/architecture/"
@@ -100,7 +180,7 @@ directory_structure:
     log:
       path: "docs/log/"
       purpose: "Registro histórico del trabajo realizado, incluyendo sprints y milestones pasados."
-      
+
       sprints:
         path: "/docs/log/sprints/"
         purpose: "Documentación de trabajo en sprints, incluyendo tareas individuales y resúmenes de sprint."
@@ -108,9 +188,9 @@ directory_structure:
           - "sprint-[XX]/ - Carpeta por cada sprint"
           - "[ID_TAREA]-nombre-tarea.md - Archivos de tareas individuales"
           - "sprint-[XX]-summary.md - Resumen del sprint"
-          - "_TASK_TEMPLATE.md - Plantilla para nuevas tareas"
-          - "_SPRINT_SUMMARY_TEMPLATE.md - Plantilla para resúmenes"
-        
+          - "task-template.md - Plantilla para nuevas tareas"
+          - "_sprint-summary-template.md - Plantilla para resúmenes"
+
         naming_conventions:
           task_files:
             pattern: "[ID_TAREA]-descriptive-name-kebab-case.md"
@@ -130,7 +210,7 @@ directory_structure:
               - "Usar kebab-case para nombres descriptivos en inglés."
               - "El CONTENIDO del archivo permanece en español."
               - "Evitar términos: 'journal', 'bitácora' → usar 'Tarea' en el contenido."
-          
+
           summary_files:
             pattern: "sprint-[XX]-summary.md"
             location: "docs/log/sprints/sprint-[XX]/"
@@ -144,7 +224,24 @@ directory_structure:
               - "Logros principales"
               - "Problemas y soluciones"
               - "Próximos pasos"
-  
+
+      session_log:
+        path: "docs/log/session-log.md"
+        purpose: "Log for all development sessions (active, paused, blocked, and closed)"
+        behavior: "Maintains both open sessions (in progress) and closed sessions (historical record)"
+        usage: "Primary file for session management; tracks all work streams and provides continuity between sessions."
+
+  application_components_structure:
+    title: "📦 Application Components Structure"
+    description: "Rules for organizing files within /apps/ components."
+    generated_artifacts:
+      purpose: "Generated files (build, tests, coverage) must be in dedicated, git-ignored subdirectories."
+      rule: "For every application component (e.g., apps/<backend_app_name>), generated artifacts such as build output, test reports, and coverage reports MUST reside in a dedicated subdirectory (e.g., 'coverage-reports/'). These directories MUST be excluded from version control."
+      examples:
+        - "apps/<backend_app_name>/coverage-reports/"
+        - "apps/<backend_frontend_name>/dist/"
+      rationale: "Keeps source directories clean, prevents accidental commits of generated files, and simplifies cleanup processes."
+
   agents_structure:
     path: "/agents/"
     location: "Root level (outside /docs/)"
@@ -158,58 +255,72 @@ root_directory_policy:
   title: "📜 Política de Directorio Raíz Limpio (Regla de Oro)"
   criticality: "🔴 MÁXIMA"
   description: "El directorio raíz del proyecto debe permanecer lo más limpio posible para facilitar la navegación y el mantenimiento."
-  
+
   allowed_files:
     - "README.md: Punto de entrada para desarrolladores humanos. Debe apuntar a la documentación en /docs."
     - "AGENTS.md: Punto de entrada para asistentes de IA. Debe apuntar a los agentes y su documentación en /agents."
     - "Archivos de configuración esenciales: .gitignore, Makefile, package.json, go.mod, docker-compose.yml, archivos .env, etc."
-  
+
   disallowed_files:
     - "Cualquier otro archivo de documentación .md que no sea README.md o AGENTS.md."
+    - "SESSION_LOG.md: Debe residir en /docs/log/session-log.md para una mejor organización."
     - "Documentos de análisis, borradores, resúmenes de sesión, etc."
-  
+
   enforcement: "Toda la documentación adicional DEBE residir dentro del directorio `/docs` en la subcarpeta apropiada (architecture, modules, guides, log)."
   rationale: "Evita la acumulación de desorden en la raíz, centraliza la documentación y mantiene una estructura de proyecto predecible y profesional."
 
 documentation_principles:
   title: "📋 Documentation Principles"
-  
+
+  general_standards_guide:
+    path: "docs/guides/documentation-standards.md"
+    purpose: "Comprehensive guide for documentation standards, structure, style, and maintenance flow."
+
   clarity_and_structure:
     - "Clear separation: User documentation in /docs/, AI configuration in /agents/"
     - "Modular and scalable: Structure ready to evolve without chaos"
     - "Descriptive names: NO versioning in names (3.0, v2, 09a) → use Git version control instead"
     - "Single source of truth: No information duplication across directories"
-  
+
   naming_conventions:
     - "Descriptive names reflecting content"
     - "Use hyphens for multi-word names (my-document.md)"
     - "NO version numbers in filenames (use Git tags/branches)"
-    - "Consistent date format: YYYY-MM-DD for timestamped files"
-  
+    - "Consistent date format: 2026-02-15 for timestamped files"
+
   when_adding_documentation:
     - "Identify document type: business, module, architecture, operational, or task"
     - "Place it in the correct directory per this structure"
     - "Follow recommended naming and format"
     - "DO NOT use versioning in names"
     - "Update central documentation index with new location"
-  
+
   when_reorganizing:
     - "Update all internal references (links)"
     - "Document the change in a task"
     - "Do not leave orphaned files"
 
+mvp_versioning_policy:
+  title: "🚫 MVP No-Versioning Policy"
+  description: "For MVP development, keep a single functional solution and avoid internal version labels."
+  rules:
+    - "Do NOT use version suffixes in names (v1, v2, v3) for code, docs, or features."
+    - "Remove legacy/obsolete artifacts instead of keeping parallel versions."
+    - "Maintain a single current implementation as the source of truth."
+    - "Versioning will be introduced only after MVP completion."
+
 diagramming_standards:
   title: "📊 Diagramming Standards"
   description: "Rules and best practices for creating and maintaining diagrams."
-  
+
   tool:
     name: "Mermaid"
     rationale: "Text-based diagramming (diagrams-as-code) for version control, collaboration, and easy maintenance within Markdown files."
-  
+
   format:
     - "Embed Mermaid code blocks directly within `.md` documentation files."
     - "Use ```mermaid code blocks."
-  
+
   best_practices:
     - "Keep diagrams focused on a single concept or context."
     - "Use diagrams to complement text, not replace it."
@@ -218,36 +329,68 @@ diagramming_standards:
 
 ai_agent_file_structure:
   title: "🤖 AI Agent File Organization"
-  
-  structure:
-    generic:
-      file: "generic-rules.yaml"
-      purpose: "Universal rules (documentation language, directory structure, principles)"
-      reusable: true
-    
-    project_context:
-      file: "generic-project-context.yaml"
-      purpose: "Project-specific context (stack, architecture, critical modules)"
-      reusable: false
-    
 
-  
+  structure:
+    generic_rules:
+      file: "generic-rules.yaml"
+
+      purpose: "Universal rules (documentation language, directory structure, principles)"
+
+      reusable: true
+
+    init_agent:
+      file: "init.yaml"
+
+      purpose: "Entry point agent, guides user to other workflows."
+
+      reusable: true
+
+    project_context_template:
+      file: "project/project-context-template.yaml"
+
+      purpose: "Template for project-specific context (stack, architecture, critical modules)"
+
+      reusable: false
+
+    sprint_registry:
+      file: "project/sprint-registry.yaml"
+
+      purpose: "Central registry of all sprints and tasks, their status, and metadata for a project"
+
+      reusable: false
+
+    load_session_agent:
+      file: "load-session.yaml"
+
+      purpose: "Agent to load a development session (from NEXT_SESSION.md or by creating new task)"
+
+      reusable: true
+
+    load_project_context_agent:
+      file: "load-project-context.yaml"
+
+      purpose: "Agent to load the main project context and optional modular contexts"
+
+      reusable: true
+
   loading_order:
-    - "The main initiation agent loads generic rules first"
-    - "The main initiation agent loads project context second"
-    - "The main initiation agent then executes its startup logic"
+    - "Generic rules are loaded first by any initiating agent."
+
+    - "init.yaml agent is loaded to dispatch to other agents based on user input."
+
+    - "load-session.yaml and load-project-context.yaml are loaded via init.yaml."
 
 agents_directory_rules:
   title: "📁 /agents/ Directory Rules (CRITICAL)"
   description: "Strict rules for agent directory organization"
-  
+
   root_agents_folder:
     contains_only: "YAML files"
     rule_1: "NO Markdown (.md) files in /agents/ root"
     rule_2: "NO project-specific documentation in /agents/ root"
     rule_3: "Each .yaml file is a complete, self-contained agent"
     rule_4: "All .yaml files must have metadata section (purpose, scope, version)"
-  
+
   location_of_documentation:
     markdown_files: "Go in /docs/ directory (NOT in /agents/)"
     why: |
@@ -255,13 +398,24 @@ agents_directory_rules:
       - /docs/ is for human-readable documentation (Markdown)
       - Clear separation of concerns
       - Keeps agents folder focused and minimal
+
+  agent_metadata_requirements:
+    title: "📝 Agent Metadata Requirements"
+    description: "All agent YAML files must adhere to these metadata standards for consistency and traceability."
+    rules:
+      - "Every agent YAML file MUST include a 'metadata' section."
+      - "The 'metadata' section MUST include 'filename', 'version', 'last_updated', and 'purpose' fields."
+      - "The 'version' field MUST follow SemVer (e.g., '1.0', '1.1')."
+      - "The 'last_updated' field MUST be updated to the current date (2026-02-15) whenever the agent file is modified."
+      - "The 'filename' field MUST accurately reflect the name of the file."
+    rationale: "Ensures all agents are properly documented, versioned, and maintain a clear audit trail of changes."
   
   exception_for_project_specific:
     location: "/agents/project/context/"
     allowed: "README.md and INDEX.md for navigation within project context"
     rationale: "Project-specific context agents need internal documentation for their specialized agents"
     example: "/agents/project/context/README.md is acceptable"
-  
+
   verification:
     - "ls /agents/ should show ONLY .yaml files and /[project-name]/ folders"
     - "No .md files visible in root agents listing"
@@ -270,7 +424,7 @@ agents_directory_rules:
 code_quality_standards:
   title: "✅ Universal Code Quality Standards"
   description: "Apply these to any technology stack"
-  
+
   general_principles:
     - "Code without tests in critical domain: REJECTED"
     - "Business logic outside domain layer: REJECTED"
@@ -278,14 +432,14 @@ code_quality_standards:
     - "Mega-functions without documentation: REJECTED"
     - "Error handling as strings: REJECTED"
     - "Commits without descriptive messages: REJECTED"
-  
+
   testing_philosophy:
     - "Test-Driven Development (TDD) for critical domain"
-    - "Minimum coverage targets: ≥75% average, 100% for critical paths"
+    - "Minimum coverage targets: ≥85% average, ≥90% for critical paths"
     - "Tests must be clear and maintainable"
     - "Integration tests for use cases"
     - "Unit tests for domain logic"
-  
+
   code_review_checklist:
     - "Does code have appropriate tests?"
     - "Are tests passing locally?"
@@ -297,7 +451,7 @@ code_quality_standards:
 architecture_independence:
   title: "🏗️ Technology-Agnostic Architecture Patterns"
   description: "Applicable to any tech stack"
-  
+
   layered_architecture:
     domain:
       description: "Core business logic"
@@ -305,21 +459,21 @@ architecture_independence:
         - "No external framework dependencies"
         - "Pure data structures and algorithms"
         - "Interfaces for external concerns"
-    
+
     application:
       description: "Use cases and orchestration"
       rules:
         - "Orchestrates domain and infrastructure"
         - "No business logic (delegated to domain)"
         - "DTOs/models for layer boundaries"
-    
+
     infrastructure:
       description: "External concerns (DB, APIs, libraries)"
       rules:
         - "Implements domain interfaces"
         - "Framework-specific code contained here"
         - "Repositories, services, external clients"
-    
+
     interfaces:
       description: "Entry points (HTTP, CLI, etc.)"
       rules:
@@ -329,40 +483,40 @@ architecture_independence:
 
 conversation_patterns:
   title: "💬 Recommended Conversation Patterns"
-  
+
   when_starting_work:
     - "Confirm context understanding"
     - "Ask clarifying questions before coding"
     - "Propose architecture before implementation"
     - "Verify alignment with requirements"
-  
+
   when_ambiguity_detected:
     template: |
       I interpreted "[requirement]" as:
       → [Your interpretation]
-      
+
       Is that correct, or do you prefer:
       a) [Alternative A]
       b) [Alternative B]
-      
+
       Recommendation: [Your analysis]
-  
+
   when_technical_debt_found:
     template: |
       Detected: [Specific problem]
-      
+
       Options:
       a) Fix now (impacts timeline)
       b) Document as technical debt
       c) [Alternative that maintains schedule]
-      
+
       Recommendation: [Your analysis]
-      
+
       Proceed with: ?
 
 workflow_best_practices:
   title: "🔄 Universal Workflow Best Practices"
-  
+
   module_development_workflow:
     title: "🧩 Standard Module Development Workflow (SMDW)"
     description: "A standardized, repeatable workflow for building new modules (Bounded Contexts) from design to deployment. **CRITICAL NOTE: Each phase must be discussed with and approved by the human development team before proceeding to the next.**"
@@ -370,8 +524,8 @@ workflow_best_practices:
       phase_0:
         title: "Phase 0: Scaffolding & Initial Setup"
         steps:
-          - "1. Create Module Structure: Generate directories in `apps/tramatex-api/internal/<module>` and `apps/frontend/src/modules/<module>`."
-          - "2. Create Documentation Hub: Create `docs/modules/<module>/` and populate it from `_MODULE_TEMPLATE.md`."
+          - "1. Create Module Structure: Generate directories in `apps/<backend_app_name>/internal/<module>` and `apps/<frontend_app_name>/src/modules/<module>`."
+          - "2. Create Documentation Hub: Create `docs/modules/<module>/` and populate it from `module-template.md`."
           - "3. Create Sprint Task: Create a new task file in `docs/log/sprints/` for the module implementation."
       phase_1:
         title: "Phase 1: Domain-Driven Design & API Specification"
@@ -408,13 +562,13 @@ workflow_best_practices:
     - "Map the module/feature to system boundaries"
     - "Design interfaces between layers"
     - "Confirm approach with user if non-obvious"
-  
+
   during_implementation:
     - "Write tests before code (TDD for critical parts)"
     - "Keep commits small and descriptive"
     - "One feature per commit where possible"
     - "Add documentation as you code"
-  
+
   before_considering_done:
     - "All tests pass"
     - "No linting warnings"
@@ -425,19 +579,19 @@ workflow_best_practices:
 
 validation_checklist:
   title: "✔️ Pre-Commit Validation Checklist"
-  
+
   code_quality:
     - "Tests pass (language-specific test runner)"
     - "Linter passes (language-specific linter)"
     - "Code formatted (language-specific formatter)"
     - "No hardcoded config or secrets"
-  
+
   documentation:
     - "Changes documented in the bitácora file"
     - "If new feature: feature documented"
     - "If architecture change: ADR created"
     - "Index/README updated if needed"
-  
+
   commits:
     - "Clear, descriptive commit message"
     - "Explains 'what' and 'why'"
@@ -462,48 +616,48 @@ never_do:
 human_approval_policy:
   title: "👤 Human Approval Policy"
   description: "Critical rule ensuring quality control through human review"
-  
+
   core_principle:
     statement: "Sprints and tasks are NOT considered completed until they receive explicit approval from the human development team"
     rationale: "Ensures all code meets quality standards and has been reviewed by people before being marked as definitively finished"
-  
+
   implementation:
     task_states:
       - state: "⏳ Planificado"
         description: "Task planned but not started"
-      
+
       - state: "🔄 En Progreso"
         description: "Task actively being worked on by AI/human"
-      
+
       - state: "✅ Completado (AI)"
         description: "AI considers work done, but awaiting human review"
-      
+
       - state: "🔍 Pendiente de Aprobación Humana"
         description: "Work exists but requires validation/approval"
-      
+
       - state: "✅ Completado y Aprobado"
         description: "Human team has reviewed and approved the work"
-      
+
       - state: "🔴 Rechazado"
         description: "Human review identified issues requiring rework"
-    
+
     workflow:
       step_1: "AI completes implementation"
       step_2: "AI marks task as '✅ Completado (AI)' or '🔍 Pendiente de Aprobación'"
       step_3: "Human team reviews code, tests, documentation"
       step_4: "Human marks as '✅ Completado y Aprobado' or '🔴 Rechazado'"
       step_5: "If rejected, task returns to '🔄 En Progreso' with feedback"
-  
+
   exceptions:
     none: "This rule has NO exceptions. All work requires human approval."
-  
+
   ai_assistant_responsibilities:
     - "Never mark tasks as definitively completed"
     - "Always indicate when work is ready for human review"
     - "Document what needs to be reviewed in task files"
     - "Respect human feedback and incorporate it"
     - "Do not proceed with dependent tasks until approval is granted"
-  
+
   benefits:
     - "Maintains high code quality standards"
     - "Ensures knowledge transfer to human team"
@@ -513,20 +667,20 @@ human_approval_policy:
 
 communication_style:
   title: "💡 Recommended Communication Style"
-  
+
   with_developers:
     - "Be clear and concise"
     - "Cite architecture documents and ADRs"
     - "Explain 'why' not just 'what'"
     - "Ask clarifying questions when unsure"
     - "Suggest improvements respectfully"
-  
+
   with_stakeholders:
     - "Use business terminology"
     - "Focus on impact and value"
     - "Reference business requirements"
     - "Avoid technical jargon"
-  
+
   for_code_reviews:
     - "Be constructive"
     - "Reference project standards"
@@ -535,15 +689,16 @@ communication_style:
 
 future_extensibility:
   title: "🚀 Designed for Growth"
-  
+
   scalability:
     - "Agent structure supports adding domain-specific rules"
     - "Documentation structure supports multiple projects"
     - "Layer-based architecture supports new modules"
     - "Technology stack can evolve without restructuring"
-  
+
   adding_new_agents:
     - "Create new agent file (0X-[domain].yaml)"
     - "Follow same YAML structure"
     - "Reference from session-initiation agent if needed"
     - "Keep generic rules separate from domain-specific"
+

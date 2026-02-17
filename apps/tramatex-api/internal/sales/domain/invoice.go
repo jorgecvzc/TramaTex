@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,8 @@ import (
 type Invoice struct {
 	ID            uuid.UUID
 	InvoiceNumber InvoiceNumber
+	Type          InvoiceType   // COMPLETA | SIMPLIFICADA (ticket)
+	Series        InvoiceSeries // Series de numeración (A, TKT, etc.)
 	PartyID       uuid.UUID
 	InvoiceDate   time.Time
 	DueDate       time.Time
@@ -34,6 +37,8 @@ type InvoiceLineItem struct {
 
 func NewInvoice(
 	number InvoiceNumber,
+	invoiceType InvoiceType,
+	series InvoiceSeries,
 	partyID uuid.UUID,
 	invoiceDate time.Time,
 	dueDate time.Time,
@@ -43,6 +48,9 @@ func NewInvoice(
 ) (*Invoice, error) {
 	if partyID == uuid.Nil {
 		return nil, NewValidationError("party ID cannot be empty")
+	}
+	if err := invoiceType.IsValid(); err != nil {
+		return nil, err
 	}
 	if dueDate.Before(invoiceDate) {
 		return nil, NewValidationError("due date cannot be before invoice date")
@@ -60,9 +68,11 @@ func NewInvoice(
 		return nil, err
 	}
 
-	return &Invoice{
+	invoice := &Invoice{
 		ID:            uuid.New(),
 		InvoiceNumber: number,
+		Type:          invoiceType,
+		Series:        series,
 		PartyID:       partyID,
 		InvoiceDate:   invoiceDate,
 		DueDate:       dueDate,
@@ -72,7 +82,14 @@ func NewInvoice(
 		TaxAmount:     taxAmount,
 		Total:         total,
 		PaymentTerms:  paymentTerms,
-	}, nil
+	}
+
+	// Validate legal limits for simplified invoices (tickets)
+	if err := invoice.ValidateLegalLimits(); err != nil {
+		return nil, err
+	}
+
+	return invoice, nil
 }
 
 func NewInvoiceLineItem(
@@ -161,6 +178,29 @@ func (i *Invoice) RecalculateTotals() error {
 		return err
 	}
 	i.Total = total
+
+	// Re-validate legal limits after recalculation
+	if err := i.ValidateLegalLimits(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ValidateLegalLimits validates that simplified invoices (tickets) comply with Spanish legislation
+// SIMPLIFICADA invoices must have Total < 3,000 EUR according to Real Decreto 1619/2012
+func (i *Invoice) ValidateLegalLimits() error {
+	if i.Type == InvoiceTypeSimplified {
+		// Spanish legislation: simplified invoices (tickets) must be < 3,000 EUR
+		const maxSimplifiedAmount = 3000.0
+		if i.Total.Amount() >= maxSimplifiedAmount {
+			return NewValidationError(fmt.Sprintf(
+				"simplified invoice (ticket) total %.2f EUR exceeds legal limit of %.2f EUR",
+				i.Total.Amount(),
+				maxSimplifiedAmount,
+			))
+		}
+	}
 	return nil
 }
 

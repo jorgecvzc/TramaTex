@@ -116,7 +116,7 @@ No aplica directamente a esta fase de diseño.
 - [ ] `npm run test` pasa (frontend si aplica): No aplica directamente a esta fase de diseño.
 - [ ] `golangci-lint run ./...` sin warnings: No aplica directamente a esta fase de diseño.
 - [ ] `npm run lint` sin warnings (si aplica): No aplica directamente a esta fase de diseño.
-- [ ] Cobertura de tests ≥75% en módulos críticos: No aplica directamente a esta fase de diseño.
+- [ ] Cobertura de tests ≥85% en módulos críticos: No aplica directamente a esta fase de diseño.
 - [ ] Docker Compose levanta sin errores: No aplica directamente a esta fase de diseño.
 - [ ] API funcional: No aplica directamente a esta fase de diseño.
 - [ ] Frontend carga y funciona: No aplica directamente a esta fase de diseño.
@@ -174,7 +174,7 @@ La tarea se considera completada cuando:
 - [ ] Tests backend pasan: No aplica directamente a esta fase de diseño.
 - [ ] Tests frontend pasan: No aplica directamente a esta fase de diseño.
 - [ ] Lint sin warnings: No aplica directamente a esta fase de diseño.
-- [ ] Cobertura ≥75% en dominio crítico: No aplica directamente a esta fase de diseño.
+- [ ] Cobertura ≥85% en dominio crítico: No aplica directamente a esta fase de diseño.
 - [ ] Docker Compose levanta sin errores: No aplica directamente a esta fase de diseño.
 - [ ] Tarea documentada completamente: [x]
 - [ ] project-status.md actualizado: No documentado en el momento.
@@ -197,43 +197,17 @@ La tarea se considera completada cuando:
 
 ## 📚 DECISIONES ARQUITECTÓNICAS TOMADAS
 
-Durante este período, se tomaron y consolidaron las siguientes decisiones arquitectónicas, formalizadas en ADRs:
+Durante este período, se tomaron y consolidaron las siguientes decisiones arquitectónicas, formalizadas en ADRs. Para más detalles sobre cada ADR, consulte la [Arquitectura General del Sistema](../../../architecture/architecture-vision.md) o la carpeta de [ADRs](../../../architecture/adrs/).
 
--   **ADR-001: Selección del Stack Tecnológico**:
-    -   **Decisión**: Go (tramatex-api), Vue.js 3 (Frontend), PostgreSQL (DB), y Docker.
-    -   **Justificación**: Eficiencia, mantenibilidad y un enfoque `local-first` para hardware limitado.
-
--   **ADR-002: Adopción de Clean Architecture y DDD**:
-    -   **Decisión**: Aplicar Clean Architecture y Domain-Driven Design con **rigor asimétrico**.
-    -   **Justificación**: Proteger el núcleo del dominio (ej. Tarificación) con rigor estricto, mientras se permite flexibilidad en otras áreas para agilizar el desarrollo del MVP.
-
--   **ADR-003: Tipo y Distribución de la Aplicación**:
-    -   **Decisión**: **Monolito modular**.
-    -   **Justificación**: Evitar la complejidad prematura de microservicios, pero manteniendo los dominios bien separados para una posible extracción futura.
-
--   **ADR-004: Ciclo de Vida de Desarrollo del MVP**:
-    -   **Decisión**: El proyecto finaliza con la entrega del MVP. Cualquier desarrollo posterior se considerará un nuevo proyecto.
-    -   **Justificación**: Limitar el alcance (scope) y asegurar un objetivo claro y alcanzable.
-
--   **ADR-005: Gestión Unificada de Clientes y Proveedores**:
-    -   **Decisión**: Implementar el patrón **Party**, donde una entidad puede tener múltiples roles (cliente, proveedor).
-    -   **Justificación**: Evitar la duplicación de datos y proporcionar un modelo flexible.
-
--   **ADR-006: Estrategia de Desarrollo Dirigida por Dominio**:
-    -   **Decisión**: El desarrollo debe seguir la lógica del dominio, no las capas técnicas. La infraestructura se introduce solo cuando un caso de uso la necesita.
-    -   **Justificación**: Asegurar que la implementación esté siempre alineada con las necesidades del negocio.
-
--   **ADR-007: Orden de Implementación de Módulos**:
-    -   **Decisión**: Se establece una secuencia obligatoria: **Fase 0 (Fundaciones), Fase 1 (Party, Producto, Tarificación), Fase 2 (Ventas), Fase 3 (MES)**.
-    -   **Justificación**: Respetar las dependencias naturales del dominio (ej. la tarificación necesita productos y clientes definidos).
-
--   **ADR-008: Planificación y Cronograma del MVP**:
-    -   **Decisión**: Se estima un cronograma ajustado de **24 meses (aprox. 782 horas)** para el MVP, basado en una disponibilidad real de 8 horas/semana.
-    -   **Justificación**: Proporcionar una planificación realista en lugar de estimaciones optimistas.
-
--   **ADR-009: Estructura de Carpetas y Organización**:
-    -   **Decisión**: Se define la estructura del monorepo, separando `apps/tramatex-api/`, `apps/frontend/`, `docs/`, y `agents/`.
-    -   **Justificación**: Crear una organización clara, escalable y que refleje la arquitectura modular.
+-   **ADR-001:** Selección del Stack Tecnológico
+-   **ADR-002:** Adopción de Clean Architecture y DDD
+-   **ADR-003:** Tipo y Distribución de la Aplicación
+-   **ADR-004:** Ciclo de Vida de Desarrollo del MVP
+-   **ADR-005:** Gestión Unificada de Clientes y Proveedores
+-   **ADR-006:** Estrategia de Desarrollo Dirigida por Dominio
+-   **ADR-007:** Orden de Implementación de Módulos
+-   **ADR-008:** Planificación y Cronograma del MVP
+-   **ADR-009:** Estructura de Carpetas y Organización
 
 ---
 
@@ -251,7 +225,7 @@ Se estableció desde el principio la importancia de la **trazabilidad** entre re
 |---------|-------|--------|--------|
 | **Horas invertidas** | No aplica | No aplica | — |
 | **Porcentaje proyecto** | No aplica | — | — |
-| **Tests cobertura** | No aplica | ≥75% crítico | — |
+| **Tests cobertura** | No aplica | ≥85% crítico | — |
 | **Commits** | No aplica | 1+ | — |
 | **Líneas código** | No aplica | — | — |
 | **Documentación actualizada** | ✓ | ✓ | ✓ |

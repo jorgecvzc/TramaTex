@@ -1,4 +1,4 @@
-# TramaTex Project Context Agents
+# Project Context Agents
 
 This directory contains modular context agents that provide detailed information about the TramaTex project. These agents are loaded on-demand by AI assistants to understand specific aspects of the project.
 
@@ -12,11 +12,11 @@ This directory contains modular context agents that provide detailed information
 | [bounded-contexts.yaml](./bounded-contexts.yaml) | Business domains, module dependencies, relationships | When working across modules, understanding domain boundaries |
 | [tech-stack.yaml](./tech-stack.yaml) | Technology choices, frameworks, tools, build systems | When implementing features, setting up environments |
 | [code-standards.yaml](./code-standards.yaml) | Code quality criteria, acceptance/rejection rules | Before committing code, during code review |
+| [load-module-context.yaml](../../load-module-context.yaml) | Loads context for a specific project module | When starting work on a specific module |
 
 ### Design Context
 
-La documentación del sistema de diseño (paleta de colores, tipografía, etc.) no es un agente de contexto cargable, sino que se encuentra en el directorio de documentación principal:
-- **Ubicación:** `/docs/architecture/design-system/`
+La documentación del sistema de diseño (paleta de colores, tipografía, etc.) no es un agente de contexto cargable, sino que se encuentra en el directorio de documentación principal. Consultar `docs/architecture/design-system/` para más detalles.
 
 ## 🎯 Loading Strategy
 
@@ -26,20 +26,18 @@ La documentación del sistema de diseño (paleta de colores, tipografía, etc.) 
 1. Load `architecture.yaml` - Understand layer structure
 2. Load `bounded-contexts.yaml` - Understand dependencies
 3. Load `code-standards.yaml` - Know quality gates
+4. Load `load-module-context.yaml` (with module_name) - Get module-specific context
 
 ### For Feature Implementation
 1. Load `bounded-contexts.yaml` - Find relevant module
 2. Load `tech-stack.yaml` - Know tools and frameworks
 3. Load `code-standards.yaml` - Ensure compliance
-
-### For UI/Frontend Work
-1. Load `design/palette.md` - Color system
-2. Load `design/theme.md` - Theme configuration
-3. Load `design/typography.md` - Font system
+4. Load `load-module-context.yaml` (with module_name) - Get module-specific context
 
 ### For Code Review
 1. Load `code-standards.yaml` - Review criteria
 2. Load `architecture.yaml` - Verify layer compliance
+3. Load `load-module-context.yaml` (with module_name) - Get module-specific context
 
 ## 🔗 Parent Context
 
@@ -58,4 +56,4 @@ Which in turn is loaded after:
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-15

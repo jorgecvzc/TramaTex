@@ -15,12 +15,12 @@ Usa prefijos para tus ramas para indicar el propósito del cambio:
 - `docs/`: Cambios en la documentación (ej. `docs/update-adr-011`)
 - `test/`: Añadir o mejorar tests (ej. `test/add-coverage-for-party-module`)
 
-### 2. Desarrollar con TDD
+### 2. Desarrollo Guiado por Pruebas
 
-Para la lógica de negocio (capas de dominio y aplicación), sigue un ciclo TDD:
-1.  **Escribir un test que falla**: Define el comportamiento deseado.
-2.  **Escribir el código mínimo**: Haz que el test pase.
-3.  **Refactorizar**: Limpia y mejora el código.
+Para asegurar la calidad y el correcto funcionamiento del software, se fomenta un enfoque de desarrollo guiado por pruebas. Se recomienda un ciclo iterativo donde la escritura de tests acompaña la implementación de la lógica de negocio (capas de dominio y aplicación):
+1.  **Definir el comportamiento esperado**: Describe la funcionalidad a implementar mediante tests.
+2.  **Implementar la funcionalidad**: Escribe el código necesario para cumplir con el comportamiento definido.
+3.  **Verificar y refinar**: Ejecuta los tests para asegurar que la funcionalidad es correcta y refactoriza el código y los tests para mejorar la calidad.
 
 ### 3. Formato de Commits
 

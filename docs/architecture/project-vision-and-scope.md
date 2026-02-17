@@ -84,12 +84,12 @@ El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-m
 ### Fase 1 – Dominio Base para Tarificación
 - **Objetivo:** Construir el núcleo económico funcional y testeable.
 - **Entregables:** Módulos `Party`, `Producto` y `Tarificación` completamente funcionales en el backend y frontend.
-- **Criterio de Aceptación:** Se puede calcular un precio real con datos de clientes y productos. **Cobertura de tests del 100%** en el dominio de tarificación.
+- **Criterio de Aceptación:** Se puede calcular un precio real con datos de clientes y productos. **Cobertura de tests ≥90%** en el dominio de tarificación.
 
 ### Fase 2 – Casos de Uso Core y Pedidos
 - **Objetivo:** Orquestar el flujo de ventas completo.
 - **Entregables:** Sistema de creación y seguimiento de pedidos estándar, generación de documentos (presupuestos, albaranes).
-- **Criterio de Aceptación:** Se puede crear un pedido estándar de principio a fin. **Cobertura de tests ≥75%** en casos de uso de pedidos.
+- **Criterio de Aceptación:** Se puede crear un pedido estándar de principio a fin. **Cobertura de tests ≥85%** en casos de uso de pedidos.
 
 ### Fase 3 – Subdominio Secundario MES
 - **Objetivo:** Completar el MVP con la gestión de producción personalizada.
@@ -118,7 +118,7 @@ El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-m
 |---|---|---|
 | RNF1 | Eficiencia de recursos | <150MB RAM en servidor. |
 | RNF2 | Operativa 100% local | No requiere conexión a internet. |
-| RNF3 | Mantenibilidad base | TDD + **cobertura ≥75%** (ver [**ADR-011**](./adrs/ADR-011-testing-coverage-strategy.md) para detalles). |
+| RNF3 | Mantenibilidad base | TDD + **cobertura ≥85%** (ver [**ADR-011**](./adrs/ADR-011-testing-coverage-strategy.md) para detalles). |
 | RNF4 | Integridad de datos | Transacciones ACID garantizadas por PostgreSQL. |
 | RNF5 | Seguridad básica | Autenticación JWT y RBAC (Roles: Admin, Comercial, Diseño, Taller). |
 
@@ -129,4 +129,4 @@ El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-m
 - El taller puede operar de forma autónoma con la tablet.
 - Se reduce la pérdida de información entre departamentos.
 - El sistema es estable para el uso diario.
-- Se alcanza una **cobertura de tests global ≥75%**, con **100% en el dominio de tarificación**.
+- Se alcanza una **cobertura de tests global ≥85%**, con **≥90% en el dominio de tarificación**.

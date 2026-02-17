@@ -195,7 +195,7 @@ type WorkCenter struct {
 }
 
 // NewWorkCenter creates a new WorkCenter.
-func NewWorkCenter(id uuid.UUID, name string, capacity int) (*WorkCenter, error) {
+func NewWorkCenter(id uuid.UUID, name, description string, capacity int) (*WorkCenter, error) {
 	if id == uuid.Nil {
 		return nil, fmt.Errorf("work center ID cannot be empty")
 	}

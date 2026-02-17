@@ -57,7 +57,12 @@ CREATE TABLE IF NOT EXISTS "attribute_values" (
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_attribute_values_attribute_id_code" ON "attribute_values" ("attribute_id", "code");
 
 -- 5. products
-CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE');
+-- Create enum type idempotently
+DO $$ BEGIN
+    CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 CREATE TABLE IF NOT EXISTS "products" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "sku" VARCHAR(255) UNIQUE,
@@ -78,7 +83,12 @@ CREATE TABLE IF NOT EXISTS "products" (
 CREATE INDEX IF NOT EXISTS "idx_products_brand_id" ON "products" ("brand_id");
 
 -- 6. product_variants
-CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED');
+-- Create enum type idempotently
+DO $$ BEGIN
+    CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 CREATE TABLE IF NOT EXISTS "product_variants" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "product_id" UUID NOT NULL,

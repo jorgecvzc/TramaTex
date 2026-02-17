@@ -671,8 +671,18 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 		return nil, err
 	}
 
+	// Default for invoices from orders: COMPLETA type with series "A"
+	invoiceType := domain.InvoiceTypeComplete
+	currentYear := time.Now().Year()
+	series, err := domain.NewInvoiceSeries("A", currentYear)
+	if err != nil {
+		return nil, err
+	}
+
 	invoice, err := domain.NewInvoice(
 		invoiceNumber,
+		invoiceType,
+		series,
 		cmd.PartyID,
 		cmd.InvoiceDate,
 		cmd.DueDate,
@@ -1269,4 +1279,108 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 		return err
 	}
 	return nil
+}
+
+// CreateSimplifiedInvoice (CU-S-019) creates a ticket (factura simplificada) for retail sales
+// Optimized for TPV/POS workflow: validates < 3,000 EUR limit, uses series "TKT", allows CONSUMIDOR_FINAL
+func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSimplifiedInvoiceCommand) (*InvoiceDTO, error) {
+	// Validate party exists
+	exists, err := s.partyLookup.ExistsParty(ctx, cmd.PartyID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, domain.NewNotFoundError("party not found")
+	}
+
+	// Build sale items for pricing calculation
+	saleItems := make([]pricing_app.SaleItemRequest, 0, len(cmd.Items))
+	for _, itemInput := range cmd.Items {
+		saleItems = append(saleItems, pricing_app.SaleItemRequest{
+			ProductVariantID: itemInput.ProductVariantID,
+			Quantity:         itemInput.Quantity,
+		})
+	}
+
+	// Calculate prices using pricing engine
+	priceReq := pricing_app.CalculateFinalSalePriceRequest{
+		SaleItems: saleItems,
+		ClientID:  cmd.PartyID,
+		SaleDate:  cmd.InvoiceDate,
+	}
+	priceResp, err := s.pricingEngine.CalculateFinalSalePrice(ctx, priceReq)
+	if err != nil {
+		return nil, fmt.Errorf("pricing calculation failed: %w", err)
+	}
+
+	// Build invoice line items from calculated prices
+	lineItems := make([]domain.InvoiceLineItem, 0, len(priceResp.CalculatedItems))
+	for _, calculatedItem := range priceResp.CalculatedItems {
+		unitPrice, err := domain.NewMoney(calculatedItem.FinalPrice.Amount, domain.DefaultCurrency)
+		if err != nil {
+			return nil, err
+		}
+
+		// For tickets, we use direct pricing without manual overrides
+		lineItem, err := domain.NewInvoiceLineItem(
+			calculatedItem.ProductVariantID,
+			calculatedItem.Quantity,
+			unitPrice,
+			nil, // No discount
+			nil, // No tax breakdown per line
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		lineItems = append(lineItems, lineItem)
+	}
+
+	// Simplified invoice: immediate payment, no payment terms
+	invoiceNumber, err := s.numberGen.NextInvoiceNumber(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ticket series: "TKT" for current year
+	invoiceType := domain.InvoiceTypeSimplified
+	currentYear := time.Now().Year()
+	series, err := domain.NewInvoiceSeries("TKT", currentYear)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total before tax from line items
+	totalBeforeTax := priceResp.SaleTotal.Amount
+
+	// Simplified tax calculation (e.g., 21% IVA for Spain)
+	// TODO: Make tax rate configurable or fetch from tax service
+	taxRate := 0.21
+	taxAmount, err := domain.NewMoney(totalBeforeTax*taxRate, domain.DefaultCurrency)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create invoice - will validate < 3,000 EUR automatically via ValidateLegalLimits()
+	invoice, err := domain.NewInvoice(
+		invoiceNumber,
+		invoiceType,
+		series,
+		cmd.PartyID,
+		cmd.InvoiceDate,
+		cmd.InvoiceDate, // Due date = invoice date for immediate payment
+		lineItems,
+		taxAmount,
+		"Immediate Payment", // Payment terms for tickets
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.invoiceRepo.Save(ctx, invoice); err != nil {
+		return nil, err
+	}
+
+	// No related orders for simplified invoices (direct sale)
+	return NewInvoiceDTO(invoice, []uuid.UUID{}), nil
 }

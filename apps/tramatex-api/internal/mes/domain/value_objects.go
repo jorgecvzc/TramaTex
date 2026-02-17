@@ -1,7 +1,5 @@
 package domain
 
-import "fmt"
-
 // ProductionStatus represents the status of a ProductionOrder.
 type ProductionStatus string
 

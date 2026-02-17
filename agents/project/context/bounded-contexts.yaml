@@ -1,393 +1,158 @@
-# TramaTex Bounded Contexts Agent
-# Version: 1.0
-# Purpose: Definition of bounded contexts and module dependencies
-
----
-
 metadata:
-  filename: "bounded-contexts.yaml"
-  version: "1.1"
-  location: "/agents/context/"
-  last_updated: "2026-02-01"
+  filename: bounded-contexts.yaml
+  version: '1.1'
+  location: /agents/context/
+  last_updated: '2026-02-15'
   references:
-    - "ADR-005-unified-customer-supplier-management.md"
-
+  - ADR-005-unified-customer-supplier-management.md
 bounded_contexts_overview:
-  title: "🎯 TramaTex Bounded Contexts"
-  description: "Modules organized by business domain"
-
+  title: "\U0001F3AF TramaTex Bounded Contexts"
+  description: Modules organized by business domain
 erp_core_modules:
-  title: "📦 ERP Core Modules"
-  description: "Group of foundational and core business modules that provide the primary ERP functionalities. MES depends on these for core data."
+  title: "\U0001F4E6 ERP Core Modules"
+  description: Group of foundational and core business modules that provide the primary
+    ERP functionalities. MES depends on these for core data.
   modules:
-    - "IAM"
-    - "Party"
-    - "Product"
-    - "Pricing"
-    - "Sales"
-
+  - YourCoreModule1
+  - YourCoreModule2
 core_contexts:
   iam:
-    title: "Identity & Access Management (Phase 0)"
-    description: "User identification, authentication, and JWT token management"
-    
-    criticality: "CRITICAL - Security Foundation"
-    implementation_phase: "0 (Before MVP)"
-    
-    key_entities:
-      - "User (email, password hash, status)"
-      - "Role (Admin, Commercial, Designer, Workshop)"
-      - "Permission (action-based authorization)"
-    
-    domain_concepts:
-      - "User registration with email validation"
-      - "Password hashing (bcrypt)"
-      - "JWT token generation and validation"
-      - "Session management (tokens, refresh)"
-    
-    repositories:
-      - "UserRepository: find by email, create, update"
-      - "RoleRepository: find by name"
-      - "PermissionRepository: find by resource+action"
-    
-    external_integrations: "None (MVP)"
-    
-    dependencies_on:
-      - "None (foundational)"
-    
-    depended_on_by:
-      - "Party (owner/creator tracking)"
-      - "Product (creator/modifier tracking)"
-      - "Sales (order owner)"
-      - "All modules (authentication middleware)"
-    
-    use_cases:
-      - "Register user"
-      - "Login user (generate JWT)"
-      - "Refresh token"
-      - "Logout user"
-      - "Assign role to user"
-    
-    api_endpoints:
-      - "POST /iam/register"
-      - "POST /iam/login"
-      - "POST /iam/refresh"
-      - "POST /iam/logout"
-  
+    title: "Arquitectura del M\xF3dulo de IAM"
+    description: "El m\xF3dulo de IAM (Identity and Access Management) es un componente\
+      \ transversal y fundamental en TramaTex, responsable de gestionar la identidad\
+      \ de los usuarios, su autenticaci\xF3n en el sistema, y su autorizaci\xF3n para\
+      \ acceder a recursos y realizar acciones. Dado que TramaTex gestiona datos cr\xED\
+      ticos de negocio y opera en un entorno de m\xFAltiples roles de usuario, un\
+      \ dise\xF1o robusto y seguro del IAM es de m\xE1xima prioridad."
+    criticality: CRITICAL
+    implementation_phase: 0 (Before MVP)
+    key_entities: []
+    dependencies_on: []
+    depended_on_by: []
+    use_cases: []
+    api_endpoints: []
   party:
-    title: "Party / Organization Management (Phase 1)"
-    description: "Unified management of clients and suppliers"
-    
-    criticality: "CRITICAL - Business Foundation"
-    implementation_phase: "1"
-    
-    key_entities:
-      - "Organization (company, unified for clients/suppliers)"
-      - "Person (contacts within organization)"
-      - "Contact (emails, phones, addresses)"
-      - "Address (with standardization)"
-      - "OrganizationRole (Client, Supplier, Both)"
-    
-    domain_concepts:
-      - "Organization hierarchy (parent-child relationships)"
-      - "Contact management (multiple contacts per organization)"
-      - "Address standardization and validation"
-      - "Organization status management (active, inactive)"
-      - "Tax ID validation (CIF, NIF, etc.)"
-    
-    repositories:
-      - "OrganizationRepository"
-      - "PersonRepository"
-      - "ContactRepository"
-      - "AddressRepository"
-    
-    external_integrations:
-      - "Address standardization (future)"
-      - "Tax ID validation (future)"
-    
-    dependencies_on:
-      - "IAM (creator, modifier tracking)"
-    
-    depended_on_by:
-      - "Product (client preferences, supplier defaults)"
-      - "Pricing (client-specific pricing)"
-      - "Sales (customer, supplier references)"
-      - "MES (workflow participants)"
-    
-    use_cases:
-      - "Create organization (client or supplier)"
-      - "Update organization information"
-      - "Add contact to organization"
-      - "Add address to organization"
-      - "Change organization status"
-      - "Link client to supplier"
-    
-    api_endpoints:
-      - "GET/POST /organizations"
-      - "GET/PUT /organizations/{id}"
-      - "POST /organizations/{id}/contacts"
-      - "POST /organizations/{id}/addresses"
-  
+    title: Party
+    description: null
+    criticality: CRITICAL
+    implementation_phase: '1'
+    key_entities: []
+    dependencies_on: []
+    depended_on_by: []
+    use_cases: []
+    api_endpoints: []
   product:
-    title: "Product Catalog (Phase 1)"
-    description: "Products, variants (size, color), and categories"
-    
-    criticality: "CRITICAL - Pricing Base"
-    implementation_phase: "1"
-    
-    key_entities:
-      - "Product (base product definition)"
-      - "Variant (specific size/color combination)"
-      - "VariantAttribute (size, color, material)"
-      - "Category (product grouping)"
-      - "Supplier (preferred suppliers per product)"
-      - "SupplierCost (cost per variant per supplier)"
-    
-    domain_concepts:
-      - "Product hierarchy (categories)"
-      - "Variant matrix (size × color combinations)"
-      - "Attribute validation (only allowed sizes/colors)"
-      - "Stock tracking per variant"
-      - "Supplier cost management"
-      - "Product status (active, inactive, discontinued)"
-    
-    repositories:
-      - "ProductRepository"
-      - "VariantRepository"
-      - "CategoryRepository"
-      - "SupplierRepository"
-      - "SupplierCostRepository"
-    
-    external_integrations: "None (MVP)"
-    
-    dependencies_on:
-      - "IAM (creator tracking)"
-      - "Party (supplier references)"
-    
-    depended_on_by:
-      - "Pricing (variant-based pricing)"
-      - "Sales (order items)"
-      - "MES (production assignments)"
-    
-    use_cases:
-      - "Create product with category"
-      - "Define variant attributes (sizes, colors)"
-      - "Create variant combinations"
-      - "Set supplier costs"
-      - "Update product information"
-      - "Deactivate product"
-    
-    api_endpoints:
-      - "GET/POST /products"
-      - "GET/PUT /products/{id}"
-      - "POST /products/{id}/variants"
-      - "GET /products/{id}/suppliers"
-  
+    title: "Arquitectura del M\xF3dulo de Product"
+    description: "El m\xF3dulo `Product` es fundacional para TramaTex, sirviendo como\
+      \ la fuente de verdad para la definici\xF3n de todos los bienes y servicios\
+      \ vendibles. La complejidad radica en la necesidad de gestionar productos con\
+      \ un alto grado de configuraci\xF3n (variantes, atributos, opciones) y un enfoque\
+      \ \"Just-in-Time\" (JIT) para la creaci\xF3n de variantes."
+    criticality: CRITICAL
+    implementation_phase: '1'
+    key_entities: []
+    dependencies_on: []
+    depended_on_by: []
+    use_cases: []
+    api_endpoints: []
   pricing:
-    title: "Pricing Engine (Phase 1)"
-    description: "Dynamic pricing calculations with rules and margins"
-    
-    criticality: "CRITICAL - Core Business Logic (Economically critical)"
-    implementation_phase: "1"
-    
-    key_entities:
-      - "PricingRule (base, margin, discount rules)"
-      - "ClientPricing (client-specific pricing overrides)"
-      - "Margin (markup percentages)"
-      - "Discount (volume, loyalty, promotional)"
-      - "PriceCalculation (audit trail)"
-    
-    domain_concepts:
-      - "Cost-based pricing (supplier cost + margin)"
-      - "Client-specific pricing (overrides)"
-      - "Margin management (by product, category, client)"
-      - "Volume discount rules"
-      - "Loyalty discounts"
-      - "Promotional pricing"
-      - "Currency and decimal precision"
-      - "Audit trail for all price calculations"
-    
-    value_objects:
-      - "Money (amount, currency, precision)"
-      - "Percentage (discount, margin)"
-      - "PricingRule (encapsulates rule logic)"
-    
-    repositories:
-      - "PricingRuleRepository"
-      - "ClientPricingRepository"
-      - "MarginRepository"
-      - "PriceCalculationRepository"
-    
-    domain_services:
-      - "PriceCalculationService (orchestrates pricing logic)"
-    
-    external_integrations: "None (MVP)"
-    
-    dependencies_on:
-      - "IAM (user tracking)"
-      - "Party (client references)"
-      - "Product (variant costs)"
-    
-    depended_on_by:
-      - "Sales (order pricing)"
-      - "Reports (pricing analysis)"
-    
-    use_cases:
-      - "Calculate price for product variant + client"
-      - "Create pricing rule"
-      - "Override client pricing"
-      - "Apply discount"
-      - "Get pricing history (audit)"
-      - "Bulk recalculate prices"
-    
-    api_endpoints:
-      - "POST /pricing/calculate"
-      - "GET/POST /pricing/rules"
-      - "POST /pricing/client-overrides"
-      - "GET /pricing/history/{product-id}"
-    
-    special_considerations:
-      - "100% unit test coverage mandatory"
-      - "Separate calculation logic from persistence"
-      - "All prices immutable in audit trail"
-      - "Audit all price changes and reasons"
-  
+    title: "Arquitectura del M\xF3dulo de Pricing"
+    description: "El sistema TramaTex necesita un m\xF3dulo robusto para gestionar\
+      \ la l\xF3gica de pricing de productos, tanto para el c\xE1lculo de precios\
+      \ base de venta como para la aplicaci\xF3n de modificaciones en el momento de\
+      \ la venta (descuentos promocionales). La necesidad surge de la complejidad\
+      \ inherente a la determinaci\xF3n de precios en el sector textil, incluyendo\
+      \ m\xE1rgenes, descuentos por volumen, promociones y la diversidad de productos\
+      \ y variantes."
+    criticality: CRITICAL
+    implementation_phase: '1'
+    key_entities: []
+    dependencies_on: []
+    depended_on_by: []
+    use_cases: []
+    api_endpoints: []
   sales:
-    title: "Sales & Orders (Phase 2)"
-    description: "Order management and sales transactions"
-    
-    criticality: "HIGH - Main Business Flow"
-    implementation_phase: "2"
-    
-    key_entities:
-      - "Order (sales order with header + lines)"
-      - "OrderItem (individual product in order)"
-      - "Quote (price estimate before order)"
-      - "SalesTransaction (financial record)"
-      - "OrderStatus (draft, pending, confirmed, completed)"
-    
-    domain_concepts:
-      - "Order creation with pricing"
-      - "Quote generation"
-      - "Order confirmation"
-      - "Line item management"
-      - "Order status workflow"
-      - "Delivery tracking"
-      - "Invoice generation (future)"
-    
-    repositories:
-      - "OrderRepository"
-      - "OrderItemRepository"
-      - "QuoteRepository"
-      - "SalesTransactionRepository"
-    
-    external_integrations:
-      - "Pricing context (calculate order total)"
-      - "Inventory context (check stock)"
-      - "MES context (production assignment)"
-    
-    dependencies_on:
-      - "IAM (user tracking)"
-      - "Party (customer reference)"
-      - "Product (product/variant reference)"
-      - "Pricing (order pricing)"
-    
-    depended_on_by:
-      - "MES (production orders)"
-      - "Inventory (stock deductions)"
-      - "Reports (sales analysis)"
-    
-    use_cases:
-      - "Create order"
-      - "Add items to order"
-      - "Generate quote"
-      - "Confirm order"
-      - "Change order status"
-      - "Complete order"
-    
-    api_endpoints:
-      - "GET/POST /orders"
-      - "GET/PUT /orders/{id}"
-      - "POST /orders/{id}/items"
-      - "GET/POST /quotes"
-  
+    title: "Arquitectura del M\xF3dulo de Sales"
+    description: "El m\xF3dulo de Sales es cr\xEDtico para el negocio TramaTex, ya\
+      \ que gestiona todo el ciclo de vida de la venta, desde la cotizaci\xF3n inicial\
+      \ hasta la facturaci\xF3n. La complejidad surge de la necesidad de manejar diferentes\
+      \ tipos de documentos (cotizaciones, pedidos, albaranes, facturas), sus interrelaciones,\
+      \ flujos de estado, y la integraci\xF3n con otros m\xF3dulos fundamentales como\
+      \ `Party` (clientes), `Product` (productos y variantes) y `Pricing` (motor de\
+      \ precios)."
+    criticality: CRITICAL
+    implementation_phase: '2'
+    key_entities: []
+    dependencies_on: []
+    depended_on_by: []
+    use_cases: []
+    api_endpoints: []
   mes:
-    title: "Manufacturing Execution System (Phase 3)"
-    description: "Production planning, execution, and quality control. Specialized subdomain designed for eventual microservice extraction."
-    criticality: "MEDIUM - MVP"
-    implementation_phase: "3"
-    key_entities:
-      - "ProductionRecipe (Job Definition)"
-      - "ProductionOrder (Job Instance)"
-      - "TaskDefinition"
-      - "TaskInstance"
-      - "WorkCenter"
-      - "QualityCheck"
-    domain_concepts:
-      - "Production order assignment"
-      - "Work center scheduling"
-      - "Quality checks and inspection"
-      - "Production status tracking"
-      - "Task management and dependencies"
-      - "Recipe-based production"
+    title: MES Module Architecture - Independent Schema and Inter-module Communication
+    description: "El m\xF3dulo MES (Manufacturing Execution System) es identificado\
+      \ como un subdominio cr\xEDtico para la planificaci\xF3n, ejecuci\xF3n y control\
+      \ de calidad de la producci\xF3n. Aunque inicialmente se integrar\xE1 en un\
+      \ monolito modular, existe un requisito claro de dise\xF1arlo para una eventual\
+      \ extracci\xF3n a un microservicio separado. Esto requiere una consideraci\xF3\
+      n cuidadosa de su esquema de base de datos y los patrones de comunicaci\xF3\
+      n con otros contextos delimitados (Bounded Contexts)."
+    criticality: MEDIUM
+    implementation_phase: '3'
+    key_entities: []
     dependencies_on:
-      - "Sales (production order source from ERP Core)"
-      - "Product (what to produce from ERP Core)"
-      - "Party (Client references from ERP Core)"
-      - "IAM (Inspector/User references from ERP Core)"
+    - Sales (production order source from ERP Core)
+    - Product (what to produce from ERP Core)
+    - Party (Client references from ERP Core)
+    - IAM (Inspector/User references from ERP Core)
     depended_on_by:
-      - "Inventory (stock completion in ERP Core)"
-      - "Reports (production metrics in ERP Core)"
-
+    - Inventory (stock completion in ERP Core)
+    - Reports (production metrics in ERP Core)
+    use_cases: []
+    api_endpoints: []
 context_dependencies:
-  title: "📊 Bounded Context Dependencies"
+  title: "\U0001F4CA Bounded Context Dependencies"
+  description: Define the dependencies and implementation order of your bounded contexts
+    here.
+  dependency_graph: '# Use Mermaid to visualize your dependency graph. Example:
 
-  dependency_graph: |
-    ERP Core (IAM, Party, Product, Pricing, Sales)
-     ├─→ MES (Production)
-     └─→ Inventory (Future)
-     └─→ Reports (Future)
+    # graph TD
 
+    #   A[Context A] --> B(Context B)
+
+    #   B --> C{Context C}
+
+    #   C -- depends on --> A
+
+    # Replace with your project''s specific dependency graph.
+
+    '
   implementation_order:
-    1: "ERP Core: IAM - foundational"
-    2: "ERP Core: Party - required by Product and Pricing"
-    3: "ERP Core: Product - base for pricing and MES"
-    4: "ERP Core: Pricing - core business logic"
-    5: "ERP Core: Sales - uses ERP Core modules"
-    6: "MES - uses Sales, Product, Party, IAM (from ERP Core)"
-  
+  - '1: Context A - reason'
+  - '2: Context B - reason'
   blocking_dependencies:
-    "Pricing cannot start until": "IAM, Party, Product are complete"
-    "Sales cannot start until": "IAM, Party, Product, Pricing are complete"
-    "MES cannot start until": "Sales is complete"
-
+  - 'Context X cannot start until: Context Y is complete'
 inter_context_communication:
-  title: "🔗 How Contexts Communicate"
-  
-  principle: "Loose coupling through interfaces"
-  
+  title: "\U0001F517 How Contexts Communicate"
+  principle: Loose coupling through interfaces
   patterns:
-    - "A context exposes use cases as application services"
-    - "Other contexts call through service interfaces"
-    - "No direct database access across boundaries"
-    - "DTOs for data transfer between contexts"
-    - "Dependency Injection in application layer"
-  
+  - A context exposes use cases as application services
+  - Other contexts call through service interfaces
+  - No direct database access across boundaries
+  - DTOs for data transfer between contexts
+  - Dependency Injection in application layer
   example:
-    scenario: "Sales creates order with Pricing calculation"
-    flow: |
-      1. Sales receives create-order request
-      2. Sales loads Product via ProductRepository
-      3. Sales calls Pricing.CalculatePrice(product, client)
-      4. Pricing returns Money value object
-      5. Sales creates Order with calculated price
-      6. Order is persisted via OrderRepository
+    scenario: Context A needs data from Context B
+    flow: '1. Context A calls a service in Context B
 
+      2. Context B processes the request and returns data
+
+      3. Context A continues its operation with data from Context B
+
+      '
 context_ownership:
-  title: "👤 Context Ownership"
-  
+  title: "\U0001F464 Context Ownership"
   recommendation:
-    - "Assign one developer per Bounded Context"
-    - "That developer owns domain + use cases"
-    - "Shared infrastructure layer code (factories, config)"
-    - "Clear interfaces between contexts"
+  - Assign one developer per Bounded Context
+  - That developer owns domain + use cases
+  - Shared infrastructure layer code (factories, config)
+  - Clear interfaces between contexts

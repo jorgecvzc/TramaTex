@@ -1,6 +1,36 @@
 # Módulo de Product (Catálogo de Productos)
 
-**Estado:** Aceptado
+**Estado:** En Implementación (MVP)  
+**Última actualización:** 13 de febrero de 2026
+
+## Estado de Implementación
+
+### Componentes Completos ✅
+- **Atributos (Attributes):**
+  - Backend: CREATE, READ, UPDATE funcionales
+  - DTOs con estructura completa (`AttributeValueDTO` incluye id, value, code)
+  - Frontend: UI completa con CRUD funcional
+  - Encoding UTF-8 verificado y funcionando
+  
+- **Marcas (Brands):**
+  - Backend: CREATE, UPDATE funcionales
+  - Frontend: UI básica implementada
+
+- **Grupos de Productos (Product Groups):**
+  - Backend: CREATE, UPDATE funcionales
+  - Frontend: UI básica implementada
+
+### Componentes Pendientes ⏳
+- **Productos (Products):** UI pendiente (lógica backend lista)
+- **Variantes (Product Variants):** Pendiente
+- **Configuraciones de Servicio:** Pendiente
+
+### Simplificaciones MVP
+- Sistema de scope (brand/group) de atributos removido temporalmente
+- Atributos son globales (asignación manual por usuario)
+- Ver ADR-015 para detalles completos
+
+---
 
 ## 1. Propósito
 

@@ -192,7 +192,7 @@ Sprint completado cuando:
 - [x] Todas las tareas del sprint están completadas
 - [ ] Todos los tests pasan: `go test ./...` y `npm run test` (No aplica directamente para este sprint)
 - [ ] Linters sin warnings: `golangci-lint` y `npm run lint` (No aplica directamente para este sprint)
-- [ ] Cobertura de tests ≥75% en módulos críticos (No aplica directamente para este sprint)
+- [ ] Cobertura de tests ≥85% en módulos críticos (No aplica directamente para este sprint)
 - [ ] Docker Compose levanta sin errores (No aplica directamente para este sprint)
 - [ ] Funcionalidad demostrable en ambiente local (No aplica directamente para este sprint)
 - [x] Documentación actualizada (tareas + project-status.md)

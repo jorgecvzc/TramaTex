@@ -1,0 +1,21 @@
+# Git Initialization Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Performs the initial Git commit for the newly scaffolded project.
+
+---
+
+metadata:
+  filename: "git-initialization.yaml"
+  version: "1.0"
+  last_updated: "2026-02-16"
+  purpose: "Handles the first Git commit, adding all scaffolded files and creating the main branch."
+  applies_to: "Project scaffolding finalization phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "initial_git_commit"
+    title: "Realizar Primer Commit en Git"
+    description: "Realizará el commit inicial de la estructura del proyecto."
+    command: "git add . && git commit -m 'chore: bootstrap project structure with intelligent document processing' && git branch -M main"
+    next_step: "end"

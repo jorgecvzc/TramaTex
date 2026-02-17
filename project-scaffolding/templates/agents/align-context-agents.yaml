@@ -1,0 +1,25 @@
+# Align Context Agents
+# Version: 1.0
+# Audience: AI assistants and users
+# Purpose: Triggers the alignment of project context agents with the documentation in docs/.
+
+---
+
+metadata:
+  filename: "align-context-agents.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Automates the synchronization of project context agents (e.g., architecture, bounded contexts) with information contained in the /docs/ directory."
+  applies_to: "Any project using the modular agent system, specifically when /docs/ content (like ADRs) is updated."
+  dependencies:
+    - "agents/scripts/doc_to_agent_context.py"
+
+workflow:
+  title: "🔄 Alinear Agentes de Contexto con Documentación"
+  description: "Ejecuta el script de Python para extraer información de los ADRs y actualizar los agentes de contexto modulares."
+
+  step_1_run_alignment_script:
+    action: "Execute alignment script."
+    command: "python agents/scripts/doc_to_agent_context.py"
+    output: "Agentes de contexto actualizados según la documentación en docs/architecture/adrs/."
+    goto: "end"

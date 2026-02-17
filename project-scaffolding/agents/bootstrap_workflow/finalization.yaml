@@ -1,0 +1,72 @@
+# Finalization Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Displays final project structure policy and a completion message.
+
+---
+
+metadata:
+  filename: "finalization.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the final display of project information and signals the successful completion of the bootstrapping process."
+  applies_to: "Project scaffolding finalization phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "display_project_structure_policy"
+    title: "Mostrar Políticas de Estructura del Proyecto"
+    description: "Muestra las políticas de organización que debe seguir este nuevo proyecto."
+    output_message: |
+
+      ✅ PROYECTO '$PROJECT_NAME' INICIALIZADO EXITOSAMENTE
+      ═══════════════════════════════════════════════════════════════
+
+      🧹 POLÍTICA DE RAÍZ LIMPIA - FUNDAMENTAL
+      ───────────────────────────────────────
+      (Solo archivos esenciales como README.md, .gitignore, Makefile, etc. en la raíz)
+
+
+      📚 ESTRUCTURA DE DOCUMENTACIÓN CLAVE
+      ───────────────────────────────────────────────────
+
+      📌 **docs/log/session-log.md**: ¡Ahora es un registro de sesiones! Permite múltiples sesiones de trabajo activas o pausadas. Consulta `AGENTS.md` para más detalles.
+
+      🚀 **Proyecto**: docs/overview/
+         El "qué" y el "porqué": Contexto de negocio, planificación, estado.
+
+      🏗️ **Arquitectura**: docs/architecture/
+         El corazón técnico: Arquitectura, ADRs, diagramas, diseño de módulos.
+
+      🧩 **Módulos**: docs/reference/
+         Documentación detallada por Bounded Context.
+
+      📖 **Guías**: docs/guides/
+         Guías prácticas para desarrolladores (cómo configurar, desplegar) y usuarios.
+
+      🗄️ **Archivo**: docs/log/
+         El registro histórico: Sprints y milestones pasados.
+
+
+      🎯 PRÓXIMOS PASOS
+      ────────────────
+      1. Detallar la arquitectura en `docs/architecture/`.
+      2. Definir el contexto de negocio en `docs/overview/`.
+      3. Crear las primeras tareas del sprint en `docs/log/sprints/`.
+
+
+      📌 RECORDATORIO IMPORTANTE
+      ──────────────────────────
+      Esta estructura separa claramente el 'cómo' (architecture), del 'paso a paso' (guides), y del 'porqué' (project).
+      ¡Respeta la organización desde el inicio!
+
+
+      ═══════════════════════════════════════════════════════════════
+      ¡Listo para comenzar! El proyecto ha sido inicializado en el directorio actual.
+    next_step: "final_message"
+
+  - step_id: "final_message"
+    title: "Inicialización Completada"
+    description: "El nuevo proyecto '$PROJECT_NAME' ha sido inicializado con estructura limpia y políticas de organización. Ahora puedes cambiar al directorio del proyecto y comenzar a trabajar."
+    next_step: "end"
+

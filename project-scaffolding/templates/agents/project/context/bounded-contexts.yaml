@@ -1,0 +1,75 @@
+# Bounded Contexts Agent
+# Version: 1.0
+# Purpose: Definition of bounded contexts and module dependencies
+
+---
+
+metadata:
+  filename: "bounded-contexts.yaml"
+  version: "1.1"
+  location: "/agents/context/"
+  last_updated: "2026-02-15"
+  references:
+    - "ADR-005-unified-customer-supplier-management.md"
+
+bounded_contexts_overview:
+  title: "🎯 TramaTex Bounded Contexts"
+  description: "Modules organized by business domain"
+
+erp_core_modules:
+  title: "📦 ERP Core Modules"
+  description: "Group of foundational and core business modules that provide the primary ERP functionalities. MES depends on these for core data."
+  modules: # Define your core ERP modules here
+    - "YourCoreModule1"
+    - "YourCoreModule2"
+
+core_contexts: # Dynamically populated from docs/architecture/adrs/ by scripts/doc_to_agent_context.py
+
+context_dependencies:
+  title: "📊 Bounded Context Dependencies"
+  description: "Define the dependencies and implementation order of your bounded contexts here."
+  
+  dependency_graph: |
+    # Use Mermaid to visualize your dependency graph. Example:
+    # graph TD
+    #   A[Context A] --> B(Context B)
+    #   B --> C{Context C}
+    #   C -- depends on --> A
+    # Replace with your project's specific dependency graph.
+
+  implementation_order: # Define the logical order of implementation for your contexts.
+    - "1: Context A - reason"
+    - "2: Context B - reason"
+    # ...
+
+  blocking_dependencies: # List any critical blocking dependencies between contexts.
+    - "Context X cannot start until: Context Y is complete"
+    # ...
+
+inter_context_communication:
+  title: "🔗 How Contexts Communicate"
+  
+  principle: "Loose coupling through interfaces"
+  
+  patterns:
+    - "A context exposes use cases as application services"
+    - "Other contexts call through service interfaces"
+    - "No direct database access across boundaries"
+    - "DTOs for data transfer between contexts"
+    - "Dependency Injection in application layer"
+  
+  example: # Provide a project-specific example here.
+    scenario: "Context A needs data from Context B"
+    flow: |
+      1. Context A calls a service in Context B
+      2. Context B processes the request and returns data
+      3. Context A continues its operation with data from Context B
+
+context_ownership:
+  title: "👤 Context Ownership"
+  
+  recommendation:
+    - "Assign one developer per Bounded Context"
+    - "That developer owns domain + use cases"
+    - "Shared infrastructure layer code (factories, config)"
+    - "Clear interfaces between contexts"

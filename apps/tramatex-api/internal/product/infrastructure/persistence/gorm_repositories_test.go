@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
@@ -12,18 +11,24 @@ import (
 )
 
 func setupProductTestDB(t *testing.T) (*TestDB, func()) {
+	LockProductTestDB()
 	tdb := NewTestDB(t)
 	if tdb.DB == nil {
+		UnlockProductTestDB()
 		t.Skip("PostgreSQL not available for integration tests")
 	}
 
 	db := tdb.DB
-	assert.NoError(t, tdb.SetUpProduct())
+	if err := tdb.SetUpProduct(); err != nil {
+		UnlockProductTestDB()
+		t.Fatalf("failed to set up product schema: %v", err)
+	}
 
 	cleanup := func() {
 		_ = tdb.TearDownProduct()
 		sqlDB, _ := db.DB()
 		_ = sqlDB.Close()
+		UnlockProductTestDB()
 	}
 
 	return tdb, cleanup
@@ -42,7 +47,7 @@ func TestDataModelConversions(t *testing.T) {
 	assert.Equal(t, group.Name, groupModel.Name)
 	assert.Equal(t, group.ID, groupModel.ToDomain().ID)
 
-	attr, _ := domain.NewAttribute("Color", "C", 1, nil, nil)
+	attr, _ := domain.NewAttribute("Color", "C", 1)
 	val, _ := attr.AddValue("Red", "R")
 	attrModel := AttributeFromDomain(attr)
 	assert.Equal(t, attr.ID, attrModel.ID)
@@ -93,7 +98,7 @@ func TestGORMRepositories(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, groupID, group.ID)
 
-	attr, _ := domain.NewAttribute("Color", "C", 1, nil, nil)
+	attr, _ := domain.NewAttribute("Color", "C", 1)
 	_, _ = attr.AddValue("Red", "R")
 	attrRepo := NewGORMAttributeRepository(db)
 	assert.NoError(t, attrRepo.Save(ctx, attr))
@@ -109,8 +114,6 @@ func TestGORMRepositories(t *testing.T) {
 		ProductType: domain.ProductTypeTangible,
 		BrandID:     brandID,
 		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
 	}
 	productRepo := NewGORMProductRepository(db)
 	assert.NoError(t, productRepo.Save(ctx, product))
@@ -178,10 +181,10 @@ func TestGORMAttributeRepository_FindByScope(t *testing.T) {
 
 	attrRepo := NewGORMAttributeRepository(db)
 
-	genericAttr, _ := domain.NewAttribute("Generic", "GEN", 0, nil, nil)
-	brandAttr, _ := domain.NewAttribute("Brand", "BR", 0, &brandID, nil)
-	groupAttr, _ := domain.NewAttribute("Group", "GR", 0, nil, &groupID)
-	brandGroupAttr, _ := domain.NewAttribute("BrandGroup", "BG", 0, &brandID, &groupID)
+	genericAttr, _ := domain.NewAttribute("Generic", "GEN", 0)
+	brandAttr, _ := domain.NewAttribute("Brand", "BR", 0)
+	groupAttr, _ := domain.NewAttribute("Group", "GR", 0)
+	brandGroupAttr, _ := domain.NewAttribute("BrandGroup", "BG", 0)
 
 	assert.NoError(t, attrRepo.Save(ctx, genericAttr))
 	assert.NoError(t, attrRepo.Save(ctx, brandAttr))
@@ -213,8 +216,8 @@ func TestGORMAttributeRepository_FindByIDs(t *testing.T) {
 	db := tdb.DB
 
 	attrRepo := NewGORMAttributeRepository(db)
-	attrOne, _ := domain.NewAttribute("Color", "C", 0, nil, nil)
-	attrTwo, _ := domain.NewAttribute("Size", "S", 1, nil, nil)
+	attrOne, _ := domain.NewAttribute("Color", "C", 0)
+	attrTwo, _ := domain.NewAttribute("Size", "S", 1)
 	assert.NoError(t, attrRepo.Save(ctx, attrOne))
 	assert.NoError(t, attrRepo.Save(ctx, attrTwo))
 
@@ -303,8 +306,6 @@ func TestGORMPartyServiceConfigurationRepository_Save_InvalidJSON(t *testing.T) 
 		ServiceID:            "svc",
 		Name:                 "Bad",
 		ConfigurationDetails: json.RawMessage("{invalid"),
-		CreatedAt:            time.Now(),
-		UpdatedAt:            time.Now(),
 	}
 	assert.NoError(t, db.Exec("INSERT INTO parties (id) VALUES (?)", config.PartyID).Error)
 

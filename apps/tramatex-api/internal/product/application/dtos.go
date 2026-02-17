@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
@@ -44,32 +43,40 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 	}
 }
 
+// AttributeValueDTO represents the data transfer object for an AttributeValue.
+type AttributeValueDTO struct {
+	ID    uuid.UUID `json:"id"`
+	Value string    `json:"value"`
+	Code  string    `json:"code"`
+}
+
 // AttributeDTO represents the data transfer object for an Attribute (ProductOptionSet in API).
+// Note: Scope fields removed for MVP simplicity.
 type AttributeDTO struct {
-	ID            uuid.UUID  `json:"id"`
-	Name          string     `json:"name"`
-	AttributeName string     `json:"attributeName"` // Corresponds to domain.Attribute.Code
-	SortOrder     int        `json:"sortOrder"`
-	ScopeBrandID  *uuid.UUID `json:"scopeBrandId,omitempty"`
-	ScopeGroupID  *uuid.UUID `json:"scopeGroupId,omitempty"`
-	Values        []string   `json:"values"` // Just the value strings
+	ID        uuid.UUID           `json:"id"`
+	Name      string              `json:"name"`
+	Code      string              `json:"code"` // Changed from AttributeName for consistency
+	SortOrder int                 `json:"sortOrder"`
+	Values    []AttributeValueDTO `json:"values"` // Full value objects with ID, value, and code
 }
 
 // NewAttributeDTOFromDomain creates an AttributeDTO from a domain.Attribute entity.
 func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
-	values := make([]string, len(a.Values))
+	values := make([]AttributeValueDTO, len(a.Values))
 	for i, av := range a.Values {
-		values[i] = av.Value
+		values[i] = AttributeValueDTO{
+			ID:    av.ID,
+			Value: av.Value,
+			Code:  av.Code,
+		}
 	}
 
 	return &AttributeDTO{
-		ID:            a.ID,
-		Name:          a.Name,
-		AttributeName: a.Code,
-		SortOrder:     a.SortOrder,
-		ScopeBrandID:  a.ScopeBrandID,
-		ScopeGroupID:  a.ScopeGroupID,
-		Values:        values,
+		ID:        a.ID,
+		Name:      a.Name,
+		Code:      a.Code,
+		SortOrder: a.SortOrder,
+		Values:    values,
 	}
 }
 

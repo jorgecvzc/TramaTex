@@ -16,7 +16,7 @@ TramaTex es un ERP/MES para microempresas del sector textil y EPIs que debe alca
 - Dominio crítico en tarificación y precios finales  
 - Necesidad de calidad técnica elevada:
   - Clean Architecture  
-  - TDD  
+  - Desarrollo guiado por pruebas (iterativo)  
   - Alta cobertura de tests  
 - El MVP **no es un prototipo**, sino un sistema productivo  
 

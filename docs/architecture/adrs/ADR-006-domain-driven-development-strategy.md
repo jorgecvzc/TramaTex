@@ -42,7 +42,7 @@ Se adopta una **estrategia de desarrollo incremental dirigida por el dominio** p
 - Garantiza que los módulos críticos (tarificación, Party, Producto) se implementen de manera coherente y testeable.  
 - Minimiza riesgo de retrabajo y pérdida de trazabilidad.  
 - Permite introducir infraestructura solo cuando existen casos de uso validados.  
-- Facilita TDD en dominio y capa de aplicación.
+- Facilita el desarrollo guiado por pruebas en dominio y capa de aplicación.
 
 ---
 
@@ -85,7 +85,7 @@ No aplica a Post-MVP, ni define infraestructura futura avanzada.
 
 ## 7. Notas Adicionales / Consideraciones Especiales
 
-- TDD obligatorio en dominio y capa de aplicación.  
+- Desarrollo guiado por pruebas se aplica en dominio y capa de aplicación.  
 - Persistencia inicial permitida solo para Party y Producto.  
 - Frontend se desarrolla paralelo para validar casos de uso.  
 

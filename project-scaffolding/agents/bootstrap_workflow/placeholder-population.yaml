@@ -1,0 +1,296 @@
+# Placeholder Population Agent
+# Version: 1.0
+# Audience: Project leads, development teams
+# Purpose: Populates all template files with project-specific placeholders.
+
+---
+
+metadata:
+  filename: "placeholder-population.yaml"
+  version: "1.0"
+  last_updated: "2026-02-15"
+  purpose: "Handles the dynamic replacement of placeholders across various generated project files."
+  applies_to: "Project scaffolding configuration phase."
+  dependencies: []
+
+workflow_steps:
+  - step_id: "populate_all_placeholders"
+    title: "📝 Popular Placeholders en Todos los Templates"
+    order: 100
+    description: "Sistema unificado de reemplazo de placeholders. Procesa todos los archivos generados y aplica los valores configurados."
+    output_message: |
+
+      🔄 POBLANDO PLACEHOLDERS EN TEMPLATES...
+      ═══════════════════════════════════════════════════════════════
+
+    python_script:
+      code: |
+        import os
+        import re
+        import json
+        from datetime import datetime
+        
+        # ═══════════════════════════════════════════════════════════
+        # DICCIONARIO DE REEMPLAZOS (Configuración Central)
+        # ═══════════════════════════════════════════════════════════
+        
+        # Variables del proyecto (desde bootstrap)
+        project_name = "$PROJECT_NAME"
+        project_vision = "$PROJECT_VISION"
+        database_choice = "$DATABASE_CHOICE"
+        backend_framework = "$BACKEND_LANGUAGE_FRAMEWORK"
+        frontend_framework = "$FRONTEND_FRAMEWORK"
+        bounded_contexts = "$BOUNDED_CONTEXTS"
+        backend_name = "$BACKEND_NAME"
+        frontend_name = "$FRONTEND_NAME"
+        intermediary_name = "$INTERMEDIARY_NAME"
+        
+        # Fecha actual
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        
+        # Mapeo de comandos y herramientas por framework
+        backend_commands = {
+            "Go/Gin": {
+                "TEST_CMD": "go test -v ./...",
+                "LINTER_CMD": "golangci-lint run ./...",
+                "ORM_TOOL": "GORM",
+                "WEB_FRAMEWORK": "Gin Gonic",
+                "BUILD_CMD": "go build -v -o app_binary ./cmd/api",
+                "STATIC_ANALYSIS_CMD": "go vet ./...",
+                "FORMATTER_CMD": "go fmt ./...",
+                "LINTER_TOOL_NAME": "golangci-lint"
+            },
+            "Python/FastAPI": {
+                "TEST_CMD": "pytest",
+                "LINTER_CMD": "flake8",
+                "ORM_TOOL": "SQLAlchemy",
+                "WEB_FRAMEWORK": "FastAPI",
+                "BUILD_CMD": "python -m build", # Example, adapt to actual project build
+                "STATIC_ANALYSIS_CMD": "mypy",
+                "FORMATTER_CMD": "black",
+                "LINTER_TOOL_NAME": "flake8"
+            },
+            "Node.js/Express": {
+                "TEST_CMD": "npm test",
+                "LINTER_CMD": "npm run lint",
+                "ORM_TOOL": "Sequelize",
+                "WEB_FRAMEWORK": "Express.js",
+                "BUILD_CMD": "npm run build",
+                "STATIC_ANALYSIS_CMD": "tsc --noEmit", # Assuming TypeScript
+                "FORMATTER_CMD": "prettier --write .",
+                "LINTER_TOOL_NAME": "ESLint"
+            }
+        }
+        
+        frontend_commands = {
+            "Vue/Vite": {
+                "TEST_CMD": "npm run test:unit",
+                "LINTER_CMD": "npm run lint",
+                "STATE_MANAGEMENT_TOOL": "Pinia",
+                "REUSABLE_LOGIC_TYPE": "Composables",
+                "UI_FRAMEWORK": "Vue.js",
+                "BUILD_CMD": "npm run build",
+                "TYPE_CHECK_CMD": "vue-tsc --noEmit",
+                "FORMATTER_CMD": "prettier --write .",
+                "LINTER_TOOL_NAME": "ESLint"
+            },
+            "React/Next.js": {
+                "TEST_CMD": "npm test",
+                "LINTER_CMD": "npm run lint",
+                "STATE_MANAGEMENT_TOOL": "React Context/Zustand",
+                "REUSABLE_LOGIC_TYPE": "Custom Hooks",
+                "UI_FRAMEWORK": "React",
+                "BUILD_CMD": "npm run build",
+                "TYPE_CHECK_CMD": "tsc --noEmit",
+                "FORMATTER_CMD": "prettier --write .",
+                "LINTER_TOOL_NAME": "ESLint"
+            },
+            "Angular": {
+                "TEST_CMD": "ng test",
+                "LINTER_CMD": "ng lint",
+                "STATE_MANAGEMENT_TOOL": "NgRx/Services",
+                "REUSABLE_LOGIC_TYPE": "Services",
+                "UI_FRAMEWORK": "Angular",
+                "BUILD_CMD": "ng build",
+                "TYPE_CHECK_CMD": "tsc --noEmit",
+                "FORMATTER_CMD": "prettier --write .",
+                "LINTER_TOOL_NAME": "ESLint"
+            }
+        }
+        
+        # Obtener comandos específicos
+        backend_test_cmd = backend_commands.get(backend_framework, {}).get("TEST_CMD", "[COMANDO_TEST_BACKEND_NO_DEFINIDO]")
+        backend_linter_cmd = backend_commands.get(backend_framework, {}).get("LINTER_CMD", "[COMANDO_LINTER_BACKEND_NO_DEFINIDO]")
+        backend_orm_tool = backend_commands.get(backend_framework, {}).get("ORM_TOOL", "[NOMBRE_HERRAMIENTA_ORM_PERSISTENCIA_NO_DEFINIDO]")
+        backend_web_framework = backend_commands.get(backend_framework, {}).get("WEB_FRAMEWORK", "[NOMBRE_FRAMEWORK_WEB_NO_DEFINIDO]")
+        backend_build_cmd = backend_commands.get(backend_framework, {}).get("BUILD_CMD", "[COMANDO_BUILD_BACKEND_NO_DEFINIDO]")
+        backend_static_analysis_cmd = backend_commands.get(backend_framework, {}).get("STATIC_ANALYSIS_CMD", "[COMANDO_ANALISIS_ESTATICO_BACKEND_NO_DEFINIDO]")
+        backend_formatter_cmd = backend_commands.get(backend_framework, {}).get("FORMATTER_CMD", "[COMANDO_FORMATTER_BACKEND_NO_DEFINIDO]")
+        backend_linter_tool_name = backend_commands.get(backend_framework, {}).get("LINTER_TOOL_NAME", "[LINTER_TOOL_BACKEND_NO_DEFINIDO]")
+
+        frontend_test_cmd = frontend_commands.get(frontend_framework, {}).get("TEST_CMD", "[COMANDO_TEST_FRONTEND_NO_DEFINIDO]")
+        frontend_linter_cmd = frontend_commands.get(frontend_framework, {}).get("LINTER_CMD", "[COMANDO_LINTER_FRONTEND_NO_DEFINIDO]")
+        frontend_state_management_tool = frontend_commands.get(frontend_framework, {}).get("STATE_MANAGEMENT_TOOL", "[NOMBRE_HERRAMIENTA_GESTION_ESTADO_NO_DEFINIDO]")
+        frontend_reusable_logic_type = frontend_commands.get(frontend_framework, {}).get("REUSABLE_LOGIC_TYPE", "[TIPO_LOGICA_REUTILIZABLE_NO_DEFINIDO]")
+        frontend_ui_framework = frontend_commands.get(frontend_framework, {}).get("UI_FRAMEWORK", "[NOMBRE_FRAMEWORK_UI_NO_DEFINIDO]")
+        frontend_build_cmd = frontend_commands.get(frontend_framework, {}).get("BUILD_CMD", "[COMANDO_BUILD_FRONTEND_NO_DEFINIDO]")
+        frontend_type_check_cmd = frontend_commands.get(frontend_framework, {}).get("TYPE_CHECK_CMD", "[COMANDO_TYPE_CHECK_FRONTEND_NO_DEFINIDO]")
+        frontend_formatter_cmd = frontend_commands.get(frontend_framework, {}).get("FORMATTER_CMD", "[COMANDO_FORMATTER_FRONTEND_NO_DEFINIDO]")
+        frontend_linter_tool_name = frontend_commands.get(frontend_framework, {}).get("LINTER_TOOL_NAME", "[LINTER_TOOL_FRONTEND_NO_DEFINIDO]")
+
+        # Diccionario de reemplazos
+        replacements = {
+            # Placeholders de proyecto
+            "$PROJECT_NAME": project_name,
+            "$PROJECT_VISION": project_vision,
+            "$DATABASE_CHOICE": database_choice,
+            "$BACKEND_LANGUAGE_FRAMEWORK": backend_framework,
+            "$FRONTEND_FRAMEWORK": frontend_framework,
+            "$BOUNDED_CONTEXTS": bounded_contexts,
+            "$BACKEND_NAME": backend_name,
+            "$FRONTEND_NAME": frontend_name,
+            "$INTERMEDIARY_NAME": intermediary_name,
+            
+            # Placeholders de fecha y metadata
+            "[[YYYY-MM-DD]]": current_date,
+            "YYYY-MM-DD": current_date,
+            
+            # Placeholders específicos de project-context.yaml
+            "[Project Name]": project_name,
+            "project_name: \"\"": f'project_name: "{project_name}"',
+            "project_vision: \"\"": f'project_vision: "{project_vision}"',
+            "context_agents_location: \"agents/[project-name]/context/\"": 'context_agents_location: "agents/project/context/"',
+            "vision: \"[Project Vision]\"": f'vision: "{project_vision}"',
+            "domain: \"[Business Domain]\"": 'domain: "[Dominio de Negocio]"',
+            "runtime: \"[Pending]\"": 'runtime: "[Pendiente de definir]"',
+            "framework: \"[Pending]\"": 'framework: "[Pendiente de definir]"',
+            "database: \"[Pending]\"": f'database: "{database_choice}"',
+            "bounded_contexts: []": f'bounded_contexts: [{bounded_contexts}]',
+            
+            # Placeholders de documentación
+            "[Tu Nombre]": "Bootstrap Process",
+            "[Dominio de Negocio]": "TBD",
+
+            # Placeholders de comandos y herramientas - Backend
+            "[COMANDO_TEST_BACKEND]": backend_test_cmd,
+            "[COMANDO_LINTER_BACKEND]": backend_linter_cmd,
+            "[NOMBRE_HERRAMIENTA_ORM_PERSISTENCIA]": backend_orm_tool,
+            "[NOMBRE_FRAMEWORK_WEB]": backend_web_framework,
+            "[COMANDO_BUILD_BACKEND]": backend_build_cmd,
+            "[COMANDO_ANALISIS_ESTATICO_BACKEND]": backend_static_analysis_cmd,
+            "[COMANDO_FORMATTER_BACKEND]": backend_formatter_cmd,
+            "[LINTER_TOOL_BACKEND_NO_DEFINIDO]": backend_linter_tool_name,
+
+            # Placeholders de comandos y herramientas - Frontend
+            "[COMANDO_TEST_FRONTEND]": frontend_test_cmd,
+            "[COMANDO_LINTER_FRONTEND]": frontend_linter_cmd,
+            "[NOMBRE_HERRAMIENTA_GESTION_ESTADO]": frontend_state_management_tool,
+            "[TIPO_LOGICA_REUTILIZABLE]": frontend_reusable_logic_type,
+            "[NOMBRE_FRAMEWORK_UI]": frontend_ui_framework,
+            "[COMANDO_BUILD_FRONTEND]": frontend_build_cmd,
+            "[COMANDO_TYPE_CHECK_FRONTEND]": frontend_type_check_cmd,
+            "[COMANDO_FORMATTER_FRONTEND]": frontend_formatter_cmd,
+            "[LINTER_TOOL_FRONTEND_NO_DEFINIDO]": frontend_linter_tool_name,
+        }
+        
+        # ═══════════════════════════════════════════════════════════
+        # ARCHIVOS A PROCESAR
+        # ═══════════════════════════════════════════════════════════
+        
+        files_to_process = [
+            "agents/project/project-context.yaml",
+            "README.md",
+            "AGENTS.md",
+            ".env.example",
+            "docs/log/project-status.md",
+            "docs/architecture/adrs/ADR-001-technology-stack-selection.md",
+            "docs/architecture/adrs/ADR-002-estrategia-seguridad.md",
+            "docs/architecture/adrs/ADR-003-estrategia-calidad-testing.md",
+            "templates/docs/module-template.md",  # Added module template
+            "templates/docs/task-template.md", # Added task template
+            "guides/placeholders-guide.md", # Placeholder system documentation
+        ]
+        
+        # ═══════════════════════════════════════════════════════════
+        # PROCESAMIENTO
+        # ═══════════════════════════════════════════════════════════
+        
+        processed_files = []
+        skipped_files = []
+        errors = []
+        
+        for file_path in files_to_process:
+            if not os.path.exists(file_path):
+                skipped_files.append(f"{file_path} (no existe)")
+                continue
+            
+            try:
+                # Leer archivo
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                original_content = content
+                
+                # Aplicar todos los reemplazos
+                for placeholder, value in replacements.items():
+                    if placeholder in content:
+                        content = content.replace(placeholder, value)
+                
+                # Solo escribir si hubo cambios
+                if content != original_content:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    processed_files.append(file_path)
+                else:
+                    skipped_files.append(f"{file_path} (sin cambios)")
+            
+            except Exception as e:
+                errors.append(f"{file_path}: {str(e)}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # REPORTE
+        # ═══════════════════════════════════════════════════════════
+        
+        report = f"""
+✅ PLACEHOLDERS POBLADOS EXITOSAMENTE
+═══════════════════════════════════════════════════════════════
+
+📊 RESUMEN:
+   • Archivos procesados: {len(processed_files)}
+   • Archivos omitidos: {len(skipped_files)}
+   • Errores: {len(errors)}
+
+✅ ARCHIVOS ACTUALIZADOS:
+"""
+        for file in processed_files:
+            report += f"   • {file}\n"
+        
+        if skipped_files:
+            report += "\n⏭️  ARCHIVOS OMITIDOS:\n"
+            for file in skipped_files:
+                report += f"   • {file}\n"
+        
+        if errors:
+            report += "\n❌ ERRORES:\n"
+            for error in errors:
+                report += f"   • {error}\n"
+        
+        report += """
+═══════════════════════════════════════════════════════════════
+
+💡 TIP: Consulta 'project-scaffolding/guides/placeholders-guide.md' para más
+    información sobre el sistema de placeholders.
+"""
+        
+        result = {
+            "status": "success" if not errors else "partial",
+            "processed_count": len(processed_files),
+            "skipped_count": len(skipped_files),
+            "error_count": len(errors),
+            "report": report
+        }
+        
+        print(json.dumps(result))
+  output_variable: "PLACEHOLDER_RESULT"
+  output: "$PLACEHOLDER_RESULT.report"
+  next_step: "end" # Should be end for this agent
