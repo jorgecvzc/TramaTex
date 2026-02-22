@@ -40,16 +40,46 @@
         </div>
 
         <div class="form-group">
-          <label for="calc-client">Cliente (UUID)</label>
-          <input
-            id="calc-client"
-            v-model="calculator.clientId"
-            type="text"
-            class="form-control"
-            placeholder="UUID del cliente (ej: 123e4567-e89b-12d3-a456-426614174000)"
-          />
+          <label for="calc-client">Cliente</label>
+          <div class="client-search-container">
+            <input
+              v-model="clientSearchQuery"
+              type="text"
+              class="form-control"
+              placeholder="Buscar cliente por nombre..."
+              @input="searchClients"
+              @focus="showClientDropdown = true"
+            />
+            <button
+              v-if="selectedClientName"
+              type="button"
+              class="clear-client-btn"
+              @click="clearClientSelection"
+              title="Limpiar selección"
+            >
+              ✕
+            </button>
+          </div>
+          <div v-if="showClientDropdown && filteredClients.length > 0" class="client-dropdown">
+            <div
+              v-for="client in filteredClients"
+              :key="client.id"
+              class="client-option"
+              @click="selectClient(client)"
+            >
+              <div class="client-name">{{ client.legalName || client.id }}</div>
+              <div class="client-meta">
+                <span class="client-role">{{ formatRole(client.role) }}</span>
+                <span v-if="client.taxId" class="client-taxid">{{ client.taxId }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="selectedClientName" class="selected-client-info">
+            <CheckCircle :size="14" />
+            <span>{{ selectedClientName }}</span>
+          </div>
           <small class="help-text">
-            Para testing, usa cualquier UUID válido. En producción, usa IDs reales.
+            Busca por nombre de cliente. Selecciona uno de la lista.
           </small>
         </div>
 
@@ -293,9 +323,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { BarChart3, Calculator, DollarSign, CheckCircle, Package, Info, Settings, ClipboardList } from 'lucide-vue-next'
 import { pricingApi } from '@/services/pricingApi'
+import { partyApi } from '@/services/partyApi'
 
 const props = defineProps({
   productId: {
@@ -332,6 +363,13 @@ const isCalculating = ref(false)
 const calculationResult = ref(null)
 const calculationError = ref('')
 
+// Client search state
+const clientSearchQuery = ref('')
+const filteredClients = ref([])
+const showClientDropdown = ref(false)
+const selectedClientName = ref('')
+const isSearchingClients = ref(false)
+
 // Computed
 const canCalculate = computed(() => {
   return (
@@ -350,7 +388,24 @@ onMounted(async () => {
       loadBasePriceForVariant(variant.id)
     })
   }
+  
+  // Close client dropdown on outside click
+  document.addEventListener('click', handleOutsideClick)
 })
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick)
+  if (searchTimeout) clearTimeout(searchTimeout)
+})
+
+function handleOutsideClick(event) {
+  const clientSearchContainer = event.target.closest('.client-search-container')
+  const clientDropdown = event.target.closest('.client-dropdown')
+  
+  if (!clientSearchContainer && !clientDropdown) {
+    showClientDropdown.value = false
+  }
+}
 
 // Methods
 async function loadBasePriceForVariant(variantId) {
@@ -365,6 +420,64 @@ async function loadBasePriceForVariant(variantId) {
   } finally {
     loadingPrices.value[variantId] = false
   }
+}
+
+// Client search methods
+let searchTimeout = null
+async function searchClients() {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  
+  const query = clientSearchQuery.value.trim()
+  
+  if (query.length < 2) {
+    filteredClients.value = []
+    showClientDropdown.value = false
+    return
+  }
+
+  searchTimeout = setTimeout(async () => {
+    isSearchingClients.value = true
+    try {
+      const response = await partyApi.listParties({
+        name: query,
+        role: 'client',
+        pageSize: 10,
+      })
+      filteredClients.value = response.data || []
+      showClientDropdown.value = true
+    } catch (err) {
+      console.error('Error searching clients:', err)
+      filteredClients.value = []
+    } finally {
+      isSearchingClients.value = false
+    }
+  }, 300)
+}
+
+function selectClient(client) {
+  calculator.clientId = client.id
+  selectedClientName.value = client.legalName || client.id
+  clientSearchQuery.value = client.legalName || client.id
+  showClientDropdown.value = false
+  filteredClients.value = []
+}
+
+function clearClientSelection() {
+  calculator.clientId = ''
+  selectedClientName.value = ''
+  clientSearchQuery.value = ''
+  filteredClients.value = []
+  showClientDropdown.value = false
+}
+
+function formatRole(role) {
+  const roleNames = {
+    client: 'Cliente',
+    supplier: 'Proveedor',
+    employee: 'Empleado',
+    partner: 'Socio',
+  }
+  return roleNames[role] || role
 }
 
 async function calculateFinalPrice() {
@@ -946,5 +1059,102 @@ function formatDate(dateString) {
   .data-table td {
     padding: 0.5rem;
   }
+}
+
+/* Client search styles */
+.client-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.clear-client-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.clear-client-btn:hover {
+  color: #dc2626;
+}
+
+.client-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.client-option {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.client-option:last-child {
+  border-bottom: none;
+}
+
+.client-option:hover {
+  background: #f8fafc;
+}
+
+.client-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.client-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.client-role {
+  padding: 2px 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.client-taxid {
+  font-family: 'Courier New', monospace;
+}
+
+.selected-client-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  color: #166534;
+  font-size: 0.9rem;
+}
+
+.selected-client-info svg {
+  color: #16a34a;
 }
 </style>

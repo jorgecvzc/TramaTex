@@ -45,6 +45,8 @@ interface VariantUI {
   id: string
   sku: string
   product_id: string
+  barcode?: string
+  base_cost?: number
   option_configuration: Record<string, string>
   status: string
   is_active: boolean
@@ -460,6 +462,8 @@ class ProductApiService {
       id: v.id,
       sku: v.sku,
       product_id: v.productId,
+      barcode: v.barcode,
+      base_cost: v.baseCost,
       option_configuration: v.optionConfiguration,
       status: v.status,
       is_active: v.isActive,

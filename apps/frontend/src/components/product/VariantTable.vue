@@ -48,7 +48,8 @@
             <th>Configuración</th>
             <th>Código de barras</th>
             <th>Estado</th>
-            <th class="align-right">Precio Base</th>
+            <th class="align-right">Costo Base</th>
+            <th class="align-right">Precio Base Venta</th>
             <th class="align-center">Acciones</th>
           </tr>
         </thead>
@@ -88,7 +89,13 @@
               <span v-else class="pill inactive">Inactivo</span>
             </td>
             <td class="align-right">
-              <span v-if="variantPrices[variant.id]" class="price">
+              <span v-if="variant.base_cost !== undefined && variant.base_cost !== null" class="price base-cost">
+                {{ formatPrice(variant.base_cost) }}
+              </span>
+              <span v-else class="text-muted">—</span>
+            </td>
+            <td class="align-right">
+              <span v-if="variantPrices[variant.id]" class="price sale-price">
                 {{ formatPrice(variantPrices[variant.id]) }}
               </span>
               <span v-else-if="loadingPrices[variant.id]" class="loading-price">
@@ -719,5 +726,16 @@ td.align-center {
   .attribute-values {
     flex-direction: column;
   }
+}
+
+/* Price styling */
+.price.base-cost {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.price.sale-price {
+  color: #16a34a;
+  font-weight: 700;
 }
 </style>
