@@ -281,10 +281,10 @@ async function handleSubmit() {
       longName: formData.basic.longName || undefined,
       description: formData.basic.description || undefined,
       productType: formData.basic.productType,
+      basePrice: formData.basic.basePrice || 0,
       brandId: formData.classification.brandId, // Already validated above
       groupIds: formData.classification.groupIds || [],
       directAttributeIds: formData.attributes.directAttributeIds || [],
-      base_price: formData.basic.basePrice || 0,
       isActive: true,
     }
 

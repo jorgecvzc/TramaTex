@@ -245,6 +245,7 @@ class ProductApiService {
     longName: string
     description: string
     productType: string
+    basePrice: number
     brandId?: string
     groupIds?: string[]
     directAttributeIds?: string[]
@@ -260,6 +261,7 @@ class ProductApiService {
         long_name: data.longName,
         description: data.description,
         product_type: data.productType,
+        base_price: data.basePrice,
         brand_id: data.brandId,
         group_ids: data.groupIds || [],
         direct_attribute_ids: data.directAttributeIds || [],
