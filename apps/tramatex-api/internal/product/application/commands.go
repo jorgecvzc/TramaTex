@@ -17,6 +17,7 @@ type CreateProductCommand struct {
 	BrandID            uuid.UUID          `json:"brand_id"`
 	GroupIDs           []uuid.UUID        `json:"group_ids"`
 	DirectAttributeIDs []uuid.UUID        `json:"direct_attribute_ids"`
+	BasePrice          float64            `json:"base_price"`
 }
 
 // UpdateProductCommand is the input DTO for updating a product's general information.

@@ -100,6 +100,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		cmd.ProductType,
 		cmd.BrandID,
 		cmd.Barcode,
+		cmd.BasePrice,
 	)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create product domain entity", err)

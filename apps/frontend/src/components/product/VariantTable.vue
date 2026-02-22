@@ -9,10 +9,12 @@
       </div>
       <div class="header-actions">
         <button @click="openAddVariantModal" class="btn btn-primary" :disabled="isLoading">
-          ➕ Añadir Variante
+          <Plus :size="16" />
+          Añadir Variante
         </button>
         <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-          🔄 Actualizar
+          <RefreshCw :size="16" />
+          Actualizar
         </button>
       </div>
     </div>
@@ -25,14 +27,15 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && variants.length === 0" class="empty-state">
-      <span class="empty-icon">📦</span>
+      <Package :size="64" class="empty-icon" />
       <p>No hay variantes creadas para este producto.</p>
       <p class="empty-hint">
         Las variantes se crean automáticamente (Just-in-Time) cuando se añaden a una orden,
         o puedes generarlas manualmente según las combinaciones de atributos disponibles.
       </p>
       <button class="btn btn-primary">
-        ⚡ Generar variantes
+        <Zap :size="16" />
+        Generar variantes
       </button>
     </div>
 
@@ -99,14 +102,14 @@
                 class="btn-icon"
                 title="Ver detalles"
               >
-                👁️
+                <Eye :size="16" />
               </button>
               <button
                 @click="openEditVariantModal(variant)"
                 class="btn-icon"
                 title="Editar variante"
               >
-                ✏️
+                <Edit2 :size="16" />
               </button>
             </td>
           </tr>
@@ -135,6 +138,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
 

@@ -111,6 +111,7 @@ type Product struct {
 	BrandID            uuid.UUID
 	GroupIDs           []uuid.UUID
 	DirectAttributeIDs []uuid.UUID
+	BasePrice          float64 // Base cost/price for this product, used as default for variants
 	IsActive           bool
 }
 
@@ -120,6 +121,7 @@ func NewProduct(
 	productType ProductType,
 	brandID uuid.UUID,
 	barcode *string,
+	basePrice float64,
 ) (*Product, error) {
 	if sku == "" {
 		return nil, NewValidationError("product SKU cannot be empty")
@@ -133,6 +135,9 @@ func NewProduct(
 	if brandID == uuid.Nil {
 		return nil, NewValidationError("product must be associated with a brand")
 	}
+	if basePrice < 0 {
+		return nil, NewValidationError("product base price cannot be negative")
+	}
 
 	return &Product{
 		ID:                 uuid.New(),
@@ -145,6 +150,7 @@ func NewProduct(
 		BrandID:            brandID,
 		GroupIDs:           make([]uuid.UUID, 0),
 		DirectAttributeIDs: make([]uuid.UUID, 0),
+		BasePrice:          basePrice,
 		IsActive:           true,
 	}, nil
 }

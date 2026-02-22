@@ -29,6 +29,7 @@ func NewProductVariant(
 	barcode *string,
 	status VariantStatus,
 	attributeValueIDs []uuid.UUID,
+	baseCost float64,
 ) (*ProductVariant, error) {
 	if productID == uuid.Nil {
 		return nil, NewValidationError("product variant must be associated with a product")
@@ -43,6 +44,9 @@ func NewProductVariant(
 	if len(attributeValueIDs) == 0 {
 		return nil, NewValidationError("product variant must have at least one attribute value")
 	}
+	if baseCost < 0 {
+		return nil, NewValidationError("product variant base cost cannot be negative")
+	}
 
 	// Sort attributeValueIDs for deterministic comparison and consistency
 	// This helps in uniquely identifying a variant by its attributes, useful for lookups.
@@ -55,7 +59,7 @@ func NewProductVariant(
 		ProductID:       productID,
 		SKU:             sku,
 		Barcode:         barcode,
-		BaseCost:        0,
+		BaseCost:        baseCost,
 		Status:          status,
 		AttributeValues: attributeValueIDs,
 		IsActive:        true,

@@ -136,6 +136,7 @@ const formData = reactive({
     name: '',
     longName: '',
     description: '',
+    basePrice: 0,
   },
   classification: {
     brandId: '',
@@ -175,6 +176,7 @@ const allFormData = computed(() => ({
   name: formData.basic.name,
   longName: formData.basic.longName,
   description: formData.basic.description,
+  basePrice: formData.basic.basePrice,
   brandId: formData.classification.brandId,
   groupIds: formData.classification.groupIds,
   directAttributeIds: formData.attributes.directAttributeIds,
@@ -282,6 +284,7 @@ async function handleSubmit() {
       brandId: formData.classification.brandId, // Already validated above
       groupIds: formData.classification.groupIds || [],
       directAttributeIds: formData.attributes.directAttributeIds || [],
+      base_price: formData.basic.basePrice || 0,
       isActive: true,
     }
 

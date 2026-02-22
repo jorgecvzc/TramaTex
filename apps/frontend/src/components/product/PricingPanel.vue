@@ -8,13 +8,17 @@
         </p>
       </div>
       <button class="btn btn-primary" @click="showCalculator = !showCalculator">
-        {{ showCalculator ? '📊 Ver Precios Base' : '🧮 Calculadora de Precios' }}
+        <component :is="showCalculator ? BarChart3 : Calculator" :size="16" />
+        {{ showCalculator ? 'Ver Precios Base': 'Calculadora de Precios' }}
       </button>
     </div>
 
     <!-- Pricing Calculator -->
     <div v-if="showCalculator" class="calculator-section card">
-      <h4>🧮 Calculadora de Precios</h4>
+      <h4>
+        <Calculator :size="20" style="vertical-align: middle; margin-right: 6px" />
+        Calculadora de Precios
+      </h4>
       <p class="help-text">
         Simula el precio final para un cliente específico, cantidad y fecha de venta.
       </p>
@@ -78,13 +82,17 @@
           :disabled="!canCalculate || isCalculating"
           @click="calculateFinalPrice"
         >
-          {{ isCalculating ? 'Calculando...' : '💰 Calcular Precio Final' }}
+          <DollarSign :size="16" />
+          {{ isCalculating ? 'Calculando...' : 'Calcular Precio Final' }}
         </button>
       </div>
 
       <!-- Calculation Result -->
       <div v-if="calculationResult" class="calculation-result">
-        <h5>✅ Resultado del Cálculo</h5>
+        <h5>
+          <CheckCircle :size="18" style="vertical-align: middle; margin-right: 6px" />
+          Resultado del Cálculo
+        </h5>
         <div class="result-grid">
           <div class="result-item">
             <span class="result-label">Precio Base Venta:</span>
@@ -115,7 +123,10 @@
 
     <!-- Base Prices Table -->
     <div v-if="!showCalculator" class="prices-section card">
-      <h4>📊 Precios Base por Variante</h4>
+      <h4>
+        <BarChart3 :size="20" style="vertical-align: middle; margin-right: 6px" />
+        Precios Base por Variante
+      </h4>
       <p class="help-text">
         Estos son los precios base de venta configurados para cada variante.
         Los precios finales pueden variar según reglas de modificación y cliente.
@@ -129,7 +140,7 @@
 
       <!-- Empty State -->
       <div v-if="!isLoadingVariants && variants.length === 0" class="empty-state">
-        <span class="empty-icon">📦</span>
+        <Package :size="64" class="empty-icon" />
         <p>No hay variantes configuradas para este producto.</p>
         <p class="empty-hint">
           Las variantes deben crearse primero en la pestaña "Variantes".
@@ -186,7 +197,8 @@
                   class="btn btn-sm btn-secondary"
                   @click="viewPriceHistory(variant.id)"
                 >
-                  📋 Historial
+                  <ClipboardList :size="14" />
+                  Historial
                 </button>
               </td>
             </tr>
@@ -197,9 +209,12 @@
 
     <!-- Pricing Rules Section (Future Enhancement) -->
     <div class="rules-info card">
-      <h4>⚙️ Reglas de Pricing</h4>
+      <h4>
+        <Settings :size="20" style="vertical-align: middle; margin-right: 6px" />
+        Reglas de Pricing
+      </h4>
       <div class="info-message">
-        <span class="info-icon">ℹ️</span>
+        <Info :size="20" class="info-icon" />
         <div>
           <p>
             <strong>Próximamente:</strong> Visualización de reglas de pricing aplicables
@@ -279,6 +294,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { BarChart3, Calculator, DollarSign, CheckCircle, Package, Info, Settings, ClipboardList } from 'lucide-vue-next'
 import { pricingApi } from '@/services/pricingApi'
 
 const props = defineProps({
