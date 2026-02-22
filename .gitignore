@@ -11,8 +11,9 @@
 .env
 .env.*
 !.env.example
-*.env.local
-*.env.remote
+!.env.*.example
+.env.*.local
+.env.*.remote
 
 # Go Backend
 apps/tramatex-api/bin/
