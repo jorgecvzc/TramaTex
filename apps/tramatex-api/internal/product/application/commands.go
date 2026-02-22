@@ -148,18 +148,18 @@ type DeletePartyServiceConfigurationCommand struct {
 // CreateBrandCommand is the input DTO for creating a brand.
 type CreateBrandCommand struct {
 	ActorID                 string
-	Name                    string
-	DefaultMarkupPercentage float64
-	IsActive                bool
+	Name                    string  `json:"name"`
+	DefaultMarkupPercentage float64 `json:"defaultMarkupPercentage"`
+	IsActive                bool    `json:"isActive"`
 }
 
 // UpdateBrandCommand is the input DTO for updating a brand.
 type UpdateBrandCommand struct {
 	ActorID                 string
 	ID                      uuid.UUID
-	Name                    *string
-	DefaultMarkupPercentage *float64
-	IsActive                *bool
+	Name                    *string  `json:"name,omitempty"`
+	DefaultMarkupPercentage *float64 `json:"defaultMarkupPercentage,omitempty"`
+	IsActive                *bool    `json:"isActive,omitempty"`
 }
 
 // DeleteBrandCommand is the input DTO for deleting a brand.
