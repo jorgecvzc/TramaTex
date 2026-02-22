@@ -69,13 +69,13 @@
             class="form-control"
             @change="handleAttributeChange"
           >
-            <option value="">-- Seleccionar --</option>
+            <option value="" disabled>-- Seleccionar --</option>
             <option
               v-for="value in attr.values"
               :key="value.id"
               :value="value.id"
             >
-              {{ value.display_value }}
+              {{ value.value }}
             </option>
           </select>
         </div>
@@ -529,6 +529,7 @@ function setError(message) {
   font-size: 0.9rem;
   color: #1e293b;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
 }
 
 .form-control:focus {
@@ -541,6 +542,18 @@ function setError(message) {
   background: #f1f5f9;
   color: #94a3b8;
   cursor: not-allowed;
+}
+
+/* Better styling for select dropdowns */
+.form-control option {
+  color: #1e293b;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.form-control option:disabled {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .form-text {

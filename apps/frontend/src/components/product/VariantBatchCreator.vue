@@ -243,7 +243,7 @@ function generateCombinations() {
     const attributeDisplay = {}
     const attributeValueIds = []
     combo.forEach(item => {
-      attributeDisplay[item.attrName] = item.display_value
+      attributeDisplay[item.attrName] = item.value
       attributeValueIds.push(item.id)
     })
 
