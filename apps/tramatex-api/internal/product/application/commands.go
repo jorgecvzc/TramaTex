@@ -24,12 +24,16 @@ type CreateProductCommand struct {
 type UpdateProductCommand struct {
 	ActorID            string
 	ProductID          uuid.UUID
-	Name               *string
-	LongName           *string
-	Description        *string
-	BrandID            *uuid.UUID
-	GroupIDs           []uuid.UUID
-	DirectAttributeIDs []uuid.UUID
+	Name               *string             `json:"name,omitempty"`
+	LongName           *string             `json:"long_name,omitempty"`
+	SKU                *string             `json:"sku,omitempty"`
+	Barcode            *string             `json:"barcode,omitempty"`
+	BasePrice          *float64            `json:"base_price,omitempty"`
+	ProductType        *domain.ProductType `json:"product_type,omitempty"`
+	Description        *string             `json:"description,omitempty"`
+	BrandID            *uuid.UUID          `json:"brand_id,omitempty"`
+	GroupIDs           []uuid.UUID         `json:"group_ids,omitempty"`
+	DirectAttributeIDs []uuid.UUID         `json:"direct_attribute_ids,omitempty"`
 }
 
 // AddGroupCommand is the input DTO for adding a group to a product.

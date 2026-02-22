@@ -251,6 +251,21 @@ func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCom
 	if cmd.LongName != nil {
 		product.LongName = *cmd.LongName
 	}
+	if cmd.SKU != nil {
+		product.SKU = *cmd.SKU
+	}
+	if cmd.Barcode != nil {
+		product.Barcode = cmd.Barcode
+	}
+	if cmd.BasePrice != nil {
+		if *cmd.BasePrice < 0 {
+			return nil, domain.NewValidationError("base price cannot be negative")
+		}
+		product.BasePrice = *cmd.BasePrice
+	}
+	if cmd.ProductType != nil {
+		product.ProductType = *cmd.ProductType
+	}
 	if cmd.Description != nil {
 		product.Description = *cmd.Description
 	}

@@ -40,6 +40,15 @@
       </div>
 
       <div class="info-item">
+        <label>Precio base (coste)</label>
+        <p>
+          <strong class="price-value">{{ formatPrice(product.basePrice) }} €</strong>
+          <br>
+          <small class="hint">Coste base para cálculo de precios de venta</small>
+        </p>
+      </div>
+
+      <div class="info-item">
         <label>Tipo de producto</label>
         <p>
           <span class="pill" :class="`type-${product.product_type.toLowerCase()}`">
@@ -148,6 +157,22 @@
         </div>
 
         <div class="form-group">
+          <label for="edit-base-price">Precio base (coste) *</label>
+          <input
+            id="edit-base-price"
+            v-model.number="editForm.basePrice"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            required
+          />
+          <small class="hint">Coste base del producto (EUR)</small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
           <label for="edit-type">Tipo de producto</label>
           <select id="edit-type" v-model="editForm.product_type">
             <option value="TANGIBLE">Tangible</option>
@@ -218,13 +243,14 @@ const editForm = reactive({
   long_name: '',
   sku: '',
   barcode: '',
+  basePrice: 0,
   product_type: 'TANGIBLE',
   description: '',
 })
 
 // Computed
 const isFormValid = computed(() => {
-  return editForm.name.trim().length > 0
+  return editForm.name.trim().length > 0 && editForm.basePrice >= 0
 })
 
 // Methods
@@ -233,6 +259,7 @@ function startEditing() {
   editForm.long_name = props.product.long_name || ''
   editForm.sku = props.product.sku || ''
   editForm.barcode = props.product.barcode || ''
+  editForm.basePrice = props.product.basePrice ?? 0
   editForm.product_type = props.product.product_type || 'TANGIBLE'
   editForm.description = props.product.description || ''
   isEditing.value = true
@@ -259,6 +286,7 @@ async function submitEdit() {
       long_name: editForm.long_name.trim() || null,
       sku: editForm.sku.trim() || null,
       barcode: editForm.barcode.trim() || null,
+      basePrice: editForm.basePrice,
       product_type: editForm.product_type,
       description: editForm.description.trim() || null,
     })
@@ -279,6 +307,14 @@ function formatDate(dateString) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatPrice(price) {
+  if (price === undefined || price === null) return '0,00'
+  return new Intl.NumberFormat('es-ES', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price)
 }
 </script>
 
@@ -527,6 +563,18 @@ function formatDate(dateString) {
   background: #fee2e2;
   border-radius: 6px;
   border: 1px solid #fca5a5;
+}
+
+.price-value {
+  color: #059669;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.hint {
+  color: #64748b;
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 @media (max-width: 768px) {

@@ -280,6 +280,10 @@ class ProductApiService {
   async updateProduct(id: string, data: {
     name?: string
     longName?: string
+    sku?: string
+    barcode?: string
+    basePrice?: number
+    productType?: string
     description?: string
     brandId?: string
     groupIds?: string[]
@@ -292,6 +296,10 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         long_name: data.longName,
+        sku: data.sku,
+        barcode: data.barcode,
+        base_price: data.basePrice,
+        product_type: data.productType,
         description: data.description,
         brand_id: data.brandId,
         group_ids: data.groupIds,
