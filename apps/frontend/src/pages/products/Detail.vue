@@ -100,6 +100,7 @@
             <PricingPanel
               v-if="activeTab === 'pricing'"
               :product-id="productId"
+              :product-name="product?.name || ''"
               :variants="variants"
               :is-loading-variants="isLoadingVariants"
             />

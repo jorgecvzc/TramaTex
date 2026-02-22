@@ -34,7 +34,7 @@
           >
             <option value="">Seleccionar variante...</option>
             <option v-for="variant in variants" :key="variant.id" :value="variant.id">
-              {{ variant.sku }} - {{ formatVariantAttributes(variant) }}
+              {{ productName }} - {{ variant.sku }} - {{ formatVariantAttributes(variant) }}
             </option>
           </select>
         </div>
@@ -331,6 +331,10 @@ const props = defineProps({
   productId: {
     type: String,
     required: true,
+  },
+  productName: {
+    type: String,
+    default: '',
   },
   variants: {
     type: Array,
