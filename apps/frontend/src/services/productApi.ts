@@ -620,6 +620,7 @@ class ProductApiService {
     const brands: BrandUI[] = rawBrands.map((b: any) => ({
       id: b.id,
       name: b.name,
+      defaultMarkupPercentage: b.defaultMarkupPercentage ?? 0,
       is_active: b.isActive,
       logo_url: b.logoUrl,
     }))
@@ -647,6 +648,7 @@ class ProductApiService {
     return {
       id: data.id,
       name: data.name,
+      defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
       is_active: data.isActive,
       logo_url: data.logoUrl,
     }
