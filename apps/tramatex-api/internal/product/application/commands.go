@@ -147,17 +147,19 @@ type DeletePartyServiceConfigurationCommand struct {
 
 // CreateBrandCommand is the input DTO for creating a brand.
 type CreateBrandCommand struct {
-	ActorID  string
-	Name     string
-	IsActive bool
+	ActorID                 string
+	Name                    string
+	DefaultMarkupPercentage float64
+	IsActive                bool
 }
 
 // UpdateBrandCommand is the input DTO for updating a brand.
 type UpdateBrandCommand struct {
-	ActorID  string
-	ID       uuid.UUID
-	Name     *string
-	IsActive *bool
+	ActorID                 string
+	ID                      uuid.UUID
+	Name                    *string
+	DefaultMarkupPercentage *float64
+	IsActive                *bool
 }
 
 // DeleteBrandCommand is the input DTO for deleting a brand.

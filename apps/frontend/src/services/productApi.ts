@@ -51,6 +51,7 @@ interface VariantUI {
 interface BrandUI {
   id: string
   name: string
+  defaultMarkupPercentage: number
   is_active: boolean
   logo_url: string | null
 }
@@ -615,13 +616,14 @@ class ProductApiService {
   /**
    * Create brand
    */
-  async createBrand(data: { id?: string; name: string; isActive?: boolean }): Promise<any> {
+  async createBrand(data: { id?: string; name: string; defaultMarkupPercentage?: number; isActive?: boolean }): Promise<any> {
     const response = await this.safeFetch(this.brandsUrl, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
         id: data.id,
         name: data.name,
+        defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
         is_active: data.isActive !== undefined ? data.isActive : true,
       }),
     })

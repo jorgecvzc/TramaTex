@@ -654,7 +654,7 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 			continue
 		}
 
-		newVariant, createErr := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusConfirmed, attributeValueIDs)
+		newVariant, createErr := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusConfirmed, attributeValueIDs, product.BasePrice)
 		if createErr != nil {
 			return domain.WrapValidation("failed to create generated variant", createErr)
 		}
@@ -825,7 +825,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	}
 
 	// If not found, create new variant
-	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs)
+	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs, product.BasePrice)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create new product variant domain entity", err)
 	}
@@ -1018,9 +1018,10 @@ func (s *ProductService) DeletePartyServiceConfiguration(ctx context.Context, cm
 
 // BrandDTO represents a brand for API responses
 type BrandDTO struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	IsActive bool      `json:"isActive"`
+	ID                      uuid.UUID `json:"id"`
+	Name                    string    `json:"name"`
+	DefaultMarkupPercentage float64   `json:"defaultMarkupPercentage"`
+	IsActive                bool      `json:"isActive"`
 }
 
 // ListBrands retrieves all brands
@@ -1033,9 +1034,10 @@ func (s *ProductService) ListBrands(ctx context.Context) ([]BrandDTO, error) {
 	result := make([]BrandDTO, len(brands))
 	for i, brand := range brands {
 		result[i] = BrandDTO{
-			ID:       brand.ID,
-			Name:     brand.Name,
-			IsActive: brand.IsActive,
+			ID:                      brand.ID,
+			Name:                    brand.Name,
+			DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+			IsActive:                brand.IsActive,
 		}
 	}
 	return result, nil
@@ -1052,9 +1054,10 @@ func (s *ProductService) GetBrandByID(ctx context.Context, id uuid.UUID) (*Brand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 
@@ -1117,7 +1120,7 @@ func (s *ProductService) CreateBrand(ctx context.Context, cmd CreateBrandCommand
 		return nil, err
 	}
 
-	brand, err := domain.NewBrand(cmd.Name, cmd.IsActive)
+	brand, err := domain.NewBrand(cmd.Name, cmd.IsActive, cmd.DefaultMarkupPercentage)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create brand domain entity", err)
 	}
@@ -1127,9 +1130,10 @@ func (s *ProductService) CreateBrand(ctx context.Context, cmd CreateBrandCommand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 
@@ -1154,6 +1158,13 @@ func (s *ProductService) UpdateBrand(ctx context.Context, cmd UpdateBrandCommand
 		}
 	}
 
+	if cmd.DefaultMarkupPercentage != nil {
+		if *cmd.DefaultMarkupPercentage < 0 {
+			return nil, domain.NewValidationError("brand default markup percentage cannot be negative")
+		}
+		brand.DefaultMarkupPercentage = *cmd.DefaultMarkupPercentage
+	}
+
 	if cmd.IsActive != nil {
 		brand.IsActive = *cmd.IsActive
 	}
@@ -1163,9 +1174,10 @@ func (s *ProductService) UpdateBrand(ctx context.Context, cmd UpdateBrandCommand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 

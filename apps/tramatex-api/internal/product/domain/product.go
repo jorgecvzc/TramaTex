@@ -4,20 +4,25 @@ import "github.com/google/uuid"
 
 // Brand represents an external aggregate root, defined here for context.
 type Brand struct {
-	ID       uuid.UUID
-	Name     string
-	IsActive bool
+	ID                      uuid.UUID
+	Name                    string
+	DefaultMarkupPercentage float64 // Default markup percentage for pricing (e.g., 30.0 = +30%)
+	IsActive                bool
 }
 
 // NewBrand creates a new Brand with validation.
-func NewBrand(name string, isActive bool) (*Brand, error) {
+func NewBrand(name string, isActive bool, defaultMarkupPercentage float64) (*Brand, error) {
 	if name == "" {
 		return nil, NewValidationError("brand name is required")
 	}
+	if defaultMarkupPercentage < 0 {
+		return nil, NewValidationError("brand default markup percentage cannot be negative")
+	}
 	return &Brand{
-		ID:       uuid.New(),
-		Name:     name,
-		IsActive: isActive,
+		ID:                      uuid.New(),
+		Name:                    name,
+		DefaultMarkupPercentage: defaultMarkupPercentage,
+		IsActive:                isActive,
 	}, nil
 }
 

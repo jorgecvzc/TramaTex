@@ -36,6 +36,7 @@
             <tr>
               <th>Nombre</th>
               <th>ID</th>
+              <th class="text-center">Beneficio (%)</th>
               <th class="text-center">Productos</th>
               <th class="text-right">Acciones</th>
             </tr>
@@ -49,6 +50,9 @@
                 <code class="id-badge">{{ brand.id.substring(0, 8) }}...</code>
               </td>
               <td class="text-center">
+                <span class="badge badge-info">{{ brand.defaultMarkupPercentage }}%</span>
+              </td>
+              <td class="text-center">
                 <span class="badge">-</span>
               </td>
               <td class="text-right">
@@ -57,7 +61,7 @@
               </td>
             </tr>
             <tr v-if="brands.length === 0">
-              <td colspan="4" class="text-center empty-state">
+              <td colspan="5" class="text-center empty-state">
                 No hay marcas registradas. Crea una nueva para comenzar.
               </td>
             </tr>
