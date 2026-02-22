@@ -4,7 +4,7 @@
       <div>
         <h3>Variantes del Producto</h3>
         <p class="table-description">
-          Listado de todas las variantes configuradas con sus precios base de venta.
+          Listado de todas las variantes configuradas con sus costos base.
         </p>
       </div>
       <div class="header-actions">
@@ -49,7 +49,6 @@
             <th>Código de barras</th>
             <th>Estado</th>
             <th class="align-right">Costo Base</th>
-            <th class="align-right">Precio Base Venta</th>
             <th class="align-center">Acciones</th>
           </tr>
         </thead>
@@ -91,15 +90,6 @@
             <td class="align-right">
               <span v-if="variant.base_cost !== undefined && variant.base_cost !== null" class="price base-cost">
                 {{ formatPrice(variant.base_cost) }}
-              </span>
-              <span v-else class="text-muted">—</span>
-            </td>
-            <td class="align-right">
-              <span v-if="variantPrices[variant.id]" class="price sale-price">
-                {{ formatPrice(variantPrices[variant.id]) }}
-              </span>
-              <span v-else-if="loadingPrices[variant.id]" class="loading-price">
-                <div class="spinner-small"></div>
               </span>
               <span v-else class="text-muted">—</span>
             </td>
@@ -153,10 +143,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref } from 'vue'
 import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
-import { pricingApi } from '@/services/pricingApi'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
 
@@ -182,47 +171,11 @@ const props = defineProps({
 const emit = defineEmits(['refresh'])
 
 // State
-const variantPrices = ref({})
-const loadingPrices = ref({})
 const showVariantForm = ref(false)
 const editingVariant = ref(null)
 const showBatchCreator = ref(false)
 
-// Lifecycle
-onMounted(() => {
-  fetchPricesForVariants()
-})
-
-// Watchers
-watch(() => props.variants, () => {
-  fetchPricesForVariants()
-}, { deep: true })
-
 // Methods
-async function fetchPricesForVariants() {
-  if (!props.variants || props.variants.length === 0) return
-
-  // Mark all as loading
-  props.variants.forEach(variant => {
-    loadingPrices.value[variant.id] = true
-  })
-
-  // Fetch prices using real Pricing API
-  for (const variant of props.variants) {
-    try {
-      const result = await pricingApi.calculateBaseSalesPrice(props.productId, variant.id)
-      variantPrices.value[variant.id] = {
-        amount: result.baseSalesPrice.amount,
-        currency: result.baseSalesPrice.currency
-      }
-    } catch (err) {
-      console.error(`Error fetching price for variant ${variant.id}:`, err)
-      variantPrices.value[variant.id] = null
-    } finally {
-      loadingPrices.value[variant.id] = false
-    }
-  }
-}
 
 function formatPrice(price) {
   if (!price || !price.amount) return '—'
