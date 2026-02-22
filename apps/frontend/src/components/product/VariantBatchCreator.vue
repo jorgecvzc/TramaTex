@@ -250,14 +250,14 @@ function generateCombinations() {
     // Check if already exists
     const exists = existingVariants.value.some(v => v.sku === sku)
 
-    allCombinations.push({
+    allCombinations.push(reactive({
       sku,
       attributeDisplay,
       attributeValueIds,
       barcode: '',
       selected: !exists, // Auto-select new combinations
       exists,
-    })
+    }))
   })
 }
 

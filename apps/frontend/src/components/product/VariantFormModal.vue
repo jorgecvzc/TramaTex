@@ -243,6 +243,15 @@ async function loadProductAttributes() {
       code: opt.attribute_code,
       values: opt.values || [],
     }))
+
+    // Initialize attributeValues keys for reactivity
+    if (!isEditMode.value) {
+      const newAttributeValues = {}
+      productAttributes.value.forEach(attr => {
+        newAttributeValues[attr.id] = form.value.attributeValues[attr.id] || ''
+      })
+      form.value.attributeValues = newAttributeValues
+    }
   } catch (err) {
     console.error('[VariantFormModal] Error loading attributes:', err)
     error.value = 'No se pudieron cargar los atributos del producto'
