@@ -33,7 +33,7 @@
         Las variantes se crean automáticamente (Just-in-Time) cuando se añaden a una orden,
         o puedes generarlas manualmente según las combinaciones de atributos disponibles.
       </p>
-      <button class="btn btn-primary">
+      <button class="btn btn-primary" @click="openBatchCreator">
         <Zap :size="16" />
         Generar variantes
       </button>
@@ -133,6 +133,15 @@
       @close="closeVariantForm"
       @saved="handleVariantSaved"
     />
+
+    <!-- Batch Creator Modal -->
+    <VariantBatchCreator
+      v-if="showBatchCreator"
+      :product-id="productId"
+      :product-sku="productSku"
+      @close="closeBatchCreator"
+      @created="handleBatchCreated"
+    />
   </div>
 </template>
 
@@ -141,6 +150,8 @@ import { ref, onMounted, watch } from 'vue'
 import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
+import VariantBatchCreator from './VariantBatchCreator.vue'
+import VariantBatchCreator from './VariantBatchCreator.vue'
 
 const props = defineProps({
   productId: {
@@ -168,6 +179,8 @@ const variantPrices = ref({})
 const loadingPrices = ref({})
 const showVariantForm = ref(false)
 const editingVariant = ref(null)
+const showBatchCreator = ref(false)
+const showBatchCreator = ref(false)
 
 // Lifecycle
 onMounted(() => {
@@ -253,6 +266,25 @@ function closeVariantForm() {
 
 function handleVariantSaved() {
   // Refresh the variant list
+  emit('refresh')
+}
+
+function openBatchCreator() {
+  showBatchCreator.value = true
+}
+
+function closeBatchCreator() {
+  showBatchCreator.value = false
+}
+
+function handleBatchCreated(result) {
+  console.log('Batch created:', result)
+  if (result.created && result.created.length > 0) {
+    alert(`✅ Se crearon ${result.created.length} variante(s) exitosamente`)
+  }
+  if (result.errors && result.errors.length > 0) {
+    console.error('Errors creating variants:', result.errors)
+  }
   emit('refresh')
 }
 </script>
