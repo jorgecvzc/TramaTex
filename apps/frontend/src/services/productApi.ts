@@ -318,6 +318,8 @@ class ProductApiService {
       sku: updated.sku,
       name: updated.name,
       long_name: updated.longName,
+      barcode: updated.barcode,
+      basePrice: updated.basePrice,
       description: updated.description,
       product_type: updated.productType,
       brand_id: updated.brandId,

@@ -162,12 +162,16 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	var req struct {
-		Name               *string     `json:"name"`
-		LongName           *string     `json:"long_name"`
-		Description        *string     `json:"description"`
-		BrandID            *uuid.UUID  `json:"brand_id"`
-		GroupIDs           []uuid.UUID `json:"group_ids"`
-		DirectAttributeIDs []uuid.UUID `json:"direct_attribute_ids"`
+		Name               *string              `json:"name"`
+		LongName           *string              `json:"long_name"`
+		SKU                *string              `json:"sku"`
+		Barcode            *string              `json:"barcode"`
+		BasePrice          *float64             `json:"base_price"`
+		ProductType        *domain.ProductType  `json:"product_type"`
+		Description        *string              `json:"description"`
+		BrandID            *uuid.UUID           `json:"brand_id"`
+		GroupIDs           []uuid.UUID          `json:"group_ids"`
+		DirectAttributeIDs []uuid.UUID          `json:"direct_attribute_ids"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -186,6 +190,10 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		ProductID:          productID,
 		Name:               req.Name,
 		LongName:           req.LongName,
+		SKU:                req.SKU,
+		Barcode:            req.Barcode,
+		BasePrice:          req.BasePrice,
+		ProductType:        req.ProductType,
 		Description:        req.Description,
 		BrandID:            req.BrandID,
 		GroupIDs:           req.GroupIDs,

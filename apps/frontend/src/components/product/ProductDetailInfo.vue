@@ -283,11 +283,11 @@ async function submitEdit() {
   try {
     await emit('update', {
       name: editForm.name.trim(),
-      long_name: editForm.long_name.trim() || null,
+      longName: editForm.long_name.trim() || null,
       sku: editForm.sku.trim() || null,
       barcode: editForm.barcode.trim() || null,
       basePrice: editForm.basePrice,
-      product_type: editForm.product_type,
+      productType: editForm.product_type,
       description: editForm.description.trim() || null,
     })
     isEditing.value = false
