@@ -221,6 +221,16 @@ class ProductApiService {
     }
 
     const data = await response.json()
+    
+    // Fetch calculated option sets (attributes)
+    let calculatedOptionSets = []
+    try {
+      const optionsData = await this.getCalculatedOptionSets(id)
+      calculatedOptionSets = optionsData.attributes || []
+    } catch (err) {
+      console.warn('[productApi] Could not load calculated option sets:', err)
+    }
+    
     return {
       id: data.id,
       sku: data.sku,
@@ -234,6 +244,7 @@ class ProductApiService {
       direct_attribute_ids: data.directAttributeIds || [],
       is_active: data.isActive,
       variants_count: data.variantsCount || 0,
+      calculated_option_sets: calculatedOptionSets,
     }
   }
 
