@@ -151,7 +151,6 @@ import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
-import VariantBatchCreator from './VariantBatchCreator.vue'
 
 const props = defineProps({
   productId: {
@@ -179,7 +178,6 @@ const variantPrices = ref({})
 const loadingPrices = ref({})
 const showVariantForm = ref(false)
 const editingVariant = ref(null)
-const showBatchCreator = ref(false)
 const showBatchCreator = ref(false)
 
 // Lifecycle
