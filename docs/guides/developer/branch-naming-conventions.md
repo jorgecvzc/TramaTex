@@ -333,17 +333,52 @@ feature/update             # Demasiado genérico
 
 ---
 
+## ⚡ Reglas de Oro del Flujo de Ramas
+
+### 🚫 NUNCA hacer PR directo a `master` desde:
+- ❌ `feature/*`
+- ❌ `bugfix/*`
+- ❌ `docs/*`
+- ❌ `refactor/*`
+- ❌ `test/*`
+
+### ✅ Flujo Correcto (99% de los casos):
+```
+1. Crear rama desde develop
+   ↓
+2. Desarrollar + commits
+   ↓
+3. PR hacia develop
+   ↓
+4. Merge a develop (tras aprobación)
+   ↓
+5. [develop acumula cambios]
+   ↓
+6. Cuando esté listo → release/vX.Y.Z
+   ↓
+7. Merge a master + tag
+```
+
+### ⚠️ Excepción SOLO para emergencias:
+```
+hotfix/* → master (directo) + develop (back-merge)
+```
+
+---
+
 ## 📚 Referencia Rápida
 
-| Tipo | Desde | Merge a | Ejemplo |
-|------|-------|---------|---------|
-| `feature/*` | develop | develop | `feature/ui-logic-validation` |
-| `bugfix/*` | develop | develop | `bugfix/sales-form-validation` |
-| `hotfix/*` | master | master + develop | `hotfix/security-critical` |
-| `release/*` | develop | master + develop | `release/v1.1.0` |
-| `docs/*` | develop | develop | `docs/adr-testing-strategy` |
-| `refactor/*` | develop | develop | `refactor/pricing-simplify` |
-| `test/*` | develop | develop | `test/sales-coverage-boost` |
+| Tipo | Desde | PR hacia | Merge final | Ejemplo |
+|------|-------|----------|-------------|---------|
+| `feature/*` | develop | develop | develop | `feature/ui-logic-validation` |
+| `bugfix/*` | develop | develop | develop | `bugfix/sales-form-validation` |
+| `hotfix/*` | **master** | master | master + develop | `hotfix/security-critical` |
+| `release/*` | develop | master | master + develop | `release/v1.1.0` |
+| `docs/*` | develop | develop | develop | `docs/adr-testing-strategy` |
+| `refactor/*` | develop | develop | develop | `refactor/pricing-simplify` |
+| `test/*` | develop | develop | develop | `test/sales-coverage-boost` |
+
+**Nota:** La columna "PR hacia" indica dónde se abre el Pull Request en GitHub.
 
 ---
 
