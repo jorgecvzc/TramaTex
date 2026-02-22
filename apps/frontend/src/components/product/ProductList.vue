@@ -81,6 +81,7 @@
             <th>Marca</th>
             <th>Categoría</th>
             <th>Tipo</th>
+            <th class="align-right">Precio Base</th>
             <th>Variantes</th>
             <th>Estado</th>
             <th class="align-right">Acciones</th>
@@ -112,6 +113,11 @@
             <td>
               <span class="type-pill" :class="`type-${product.product_type?.toLowerCase()}`">
                 {{ formatProductType(product.product_type) }}
+              </span>
+            </td>
+            <td class="align-right">
+              <span class="price-value">
+                {{ formatPrice(product.base_price) }}
               </span>
             </td>
             <td>
@@ -340,6 +346,16 @@ function formatProductType(type) {
   };
   return map[type] || type || '—';
 }
+
+function formatPrice(value) {
+  if (value === null || value === undefined) return '—';
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 </script>
 
 <style scoped>
@@ -540,6 +556,12 @@ td {
 .status-pill.status-inactive {
   background: rgba(158, 158, 158, 0.1);
   color: #9e9e9e;
+}
+
+.price-value {
+  font-weight: 600;
+  color: #16a34a;
+  font-size: 0.95rem;
 }
 
 .align-right {
