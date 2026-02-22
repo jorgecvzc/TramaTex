@@ -303,8 +303,12 @@ async function loadProductAttributes(productId) {
       values: opt.values || [],
     }))
     
-    // Reset selected attributes
-    selectedAttributes.value = {}
+    // Initialize selectedAttributes keys for reactivity
+    const newSelectedAttributes = {}
+    productAttributes.value.forEach(attr => {
+      newSelectedAttributes[attr.id] = selectedAttributes.value[attr.id] || ''
+    })
+    selectedAttributes.value = newSelectedAttributes
   } catch (err) {
     console.error('[VariantSelector] Error loading product attributes:', err)
     setError('No se pudieron cargar los atributos del producto')
