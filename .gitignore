@@ -91,6 +91,10 @@ temp/
 # Obsidian
 **/.obsidian
 
+# AI Tools
+.gemini/
+.cursor/
+
 # Special files (Windows)
 NUL
 nul
