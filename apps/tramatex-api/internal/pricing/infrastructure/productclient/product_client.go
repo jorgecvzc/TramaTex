@@ -35,13 +35,22 @@ func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, varian
 		return nil, err
 	}
 
+	// Get brand markup percentage
+	var brand productpersistence.BrandDataModel
+	var brandMarkup float64
+	if err := c.db.WithContext(ctx).First(&brand, "id = ?", product.BrandID).Error; err == nil {
+		brandMarkup = brand.DefaultMarkupPercentage
+	}
+
 	return &pricingapp.ProductPricingInfo{
-		VariantID: variant.ID,
-		ProductID: variant.ProductID,
-		BaseCost:  variant.BaseCost,
-		Currency:  "EUR",
-		BrandID:   product.BrandID,
-		GroupIDs:  parseUUIDs(product.GroupIDs),
+		VariantID:             variant.ID,
+		ProductID:             variant.ProductID,
+		BaseCost:              variant.BaseCost,
+		Currency:              "EUR",
+		BrandID:               product.BrandID,
+		BrandMarkupPercentage: brandMarkup,
+		GroupIDs:              parseUUIDs(product.GroupIDs),
+		TaxRate:               product.TaxRate,
 	}, nil
 }
 
@@ -59,16 +68,25 @@ func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, prod
 		return nil, err
 	}
 
+	// Get brand markup percentage
+	var brand productpersistence.BrandDataModel
+	var brandMarkup float64
+	if err := c.db.WithContext(ctx).First(&brand, "id = ?", product.BrandID).Error; err == nil {
+		brandMarkup = brand.DefaultMarkupPercentage
+	}
+
 	groupIDs := parseUUIDs(product.GroupIDs)
 	infos := make([]*pricingapp.ProductPricingInfo, 0, len(variants))
 	for _, variant := range variants {
 		infos = append(infos, &pricingapp.ProductPricingInfo{
-			VariantID: variant.ID,
-			ProductID: variant.ProductID,
-			BaseCost:  variant.BaseCost,
-			Currency:  "EUR",
-			BrandID:   product.BrandID,
-			GroupIDs:  groupIDs,
+			VariantID:             variant.ID,
+			ProductID:             variant.ProductID,
+			BaseCost:              variant.BaseCost,
+			Currency:              "EUR",
+			BrandID:               product.BrandID,
+			BrandMarkupPercentage: brandMarkup,
+			GroupIDs:              groupIDs,
+			TaxRate:               product.TaxRate,
 		})
 	}
 

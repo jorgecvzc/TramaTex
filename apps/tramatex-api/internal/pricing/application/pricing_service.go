@@ -11,12 +11,14 @@ import (
 )
 
 type ProductPricingInfo struct {
-	VariantID uuid.UUID
-	ProductID uuid.UUID
-	BaseCost  float64
-	Currency  string
-	BrandID   uuid.UUID
-	GroupIDs  []uuid.UUID
+	VariantID             uuid.UUID
+	ProductID             uuid.UUID
+	BaseCost              float64
+	Currency              string
+	BrandID               uuid.UUID
+	BrandMarkupPercentage float64 // Brand's default markup percentage (e.g., 30.0 = 30%)
+	GroupIDs              []uuid.UUID
+	TaxRate               float64 // Tax rate as percentage (e.g., 21.0 = 21%)
 }
 
 type ProductInfoProvider interface {

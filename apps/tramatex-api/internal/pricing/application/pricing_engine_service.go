@@ -355,7 +355,16 @@ func (s *PricingEngineService) calculateBaseSalesPriceFromInfo(ctx context.Conte
 	selected := selectBaseRule(rules, info.BrandID, info.GroupIDs, info.ProductID, variantID)
 	baseSalesPrice := baseCost
 	if selected != nil {
+		// Apply pricing rule if found
 		baseSalesPrice, err = selected.Value.Apply(baseCost)
+		if err != nil {
+			return domain.Money{}, err
+		}
+	} else if info.BrandMarkupPercentage > 0 {
+		// If no rule, apply brand's default markup percentage
+		// baseSalesPrice = baseCost * (1 + markup/100)
+		multiplier := 1.0 + (info.BrandMarkupPercentage / 100.0)
+		baseSalesPrice, err = baseCost.Multiply(multiplier)
 		if err != nil {
 			return domain.Money{}, err
 		}
