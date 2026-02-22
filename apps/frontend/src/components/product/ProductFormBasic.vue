@@ -125,6 +125,29 @@
         </span>
       </div>
 
+      <!-- Tax Rate -->
+      <div class="form-group">
+        <label for="taxRate">
+          IVA (%) *
+          <span class="required">obligatorio</span>
+        </label>
+        <select
+          id="taxRate"
+          v-model.number="localData.taxRate"
+          required
+          @change="validateField('taxRate')"
+        >
+          <option :value="21">21% (General)</option>
+          <option :value="10">10% (Reducido)</option>
+          <option :value="4">4% (Superreducido)</option>
+          <option :value="0">0% (Exento)</option>
+        </select>
+        <span v-if="errors.taxRate" class="error">{{ errors.taxRate }}</span>
+        <span class="hint">
+          Tipo de IVA aplicable al producto según legislación española.
+        </span>
+      </div>
+
       <!-- Form Actions -->
       <div class="form-actions">
         <button
@@ -166,6 +189,7 @@ const localData = reactive({
   longName: props.modelValue.longName || '',
   description: props.modelValue.description || '',
   basePrice: props.modelValue.basePrice !== undefined ? props.modelValue.basePrice : 0,
+  taxRate: props.modelValue.taxRate !== undefined ? props.modelValue.taxRate : 21,
 })
 
 // Validation errors
@@ -175,6 +199,7 @@ const errors = reactive({
   name: '',
   longName: '',
   basePrice: '',
+  taxRate: '',
 })
 
 // Watch local data changes and emit to parent
@@ -236,6 +261,19 @@ const validationRules = {
     }
     if (numValue < 0) {
       return 'El precio base no puede ser negativo'
+    }
+    return ''
+  },
+  taxRate: (value) => {
+    if (value === undefined || value === null || value === '') {
+      return 'El IVA es obligatorio'
+    }
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) {
+      return 'El IVA debe ser un número válido'
+    }
+    if (numValue < 0 || numValue > 100) {
+      return 'El IVA debe estar entre 0 y 100'
     }
     return ''
   },

@@ -156,6 +156,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
+import { pricingApi } from '@/services/pricingApi'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
 
@@ -206,18 +207,13 @@ async function fetchPricesForVariants() {
     loadingPrices.value[variant.id] = true
   })
 
-  // Fetch prices (this will call Pricing API in the future)
-  // For now, simulate with mock data
+  // Fetch prices using real Pricing API
   for (const variant of props.variants) {
     try {
-      // TODO: Replace with actual Pricing API call
-      // const price = await pricingApi.calculateBaseSalesPrice(variant.id)
-
-      // Mock: Simulate API delay and random price
-      await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500))
+      const result = await pricingApi.calculateBaseSalesPrice(props.productId, variant.id)
       variantPrices.value[variant.id] = {
-        amount: (15 + Math.random() * 35).toFixed(2),
-        currency: 'EUR'
+        amount: result.baseSalesPrice.amount,
+        currency: result.baseSalesPrice.currency
       }
     } catch (err) {
       console.error(`Error fetching price for variant ${variant.id}:`, err)

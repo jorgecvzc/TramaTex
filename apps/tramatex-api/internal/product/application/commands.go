@@ -18,6 +18,7 @@ type CreateProductCommand struct {
 	GroupIDs           []uuid.UUID        `json:"group_ids"`
 	DirectAttributeIDs []uuid.UUID        `json:"direct_attribute_ids"`
 	BasePrice          float64            `json:"base_price"`
+	TaxRate            float64            `json:"tax_rate"` // Tax rate as percentage (e.g., 21.0 = 21%)
 }
 
 // UpdateProductCommand is the input DTO for updating a product's general information.
@@ -29,6 +30,7 @@ type UpdateProductCommand struct {
 	SKU                *string             `json:"sku,omitempty"`
 	Barcode            *string             `json:"barcode,omitempty"`
 	BasePrice          *float64            `json:"base_price,omitempty"`
+	TaxRate            *float64            `json:"tax_rate,omitempty"` // Tax rate as percentage
 	ProductType        *domain.ProductType `json:"product_type,omitempty"`
 	Description        *string             `json:"description,omitempty"`
 	BrandID            *uuid.UUID          `json:"brand_id,omitempty"`

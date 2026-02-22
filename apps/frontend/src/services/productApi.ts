@@ -33,6 +33,7 @@ interface ProductUI {
   description: string
   product_type: string
   base_price?: number
+  tax_rate?: number
   brand_id: string | null
   group_ids: string[]
   direct_attribute_ids: string[]
@@ -195,6 +196,7 @@ class ProductApiService {
       description: p.description,
       product_type: p.productType,
       base_price: p.basePrice,
+      tax_rate: p.taxRate !== undefined ? p.taxRate : 21,
       brand_id: p.brandId,
       group_ids: p.groupIds || [],
       direct_attribute_ids: p.directAttributeIds || [],
@@ -243,6 +245,7 @@ class ProductApiService {
       description: data.description,
       product_type: data.productType,
       base_price: data.basePrice,
+      tax_rate: data.taxRate !== undefined ? data.taxRate : 21,
       brand_id: data.brandId,
       group_ids: data.groupIds || [],
       direct_attribute_ids: data.directAttributeIds || [],
@@ -263,6 +266,7 @@ class ProductApiService {
     description: string
     productType: string
     basePrice: number
+    taxRate?: number
     brandId?: string
     groupIds?: string[]
     directAttributeIds?: string[]
@@ -279,6 +283,7 @@ class ProductApiService {
         description: data.description,
         product_type: data.productType,
         base_price: data.basePrice,
+        tax_rate: data.taxRate !== undefined ? data.taxRate : 21.0,
         brand_id: data.brandId,
         group_ids: data.groupIds || [],
         direct_attribute_ids: data.directAttributeIds || [],
@@ -302,6 +307,7 @@ class ProductApiService {
     sku?: string
     barcode?: string
     basePrice?: number
+    taxRate?: number
     productType?: string
     description?: string
     brandId?: string
@@ -318,6 +324,7 @@ class ProductApiService {
         sku: data.sku,
         barcode: data.barcode,
         base_price: data.basePrice,
+        tax_rate: data.taxRate,
         product_type: data.productType,
         description: data.description,
         brand_id: data.brandId,
@@ -339,6 +346,7 @@ class ProductApiService {
       long_name: updated.longName,
       barcode: updated.barcode,
       base_price: updated.basePrice,
+      tax_rate: updated.taxRate,
       description: updated.description,
       product_type: updated.productType,
       brand_id: updated.brandId,

@@ -20,6 +20,7 @@ type ProductDTO struct {
 	GroupIDs           []uuid.UUID        `json:"groupIds"` // Note: api-contracts has single 'groupId', but domain has multiple
 	DirectAttributeIDs []uuid.UUID        `json:"directAttributeIds"`
 	BasePrice          float64            `json:"basePrice"`
+	TaxRate            float64            `json:"taxRate"`
 	IsActive           bool               `json:"isActive"`
 }
 
@@ -41,6 +42,7 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 		GroupIDs:           p.GroupIDs,
 		DirectAttributeIDs: p.DirectAttributeIDs,
 		BasePrice:          p.BasePrice,
+		TaxRate:            p.TaxRate,
 		IsActive:           p.IsActive,
 	}
 }

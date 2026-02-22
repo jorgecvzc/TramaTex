@@ -41,14 +41,13 @@
 
         <div class="form-group">
           <label for="calc-client">Cliente</label>
-          <div class="client-search-container">
+          <div class="client-search-container" @click.stop>
             <input
               v-model="clientSearchQuery"
               type="text"
               class="form-control"
               placeholder="Buscar cliente por nombre..."
               @input="searchClients"
-              @focus="showClientDropdown = true"
             />
             <button
               v-if="selectedClientName"
@@ -402,7 +401,7 @@ function handleOutsideClick(event) {
   const clientSearchContainer = event.target.closest('.client-search-container')
   const clientDropdown = event.target.closest('.client-dropdown')
   
-  if (!clientSearchContainer && !clientDropdown) {
+  if (!clientSearchContainer && !clientDropdown && showClientDropdown.value) {
     showClientDropdown.value = false
   }
 }
@@ -457,7 +456,7 @@ async function searchClients() {
 function selectClient(client) {
   calculator.clientId = client.id
   selectedClientName.value = client.legalName || client.id
-  clientSearchQuery.value = client.legalName || client.id
+  clientSearchQuery.value = ''
   showClientDropdown.value = false
   filteredClients.value = []
 }

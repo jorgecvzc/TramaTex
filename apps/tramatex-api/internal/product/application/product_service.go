@@ -101,6 +101,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		cmd.BrandID,
 		cmd.Barcode,
 		cmd.BasePrice,
+		cmd.TaxRate,
 	)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create product domain entity", err)
@@ -262,6 +263,12 @@ func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCom
 			return nil, domain.NewValidationError("base price cannot be negative")
 		}
 		product.BasePrice = *cmd.BasePrice
+	}
+	if cmd.TaxRate != nil {
+		if *cmd.TaxRate < 0 || *cmd.TaxRate > 100 {
+			return nil, domain.NewValidationError("tax rate must be between 0 and 100")
+		}
+		product.TaxRate = *cmd.TaxRate
 	}
 	if cmd.ProductType != nil {
 		product.ProductType = *cmd.ProductType

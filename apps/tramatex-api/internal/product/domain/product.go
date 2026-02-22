@@ -117,6 +117,7 @@ type Product struct {
 	GroupIDs           []uuid.UUID
 	DirectAttributeIDs []uuid.UUID
 	BasePrice          float64 // Base cost/price for this product, used as default for variants
+	TaxRate            float64 // Tax rate (VAT/IVA) as percentage (e.g., 21.0 = 21%)
 	IsActive           bool
 }
 
@@ -127,6 +128,7 @@ func NewProduct(
 	brandID uuid.UUID,
 	barcode *string,
 	basePrice float64,
+	taxRate float64,
 ) (*Product, error) {
 	if sku == "" {
 		return nil, NewValidationError("product SKU cannot be empty")
@@ -143,6 +145,9 @@ func NewProduct(
 	if basePrice < 0 {
 		return nil, NewValidationError("product base price cannot be negative")
 	}
+	if taxRate < 0 || taxRate > 100 {
+		return nil, NewValidationError("product tax rate must be between 0 and 100")
+	}
 
 	return &Product{
 		ID:                 uuid.New(),
@@ -156,6 +161,7 @@ func NewProduct(
 		GroupIDs:           make([]uuid.UUID, 0),
 		DirectAttributeIDs: make([]uuid.UUID, 0),
 		BasePrice:          basePrice,
+		TaxRate:            taxRate,
 		IsActive:           true,
 	}, nil
 }
