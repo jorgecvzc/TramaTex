@@ -290,12 +290,17 @@ async function handleSubmit() {
 
 async function createNewVariant() {
   // Build option_configuration for JIT creation
+  // Backend expects: { AttributeCode: AttributeValue } (strings, not UUIDs)
   const optionConfiguration = {}
   
   for (const attr of productAttributes.value) {
     const valueId = form.value.attributeValues[attr.id]
     if (valueId) {
-      optionConfiguration[attr.id] = valueId
+      // Find the selected value to get its string value
+      const selectedValue = attr.values.find(v => v.id === valueId)
+      if (selectedValue) {
+        optionConfiguration[attr.code] = selectedValue.value
+      }
     }
   }
 

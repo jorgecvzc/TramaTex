@@ -521,7 +521,7 @@ class ProductApiService {
       {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ option_configuration: optionConfiguration }),
+        body: JSON.stringify({ optionConfiguration: optionConfiguration }),
       },
     )
 

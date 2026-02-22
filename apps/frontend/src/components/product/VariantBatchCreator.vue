@@ -242,9 +242,11 @@ function generateCombinations() {
     // Build attribute display
     const attributeDisplay = {}
     const attributeValueIds = []
+    const optionConfig = {} // Store for API call
     combo.forEach(item => {
       attributeDisplay[item.attrName] = item.value
       attributeValueIds.push(item.id)
+      optionConfig[item.attrCode] = item.value // Backend expects: { AttributeCode: AttributeValue }
     })
 
     // Check if already exists
@@ -254,6 +256,7 @@ function generateCombinations() {
       sku,
       attributeDisplay,
       attributeValueIds,
+      optionConfiguration: optionConfig,
       barcode: '',
       selected: !exists, // Auto-select new combinations
       exists,
@@ -308,12 +311,8 @@ async function handleCreate() {
 
     for (const combo of selectedCombinations) {
       try {
-        // Build option_configuration
-        const optionConfiguration = {}
-        combo.attributeValueIds.forEach((valueId, index) => {
-          const attr = productAttributes.value[index]
-          optionConfiguration[attr.id] = valueId
-        })
+        // Use pre-built option_configuration with AttributeCode: AttributeValue format
+        const optionConfiguration = combo.optionConfiguration
 
         // Call findOrCreateVariant
         const result = await productApi.findOrCreateVariant(

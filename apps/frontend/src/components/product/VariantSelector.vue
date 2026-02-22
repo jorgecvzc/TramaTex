@@ -339,12 +339,16 @@ async function findOrCreateSelectedVariant() {
   error.value = ''
   
   try {
-    // Build option configuration
+    // Build option configuration with AttributeCode: AttributeValue format
     const optionConfiguration = {}
     for (const attr of productAttributes.value) {
       const valueId = selectedAttributes.value[attr.id]
       if (valueId) {
-        optionConfiguration[attr.id] = valueId
+        // Find the selected value to get its string value
+        const selectedValue = attr.values.find(v => v.id === valueId)
+        if (selectedValue) {
+          optionConfiguration[attr.code] = selectedValue.value
+        }
       }
     }
     
