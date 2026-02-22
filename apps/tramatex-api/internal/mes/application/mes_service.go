@@ -3,138 +3,737 @@ package application
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/mes/domain"
 )
 
 // MESService provides operations for Manufacturing Execution System
+// focused on foundation master data CRUD.
 type MESService struct {
-	recipeRepo     domain.ProductionRecipeRepository
-	orderRepo      domain.ProductionOrderRepository
-	workCenterRepo domain.WorkCenterRepository
+	taskRepo         domain.TaskRepository
+	positionRepo     domain.PositionRepository
+	serviceGroupRepo domain.ServiceGroupRepository
+	mesWorkRepo      domain.MESWorkRepository
 }
 
-// NewMESService creates a new MES service
+// NewMESService creates a new MES service.
 func NewMESService(
-	recipeRepo domain.ProductionRecipeRepository,
-	orderRepo domain.ProductionOrderRepository,
-	workCenterRepo domain.WorkCenterRepository,
+	taskRepo domain.TaskRepository,
+	positionRepo domain.PositionRepository,
+	serviceGroupRepo domain.ServiceGroupRepository,
+	mesWorkRepo domain.MESWorkRepository,
 ) *MESService {
 	return &MESService{
-		recipeRepo:     recipeRepo,
-		orderRepo:      orderRepo,
-		workCenterRepo: workCenterRepo,
+		taskRepo:         taskRepo,
+		positionRepo:     positionRepo,
+		serviceGroupRepo: serviceGroupRepo,
+		mesWorkRepo:      mesWorkRepo,
 	}
 }
 
-// ============================================================================
-// PRODUCTION RECIPE OPERATIONS
-// ============================================================================
+func (s *MESService) CreateTask(ctx context.Context, cmd CreateTaskCommand) (*TaskDTO, error) {
+	description := ""
+	if cmd.Description != nil {
+		description = *cmd.Description
+	}
+	isActive := true
+	if cmd.IsActive != nil {
+		isActive = *cmd.IsActive
+	}
 
-// CreateProductionRecipe creates a new production recipe
-func (s *MESService) CreateProductionRecipe(ctx context.Context, cmd CreateProductionRecipeCommand) (*ProductionRecipeDTO, error) {
-	// TODO: Implement full recipe creation logic
-	return nil, fmt.Errorf("not implemented")
+	task, err := domain.NewTask(cmd.Name, description, isActive)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.taskRepo.Save(ctx, task); err != nil {
+		return nil, fmt.Errorf("save task: %w", err)
+	}
+
+	return toTaskDTO(task), nil
 }
 
-// GetProductionRecipeByID retrieves a recipe by ID
-func (s *MESService) GetProductionRecipeByID(ctx context.Context, query GetProductionRecipeByIDQuery) (*ProductionRecipeDTO, error) {
-	// TODO: Implement repository call
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) GetTaskByID(ctx context.Context, query GetTaskByIDQuery) (*TaskDTO, error) {
+	task, err := s.taskRepo.FindByID(ctx, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find task by id: %w", err)
+	}
+	if task == nil {
+		return nil, fmt.Errorf("task not found")
+	}
+
+	return toTaskDTO(task), nil
 }
 
-// ListProductionRecipes lists recipes with filters
-func (s *MESService) ListProductionRecipes(ctx context.Context, query ListProductionRecipesQuery) (*PaginatedProductionRecipesResponse, error) {
-	// TODO: Implement repository call with filters
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) ListTasks(ctx context.Context, query ListTasksQuery) ([]TaskDTO, error) {
+	tasks, err := s.taskRepo.FindAll(ctx, &domain.TaskFilters{
+		IsActive: query.IsActive,
+		Search:   query.Search,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list tasks: %w", err)
+	}
+
+	dtos := make([]TaskDTO, 0, len(tasks))
+	for _, task := range tasks {
+		dtos = append(dtos, *toTaskDTO(task))
+	}
+	return dtos, nil
 }
 
-// UpdateProductionRecipe updates an existing recipe
-func (s *MESService) UpdateProductionRecipe(ctx context.Context, cmd UpdateProductionRecipeCommand) (*ProductionRecipeDTO, error) {
-	// TODO: Implement update logic
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) UpdateTask(ctx context.Context, cmd UpdateTaskCommand) (*TaskDTO, error) {
+	task, err := s.taskRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find task for update: %w", err)
+	}
+	if task == nil {
+		return nil, fmt.Errorf("task not found")
+	}
+
+	if cmd.Name != nil {
+		task.Name = *cmd.Name
+	}
+	if cmd.Description != nil {
+		task.Description = *cmd.Description
+	}
+	if cmd.IsActive != nil {
+		task.IsActive = *cmd.IsActive
+	}
+
+	if err := s.taskRepo.Save(ctx, task); err != nil {
+		return nil, fmt.Errorf("save task update: %w", err)
+	}
+
+	return toTaskDTO(task), nil
 }
 
-// ============================================================================
-// PRODUCTION ORDER OPERATIONS
-// ============================================================================
-
-// CreateProductionOrder creates a new production order
-func (s *MESService) CreateProductionOrder(ctx context.Context, cmd CreateProductionOrderCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement full order creation logic
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) DeleteTask(ctx context.Context, cmd DeleteTaskCommand) error {
+	if err := s.taskRepo.Delete(ctx, cmd.ID); err != nil {
+		return fmt.Errorf("delete task: %w", err)
+	}
+	return nil
 }
 
-// GetProductionOrderByID retrieves an order by ID
-func (s *MESService) GetProductionOrderByID(ctx context.Context, query GetProductionOrderByIDQuery) (*ProductionOrderDTO, error) {
-	// TODO: Implement repository call
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) CreatePosition(ctx context.Context, cmd CreatePositionCommand) (*PositionDTO, error) {
+	description := ""
+	if cmd.Description != nil {
+		description = *cmd.Description
+	}
+	isActive := true
+	if cmd.IsActive != nil {
+		isActive = *cmd.IsActive
+	}
+
+	position, err := domain.NewPosition(cmd.Name, cmd.Code, description, isActive)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.positionRepo.Save(ctx, position); err != nil {
+		return nil, fmt.Errorf("save position: %w", err)
+	}
+
+	return toPositionDTO(position), nil
 }
 
-// ListProductionOrders lists orders with filters
-func (s *MESService) ListProductionOrders(ctx context.Context, query ListProductionOrdersQuery) (*PaginatedProductionOrdersResponse, error) {
-	// TODO: Implement repository call with filters
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) GetPositionByID(ctx context.Context, query GetPositionByIDQuery) (*PositionDTO, error) {
+	position, err := s.positionRepo.FindByID(ctx, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find position by id: %w", err)
+	}
+	if position == nil {
+		return nil, fmt.Errorf("position not found")
+	}
+
+	return toPositionDTO(position), nil
 }
 
-// UpdateProductionOrderStatus updates order status
-func (s *MESService) UpdateProductionOrderStatus(ctx context.Context, cmd UpdateProductionOrderStatusCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement status update logic
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) ListPositions(ctx context.Context, query ListPositionsQuery) ([]PositionDTO, error) {
+	positions, err := s.positionRepo.FindAll(ctx, &domain.PositionFilters{
+		IsActive: query.IsActive,
+		Search:   query.Search,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list positions: %w", err)
+	}
+
+	dtos := make([]PositionDTO, 0, len(positions))
+	for _, position := range positions {
+		dtos = append(dtos, *toPositionDTO(position))
+	}
+	return dtos, nil
 }
 
-// AssignWorkCenter assigns a work center to a production order
-func (s *MESService) AssignWorkCenter(ctx context.Context, cmd AssignWorkCenterCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement work center assignment
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) UpdatePosition(ctx context.Context, cmd UpdatePositionCommand) (*PositionDTO, error) {
+	position, err := s.positionRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find position for update: %w", err)
+	}
+	if position == nil {
+		return nil, fmt.Errorf("position not found")
+	}
+
+	if cmd.Name != nil {
+		position.Name = *cmd.Name
+	}
+	if cmd.Code != nil {
+		position.Code = *cmd.Code
+	}
+	if cmd.Description != nil {
+		position.Description = *cmd.Description
+	}
+	if cmd.IsActive != nil {
+		position.IsActive = *cmd.IsActive
+	}
+
+	if err := s.positionRepo.Save(ctx, position); err != nil {
+		return nil, fmt.Errorf("save position update: %w", err)
+	}
+
+	return toPositionDTO(position), nil
 }
 
-// ============================================================================
-// TASK INSTANCE OPERATIONS
-// ============================================================================
-
-// UpdateTaskStatus updates a task instance status
-func (s *MESService) UpdateTaskStatus(ctx context.Context, cmd UpdateTaskStatusCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement task status update
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) DeletePosition(ctx context.Context, cmd DeletePositionCommand) error {
+	if err := s.positionRepo.Delete(ctx, cmd.ID); err != nil {
+		return fmt.Errorf("delete position: %w", err)
+	}
+	return nil
 }
 
-// AssignOperatorToTask assigns an operator to a task
-func (s *MESService) AssignOperatorToTask(ctx context.Context, cmd AssignOperatorToTaskCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement operator assignment
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) CreateServiceGroup(ctx context.Context, cmd CreateServiceGroupCommand) (*ServiceGroupDTO, error) {
+	description := ""
+	if cmd.Description != nil {
+		description = *cmd.Description
+	}
+	isActive := true
+	if cmd.IsActive != nil {
+		isActive = *cmd.IsActive
+	}
+	assignments := mapTaskAssignments(cmd.TaskAssignments)
+
+	serviceGroup, err := domain.NewServiceGroup(cmd.Name, description, cmd.ProductGroupID, isActive, assignments)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.serviceGroupRepo.Save(ctx, serviceGroup); err != nil {
+		return nil, fmt.Errorf("save service group: %w", err)
+	}
+
+	return toServiceGroupDTO(serviceGroup), nil
 }
 
-// RecordTaskProgress records actual time/completion for a task
-func (s *MESService) RecordTaskProgress(ctx context.Context, cmd RecordTaskProgressCommand) (*ProductionOrderDTO, error) {
-	// TODO: Implement progress recording
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) GetServiceGroupByID(ctx context.Context, query GetServiceGroupByIDQuery) (*ServiceGroupDTO, error) {
+	serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find service group by id: %w", err)
+	}
+	if serviceGroup == nil {
+		return nil, fmt.Errorf("service group not found")
+	}
+
+	return toServiceGroupDTO(serviceGroup), nil
 }
 
-// ============================================================================
-// WORK CENTER OPERATIONS
-// ============================================================================
+func (s *MESService) ListServiceGroups(ctx context.Context, query ListServiceGroupsQuery) ([]ServiceGroupDTO, error) {
+	serviceGroups, err := s.serviceGroupRepo.FindAll(ctx, &domain.ServiceGroupFilters{
+		IsActive: query.IsActive,
+		Search:   query.Search,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list service groups: %w", err)
+	}
 
-// CreateWorkCenter creates a new work center
-func (s *MESService) CreateWorkCenter(ctx context.Context, cmd CreateWorkCenterCommand) (*WorkCenterDTO, error) {
-	// TODO: Implement work center creation
-	return nil, fmt.Errorf("not implemented")
+	dtos := make([]ServiceGroupDTO, 0, len(serviceGroups))
+	for _, serviceGroup := range serviceGroups {
+		dtos = append(dtos, *toServiceGroupDTO(serviceGroup))
+	}
+	return dtos, nil
 }
 
-// GetWorkCenterByID retrieves a work center by ID
-func (s *MESService) GetWorkCenterByID(ctx context.Context, query GetWorkCenterByIDQuery) (*WorkCenterDTO, error) {
-	// TODO: Implement repository call
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) UpdateServiceGroup(ctx context.Context, cmd UpdateServiceGroupCommand) (*ServiceGroupDTO, error) {
+	serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find service group for update: %w", err)
+	}
+	if serviceGroup == nil {
+		return nil, fmt.Errorf("service group not found")
+	}
+
+	if cmd.Name != nil {
+		serviceGroup.Name = *cmd.Name
+	}
+	if cmd.Description != nil {
+		serviceGroup.Description = *cmd.Description
+	}
+	if cmd.ProductGroupID != nil {
+		serviceGroup.ProductGroupID = cmd.ProductGroupID
+	}
+	if cmd.IsActive != nil {
+		serviceGroup.IsActive = *cmd.IsActive
+	}
+	if cmd.TaskAssignments != nil {
+		serviceGroup.Tasks = mapTaskAssignments(cmd.TaskAssignments)
+	}
+
+	if err := s.serviceGroupRepo.Save(ctx, serviceGroup); err != nil {
+		return nil, fmt.Errorf("save service group update: %w", err)
+	}
+
+	return toServiceGroupDTO(serviceGroup), nil
 }
 
-// ListWorkCenters lists all work centers
-func (s *MESService) ListWorkCenters(ctx context.Context, query ListWorkCentersQuery) (*PaginatedWorkCentersResponse, error) {
-	// TODO: Implement repository call
-	return nil, fmt.Errorf("not implemented")
+func (s *MESService) DeleteServiceGroup(ctx context.Context, cmd DeleteServiceGroupCommand) error {
+	if err := s.serviceGroupRepo.Delete(ctx, cmd.ID); err != nil {
+		return fmt.Errorf("delete service group: %w", err)
+	}
+	return nil
 }
 
-// UpdateWorkCenter updates an existing work center
-func (s *MESService) UpdateWorkCenter(ctx context.Context, cmd UpdateWorkCenterCommand) (*WorkCenterDTO, error) {
-	// TODO: Implement update logic
-	return nil, fmt.Errorf("not implemented")
+func mapTaskAssignments(inputs []ServiceGroupTaskInput) []domain.ServiceGroupTask {
+	if len(inputs) == 0 {
+		return []domain.ServiceGroupTask{}
+	}
+
+	assignments := make([]domain.ServiceGroupTask, 0, len(inputs))
+	for _, input := range inputs {
+		assignments = append(assignments, domain.ServiceGroupTask{
+			TaskID:   input.TaskID,
+			Sequence: input.Sequence,
+		})
+	}
+	return assignments
+}
+
+func toTaskDTO(task *domain.Task) *TaskDTO {
+	if task == nil {
+		return nil
+	}
+
+	return &TaskDTO{
+		ID:          task.ID,
+		Name:        task.Name,
+		Description: task.Description,
+		IsActive:    task.IsActive,
+	}
+}
+
+func toPositionDTO(position *domain.Position) *PositionDTO {
+	if position == nil {
+		return nil
+	}
+
+	return &PositionDTO{
+		ID:          position.ID,
+		Name:        position.Name,
+		Code:        position.Code,
+		Description: position.Description,
+		IsActive:    position.IsActive,
+	}
+}
+
+func toServiceGroupDTO(serviceGroup *domain.ServiceGroup) *ServiceGroupDTO {
+	if serviceGroup == nil {
+		return nil
+	}
+
+	tasks := make([]ServiceGroupTaskDTO, 0, len(serviceGroup.Tasks))
+	for _, task := range serviceGroup.Tasks {
+		tasks = append(tasks, ServiceGroupTaskDTO{
+			TaskID:   task.TaskID,
+			Sequence: task.Sequence,
+		})
+	}
+
+	return &ServiceGroupDTO{
+		ID:             serviceGroup.ID,
+		Name:           serviceGroup.Name,
+		Description:    serviceGroup.Description,
+		ProductGroupID: serviceGroup.ProductGroupID,
+		IsActive:       serviceGroup.IsActive,
+		Tasks:          tasks,
+	}
+}
+
+func (s *MESService) CreateMESWork(ctx context.Context, cmd CreateMESWorkCommand) (*MESWorkDTO, error) {
+	if len(cmd.ServiceGroupAssignments) == 0 {
+		return nil, fmt.Errorf("at least one service group assignment is required")
+	}
+
+	status := domain.ProductionStatusDraft
+	if cmd.Status != nil && *cmd.Status != "" {
+		status = domain.ProductionStatus(strings.ToUpper(*cmd.Status))
+	}
+
+	priority := domain.WorkPriorityNormal
+	if cmd.Priority != nil && *cmd.Priority != "" {
+		priority = domain.WorkPriority(strings.ToUpper(*cmd.Priority))
+	}
+
+	year := time.Now().UTC().Year()
+	count, err := s.mesWorkRepo.CountByYear(ctx, year)
+	if err != nil {
+		return nil, fmt.Errorf("count works by year: %w", err)
+	}
+	workNumber := fmt.Sprintf("MES-%d-%03d", year, count+1)
+
+	garmentNotes := ""
+	if cmd.GarmentNotes != nil {
+		garmentNotes = *cmd.GarmentNotes
+	}
+
+	groups := make([]domain.MESWorkServiceGroup, 0, len(cmd.ServiceGroupAssignments))
+	for _, assignment := range cmd.ServiceGroupAssignments {
+		serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, assignment.ServiceGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("find service group for mes work: %w", err)
+		}
+		if serviceGroup == nil {
+			return nil, fmt.Errorf("service group not found")
+		}
+
+		designFilePath := ""
+		if assignment.DesignFilePath != nil {
+			designFilePath = *assignment.DesignFilePath
+		}
+		notes := ""
+		if assignment.Notes != nil {
+			notes = *assignment.Notes
+		}
+
+		generatedTasks := make([]domain.MESWorkTask, 0, len(serviceGroup.Tasks))
+		for _, taskAssignment := range serviceGroup.Tasks {
+			generatedTasks = append(generatedTasks, domain.MESWorkTask{
+				ID:       uuid.New(),
+				TaskID:   taskAssignment.TaskID,
+				Sequence: taskAssignment.Sequence,
+				Status:   domain.TaskStatusPending,
+			})
+		}
+
+		groups = append(groups, domain.MESWorkServiceGroup{
+			ID:             uuid.New(),
+			ServiceGroupID: assignment.ServiceGroupID,
+			PositionID:     assignment.PositionID,
+			DesignFilePath: designFilePath,
+			Notes:          notes,
+			Sequence:       assignment.Sequence,
+			Tasks:          generatedTasks,
+		})
+	}
+
+	work, err := domain.NewMESWork(
+		workNumber,
+		cmd.WorkName,
+		cmd.PartyID,
+		cmd.TangibleGroupID,
+		garmentNotes,
+		status,
+		priority,
+		nil,
+		nil,
+		nil,
+		groups,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save mes work: %w", err)
+	}
+
+	return toMESWorkDTO(work), nil
+}
+
+func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESWorkTaskStatusCommand) (*MESWorkDTO, error) {
+	work, err := s.mesWorkRepo.FindByID(ctx, cmd.WorkID)
+	if err != nil {
+		return nil, fmt.Errorf("find mes work for task update: %w", err)
+	}
+	if work == nil {
+		return nil, fmt.Errorf("mes work not found")
+	}
+
+	action := strings.ToUpper(strings.TrimSpace(cmd.Action))
+	now := time.Now().UTC()
+	assignedTo := parseActorUUID(cmd.ActorID)
+
+	found := false
+	for groupIndex := range work.ServiceGroups {
+		for taskIndex := range work.ServiceGroups[groupIndex].Tasks {
+			task := &work.ServiceGroups[groupIndex].Tasks[taskIndex]
+			if task.ID != cmd.TaskID {
+				continue
+			}
+
+			found = true
+			switch action {
+			case "START":
+				task.Status = domain.TaskStatusInProgress
+				if task.StartedAt == nil {
+					task.StartedAt = &now
+				}
+				task.CompletedAt = nil
+				if assignedTo != nil {
+					task.AssignedTo = assignedTo
+				}
+				if work.StartDate == nil {
+					work.StartDate = &now
+				}
+			case "PAUSE":
+				task.Status = domain.TaskStatusPending
+			case "COMPLETE":
+				task.Status = domain.TaskStatusCompleted
+				if task.StartedAt == nil {
+					task.StartedAt = &now
+				}
+				task.CompletedAt = &now
+				if assignedTo != nil {
+					task.AssignedTo = assignedTo
+				}
+			case "BLOCK":
+				task.Status = domain.TaskStatusBlocked
+			default:
+				return nil, fmt.Errorf("invalid action: %s", cmd.Action)
+			}
+
+			if cmd.Notes != nil {
+				task.Notes = strings.TrimSpace(*cmd.Notes)
+			}
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("mes work task not found")
+	}
+
+	recalculateWorkStatus(work, now)
+
+	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save mes work task update: %w", err)
+	}
+
+	return toMESWorkDTO(work), nil
+}
+
+func (s *MESService) ListMESWorks(ctx context.Context, query ListMESWorksQuery) ([]MESWorkDTO, error) {
+	var status *domain.ProductionStatus
+	if query.Status != nil && *query.Status != "" {
+		s := domain.ProductionStatus(strings.ToUpper(*query.Status))
+		status = &s
+	}
+
+	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{
+		Status:  status,
+		Search:  query.Search,
+		PartyID: query.PartyID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list mes works: %w", err)
+	}
+
+	result := make([]MESWorkDTO, 0, len(works))
+	for _, work := range works {
+		result = append(result, *toMESWorkDTO(work))
+	}
+	return result, nil
+}
+
+func (s *MESService) GetMESWorkByID(ctx context.Context, query GetMESWorkByIDQuery) (*MESWorkDTO, error) {
+	work, err := s.mesWorkRepo.FindByID(ctx, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find mes work by id: %w", err)
+	}
+	if work == nil {
+		return nil, fmt.Errorf("mes work not found")
+	}
+	return toMESWorkDTO(work), nil
+}
+
+func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDashboardStatsDTO, error) {
+	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{})
+	if err != nil {
+		return nil, fmt.Errorf("get mes work dashboard stats: %w", err)
+	}
+
+	now := time.Now().UTC()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	tomorrowStart := todayStart.Add(24 * time.Hour)
+
+	stats := &MESWorkDashboardStatsDTO{
+		Total:    len(works),
+		ByStatus: map[string]int{},
+	}
+
+	for _, work := range works {
+		stats.ByStatus[string(work.Status)]++
+
+		if work.DueDate != nil {
+			if work.DueDate.Before(todayStart) && isOpenMESWorkStatus(work.Status) {
+				stats.Overdue++
+			}
+			if (work.DueDate.Equal(todayStart) || work.DueDate.After(todayStart)) && work.DueDate.Before(tomorrowStart) {
+				stats.DueToday++
+			}
+		}
+	}
+
+	return stats, nil
+}
+
+func (s *MESService) ListOverdueMESWorks(ctx context.Context, query ListOverdueMESWorksQuery) ([]MESWorkDTO, error) {
+	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{})
+	if err != nil {
+		return nil, fmt.Errorf("list overdue mes works: %w", err)
+	}
+
+	todayStart := time.Date(time.Now().UTC().Year(), time.Now().UTC().Month(), time.Now().UTC().Day(), 0, 0, 0, 0, time.UTC)
+	overdue := make([]*domain.MESWork, 0)
+	for _, work := range works {
+		if work.DueDate != nil && work.DueDate.Before(todayStart) && isOpenMESWorkStatus(work.Status) {
+			overdue = append(overdue, work)
+		}
+	}
+
+	sort.SliceStable(overdue, func(i, j int) bool {
+		return overdue[i].DueDate.Before(*overdue[j].DueDate)
+	})
+
+	if query.Limit > 0 && len(overdue) > query.Limit {
+		overdue = overdue[:query.Limit]
+	}
+
+	result := make([]MESWorkDTO, 0, len(overdue))
+	for _, work := range overdue {
+		result = append(result, *toMESWorkDTO(work))
+	}
+
+	return result, nil
+}
+
+func isOpenMESWorkStatus(status domain.ProductionStatus) bool {
+	return status != domain.ProductionStatusCompleted && status != domain.ProductionStatusCancelled
+}
+
+func parseActorUUID(actorID string) *uuid.UUID {
+	if actorID == "" {
+		return nil
+	}
+
+	parsed, err := uuid.Parse(actorID)
+	if err != nil {
+		return nil
+	}
+
+	return &parsed
+}
+
+func recalculateWorkStatus(work *domain.MESWork, now time.Time) {
+	if work == nil {
+		return
+	}
+
+	total := 0
+	completedOrSkipped := 0
+	hasInProgress := false
+	hasBlocked := false
+	hasPending := false
+
+	for _, group := range work.ServiceGroups {
+		for _, task := range group.Tasks {
+			total++
+			switch task.Status {
+			case domain.TaskStatusCompleted, domain.TaskStatusSkipped:
+				completedOrSkipped++
+			case domain.TaskStatusInProgress:
+				hasInProgress = true
+			case domain.TaskStatusBlocked:
+				hasBlocked = true
+			case domain.TaskStatusPending:
+				hasPending = true
+			}
+		}
+	}
+
+	if total > 0 && completedOrSkipped == total {
+		work.Status = domain.ProductionStatusCompleted
+		work.CompletedDate = &now
+		if work.StartDate == nil {
+			work.StartDate = &now
+		}
+		return
+	}
+
+	work.CompletedDate = nil
+
+	if hasBlocked {
+		work.Status = domain.ProductionStatusOnHold
+		return
+	}
+
+	if hasInProgress {
+		work.Status = domain.ProductionStatusInProgress
+		if work.StartDate == nil {
+			work.StartDate = &now
+		}
+		return
+	}
+
+	if hasPending {
+		work.Status = domain.ProductionStatusPending
+		return
+	}
+}
+
+func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
+	if work == nil {
+		return nil
+	}
+
+	groups := make([]MESWorkServiceGroupDTO, 0, len(work.ServiceGroups))
+	for _, group := range work.ServiceGroups {
+		tasks := make([]MESWorkTaskDTO, 0, len(group.Tasks))
+		for _, task := range group.Tasks {
+			tasks = append(tasks, MESWorkTaskDTO{
+				ID:          task.ID,
+				TaskID:      task.TaskID,
+				Sequence:    task.Sequence,
+				Status:      string(task.Status),
+				AssignedTo:  task.AssignedTo,
+				StartedAt:   task.StartedAt,
+				CompletedAt: task.CompletedAt,
+				Notes:       task.Notes,
+			})
+		}
+
+		groups = append(groups, MESWorkServiceGroupDTO{
+			ID:             group.ID,
+			ServiceGroupID: group.ServiceGroupID,
+			PositionID:     group.PositionID,
+			DesignFilePath: group.DesignFilePath,
+			Notes:          group.Notes,
+			Sequence:       group.Sequence,
+			Tasks:          tasks,
+		})
+	}
+
+	return &MESWorkDTO{
+		ID:              work.ID,
+		WorkNumber:      work.WorkNumber,
+		WorkName:        work.WorkName,
+		PartyID:         work.PartyID,
+		TangibleGroupID: work.TangibleGroupID,
+		GarmentNotes:    work.GarmentNotes,
+		Status:          string(work.Status),
+		Priority:        string(work.Priority),
+		StartDate:       work.StartDate,
+		DueDate:         work.DueDate,
+		CompletedDate:   work.CompletedDate,
+		ServiceGroups:   groups,
+	}
 }

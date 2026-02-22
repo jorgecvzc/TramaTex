@@ -1,5 +1,41 @@
-# Vue 3 + Vite
+# Frontend TramaTex (Vue + Vite)
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## Configuración de emisor para impresión (Sales)
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+Los documentos de Sales (presupuestos, pedidos, albaranes y facturas) usan un perfil de emisor para cabecera/pie de impresión.
+
+### Variables de entorno (`VITE_`)
+
+Puedes definir estos valores en `.env` (o por entorno):
+
+- `VITE_PRINT_ISSUER_NAME`
+- `VITE_PRINT_ISSUER_TAX_LABEL`
+- `VITE_PRINT_ISSUER_TAX_ID`
+- `VITE_PRINT_ISSUER_ADDRESS`
+- `VITE_PRINT_ISSUER_CITY`
+- `VITE_PRINT_ISSUER_CONTACT`
+
+Ejemplo:
+
+```env
+VITE_PRINT_ISSUER_NAME=TramaTex S.L.
+VITE_PRINT_ISSUER_TAX_LABEL=CIF
+VITE_PRINT_ISSUER_TAX_ID=B12345678
+VITE_PRINT_ISSUER_ADDRESS=C/ Ejemplo 123
+VITE_PRINT_ISSUER_CITY=28001 Madrid
+VITE_PRINT_ISSUER_CONTACT=info@tramatex.com · +34 900 000 000
+```
+
+### Override en runtime (`localStorage`)
+
+La pantalla Admin `Administración / Impresión` guarda un override en:
+
+- clave: `tramatex_print_issuer_profile`
+
+Si existe esa clave, sus valores tienen prioridad sobre `.env` para ese navegador/usuario.
+
+### Precedencia de valores
+
+1. Valores por defecto internos
+2. Variables `VITE_PRINT_ISSUER_*`
+3. Override de `localStorage` (`tramatex_print_issuer_profile`)

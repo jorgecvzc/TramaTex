@@ -868,6 +868,7 @@ func (s *SalesService) ensurePartyExists(ctx context.Context, partyID uuid.UUID)
 
 type orderLineItemSeed struct {
 	ID                    *uuid.UUID
+	MesWorkID             *uuid.UUID
 	ProductVariantID      uuid.UUID
 	Quantity              int
 	ManualUnitPrice       *MoneyDTO
@@ -880,6 +881,7 @@ func orderLineItemSeedsFromOrder(items []domain.OrderLineItem) []orderLineItemSe
 		id := item.ID
 		seeds = append(seeds, orderLineItemSeed{
 			ID:                    &id,
+			MesWorkID:             item.MESWorkID,
 			ProductVariantID:      item.ProductVariantID,
 			Quantity:              item.Quantity,
 			ManualUnitPrice:       toMoneyDTOPtr(item.ManualUnitPrice),
@@ -943,6 +945,7 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 		if err != nil {
 			return nil, err
 		}
+		lineItem.MESWorkID = item.MesWorkID
 		lineItems = append(lineItems, lineItem)
 	}
 	return lineItems, nil
@@ -958,6 +961,7 @@ func (s *SalesService) buildOrderLineItems(ctx context.Context, partyID uuid.UUI
 		}
 		seeds = append(seeds, orderLineItemSeed{
 			ID:                    id,
+			MesWorkID:             item.MesWorkID,
 			ProductVariantID:      item.ProductVariantID,
 			Quantity:              item.Quantity,
 			ManualUnitPrice:       item.ManualUnitPrice,
@@ -1025,6 +1029,7 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 		if seed.ID != nil {
 			lineItem.ID = *seed.ID
 		}
+		lineItem.MESWorkID = seed.MesWorkID
 		lineItems = append(lineItems, lineItem)
 	}
 

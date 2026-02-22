@@ -10,6 +10,7 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 	for i, item := range q.LineItems {
 		orderItems[i] = OrderLineItem{
 			ID:                        item.ID,
+			MESWorkID:                 item.MESWorkID,
 			ProductVariantID:          item.ProductVariantID,
 			Quantity:                  item.Quantity,
 			CalculatedUnitPrice:       item.CalculatedUnitPrice,

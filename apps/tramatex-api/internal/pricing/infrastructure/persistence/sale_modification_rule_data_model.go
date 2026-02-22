@@ -5,13 +5,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"gorm.io/gorm"
 
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
 
 type SaleModificationRuleDataModel struct {
-	gorm.Model
 	ID                    uuid.UUID      `gorm:"type:uuid;primary_key;"`
 	Name                  string         `gorm:"not null"`
 	ClientIDs             pq.StringArray `gorm:"type:uuid[]"`

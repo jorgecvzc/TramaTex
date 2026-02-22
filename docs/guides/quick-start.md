@@ -247,8 +247,10 @@ npm run dev
 ## 📚 Documentación Adicional
 
 - **Credenciales completas:** `TEST_CREDENTIALS.md`
+- **Credenciales completas:** `docs/guides/developer/test-credentials.md`
 - **Generar nuevos hashes:** `apps/tramatex-api/cmd/hashgen/`
 - **Arquitectura del proyecto:** `docs/architecture/`
+- **Configuración impresión Sales (perfil fiscal emisor):** `apps/frontend/README.md` (sección "Configuración de emisor para impresión (Sales)")
 - **Sistema de agentes:** `AGENTS.md`
 - **Sprint actual:** `docs/log/sprints/sprint-09/`
 

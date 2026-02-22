@@ -4,13 +4,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
 
 type BrandProfitMarginDataModel struct {
-	gorm.Model
 	ID              uuid.UUID `gorm:"type:uuid;primary_key;"`
 	BrandID         uuid.UUID `gorm:"type:uuid;not null"`
 	PercentageValue *float64  `gorm:"type:numeric(8,4)"`

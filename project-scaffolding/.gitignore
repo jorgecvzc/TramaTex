@@ -1,0 +1,20 @@
+# Directorio temporal - no versionar su contenido
+tmp/*
+!tmp/README.md
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules si se usan scripts
+node_modules/
+
+# Logs
+*.log

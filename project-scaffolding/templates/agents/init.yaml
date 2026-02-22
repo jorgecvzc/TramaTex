@@ -55,7 +55,7 @@ workflow:
       ¿Qué tipo de información del proyecto te gustaría obtener?
       1. Documentación general (docs/README.md)
       2. Contexto de agentes (agents/project/context/)
-      3. Guía de uso de agentes (agents/agent-development-guide.md)
+      3. Guía de uso de agentes (docs/guides/developer/agent-development-guide.md)
       4. Alinear agentes de contexto con la documentación (docs/)
       5. Volver al menú principal
       Por favor, introduce el número de tu elección:
@@ -71,7 +71,7 @@ workflow:
       output: "Puedes usar el agente 'load-project-context.yaml' para cargar contexto arquitectónico o de estándares, o explorar directamente en 'agents/project/context/'."
       goto: "step_2_project_info_menu"
     else_if: "PROJECT_INFO_CHOICE == '3'"
-      output: "Puedes ver la guía de uso de agentes en: agents/agent-development-guide.md"
+      output: "Puedes ver la guía de uso de agentes en: docs/guides/developer/agent-development-guide.md"
       goto: "step_2_project_info_menu"
     else_if: "PROJECT_INFO_CHOICE == '4'"
       load: "align-context-agents.yaml"

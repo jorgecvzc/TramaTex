@@ -91,9 +91,12 @@ export interface Brand {
 // PRODUCT GROUP ENTITIES
 // ============================================================================
 
+export type ProductGroupType = 'TANGIBLE' | 'SERVICE'
+
 export interface ProductGroup {
   id: string
   name: string
+  type: ProductGroupType // Classification: TANGIBLE for physical products, SERVICE for services
   code: string
   description: string | null
   parent_id: string | null

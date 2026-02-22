@@ -1,0 +1,95 @@
+﻿# Global
+.DS_Store
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+
+# Environment Variables
+# DO NOT commit .env files with secrets
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.remote
+
+# Go Backend
+apps/tramatex-api/bin/
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+go.work
+go.work.sum
+
+# Test binaries
+*.test
+*.test.exe
+
+# Coverage artifacts (Go)
+coverage/
+coverage-reports/
+coverage-product/
+*.coverage.out
+*.out
+cov
+cov-*
+coverage-*
+*_coverage
+*_cov
+*-cov
+*-coverage
+test_output.txt
+tmp_pricing_app
+prod_cov*
+product_*_cov*
+sales_*_cov*
+pricing_*cov*
+
+# Node/Frontend
+apps/frontend/node_modules/
+apps/frontend/dist/
+node_modules/
+dist/
+.nuxt/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Obsidian
+**/.obsidian
+
+# Special files (Windows)
+NUL
+nul

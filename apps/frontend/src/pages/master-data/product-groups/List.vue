@@ -35,6 +35,7 @@
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Tipo</th>
               <th>ID</th>
               <th>Categoría Padre</th>
               <th class="text-center">Productos</th>
@@ -45,6 +46,11 @@
             <tr v-for="group in groups" :key="group.id">
               <td>
                 <strong>{{ group.name }}</strong>
+              </td>
+              <td>
+                <span v-if="group.type === 'TANGIBLE'" class="badge badge-tangible">🔧 Tangible</span>
+                <span v-else-if="group.type === 'SERVICE'" class="badge badge-service">⚙️ Servicio</span>
+                <span v-else class="badge">{{ group.type }}</span>
               </td>
               <td>
                 <code class="id-badge">{{ group.id.substring(0, 8) }}...</code>
@@ -64,7 +70,7 @@
               </td>
             </tr>
             <tr v-if="groups.length === 0">
-              <td colspan="5" class="text-center empty-state">
+              <td colspan="6" class="text-center empty-state">
                 No hay categorías registradas. Crea una nueva para comenzar.
               </td>
             </tr>
@@ -514,5 +520,17 @@ onMounted(() => {
 
 .mr-2 {
   margin-right: 0.5rem;
+}
+
+.badge-tangible {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+.badge-service {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 </style>

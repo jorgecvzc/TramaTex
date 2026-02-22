@@ -173,6 +173,7 @@ type DeleteBrandCommand struct {
 type CreateProductGroupCommand struct {
 	ActorID  string
 	Name     string
+	Type     string // TANGIBLE or SERVICE
 	ParentID *uuid.UUID
 	IsActive bool
 }
@@ -182,6 +183,7 @@ type UpdateProductGroupCommand struct {
 	ActorID  string
 	ID       uuid.UUID
 	Name     *string
+	Type     *string // TANGIBLE or SERVICE
 	ParentID *uuid.UUID
 	IsActive *bool
 }

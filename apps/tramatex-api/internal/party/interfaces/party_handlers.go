@@ -45,6 +45,10 @@ func SplitAndTrim(s, sep string) []string {
 	return result
 }
 
+func stringPtr(value string) *string {
+	return &value
+}
+
 func NewPartyHandler(
 	createHandler *application.CreatePartyHandler,
 	updateHandler *application.UpdatePartyHandler,
@@ -85,29 +89,18 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 
 	if req.PersonProfile != nil {
 		cmd.PersonProfile = &application.PersonProfileInput{
-			FirstName: req.PersonProfile.FirstName,
-			LastName:  req.PersonProfile.LastName,
+			FirstName: stringPtr(req.PersonProfile.FirstName),
+			LastName:  stringPtr(req.PersonProfile.LastName),
 		}
 	}
 
 	if req.OrganizationProfile != nil {
-		orgProfile := &application.OrganizationProfileInput{
-			Name:      req.OrganizationProfile.Name,
-			TaxID:     req.OrganizationProfile.TaxID,
-			TaxIDType: req.OrganizationProfile.TaxIDType,
-			Website:   req.OrganizationProfile.Website,
-			Contacts:  make([]application.ContactDetailsInput, 0),
+		cmd.OrganizationProfile = &application.OrganizationProfileInput{
+			Name:      stringPtr(req.OrganizationProfile.Name),
+			TaxID:     stringPtr(req.OrganizationProfile.TaxID),
+			TaxIDType: stringPtr(req.OrganizationProfile.TaxIDType),
+			Website:   stringPtr(req.OrganizationProfile.Website),
 		}
-		for _, contact := range req.OrganizationProfile.Contacts {
-			orgProfile.Contacts = append(orgProfile.Contacts, application.ContactDetailsInput{
-				ID:              contact.ID,
-				TypeDescription: contact.TypeDescription,
-				Phone:           contact.Phone,
-				Email:           contact.Email,
-				RelatedPartyID:  contact.RelatedPartyID,
-			})
-		}
-		cmd.OrganizationProfile = orgProfile
 	}
 
 	party, err := h.createHandler.Handle(c.Request.Context(), cmd)
@@ -245,17 +238,17 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 
 	if req.PersonProfile != nil {
 		cmd.PersonProfile = &application.PersonProfileInput{
-			FirstName: req.PersonProfile.FirstName,
-			LastName:  req.PersonProfile.LastName,
+			FirstName: stringPtr(req.PersonProfile.FirstName),
+			LastName:  stringPtr(req.PersonProfile.LastName),
 		}
 	}
 
 	if req.OrganizationProfile != nil {
 		cmd.OrganizationProfile = &application.OrganizationProfileInput{
-			Name:      req.OrganizationProfile.Name,
-			TaxID:     req.OrganizationProfile.TaxID,
-			TaxIDType: req.OrganizationProfile.TaxIDType,
-			Website:   req.OrganizationProfile.Website,
+			Name:      stringPtr(req.OrganizationProfile.Name),
+			TaxID:     stringPtr(req.OrganizationProfile.TaxID),
+			TaxIDType: stringPtr(req.OrganizationProfile.TaxIDType),
+			Website:   stringPtr(req.OrganizationProfile.Website),
 		}
 	}
 

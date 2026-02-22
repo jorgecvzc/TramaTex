@@ -33,6 +33,11 @@ import (
 	pricing_handler "github.com/joran-cortez/tramatex/internal/pricing/interfaces/http/handler"
 	"github.com/redis/go-redis/v9"
 
+	// MES Module Imports
+	mes_uc "github.com/joran-cortez/tramatex/internal/mes/application"
+	mes_repo "github.com/joran-cortez/tramatex/internal/mes/infrastructure/persistence"
+	mes_handler "github.com/joran-cortez/tramatex/internal/mes/interfaces/http/handler"
+
 	// Sales Module Imports
 	sales_uc "github.com/joran-cortez/tramatex/internal/sales/application"
 	sales_repo "github.com/joran-cortez/tramatex/internal/sales/infrastructure/persistence"
@@ -240,6 +245,14 @@ func main() {
 	)
 	salesHandler := sales_handler.NewSalesHandler(salesService)
 
+	// --- MES Module Dependencies ---
+	taskRepo := mes_repo.NewGORMTaskRepository(db)
+	positionRepo := mes_repo.NewGORMPositionRepository(db)
+	serviceGroupRepo := mes_repo.NewGORMServiceGroupRepository(db)
+	mesWorkRepo := mes_repo.NewGORMMESWorkRepository(db)
+	mesService := mes_uc.NewMESService(taskRepo, positionRepo, serviceGroupRepo, mesWorkRepo)
+	mesHandler := mes_handler.NewMESHandler(mesService)
+
 	// --- Middleware ---
 	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)
 
@@ -430,6 +443,46 @@ func main() {
 					invoices.POST("/simplified", infra_middleware.RequireRole("admin", "commercial", "cashier"), salesHandler.CreateSimplifiedInvoice)
 					invoices.GET("", salesHandler.ListInvoices)
 					invoices.GET("/:id", salesHandler.GetInvoice)
+				}
+			}
+
+			mes := protected.Group("/mes")
+			{
+				tasks := mes.Group("/tasks")
+				{
+					tasks.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateTask)
+					tasks.GET("", mesHandler.ListTasks)
+					tasks.GET("/:id", mesHandler.GetTask)
+					tasks.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateTask)
+					tasks.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteTask)
+				}
+
+				positions := mes.Group("/positions")
+				{
+					positions.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreatePosition)
+					positions.GET("", mesHandler.ListPositions)
+					positions.GET("/:id", mesHandler.GetPosition)
+					positions.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdatePosition)
+					positions.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeletePosition)
+				}
+
+				serviceGroups := mes.Group("/service-groups")
+				{
+					serviceGroups.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateServiceGroup)
+					serviceGroups.GET("", mesHandler.ListServiceGroups)
+					serviceGroups.GET("/:id", mesHandler.GetServiceGroup)
+					serviceGroups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateServiceGroup)
+					serviceGroups.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteServiceGroup)
+				}
+
+				works := mes.Group("/works")
+				{
+					works.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateMESWork)
+					works.GET("", mesHandler.ListMESWorks)
+					works.GET("/dashboard/stats", mesHandler.GetMESWorkDashboardStats)
+					works.GET("/overdue", mesHandler.ListOverdueMESWorks)
+					works.GET("/:id", mesHandler.GetMESWork)
+					works.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateMESWorkTaskStatus)
 				}
 			}
 

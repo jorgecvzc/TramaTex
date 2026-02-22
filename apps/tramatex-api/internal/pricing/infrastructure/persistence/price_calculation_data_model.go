@@ -5,13 +5,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
 
 type PriceCalculationDataModel struct {
-	gorm.Model
 	ID               uuid.UUID `gorm:"type:uuid;primary_key;"`
 	ProductVariantID uuid.UUID `gorm:"type:uuid;not null"`
 	ClientID         uuid.UUID `gorm:"type:uuid;not null"`

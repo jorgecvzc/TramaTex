@@ -1,108 +1,101 @@
 package application
 
-import (
-	"time"
+import "github.com/google/uuid"
 
-	"github.com/google/uuid"
-)
-
-// ============================================================================
-// PRODUCTION RECIPE COMMANDS
-// ============================================================================
-
-// CreateProductionRecipeCommand creates a new production recipe
-type CreateProductionRecipeCommand struct {
-	Name            string                `json:"name" binding:"required"`
-	ClientID        uuid.UUID             `json:"clientId" binding:"required"`
-	ProductID       uuid.UUID             `json:"productId" binding:"required"`
-	RecipeType      string                `json:"recipeType" binding:"required"` // STANDARD, CUSTOM
-	TaskDefinitions []TaskDefinitionInput `json:"taskDefinitions"`
+type CreateTaskCommand struct {
+	ActorID     string  `json:"-"`
+	Name        string  `json:"name" binding:"required"`
+	Description *string `json:"description"`
+	IsActive    *bool   `json:"is_active"`
 }
 
-// UpdateProductionRecipeCommand updates an existing recipe
-type UpdateProductionRecipeCommand struct {
-	ID              uuid.UUID             `json:"id" binding:"required"`
-	Name            string                `json:"name" binding:"required"`
-	TaskDefinitions []TaskDefinitionInput `json:"taskDefinitions"`
+type UpdateTaskCommand struct {
+	ActorID     string `json:"-"`
+	ID          uuid.UUID
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	IsActive    *bool   `json:"is_active"`
 }
 
-// TaskDefinitionInput represents a task definition in a recipe
-type TaskDefinitionInput struct {
-	Name                string     `json:"name" binding:"required"`
-	Description         string     `json:"description"`
-	SequenceOrder       int        `json:"sequenceOrder" binding:"required"`
-	EstimatedDurationHs float64    `json:"estimatedDurationHs" binding:"required"`
-	WorkCenterID        *uuid.UUID `json:"workCenterId"`
+type DeleteTaskCommand struct {
+	ActorID string
+	ID      uuid.UUID
 }
 
-// ============================================================================
-// PRODUCTION ORDER COMMANDS
-// ============================================================================
-
-// CreateProductionOrderCommand creates a new production order
-type CreateProductionOrderCommand struct {
-	SalesOrderID uuid.UUID `json:"salesOrderId" binding:"required"`
-	RecipeID     uuid.UUID `json:"recipeId" binding:"required"`
-	ProductID    uuid.UUID `json:"productId" binding:"required"`
-	Quantity     int       `json:"quantity" binding:"required,min=1"`
-	StartDate    time.Time `json:"startDate" binding:"required"`
-	EndDate      time.Time `json:"endDate" binding:"required"`
+type CreatePositionCommand struct {
+	ActorID     string  `json:"-"`
+	Name        string  `json:"name" binding:"required"`
+	Code        string  `json:"code" binding:"required"`
+	Description *string `json:"description"`
+	IsActive    *bool   `json:"is_active"`
 }
 
-// UpdateProductionOrderStatusCommand changes order status
-type UpdateProductionOrderStatusCommand struct {
-	ID        uuid.UUID `json:"id" binding:"required"`
-	NewStatus string    `json:"newStatus" binding:"required"` // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+type UpdatePositionCommand struct {
+	ActorID     string `json:"-"`
+	ID          uuid.UUID
+	Name        *string `json:"name"`
+	Code        *string `json:"code"`
+	Description *string `json:"description"`
+	IsActive    *bool   `json:"is_active"`
 }
 
-// AssignWorkCenterCommand assigns a work center to a production order
-type AssignWorkCenterCommand struct {
-	ProductionOrderID uuid.UUID `json:"productionOrderId"  binding:"required"`
-	WorkCenterID      uuid.UUID `json:"workCenterId" binding:"required"`
+type DeletePositionCommand struct {
+	ActorID string
+	ID      uuid.UUID
 }
 
-// ============================================================================
-// TASK INSTANCE COMMANDS
-// ============================================================================
-
-// UpdateTaskStatusCommand updates a task instance status
-type UpdateTaskStatusCommand struct {
-	ProductionOrderID uuid.UUID `json:"productionOrderId" binding:"required"`
-	TaskInstanceID    uuid.UUID `json:"taskInstanceId" binding:"required"`
-	NewStatus         string    `json:"newStatus" binding:"required"` // PENDING, IN_PROGRESS, COMPLETED, BLOCKED
+type ServiceGroupTaskInput struct {
+	TaskID   uuid.UUID `json:"task_id" binding:"required"`
+	Sequence int       `json:"sequence" binding:"required,min=1"`
 }
 
-// AssignOperatorToTaskCommand assigns an operator to a task
-type AssignOperatorToTaskCommand struct {
-	ProductionOrderID uuid.UUID `json:"productionOrderId" binding:"required"`
-	TaskInstanceID    uuid.UUID `json:"taskInstanceId" binding:"required"`
-	OperatorID        uuid.UUID `json:"operatorId" binding:"required"`
+type CreateServiceGroupCommand struct {
+	ActorID         string                  `json:"-"`
+	Name            string                  `json:"name" binding:"required"`
+	Description     *string                 `json:"description"`
+	ProductGroupID  *uuid.UUID              `json:"product_group_id"`
+	IsActive        *bool                   `json:"is_active"`
+	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
 }
 
-// RecordTaskProgressCommand records actual time/completion for a task
-type RecordTaskProgressCommand struct {
-	ProductionOrderID uuid.UUID  `json:"productionOrderId" binding:"required"`
-	TaskInstanceID    uuid.UUID  `json:"taskInstanceId" binding:"required"`
-	ActualStartTime   *time.Time `json:"actualStartTime"`
-	ActualEndTime     *time.Time `json:"actualEndTime"`
-	Notes             string     `json:"notes"`
+type UpdateServiceGroupCommand struct {
+	ActorID         string `json:"-"`
+	ID              uuid.UUID
+	Name            *string                 `json:"name"`
+	Description     *string                 `json:"description"`
+	ProductGroupID  *uuid.UUID              `json:"product_group_id"`
+	IsActive        *bool                   `json:"is_active"`
+	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
 }
 
-// ============================================================================
-// WORK CENTER COMMANDS
-// ============================================================================
-
-// CreateWorkCenterCommand creates a new work center
-type CreateWorkCenterCommand struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
-	IsActive    bool   `json:"isActive"`
+type DeleteServiceGroupCommand struct {
+	ActorID string
+	ID      uuid.UUID
 }
 
-// UpdateWorkCenterCommand updates an existing work center
-type UpdateWorkCenterCommand struct {
-	ID          uuid.UUID `json:"id" binding:"required"`
-	Name        string    `json:"name" binding:"required"`
-	Description string    `json:"description"`
-	IsActive    bool      `json:"isActive"`
+type CreateMESWorkServiceGroupInput struct {
+	ServiceGroupID uuid.UUID `json:"service_group_id" binding:"required"`
+	PositionID     uuid.UUID `json:"position_id" binding:"required"`
+	DesignFilePath *string   `json:"design_file_path"`
+	Notes          *string   `json:"notes"`
+	Sequence       int       `json:"sequence" binding:"required,min=1"`
+}
+
+type CreateMESWorkCommand struct {
+	ActorID                 string                           `json:"-"`
+	WorkName                string                           `json:"work_name" binding:"required"`
+	PartyID                 string                           `json:"party_id" binding:"required"`
+	TangibleGroupID         uuid.UUID                        `json:"tangible_group_id" binding:"required"`
+	GarmentNotes            *string                          `json:"garment_notes"`
+	Status                  *string                          `json:"status"`
+	Priority                *string                          `json:"priority"`
+	ServiceGroupAssignments []CreateMESWorkServiceGroupInput `json:"service_group_assignments" binding:"required,min=1"`
+}
+
+type UpdateMESWorkTaskStatusCommand struct {
+	ActorID string `json:"-"`
+	WorkID  uuid.UUID
+	TaskID  uuid.UUID
+	Action  string  `json:"action" binding:"required"`
+	Notes   *string `json:"notes"`
 }

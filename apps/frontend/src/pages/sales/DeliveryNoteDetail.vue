@@ -43,6 +43,19 @@
         </div>
       </div>
 
+      <div class="print-doc-header">
+        <p class="print-brand">{{ issuerProfile.displayName }}</p>
+        <p v-if="issuerProfile.taxId" class="print-issuer-line">{{ issuerProfile.taxLabel }}: {{ issuerProfile.taxId }}</p>
+        <p v-if="issuerProfile.addressLine || issuerProfile.cityLine" class="print-issuer-line">{{ issuerProfile.addressLine }}<span v-if="issuerProfile.addressLine && issuerProfile.cityLine"> · </span>{{ issuerProfile.cityLine }}</p>
+        <p v-if="issuerProfile.contactLine" class="print-issuer-line">{{ issuerProfile.contactLine }}</p>
+        <h2>Albarán {{ deliveryNote.deliveryNoteNumber }}</h2>
+        <div class="print-doc-meta">
+          <span>Cliente: {{ partyName }}</span>
+          <span>Fecha entrega: {{ formatDate(deliveryNote.deliveryDate) }}</span>
+          <span>Pedido: {{ orderNumber || formatOrderId(deliveryNote.salesOrderId) }}</span>
+        </div>
+      </div>
+
       <!-- Delivery Note Info Cards -->
       <div class="info-grid">
         <div class="info-card">
@@ -208,6 +221,11 @@
           </div>
         </div>
       </div>
+
+      <div class="print-doc-footer">
+        <span>Documento generado por {{ issuerProfile.displayName }}</span>
+        <span>Creado: {{ formatDateTime(deliveryNote.createdAt) }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -218,6 +236,7 @@ import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
 import partyApi from '@/services/partyApi';
+import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
 
 const route = useRoute();
 const router = useRouter();
@@ -228,6 +247,7 @@ const error = ref('');
 const partyName = ref('Cargando...');
 const orderNumber = ref(null);
 const relatedInvoice = ref(null);
+const issuerProfile = getPrintIssuerProfile();
 
 const showSignaturesSection = computed(() => {
   // Show signatures section even if empty for visual consistency
@@ -314,9 +334,7 @@ async function loadRelatedInvoice() {
 }
 
 function printDeliveryNote() {
-  alert('Funcionalidad de impresión de albaranes (PDF) pendiente de implementación.\n\nEsta función generará un PDF imprimible del albarán.');
-  // TODO: Implement PDF generation
-  // window.print(); // Basic browser print as fallback
+  window.print();
 }
 
 function navigateToOrder(orderId) {
@@ -760,5 +778,98 @@ function formatVariantId(variantId) {
   color: #9ca3af;
   font-style: italic;
   font-size: 0.875rem;
+}
+
+.print-doc-header,
+.print-doc-footer {
+  display: none;
+}
+
+.print-brand {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.print-doc-header h2 {
+  margin: 0.35rem 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.print-issuer-line {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.print-doc-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+@media print {
+  :deep(.navbar),
+  :deep(nav),
+  .page-header,
+  .btn-back,
+  .header-actions,
+  .btn,
+  .document-link,
+  .order-link,
+  .value-link {
+    display: none !important;
+  }
+
+  .delivery-note-detail-container {
+    padding: 0;
+    max-width: none;
+  }
+
+  .print-doc-header,
+  .print-doc-footer {
+    display: block;
+    border: 1px solid #d1d5db;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: white;
+  }
+
+  .print-doc-footer {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #4b5563;
+  }
+
+  .info-card,
+  .notes-card,
+  .line-items-section,
+  .signatures-section,
+  .related-documents-section,
+  .table-container,
+  .signature-box,
+  .document-item {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db;
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+  }
+
+  .signatures-section,
+  .related-documents-section {
+    break-inside: avoid;
+  }
 }
 </style>

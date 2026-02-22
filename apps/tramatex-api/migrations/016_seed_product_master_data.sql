@@ -18,13 +18,31 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 -- PRODUCT GROUPS (Categories)
 -- ============================================================================
-INSERT INTO product_groups (id, name, is_active, created_at, updated_at) VALUES
-('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Calzado Deportivo', true, NOW(), NOW()),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Ropa Deportiva', true, NOW(), NOW()),
-('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Accesorios', true, NOW(), NOW()),
-('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Equipamiento', true, NOW(), NOW()),
-('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Textiles', true, NOW(), NOW())
-ON CONFLICT (id) DO NOTHING;
+DO $$
+BEGIN
+	IF EXISTS (
+		SELECT 1
+		FROM information_schema.columns
+		WHERE table_name = 'product_groups'
+		  AND column_name = 'group_type'
+	) THEN
+		INSERT INTO product_groups (id, name, group_type, is_active, created_at, updated_at) VALUES
+		('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Calzado Deportivo', 'TANGIBLE', true, NOW(), NOW()),
+		('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Ropa Deportiva', 'TANGIBLE', true, NOW(), NOW()),
+		('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Accesorios', 'TANGIBLE', true, NOW(), NOW()),
+		('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Equipamiento', 'TANGIBLE', true, NOW(), NOW()),
+		('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Textiles', 'TANGIBLE', true, NOW(), NOW())
+		ON CONFLICT (id) DO NOTHING;
+	ELSE
+		INSERT INTO product_groups (id, name, is_active, created_at, updated_at) VALUES
+		('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Calzado Deportivo', true, NOW(), NOW()),
+		('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Ropa Deportiva', true, NOW(), NOW()),
+		('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Accesorios', true, NOW(), NOW()),
+		('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Equipamiento', true, NOW(), NOW()),
+		('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'Textiles', true, NOW(), NOW())
+		ON CONFLICT (id) DO NOTHING;
+	END IF;
+END $$;
 
 -- ============================================================================
 -- ATTRIBUTES (Configurable options) 

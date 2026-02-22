@@ -35,22 +35,42 @@ func (b *Brand) ID_PTR() *uuid.UUID {
 	return &b.ID
 }
 
+// ProductGroupType represents the classification of a product group.
+type ProductGroupType string
+
+const (
+	// ProductGroupTypeTangible represents groups for physical/tangible products
+	ProductGroupTypeTangible ProductGroupType = "TANGIBLE"
+	// ProductGroupTypeService represents groups for service-based products
+	ProductGroupTypeService ProductGroupType = "SERVICE"
+)
+
+// IsValid validates the product group type.
+func (pgt ProductGroupType) IsValid() bool {
+	return pgt == ProductGroupTypeTangible || pgt == ProductGroupTypeService
+}
+
 // ProductGroup represents an external aggregate root, defined here for context.
 type ProductGroup struct {
 	ID            uuid.UUID
 	Name          string
+	Type          ProductGroupType // Classification: TANGIBLE or SERVICE
 	ParentGroupID *uuid.UUID
 	IsActive      bool
 }
 
 // NewProductGroup creates a new ProductGroup with validation.
-func NewProductGroup(name string, parentID *uuid.UUID, isActive bool) (*ProductGroup, error) {
+func NewProductGroup(name string, groupType ProductGroupType, parentID *uuid.UUID, isActive bool) (*ProductGroup, error) {
 	if name == "" {
 		return nil, NewValidationError("product group name is required")
+	}
+	if !groupType.IsValid() {
+		return nil, NewValidationError("invalid product group type: must be TANGIBLE or SERVICE")
 	}
 	return &ProductGroup{
 		ID:            uuid.New(),
 		Name:          name,
+		Type:          groupType,
 		ParentGroupID: parentID,
 		IsActive:      isActive,
 	}, nil
@@ -62,6 +82,15 @@ func (pg *ProductGroup) UpdateName(name string) error {
 		return NewValidationError("product group name is required")
 	}
 	pg.Name = name
+	return nil
+}
+
+// UpdateType updates the product group type with validation.
+func (pg *ProductGroup) UpdateType(groupType ProductGroupType) error {
+	if !groupType.IsValid() {
+		return NewValidationError("invalid product group type: must be TANGIBLE or SERVICE")
+	}
+	pg.Type = groupType
 	return nil
 }
 

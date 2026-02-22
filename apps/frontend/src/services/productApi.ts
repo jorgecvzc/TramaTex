@@ -13,6 +13,7 @@ import type {
   ListAttributesFilters,
   PaginatedResponse,
   VariantGenerationOptions,
+  ProductGroupType,
 } from '../types/product'
 
 const API_BASE = getApiBase()
@@ -57,6 +58,7 @@ interface BrandUI {
 interface ProductGroupUI {
   id: string
   name: string
+  type: ProductGroupType
   is_active: boolean
   parent_group_id: string | null
   description: string | null
@@ -684,6 +686,7 @@ class ProductApiService {
     const groups: ProductGroupUI[] = rawGroups.map((g: any) => ({
       id: g.id,
       name: g.name,
+      type: g.type || 'TANGIBLE',
       is_active: g.isActive,
       parent_group_id: g.parentGroupId,
       description: g.description,
@@ -712,6 +715,7 @@ class ProductApiService {
     return {
       id: data.id,
       name: data.name,
+      type: data.type || 'TANGIBLE',
       is_active: data.isActive,
       parent_group_id: data.parentGroupId,
       description: data.description,
@@ -724,6 +728,7 @@ class ProductApiService {
   async createProductGroup(data: {
     id?: string
     name: string
+    type?: string // TANGIBLE or SERVICE
     parentGroupId?: string
     isActive?: boolean
   }): Promise<any> {
@@ -733,6 +738,7 @@ class ProductApiService {
       body: JSON.stringify({
         id: data.id,
         name: data.name,
+        type: data.type || 'TANGIBLE',
         parent_group_id: data.parentGroupId || null,
         is_active: data.isActive !== undefined ? data.isActive : true,
       }),
@@ -750,6 +756,7 @@ class ProductApiService {
    */
   async updateProductGroup(id: string, data: {
     name?: string
+    type?: string // TANGIBLE or SERVICE
     parentGroupId?: string | null
     isActive?: boolean
   }): Promise<any> {
@@ -758,6 +765,7 @@ class ProductApiService {
       headers: this.getHeaders(),
       body: JSON.stringify({
         name: data.name,
+        type: data.type,
         parent_group_id: data.parentGroupId !== undefined ? data.parentGroupId : undefined,
         is_active: data.isActive !== undefined ? data.isActive : undefined,
       }),

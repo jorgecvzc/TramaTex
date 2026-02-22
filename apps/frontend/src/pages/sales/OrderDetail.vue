@@ -26,6 +26,13 @@
           </span>
         </div>
         <div class="header-actions">
+          <button
+            class="btn btn-secondary"
+            @click="printOrder"
+            title="Imprimir pedido"
+          >
+            🖨️ Imprimir
+          </button>
           <button 
             v-if="order.status === 'PENDING'" 
             class="btn btn-success" 
@@ -48,6 +55,19 @@
           >
             Cancelar Pedido
           </button>
+        </div>
+      </div>
+
+      <div class="print-doc-header">
+        <p class="print-brand">{{ issuerProfile.displayName }}</p>
+        <p v-if="issuerProfile.taxId" class="print-issuer-line">{{ issuerProfile.taxLabel }}: {{ issuerProfile.taxId }}</p>
+        <p v-if="issuerProfile.addressLine || issuerProfile.cityLine" class="print-issuer-line">{{ issuerProfile.addressLine }}<span v-if="issuerProfile.addressLine && issuerProfile.cityLine"> · </span>{{ issuerProfile.cityLine }}</p>
+        <p v-if="issuerProfile.contactLine" class="print-issuer-line">{{ issuerProfile.contactLine }}</p>
+        <h2>Pedido {{ order.orderNumber }}</h2>
+        <div class="print-doc-meta">
+          <span>Cliente: {{ formatPartyId(order.partyId) }}</span>
+          <span>Fecha pedido: {{ formatDate(order.orderDate) }}</span>
+          <span>Estado: {{ salesApi.getStatusLabel(order.status) }}</span>
         </div>
       </div>
 
@@ -134,6 +154,7 @@
             <thead>
               <tr>
                 <th>Variante</th>
+                <th>Trabajo MES</th>
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
                 <th>Descuento</th>
@@ -144,6 +165,18 @@
             <tbody>
               <tr v-for="item in order.lineItems" :key="item.id">
                 <td class="variant-id">{{ formatVariantId(item.productVariantID) }}</td>
+                 <td>
+                   <button
+                     v-if="item.mesWorkId"
+                     class="mes-link"
+                     @click="goToMesWork(item.mesWorkId)"
+                     type="button"
+                     :title="getMesWorkTooltip(item.mesWorkId)"
+                   >
+                     {{ formatMesWorkId(item.mesWorkId) }}
+                   </button>
+                   <span v-else>—</span>
+                 </td>
                 <td>{{ item.quantity }}</td>
                 <td>
                   {{ salesApi.formatMoney(item.finalUnitPrice) }}
@@ -171,6 +204,11 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="print-doc-footer">
+        <span>Documento generado por {{ issuerProfile.displayName }}</span>
+        <span>Entrega prevista: {{ formatDate(order.deliveryDate) }}</span>
       </div>
     </div>
 
@@ -355,6 +393,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
+import { mesApi } from '@/services/mesApi';
+import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
 
 const route = useRoute();
 const router = useRouter();
@@ -363,6 +403,8 @@ const order = ref(null);
 const isLoading = ref(false);
 const error = ref('');
 const deliveryNotes = ref([]);
+const mesWorksCache = ref({});
+const issuerProfile = getPrintIssuerProfile();
 
 const showAddItemModal = ref(false);
 const showEditItemModal = ref(false);
@@ -439,6 +481,7 @@ async function fetchOrder() {
   try {
     order.value = await salesApi.getOrder(orderId);
     await loadDeliveryNotes();
+    await loadMesWorksForOrder();
     initializeDeliveryNoteForm();
   } catch (err) {
     error.value = err?.message || 'No se pudo cargar el pedido';
@@ -458,6 +501,26 @@ async function loadDeliveryNotes() {
     console.error('Error loading delivery notes:', err);
     // Non-critical, don't show error to user
   }
+}
+
+async function loadMesWorksForOrder() {
+  const lineItems = order.value?.lineItems;
+  if (!Array.isArray(lineItems) || lineItems.length === 0) return;
+
+  const mesWorkIds = [...new Set(
+    lineItems
+      .map((item) => item?.mesWorkId)
+      .filter((mesWorkId) => typeof mesWorkId === 'string' && mesWorkId.length > 0),
+  )];
+
+  const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
+  if (uncachedIds.length === 0) return;
+
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  results.forEach((result, index) => {
+    const mesWorkId = uncachedIds[index];
+    mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
+  });
 }
 
 function initializeDeliveryNoteForm() {
@@ -644,6 +707,10 @@ function goBack() {
   router.push('/sales/orders');
 }
 
+function printOrder() {
+  window.print();
+}
+
 function formatDate(dateString) {
   if (!dateString) return '—';
   const date = new Date(dateString);
@@ -662,6 +729,28 @@ function formatPartyId(partyId) {
 function formatVariantId(variantId) {
   if (!variantId) return '—';
   return variantId.substring(0, 8) + '...';
+}
+
+function formatMesWorkId(mesWorkId) {
+  if (!mesWorkId) return '—';
+  const mesWork = mesWorksCache.value[mesWorkId];
+  if (mesWork?.work_number) return mesWork.work_number;
+  return mesWorkId.substring(0, 8) + '...';
+}
+
+function getMesWorkTooltip(mesWorkId) {
+  if (!mesWorkId) return 'Trabajo MES';
+  const mesWork = mesWorksCache.value[mesWorkId];
+  if (mesWork?.work_number && mesWork?.work_name) {
+    return `${mesWork.work_number} · ${mesWork.work_name}`;
+  }
+  if (mesWork?.work_number) return mesWork.work_number;
+  return `Trabajo MES ${mesWorkId}`;
+}
+
+function goToMesWork(mesWorkId) {
+  if (!mesWorkId) return;
+  router.push(`/mes/works/${mesWorkId}`);
 }
 </script>
 
@@ -954,6 +1043,20 @@ function formatVariantId(variantId) {
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
+}
+
+.mes-link {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+  text-decoration: underline;
+}
+
+.mes-link:hover {
+  color: #1d4ed8;
 }
 
 .actions-cell {
@@ -1285,5 +1388,101 @@ function formatVariantId(variantId) {
   justify-content: flex-end;
   padding: 1.5rem;
   border-top: 1px solid #f3f4f6;
+}
+
+.print-doc-header,
+.print-doc-footer {
+  display: none;
+}
+
+.print-brand {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.print-doc-header h2 {
+  margin: 0.35rem 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.print-issuer-line {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.print-doc-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+@media print {
+  :deep(.navbar),
+  :deep(nav),
+  .page-header,
+  .btn-back,
+  .header-actions,
+  .modal-overlay,
+  .btn,
+  .btn-icon,
+  .actions-cell {
+    display: none !important;
+  }
+
+  .order-detail-container {
+    padding: 0;
+    max-width: none;
+  }
+
+  .print-doc-header,
+  .print-doc-footer {
+    display: block;
+    border: 1px solid #d1d5db;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: white;
+  }
+
+  .print-doc-footer {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #4b5563;
+  }
+
+  .info-card,
+  .notes-card,
+  .line-items-section,
+  .table-container,
+  .delivery-notes-section {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .status-badge {
+    border: 1px solid #9ca3af;
+    color: #111827 !important;
+    background: transparent !important;
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+  }
 }
 </style>

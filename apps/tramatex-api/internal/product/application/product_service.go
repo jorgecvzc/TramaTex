@@ -598,17 +598,140 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 		domainAttributes = append(domainAttributes, fullDomainAttribute)
 	}
 
-	// Logic to generate all possible combinations of variants based on applicable attributes
-	// This is a complex combinatorial problem and requires careful implementation.
-	// Placeholder: This part will iterate through all combinations and create/update variants.
+	if len(domainAttributes) == 0 {
+		return nil
+	}
 
-	// For each combination:
-	//   - Construct expected SKU
-	//   - Check if variant already exists by SKU or by ProductID + AttributeValues
-	//   - If not exists, create with Status = CONFIRMED (as it's pre-generated)
-	//   - If exists and PROVISIONAL, update Status to CONFIRMED
+	sort.Slice(domainAttributes, func(i, j int) bool {
+		return domainAttributes[i].SortOrder < domainAttributes[j].SortOrder
+	})
 
-	return nil // Placeholder for actual implementation
+	for _, attr := range domainAttributes {
+		if len(attr.Values) == 0 {
+			return nil
+		}
+	}
+
+	combinations := buildAttributeValueCombinations(domainAttributes)
+	for _, combination := range combinations {
+		attributeValueIDs := make([]uuid.UUID, len(combination.values))
+		copy(attributeValueIDs, combination.values)
+
+		generatedSKU, skuErr := domain.GenerateVariantSKU(product.SKU, combination.skuParts)
+		if skuErr != nil {
+			return domain.WrapValidation("failed to generate variant SKU", skuErr)
+		}
+
+		existingVariant, findErr := s.variantRepo.FindByProductIDAndAttributeValues(ctx, product.ID, attributeValueIDs)
+		if findErr != nil {
+			return domain.WrapPersistence("failed to check existing variant by attributes", findErr)
+		}
+
+		if existingVariant != nil && !sameUUIDSet(existingVariant.AttributeValues, attributeValueIDs) {
+			existingVariant = nil
+		}
+
+		if existingVariant != nil {
+			shouldSave := false
+			if existingVariant.SKU != generatedSKU {
+				existingVariant.SKU = generatedSKU
+				shouldSave = true
+			}
+			if existingVariant.Status != domain.StatusConfirmed {
+				existingVariant.Status = domain.StatusConfirmed
+				shouldSave = true
+			}
+			if !existingVariant.IsActive {
+				existingVariant.IsActive = true
+				shouldSave = true
+			}
+			if shouldSave {
+				if saveErr := s.variantRepo.Save(ctx, existingVariant); saveErr != nil {
+					return domain.WrapPersistencef(saveErr, "failed to update variant %s", existingVariant.ID)
+				}
+			}
+			continue
+		}
+
+		newVariant, createErr := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusConfirmed, attributeValueIDs)
+		if createErr != nil {
+			return domain.WrapValidation("failed to create generated variant", createErr)
+		}
+
+		if saveErr := s.variantRepo.Save(ctx, newVariant); saveErr != nil {
+			return domain.WrapPersistence("failed to save generated variant", saveErr)
+		}
+	}
+
+	return nil
+}
+
+func buildAttributeValueCombinations(attributes []*domain.Attribute) []struct {
+	values   []uuid.UUID
+	skuParts []struct{ AttributeCode, ValueCode string }
+} {
+	type skuPart = struct{ AttributeCode, ValueCode string }
+	type combination = struct {
+		values   []uuid.UUID
+		skuParts []skuPart
+	}
+
+	combinations := []combination{{values: []uuid.UUID{}, skuParts: []skuPart{}}}
+
+	for _, attr := range attributes {
+		next := make([]combination, 0, len(combinations)*len(attr.Values))
+		for _, base := range combinations {
+			for _, val := range attr.Values {
+				newValues := append(append([]uuid.UUID{}, base.values...), val.ID)
+				newSkuParts := append(append([]skuPart{}, base.skuParts...), skuPart{AttributeCode: attr.Code, ValueCode: val.Code})
+				next = append(next, combination{values: newValues, skuParts: newSkuParts})
+			}
+		}
+		combinations = next
+	}
+
+	result := make([]struct {
+		values   []uuid.UUID
+		skuParts []struct{ AttributeCode, ValueCode string }
+	}, len(combinations))
+
+	for i := range combinations {
+		result[i] = struct {
+			values   []uuid.UUID
+			skuParts []struct{ AttributeCode, ValueCode string }
+		}{
+			values:   combinations[i].values,
+			skuParts: combinations[i].skuParts,
+		}
+	}
+
+	return result
+}
+
+func sameUUIDSet(left, right []uuid.UUID) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	seen := make(map[uuid.UUID]int, len(left))
+	for _, id := range left {
+		seen[id]++
+	}
+	for _, id := range right {
+		count, ok := seen[id]
+		if !ok || count == 0 {
+			return false
+		}
+		seen[id]--
+	}
+
+	for _, count := range seen {
+		if count != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // FindOrCreateProductVariant handles UC-P-009: Obtener o Crear Variante (Find or Create).
@@ -942,6 +1065,7 @@ func (s *ProductService) GetBrandByID(ctx context.Context, id uuid.UUID) (*Brand
 type ProductGroupDTO struct {
 	ID            uuid.UUID  `json:"id"`
 	Name          string     `json:"name"`
+	Type          string     `json:"type"` // TANGIBLE or SERVICE
 	ParentGroupID *uuid.UUID `json:"parent_group_id,omitempty"`
 	IsActive      bool       `json:"isActive"`
 }
@@ -958,6 +1082,7 @@ func (s *ProductService) ListProductGroups(ctx context.Context) ([]ProductGroupD
 		result[i] = ProductGroupDTO{
 			ID:            group.ID,
 			Name:          group.Name,
+			Type:          string(group.Type),
 			ParentGroupID: group.ParentGroupID,
 			IsActive:      group.IsActive,
 		}
@@ -978,6 +1103,7 @@ func (s *ProductService) GetProductGroupByID(ctx context.Context, id uuid.UUID) 
 	return &ProductGroupDTO{
 		ID:            group.ID,
 		Name:          group.Name,
+		Type:          string(group.Type),
 		ParentGroupID: group.ParentGroupID,
 		IsActive:      group.IsActive,
 	}, nil
@@ -1082,7 +1208,13 @@ func (s *ProductService) CreateProductGroup(ctx context.Context, cmd CreateProdu
 		}
 	}
 
-	group, err := domain.NewProductGroup(cmd.Name, cmd.ParentID, cmd.IsActive)
+	// Parse and validate group type
+	groupType := domain.ProductGroupType(cmd.Type)
+	if !groupType.IsValid() {
+		return nil, domain.NewValidationError("invalid group type: must be TANGIBLE or SERVICE")
+	}
+
+	group, err := domain.NewProductGroup(cmd.Name, groupType, cmd.ParentID, cmd.IsActive)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create product group domain entity", err)
 	}
@@ -1094,6 +1226,7 @@ func (s *ProductService) CreateProductGroup(ctx context.Context, cmd CreateProdu
 	return &ProductGroupDTO{
 		ID:            group.ID,
 		Name:          group.Name,
+		Type:          string(group.Type),
 		ParentGroupID: group.ParentGroupID,
 		IsActive:      group.IsActive,
 	}, nil
@@ -1120,6 +1253,13 @@ func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProdu
 		}
 	}
 
+	if cmd.Type != nil {
+		groupType := domain.ProductGroupType(*cmd.Type)
+		if err := group.UpdateType(groupType); err != nil {
+			return nil, domain.WrapValidation("failed to update product group type", err)
+		}
+	}
+
 	if cmd.ParentID != nil {
 		// Validate parent exists
 		parent, err := s.groupRepo.FindByID(ctx, *cmd.ParentID)
@@ -1143,6 +1283,7 @@ func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProdu
 	return &ProductGroupDTO{
 		ID:            group.ID,
 		Name:          group.Name,
+		Type:          string(group.Type),
 		ParentGroupID: group.ParentGroupID,
 		IsActive:      group.IsActive,
 	}, nil

@@ -255,6 +255,7 @@ func (tdb *TestDB) SetUpSales() error {
 		CREATE TABLE "quote_line_items" (
 			"id" UUID PRIMARY KEY,
 			"quote_id" UUID NOT NULL REFERENCES "quotes" ("id") ON DELETE CASCADE,
+			"mes_work_id" UUID,
 			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
 			"quantity" INT NOT NULL,
 			"calculated_unit_price_amount" NUMERIC(12,2) NOT NULL,
@@ -299,6 +300,7 @@ func (tdb *TestDB) SetUpSales() error {
 		CREATE TABLE "order_line_items" (
 			"id" UUID PRIMARY KEY,
 			"sales_order_id" UUID NOT NULL REFERENCES "sales_orders" ("id") ON DELETE CASCADE,
+			"mes_work_id" UUID,
 			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
 			"quantity" INT NOT NULL,
 			"calculated_unit_price_amount" NUMERIC(12,2) NOT NULL,

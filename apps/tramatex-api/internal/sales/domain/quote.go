@@ -22,6 +22,7 @@ type Quote struct {
 
 type QuoteLineItem struct {
 	ID                        uuid.UUID
+	MESWorkID                 *uuid.UUID
 	ProductVariantID          uuid.UUID
 	Quantity                  int
 	CalculatedUnitPrice       Money

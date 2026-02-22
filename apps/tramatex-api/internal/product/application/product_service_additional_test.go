@@ -573,3 +573,4 @@ func TestProductService_GetProductVariantBySKU_Success(t *testing.T) {
 		mockVariantRepo.AssertExpectations(t)
 	})
 }
+

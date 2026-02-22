@@ -1,3 +1,53 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import UserMenu from './UserMenu.vue'
+import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, FolderOpen, Tag, Folder, Zap, User, Wrench } from 'lucide-vue-next'
+
+const authStore = useAuthStore()
+const isAdmin = computed(() => authStore.isAdmin)
+const showMasterData = ref(false)
+const showSales = ref(false)
+const showMES = ref(false)
+
+function closeAllDropdowns() {
+  showSales.value = false
+  showMasterData.value = false
+  showMES.value = false
+}
+
+function toggleSales() {
+  const next = !showSales.value
+  closeAllDropdowns()
+  showSales.value = next
+}
+
+function toggleMasterData() {
+  const next = !showMasterData.value
+  closeAllDropdowns()
+  showMasterData.value = next
+}
+
+function toggleMES() {
+  const next = !showMES.value
+  closeAllDropdowns()
+  showMES.value = next
+}
+
+function handleDocumentClick() {
+  closeAllDropdowns()
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
+</script>
+
 <template>
   <nav class="navbar">
     <div class="navbar-container">
@@ -8,71 +58,108 @@
       <ul class="nav-menu">
         <li>
           <RouterLink to="/dashboard" class="nav-link" active-class="active" title="Dashboard">
-            <span class="icon">🏠</span>
+            <Home :size="24" />
           </RouterLink>
         </li>
         <li>
           <RouterLink to="/products" class="nav-link" active-class="active" title="Productos">
-            <span class="icon">📦</span>
+            <Package :size="24" />
           </RouterLink>
         </li>
         <li>
           <RouterLink to="/parties" class="nav-link" active-class="active" title="Entidades">
-            <span class="icon">👥</span>
+            <Users :size="24" />
           </RouterLink>
         </li>
-        <li class="dropdown" @mouseenter="showSales = true" @mouseleave="showSales = false">
-          <span class="nav-link dropdown-toggle" title="Ventas">
-            <span class="icon">💰</span>
-          </span>
+        <li class="dropdown" @click.stop>
+          <button type="button" class="nav-link dropdown-toggle" title="Ventas" @click.stop="toggleSales">
+            <DollarSign :size="24" />
+          </button>
           <ul v-if="showSales" class="dropdown-menu">
             <li>
-              <RouterLink to="/sales/quotes" class="dropdown-item" title="Presupuestos">
-                <span class="icon">📝</span>
+              <RouterLink to="/sales/quotes" class="dropdown-item" title="Presupuestos" @click="closeAllDropdowns">
+                <Clipboard :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/orders" class="dropdown-item" title="Pedidos">
-                <span class="icon">🛒</span>
+              <RouterLink to="/sales/orders" class="dropdown-item" title="Pedidos" @click="closeAllDropdowns">
+                <ShoppingCart :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/delivery-notes" class="dropdown-item" title="Albaranes">
-                <span class="icon">📋</span>
+              <RouterLink to="/sales/delivery-notes" class="dropdown-item" title="Albaranes" @click="closeAllDropdowns">
+                <ScrollText :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/invoices" class="dropdown-item" title="Facturas">
-                <span class="icon">🧾</span>
+              <RouterLink to="/sales/invoices" class="dropdown-item" title="Facturas" @click="closeAllDropdowns">
+                <Receipt :size="20" />
               </RouterLink>
             </li>
           </ul>
         </li>
-        <li class="dropdown" @mouseenter="showMasterData = true" @mouseleave="showMasterData = false">
-          <span class="nav-link dropdown-toggle" title="Datos Maestros">
-            <span class="icon">🗂️</span>
-          </span>
+        <li class="dropdown" @click.stop>
+          <button type="button" class="nav-link dropdown-toggle" title="Datos Maestros" @click.stop="toggleMasterData">
+            <FolderOpen :size="24" />
+          </button>
           <ul v-if="showMasterData" class="dropdown-menu">
             <li>
-              <RouterLink to="/master-data/brands" class="dropdown-item" title="Marcas">
-                <span class="icon">🏷️</span>
+              <RouterLink to="/master-data/brands" class="dropdown-item" title="Marcas" @click="closeAllDropdowns">
+                <Tag :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/master-data/product-groups" class="dropdown-item" title="Categorías">
-                <span class="icon">📁</span>
+              <RouterLink to="/master-data/product-groups" class="dropdown-item" title="Categorías" @click="closeAllDropdowns">
+                <Folder :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/master-data/attributes" class="dropdown-item" title="Atributos">
-                <span class="icon">⚡</span>
+              <RouterLink to="/master-data/attributes" class="dropdown-item" title="Atributos" @click="closeAllDropdowns">
+                <Zap :size="20" />
+              </RouterLink>
+            </li>
+          </ul>
+        </li>
+        <li class="dropdown" @click.stop>
+          <button type="button" class="nav-link dropdown-toggle" title="MES" @click.stop="toggleMES">
+            <Zap :size="24" />
+          </button>
+          <ul v-if="showMES" class="dropdown-menu">
+            <li>
+              <RouterLink to="/mes/dashboard" class="dropdown-item" title="Dashboard MES" @click="closeAllDropdowns">
+                <Home :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/tasks" class="dropdown-item" title="Tareas MES" @click="closeAllDropdowns">
+                <Clipboard :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/positions" class="dropdown-item" title="Puestos MES" @click="closeAllDropdowns">
+                <Users :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/service-groups" class="dropdown-item" title="Grupos de Servicio MES" @click="closeAllDropdowns">
+                <Folder :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/works" class="dropdown-item" title="Trabajos MES" @click="closeAllDropdowns">
+                <ShoppingCart :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/terminal" class="dropdown-item" title="Terminal Taller" @click="closeAllDropdowns">
+                <Wrench :size="20" />
               </RouterLink>
             </li>
           </ul>
         </li>
         <li v-if="isAdmin">
           <RouterLink to="/admin/users" class="nav-link" active-class="active" title="Usuarios">
-            <span class="icon">👤</span>
+            <User :size="24" />
           </RouterLink>
         </li>
       </ul>
@@ -81,18 +168,6 @@
     </div>
   </nav>
 </template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { RouterLink } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import UserMenu from './UserMenu.vue'
-
-const authStore = useAuthStore()
-const isAdmin = computed(() => authStore.isAdmin)
-const showMasterData = ref(false)
-const showSales = ref(false)
-</script>
 
 <style scoped>
 .navbar {
@@ -148,9 +223,9 @@ const showSales = ref(false)
   min-width: 48px;
 }
 
-.nav-link .icon {
-  font-size: 1.5rem;
-  line-height: 1;
+.nav-link :deep(svg) { /* Target Lucide SVG directly */
+  width: 1.5rem; /* Equivalent to 24px */
+  height: 1.5rem; /* Equivalent to 24px */
 }
 
 .nav-link:hover {
@@ -170,6 +245,9 @@ const showSales = ref(false)
 .dropdown-toggle {
   cursor: pointer;
   user-select: none;
+  border: none;
+  background: transparent;
+  font: inherit;
 }
 
 .dropdown-menu {
@@ -201,9 +279,9 @@ const showSales = ref(false)
   min-width: 48px;
 }
 
-.dropdown-item .icon {
-  font-size: 1.25rem;
-  line-height: 1;
+.dropdown-item :deep(svg) { /* Target Lucide SVG directly */
+  width: 1.25rem; /* Equivalent to 20px */
+  height: 1.25rem; /* Equivalent to 20px */
 }
 
 .dropdown-item:hover {
@@ -221,12 +299,14 @@ const showSales = ref(false)
     min-width: 40px;
   }
   
-  .nav-link .icon {
-    font-size: 1.25rem;
+  .nav-link :deep(svg) {
+    width: 1.25rem;
+    height: 1.25rem;
   }
   
-  .dropdown-item .icon {
-    font-size: 1rem;
+  .dropdown-item :deep(svg) {
+    width: 1rem;
+    height: 1rem;
   }
 }
 </style>

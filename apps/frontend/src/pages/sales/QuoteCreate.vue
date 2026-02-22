@@ -109,6 +109,21 @@
                   />
                 </div>
                 <div class="form-group">
+                  <label>Trabajo MES (opcional)</label>
+                  <select
+                    v-model="item.mesWorkId"
+                    class="form-input"
+                    :disabled="!formData.partyId || isLoadingMesWorks"
+                  >
+                    <option value="">
+                      {{ isLoadingMesWorks ? 'Cargando trabajos MES...' : 'Sin referencia MES' }}
+                    </option>
+                    <option v-for="work in mesWorks" :key="work.id" :value="work.id">
+                      {{ work.work_number }} - {{ work.work_name }} ({{ work.status }})
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
                   <label>Cantidad *</label>
                   <input
                     v-model.number="item.quantity"
@@ -221,6 +236,7 @@ import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
+import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
 
@@ -240,6 +256,8 @@ const calculatedTotals = ref({
 
 const isSubmitting = ref(false);
 const submitError = ref('');
+const mesWorks = ref([]);
+const isLoadingMesWorks = ref(false);
 
 const minValidUntilDate = computed(() => {
   if (!formData.value.quoteDate) {
@@ -291,12 +309,17 @@ watch(() => formData.value.quoteDate, (newQuoteDate) => {
   }
 });
 
+watch(() => formData.value.partyId, (partyId) => {
+  loadMesWorksForParty(partyId);
+});
+
 const showVariantSelector = ref(false);
 const editingLineIndex = ref(null);
 
 function addLineItem() {
   formData.value.lineItems.push({
     productVariantId: '',
+    mesWorkId: '',
     selectedVariantName: '',
     quantity: 1,
     manualUnitPrice: null,
@@ -304,16 +327,37 @@ function addLineItem() {
   });
 }
 
+async function loadMesWorksForParty(partyId) {
+  if (!partyId) {
+    mesWorks.value = [];
+    formData.value.lineItems.forEach((item) => {
+      item.mesWorkId = '';
+    });
+    return;
+  }
+
+  isLoadingMesWorks.value = true;
+  try {
+    mesWorks.value = await mesApi.listWorks({ party_id: partyId });
+  } catch (error) {
+    console.error('Error loading MES works for selected party:', error);
+    mesWorks.value = [];
+  } finally {
+    isLoadingMesWorks.value = false;
+  }
+}
+
 function openVariantSelector(index) {
   editingLineIndex.value = index;
   showVariantSelector.value = true;
 }
 
-function handleVariantSelected(variant) {
-  if (editingLineIndex.value !== null && variant) {
+function handleVariantSelected(payload) {
+  if (editingLineIndex.value !== null && payload && payload.variant) {
+    const variant = payload.variant;
     const item = formData.value.lineItems[editingLineIndex.value];
     item.productVariantId = variant.id;
-    item.selectedVariantName = `${variant.product_name} - ${variant.sku}`;
+    item.selectedVariantName = `${variant.product_name || 'Producto'} - ${variant.sku}`;
   }
   showVariantSelector.value = false;
   editingLineIndex.value = null;
@@ -387,6 +431,10 @@ async function handleSubmit() {
           amount: item.manualDiscountPerUnit,
           currency: 'EUR',
         };
+      }
+
+      if (item.mesWorkId) {
+        lineItem.mesWorkId = item.mesWorkId;
       }
 
       return lineItem;

@@ -7,10 +7,11 @@ import (
 )
 
 type QuoteLineItemInput struct {
-	ProductVariantID      uuid.UUID `json:"productVariantId"`
-	Quantity              int       `json:"quantity"`
-	ManualUnitPrice       *MoneyDTO `json:"manualUnitPrice,omitempty"`
-	ManualDiscountPerUnit *MoneyDTO `json:"manualDiscountPerUnit,omitempty"`
+	MesWorkID             *uuid.UUID `json:"mesWorkId,omitempty"`
+	ProductVariantID      uuid.UUID  `json:"productVariantId"`
+	Quantity              int        `json:"quantity"`
+	ManualUnitPrice       *MoneyDTO  `json:"manualUnitPrice,omitempty"`
+	ManualDiscountPerUnit *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
 }
 
 type CreateQuoteCommand struct {
@@ -38,10 +39,11 @@ type ConvertQuoteToOrderCommand struct {
 }
 
 type OrderLineItemInput struct {
-	ProductVariantID      uuid.UUID `json:"productVariantId"`
-	Quantity              int       `json:"quantity"`
-	ManualUnitPrice       *MoneyDTO `json:"manualUnitPrice,omitempty"`
-	ManualDiscountPerUnit *MoneyDTO `json:"manualDiscountPerUnit,omitempty"`
+	MesWorkID             *uuid.UUID `json:"mesWorkId,omitempty"`
+	ProductVariantID      uuid.UUID  `json:"productVariantId"`
+	Quantity              int        `json:"quantity"`
+	ManualUnitPrice       *MoneyDTO  `json:"manualUnitPrice,omitempty"`
+	ManualDiscountPerUnit *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
 }
 
 type CreateOrderCommand struct {

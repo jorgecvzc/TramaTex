@@ -1,14 +1,18 @@
 # TramaTex - README
 
-[![Backend CI](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml)
-[![Frontend CI](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml)
-[![codecov](https://codecov.io/gh/joran-cortez/tramatex/branch/master/graph/badge.svg)](https://codecov.io/gh/joran-cortez/tramatex)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Go](https://img.shields.io/badge/Go-1.23+-00ADD8.svg)
+![Vue](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)
+![License](https://img.shields.io/badge/license-Proprietary-red.svg)
+
+**Estado:** ✅ MVP Completado - Listo para Producción
 
 
 ## 🚀 Punto de Partida
 
 - **[📖 Manual del Proyecto TramaTex](./docs/architecture/project-vision-and-scope.md)** ← **LEER PRIMERO**
 - **[📊 Estado del Proyecto](./docs/log/project-status.md)**
+- **[⚡ Quick Start](./docs/guides/quick-start.md)**
 
 ---
 
@@ -91,7 +95,149 @@ npm run dev
 
 ---
 
-## 📚 Documentación
+## � Versionado y Contribución
+
+### Versionado Semántico
+
+TramaTex sigue [Semantic Versioning 2.0](https://semver.org/):
+
+- **MAJOR.MINOR.PATCH** (Ej: 1.0.0)
+- **MAJOR:** Cambios rompientes en API o arquitectura
+- **MINOR:** Nuevas funcionalidades compatibles
+- **PATCH:** Correcciones de bugs
+
+**Versión actual:** `v1.0.0` (MVP Completado - 2026-02-22)
+
+### Estrategia de Branches
+
+TramaTex utiliza **GitFlow Simplificado**:
+
+#### Ramas Principales
+
+- **`main`**: Código en producción, siempre estable y desplegable
+  - Solo recibe merges desde `develop` o `hotfix/*`
+  - Cada merge representa una release con tag vX.Y.Z
+  - **Protegida:** Requiere PR aprobado + tests pasando
+
+- **`develop`**: Rama de integración para desarrollo activo  - Base para todas las feature/bugfix branches
+  - **Protegida:** Requiere PR + tests pasando
+
+#### Ramas Temporales
+
+- **`feature/*`**: Nuevas funcionalidades (desde `develop`)
+- **`bugfix/*`**: Correcciones no críticas (desde `develop`)
+- **`hotfix/*`**: Correcciones críticas en producción (desde `main`)
+- **`release/*`**: Preparación de releases (desde `develop`)
+
+### Flujo de Trabajo
+
+#### Feature Development
+
+```bash
+# 1. Crear branch desde develop
+git checkout develop
+git pull origin develop
+git checkout -b feature/mi-funcionalidad
+
+# 2. Desarrollar y commitear
+git add .
+git commit -m "feat(module): add new functionality"
+
+# 3. Push y abrir Pull Request
+git push origin feature/mi-funcionalidad
+# Abrir PR en GitHub hacia develop
+```
+
+#### Commits Convencionales
+
+Usamos [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+```
+
+**Tipos:**
+- `feat`: Nueva funcionalidad
+- `fix`: Corrección de bug
+- `docs`: Documentación
+- `refactor`: Refactorización
+- `test`: Tests
+- `chore`: Cambios de build/config
+
+**Scopes:** `party`, `product`, `pricing`, `sales`, `iam`, `mes`, `frontend`, `backend`, `infra`
+
+**Ejemplos:**
+```bash
+feat(pricing): add volume discount rules
+fix(party): resolve selector crash on empty results
+docs(adr): add versioning strategy ADR-021
+test(sales): increase coverage to 80%
+```
+
+### Configuración Inicial
+
+#### 1. Clonar Repositorio
+
+```bash
+git clone git@github.com:jorgecvzc/TramaTex.git
+cd TramaTex
+```
+
+#### 2. Configurar Variables de Entorno
+
+```bash
+# Backend
+cp apps/tramatex-api/.env.example apps/tramatex-api/.env
+# Editar apps/tramatex-api/.env con tus valores
+
+# Frontend
+cp 📄 Licencia
+
+Proprietary - Todos los derechos reservados
+
+---
+
+## 👥 Autores y Equipo
+
+- **Jorge Cortés Villalba** - Product Owner, Arquitectura
+- **AI Assistant (Claude)** - Desarrollo técnico, Arquitectura, Documentación
+
+---
+
+## 📊 Estadísticas del Proyecto
+
+**Líneas de Código (MVP v1.0.0):**
+- Backend (Go): ~25,000 líneas
+- Frontend (Vue/TS): ~15,000 líneas
+- Documentación: ~8,000 líneas
+- Tests: ~12,000 líneas
+
+**Cobertura de Tests:**
+- Backend: 75%+ (Pricing 85.4%, Party 86.7%, MES 86.9%)
+- Frontend: 77.63%
+
+**Módulos Completados:**
+- ✅ Party (Clientes/Proveedores)
+- ✅ Product (Catálogo y Variantes)
+- ✅ Pricing (Motor de Tarificación)
+- ✅ Sales (Ciclo Comercial)
+- ✅ IAM (Autenticación/Autorización)
+- ✅ MES (Producción y Taller)
+
+---
+
+**Última Actualización:** 22/02/2026  
+**Versión:** 1.0.0 (MVP Completado)  
+**Estado:** ✅ Listo para Produc
+
+- **[ADR-021: Version Control & Branching Strategy](docs/architecture/adrs/ADR-021-version-control-and-branching-strategy.md)**
+- **[Guía de Contribución](docs/guides/developer/CONTRIBUTING.md)** [Por crear]
+
+---
+
+## �📚 Documentación
 
 ### Architecture Decision Records (ADRs)
 
@@ -108,6 +254,7 @@ npm run dev
 
 - [Setup de Desarrollo](docs/guides/developer/github-setup.md) [Pendiente]
 - [Estrategia de Testing](docs/guides/developer/ci-cd.md) [Pendiente]
+- [Configuración de impresión Sales (perfil fiscal emisor)](apps/frontend/README.md#configuración-de-emisor-para-impresión-sales)
 
 ### Módulos
 

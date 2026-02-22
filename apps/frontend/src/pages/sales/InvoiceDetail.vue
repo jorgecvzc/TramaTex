@@ -25,6 +25,28 @@
             {{ getTypeLabel(invoice.type) }}
           </span>
         </div>
+        <div class="header-actions">
+          <button
+            class="btn btn-secondary"
+            @click="printInvoice"
+            title="Imprimir factura"
+          >
+            🖨️ Imprimir
+          </button>
+        </div>
+      </div>
+
+      <div class="print-doc-header">
+        <p class="print-brand">{{ issuerProfile.displayName }}</p>
+        <p v-if="issuerProfile.taxId" class="print-issuer-line">{{ issuerProfile.taxLabel }}: {{ issuerProfile.taxId }}</p>
+        <p v-if="issuerProfile.addressLine || issuerProfile.cityLine" class="print-issuer-line">{{ issuerProfile.addressLine }}<span v-if="issuerProfile.addressLine && issuerProfile.cityLine"> · </span>{{ issuerProfile.cityLine }}</p>
+        <p v-if="issuerProfile.contactLine" class="print-issuer-line">{{ issuerProfile.contactLine }}</p>
+        <h2>Factura {{ invoice.invoiceNumber }}</h2>
+        <div class="print-doc-meta">
+          <span>Cliente: {{ formatPartyId(invoice.partyId) }}</span>
+          <span>Fecha emisión: {{ formatDate(invoice.issueDate) }}</span>
+          <span>Tipo: {{ getTypeLabel(invoice.type) }}</span>
+        </div>
       </div>
 
       <!-- Info Cards -->
@@ -121,6 +143,11 @@
           </table>
         </div>
       </div>
+
+      <div class="print-doc-footer">
+        <span>Documento generado por {{ issuerProfile.displayName }}</span>
+        <span>Vencimiento: {{ formatDate(invoice.dueDate) }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -130,6 +157,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
+import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
 
 const route = useRoute();
 const router = useRouter();
@@ -137,6 +165,7 @@ const router = useRouter();
 const invoice = ref(null);
 const isLoading = ref(false);
 const error = ref('');
+const issuerProfile = getPrintIssuerProfile();
 
 onMounted(() => {
   fetchInvoice();
@@ -164,6 +193,10 @@ async function fetchInvoice() {
 
 function goBack() {
   router.push('/sales/invoices');
+}
+
+function printInvoice() {
+  window.print();
 }
 
 function formatDate(dateString) {
@@ -277,6 +310,11 @@ function getTypeLabel(type) {
 
 .btn-secondary:hover {
   background: #e5e7eb;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .type-badge {
@@ -450,5 +488,94 @@ function getTypeLabel(type) {
   text-align: center;
   padding: 2rem;
   color: #9ca3af;
+}
+
+.print-doc-header,
+.print-doc-footer {
+  display: none;
+}
+
+.print-brand {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #374151;
+}
+
+.print-doc-header h2 {
+  margin: 0.35rem 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.print-issuer-line {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.print-doc-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+@media print {
+  :deep(.navbar),
+  :deep(nav),
+  .page-header,
+  .btn-back,
+  .header-actions,
+  .btn,
+  .related-link {
+    display: none !important;
+  }
+
+  .invoice-detail-container {
+    padding: 0;
+    max-width: none;
+  }
+
+  .print-doc-header,
+  .print-doc-footer {
+    display: block;
+    border: 1px solid #d1d5db;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: white;
+  }
+
+  .print-doc-footer {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #4b5563;
+  }
+
+  .info-card,
+  .notes-card,
+  .related-section,
+  .line-items-section,
+  .table-container {
+    box-shadow: none !important;
+    border: 1px solid #d1d5db;
+  }
+
+  .type-badge {
+    border: 1px solid #9ca3af;
+    color: #111827 !important;
+    background: transparent !important;
+  }
+
+  .data-table {
+    font-size: 0.75rem;
+  }
 }
 </style>

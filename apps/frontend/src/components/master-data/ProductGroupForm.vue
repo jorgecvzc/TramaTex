@@ -14,6 +14,37 @@
     </div>
 
     <div class="form-group">
+      <label>Tipo de categoría <span class="required">*</span></label>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input 
+            type="radio" 
+            v-model="formData.type" 
+            value="TANGIBLE"
+            name="groupType"
+          />
+          <div class="radio-content">
+            <span class="radio-title">🔧 Productos Tangibles</span>
+            <span class="radio-description">Productos físicos: calzado, ropa, accesorios, equipamiento</span>
+          </div>
+        </label>
+        <label class="radio-label">
+          <input 
+            type="radio" 
+            v-model="formData.type" 
+            value="SERVICE"
+            name="groupType"
+          />
+          <div class="radio-content">
+            <span class="radio-title">⚙️ Servicios</span>
+            <span class="radio-description">Servicios profesionales: consultoría, mantenimiento, instalación</span>
+          </div>
+        </label>
+      </div>
+      <span v-if="errors.type" class="error-message">{{ errors.type }}</span>
+    </div>
+
+    <div class="form-group">
       <label for="parent">Categoría padre (opcional)</label>
       <select 
         id="parent"
@@ -66,12 +97,14 @@ const emit = defineEmits(['submit'])
 
 const formData = reactive({
   name: props.productGroup?.name || '',
+  type: props.productGroup?.type || 'TANGIBLE',
   parentGroupId: props.productGroup?.parent_group_id || '',
   isActive: props.productGroup?.is_active ?? true
 })
 
 const errors = reactive({
-  name: ''
+  name: '',
+  type: ''
 })
 
 const allGroups = ref([])
@@ -97,6 +130,11 @@ function validate() {
     isValid = false
   }
   
+  if (!formData.type || !['TANGIBLE', 'SERVICE'].includes(formData.type)) {
+    errors.type = 'Debe seleccionar un tipo válido'
+    isValid = false
+  }
+  
   return isValid
 }
 
@@ -107,6 +145,7 @@ function handleSubmit() {
   
   const payload = {
     name: formData.name.trim(),
+    type: formData.type,
     parentGroupId: formData.parentGroupId || null,
     isActive: formData.isActive
   }
@@ -230,5 +269,65 @@ defineExpose({
 
 .mb-3 {
   margin-bottom: 1.5rem;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+
+.radio-label:hover {
+  border-color: #94a3b8;
+  background: #ffffff;
+}
+
+.radio-label input[type="radio"] {
+  margin-top: 0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.radio-label input[type="radio"]:checked {
+  accent-color: #3b82f6;
+}
+
+.radio-label:has(input:checked) {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.radio-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.radio-title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #1e293b;
+}
+
+.radio-description {
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.4;
 }
 </style>

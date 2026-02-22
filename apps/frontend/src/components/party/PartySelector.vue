@@ -76,7 +76,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({
   modelValue: {

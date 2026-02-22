@@ -14,6 +14,7 @@ type ProductGroupDataModel struct {
 	gorm.Model
 	ID            uuid.UUID `gorm:"type:uuid;primary_key;"`
 	Name          string    `gorm:"uniqueIndex;not null"`
+	Type          string    `gorm:"column:group_type;type:product_group_type;not null;default:TANGIBLE"` // TANGIBLE or SERVICE
 	ParentGroupID *uuid.UUID
 	IsActive      bool `gorm:"not null;default:true"`
 	CreatedAt     time.Time
@@ -29,6 +30,7 @@ func (pg *ProductGroupDataModel) ToDomain() *domain.ProductGroup {
 	return &domain.ProductGroup{
 		ID:            pg.ID,
 		Name:          pg.Name,
+		Type:          domain.ProductGroupType(pg.Type),
 		ParentGroupID: pg.ParentGroupID,
 		IsActive:      pg.IsActive,
 	}
@@ -39,6 +41,7 @@ func ProductGroupFromDomain(pg *domain.ProductGroup) *ProductGroupDataModel {
 	return &ProductGroupDataModel{
 		ID:            pg.ID,
 		Name:          pg.Name,
+		Type:          string(pg.Type),
 		ParentGroupID: pg.ParentGroupID,
 		IsActive:      pg.IsActive,
 	}

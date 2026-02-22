@@ -1,8 +1,8 @@
 # 🧑‍💻 Guía para el Usuario sobre el Sistema de Agentes
 
 > **📖 Guías Rápidas:**
-> - **Para usuarios:** Ver [guia-agents.md](guia-agents.md) (guía concisa ≤40 líneas)
-> - **Para desarrolladores:** Ver [agents/guia-desarrollo-agents.md](agents/guia-desarrollo-agents.md) (crear/modificar agentes)
+> - **Para usuarios:** Ver [docs/guides/user/guia-agents.md](docs/guides/user/guia-agents.md) (guía concisa ≤40 líneas)
+> - **Para desarrolladores:** Ver [docs/guides/developer/agent-development-guide.md](docs/guides/developer/agent-development-guide.md) (crear/modificar agentes)
 
 Este documento es la referencia completa del sistema de agentes de IA para usuarios y desarrolladores del proyecto.
 
@@ -49,8 +49,8 @@ Para una descripción detallada de los agentes de contexto específicos del proy
 
 ## 📚 Recursos Adicionales
 
-- **[guia-agents.md](guia-agents.md)** - Guía de uso concisa (inicio rápido)
-- **[agents/guia-desarrollo-agents.md](agents/guia-desarrollo-agents.md)** - Guía para desarrollar agentes
+- **[docs/guides/user/guia-agents.md](docs/guides/user/guia-agents.md)** - Guía de uso concisa (inicio rápido)
+- **[docs/guides/developer/agent-development-guide.md](docs/guides/developer/agent-development-guide.md)** - Guía para desarrollar agentes
 - **[agents/project/context/README.md](agents/project/context/README.md)** - Documentación de contextos modulares
 
 ---

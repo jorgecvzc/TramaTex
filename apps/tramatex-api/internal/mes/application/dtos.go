@@ -6,102 +6,74 @@ import (
 	"github.com/google/uuid"
 )
 
-// ============================================================================
-// PRODUCTION RECIPE DTOs
-// ============================================================================
-
-// ProductionRecipeDTO represents a production recipe for API responses
-type ProductionRecipeDTO struct {
-	ID              uuid.UUID           `json:"id"`
-	Name            string              `json:"name"`
-	ClientID        uuid.UUID           `json:"clientId"`
-	ProductID       uuid.UUID           `json:"productId"`
-	RecipeType      string              `json:"recipeType"`
-	Version         int                 `json:"version"`
-	IsMaster        bool                `json:"isMaster"`
-	TaskDefinitions []TaskDefinitionDTO `json:"taskDefinitions"`
-}
-
-// TaskDefinitionDTO represents a task definition
-type TaskDefinitionDTO struct {
-	ID                  uuid.UUID  `json:"id"`
-	Name                string     `json:"name"`
-	Description         string     `json:"description"`
-	SequenceOrder       int        `json:"sequenceOrder"`
-	EstimatedDurationHs float64    `json:"estimatedDurationHs"`
-	WorkCenterID        *uuid.UUID `json:"workCenterId,omitempty"`
-}
-
-// ============================================================================
-// PRODUCTION ORDER DTOs
-// ============================================================================
-
-// ProductionOrderDTO represents a production order for API responses
-type ProductionOrderDTO struct {
-	ID                     uuid.UUID         `json:"id"`
-	SalesOrderID           uuid.UUID         `json:"salesOrderId"`
-	RecipeID               uuid.UUID         `json:"recipeId"`
-	ProductID              uuid.UUID         `json:"productId"`
-	Quantity               int               `json:"quantity"`
-	Status                 string            `json:"status"`
-	StartDate              time.Time         `json:"startDate"`
-	EndDate                time.Time         `json:"endDate"`
-	AssignedToWorkCenterID *uuid.UUID        `json:"assignedToWorkCenterId,omitempty"`
-	TaskInstances          []TaskInstanceDTO `json:"taskInstances"`
-}
-
-// TaskInstanceDTO represents a task instance
-type TaskInstanceDTO struct {
-	ID                  uuid.UUID  `json:"id"`
-	TaskDefinitionID    uuid.UUID  `json:"taskDefinitionId"`
-	Name                string     `json:"name"`
-	Description         string     `json:"description"`
-	SequenceOrder       int        `json:"sequenceOrder"`
-	Status              string     `json:"status"`
-	EstimatedDurationHs float64    `json:"estimatedDurationHs"`
-	ActualStartTime     *time.Time `json:"actualStartTime,omitempty"`
-	ActualEndTime       *time.Time `json:"actualEndTime,omitempty"`
-	AssignedOperatorID  *uuid.UUID `json:"assignedOperatorId,omitempty"`
-	WorkCenterID        *uuid.UUID `json:"workCenterId,omitempty"`
-	Notes               string     `json:"notes,omitempty"`
-}
-
-// ============================================================================
-// WORK CENTER DTOs
-// ============================================================================
-
-// WorkCenterDTO represents a work center for API responses
-type WorkCenterDTO struct {
+type TaskDTO struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	IsActive    bool      `json:"isActive"`
+	Description string    `json:"description,omitempty"`
+	IsActive    bool      `json:"is_active"`
 }
 
-// ============================================================================
-// PAGINATED RESPONSES
-// ============================================================================
-
-// PaginatedProductionRecipesResponse represents a paginated list of recipes
-type PaginatedProductionRecipesResponse struct {
-	Data       []ProductionRecipeDTO `json:"data"`
-	PageNumber int                   `json:"page_number"`
-	PageSize   int                   `json:"page_size"`
-	Total      int64                 `json:"total"`
+type PositionDTO struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Code        string    `json:"code"`
+	Description string    `json:"description,omitempty"`
+	IsActive    bool      `json:"is_active"`
 }
 
-// PaginatedProductionOrdersResponse represents a paginated list of orders
-type PaginatedProductionOrdersResponse struct {
-	Data       []ProductionOrderDTO `json:"data"`
-	PageNumber int                  `json:"page_number"`
-	PageSize   int                  `json:"page_size"`
-	Total      int64                `json:"total"`
+type ServiceGroupTaskDTO struct {
+	TaskID   uuid.UUID `json:"task_id"`
+	Sequence int       `json:"sequence"`
 }
 
-// PaginatedWorkCentersResponse represents a paginated list of work centers
-type PaginatedWorkCentersResponse struct {
-	Data       []WorkCenterDTO `json:"data"`
-	PageNumber int             `json:"page_number"`
-	PageSize   int             `json:"page_size"`
-	Total      int64           `json:"total"`
+type ServiceGroupDTO struct {
+	ID             uuid.UUID             `json:"id"`
+	Name           string                `json:"name"`
+	Description    string                `json:"description,omitempty"`
+	ProductGroupID *uuid.UUID            `json:"product_group_id,omitempty"`
+	IsActive       bool                  `json:"is_active"`
+	Tasks          []ServiceGroupTaskDTO `json:"tasks"`
+}
+
+type MESWorkTaskDTO struct {
+	ID          uuid.UUID  `json:"id"`
+	TaskID      uuid.UUID  `json:"task_id"`
+	Sequence    int        `json:"sequence"`
+	Status      string     `json:"status"`
+	AssignedTo  *uuid.UUID `json:"assigned_to,omitempty"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	Notes       string     `json:"notes,omitempty"`
+}
+
+type MESWorkServiceGroupDTO struct {
+	ID             uuid.UUID        `json:"id"`
+	ServiceGroupID uuid.UUID        `json:"service_group_id"`
+	PositionID     uuid.UUID        `json:"position_id"`
+	DesignFilePath string           `json:"design_file_path,omitempty"`
+	Notes          string           `json:"notes,omitempty"`
+	Sequence       int              `json:"sequence"`
+	Tasks          []MESWorkTaskDTO `json:"tasks"`
+}
+
+type MESWorkDTO struct {
+	ID              uuid.UUID                `json:"id"`
+	WorkNumber      string                   `json:"work_number"`
+	WorkName        string                   `json:"work_name"`
+	PartyID         string                   `json:"party_id"`
+	TangibleGroupID uuid.UUID                `json:"tangible_group_id"`
+	GarmentNotes    string                   `json:"garment_notes,omitempty"`
+	Status          string                   `json:"status"`
+	Priority        string                   `json:"priority"`
+	StartDate       *time.Time               `json:"start_date,omitempty"`
+	DueDate         *time.Time               `json:"due_date,omitempty"`
+	CompletedDate   *time.Time               `json:"completed_date,omitempty"`
+	ServiceGroups   []MESWorkServiceGroupDTO `json:"service_groups"`
+}
+
+type MESWorkDashboardStatsDTO struct {
+	Total    int            `json:"total"`
+	ByStatus map[string]int `json:"by_status"`
+	Overdue  int            `json:"overdue"`
+	DueToday int            `json:"due_today"`
 }

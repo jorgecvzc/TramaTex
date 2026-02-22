@@ -2,434 +2,460 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/mes/application"
 )
 
-// MESHandler handles HTTP requests for the MES module
+// MESHandler handles HTTP requests for MES master data.
 type MESHandler struct {
 	service *application.MESService
 }
 
-// NewMESHandler creates a new MES handler
 func NewMESHandler(service *application.MESService) *MESHandler {
-	return &MESHandler{
-		service: service,
-	}
+	return &MESHandler{service: service}
 }
 
-// ============================================================================
-// PRODUCTION RECIPE HANDLERS
-// ============================================================================
+func actorIDFromContext(c *gin.Context) (string, bool) {
+	value, ok := c.Get("userID")
+	if !ok {
+		return "", false
+	}
+	actorID, ok := value.(string)
+	if !ok || actorID == "" {
+		return "", false
+	}
+	return actorID, true
+}
 
-// CreateProductionRecipe creates a new production recipe
-// POST /api/mes/recipes
-func (h *MESHandler) CreateProductionRecipe(c *gin.Context) {
-	var cmd application.CreateProductionRecipeCommand
+func mapServiceError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+	message := err.Error()
+	if strings.Contains(message, "not found") {
+		c.JSON(http.StatusNotFound, gin.H{"error": message})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"error": message})
+}
+
+func parseID(c *gin.Context, name string) (uuid.UUID, bool) {
+	id, err := uuid.Parse(c.Param(name))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return uuid.Nil, false
+	}
+	return id, true
+}
+
+// Tasks
+func (h *MESHandler) CreateTask(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	var cmd application.CreateTaskCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	cmd.ActorID = actorID
 
-	recipe, err := h.service.CreateProductionRecipe(c.Request.Context(), cmd)
+	result, err := h.service.CreateTask(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusCreated, recipe)
+	c.JSON(http.StatusCreated, result)
 }
 
-// GetProductionRecipe retrieves a single production recipe
-// GET /api/mes/recipes/:id
-func (h *MESHandler) GetProductionRecipe(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid recipe ID"})
+func (h *MESHandler) GetTask(c *gin.Context) {
+	id, ok := parseID(c, "id")
+	if !ok {
 		return
 	}
 
-	query := application.GetProductionRecipeByIDQuery{ID: id}
-	recipe, err := h.service.GetProductionRecipeByID(c.Request.Context(), query)
+	result, err := h.service.GetTaskByID(c.Request.Context(), application.GetTaskByIDQuery{ID: id})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, recipe)
+	c.JSON(http.StatusOK, result)
 }
 
-// ListProductionRecipes lists all production recipes with optional filters
-// GET /api/mes/recipes
-func (h *MESHandler) ListProductionRecipes(c *gin.Context) {
-	var query application.ListProductionRecipesQuery
+func (h *MESHandler) ListTasks(c *gin.Context) {
+	var query application.ListTasksQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set defaults
-	if query.PageNumber == 0 {
-		query.PageNumber = 1
-	}
-	if query.PageSize == 0 {
-		query.PageSize = 20
-	}
-
-	recipes, err := h.service.ListProductionRecipes(c.Request.Context(), query)
+	results, err := h.service.ListTasks(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, recipes)
+	c.JSON(http.StatusOK, results)
 }
 
-// UpdateProductionRecipe updates an existing production recipe
-// PUT /api/mes/recipes/:id
-func (h *MESHandler) UpdateProductionRecipe(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid recipe ID"})
+func (h *MESHandler) UpdateTask(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	var cmd application.UpdateProductionRecipeCommand
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdateTaskCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ID = id
+	cmd.ActorID = actorID
 
-	recipe, err := h.service.UpdateProductionRecipe(c.Request.Context(), cmd)
+	result, err := h.service.UpdateTask(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) DeleteTask(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	c.JSON(http.StatusOK, recipe)
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := h.service.DeleteTask(c.Request.Context(), application.DeleteTaskCommand{ActorID: actorID, ID: id}); err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
-// ============================================================================
-// PRODUCTION ORDER HANDLERS
-// ============================================================================
+// Positions
+func (h *MESHandler) CreatePosition(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
 
-// CreateProductionOrder creates a new production order
-// POST /api/mes/orders
-func (h *MESHandler) CreateProductionOrder(c *gin.Context) {
-	var cmd application.CreateProductionOrderCommand
+	var cmd application.CreatePositionCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	cmd.ActorID = actorID
 
-	order, err := h.service.CreateProductionOrder(c.Request.Context(), cmd)
+	result, err := h.service.CreatePosition(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusCreated, order)
+	c.JSON(http.StatusCreated, result)
 }
 
-// GetProductionOrder retrieves a single production order
-// GET /api/mes/orders/:id
-func (h *MESHandler) GetProductionOrder(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+func (h *MESHandler) GetPosition(c *gin.Context) {
+	id, ok := parseID(c, "id")
+	if !ok {
 		return
 	}
 
-	query := application.GetProductionOrderByIDQuery{ID: id}
-	order, err := h.service.GetProductionOrderByID(c.Request.Context(), query)
+	result, err := h.service.GetPositionByID(c.Request.Context(), application.GetPositionByIDQuery{ID: id})
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusOK, result)
 }
 
-// ListProductionOrders lists all production orders with optional filters
-// GET /api/mes/orders
-func (h *MESHandler) ListProductionOrders(c *gin.Context) {
-	var query application.ListProductionOrdersQuery
+func (h *MESHandler) ListPositions(c *gin.Context) {
+	var query application.ListPositionsQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set defaults
-	if query.PageNumber == 0 {
-		query.PageNumber = 1
-	}
-	if query.PageSize == 0 {
-		query.PageSize = 20
-	}
-
-	orders, err := h.service.ListProductionOrders(c.Request.Context(), query)
+	results, err := h.service.ListPositions(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, orders)
+	c.JSON(http.StatusOK, results)
 }
 
-// UpdateProductionOrderStatus updates the status of a production order
-// PATCH /api/mes/orders/:id/status
-func (h *MESHandler) UpdateProductionOrderStatus(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+func (h *MESHandler) UpdatePosition(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	var cmd application.UpdateProductionOrderStatusCommand
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdatePositionCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ID = id
+	cmd.ActorID = actorID
 
-	order, err := h.service.UpdateProductionOrderStatus(c.Request.Context(), cmd)
+	result, err := h.service.UpdatePosition(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusOK, result)
 }
 
-// AssignWorkCenter assigns a work center to a production order
-// POST /api/mes/orders/:id/assign-workcenter
-func (h *MESHandler) AssignWorkCenter(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+func (h *MESHandler) DeletePosition(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	var cmd application.AssignWorkCenterCommand
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := h.service.DeletePosition(c.Request.Context(), application.DeletePositionCommand{ActorID: actorID, ID: id}); err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// Service groups
+// MES Works
+func (h *MESHandler) CreateServiceGroup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	var cmd application.CreateServiceGroupCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cmd.ProductionOrderID = id
+	cmd.ActorID = actorID
 
-	order, err := h.service.AssignWorkCenter(c.Request.Context(), cmd)
+	result, err := h.service.CreateServiceGroup(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusCreated, result)
 }
 
-// ============================================================================
-// TASK INSTANCE HANDLERS
-// ============================================================================
-
-// UpdateTaskStatus updates a task instance status
-// PATCH /api/mes/orders/:id/tasks/:taskId/status
-func (h *MESHandler) UpdateTaskStatus(c *gin.Context) {
-	orderIdParam := c.Param("id")
-	orderId, err := uuid.Parse(orderIdParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+func (h *MESHandler) CreateMESWork(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	taskIdParam := c.Param("taskId")
-	taskId, err := uuid.Parse(taskIdParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
-		return
-	}
-
-	var cmd application.UpdateTaskStatusCommand
+	var cmd application.CreateMESWorkCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	cmd.ProductionOrderID = orderId
-	cmd.TaskInstanceID = taskId
+	cmd.ActorID = actorID
 
-	order, err := h.service.UpdateTaskStatus(c.Request.Context(), cmd)
+	result, err := h.service.CreateMESWork(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusCreated, result)
 }
 
-// AssignOperatorToTask assigns an operator to a task instance
-// POST /api/mes/orders/:id/tasks/:taskId/assign-operator
-func (h *MESHandler) AssignOperatorToTask(c *gin.Context) {
-	orderIdParam := c.Param("id")
-	orderId, err := uuid.Parse(orderIdParam)
+func (h *MESHandler) GetMESWork(c *gin.Context) {
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	result, err := h.service.GetMESWorkByID(c.Request.Context(), application.GetMESWorkByIDQuery{ID: id})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+		mapServiceError(c, err)
 		return
 	}
-
-	taskIdParam := c.Param("taskId")
-	taskId, err := uuid.Parse(taskIdParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
-		return
-	}
-
-	var cmd application.AssignOperatorToTaskCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	cmd.ProductionOrderID = orderId
-	cmd.TaskInstanceID = taskId
-
-	order, err := h.service.AssignOperatorToTask(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, order)
+	c.JSON(http.StatusOK, result)
 }
 
-// RecordTaskProgress records actual time/completion for a task
-// POST /api/mes/orders/:id/tasks/:taskId/progress
-func (h *MESHandler) RecordTaskProgress(c *gin.Context) {
-	orderIdParam := c.Param("id")
-	orderId, err := uuid.Parse(orderIdParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
-		return
-	}
-
-	taskIdParam := c.Param("taskId")
-	taskId, err := uuid.Parse(taskIdParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
-		return
-	}
-
-	var cmd application.RecordTaskProgressCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	cmd.ProductionOrderID = orderId
-	cmd.TaskInstanceID = taskId
-
-	order, err := h.service.RecordTaskProgress(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, order)
-}
-
-// ============================================================================
-// WORK CENTER HANDLERS
-// ============================================================================
-
-// CreateWorkCenter creates a new work center
-// POST /api/mes/workcenters
-func (h *MESHandler) CreateWorkCenter(c *gin.Context) {
-	var cmd application.CreateWorkCenterCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	workCenter, err := h.service.CreateWorkCenter(c.Request.Context(), cmd)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, workCenter)
-}
-
-// GetWorkCenter retrieves a single work center
-// GET /api/mes/workcenters/:id
-func (h *MESHandler) GetWorkCenter(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid work center ID"})
-		return
-	}
-
-	query := application.GetWorkCenterByIDQuery{ID: id}
-	workCenter, err := h.service.GetWorkCenterByID(c.Request.Context(), query)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, workCenter)
-}
-
-// ListWorkCenters lists all work centers
-// GET /api/mes/workcenters
-func (h *MESHandler) ListWorkCenters(c *gin.Context) {
-	var query application.ListWorkCentersQuery
+func (h *MESHandler) ListMESWorks(c *gin.Context) {
+	var query application.ListMESWorksQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set defaults
-	if query.PageNumber == 0 {
-		query.PageNumber = 1
-	}
-	if query.PageSize == 0 {
-		query.PageSize = 20
-	}
-
-	workCenters, err := h.service.ListWorkCenters(c.Request.Context(), query)
+	results, err := h.service.ListMESWorks(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
 		return
 	}
-
-	c.JSON(http.StatusOK, workCenters)
+	c.JSON(http.StatusOK, results)
 }
 
-// UpdateWorkCenter updates an existing work center
-// PUT /api/mes/workcenters/:id
-func (h *MESHandler) UpdateWorkCenter(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := uuid.Parse(idParam)
+func (h *MESHandler) GetMESWorkDashboardStats(c *gin.Context) {
+	result, err := h.service.GetMESWorkDashboardStats(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid work center ID"})
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) ListOverdueMESWorks(c *gin.Context) {
+	var query application.ListOverdueMESWorksQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var cmd application.UpdateWorkCenterCommand
+	results, err := h.service.ListOverdueMESWorks(c.Request.Context(), query)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	workID, ok := parseID(c, "workId")
+	if !ok {
+		return
+	}
+
+	taskID, ok := parseID(c, "taskId")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdateMESWorkTaskStatusCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cmd.ActorID = actorID
+	cmd.WorkID = workID
+	cmd.TaskID = taskID
+
+	result, err := h.service.UpdateMESWorkTaskStatus(c.Request.Context(), cmd)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) GetServiceGroup(c *gin.Context) {
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	result, err := h.service.GetServiceGroupByID(c.Request.Context(), application.GetServiceGroupByIDQuery{ID: id})
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) ListServiceGroups(c *gin.Context) {
+	var query application.ListServiceGroupsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	results, err := h.service.ListServiceGroups(c.Request.Context(), query)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdateServiceGroupCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ID = id
+	cmd.ActorID = actorID
 
-	workCenter, err := h.service.UpdateWorkCenter(c.Request.Context(), cmd)
+	result, err := h.service.UpdateServiceGroup(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) DeleteServiceGroup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	c.JSON(http.StatusOK, workCenter)
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := h.service.DeleteServiceGroup(c.Request.Context(), application.DeleteServiceGroupCommand{ActorID: actorID, ID: id}); err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

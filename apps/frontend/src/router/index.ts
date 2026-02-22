@@ -3,22 +3,23 @@ import {
   createWebHistory,
   type RouteRecordRaw,
 } from "vue-router";
-import LoginPage from "@/pages.deprecated/auth/LoginPage.vue";
-import DashboardPage from "@/pages.deprecated/DashboardPage.vue";
-import NotFoundPage from "@/pages.deprecated/NotFoundPage.vue";
+import Login from "@/pages/auth/Login.vue";
+import Dashboard from "@/pages/Dashboard.vue";
+import NotFound from "@/pages/NotFound.vue";
 import StyleGuide from "@/components/StyleGuide.vue";
 import PartiesList from "@/pages/parties/List.vue";
 import PartiesCreate from "@/pages/parties/Create.vue";
 import PartiesDetail from "@/pages/parties/Detail.vue";
 import ProductsList from "@/pages/products/List.vue";
 import UsersManagement from "@/pages/admin/UsersManagement.vue";
+import PrintIssuerProfile from "@/pages/admin/PrintIssuerProfile.vue";
 import { setupAuthGuards } from "./guards";
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/login",
     name: "Login",
-    component: LoginPage,
+    component: Login,
     meta: {
       requiresGuest: true,
       title: "Login - TramaTex",
@@ -27,7 +28,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/dashboard",
     name: "Dashboard",
-    component: DashboardPage,
+    component: Dashboard,
     meta: {
       requiresAuth: true,
       title: "Dashboard - TramaTex",
@@ -36,7 +37,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/orders",
     name: "Orders",
-    component: DashboardPage,
+    component: Dashboard,
     meta: {
       requiresAuth: true,
       title: "Pedidos - TramaTex",
@@ -45,7 +46,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/inventory",
     name: "Inventory",
-    component: DashboardPage,
+    component: Dashboard,
     meta: {
       requiresAuth: true,
       title: "Inventario - TramaTex",
@@ -54,7 +55,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/customers",
     name: "Customers",
-    component: DashboardPage,
+    component: Dashboard,
     meta: {
       requiresAuth: true,
       title: "Clientes - TramaTex",
@@ -241,6 +242,105 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/mes/dashboard",
+    name: "MESDashboard",
+    component: () => import("@/pages/mes/Dashboard.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Dashboard MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/tasks",
+    name: "MESTasksList",
+    component: () => import("@/pages/mes/tasks/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Tareas MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/tasks/new",
+    name: "MESCreateTask",
+    component: () => import("@/pages/mes/tasks/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nueva Tarea MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/positions",
+    name: "MESPositionsList",
+    component: () => import("@/pages/mes/positions/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Puestos MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/positions/new",
+    name: "MESCreatePosition",
+    component: () => import("@/pages/mes/positions/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nuevo Puesto MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/service-groups",
+    name: "MESServiceGroupsList",
+    component: () => import("@/pages/mes/service-groups/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Grupos de Servicio MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/service-groups/new",
+    name: "MESCreateServiceGroup",
+    component: () => import("@/pages/mes/service-groups/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nuevo Grupo de Servicio MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/works",
+    name: "MESWorksList",
+    component: () => import("@/pages/mes/works/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Trabajos MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/works/new",
+    name: "MESCreateWork",
+    component: () => import("@/pages/mes/works/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nuevo Trabajo MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/works/:id",
+    name: "MESWorkDetail",
+    component: () => import("@/pages/mes/works/Detail.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Detalle Trabajo MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/terminal",
+    name: "MESTabletTerminal",
+    component: () => import("@/pages/mes/terminal/Tablet.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Terminal MES Tablet - TramaTex",
+    },
+  },
+  {
     path: "/admin/users",
     name: "UsersManagement",
     component: UsersManagement,
@@ -248,6 +348,16 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresAdmin: true,
       title: "Usuarios - TramaTex",
+    },
+  },
+  {
+    path: "/admin/print-profile",
+    name: "PrintIssuerProfile",
+    component: PrintIssuerProfile,
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: "Perfil Fiscal Impresión - TramaTex",
     },
   },
   {
@@ -270,7 +380,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
-    component: NotFoundPage,
+    component: NotFound,
     meta: {
       title: "Página no encontrada - TramaTex",
     },

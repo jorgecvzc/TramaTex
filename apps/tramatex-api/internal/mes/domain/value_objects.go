@@ -4,16 +4,35 @@ package domain
 type ProductionStatus string
 
 const (
+	ProductionStatusDraft      ProductionStatus = "DRAFT"
 	ProductionStatusPending    ProductionStatus = "PENDING"
 	ProductionStatusInProgress ProductionStatus = "IN_PROGRESS"
 	ProductionStatusCompleted  ProductionStatus = "COMPLETED"
 	ProductionStatusOnHold     ProductionStatus = "ON_HOLD"
+	ProductionStatusCancelled  ProductionStatus = "CANCELLED"
 )
 
 // IsValid checks if the ProductionStatus is one of the predefined valid statuses.
 func (ps ProductionStatus) IsValid() bool {
 	switch ps {
-	case ProductionStatusPending, ProductionStatusInProgress, ProductionStatusCompleted, ProductionStatusOnHold:
+	case ProductionStatusDraft, ProductionStatusPending, ProductionStatusInProgress, ProductionStatusCompleted, ProductionStatusOnHold, ProductionStatusCancelled:
+		return true
+	}
+	return false
+}
+
+type WorkPriority string
+
+const (
+	WorkPriorityLow    WorkPriority = "LOW"
+	WorkPriorityNormal WorkPriority = "NORMAL"
+	WorkPriorityHigh   WorkPriority = "HIGH"
+	WorkPriorityUrgent WorkPriority = "URGENT"
+)
+
+func (wp WorkPriority) IsValid() bool {
+	switch wp {
+	case WorkPriorityLow, WorkPriorityNormal, WorkPriorityHigh, WorkPriorityUrgent:
 		return true
 	}
 	return false
@@ -38,7 +57,6 @@ func (ts TaskStatus) IsValid() bool {
 	}
 	return false
 }
-
 
 // QualityStatus represents the result of a QualityCheck.
 type QualityStatus string

@@ -108,6 +108,21 @@
                   />
                 </div>
                 <div class="form-group">
+                  <label>Trabajo MES (opcional)</label>
+                  <select
+                    v-model="item.mesWorkId"
+                    class="form-input"
+                    :disabled="!formData.partyId || isLoadingMesWorks"
+                  >
+                    <option value="">
+                      {{ isLoadingMesWorks ? 'Cargando trabajos MES...' : 'Sin referencia MES' }}
+                    </option>
+                    <option v-for="work in mesWorks" :key="work.id" :value="work.id">
+                      {{ work.work_number }} - {{ work.work_name }} ({{ work.status }})
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
                   <label>Cantidad *</label>
                   <input
                     v-model.number="item.quantity"
@@ -186,12 +201,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
+import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
 
@@ -205,6 +221,8 @@ const formData = ref({
 
 const isSubmitting = ref(false);
 const submitError = ref('');
+const mesWorks = ref([]);
+const isLoadingMesWorks = ref(false);
 
 const minDeliveryDate = computed(() => {
   return new Date().toISOString().split('T')[0];
@@ -229,17 +247,42 @@ onMounted(() => {
   formData.value.deliveryDate = today;
 });
 
+watch(() => formData.value.partyId, (partyId) => {
+  loadMesWorksForParty(partyId);
+});
+
 const showVariantSelector = ref(false);
 const editingLineIndex = ref(null);
 
 function addLineItem() {
   formData.value.lineItems.push({
     productVariantId: '',
+    mesWorkId: '',
     selectedVariantName: '',
     quantity: 1,
     manualUnitPrice: null,
     manualDiscountPerUnit: null,
   });
+}
+
+async function loadMesWorksForParty(partyId) {
+  if (!partyId) {
+    mesWorks.value = [];
+    formData.value.lineItems.forEach((item) => {
+      item.mesWorkId = '';
+    });
+    return;
+  }
+
+  isLoadingMesWorks.value = true;
+  try {
+    mesWorks.value = await mesApi.listWorks({ party_id: partyId });
+  } catch (error) {
+    console.error('Error loading MES works for selected party:', error);
+    mesWorks.value = [];
+  } finally {
+    isLoadingMesWorks.value = false;
+  }
 }
 
 function openVariantSelector(index) {
@@ -287,6 +330,10 @@ async function handleSubmit() {
           amount: item.manualDiscountPerUnit,
           currency: 'EUR',
         };
+      }
+
+      if (item.mesWorkId) {
+        lineItem.mesWorkId = item.mesWorkId;
       }
 
       return lineItem;

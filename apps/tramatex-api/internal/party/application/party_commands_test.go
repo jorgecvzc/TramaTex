@@ -10,6 +10,10 @@ import (
 	"github.com/joran-cortez/tramatex/internal/party/persistence"
 )
 
+func strPtr(value string) *string {
+	return &value
+}
+
 type fakePartyRepo struct {
 	parties map[string]*domain.Party
 }
@@ -247,22 +251,14 @@ func TestCreatePartyHandler_Success(t *testing.T) {
 		Roles:   []string{"CLIENT"},
 		ActorID: "user-1",
 		PersonProfile: &PersonProfileInput{
-			FirstName: "Ana",
-			LastName:  "Perez",
+			FirstName: strPtr("Ana"),
+			LastName:  strPtr("Perez"),
 		},
 		OrganizationProfile: &OrganizationProfileInput{
-			Name:      "Textiles Perez",
-			TaxID:     "B12345678",
-			TaxIDType: "CIF",
-			Website:   "https://textiles.local",
-			Contacts: []ContactDetailsInput{
-				{
-					ID:              "contact-001",
-					TypeDescription: "Ventas",
-					Phone:           "+34 600 111 222",
-					Email:           "ventas@textiles.local",
-				},
-			},
+			Name:      strPtr("Textiles Perez"),
+			TaxID:     strPtr("B12345678"),
+			TaxIDType: strPtr("CIF"),
+			Website:   strPtr("https://textiles.local"),
 		},
 	}
 
@@ -276,8 +272,8 @@ func TestCreatePartyHandler_Success(t *testing.T) {
 	if len(party.Roles()) != 1 {
 		t.Fatalf("Expected 1 role, got %d", len(party.Roles()))
 	}
-	if len(party.OrganizationProfile().Contacts()) != 1 {
-		t.Fatalf("Expected 1 contact, got %d", len(party.OrganizationProfile().Contacts()))
+	if len(party.OrganizationProfile().Contacts()) != 0 {
+		t.Fatalf("Expected 0 contacts, got %d", len(party.OrganizationProfile().Contacts()))
 	}
 }
 
@@ -295,7 +291,7 @@ func TestCreatePartyHandler_InvalidInputs(t *testing.T) {
 		ID:            "party-x",
 		Status:        "UNKNOWN",
 		ActorID:       "user-1",
-		PersonProfile: &PersonProfileInput{FirstName: "Ana", LastName: "Perez"},
+		PersonProfile: &PersonProfileInput{FirstName: strPtr("Ana"), LastName: strPtr("Perez")},
 	}); err == nil {
 		t.Fatalf("expected error for invalid status")
 	}
@@ -308,7 +304,7 @@ func TestCreatePartyHandler_InvalidPersonProfile(t *testing.T) {
 	cmd := &CreatePartyCommand{
 		ID:            "party-person",
 		ActorID:       "user-1",
-		PersonProfile: &PersonProfileInput{FirstName: "", LastName: "Perez"},
+		PersonProfile: &PersonProfileInput{FirstName: strPtr(""), LastName: strPtr("Perez")},
 	}
 
 	if _, err := handler.Handle(context.Background(), cmd); err == nil {
@@ -330,66 +326,6 @@ func TestCreatePartyHandler_RequiresProfile(t *testing.T) {
 	}
 }
 
-func TestCreatePartyHandler_InvalidContactDetails(t *testing.T) {
-	repo := newFakePartyRepo()
-	handler := NewCreatePartyHandler(repo)
-
-	cmd := &CreatePartyCommand{
-		ID:      "party-contact",
-		ActorID: "user-1",
-		OrganizationProfile: &OrganizationProfileInput{
-			Name: "Org",
-			Contacts: []ContactDetailsInput{
-				{ID: "contact-1", TypeDescription: "Sales", Email: "bad-email"},
-			},
-		},
-	}
-
-	if _, err := handler.Handle(context.Background(), cmd); err == nil {
-		t.Fatalf("expected error for invalid email")
-	}
-}
-
-func TestCreatePartyHandler_InvalidContactID(t *testing.T) {
-	repo := newFakePartyRepo()
-	handler := NewCreatePartyHandler(repo)
-
-	cmd := &CreatePartyCommand{
-		ID:      "party-contact-id",
-		ActorID: "user-1",
-		OrganizationProfile: &OrganizationProfileInput{
-			Name: "Org",
-			Contacts: []ContactDetailsInput{
-				{ID: "", TypeDescription: "Sales", Email: "sales@org.local"},
-			},
-		},
-	}
-
-	if _, err := handler.Handle(context.Background(), cmd); err == nil {
-		t.Fatalf("expected error for invalid contact ID")
-	}
-}
-
-func TestCreatePartyHandler_InvalidContactPhone(t *testing.T) {
-	repo := newFakePartyRepo()
-	handler := NewCreatePartyHandler(repo)
-
-	cmd := &CreatePartyCommand{
-		ID:      "party-contact-phone",
-		ActorID: "user-1",
-		OrganizationProfile: &OrganizationProfileInput{
-			Name: "Org",
-			Contacts: []ContactDetailsInput{
-				{ID: "contact-1", TypeDescription: "Sales", Phone: "bad"},
-			},
-		},
-	}
-
-	if _, err := handler.Handle(context.Background(), cmd); err == nil {
-		t.Fatalf("expected error for invalid phone")
-	}
-}
-
 func TestCreatePartyHandler_InvalidTaxID(t *testing.T) {
 	repo := newFakePartyRepo()
 	handler := NewCreatePartyHandler(repo)
@@ -398,8 +334,8 @@ func TestCreatePartyHandler_InvalidTaxID(t *testing.T) {
 		ID:      "party-bad-tax",
 		ActorID: "user-1",
 		OrganizationProfile: &OrganizationProfileInput{
-			Name:  "Org",
-			TaxID: "BAD!",
+			Name:  strPtr("Org"),
+			TaxID: strPtr("BAD!"),
 		},
 	}
 
@@ -415,7 +351,7 @@ func TestCreatePartyHandler_SaveError(t *testing.T) {
 	cmd := &CreatePartyCommand{
 		ID:            "party-save",
 		ActorID:       "user-1",
-		PersonProfile: &PersonProfileInput{FirstName: "Ana", LastName: "Perez"},
+		PersonProfile: &PersonProfileInput{FirstName: strPtr("Ana"), LastName: strPtr("Perez")},
 	}
 
 	if _, err := handler.Handle(context.Background(), cmd); err == nil {
@@ -433,7 +369,7 @@ func TestUpdatePartyHandler_UpdatesProfilesAndStatus(t *testing.T) {
 		Status:  "INACTIVE",
 		ActorID: "user-2",
 		OrganizationProfile: &OrganizationProfileInput{
-			Name: "Org Updated",
+			Name: strPtr("Org Updated"),
 		},
 	}
 
@@ -1264,8 +1200,8 @@ func TestCreatePartyHandler_DefaultStatusAndTaxIDType(t *testing.T) {
 		ID:      "party-defaults",
 		ActorID: "user-1",
 		OrganizationProfile: &OrganizationProfileInput{
-			Name:  "Org",
-			TaxID: "B12345678",
+			Name:  strPtr("Org"),
+			TaxID: strPtr("B12345678"),
 		},
 	}
 
@@ -1290,8 +1226,8 @@ func TestCreatePartyHandler_DuplicateRole(t *testing.T) {
 		ActorID: "user-1",
 		Roles:   []string{"CLIENT", "CLIENT"},
 		PersonProfile: &PersonProfileInput{
-			FirstName: "Ana",
-			LastName:  "Perez",
+			FirstName: strPtr("Ana"),
+			LastName:  strPtr("Perez"),
 		},
 	}
 
@@ -1311,12 +1247,9 @@ func TestUpdatePartyHandler_UsesExistingPersonProfile(t *testing.T) {
 
 	handler := NewUpdatePartyHandler(repo)
 	cmd := &UpdatePartyCommand{
-		ID:      party.ID().String(),
-		ActorID: "user-1",
-		PersonProfile: &PersonProfileInput{
-			FirstName: "",
-			LastName:  "",
-		},
+		ID:            party.ID().String(),
+		ActorID:       "user-1",
+		PersonProfile: &PersonProfileInput{},
 	}
 
 	updated, err := handler.Handle(context.Background(), cmd)
@@ -1337,8 +1270,8 @@ func TestUpdatePartyHandler_InvalidTaxID(t *testing.T) {
 		ID:      "party-bad-tax",
 		ActorID: "user-1",
 		OrganizationProfile: &OrganizationProfileInput{
-			Name:  "Org",
-			TaxID: "BAD!",
+			Name:  strPtr("Org"),
+			TaxID: strPtr("BAD!"),
 		},
 	}
 

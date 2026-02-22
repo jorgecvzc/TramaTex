@@ -11,8 +11,8 @@ import (
 // Party command inputs
 
 type PersonProfileInput struct {
-	FirstName string
-	LastName  string
+	FirstName *string
+	LastName  *string
 }
 
 type ContactDetailsInput struct {
@@ -24,11 +24,17 @@ type ContactDetailsInput struct {
 }
 
 type OrganizationProfileInput struct {
-	Name      string
-	TaxID     string
-	TaxIDType string
-	Website   string
-	Contacts  []ContactDetailsInput
+	Name      *string
+	TaxID     *string
+	TaxIDType *string
+	Website   *string
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 // CreatePartyCommand represents a command to create a Party
@@ -76,7 +82,10 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 
 	var personProfile *domain.PersonProfile
 	if cmd.PersonProfile != nil {
-		personProfile, err = domain.NewPersonProfile(cmd.PersonProfile.FirstName, cmd.PersonProfile.LastName)
+		personProfile, err = domain.NewPersonProfile(
+			stringValue(cmd.PersonProfile.FirstName),
+			stringValue(cmd.PersonProfile.LastName),
+		)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid person profile", err)
 		}
@@ -85,71 +94,25 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 	var organizationProfile *domain.OrganizationProfile
 	if cmd.OrganizationProfile != nil {
 		var taxID *domain.TaxID
-		if cmd.OrganizationProfile.TaxID != "" {
-			taxType := cmd.OrganizationProfile.TaxIDType
+		taxValue := strings.TrimSpace(stringValue(cmd.OrganizationProfile.TaxID))
+		if taxValue != "" {
+			taxType := strings.TrimSpace(stringValue(cmd.OrganizationProfile.TaxIDType))
 			if taxType == "" {
 				taxType = "NIF"
 			}
-			taxID, err = domain.NewTaxID(cmd.OrganizationProfile.TaxID, taxType)
+			taxID, err = domain.NewTaxID(taxValue, taxType)
 			if err != nil {
 				return nil, domain.WrapValidation("invalid tax ID", err)
 			}
 		}
 
 		organizationProfile, err = domain.NewOrganizationProfile(
-			cmd.OrganizationProfile.Name,
+			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Name)),
 			taxID,
-			cmd.OrganizationProfile.Website,
+			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Website)),
 		)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid organization profile", err)
-		}
-
-		for _, input := range cmd.OrganizationProfile.Contacts {
-			contactID, err := domain.NewContactDetailsID(input.ID)
-			if err != nil {
-				return nil, domain.WrapValidation("invalid contact details ID", err)
-			}
-
-			var phone *domain.Phone
-			if input.Phone != "" {
-				phone, err = domain.NewPhone(input.Phone)
-				if err != nil {
-					return nil, domain.WrapValidation("invalid phone", err)
-				}
-			}
-
-			var email *domain.Email
-			if input.Email != "" {
-				email, err = domain.NewEmail(input.Email)
-				if err != nil {
-					return nil, domain.WrapValidation("invalid email", err)
-				}
-			}
-
-			var relatedPartyID *domain.PartyID
-			if input.RelatedPartyID != "" {
-				pid, err := domain.NewPartyID(input.RelatedPartyID)
-				if err != nil {
-					return nil, domain.WrapValidation("invalid related party ID", err)
-				}
-				relatedPartyID = &pid
-			}
-
-			contact, err := domain.NewContactDetails(
-				contactID,
-				input.TypeDescription,
-				phone,
-				email,
-				relatedPartyID,
-			)
-			if err != nil {
-				return nil, domain.WrapValidation("invalid contact details", err)
-			}
-
-			if err := organizationProfile.AddContact(contact); err != nil {
-				return nil, err
-			}
 		}
 	}
 
@@ -236,16 +199,25 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 
 	if cmd.PersonProfile != nil {
 		existing := party.PersonProfile()
-		firstName := cmd.PersonProfile.FirstName
-		lastName := cmd.PersonProfile.LastName
+		var firstName, lastName string
+
 		if existing != nil {
-			if firstName == "" {
-				firstName = existing.FirstName()
-			}
-			if lastName == "" {
-				lastName = existing.LastName()
-			}
+			firstName = existing.FirstName()
+			lastName = existing.LastName()
 		}
+
+		if cmd.PersonProfile.FirstName != nil {
+			firstName = *cmd.PersonProfile.FirstName
+		}
+		if cmd.PersonProfile.LastName != nil {
+			lastName = *cmd.PersonProfile.LastName
+		}
+
+		// If both are empty and there was no existing profile, it's an error.
+		if firstName == "" && lastName == "" && existing == nil {
+			return nil, domain.NewValidationError("person profile cannot be empty")
+		}
+
 		profile, err := domain.NewPersonProfile(firstName, lastName)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid person profile", err)
@@ -257,31 +229,43 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 
 	if cmd.OrganizationProfile != nil {
 		existing := party.OrganizationProfile()
-		name := cmd.OrganizationProfile.Name
-		if existing != nil && name == "" {
+		name := ""
+		if existing != nil {
 			name = existing.Name()
+		}
+		if cmd.OrganizationProfile.Name != nil {
+			name = strings.TrimSpace(*cmd.OrganizationProfile.Name)
 		}
 		if name == "" {
 			return nil, domain.NewValidationError("organization name is required")
 		}
 
 		var taxID *domain.TaxID
-		if cmd.OrganizationProfile.TaxID != "" {
-			taxType := cmd.OrganizationProfile.TaxIDType
-			if taxType == "" {
-				taxType = "NIF"
-			}
-			taxID, err = domain.NewTaxID(cmd.OrganizationProfile.TaxID, taxType)
-			if err != nil {
-				return nil, domain.WrapValidation("invalid tax ID", err)
-			}
-		} else if existing != nil {
+		if existing != nil {
 			taxID = existing.TaxID()
 		}
+		if cmd.OrganizationProfile.TaxID != nil {
+			taxValue := strings.TrimSpace(*cmd.OrganizationProfile.TaxID)
+			if taxValue == "" {
+				taxID = nil
+			} else {
+				taxType := strings.TrimSpace(stringValue(cmd.OrganizationProfile.TaxIDType))
+				if taxType == "" {
+					taxType = "NIF"
+				}
+				taxID, err = domain.NewTaxID(taxValue, taxType)
+				if err != nil {
+					return nil, domain.WrapValidation("invalid tax ID", err)
+				}
+			}
+		}
 
-		website := cmd.OrganizationProfile.Website
-		if existing != nil && website == "" {
+		website := ""
+		if existing != nil {
 			website = existing.Website()
+		}
+		if cmd.OrganizationProfile.Website != nil {
+			website = strings.TrimSpace(*cmd.OrganizationProfile.Website)
 		}
 
 		profile, err := domain.NewOrganizationProfile(name, taxID, website)

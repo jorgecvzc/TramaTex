@@ -33,24 +33,25 @@ func (QuoteDataModel) TableName() string {
 
 type QuoteLineItemDataModel struct {
 	gorm.Model
-	ID                          uuid.UUID `gorm:"type:uuid;primary_key;"`
-	QuoteID                     uuid.UUID `gorm:"column:quote_id;not null"`
-	ProductVariantID            uuid.UUID `gorm:"column:product_variant_id;not null"`
-	Quantity                    int       `gorm:"column:quantity;not null"`
-	CalculatedUnitPriceAmount   float64   `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
-	CalculatedUnitPriceCurrency string    `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
-	ManualUnitPriceAmount       *float64  `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
-	ManualUnitPriceCurrency     *string   `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
-	FinalUnitPriceAmount        float64   `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
-	FinalUnitPriceCurrency      string    `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
-	CalculatedDiscountAmount    *float64  `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
-	CalculatedDiscountCurrency  *string   `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
-	ManualDiscountAmount        *float64  `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
-	ManualDiscountCurrency      *string   `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
-	FinalDiscountAmount         float64   `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
-	FinalDiscountCurrency       string    `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
-	SubtotalAmount              float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
-	SubtotalCurrency            string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	ID                          uuid.UUID  `gorm:"type:uuid;primary_key;"`
+	QuoteID                     uuid.UUID  `gorm:"column:quote_id;not null"`
+	MESWorkID                   *uuid.UUID `gorm:"column:mes_work_id;type:uuid"`
+	ProductVariantID            uuid.UUID  `gorm:"column:product_variant_id;not null"`
+	Quantity                    int        `gorm:"column:quantity;not null"`
+	CalculatedUnitPriceAmount   float64    `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
+	CalculatedUnitPriceCurrency string     `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
+	ManualUnitPriceAmount       *float64   `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
+	ManualUnitPriceCurrency     *string    `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
+	FinalUnitPriceAmount        float64    `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
+	FinalUnitPriceCurrency      string     `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
+	CalculatedDiscountAmount    *float64   `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
+	CalculatedDiscountCurrency  *string    `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
+	ManualDiscountAmount        *float64   `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
+	ManualDiscountCurrency      *string    `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
+	FinalDiscountAmount         float64    `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
+	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
+	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
+	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 }
 
 func (QuoteLineItemDataModel) TableName() string {
@@ -81,24 +82,25 @@ func (SalesOrderDataModel) TableName() string {
 
 type OrderLineItemDataModel struct {
 	gorm.Model
-	ID                          uuid.UUID `gorm:"type:uuid;primary_key;"`
-	SalesOrderID                uuid.UUID `gorm:"column:sales_order_id;not null"`
-	ProductVariantID            uuid.UUID `gorm:"column:product_variant_id;not null"`
-	Quantity                    int       `gorm:"column:quantity;not null"`
-	CalculatedUnitPriceAmount   float64   `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
-	CalculatedUnitPriceCurrency string    `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
-	ManualUnitPriceAmount       *float64  `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
-	ManualUnitPriceCurrency     *string   `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
-	FinalUnitPriceAmount        float64   `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
-	FinalUnitPriceCurrency      string    `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
-	CalculatedDiscountAmount    *float64  `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
-	CalculatedDiscountCurrency  *string   `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
-	ManualDiscountAmount        *float64  `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
-	ManualDiscountCurrency      *string   `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
-	FinalDiscountAmount         float64   `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
-	FinalDiscountCurrency       string    `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
-	SubtotalAmount              float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
-	SubtotalCurrency            string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	ID                          uuid.UUID  `gorm:"type:uuid;primary_key;"`
+	SalesOrderID                uuid.UUID  `gorm:"column:sales_order_id;not null"`
+	MESWorkID                   *uuid.UUID `gorm:"column:mes_work_id;type:uuid"`
+	ProductVariantID            uuid.UUID  `gorm:"column:product_variant_id;not null"`
+	Quantity                    int        `gorm:"column:quantity;not null"`
+	CalculatedUnitPriceAmount   float64    `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
+	CalculatedUnitPriceCurrency string     `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
+	ManualUnitPriceAmount       *float64   `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
+	ManualUnitPriceCurrency     *string    `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
+	FinalUnitPriceAmount        float64    `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
+	FinalUnitPriceCurrency      string     `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
+	CalculatedDiscountAmount    *float64   `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
+	CalculatedDiscountCurrency  *string    `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
+	ManualDiscountAmount        *float64   `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
+	ManualDiscountCurrency      *string    `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
+	FinalDiscountAmount         float64    `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
+	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
+	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
+	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 }
 
 func (OrderLineItemDataModel) TableName() string {
@@ -216,6 +218,7 @@ func quoteLineItemFromDomain(quoteID uuid.UUID, item domain.QuoteLineItem) (*Quo
 	return &QuoteLineItemDataModel{
 		ID:                          item.ID,
 		QuoteID:                     quoteID,
+		MESWorkID:                   item.MESWorkID,
 		ProductVariantID:            item.ProductVariantID,
 		Quantity:                    item.Quantity,
 		CalculatedUnitPriceAmount:   item.CalculatedUnitPrice.Amount(),
@@ -271,6 +274,7 @@ func orderLineItemFromDomain(orderID uuid.UUID, item domain.OrderLineItem) (*Ord
 	return &OrderLineItemDataModel{
 		ID:                          item.ID,
 		SalesOrderID:                orderID,
+		MESWorkID:                   item.MESWorkID,
 		ProductVariantID:            item.ProductVariantID,
 		Quantity:                    item.Quantity,
 		CalculatedUnitPriceAmount:   item.CalculatedUnitPrice.Amount(),
@@ -440,6 +444,7 @@ func quoteLineItemToDomain(item QuoteLineItemDataModel) (domain.QuoteLineItem, e
 
 	return domain.QuoteLineItem{
 		ID:                        item.ID,
+		MESWorkID:                 item.MESWorkID,
 		ProductVariantID:          item.ProductVariantID,
 		Quantity:                  item.Quantity,
 		CalculatedUnitPrice:       calculatedUnit,
@@ -529,6 +534,7 @@ func orderLineItemToDomain(item OrderLineItemDataModel) (domain.OrderLineItem, e
 
 	return domain.OrderLineItem{
 		ID:                        item.ID,
+		MESWorkID:                 item.MESWorkID,
 		ProductVariantID:          item.ProductVariantID,
 		Quantity:                  item.Quantity,
 		CalculatedUnitPrice:       calculatedUnit,

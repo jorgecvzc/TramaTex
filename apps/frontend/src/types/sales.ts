@@ -20,6 +20,7 @@ export type PaymentMethod = 'CASH' | 'TRANSFER' | 'CREDIT_CARD' | 'CHECK' | 'OTH
 
 export interface QuoteLineItem {
   id: string
+  mes_work_id?: string | null
   product_variant_id: string
   product_name: string
   quantity: number
@@ -31,6 +32,7 @@ export interface QuoteLineItem {
 
 export interface OrderLineItem {
   id: string
+  mes_work_id?: string | null
   product_variant_id: string
   product_name: string
   quantity: number
@@ -168,6 +170,7 @@ export interface CreateQuoteRequest {
 }
 
 export interface CreateQuoteLineItemRequest {
+  mesWorkId?: string
   product_variant_id: string
   quantity: number
   unit_price: number
@@ -194,6 +197,7 @@ export interface CreateOrderRequest {
 }
 
 export interface CreateOrderLineItemRequest {
+  mesWorkId?: string
   product_variant_id: string
   quantity: number
   unit_price: number

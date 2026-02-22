@@ -95,6 +95,7 @@
             <th>Fecha Entrega</th>
             <th>Estado</th>
             <th>Total</th>
+            <th>MES</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -110,6 +111,7 @@
               </span>
             </td>
             <td class="amount">{{ salesApi.formatMoney(order.total) }}</td>
+            <td>{{ getMesSummary(order.lineItems) }}</td>
             <td class="actions-cell" @click.stop>
               <button 
                 class="btn-icon" 
@@ -154,6 +156,7 @@ import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import salesApi from '@/services/salesApi';
 import partyApi from '@/services/partyApi';
+import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
 
@@ -161,6 +164,7 @@ const orders = ref([]);
 const isLoading = ref(false);
 const error = ref('');
 const partiesCache = ref({});
+const mesWorksCache = ref({});
 
 const filters = ref({
   partyId: '',
@@ -205,6 +209,7 @@ async function fetchOrders() {
     
     // Load party names for display
     await loadPartyNames();
+    await loadMesWorksForOrders();
   } catch (err) {
     error.value = err?.message || 'No se pudieron cargar los pedidos';
     console.error('Error loading orders:', err);
@@ -243,6 +248,24 @@ async function loadPartyNames() {
       }
     }
   }
+}
+
+async function loadMesWorksForOrders() {
+  const allLineItems = orders.value.flatMap((order) => order?.lineItems || []);
+  const mesWorkIds = [...new Set(
+    allLineItems
+      .map((item) => item?.mesWorkId)
+      .filter((mesWorkId) => typeof mesWorkId === 'string' && mesWorkId.length > 0),
+  )];
+
+  const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
+  if (uncachedIds.length === 0) return;
+
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  results.forEach((result, index) => {
+    const mesWorkId = uncachedIds[index];
+    mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
+  });
 }
 
 function applyFilters() {
@@ -304,6 +327,31 @@ function formatDate(dateString) {
 function formatPartyId(partyId) {
   if (!partyId) return '—';
   return partiesCache.value[partyId] || 'Cargando...';
+}
+
+function getMesSummary(lineItems) {
+  if (!Array.isArray(lineItems) || lineItems.length === 0) {
+    return '—';
+  }
+
+  const uniqueMesWorkIds = [...new Set(
+    lineItems
+      .map((item) => item?.mesWorkId)
+      .filter((mesWorkId) => typeof mesWorkId === 'string' && mesWorkId.length > 0),
+  )];
+
+  if (uniqueMesWorkIds.length === 0) {
+    return '—';
+  }
+
+  if (uniqueMesWorkIds.length === 1) {
+    const mesWork = mesWorksCache.value[uniqueMesWorkIds[0]];
+    return mesWork?.work_number || '1 ref';
+  }
+
+  const firstMesWork = mesWorksCache.value[uniqueMesWorkIds[0]];
+  const firstLabel = firstMesWork?.work_number || 'MES';
+  return `${firstLabel} +${uniqueMesWorkIds.length - 1}`;
 }
 </script>
 

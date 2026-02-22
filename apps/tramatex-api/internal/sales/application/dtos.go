@@ -13,16 +13,17 @@ type MoneyDTO struct {
 }
 
 type QuoteLineItemDTO struct {
-	ID                        uuid.UUID `json:"id"`
-	ProductVariantID          uuid.UUID `json:"productVariantId"`
-	Quantity                  int       `json:"quantity"`
-	CalculatedUnitPrice       MoneyDTO  `json:"calculatedUnitPrice"`
-	ManualUnitPrice           *MoneyDTO `json:"manualUnitPrice,omitempty"`
-	FinalUnitPrice            MoneyDTO  `json:"finalUnitPrice"`
-	CalculatedDiscountPerUnit *MoneyDTO `json:"calculatedDiscountPerUnit,omitempty"`
-	ManualDiscountPerUnit     *MoneyDTO `json:"manualDiscountPerUnit,omitempty"`
-	FinalDiscountPerUnit      MoneyDTO  `json:"finalDiscountPerUnit"`
-	Subtotal                  MoneyDTO  `json:"subtotal"`
+	ID                        uuid.UUID  `json:"id"`
+	MesWorkID                 *uuid.UUID `json:"mesWorkId,omitempty"`
+	ProductVariantID          uuid.UUID  `json:"productVariantId"`
+	Quantity                  int        `json:"quantity"`
+	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
+	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
+	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
+	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
+	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
+	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
+	Subtotal                  MoneyDTO   `json:"subtotal"`
 }
 
 type QuoteDTO struct {
@@ -40,16 +41,17 @@ type QuoteDTO struct {
 }
 
 type OrderLineItemDTO struct {
-	ID                        uuid.UUID `json:"id"`
-	ProductVariantID          uuid.UUID `json:"productVariantId"`
-	Quantity                  int       `json:"quantity"`
-	CalculatedUnitPrice       MoneyDTO  `json:"calculatedUnitPrice"`
-	ManualUnitPrice           *MoneyDTO `json:"manualUnitPrice,omitempty"`
-	FinalUnitPrice            MoneyDTO  `json:"finalUnitPrice"`
-	CalculatedDiscountPerUnit *MoneyDTO `json:"calculatedDiscountPerUnit,omitempty"`
-	ManualDiscountPerUnit     *MoneyDTO `json:"manualDiscountPerUnit,omitempty"`
-	FinalDiscountPerUnit      MoneyDTO  `json:"finalDiscountPerUnit"`
-	Subtotal                  MoneyDTO  `json:"subtotal"`
+	ID                        uuid.UUID  `json:"id"`
+	MesWorkID                 *uuid.UUID `json:"mesWorkId,omitempty"`
+	ProductVariantID          uuid.UUID  `json:"productVariantId"`
+	Quantity                  int        `json:"quantity"`
+	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
+	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
+	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
+	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
+	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
+	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
+	Subtotal                  MoneyDTO   `json:"subtotal"`
 }
 
 type SalesOrderDTO struct {
@@ -139,6 +141,7 @@ func NewQuoteDTO(q *domain.Quote) *QuoteDTO {
 func NewQuoteLineItemDTO(item domain.QuoteLineItem) QuoteLineItemDTO {
 	return QuoteLineItemDTO{
 		ID:                        item.ID,
+		MesWorkID:                 item.MESWorkID,
 		ProductVariantID:          item.ProductVariantID,
 		Quantity:                  item.Quantity,
 		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
@@ -175,6 +178,7 @@ func NewSalesOrderDTO(order *domain.SalesOrder) *SalesOrderDTO {
 func NewOrderLineItemDTO(item domain.OrderLineItem) OrderLineItemDTO {
 	return OrderLineItemDTO{
 		ID:                        item.ID,
+		MesWorkID:                 item.MESWorkID,
 		ProductVariantID:          item.ProductVariantID,
 		Quantity:                  item.Quantity,
 		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
