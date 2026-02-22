@@ -42,7 +42,7 @@
       <div class="info-item">
         <label>Precio base (coste)</label>
         <p>
-          <strong class="price-value">{{ formatPrice(product.basePrice) }} €</strong>
+          <strong class="price-value">{{ formatPrice(product.base_price) }} €</strong>
           <br>
           <small class="hint">Coste base para cálculo de precios de venta</small>
         </p>
@@ -160,7 +160,7 @@
           <label for="edit-base-price">Precio base (coste) *</label>
           <input
             id="edit-base-price"
-            v-model.number="editForm.basePrice"
+            v-model.number="editForm.base_price"
             type="number"
             step="0.01"
             min="0"
@@ -243,14 +243,14 @@ const editForm = reactive({
   long_name: '',
   sku: '',
   barcode: '',
-  basePrice: 0,
+  base_price: 0,
   product_type: 'TANGIBLE',
   description: '',
 })
 
 // Computed
 const isFormValid = computed(() => {
-  return editForm.name.trim().length > 0 && editForm.basePrice >= 0
+  return editForm.name.trim().length > 0 && editForm.base_price >= 0
 })
 
 // Methods
@@ -259,7 +259,7 @@ function startEditing() {
   editForm.long_name = props.product.long_name || ''
   editForm.sku = props.product.sku || ''
   editForm.barcode = props.product.barcode || ''
-  editForm.basePrice = props.product.basePrice ?? 0
+  editForm.base_price = props.product.base_price ?? 0
   editForm.product_type = props.product.product_type || 'TANGIBLE'
   editForm.description = props.product.description || ''
   isEditing.value = true
@@ -286,7 +286,7 @@ async function submitEdit() {
       longName: editForm.long_name.trim() || null,
       sku: editForm.sku.trim() || null,
       barcode: editForm.barcode.trim() || null,
-      basePrice: editForm.basePrice,
+      basePrice: editForm.base_price,
       productType: editForm.product_type,
       description: editForm.description.trim() || null,
     })
