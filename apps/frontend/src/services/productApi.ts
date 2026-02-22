@@ -32,11 +32,13 @@ interface ProductUI {
   long_name: string
   description: string
   product_type: string
+  base_price?: number
   brand_id: string | null
   group_ids: string[]
   direct_attribute_ids: string[]
   is_active: boolean
   variants_count: number
+  calculated_option_sets?: CalculatedOptionSet[]
 }
 
 interface VariantUI {

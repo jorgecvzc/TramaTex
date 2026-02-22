@@ -212,9 +212,9 @@ function generateCombinations() {
 
   // Build cartesian product of all attribute values
   const attributeArrays = productAttributes.value.map(attr => ({
-    id: attr.attribute_id,
-    name: attr.attribute_name,
-    code: attr.attribute_code,
+    id: attr.id,
+    name: attr.name,
+    code: attr.code,
     values: attr.values || [],
   }))
 
@@ -312,7 +312,7 @@ async function handleCreate() {
         const optionConfiguration = {}
         combo.attributeValueIds.forEach((valueId, index) => {
           const attr = productAttributes.value[index]
-          optionConfiguration[attr.attribute_id] = valueId
+          optionConfiguration[attr.id] = valueId
         })
 
         // Call findOrCreateVariant

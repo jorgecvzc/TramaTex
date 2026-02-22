@@ -297,9 +297,9 @@ async function loadProductAttributes(productId) {
     
     const optionSets = product.calculated_option_sets || []
     productAttributes.value = optionSets.map(opt => ({
-      id: opt.attribute_id,
-      name: opt.attribute_name,
-      code: opt.attribute_code,
+      id: opt.id,
+      name: opt.name,
+      code: opt.code,
       values: opt.values || [],
     }))
     
