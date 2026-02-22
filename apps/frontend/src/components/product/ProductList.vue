@@ -141,7 +141,7 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && products.length === 0" class="empty-state-block">
-      <div class="empty-icon">📦</div>
+      <Package :size="64" class="empty-icon" />
       <p v-if="hasFilters">
         No se encontraron productos con los filtros aplicados.
       </p>
@@ -186,6 +186,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { productApi } from '@/services/productApi';
+import { Package } from 'lucide-vue-next';
 
 const products = ref([]);
 const brands = ref([]);

@@ -59,7 +59,7 @@
               @click="activeTab = tab.id"
               :class="['tab-button', { active: activeTab === tab.id }]"
             >
-              <span class="tab-icon">{{ tab.icon }}</span>
+              <component :is="tab.icon" :size="20" class="tab-icon" />
               <span class="tab-label">{{ tab.label }}</span>
               <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
             </button>
@@ -108,7 +108,7 @@
             <div v-if="activeTab === 'history'" class="history-tab">
               <h3>Historial de Cambios</h3>
               <div class="empty-state">
-                <span class="empty-icon">📋</span>
+                <ClipboardList :size="48" class="empty-icon" />
                 <p>El historial de auditoría estará disponible próximamente.</p>
                 <p class="empty-hint">
                   Aquí podrás ver todos los cambios realizados en este producto,
@@ -133,6 +133,7 @@ import VariantTable from '@/components/product/VariantTable.vue'
 import AttributesPanel from '@/components/product/AttributesPanel.vue'
 import PricingPanel from '@/components/product/PricingPanel.vue'
 import { productApi } from '@/services/productApi'
+import { FileText, Hash, Tag, DollarSign, ClipboardList } from 'lucide-vue-next'
 
 const route = useRoute()
 const productId = route.params.id
@@ -154,29 +155,29 @@ const tabs = computed(() => [
   {
     id: 'info',
     label: 'Información',
-    icon: '📄',
+    icon: FileText,
   },
   {
     id: 'variants',
     label: 'Variantes',
-    icon: '🔢',
+    icon: Hash,
     count: variants.value.length,
   },
   {
     id: 'attributes',
     label: 'Atributos',
-    icon: '🏷️',
+    icon: Tag,
     count: calculatedAttributes.value.length,
   },
   {
     id: 'pricing',
     label: 'Precios',
-    icon: '💰',
+    icon: DollarSign,
   },
   {
     id: 'history',
     label: 'Historial',
-    icon: '📋',
+    icon: ClipboardList,
   },
 ])
 
