@@ -191,7 +191,7 @@ async function loadData() {
     productAttributes.value = product.calculated_option_sets || []
 
     // Load existing variants
-    const variantsResponse = await productApi.listVariants(props.productId)
+    const variantsResponse = await productApi.listProductVariants(props.productId)
     existingVariants.value = variantsResponse.data || []
 
     // Generate all possible combinations
