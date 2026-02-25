@@ -294,7 +294,6 @@ async function loadAvailableContacts() {
 
   try {
     availableContacts.value = await partyApi.listAvailableContactsForParty(props.partyId);
-    console.log('Contactos disponibles:', availableContacts.value.length);
   } catch (error) {
     console.error('Error al cargar contactos disponibles:', error);
     formError.value = 'No se pudieron cargar los contactos disponibles';

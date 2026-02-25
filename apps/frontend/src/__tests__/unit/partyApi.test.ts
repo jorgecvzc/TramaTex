@@ -1145,6 +1145,113 @@ describe('PartyApi Service', () => {
         expect.objectContaining({ method: 'DELETE' })
       )
     })
+
+    it('should list party relationships', async () => {
+      const mockRelationships = [
+        {
+          id: 'rel-001',
+          type: 'IS_EMPLOYEE_OF',
+          from_party_id: 'person-001',
+          to_party_id: 'party-001',
+        },
+        {
+          id: 'rel-002',
+          type: 'IS_EMPLOYEE_OF',
+          from_party_id: 'person-001',
+          to_party_id: 'party-002',
+        },
+      ]
+
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockRelationships }),
+      })
+
+      const result = await partyApi.listRelationships('person-001')
+
+      expect(result).toHaveLength(2)
+      expect(result[0]).toMatchObject({
+        id: 'rel-001',
+        type: 'IS_EMPLOYEE_OF',
+        from_party_id: 'person-001',
+        to_party_id: 'party-001',
+      })
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/parties/person-001/relationships',
+        expect.objectContaining({ method: 'GET' })
+      )
+    })
+
+    it('should fail when listing relationships with error', async () => {
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ message: 'server error' }),
+      })
+
+      await expect(partyApi.listRelationships('person-001')).rejects.toThrow()
+    })
+
+    it('should remove contact without deleting party when deleteIfNoReferences is false', async () => {
+      ;(global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'cd-001',
+                type_description: 'Contacto',
+                phone: '+34600111222',
+                email: 'contact@example.com',
+                related_party_id: 'person-001',
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: [] }),
+        })
+
+      await expect(partyApi.removeContact('party-001', 'person-001', false)).resolves.toBeUndefined()
+
+      expect(global.fetch).toHaveBeenCalledTimes(3)
+      // Verify the DELETE URL does NOT contain deleteIfNoReferences query param
+      const deleteCall = (global.fetch as any).mock.calls[1]
+      expect(deleteCall[0]).toContain('/contact-details/cd-001')
+      expect(deleteCall[0]).not.toContain('deleteIfNoReferences=true')
+    })
+
+    it('should remove contact AND delete party when deleteIfNoReferences is true', async () => {
+      ;(global.fetch as any)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'cd-001',
+                type_description: 'Contacto',
+                phone: '+34600111222',
+                email: 'contact@example.com',
+                related_party_id: 'person-001',
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ data: [] }),
+        })
+
+      await expect(partyApi.removeContact('party-001', 'person-001', true)).resolves.toBeUndefined()
+
+      expect(global.fetch).toHaveBeenCalledTimes(3)
+      // Verify the DELETE URL DOES contain deleteIfNoReferences query param
+      const deleteCall = (global.fetch as any).mock.calls[1]
+      expect(deleteCall[0]).toContain('/contact-details/cd-001?deleteIfNoReferences=true')
+    })
   })
 
   describe('Address management', () => {

@@ -361,11 +361,9 @@ class PartyApiService {
     }
 
     const payload: { data: Party[] } & Omit<PaginatedResponse<Party>, 'data'> = await response.json()
-    console.log('[PartyApi] Raw payload:', payload)
     const data = (payload.data || [])
       .map((party) => this.mapPartyToParty(party))
       .filter((party): party is PartyUI => party !== null)
-    console.log('[PartyApi] Mapped data:', data)
     return {
       ...payload,
       data,
@@ -578,17 +576,13 @@ class PartyApiService {
   async listAvailableContactsForParty(partyId: string): Promise<Contact[]> {
     // Get all entities without role filter to ensure we get all contacts
     const listResponse = await this.listParties({ pageNumber: 1, pageSize: 500 })
-    console.log(`Total entidades obtenidas: ${listResponse.data?.length || 0}`)
     
     // Filter for entities that are contacts (role 'CONTACT') and have person profile
     const candidateParties = (listResponse.data || []).filter((party) => {
       const isContact = party.role === 'CONTACT'
       const hasPerson = party.has_person
-      console.log(`Party ${party.id} (${party.name}): role=${party.role}, has_person=${hasPerson}, isContact=${isContact}`)
       return isContact && hasPerson
     })
-
-    console.log(`Total de contactos (personas) en el sistema: ${candidateParties.length}`)
 
     // Get current party's contacts to exclude them
     const currentContactsResponse = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
@@ -600,12 +594,10 @@ class PartyApiService {
     if (currentContactsResponse.ok) {
       const currentContactsPayload: { data: Array<{ related_party_id: string }> } = await currentContactsResponse.json()
       currentContactIds = (currentContactsPayload.data || []).map(c => c.related_party_id)
-      console.log(`Contactos ya vinculados a esta entidad (${partyId}): ${currentContactIds.length}`, currentContactIds)
     }
 
     // Filter out contacts already linked to this party
     const availableParties = candidateParties.filter(party => !currentContactIds.includes(party.id))
-    console.log(`Contactos disponibles para vincular: ${availableParties.length}`)
 
     // Convert to Contact objects
     const contacts = await Promise.all(
@@ -620,7 +612,6 @@ class PartyApiService {
     )
 
     const validContacts = contacts.filter((contact): contact is Contact => contact !== null)
-    console.log(`Contactos válidos obtenidos: ${validContacts.length}`)
     return validContacts
   }
 
