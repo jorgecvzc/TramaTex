@@ -209,6 +209,11 @@ func (tdb *TestDB) SetUpProduct() error {
 			WHEN duplicate_object OR unique_violation THEN null;
 		END $$;
 		DO $$ BEGIN
+			CREATE TYPE product_group_type AS ENUM ('TANGIBLE', 'SERVICE');
+		EXCEPTION
+			WHEN duplicate_object OR unique_violation THEN null;
+		END $$;
+		DO $$ BEGIN
 			CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED');
 		EXCEPTION
 			WHEN duplicate_object OR unique_violation THEN null;
@@ -217,6 +222,7 @@ func (tdb *TestDB) SetUpProduct() error {
 		CREATE TABLE "brands" (
 			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			"name" VARCHAR(255) NOT NULL,
+			"default_markup_percentage" NUMERIC(5,2) NOT NULL DEFAULT 0,
 			"is_active" BOOLEAN NOT NULL DEFAULT true,
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -226,6 +232,7 @@ func (tdb *TestDB) SetUpProduct() error {
 		CREATE TABLE "product_groups" (
 			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			"name" VARCHAR(255) NOT NULL,
+			"group_type" product_group_type NOT NULL DEFAULT 'TANGIBLE',
 			"parent_group_id" UUID,
 			"is_active" BOOLEAN NOT NULL DEFAULT true,
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -274,6 +281,8 @@ func (tdb *TestDB) SetUpProduct() error {
 			"brand_id" UUID NOT NULL,
 			"group_ids" UUID[],
 			"direct_attribute_ids" UUID[],
+			"base_price" NUMERIC(12,2) NOT NULL DEFAULT 0,
+			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
 			"created_by" VARCHAR(255),
 			"modified_by" VARCHAR(255),
 			"is_active" BOOLEAN NOT NULL DEFAULT true,

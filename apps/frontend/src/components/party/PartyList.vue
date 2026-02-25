@@ -19,6 +19,7 @@
           <option value="CLIENT">Clientes</option>
           <option value="SUPPLIER">Proveedores</option>
           <option value="BOTH">Ambos</option>
+          <option value="CONTACT">Contactos</option>
         </select>
       </div>
 
@@ -228,6 +229,7 @@ function formatRole(role) {
     CLIENT: 'Cliente',
     SUPPLIER: 'Proveedor',
     BOTH: 'Ambos',
+    CONTACT: 'Contacto',
   };
   return map[role] || role;
 }

@@ -446,7 +446,7 @@ func (h *ProductHandler) FindOrCreateProductVariant(c *gin.Context) {
 
 	variant, err := h.service.FindOrCreateProductVariant(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 

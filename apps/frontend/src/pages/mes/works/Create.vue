@@ -4,11 +4,11 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Trabajos</p>
-          <h1>Nuevo trabajo MES</h1>
+          <p class="breadcrumb">MES / Definiciones de trabajo</p>
+          <h1>Nueva definición de trabajo MES</h1>
           <p class="subtitle">Crea una orden de manufactura y genera tareas automáticamente.</p>
         </div>
-        <RouterLink to="/mes/works" class="btn btn-secondary">Volver</RouterLink>
+        <RouterLink to="/mes/work-definitions" class="btn btn-secondary">Volver</RouterLink>
       </header>
 
       <section class="card form-card">
@@ -17,11 +17,22 @@
         <label class="label">Nombre *</label>
         <input v-model="form.work_name" type="text" class="input" placeholder="Ej: Uniformes Cliente A" />
 
-        <label class="label">Party ID *</label>
-        <input v-model="form.party_id" type="text" class="input" placeholder="party-id" />
+        <PartySelector
+          v-model="form.party_id"
+          label="Cliente *"
+          placeholder="Buscar cliente por nombre..."
+          role-filter="CLIENT"
+          :required="true"
+          help-text="Selecciona el cliente sin necesidad de recordar UUID"
+        />
 
-        <label class="label">Tangible Group ID *</label>
-        <input v-model="form.tangible_group_id" type="text" class="input" placeholder="UUID de product group tangible" />
+        <label class="label">Categoría tangible *</label>
+        <select v-model="form.tangible_group_id" class="input">
+          <option value="">Seleccionar categoría tangible</option>
+          <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">
+            {{ group.name }}
+          </option>
+        </select>
 
         <label class="label">Estado</label>
         <select v-model="form.status" class="input">
@@ -44,20 +55,30 @@
 
         <div class="tasks-block">
           <div class="tasks-header">
-            <h3>Asignaciones de servicio *</h3>
+            <h3>Asignaciones de plantilla de proceso *</h3>
             <button @click="addAssignment" type="button" class="btn btn-secondary btn-sm">+ Añadir</button>
           </div>
 
           <div v-for="(assignment, index) in form.service_group_assignments" :key="index" class="assignment-row">
-            <input v-model="assignment.service_group_id" class="input" placeholder="Service Group ID" />
-            <input v-model="assignment.position_id" class="input" placeholder="Position ID" />
+            <select v-model="assignment.service_group_id" class="input">
+              <option value="">Seleccionar plantilla de proceso</option>
+              <option v-for="template in serviceTemplates" :key="template.id" :value="template.id">
+                {{ template.name }}
+              </option>
+            </select>
+            <select v-model="assignment.position_id" class="input">
+              <option value="">Seleccionar posición</option>
+              <option v-for="position in positions" :key="position.id" :value="position.id">
+                {{ position.name }} ({{ position.code }})
+              </option>
+            </select>
             <input v-model.number="assignment.sequence" type="number" min="1" class="input seq" placeholder="Seq" />
             <button @click="removeAssignment(index)" type="button" class="btn btn-danger btn-sm">Quitar</button>
           </div>
         </div>
 
         <button @click="submit" :disabled="isSaving" class="btn btn-primary">
-          {{ isSaving ? 'Guardando...' : 'Crear trabajo' }}
+          {{ isSaving ? 'Guardando...' : 'Crear definición' }}
         </button>
       </section>
     </div>
@@ -65,14 +86,28 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
+import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
+import { productApi } from '@/services/productApi'
+import type { MESPosition, MESServiceTemplate } from '@/types/mes'
+
+type ProductGroupOption = {
+  id: string
+  name: string
+  type: string
+}
 
 const router = useRouter()
 const isSaving = ref(false)
 const error = ref('')
+const serviceTemplates = ref<MESServiceTemplate[]>([])
+const positions = ref<MESPosition[]>([])
+const productGroups = ref<ProductGroupOption[]>([])
+
+const tangibleGroups = computed(() => productGroups.value.filter((group) => group.type === 'TANGIBLE'))
 
 const form = reactive({
   work_name: '',
@@ -112,17 +147,33 @@ function validate() {
     return false
   }
   if (form.service_group_assignments.length === 0) {
-    error.value = 'Debes agregar al menos una asignación de servicio'
+    error.value = 'Debes agregar al menos una asignación de plantilla de proceso'
     return false
   }
 
   const invalid = form.service_group_assignments.find((item) => !item.service_group_id || !item.position_id || item.sequence < 1)
   if (invalid) {
-    error.value = 'Todas las asignaciones deben tener service_group_id, position_id y secuencia válida'
+    error.value = 'Todas las asignaciones deben tener plantilla de proceso, posición y secuencia válida'
     return false
   }
 
   return true
+}
+
+async function loadFormOptions() {
+  try {
+    const [templates, loadedPositions, groups] = await Promise.all([
+      mesApi.listServiceTemplates({ is_active: true }),
+      mesApi.listPositions({ is_active: true }),
+      productApi.listProductGroups({ isActive: true }),
+    ])
+
+    serviceTemplates.value = templates
+    positions.value = loadedPositions
+    productGroups.value = groups.data
+  } catch (err: any) {
+    error.value = err.message || 'No se pudieron cargar las opciones del formulario MES'
+  }
 }
 
 async function submit() {
@@ -131,7 +182,7 @@ async function submit() {
 
   isSaving.value = true
   try {
-    const created = await mesApi.createWork({
+    const created = await mesApi.createWorkDefinition({
       work_name: form.work_name.trim(),
       party_id: form.party_id.trim(),
       tangible_group_id: form.tangible_group_id.trim(),
@@ -145,13 +196,15 @@ async function submit() {
       })),
     })
 
-    await router.push(`/mes/works/${created.id}`)
+    await router.push(`/mes/work-definitions/${created.id}`)
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear el trabajo MES'
+    error.value = err.message || 'No se pudo crear la definición de trabajo MES'
   } finally {
     isSaving.value = false
   }
 }
+
+onMounted(loadFormOptions)
 </script>
 
 <style scoped>

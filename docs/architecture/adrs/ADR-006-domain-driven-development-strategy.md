@@ -34,7 +34,16 @@ Restricciones y riesgos:
 
 ---
 
-## 3. Decisión Adoptada
+## 3. Criterios de Decisión
+
+- Protección del dominio crítico (tarificación).
+- Trazabilidad entre requisitos de negocio y código.
+- Minimización de deuda técnica temprana.
+- Capacidad de validación incremental del modelo de negocio.
+
+---
+
+## 4. Decisión Adoptada
 
 Se adopta una **estrategia de desarrollo incremental dirigida por el dominio** para el MVP.  
 
@@ -46,7 +55,7 @@ Se adopta una **estrategia de desarrollo incremental dirigida por el dominio** p
 
 ---
 
-## 4. Consecuencias
+## 5. Consecuencias
 
 ### Positivas
 - Dominio económico protegido y estable.  
@@ -60,7 +69,7 @@ Se adopta una **estrategia de desarrollo incremental dirigida por el dominio** p
 
 ---
 
-## 5. Alcance
+## 6. Alcance
 
 Aplica exclusivamente al **desarrollo del dominio MVP**, incluyendo:
 
@@ -73,7 +82,7 @@ No aplica a Post-MVP, ni define infraestructura futura avanzada.
 
 ---
 
-## 6. Integración con otros ADRs
+## 7. Integración con otros ADRs
 
 - ADR-001: Stack tecnológico  
 - ADR-002: Clean Architecture  
@@ -83,7 +92,7 @@ No aplica a Post-MVP, ni define infraestructura futura avanzada.
 
 ---
 
-## 7. Notas Adicionales / Consideraciones Especiales
+## 8. Notas Adicionales / Consideraciones Especiales
 
 - Desarrollo guiado por pruebas se aplica en dominio y capa de aplicación.  
 - Persistencia inicial permitida solo para Party y Producto.  
@@ -91,7 +100,7 @@ No aplica a Post-MVP, ni define infraestructura futura avanzada.
 
 ---
 
-## 8. Referencias
+## 9. Referencias
 
 - Documentos internos: Documento Consolidado TramaTex v2.1  
 - Diagramas de flujo de dominio y Bounded Contexts  

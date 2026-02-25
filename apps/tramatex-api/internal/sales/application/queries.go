@@ -15,6 +15,7 @@ type ListQuotesQuery struct {
 	Status     *string
 	FromDate   *time.Time
 	ToDate     *time.Time
+	Search     *string
 	PageSize   int
 	PageNumber int
 }
@@ -28,6 +29,7 @@ type ListOrdersQuery struct {
 	Status     *string
 	FromDate   *time.Time
 	ToDate     *time.Time
+	Search     *string
 	PageSize   int
 	PageNumber int
 }
@@ -42,6 +44,7 @@ type ListDeliveryNotesQuery struct {
 	Status       *string
 	FromDate     *time.Time
 	ToDate       *time.Time
+	Search       *string
 	PageSize     int
 	PageNumber   int
 }
@@ -55,6 +58,7 @@ type ListInvoicesQuery struct {
 	Status     *string
 	FromDate   *time.Time
 	ToDate     *time.Time
+	Search     *string
 	PageSize   int
 	PageNumber int
 }

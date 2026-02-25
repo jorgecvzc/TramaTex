@@ -344,6 +344,82 @@ func (h *ChangePartyStatusHandler) Handle(ctx context.Context, cmd *ChangePartyS
 	return party, nil
 }
 
+// DeletePartyCommand represents a hard delete request for a party
+type DeletePartyCommand struct {
+	ID      string
+	ActorID string
+}
+
+// DeletePartyHandler handles deletion of orphan contact parties
+type DeletePartyHandler struct {
+	partyRepo persistence.PartyRepository
+	relRepo   persistence.PartyRelationshipRepository
+}
+
+func NewDeletePartyHandler(partyRepo persistence.PartyRepository, relRepo persistence.PartyRelationshipRepository) *DeletePartyHandler {
+	return &DeletePartyHandler{partyRepo: partyRepo, relRepo: relRepo}
+}
+
+func (h *DeletePartyHandler) Handle(ctx context.Context, cmd *DeletePartyCommand) error {
+	actorID := strings.TrimSpace(cmd.ActorID)
+	if actorID == "" {
+		return domain.NewValidationError("actor ID is required")
+	}
+	if cmd.ID == "" {
+		return domain.NewValidationError("party ID cannot be empty")
+	}
+
+	partyID, err := domain.NewPartyID(cmd.ID)
+	if err != nil {
+		return domain.WrapValidation("invalid party ID", err)
+	}
+
+	party, err := h.partyRepo.FindByID(ctx, partyID)
+	if err != nil {
+		return domain.WrapNotFound("party not found", err)
+	}
+
+	if party.OrganizationProfile() != nil || party.PersonProfile() == nil {
+		return domain.NewValidationError("only contact person parties can be deleted")
+	}
+
+	isContactRole := false
+	for _, role := range party.Roles() {
+		if role.Type() == domain.PartyRoleContact || role.Type() == domain.PartyRoleEmployee {
+			isContactRole = true
+			break
+		}
+	}
+
+	if !isContactRole {
+		return domain.NewValidationError("only contact parties can be deleted")
+	}
+
+	relationships, err := h.relRepo.FindByPartyID(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to load party relationships", err)
+	}
+
+	if len(relationships) > 0 {
+		return domain.NewValidationError("contact is linked to an entity and cannot be deleted")
+	}
+
+	hasContactRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to check contact details references", err)
+	}
+
+	if hasContactRefs {
+		return domain.NewValidationError("contact is referenced in organization contact details and cannot be deleted")
+	}
+
+	if err := h.partyRepo.Delete(ctx, partyID); err != nil {
+		return domain.WrapPersistence("failed to delete party", err)
+	}
+
+	return nil
+}
+
 // AddPartyRoleCommand represents adding a role to a party
 
 type AddPartyRoleCommand struct {
@@ -749,9 +825,10 @@ func (h *UpdateContactDetailsHandler) Handle(ctx context.Context, cmd *UpdateCon
 // RemoveContactDetailsCommand represents removing contact details from an organization profile
 
 type RemoveContactDetailsCommand struct {
-	PartyID   string
-	ContactID string
-	ActorID   string
+	PartyID              string
+	ContactID            string
+	ActorID              string
+	DeleteIfNoReferences bool // If true, also delete the contact party if it has no other references
 }
 
 // RemoveContactDetailsHandler handles removing contact details
@@ -802,6 +879,30 @@ func (h *RemoveContactDetailsHandler) Handle(ctx context.Context, cmd *RemoveCon
 
 	if err := h.partyRepo.Save(ctx, party, actorID, actorID); err != nil {
 		return domain.WrapPersistence("failed to save party", err)
+	}
+
+	// If requested, check if the contact party can be deleted
+	if cmd.DeleteIfNoReferences {
+		contactPartyID, err := domain.NewPartyID(cmd.ContactID)
+		if err != nil {
+			// Ignore error, just don't delete
+			return nil
+		}
+
+		// Check if contact has any other references
+		hasRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, contactPartyID)
+		if err != nil {
+			// Ignore error, just don't delete
+			return nil
+		}
+
+		// If no references, delete the contact party
+		if !hasRefs {
+			if err := h.partyRepo.Delete(ctx, contactPartyID); err != nil {
+				// Ignore error, the main operation succeeded
+				return nil
+			}
+		}
 	}
 
 	return nil

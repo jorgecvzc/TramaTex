@@ -128,7 +128,10 @@
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
                 <th>Descuento</th>
+                <th>IVA %</th>
+                <th>IVA línea</th>
                 <th>Subtotal</th>
+                <th>Total línea</th>
               </tr>
             </thead>
             <tbody>
@@ -137,7 +140,10 @@
                 <td>{{ item.quantity }}</td>
                 <td>{{ salesApi.formatMoney(item.unitPrice) }}</td>
                 <td>{{ item.discountAmount ? salesApi.formatMoney(item.discountAmount) : '—' }}</td>
+                <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
+                <td>{{ item.taxAmount ? salesApi.formatMoney(item.taxAmount) : '—' }}</td>
                 <td class="amount">{{ salesApi.formatMoney(item.subtotal) }}</td>
+                <td class="amount">{{ salesApi.formatMoney(item.total) }}</td>
               </tr>
             </tbody>
           </table>

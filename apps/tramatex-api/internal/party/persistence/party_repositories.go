@@ -15,6 +15,7 @@ type PartyRepository interface {
 	Delete(ctx context.Context, id domain.PartyID) error
 	Exists(ctx context.Context, id domain.PartyID) (bool, error)
 	Count(ctx context.Context) (int64, error)
+	HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error)
 }
 
 // PartyRelationshipRepository defines methods for relationships persistence

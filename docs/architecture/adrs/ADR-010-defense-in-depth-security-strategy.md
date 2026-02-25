@@ -8,123 +8,88 @@
 
 ## 1. Contexto
 
-TramaTex es un sistema ERP/MES que gestiona **datos críticos de negocio**: información de clientes y proveedores, catálogos de productos, cálculos de precios, pedidos y flujos de producción. Un compromiso de seguridad podría resultar en:
-
-- Pérdida de confianza del cliente
-- Robo de información comercial sensible (precios, márgenes)
-- Manipulación de datos financieros
-- Cumplimiento normativo comprometido (GDPR)
-- Daño reputacional irreparable para microempresas
-
-**Necesidad estratégica:**  
-Establecer una arquitectura de seguridad robusta que proteja el sistema mediante múltiples capas de defensa y configuraciones seguras por defecto, alineada con OWASP Top 10 2021 y principios de Zero Trust.
-
-**Restricciones:**
-- Equipo pequeño (1-2 desarrolladores)
-- Recursos limitados para auditorías externas
-- Necesidad de balance entre seguridad y velocidad de desarrollo
+TramaTex gestiona datos críticos de negocio (precios, márgenes, pedidos). Un compromiso de seguridad resultaría en pérdida de confianza, daño reputacional y riesgos legales (GDPR). Se requiere establecer una arquitectura de seguridad robusta alineada con OWASP y principios de Zero Trust.
 
 ---
 
 ## 2. Alternativas Consideradas
 
-### Alternativa A – Seguridad Reactiva (Minimal Viable Security)
-- **Enfoque:** Implementar solo autenticación básica, resolver vulnerabilidades cuando se detecten
-- **Ventajas:** Desarrollo rápido, menor complejidad inicial
-- **Desventajas:** Alta probabilidad de brechas, deuda técnica de seguridad, costo elevado de remediación post-facto
+**Alternativa A – Seguridad Reactiva (Minimal Viable Security)**
+- Ventajas: Desarrollo rápido.
+- Desventajas: Alta probabilidad de brechas, costo elevado de remediación post-facto.
 
-### Alternativa B – Seguridad Perimetral Única (Network-Only)
-- **Enfoque:** Confiar en firewalls, WAF y seguridad de red como única capa
-- **Desventajas:** Si el perímetro se compromete, acceso total; no protege contra amenazas internas
+**Alternativa B – Seguridad Perimetral Única (Network-Only)**
+- Desventajas: Si el perímetro se compromete, acceso total; no protege contra amenazas internas.
 
-### Alternativa C – Defensa en Profundidad + Security by Default ✅
-- **Enfoque:** Múltiples capas de seguridad independientes; configuración segura desde el diseño
-- **Ventajas:** Resiliencia ante fallos de una capa; prevención proactiva; reducción de superficie de ataque
-- **Desventajas:** Mayor complejidad arquitectónica; overhead de desarrollo (~20-30%)
+**Alternativa C – Defensa en Profundidad + Security by Default (Adoptada)**
+- Ventajas: Resiliencia ante fallos de una capa; prevención proactiva.
+- Desventajas: Mayor complejidad arquitectónica (~20-30% overhead).
 
 ---
 
-## 3. Decisión Adoptada
+## 3. Criterios de Decisión
 
-**Adoptar Defensa en Profundidad (Defense in Depth) combinada con Security by Design y Security by Default como estrategia arquitectónica transversal a todo el sistema.**
+- Protección de datos críticos mediante redundancia de controles.
+- Cumplimiento con mejores prácticas (OWASP, MITRE ATT&CK).
+- Escalabilidad y auditabilidad de cada capa.
+- Principio de menor privilegio y Zero Trust.
+
+---
+
+## 4. Decisión Adoptada
+
+Se adopta **Defensa en Profundidad (Defense in Depth)** combinada con **Security by Design** y **Security by Default**.
 
 ### Principios Fundamentales:
-
-1. **Defensa en Profundidad:** Seguridad en múltiples capas (aplicación, datos, red)
-2. **Security by Default:** Configuraciones seguras sin intervención del usuario
-3. **Principio de Menor Privilegio:** Acceso mínimo necesario por defecto
-4. **Zero Trust:** No confiar en ninguna entrada; validar todo
-5. **Fail Secure:** Ante error, denegar acceso (no conceder)
-
-**Justificación:**
-- Protege datos críticos de negocio mediante redundancia de controles
-- Cumple con mejores prácticas de la industria (OWASP, MITRE ATT&CK)
-- Escalable: permite añadir capas adicionales sin rediseño
-- Auditable: cada capa puede verificarse independientemente
+1. **Defensa en Profundidad:** Seguridad en capas (aplicación, datos, red).
+2. **Security by Default:** Configuraciones seguras sin intervención.
+3. **Principio de Menor Privilegio:** Acceso mínimo necesario.
+4. **Zero Trust:** Validar todo, no confiar en ninguna entrada.
 
 ---
 
-## 4. Consecuencias
+## 5. Consecuencias
 
 ### Positivas
-- **Resiliencia:** Si una capa falla, otras siguen protegiendo
-- **Compliance:** Facilita cumplimiento de normativas (GDPR, ISO 27001)
-- **Auditabilidad:** Trazabilidad completa de eventos de seguridad
-- **Confianza:** Demuestra compromiso con la seguridad a clientes
-- **Reducción de riesgo:** Superficie de ataque minimizada
+- Alta resiliencia y facilidad de cumplimiento (GDPR).
+- Trazabilidad completa y reducción de superficie de ataque.
 
 ### Negativas
-- **Complejidad:** Mayor número de componentes de seguridad a mantener
-- **Performance:** Overhead de validaciones múltiples (~5-10% latencia)
-- **Desarrollo:** Tiempo adicional por feature (~20-30%)
-- **Curva de aprendizaje:** Equipo debe dominar prácticas de seguridad
+- Mayor complejidad de mantenimiento.
+- Overhead de performance (~5-10% latencia) y desarrollo (~20-30%).
 
 ---
 
-## 5. Alcance
+## 6. Alcance
 
-### Aplica a:
-- Backend (Go): API REST, lógica de negocio, acceso a datos
-- Frontend (Vue.js): Manejo de autenticación, validación cliente
-- Infraestructura: Configuración servidores, bases de datos, CI/CD
-- Datos: En tránsito y en reposo
-
-### No aplica (delegado a otras capas):
-- Seguridad física de centros de datos
-- Protección DDoS a nivel ISP
-- Seguridad de dispositivos de usuario final
+Aplica a Backend (Go), Frontend (Vue.js), Infraestructura (Docker, PostgreSQL) y Datos en tránsito/reposo. No aplica a seguridad física de centros de datos o protección DDoS a nivel ISP.
 
 ---
 
-## 6. Arquitectura de Seguridad por Capas
-Para una descripción detallada de la arquitectura de seguridad por capas y sus controles implementados, consulte [Guía de Implementación de Seguridad: Defensa en Profundidad](../../guides/developer/security-implementation-guide.md).
----
+## 7. Integración con otros ADRs
 
-## 7. Checklist de Cumplimiento
-Para un checklist detallado de cumplimiento de seguridad, consulte [Checklist de Cumplimiento de Seguridad](../../guides/developer/security-compliance-checklist.md).
-
-## 8. Integración con otros ADRs
-
-- **ADR-002:** Clean Architecture permite aislar concerns de seguridad en infrastructure layer
-- **ADR-003:** Modular monolith facilita aplicación consistente de políticas
-- **ADR-006:** DDD - Security es transversal a todos los bounded contexts
-- **ADR-009:** Estructura de proyecto define ubicación de componentes de seguridad
+- **ADR-002:** Clean Architecture permite aislar concerns de seguridad.
+- **ADR-003:** Modular monolith facilita la aplicación consistente de políticas.
+- **ADR-009:** Define la ubicación de los componentes de seguridad.
 
 ---
 
-## 9. Notas de Implementación
-Para notas detalladas de implementación, incluidas las fases de madurez y el script de validación de configuración, consulte [Guía de Implementación de Seguridad: Defensa en Profundidad](../../guides/developer/security-implementation-guide.md).
+## 8. Notas Adicionales / Consideraciones Especiales
 
-## 10. Referencias
+### Arquitectura de Seguridad por Capas
+Para una descripción detallada, consulte [Guía de Implementación de Seguridad: Defensa en Profundidad](../../guides/developer/security-implementation-guide.md).
 
-- **OWASP Top 10 2021:** https://owasp.org/Top10/
-- **MITRE ATT&CK Framework:** https://attack.mitre.org/
-- **OWASP Cheat Sheet Series:** https://cheatsheetseries.owasp.org/
-- **NIST Cybersecurity Framework:** https://www.nist.gov/cyberframework
-- **Go Security Best Practices:** https://go.dev/doc/security/best-practices
-- **Zero Trust Architecture (NIST SP 800-207)**
+### Checklist de Cumplimiento
+Consulte el [Checklist de Cumplimiento de Seguridad](../../guides/developer/security-compliance-checklist.md).
+
+### Notas de Implementación
+Incluye fases de madurez y scripts de validación. Ver [Guía de Implementación](../../guides/developer/security-implementation-guide.md).
 
 ---
 
-**Aprobado:** 2026-01-26  
-**Revisión próxima:** Anual o ante cambio arquitectónico significativo
+## 9. Referencias
+
+- OWASP Top 10 2021
+- MITRE ATT&CK Framework
+- NIST Cybersecurity Framework
+- Go Security Best Practices

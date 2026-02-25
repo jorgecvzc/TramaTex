@@ -27,9 +27,13 @@ type ListServiceGroupsQuery struct {
 	Search   string `form:"search"`
 }
 
+type ListServiceTemplatesQuery = ListServiceGroupsQuery
+
 type GetServiceGroupByIDQuery struct {
 	ID uuid.UUID `uri:"id" binding:"required"`
 }
+
+type GetServiceTemplateByIDQuery = GetServiceGroupByIDQuery
 
 type ListMESWorksQuery struct {
 	Status  *string `form:"status"`
@@ -37,10 +41,16 @@ type ListMESWorksQuery struct {
 	PartyID string  `form:"party_id"`
 }
 
+type ListWorkDefinitionsQuery = ListMESWorksQuery
+
 type GetMESWorkByIDQuery struct {
 	ID uuid.UUID `uri:"id" binding:"required"`
 }
 
+type GetWorkDefinitionByIDQuery = GetMESWorkByIDQuery
+
 type ListOverdueMESWorksQuery struct {
 	Limit int `form:"limit"`
 }
+
+type ListOverdueWorkDefinitionsQuery = ListOverdueMESWorksQuery

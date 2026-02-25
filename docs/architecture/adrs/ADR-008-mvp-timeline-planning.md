@@ -14,70 +14,85 @@ Esta planificación debe ser lo suficientemente flexible para adaptarse a imprev
 
 ---
 
-## 2. Decisión Adoptada
+## 2. Alternativas Consideradas
 
-Se establece un plan de desarrollo por fases, alineado con el orden de implementación de módulos (`ADR-007 (Module Implementation Order)`). Cada fase agrupa un conjunto de módulos relacionados que constituyen una entrega de valor coherente.
+**Alternativa A – Planificación Basada en Funcionalidades (Feature-driven)**  
+- Ventajas: Visibilidad directa de la funcionalidad terminada.  
+- Desventajas: Riesgo de bloqueos por dependencias técnicas profundas no resueltas.
 
-El cronograma se basa en la información de estado de fases y la asignación de módulos a fases, extraída de los agentes de contexto del proyecto (`sprint-registry.yaml` y `bounded-contexts.yaml`).
+**Alternativa B – Planificación Basada en Fases Lógicas (Adoptada)**  
+- Ventajas: Respeta el orden de dependencias de los módulos (ADR-007) y garantiza bases sólidas.  
+- Desventajas: Valor para el usuario final más visible en fases tardías (Fase 2 y 3).
+
+---
+
+## 3. Criterios de Decisión
+
+- **Respeto a Dependencias:** Alineación con el orden de implementación de módulos.
+- **Minimización de Riesgos:** Fundaciones técnicas completadas antes de lógica de negocio compleja.
+- **Claridad de Objetivos:** Hitos definidos para cada fase.
+
+---
+
+## 4. Decisión Adoptada
+
+Se establece un plan de desarrollo por fases, alineado con el orden de implementación de módulos (`ADR-007`). Cada fase agrupa un conjunto de módulos relacionados que constituyen una entrega de valor coherente.
 
 ### Fases del Proyecto
 
 **Fase 0: Fundaciones Técnicas**
 - **Estado:** ✅ Completada
 - **Plazo de Finalización:** Q1 2026
-- **Módulos Incluidos:**
-  - `IAM (Identity & Access Management)`: Sistema de autenticación y autorización.
-- **Otros Entregables:**
-  - Configuración del entorno de desarrollo con Docker.
-  - Definición del workflow de Git.
-  - Estructura inicial del proyecto y sistema de documentación.
-  - Configuración inicial de CI/CD.
+- **Módulos Incluidos:** `IAM`.
 
 **Fase 1: Dominio Base y Lógica Crítica de Negocio**
 - **Estado:** 🔄 En Progreso
 - **Plazo Objetivo:** Q2 - Q4 2026
-- **Módulos Incluidos:**
-  - `Party (Gestión de Entidades)`: Clientes y proveedores.
-  - `Product (Catálogo de Productos)`: Productos, variantes y categorías.
-  - `Pricing (Motor de Precios)`: Lógica de cálculo de precios.
-- **Otros Entregables:**
-  - Sistema de Diseño de la UI.
-  - Auditoría de seguridad OWASP y primeras mitigaciones.
+- **Módulos Incluidos:** `Party`, `Product`, `Pricing`.
 
 **Fase 2: Flujo de Negocio Principal**
 - **Estado:** ⏳ Planificada
-- **Plazo Objetivo:** Post-Fase 1
-- **Módulos Incluidos:**
-  - `Sales (Ventas y Pedidos)`: Creación de pedidos, cotizaciones y transacciones.
-- **Descripción:** Esta fase se centra en la orquestación de los módulos base para gestionar el flujo de ventas completo.
+- **Módulos Incluidos:** `Sales`.
 
 **Fase 3: Operaciones de Taller (MVP)**
 - **Estado:** ⏳ Planificada
-- **Plazo Objetivo:** Post-Fase 2
-- **Módulos Incluidos:**
-  - `MES (Manufacturing Execution System)`: Gestión de órdenes de producción, control de calidad y seguimiento en el taller.
-- **Descripción:** Extiende la funcionalidad del ERP al área de producción.
+- **Módulos Incluidos:** `MES`.
 
 ---
 
-## 3. Consecuencias
+## 5. Consecuencias
 
 ### Positivas
 - Proporciona una visión clara del progreso del proyecto y los próximos pasos.
-- Permite a los stakeholders entender cuándo se espera que las diferentes funcionalidades estén disponibles.
-- Ayuda al equipo de desarrollo a enfocarse en los objetivos de la fase actual.
+- Permite a los stakeholders entender cuándo se espera que las funcionalidades estén disponibles.
 - Facilita la planificación de recursos y la gestión de expectativas.
 
 ### Negativas
-- Las fechas son estimaciones de alto nivel y pueden cambiar, lo que requiere una comunicación constante para gestionar las expectativas.
-- Un enfoque por fases puede reducir la agilidad si se interpreta de manera demasiado rígida. Los sprints dentro de cada fase deben seguir siendo flexibles.
+- Las fechas son estimaciones de alto nivel y requieren comunicación constante.
+- Puede reducir la agilidad si se interpreta de manera demasiado rígida.
 
 ---
 
-## 4. Integración con otros ADRs
+## 6. Alcance
 
-- **ADR-007 (Module Implementation Order):** Este cronograma es la aplicación práctica del orden de dependencias definido en `ADR-007`.
-- **ADR-004 (MVP Development Lifecycle):** Define el enfoque de desarrollo iterativo que se sigue dentro de las fases aquí descritas.
+Este cronograma cubre desde la Fase 0 (Fundaciones Técnicas) hasta la Fase 3 (Operaciones de Taller / MES) para el alcance del MVP.
 
 ---
+
+## 7. Integración con otros ADRs
+
+- **ADR-007 (Module Implementation Order):** Este cronograma es la aplicación práctica del orden de dependencias.
+- **ADR-004 (MVP Development Lifecycle):** Define el enfoque iterativo dentro de estas fases.
+
+---
+
+## 8. Notas Adicionales / Consideraciones Especiales
+
 *Nota: Este documento ha sido reconstruido el 2026-02-01 a partir de las referencias encontradas en los agentes de contexto y otros documentos del proyecto.*
+
+---
+
+## 9. Referencias
+
+- Registro de Sprints (`agents/project/sprint-registry.yaml`)
+- Definición de Contextos (`agents/project/context/bounded-contexts.yaml`)

@@ -447,7 +447,41 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 			query = query.Where("status = ?", string(*filters.Status))
 		}
 		if filters.Search != "" {
-			query = query.Where("work_name ILIKE ? OR work_number ILIKE ?", "%"+filters.Search+"%", "%"+filters.Search+"%")
+			searchTerm := "%" + filters.Search + "%"
+			query = query.Where(`
+				work_name ILIKE ?
+				OR work_number ILIKE ?
+				OR EXISTS (
+					SELECT 1
+					FROM organization_profiles op
+					WHERE op.party_id = mes_works.party_id
+					  AND op.name ILIKE ?
+				)
+				OR EXISTS (
+					SELECT 1
+					FROM person_profiles pp
+					WHERE pp.party_id = mes_works.party_id
+					  AND (
+						pp.first_name ILIKE ?
+						OR pp.last_name ILIKE ?
+						OR (pp.first_name || ' ' || pp.last_name) ILIKE ?
+					  )
+				)
+				OR EXISTS (
+					SELECT 1
+					FROM party_roles pr
+					WHERE pr.party_id = mes_works.party_id
+					  AND pr.creation_identifier ILIKE ?
+				)
+			`,
+				searchTerm,
+				searchTerm,
+				searchTerm,
+				searchTerm,
+				searchTerm,
+				searchTerm,
+				searchTerm,
+			)
 		}
 		if filters.PartyID != "" {
 			query = query.Where("party_id = ?", filters.PartyID)

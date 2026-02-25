@@ -3,30 +3,30 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserMenu from './UserMenu.vue'
-import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, FolderOpen, Tag, Folder, Zap, User, Wrench } from 'lucide-vue-next'
+import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Folder, Zap, User, Wrench, Tag, Plus } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
-const showMasterData = ref(false)
+const showProduct = ref(false)
 const showSales = ref(false)
 const showMES = ref(false)
 
 function closeAllDropdowns() {
+	showProduct.value = false
   showSales.value = false
-  showMasterData.value = false
   showMES.value = false
+}
+
+function toggleProduct() {
+	const next = !showProduct.value
+	closeAllDropdowns()
+	showProduct.value = next
 }
 
 function toggleSales() {
   const next = !showSales.value
   closeAllDropdowns()
   showSales.value = next
-}
-
-function toggleMasterData() {
-  const next = !showMasterData.value
-  closeAllDropdowns()
-  showMasterData.value = next
 }
 
 function toggleMES() {
@@ -62,14 +62,41 @@ onBeforeUnmount(() => {
           </RouterLink>
         </li>
         <li>
-          <RouterLink to="/products" class="nav-link" active-class="active" title="Productos">
-            <Package :size="24" />
-          </RouterLink>
-        </li>
-        <li>
           <RouterLink to="/parties" class="nav-link" active-class="active" title="Entidades">
             <Users :size="24" />
           </RouterLink>
+        </li>
+        <li class="dropdown" @click.stop>
+          <button type="button" class="nav-link dropdown-toggle" title="Producto" @click.stop="toggleProduct">
+            <Package :size="24" />
+          </button>
+          <ul v-if="showProduct" class="dropdown-menu">
+            <li>
+              <RouterLink to="/products" class="dropdown-item" title="Catálogo de Productos" @click="closeAllDropdowns">
+                <Package :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/products/new" class="dropdown-item" title="Nuevo Producto" @click="closeAllDropdowns">
+                <Plus :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/master-data/attributes" class="dropdown-item" title="Atributos" @click="closeAllDropdowns">
+                <Zap :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/master-data/brands" class="dropdown-item" title="Marcas" @click="closeAllDropdowns">
+                <Tag :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/master-data/product-groups" class="dropdown-item" title="Categorías" @click="closeAllDropdowns">
+                <Folder :size="20" />
+              </RouterLink>
+            </li>
+          </ul>
         </li>
         <li class="dropdown" @click.stop>
           <button type="button" class="nav-link dropdown-toggle" title="Ventas" @click.stop="toggleSales">
@@ -98,28 +125,7 @@ onBeforeUnmount(() => {
             </li>
           </ul>
         </li>
-        <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="Datos Maestros" @click.stop="toggleMasterData">
-            <FolderOpen :size="24" />
-          </button>
-          <ul v-if="showMasterData" class="dropdown-menu">
-            <li>
-              <RouterLink to="/master-data/brands" class="dropdown-item" title="Marcas" @click="closeAllDropdowns">
-                <Tag :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/master-data/product-groups" class="dropdown-item" title="Categorías" @click="closeAllDropdowns">
-                <Folder :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/master-data/attributes" class="dropdown-item" title="Atributos" @click="closeAllDropdowns">
-                <Zap :size="20" />
-              </RouterLink>
-            </li>
-          </ul>
-        </li>
+
         <li class="dropdown" @click.stop>
           <button type="button" class="nav-link dropdown-toggle" title="MES" @click.stop="toggleMES">
             <Zap :size="24" />
@@ -141,12 +147,12 @@ onBeforeUnmount(() => {
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/service-groups" class="dropdown-item" title="Grupos de Servicio MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/service-groups" class="dropdown-item" title="Plantillas de Proceso MES" @click="closeAllDropdowns">
                 <Folder :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/works" class="dropdown-item" title="Trabajos MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/work-definitions" class="dropdown-item" title="Definiciones de trabajo MES" @click="closeAllDropdowns">
                 <ShoppingCart :size="20" />
               </RouterLink>
             </li>

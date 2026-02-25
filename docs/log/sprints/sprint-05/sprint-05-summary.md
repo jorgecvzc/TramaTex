@@ -1,71 +1,93 @@
-# 📋 Sprint 05 - Análisis y Diseño del Módulo Party
+# Resumen del Sprint 05
 
 ---
 
-## 📊 INFORMACIÓN DEL SPRINT
+## 📋 INFORMACIÓN DEL SPRINT
 
 | Campo | Valor |
 |-------|-------|
-| **ID del Sprint** | sprint-05 |
-| **Título** | Análisis y Diseño del Módulo Party |
-| **Estado** | ✅ Completado |
-| **Facilitador/LLM** | GitHub Copilot, Jorge Cortés Villalba |
+| **ID de Sprint** | 05 |
+| **Título** | Análisis y Rediseño del Módulo Party |
 | **Fecha de Inicio** | 2026-02-01 |
 | **Fecha de Fin** | 2026-02-04 |
-| **Duración Estimada** | 4-6 horas |
-| **Duración Real** | (Por registrar) |
+| **Duración** | 4 días |
+| **Objetivo del Sprint** | Ejecutar la refactorización completa del módulo Party conforme al ADR-012, actualizando dominio, base de datos, API y frontend para soportar roles y relaciones. |
 
 ---
 
-## 🎯 OBJETIVOS DEL SPRINT
+## 📝 TAREAS COMPLETADAS
 
-- Definir el modelo de dominio `Party` y sus casos de uso.
-- Validar decisiones de arquitectura (ADR-012).
-- Identificar brechas entre diseño y la implementación actual.
-- Alinear la UI con el nuevo modelo.
+| ID | Título | Estado | Duración | Enlace |
+|----|--------|--------|----------|--------|
+| 05-01 | Análisis y Diseño del Módulo Party | ✅ Completado | 2 horas | [01-party-module-analysis-and-design.md](./01-party-module-analysis-and-design.md) |
+| 05-02 | Refactorización e Implementación del Módulo Party | ✅ Completado | 6 horas | [02-party-module-implementation-refactoring.md](./02-party-module-implementation-refactoring.md) |
+| 05-03 | Consolidación Frontend Party | ✅ Completado | 2 horas | [03-consolidacion-frontend-party.md](./03-consolidacion-frontend-party.md) |
 
----
-
-## 📋 TAREAS DEL SPRINT
-
-### Tarea 05-01: Análisis y Diseño del Módulo Party
-
-**Estado:** ✅ Completado
-
-**Referencia:**
-- [01-análisis-y-diseño-módulo-party.md](./01-análisis-y-diseño-módulo-party.md)
-
-### Tarea 05-02: Refactorización e Implementación del Módulo Party
-
-**Estado:** ✅ Completado
-
-**Referencia:**
-- [02-refactorizacion-implementacion-modulo-party.md](./02-refactorizacion-implementacion-modulo-party.md)
-
-### Tarea 05-03: Consolidación Frontend Party
-
-**Estado:** ✅ Completado
-
-**Referencia:**
-- [03-consolidacion-frontend-party.md](./03-consolidacion-frontend-party.md)
+**Total de tareas:** 3 completadas
 
 ---
 
-## ✅ RESULTADOS PRINCIPALES
+## 📊 MÉTRICAS AGREGADAS
 
-- Modelo de dominio y ADR-012 alineados con implementación.
-- Backend Party completo con migraciones, repositorios, handlers y pruebas.
-- Frontend Party consolidado con rutas /parties, componentes y API unificada.
-- Limpieza de artefactos legacy y validación de tests backend/frontend.
+### Tests
 
----
-
-## 🔗 REFERENCIAS
-
-- [docs/modules/party/](../../../modules/party/)
-- [docs/architecture/adrs/ADR-012-arquitectura-modulo-party.md](../../../architecture/adrs/ADR-012-arquitectura-modulo-party.md)
-- [apps/tramatex-api/internal/party/](../../../../apps/tramatex-api/internal/party/)
+| Capa/Módulo | Tests Pasando | Cobertura | Estado |
+|-------------|---------------|-----------|--------|
+| Dominio | 205/205 | 71.6% | ✅ |
+| **TOTAL** | **205/205** | **71.6%** | ✅ |
 
 ---
 
-**Estado Actual:** ✅ Completado
+## 🎯 LOGROS PRINCIPALES
+
+### Funcionalidad Implementada
+
+1. **Nuevo Modelo de Party**
+   - Soporte para perfiles duales (Persona y Organización).
+   - Sistema de roles múltiples por entidad (Cliente, Proveedor, Empleado).
+   - Relaciones jerárquicas entre entidades.
+
+### Mejoras Técnicas
+
+- ✅ Migración de datos automatizada del esquema antiguo al nuevo.
+- ✅ Consolidación de rutas en el frontend bajo el prefijo `/parties`.
+- ✅ Limpieza de artefactos legacy y eliminación del código v1 de Party.
+
+### Decisiones Arquitectónicas
+
+- **ADR-012**: Adopción del "Modelo de Party con Roles y Relaciones" para máxima flexibilidad comercial.
+
+---
+
+## 🏗️ ARQUITECTURA Y PATRONES
+
+### Patrones de Diseño Aplicados
+
+1. **Polimorfismo en Dominio**: Uso de interfaces para `PartyProfile` permitiendo comportamientos distintos para Personas y Organizaciones.
+
+---
+
+## ✅ DEFINICIÓN DE "HECHO" - VERIFICACIÓN
+
+Sprint completado cuando:
+
+- [x] El modelo de dominio refleja el ADR-012.
+- [x] El frontend ha eliminado todas las referencias a "Organizations" y usa "Parties".
+- [x] Los tests unitarios del nuevo dominio están en verde.
+
+---
+
+## 🚀 PRÓXIMOS PASOS
+
+### Sprint Siguiente
+
+**Objetivo del próximo sprint:** Definición y desarrollo del módulo de Productos y sistema de variantes.
+
+---
+
+## ✍️ FIRMA
+
+**Sprint completado:** 2026-02-04
+
+**Facilitador:** Jorge Cortés Villalba
+**LLM Principal:** GitHub Copilot

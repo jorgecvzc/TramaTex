@@ -199,6 +199,10 @@ root_directory_policy:
   allowed_files:
     - "README.md: Punto de entrada para desarrolladores humanos. Debe apuntar a la documentación en /docs."
     - "AGENTS.md: Punto de entrada para asistentes de IA. Debe apuntar a los agentes y su documentación en /agents."
+    - "CONTRIBUTING.md: Guía de contribución siguiendo estándares de GitHub."
+    - "LICENSE: Licencia del proyecto."
+    - "SECURITY.md: Política de seguridad y reporte de vulnerabilidades."
+    - "CHANGELOG.md: Registro de cambios del proyecto."
     - "Archivos de configuración esenciales: .gitignore, Makefile, package.json, go.mod, docker-compose.yml, archivos .env, etc."
 
   disallowed_files:

@@ -39,6 +39,7 @@
               <option value="CLIENT">Cliente</option>
               <option value="SUPPLIER">Proveedor</option>
               <option value="BOTH">Cliente y proveedor</option>
+              <option value="CONTACT">Contacto</option>
             </select>
             <span v-if="errors.role" class="error">{{ errors.role }}</span>
           </div>
@@ -164,7 +165,17 @@ const isEditing = computed(() => !!props.partyId);
 
 // Initialize form with data
 if (props.initialData) {
-  Object.assign(form, props.initialData);
+  const initial = props.initialData;
+  Object.assign(form, {
+    ...initial,
+    role: initial.role || form.role,
+    taxId: initial.taxId ?? initial.tax_id ?? form.taxId,
+    taxIdType: initial.taxIdType ?? initial.tax_id_type ?? form.taxIdType,
+  });
+
+  if (isEditing.value && !form.role) {
+    form.role = 'CLIENT';
+  }
 }
 
 // Validation rules
@@ -185,7 +196,7 @@ const validationRules = {
     if (!value) {
       return 'El rol es obligatorio';
     }
-    if (!['CLIENT', 'SUPPLIER', 'BOTH'].includes(value)) {
+    if (!['CLIENT', 'SUPPLIER', 'BOTH', 'CONTACT'].includes(value)) {
       return 'Rol inválido';
     }
     return '';
@@ -244,6 +255,9 @@ async function submitForm() {
     if (isEditing.value) {
       result = await partyApi.updateParty(props.partyId, {
         name: form.name,
+        role: form.role,
+        taxId: form.taxId,
+        taxIdType: form.taxIdType,
         website: form.website,
         notes: form.notes,
       });

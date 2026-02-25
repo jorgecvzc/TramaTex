@@ -24,11 +24,12 @@ const (
 	PartyRoleClient   PartyRoleType = "CLIENT"
 	PartyRoleSupplier PartyRoleType = "SUPPLIER"
 	PartyRoleEmployee PartyRoleType = "EMPLOYEE"
+	PartyRoleContact  PartyRoleType = "CONTACT"
 )
 
 func (r PartyRoleType) IsValid() bool {
 	switch r {
-	case PartyRoleClient, PartyRoleSupplier, PartyRoleEmployee:
+	case PartyRoleClient, PartyRoleSupplier, PartyRoleEmployee, PartyRoleContact:
 		return true
 	default:
 		return false

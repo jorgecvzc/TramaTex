@@ -16,7 +16,7 @@
           <PartySelector
             v-model="formData.partyId"
             label="Cliente"
-            placeholder="Buscar cliente por nombre..."
+            placeholder="Buscar cliente por nombre o referencia..."
             role-filter="CLIENT"
             :required="true"
             help-text="Seleccione el cliente para este presupuesto"
@@ -71,6 +71,8 @@
             </button>
           </div>
 
+          <p class="help-text">El precio final de venta e IVA se calculan automáticamente en Pricing al crear el presupuesto.</p>
+
           <div v-if="formData.lineItems.length === 0" class="empty-state">
             <p>No hay líneas agregadas. Agregue al menos una línea para crear el presupuesto.</p>
           </div>
@@ -109,14 +111,14 @@
                   />
                 </div>
                 <div class="form-group">
-                  <label>Trabajo MES (opcional)</label>
+                  <label>Definición de trabajo MES (opcional)</label>
                   <select
                     v-model="item.mesWorkId"
                     class="form-input"
                     :disabled="!formData.partyId || isLoadingMesWorks"
                   >
                     <option value="">
-                      {{ isLoadingMesWorks ? 'Cargando trabajos MES...' : 'Sin referencia MES' }}
+                      {{ isLoadingMesWorks ? 'Cargando definiciones MES...' : 'Sin referencia MES' }}
                     </option>
                     <option v-for="work in mesWorks" :key="work.id" :value="work.id">
                       {{ work.work_number }} - {{ work.work_name }} ({{ work.status }})
@@ -178,7 +180,7 @@
               <span class="total-value">{{ formatMoney(calculatedTotals.subtotal) }}</span>
             </div>
             <div class="total-row">
-              <span class="total-label">IVA (21%):</span>
+              <span class="total-label">IVA estimado:</span>
               <span class="total-value">{{ formatMoney(calculatedTotals.tax) }}</span>
             </div>
             <div class="total-row total-final">
@@ -338,9 +340,9 @@ async function loadMesWorksForParty(partyId) {
 
   isLoadingMesWorks.value = true;
   try {
-    mesWorks.value = await mesApi.listWorks({ party_id: partyId });
+    mesWorks.value = await mesApi.listWorkDefinitions({ party_id: partyId });
   } catch (error) {
-    console.error('Error loading MES works for selected party:', error);
+    console.error('Error loading MES work definitions for selected party:', error);
     mesWorks.value = [];
   } finally {
     isLoadingMesWorks.value = false;

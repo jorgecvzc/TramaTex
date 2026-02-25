@@ -15,6 +15,7 @@ type PartyHandler struct {
 	createHandler       *application.CreatePartyHandler
 	updateHandler       *application.UpdatePartyHandler
 	changeStatusHandler *application.ChangePartyStatusHandler
+	deleteHandler       *application.DeletePartyHandler
 	getHandler          *application.GetPartyHandler
 	listHandler         *application.ListPartiesHandler
 	getBatchHandler     *application.GetPartiesBatchHandler
@@ -53,6 +54,7 @@ func NewPartyHandler(
 	createHandler *application.CreatePartyHandler,
 	updateHandler *application.UpdatePartyHandler,
 	changeStatusHandler *application.ChangePartyStatusHandler,
+	deleteHandler *application.DeletePartyHandler,
 	getHandler *application.GetPartyHandler,
 	listHandler *application.ListPartiesHandler,
 	getBatchHandler *application.GetPartiesBatchHandler,
@@ -61,6 +63,7 @@ func NewPartyHandler(
 		createHandler:       createHandler,
 		updateHandler:       updateHandler,
 		changeStatusHandler: changeStatusHandler,
+		deleteHandler:       deleteHandler,
 		getHandler:          getHandler,
 		listHandler:         listHandler,
 		getBatchHandler:     getBatchHandler,
@@ -293,6 +296,31 @@ func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// DeleteParty handles DELETE /parties/{id}
+func (h *PartyHandler) DeleteParty(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
+		return
+	}
+
+	if err := h.deleteHandler.Handle(c.Request.Context(), &application.DeletePartyCommand{
+		ID:      id,
+		ActorID: actorID,
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // PartyRoleHandler handles role endpoints
@@ -549,10 +577,14 @@ func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
 	partyID := c.Param("id")
 	contactID := c.Param("contact_id")
 
+	// Check query parameter to decide if we should delete the party if no other references
+	deleteIfNoRefs := c.Query("deleteIfNoReferences") == "true"
+
 	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemoveContactDetailsCommand{
-		PartyID:   partyID,
-		ContactID: contactID,
-		ActorID:   actorID,
+		PartyID:              partyID,
+		ContactID:            contactID,
+		ActorID:              actorID,
+		DeleteIfNoReferences: deleteIfNoRefs,
 	}); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

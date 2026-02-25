@@ -36,6 +36,16 @@ class PartyApiService {
     this.baseUrl = `${API_BASE}/parties`
   }
 
+  private generateId(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+
+    const random = Math.random().toString(16).slice(2, 10)
+    const timestamp = Date.now().toString(16)
+    return `${timestamp}${random}`.slice(0, 36)
+  }
+
   /**
    * Get authorization header with user token
    */
@@ -74,14 +84,14 @@ class PartyApiService {
    * Handle API errors
    */
   private async handleError(response: Response, message: string): Promise<never> {
-    let errorData: { message?: string } | undefined
+    let errorData: { message?: string; error?: string } | undefined
     try {
       errorData = await response.json()
     } catch {
       errorData = { message: 'Ocurrió un error inesperado' }
     }
     
-    const error = new Error(errorData?.message || message) as PartyApiError
+    const error = new Error(errorData?.message || errorData?.error || message) as PartyApiError
     error.status = response.status
     error.data = errorData
     throw error
@@ -117,6 +127,8 @@ class PartyApiService {
       role = 'CLIENT'
     } else if (roles.includes('SUPPLIER')) {
       role = 'SUPPLIER'
+    } else if (roles.includes('CONTACT') || roles.includes('EMPLOYEE')) {
+      role = 'CONTACT'
     }
 
     // Support both organization and person profiles (FIXED 2026-02-14)
@@ -157,8 +169,62 @@ class PartyApiService {
         return ['SUPPLIER']
       case 'BOTH':
         return ['CLIENT', 'SUPPLIER']
+      case 'CONTACT':
+        return ['CONTACT']
       default:
         return []
+    }
+  }
+
+  private async addRoleWithCompatibility(id: string, role: string): Promise<void> {
+    const addResponse = await this.safeFetch(`${this.baseUrl}/${id}/roles`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ role }),
+    })
+
+    if (addResponse.ok) {
+      return
+    }
+
+    if (role === 'CONTACT') {
+      const fallbackResponse = await this.safeFetch(`${this.baseUrl}/${id}/roles`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ role: 'EMPLOYEE' }),
+      })
+
+      if (fallbackResponse.ok) {
+        return
+      }
+    }
+
+    await this.handleError(addResponse, `No se pudo agregar el rol ${role}`)
+  }
+
+  private async syncPartyRoles(id: string, currentRoles: string[], targetRole: PartyRole): Promise<void> {
+    const normalizedCurrentRoles = (currentRoles || []).map((role) => String(role).toUpperCase())
+    const targetRoles = this.mapRoleToPartyRoles(targetRole)
+
+    const normalizedTargetRoles =
+      targetRole === 'CONTACT' ? ['CONTACT', 'EMPLOYEE'] : targetRoles
+
+    const rolesToAdd = targetRoles.filter((role) => !normalizedCurrentRoles.includes(role))
+    const rolesToRemove = normalizedCurrentRoles.filter((role) => !normalizedTargetRoles.includes(role))
+
+    for (const role of rolesToAdd) {
+      await this.addRoleWithCompatibility(id, role)
+    }
+
+    for (const role of rolesToRemove) {
+      const removeResponse = await this.safeFetch(`${this.baseUrl}/${id}/roles/${role}`, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      })
+
+      if (!removeResponse.ok) {
+        await this.handleError(removeResponse, `No se pudo quitar el rol ${role}`)
+      }
     }
   }
 
@@ -240,6 +306,7 @@ class PartyApiService {
       partyMap[party.id] = {
         id: party.id,
         name: party.name,
+        reference: party.reference,
         tax_id: party.tax_id,
         tax_id_type: party.tax_id_type,
       }
@@ -263,11 +330,31 @@ class PartyApiService {
     if (filters.type) params.append('type', filters.type)
 
     const url = params.toString() ? `${this.baseUrl}?${params}` : this.baseUrl
-    
-    const response = await this.safeFetch(url, {
+
+    let response = await this.safeFetch(url, {
       method: 'GET',
       headers: this.getHeaders(),
     })
+
+    if (!response.ok && filters.role === 'CONTACT') {
+      let errorData: { message?: string; error?: string } | undefined
+      try {
+        errorData = await response.json()
+      } catch {
+        errorData = undefined
+      }
+
+      const errorMessage = (errorData?.message || errorData?.error || '').toLowerCase()
+      if (response.status === 400 && errorMessage.includes('invalid role') && errorMessage.includes('contact')) {
+        const fallbackParams = new URLSearchParams(params)
+        fallbackParams.set('role', 'EMPLOYEE')
+        const fallbackUrl = `${this.baseUrl}?${fallbackParams.toString()}`
+        response = await this.safeFetch(fallbackUrl, {
+          method: 'GET',
+          headers: this.getHeaders(),
+        })
+      }
+    }
 
     if (!response.ok) {
       await this.handleError(response, 'No se pudieron cargar las entidades')
@@ -307,7 +394,20 @@ class PartyApiService {
     }
 
     const party: Party = await response.json()
-    return this.mapPartyToParty(party)
+    let mappedParty = this.mapPartyToParty(party)
+    const currentRoles = party.roles || []
+    const targetRoles = data.role ? this.mapRoleToPartyRoles(data.role) : []
+    const requiresRoleSync =
+      !!data.role &&
+      (targetRoles.length !== currentRoles.length ||
+        targetRoles.some((role) => !currentRoles.includes(role)))
+
+    if (data.role && requiresRoleSync) {
+      await this.syncPartyRoles(id, currentRoles, data.role)
+      mappedParty = await this.getParty(id)
+    }
+
+    return mappedParty
   }
 
   /**
@@ -326,6 +426,34 @@ class PartyApiService {
 
     const party: Party = await response.json()
     return this.mapPartyToParty(party)
+  }
+
+  async deleteParty(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la entidad')
+    }
+  }
+
+  /**
+   * List party relationships
+   */
+  async listRelationships(partyId: string): Promise<Array<{ id: string; type: string; to_party_id: string; from_party_id: string }>> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/relationships`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron cargar las relaciones')
+    }
+
+    const payload: { data: Array<{ id: string; type: string; to_party_id: string; from_party_id: string }> } = await response.json()
+    return payload.data || []
   }
 
   // ============================================================================
@@ -353,11 +481,13 @@ class PartyApiService {
    * Add contact to party
    */
   async addContact(partyId: string, data: CreateContactRequest): Promise<Contact | null> {
+    const personId = (data.id || '').trim() || this.generateId()
+
     const createPersonResponse = await this.safeFetch(this.baseUrl, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
-        id: data.id,
+        id: personId,
         status: 'ACTIVE',
         roles: ['EMPLOYEE'],
         person_profile: {
@@ -377,7 +507,7 @@ class PartyApiService {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
-        id: `rel-${personParty.id}-${partyId}`,
+        id: this.generateId(),
         to_party_id: partyId,
         type: 'IS_EMPLOYEE_OF',
       }),
@@ -391,7 +521,7 @@ class PartyApiService {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
-        id: `contact-${personParty.id}`,
+        id: this.generateId(),
         type_description: data.jobTitle || 'Contacto',
         phone: data.phone,
         email: data.email,
@@ -405,6 +535,93 @@ class PartyApiService {
 
     const contactDetails: ContactDetails = await contactResponse.json()
     return this.mapPartyToContact(personParty, contactDetails, false)
+  }
+
+  async linkExistingContact(
+    partyId: string,
+    contactId: string,
+    data: Pick<CreateContactRequest, 'jobTitle' | 'email' | 'phone' | 'isPrimary'>,
+  ): Promise<Contact | null> {
+    const relationshipResponse = await this.safeFetch(`${this.baseUrl}/${contactId}/relationships`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        id: this.generateId(),
+        to_party_id: partyId,
+        type: 'IS_EMPLOYEE_OF',
+      }),
+    })
+
+    if (!relationshipResponse.ok) {
+      await this.handleError(relationshipResponse, 'No se pudo vincular el contacto existente')
+    }
+
+    const contactResponse = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        id: this.generateId(),
+        type_description: data.jobTitle || 'Contacto',
+        phone: data.phone,
+        email: data.email,
+        related_party_id: contactId,
+      }),
+    })
+
+    if (!contactResponse.ok) {
+      await this.handleError(contactResponse, 'No se pudieron guardar los datos del contacto existente')
+    }
+
+    return this.getContact(contactId)
+  }
+
+  async listAvailableContactsForParty(partyId: string): Promise<Contact[]> {
+    // Get all entities without role filter to ensure we get all contacts
+    const listResponse = await this.listParties({ pageNumber: 1, pageSize: 500 })
+    console.log(`Total entidades obtenidas: ${listResponse.data?.length || 0}`)
+    
+    // Filter for entities that are contacts (role 'CONTACT') and have person profile
+    const candidateParties = (listResponse.data || []).filter((party) => {
+      const isContact = party.role === 'CONTACT'
+      const hasPerson = party.has_person
+      console.log(`Party ${party.id} (${party.name}): role=${party.role}, has_person=${hasPerson}, isContact=${isContact}`)
+      return isContact && hasPerson
+    })
+
+    console.log(`Total de contactos (personas) en el sistema: ${candidateParties.length}`)
+
+    // Get current party's contacts to exclude them
+    const currentContactsResponse = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    let currentContactIds: string[] = []
+    if (currentContactsResponse.ok) {
+      const currentContactsPayload: { data: Array<{ related_party_id: string }> } = await currentContactsResponse.json()
+      currentContactIds = (currentContactsPayload.data || []).map(c => c.related_party_id)
+      console.log(`Contactos ya vinculados a esta entidad (${partyId}): ${currentContactIds.length}`, currentContactIds)
+    }
+
+    // Filter out contacts already linked to this party
+    const availableParties = candidateParties.filter(party => !currentContactIds.includes(party.id))
+    console.log(`Contactos disponibles para vincular: ${availableParties.length}`)
+
+    // Convert to Contact objects
+    const contacts = await Promise.all(
+      availableParties.map(async (party) => {
+        try {
+          return await this.getContact(party.id)
+        } catch (error) {
+          console.error(`Error al obtener contacto ${party.id}:`, error)
+          return null
+        }
+      })
+    )
+
+    const validContacts = contacts.filter((contact): contact is Contact => contact !== null)
+    console.log(`Contactos válidos obtenidos: ${validContacts.length}`)
+    return validContacts
   }
 
   /**
@@ -518,6 +735,92 @@ class PartyApiService {
       return null
     }
     return { ...persons[0], is_primary: true }
+  }
+
+  /**
+   * Remove contact from party
+   * @param deleteIfNoReferences If true, also deletes the contact party if it has no other references
+   */
+  async removeContact(partyId: string, contactId: string, deleteIfNoReferences: boolean = false): Promise<void> {
+    const contactsResponse = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!contactsResponse.ok) {
+      await this.handleError(contactsResponse, 'No se pudieron cargar los datos de contacto')
+    }
+
+    const contactsPayload: { data: Array<ContactDetails & { id: string; related_party_id: string }> } = await contactsResponse.json()
+    const contacts = contactsPayload.data || []
+    const contactDetails = contacts.find((item) => item.related_party_id === contactId)
+
+    if (contactDetails?.id) {
+      const deleteUrl = `${this.baseUrl}/${partyId}/contact-details/${contactDetails.id}${deleteIfNoReferences ? '?deleteIfNoReferences=true' : ''}`
+      const deleteContactResponse = await this.safeFetch(deleteUrl, {
+        method: 'DELETE',
+        headers: this.getHeaders(),
+      })
+
+      if (!deleteContactResponse.ok) {
+        await this.handleError(deleteContactResponse, 'No se pudo eliminar el detalle del contacto')
+      }
+    }
+
+    const relationshipsResponse = await this.safeFetch(`${this.baseUrl}/${contactId}/relationships`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!relationshipsResponse.ok) {
+      await this.handleError(relationshipsResponse, 'No se pudieron cargar las relaciones del contacto')
+    }
+
+    const relationshipsPayload: {
+      data: Array<{ id: string; type: string; to_party_id: string; from_party_id: string }>
+    } = await relationshipsResponse.json()
+
+    const relationship = (relationshipsPayload.data || []).find(
+      (rel) => rel.type === 'IS_EMPLOYEE_OF' && rel.to_party_id === partyId
+    )
+
+    if (relationship?.id) {
+      const deleteRelationshipResponse = await this.safeFetch(
+        `${this.baseUrl}/${contactId}/relationships/${relationship.id}`,
+        {
+          method: 'DELETE',
+          headers: this.getHeaders(),
+        }
+      )
+
+      if (!deleteRelationshipResponse.ok) {
+        await this.handleError(deleteRelationshipResponse, 'No se pudo desvincular el contacto')
+      }
+    }
+
+    const remainingRelationshipsResponse = await this.safeFetch(`${this.baseUrl}/${contactId}/relationships`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!remainingRelationshipsResponse.ok) {
+      await this.handleError(remainingRelationshipsResponse, 'No se pudo verificar el estado del contacto')
+    }
+
+    const remainingRelationshipsPayload: {
+      data: Array<{ id: string; type: string; to_party_id: string; from_party_id: string }>
+    } = await remainingRelationshipsResponse.json()
+
+    const hasEmployeeRelationships = (remainingRelationshipsPayload.data || []).some(
+      (rel) => rel.type === 'IS_EMPLOYEE_OF'
+    )
+
+    if (!hasEmployeeRelationships) {
+      const contactParty = await this.getParty(contactId)
+      if (contactParty && contactParty.role === 'CONTACT' && contactParty.has_person && !contactParty.has_organization) {
+        await this.deleteParty(contactId)
+      }
+    }
   }
 
   // ============================================================================

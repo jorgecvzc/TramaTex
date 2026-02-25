@@ -331,7 +331,14 @@ func (s *ProductService) CreateAttribute(ctx context.Context, cmd CreateAttribut
 
 	// 3. Add values to the attribute
 	for _, valCmd := range cmd.Values {
-		_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
+		modifierType := domain.PriceModifierType(valCmd.ModifierType)
+		_, err := attribute.AddValueWithModifier(
+			valCmd.Value,
+			valCmd.Code,
+			valCmd.HasPriceModifier,
+			modifierType,
+			valCmd.ModifierAmount,
+		)
 		if err != nil {
 			return nil, domain.WrapValidation("failed to add attribute value", err)
 		}
@@ -380,7 +387,14 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 
 	for _, valCmd := range cmd.Values {
 		if valCmd.ID == nil { // New value
-			_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
+			modifierType := domain.PriceModifierType(valCmd.ModifierType)
+			_, err := attribute.AddValueWithModifier(
+				valCmd.Value,
+				valCmd.Code,
+				valCmd.HasPriceModifier,
+				modifierType,
+				valCmd.ModifierAmount,
+			)
 			if err != nil {
 				return nil, domain.WrapValidation("failed to add new attribute value", err)
 			}
@@ -389,6 +403,15 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 				err := attribute.UpdateValue(*valCmd.ID, valCmd.Value, valCmd.Code)
 				if err != nil {
 					return nil, domain.WrapValidationf(err, "failed to update attribute value %s", valCmd.ID.String())
+				}
+				// Update price modifier fields directly
+				for i := range attribute.Values {
+					if attribute.Values[i].ID == *valCmd.ID {
+						attribute.Values[i].HasPriceModifier = valCmd.HasPriceModifier
+						attribute.Values[i].ModifierType = domain.PriceModifierType(valCmd.ModifierType)
+						attribute.Values[i].ModifierAmount = valCmd.ModifierAmount
+						break
+					}
 				}
 				delete(existingValuesMap, *valCmd.ID) // Mark as processed
 			} else {
@@ -676,7 +699,7 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 			continue
 		}
 
-		newVariant, createErr := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusConfirmed, attributeValueIDs, product.BasePrice)
+		newVariant, createErr := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusConfirmed, attributeValueIDs)
 		if createErr != nil {
 			return domain.WrapValidation("failed to create generated variant", createErr)
 		}
@@ -690,41 +713,56 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 }
 
 func buildAttributeValueCombinations(attributes []*domain.Attribute) []struct {
-	values   []uuid.UUID
-	skuParts []struct{ AttributeCode, ValueCode string }
+	values          []uuid.UUID
+	attributeValues []*domain.AttributeValue
+	skuParts        []struct{ AttributeCode, ValueCode string }
 } {
 	type skuPart = struct{ AttributeCode, ValueCode string }
 	type combination = struct {
-		values   []uuid.UUID
-		skuParts []skuPart
+		values          []uuid.UUID
+		attributeValues []*domain.AttributeValue
+		skuParts        []skuPart
 	}
 
-	combinations := []combination{{values: []uuid.UUID{}, skuParts: []skuPart{}}}
+	combinations := []combination{{
+		values:          []uuid.UUID{},
+		attributeValues: []*domain.AttributeValue{},
+		skuParts:        []skuPart{},
+	}}
 
 	for _, attr := range attributes {
 		next := make([]combination, 0, len(combinations)*len(attr.Values))
 		for _, base := range combinations {
-			for _, val := range attr.Values {
+			for i := range attr.Values {
+				val := &attr.Values[i]
 				newValues := append(append([]uuid.UUID{}, base.values...), val.ID)
+				newAttrValues := append(append([]*domain.AttributeValue{}, base.attributeValues...), val)
 				newSkuParts := append(append([]skuPart{}, base.skuParts...), skuPart{AttributeCode: attr.Code, ValueCode: val.Code})
-				next = append(next, combination{values: newValues, skuParts: newSkuParts})
+				next = append(next, combination{
+					values:          newValues,
+					attributeValues: newAttrValues,
+					skuParts:        newSkuParts,
+				})
 			}
 		}
 		combinations = next
 	}
 
 	result := make([]struct {
-		values   []uuid.UUID
-		skuParts []struct{ AttributeCode, ValueCode string }
+		values          []uuid.UUID
+		attributeValues []*domain.AttributeValue
+		skuParts        []struct{ AttributeCode, ValueCode string }
 	}, len(combinations))
 
 	for i := range combinations {
 		result[i] = struct {
-			values   []uuid.UUID
-			skuParts []struct{ AttributeCode, ValueCode string }
+			values          []uuid.UUID
+			attributeValues []*domain.AttributeValue
+			skuParts        []struct{ AttributeCode, ValueCode string }
 		}{
-			values:   combinations[i].values,
-			skuParts: combinations[i].skuParts,
+			values:          combinations[i].values,
+			attributeValues: combinations[i].attributeValues,
+			skuParts:        combinations[i].skuParts,
 		}
 	}
 
@@ -769,6 +807,10 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	}
 	if product == nil {
 		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
+	}
+
+	if len(cmd.OptionConfiguration) == 0 {
+		return nil, domain.NewValidationError("optionConfiguration must include at least one selected attribute")
 	}
 
 	// Get applicable attributes for validation and SKU construction
@@ -836,6 +878,10 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		// For production, differentiate between "not found" error and other errors
 	}
 	if variant != nil {
+		if !variant.IsActive {
+			return nil, domain.NewValidationError("La variante está inactiva. Actívala para continuar.")
+		}
+
 		// Ensure SKU matches; if not, update. This handles potential SKU changes on product or attributes.
 		if variant.SKU != generatedSKU {
 			variant.SKU = generatedSKU
@@ -847,7 +893,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	}
 
 	// If not found, create new variant
-	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs, product.BasePrice)
+	newVariant, err := domain.NewProductVariant(product.ID, generatedSKU, nil, domain.StatusProvisional, attributeValueIDs)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create new product variant domain entity", err)
 	}
@@ -875,9 +921,6 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 
 	if cmd.Barcode != nil {
 		variant.Barcode = cmd.Barcode
-	}
-	if cmd.BaseCost != nil {
-		variant.BaseCost = *cmd.BaseCost
 	}
 	if cmd.IsActive != nil {
 		variant.IsActive = *cmd.IsActive

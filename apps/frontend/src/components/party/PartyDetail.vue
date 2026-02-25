@@ -102,6 +102,42 @@
             </div>
 
             <div class="form-group">
+              <label for="editRole">Rol</label>
+              <select
+                id="editRole"
+                v-model="editForm.role"
+              >
+                <option value="CLIENT">Cliente</option>
+                <option value="SUPPLIER">Proveedor</option>
+                <option value="BOTH">Cliente y proveedor</option>
+                <option value="CONTACT">Contacto</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="editTaxId">NIF/CIF</label>
+                <input
+                  id="editTaxId"
+                  v-model="editForm.taxId"
+                  type="text"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="editTaxIdType">Tipo de NIF/CIF</label>
+                <select
+                  id="editTaxIdType"
+                  v-model="editForm.taxIdType"
+                >
+                  <option value="NIF">NIF</option>
+                  <option value="CIF">CIF</option>
+                  <option value="VAT">VAT</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label for="editWebsite">Sitio web</label>
               <input
                 id="editWebsite"
@@ -139,7 +175,14 @@
       </div>
 
       <!-- Contacts Section -->
-      <person-manager :party-id="partyId" />
+      <person-manager
+        v-if="party.role !== 'CONTACT'"
+        :party-id="partyId"
+      />
+      <div v-else class="card info-note">
+        <h3>Contactos</h3>
+        <p>Una entidad de tipo Contacto no puede contener otros contactos.</p>
+      </div>
 
       <!-- Addresses Section -->
       <address-manager :party-id="partyId" />
@@ -167,6 +210,9 @@ const isEditing = ref(false);
 
 const editForm = reactive({
   name: '',
+  role: 'CLIENT',
+  taxId: '',
+  taxIdType: 'NIF',
   website: '',
   notes: '',
 });
@@ -185,6 +231,9 @@ async function fetchParty() {
     
     // Initialize edit form
     editForm.name = data.name;
+    editForm.role = data.role || 'CLIENT';
+    editForm.taxId = data.tax_id || '';
+    editForm.taxIdType = data.tax_id_type || 'NIF';
     editForm.website = data.website || '';
     editForm.notes = data.notes || '';
   } catch (err) {
@@ -205,6 +254,9 @@ async function submitEdit() {
   try {
     const updated = await partyApi.updateParty(partyId, {
       name: editForm.name,
+      role: editForm.role,
+      taxId: editForm.taxId,
+      taxIdType: editForm.taxIdType,
       website: editForm.website,
       notes: editForm.notes,
     });
@@ -239,6 +291,7 @@ function formatRole(role) {
     CLIENT: 'Cliente',
     SUPPLIER: 'Proveedor',
     BOTH: 'Ambos',
+    CONTACT: 'Contacto',
   };
   return map[role] || role;
 }
@@ -311,6 +364,16 @@ function formatDate(dateString) {
   padding: 1.5rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
+}
+
+.info-note h3 {
+  margin: 0 0 0.5rem;
+  color: #1b3a6b;
+}
+
+.info-note p {
+  margin: 0;
+  color: #64748b;
 }
 
 .header-content h2 {
@@ -471,6 +534,7 @@ function formatDate(dateString) {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
   width: 100%;
   border-radius: 8px;
@@ -482,10 +546,17 @@ function formatDate(dateString) {
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: #002395;
   box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .edit-actions {
@@ -506,6 +577,10 @@ function formatDate(dateString) {
 
   .edit-actions {
     flex-direction: column;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

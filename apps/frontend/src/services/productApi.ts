@@ -528,6 +528,10 @@ class ProductApiService {
    * Find or create variant (JIT creation)
    */
   async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<any> {
+    if (!optionConfiguration || Object.keys(optionConfiguration).length === 0) {
+      throw new Error('Debe seleccionar al menos una opción para crear/buscar la variante')
+    }
+
     const response = await this.safeFetch(
       `${this.baseUrl}/${productId}/variants/find-or-create`,
       {
@@ -541,7 +545,8 @@ class ProductApiService {
       await this.handleError(response, 'No se pudo crear/obtener la variante')
     }
 
-    return response.json()
+    const payload = await response.json()
+    return payload?.variant ? payload : { variant: payload }
   }
 
   /**

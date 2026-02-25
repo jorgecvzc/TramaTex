@@ -61,8 +61,11 @@ type UpdateProductSKUCommand struct {
 
 // CreateAttributeValueCommand is the input DTO for creating an attribute value.
 type CreateAttributeValueCommand struct {
-	Value string
-	Code  string
+	Value            string
+	Code             string
+	HasPriceModifier bool
+	ModifierType     string // "FIXED" or "PERCENTAGE"
+	ModifierAmount   float64
 }
 
 // CreateAttributeCommand is the input DTO for the CreateAttribute use case.
@@ -77,9 +80,12 @@ type CreateAttributeCommand struct {
 
 // UpdateAttributeValueCommand is the input DTO for updating an attribute value.
 type UpdateAttributeValueCommand struct {
-	ID    *uuid.UUID // ID is nil for new values, present for existing values
-	Value string
-	Code  string
+	ID               *uuid.UUID // ID is nil for new values, present for existing values
+	Value            string
+	Code             string
+	HasPriceModifier bool
+	ModifierType     string // "FIXED" or "PERCENTAGE"
+	ModifierAmount   float64
 }
 
 // UpdateAttributeCommand is the input DTO for the UpdateAttribute use case.
@@ -99,11 +105,11 @@ type PreGenerateProductVariantsCommand struct {
 }
 
 // UpdateProductVariantCommand is the input DTO for the UpdateProductVariant use case.
+// Note: BaseCost is not updateable - it's calculated dynamically from Product.BasePrice + Attribute modifiers.
 type UpdateProductVariantCommand struct {
 	ActorID  string
 	ID       uuid.UUID
 	Barcode  *string
-	BaseCost *float64
 	IsActive *bool
 	Status   *domain.VariantStatus // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
 }

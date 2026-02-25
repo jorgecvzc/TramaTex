@@ -63,6 +63,7 @@ type CalculatedSaleItemResponse struct {
 	Quantity         int       `json:"quantity"`
 	BaseSalesPrice   MoneyDTO  `json:"baseSalesPrice"`
 	FinalPrice       MoneyDTO  `json:"finalPrice"`
+	TaxRate          float64   `json:"taxRate"`
 }
 
 type CalculateFinalSalePriceResponse struct {

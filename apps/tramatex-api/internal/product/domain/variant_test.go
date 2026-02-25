@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewProductVariant(t *testing.T) {
@@ -113,12 +113,12 @@ func TestNewProductVariant(t *testing.T) {
 
 func TestGenerateVariantSKU(t *testing.T) {
 	testCases := []struct {
-		name                     string
-		productSKU               string
-		attributeCodeValuePairs  []struct{ AttributeCode, ValueCode string }
-		expectedSKU              string
-		expectError              bool
-		expectedErrorMsg         string
+		name                    string
+		productSKU              string
+		attributeCodeValuePairs []struct{ AttributeCode, ValueCode string }
+		expectedSKU             string
+		expectError             bool
+		expectedErrorMsg        string
 	}{
 		{
 			name:       "Basic SKU Generation",
@@ -140,15 +140,15 @@ func TestGenerateVariantSKU(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:                     "No Attributes (Should be handled by NewProductVariant if disallowed)",
-			productSKU:               "PROD-B",
-			attributeCodeValuePairs:  []struct{ AttributeCode, ValueCode string }{},
-			expectedSKU:              "PROD-B",
-			expectError:              false,
+			name:                    "No Attributes (Should be handled by NewProductVariant if disallowed)",
+			productSKU:              "PROD-B",
+			attributeCodeValuePairs: []struct{ AttributeCode, ValueCode string }{},
+			expectedSKU:             "PROD-B",
+			expectError:             false,
 		},
 		{
-			name:             "Empty Product SKU",
-			productSKU:       "",
+			name:       "Empty Product SKU",
+			productSKU: "",
 			attributeCodeValuePairs: []struct{ AttributeCode, ValueCode string }{
 				{AttributeCode: "T", ValueCode: "L"},
 			},

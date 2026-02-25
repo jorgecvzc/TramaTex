@@ -323,6 +323,7 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			Quantity:         item.Quantity,
 			BaseSalesPrice:   NewMoneyDTO(basePrice),
 			FinalPrice:       NewMoneyDTO(finalPrice),
+			TaxRate:          productInfo.TaxRate,
 		})
 
 		lineTotal, err := finalPrice.Multiply(float64(item.Quantity))

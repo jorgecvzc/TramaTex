@@ -1,65 +1,85 @@
-# 📋 Sprint 04 - Consolidación del Módulo IAM
+# Resumen del Sprint 04
 
 ---
 
-## 📊 INFORMACIÓN DEL SPRINT
+## 📋 INFORMACIÓN DEL SPRINT
 
 | Campo | Valor |
 |-------|-------|
-| **ID del Sprint** | sprint-04 |
-| **Título** | Consolidación del Módulo IAM (Autenticación y Administración) |
-| **Estado** | ✅ Completado |
-| **Facilitador/LLM** | GitHub Copilot, Jorge Cortés Villalba |
+| **ID de Sprint** | 04 |
+| **Título** | Consolidación del Módulo IAM |
 | **Fecha de Inicio** | 2026-02-01 |
 | **Fecha de Fin** | 2026-02-01 |
-| **Duración Estimada** | 4-6 horas |
-| **Duración Real** | (Por registrar) |
+| **Duración** | 1 día |
+| **Objetivo del Sprint** | Consolidar la seguridad y administración de usuarios en el módulo IAM, homogeneizando backend y frontend para autenticación y roles. |
 
 ---
 
-## 🎯 OBJETIVOS DEL SPRINT
+## 📝 TAREAS COMPLETADAS
 
-- Consolidar seguridad y administración de usuarios en IAM.
-- Homogeneizar backend y frontend para autenticación y roles.
-- Dejar la base lista para auditoría y mejoras futuras.
+| ID | Título | Estado | Duración | Enlace |
+|----|--------|--------|----------|--------|
+| 04-02 | Consolidación del Módulo IAM | ✅ Completado | 6 horas | [01-iam-module-consolidation.md](./01-iam-module-consolidation.md) |
 
----
-
-## 📋 TAREAS DEL SPRINT
-
-### Tarea 04-02: Consolidación del Módulo IAM
-
-**Estado:** ✅ Completado
-
-**Referencia:**
-- [01-consolidacion-modulo-iam.md](./01-consolidacion-modulo-iam.md)
+**Total de tareas:** 1 completada
 
 ---
 
-## ✅ RESULTADOS PRINCIPALES
+## 🎯 LOGROS PRINCIPALES
 
-### Backend
-- Endpoints administrativos `/auth/users` y `/auth/assign-role`.
-- Roles y RBAC reforzados.
-- Rate limiting y blacklist en login.
-- Seed y migraciones alineadas con credenciales de admin.
+### Funcionalidad Implementada
 
-### Frontend
-- UI de administración de usuarios.
-- Guards y visibilidad de rutas por rol.
-- Consistencia en servicios IAM.
+1. **Administración de Usuarios**
+   - Endpoints `/auth/users` y `/auth/assign-role` expuestos.
+   - UI de administración en el frontend para gestionar cuentas y roles.
 
-### Configuración
-- CORS y variables de entorno alineadas.
+### Mejoras Técnicas
+
+- ✅ Refuerzo de RBAC (Role-Based Access Control) con middleware dedicado.
+- ✅ Implementación de rate limiting y blacklist para el proceso de login.
+- ✅ Alineación de credenciales de semilla (seed) para el entorno de producción.
 
 ---
 
-## 🔗 REFERENCIAS
+## 🏗️ ARQUITECTURA Y PATRONES
 
-- [docs/modules/iam/](../../../modules/iam/)
-- [apps/tramatex-api/internal/iam/](../../../../apps/tramatex-api/internal/iam/)
-- [apps/frontend/src/services/iam.ts](../../../../apps/frontend/src/services/iam.ts)
+### Patrones de Diseño Aplicados
+
+1. **RBAC Middleware**: Intercepción de peticiones basada en roles de usuario.
+2. **Rate Limiting**: Protección contra ataques de fuerza bruta en autenticación.
 
 ---
 
-**Estado Final:** ✅ Completado
+## 📁 ARCHIVOS CREADOS/MODIFICADOS
+
+### Nuevos Archivos
+
+- `apps/frontend/src/services/iam.ts`
+- `apps/frontend/src/pages/admin/UsersManagement.vue`
+
+---
+
+## ✅ DEFINICIÓN DE "HECHO" - VERIFICACIÓN
+
+Sprint completado cuando:
+
+- [x] Los endpoints administrativos están protegidos por RBAC.
+- [x] El frontend permite asignar roles a otros usuarios.
+- [x] El sistema de rate limiting bloquea intentos excesivos de login.
+
+---
+
+## 🚀 PRÓXIMOS PASOS
+
+### Sprint Siguiente
+
+**Objetivo del próximo sprint:** Análisis y rediseño profundo del módulo Party para soportar roles y relaciones complejas.
+
+---
+
+## ✍️ FIRMA
+
+**Sprint completado:** 2026-02-01
+
+**Facilitador:** Jorge Cortés Villalba
+**LLM Principal:** GitHub Copilot

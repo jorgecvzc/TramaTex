@@ -10,11 +10,11 @@
     <div class="filters-card">
       <div class="filters-grid">
         <div class="filter-group">
-          <label>Pedido ID</label>
+          <label>Búsqueda</label>
           <input
-            v-model="filters.orderId"
+            v-model="filters.searchText"
             type="text"
-            placeholder="ID del pedido"
+            placeholder="Buscar por referencia o nombre"
             class="filter-input"
           />
         </div>
@@ -42,7 +42,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
           Buscar
         </button>
       </div>
@@ -61,7 +61,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="deliveryNotes.length === 0" class="empty-state">
+    <div v-else-if="filteredDeliveryNotes.length === 0" class="empty-state">
       <p>No se encontraron albaranes</p>
       <p class="hint">Los albaranes se crean desde los pedidos</p>
     </div>
@@ -78,9 +78,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="note in deliveryNotes" :key="note.id" @click="navigateToDetail(note.id)" class="clickable-row">
+          <tr v-for="note in filteredDeliveryNotes" :key="note.id" @click="navigateToDetail(note.id)" class="clickable-row">
             <td class="note-number">{{ note.deliveryNoteNumber }}</td>
-            <td>{{ formatOrderId(note.salesOrderId) }}</td>
+            <td>{{ ordersCache[note.salesOrderId] || formatOrderId(note.salesOrderId) }}</td>
             <td>{{ formatDate(note.deliveryDate) }}</td>
             <td class="actions-cell" @click.stop>
               <button 
@@ -99,27 +99,89 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
+import partyApi from '@/services/partyApi';
 
 const router = useRouter();
 
 const deliveryNotes = ref([]);
 const isLoading = ref(false);
 const error = ref('');
+const partiesCache = ref({});
+const ordersCache = ref({});
 
 const filters = ref({
-  orderId: '',
+  searchText: '',
   fromDate: '',
   toDate: '',
 });
 
 const hasFilters = computed(() => {
-  return filters.value.orderId !== '' || 
+  return filters.value.searchText.trim() !== '' || 
          filters.value.fromDate !== '' || 
          filters.value.toDate !== '';
+});
+
+const isDateRangeValid = computed(() => {
+  const hasFromDate = Boolean(filters.value.fromDate);
+  const hasToDate = Boolean(filters.value.toDate);
+  return hasFromDate === hasToDate;
+});
+
+const filteredDeliveryNotes = computed(() => {
+  return deliveryNotes.value;
+});
+
+let searchDebounceTimer = null;
+let autoFetchEnabled = false;
+
+function scheduleDeliveryNotesFetch() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    fetchDeliveryNotes();
+  }, 300);
+}
+
+watch(
+  () => filters.value.searchText,
+  (newSearch, oldSearch) => {
+    const normalizedNew = (newSearch || '').trim();
+    const normalizedOld = (oldSearch || '').trim();
+    if (normalizedNew === normalizedOld) return;
+
+    if (!autoFetchEnabled) return;
+
+    scheduleDeliveryNotesFetch();
+  },
+);
+
+watch(
+  () => [filters.value.fromDate, filters.value.toDate],
+  (newValues, oldValues) => {
+    if (!autoFetchEnabled || !oldValues) return;
+
+    const [newFromDate, newToDate] = newValues;
+    const [oldFromDate, oldToDate] = oldValues;
+    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
+
+    const hasFromDate = Boolean(newFromDate);
+    const hasToDate = Boolean(newToDate);
+    if (hasFromDate !== hasToDate) return;
+
+    scheduleDeliveryNotesFetch();
+  },
+);
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
 });
 
 onMounted(() => {
@@ -130,6 +192,8 @@ onMounted(() => {
   
   filters.value.fromDate = thirtyDaysAgo.toISOString().split('T')[0];
   filters.value.toDate = today.toISOString().split('T')[0];
+
+  autoFetchEnabled = true;
   
   fetchDeliveryNotes();
 });
@@ -141,12 +205,13 @@ async function fetchDeliveryNotes() {
   try {
     const apiFilters = {};
     
-    if (filters.value.orderId) apiFilters.orderId = filters.value.orderId;
+    if (filters.value.searchText) apiFilters.searchText = filters.value.searchText;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
     if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
 
     const response = await salesApi.listDeliveryNotes(apiFilters);
     deliveryNotes.value = Array.isArray(response) ? response : (response.data || []);
+    await Promise.all([loadPartyNames(), loadOrderNumbers()]);
   } catch (err) {
     error.value = err?.message || 'No se pudieron cargar los albaranes';
     console.error('Error loading delivery notes:', err);
@@ -156,14 +221,50 @@ async function fetchDeliveryNotes() {
 }
 
 function applyFilters() {
+  if (!isDateRangeValid.value) return;
   fetchDeliveryNotes();
 }
 
 function clearFilters() {
-  filters.value.orderId = '';
+  filters.value.searchText = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';
   fetchDeliveryNotes();
+}
+
+async function loadPartyNames() {
+  const partyIds = [...new Set(deliveryNotes.value.map((note) => note.partyId).filter(Boolean))];
+  const uncachedIds = partyIds.filter((id) => !partiesCache.value[id]);
+
+  if (uncachedIds.length === 0) {
+    return;
+  }
+
+  try {
+    const partiesMap = await partyApi.getPartiesBatch(uncachedIds);
+    for (const partyId of uncachedIds) {
+      partiesCache.value[partyId] = partiesMap[partyId]?.name || 'Sin nombre';
+    }
+  } catch (loadError) {
+    console.error('Error loading delivery note party names:', loadError);
+  }
+}
+
+async function loadOrderNumbers() {
+  const orderIds = [...new Set(deliveryNotes.value.map((note) => note.salesOrderId).filter(Boolean))];
+  const uncachedIds = orderIds.filter((id) => !ordersCache.value[id]);
+
+  if (uncachedIds.length === 0) {
+    return;
+  }
+
+  const results = await Promise.allSettled(uncachedIds.map((id) => salesApi.getOrder(id)));
+  results.forEach((result, index) => {
+    const orderId = uncachedIds[index];
+    if (result.status === 'fulfilled') {
+      ordersCache.value[orderId] = result.value.orderNumber || formatOrderId(orderId);
+    }
+  });
 }
 
 function navigateToDetail(noteId) {

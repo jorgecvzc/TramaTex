@@ -30,7 +30,7 @@
           </div>
         </div>
 
-        <!-- Área de Productos -->
+        <!-- Área de Productos - Con enlaces completos -->
         <div class="area-card">
           <div class="area-header">
             <div class="area-icon">
@@ -129,11 +129,11 @@
               </span>
               <span>Dashboard MES</span>
             </RouterLink>
-            <RouterLink to="/mes/works" class="link-secondary">
+            <RouterLink to="/mes/work-definitions" class="link-secondary">
               <span class="link-icon">
                 <Wrench :size="24" />
               </span>
-              <span>Trabajos MES</span>
+              <span>Definiciones de trabajo</span>
             </RouterLink>
             <RouterLink to="/mes/terminal" class="link-secondary">
               <span class="link-icon">

@@ -17,9 +17,19 @@
           <PartySelector
             v-model="filters.partyId"
             label="Cliente"
-            placeholder="Buscar cliente..."
+            placeholder="Buscar cliente por nombre o referencia..."
             role-filter="CLIENT"
             :required="false"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Búsqueda</label>
+          <input
+            v-model="filters.searchText"
+            type="text"
+            class="filter-input"
+            placeholder="Buscar por referencia o nombre"
           />
         </div>
 
@@ -58,7 +68,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
           Buscar
         </button>
       </div>
@@ -77,7 +87,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="quotes.length === 0" class="empty-state">
+    <div v-else-if="filteredQuotes.length === 0" class="empty-state">
       <p>No se encontraron presupuestos</p>
       <button class="btn btn-primary" @click="navigateToCreate">
         Crear Primer Presupuesto
@@ -100,7 +110,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="quote in quotes" :key="quote.id" @click="navigateToDetail(quote.id)" class="clickable-row">
+          <tr v-for="quote in filteredQuotes" :key="quote.id" @click="navigateToDetail(quote.id)" class="clickable-row">
             <td class="quote-number">{{ quote.quoteNumber }}</td>
             <td>{{ formatPartyId(quote.partyId) }}</td>
             <td>{{ formatDate(quote.quoteDate) }}</td>
@@ -137,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -155,6 +165,7 @@ const mesWorksCache = ref({});
 
 const filters = ref({
   partyId: '',
+  searchText: '',
   status: '',
   fromDate: '',
   toDate: '',
@@ -162,9 +173,77 @@ const filters = ref({
 
 const hasFilters = computed(() => {
   return filters.value.partyId !== '' || 
+         filters.value.searchText.trim() !== '' ||
          filters.value.status !== '' || 
          filters.value.fromDate !== '' || 
          filters.value.toDate !== '';
+});
+
+const isDateRangeValid = computed(() => {
+  const hasFromDate = Boolean(filters.value.fromDate);
+  const hasToDate = Boolean(filters.value.toDate);
+  return hasFromDate === hasToDate;
+});
+
+const filteredQuotes = computed(() => {
+  return quotes.value;
+});
+
+let searchDebounceTimer = null;
+let autoFetchEnabled = false;
+
+function scheduleQuotesFetch() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    fetchQuotes();
+  }, 300);
+}
+
+watch(
+  () => filters.value.searchText,
+  (newSearch, oldSearch) => {
+    const normalizedNew = (newSearch || '').trim();
+    const normalizedOld = (oldSearch || '').trim();
+    if (normalizedNew === normalizedOld) return;
+
+    scheduleQuotesFetch();
+  },
+);
+
+watch(
+  () => [filters.value.partyId, filters.value.status],
+  (newValues, oldValues) => {
+    if (!oldValues) return;
+    if (newValues[0] === oldValues[0] && newValues[1] === oldValues[1]) return;
+
+    scheduleQuotesFetch();
+  },
+);
+
+watch(
+  () => [filters.value.fromDate, filters.value.toDate],
+  (newValues, oldValues) => {
+    if (!autoFetchEnabled || !oldValues) return;
+
+    const [newFromDate, newToDate] = newValues;
+    const [oldFromDate, oldToDate] = oldValues;
+    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
+
+    const hasFromDate = Boolean(newFromDate);
+    const hasToDate = Boolean(newToDate);
+    if (hasFromDate !== hasToDate) return;
+
+    scheduleQuotesFetch();
+  },
+);
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
 });
 
 onMounted(() => {
@@ -175,6 +254,8 @@ onMounted(() => {
   
   filters.value.fromDate = ninetyDaysAgo.toISOString().split('T')[0];
   filters.value.toDate = today.toISOString().split('T')[0];
+
+  autoFetchEnabled = true;
   
   fetchQuotes();
 });
@@ -186,6 +267,7 @@ async function fetchQuotes() {
   try {
     const apiFilters = {};
     
+    if (filters.value.searchText) apiFilters.searchText = filters.value.searchText;
     if (filters.value.partyId) apiFilters.partyId = filters.value.partyId;
     if (filters.value.status) apiFilters.status = filters.value.status;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
@@ -248,7 +330,7 @@ async function loadMesWorksForQuotes() {
   const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
@@ -256,11 +338,13 @@ async function loadMesWorksForQuotes() {
 }
 
 function applyFilters() {
+  if (!isDateRangeValid.value) return;
   fetchQuotes();
 }
 
 function clearFilters() {
   filters.value.partyId = '';
+  filters.value.searchText = '';
   filters.value.status = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';

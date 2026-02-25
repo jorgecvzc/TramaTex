@@ -202,12 +202,20 @@ func (s *stubPricingEngine) CalculateFinalSalePrice(ctx context.Context, req pri
 }
 
 type stubPartyLookup struct {
-	existsPartyFn func(context.Context, uuid.UUID) (bool, error)
+	existsPartyFn  func(context.Context, uuid.UUID) (bool, error)
+	hasPartyRoleFn func(context.Context, uuid.UUID, string) (bool, error)
 }
 
 func (s *stubPartyLookup) ExistsParty(ctx context.Context, id uuid.UUID) (bool, error) {
 	if s.existsPartyFn != nil {
 		return s.existsPartyFn(ctx, id)
+	}
+	return true, nil
+}
+
+func (s *stubPartyLookup) HasPartyRole(ctx context.Context, id uuid.UUID, role string) (bool, error) {
+	if s.hasPartyRoleFn != nil {
+		return s.hasPartyRoleFn(ctx, id, role)
 	}
 	return true, nil
 }

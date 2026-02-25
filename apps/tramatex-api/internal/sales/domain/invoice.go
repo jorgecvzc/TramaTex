@@ -29,6 +29,7 @@ type InvoiceLineItem struct {
 	ProductVariantID     uuid.UUID
 	Quantity             int
 	UnitPrice            Money
+	TaxRate              float64 // Tax rate as percentage (e.g., 21.0 = 21%)
 	DiscountAmount       *Money
 	Subtotal             Money
 	TaxAmount            *Money
@@ -98,12 +99,21 @@ func NewInvoiceLineItem(
 	unitPrice Money,
 	discountAmount *Money,
 	taxAmount *Money,
+	taxRateOptional ...float64,
 ) (InvoiceLineItem, error) {
 	if productVariantID == uuid.Nil {
 		return InvoiceLineItem{}, NewValidationError("product variant ID cannot be empty")
 	}
 	if quantity <= 0 {
 		return InvoiceLineItem{}, NewValidationError("quantity must be greater than zero")
+	}
+	taxRate := 0.0
+	if len(taxRateOptional) > 0 {
+		taxRate = taxRateOptional[0]
+	}
+
+	if taxRate < 0 || taxRate > 100 {
+		return InvoiceLineItem{}, NewValidationError("tax rate must be between 0 and 100")
 	}
 	if discountAmount != nil && discountAmount.Currency() != unitPrice.Currency() {
 		return InvoiceLineItem{}, NewValidationError("discount currency mismatch")
@@ -132,11 +142,11 @@ func NewInvoiceLineItem(
 	if taxAmount != nil {
 		lineTax = *taxAmount
 	} else {
-		zero, err := NewMoney(0, unitPrice.Currency())
+		// Calculate tax from subtotal if not provided
+		lineTax, err = calculateTaxAmount(subtotal, taxRate)
 		if err != nil {
 			return InvoiceLineItem{}, err
 		}
-		lineTax = zero
 	}
 
 	total, err := subtotal.Add(lineTax)
@@ -149,9 +159,10 @@ func NewInvoiceLineItem(
 		ProductVariantID: productVariantID,
 		Quantity:         quantity,
 		UnitPrice:        unitPrice,
+		TaxRate:          taxRate,
 		DiscountAmount:   discountAmount,
 		Subtotal:         subtotal,
-		TaxAmount:        taxAmount,
+		TaxAmount:        &lineTax,
 		Total:            total,
 	}, nil
 }

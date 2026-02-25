@@ -52,6 +52,8 @@ type QuoteLineItemDataModel struct {
 	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
 	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	TaxRate                     float64    `gorm:"column:tax_rate;type:numeric(5,2);not null"`
+	TaxAmount                   *float64   `gorm:"column:tax_amount;type:numeric(10,2)"`
 }
 
 func (QuoteLineItemDataModel) TableName() string {
@@ -101,6 +103,8 @@ type OrderLineItemDataModel struct {
 	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
 	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	TaxRate                     float64    `gorm:"column:tax_rate;type:numeric(5,2);not null"`
+	TaxAmount                   *float64   `gorm:"column:tax_amount;type:numeric(10,2)"`
 }
 
 func (OrderLineItemDataModel) TableName() string {
@@ -169,6 +173,7 @@ type InvoiceLineItemDataModel struct {
 	Quantity             int        `gorm:"column:quantity;not null"`
 	UnitPriceAmount      float64    `gorm:"column:unit_price_amount;type:numeric(12,2);not null"`
 	UnitPriceCurrency    string     `gorm:"column:unit_price_currency;type:varchar(3);not null"`
+	TaxRate              float64    `gorm:"column:tax_rate;type:numeric(5,2);not null"`
 	DiscountAmount       *float64   `gorm:"column:discount_amount;type:numeric(12,2)"`
 	DiscountCurrency     *string    `gorm:"column:discount_currency;type:varchar(3)"`
 	SubtotalAmount       float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
@@ -235,6 +240,8 @@ func quoteLineItemFromDomain(quoteID uuid.UUID, item domain.QuoteLineItem) (*Quo
 		FinalDiscountCurrency:       item.FinalDiscountPerUnit.Currency(),
 		SubtotalAmount:              item.Subtotal.Amount(),
 		SubtotalCurrency:            item.Subtotal.Currency(),
+		TaxRate:                     item.TaxRate,
+		TaxAmount:                   optionalAmount(&item.TaxAmount),
 	}, nil
 }
 
@@ -291,6 +298,8 @@ func orderLineItemFromDomain(orderID uuid.UUID, item domain.OrderLineItem) (*Ord
 		FinalDiscountCurrency:       item.FinalDiscountPerUnit.Currency(),
 		SubtotalAmount:              item.Subtotal.Amount(),
 		SubtotalCurrency:            item.Subtotal.Currency(),
+		TaxRate:                     item.TaxRate,
+		TaxAmount:                   optionalAmount(&item.TaxAmount),
 	}, nil
 }
 
@@ -355,6 +364,7 @@ func invoiceLineItemsFromDomain(invoiceID uuid.UUID, items []domain.InvoiceLineI
 			Quantity:             item.Quantity,
 			UnitPriceAmount:      item.UnitPrice.Amount(),
 			UnitPriceCurrency:    item.UnitPrice.Currency(),
+			TaxRate:              item.TaxRate,
 			DiscountAmount:       optionalAmount(item.DiscountAmount),
 			DiscountCurrency:     optionalCurrency(item.DiscountAmount),
 			SubtotalAmount:       item.Subtotal.Amount(),
@@ -428,6 +438,10 @@ func quoteLineItemToDomain(item QuoteLineItemDataModel) (domain.QuoteLineItem, e
 	if err != nil {
 		return domain.QuoteLineItem{}, err
 	}
+	taxAmount, err := optionalMoneyFromParts(item.TaxAmount, nil)
+	if err != nil {
+		return domain.QuoteLineItem{}, err
+	}
 
 	manualUnit, err := optionalMoneyFromParts(item.ManualUnitPriceAmount, item.ManualUnitPriceCurrency)
 	if err != nil {
@@ -454,6 +468,8 @@ func quoteLineItemToDomain(item QuoteLineItemDataModel) (domain.QuoteLineItem, e
 		ManualDiscountPerUnit:     manualDiscount,
 		FinalDiscountPerUnit:      finalDiscount,
 		Subtotal:                  subtotal,
+		TaxRate:                   item.TaxRate,
+		TaxAmount:                 derefMoneyOrZero(taxAmount, subtotal.Currency()),
 	}, nil
 }
 
@@ -518,6 +534,10 @@ func orderLineItemToDomain(item OrderLineItemDataModel) (domain.OrderLineItem, e
 	if err != nil {
 		return domain.OrderLineItem{}, err
 	}
+	taxAmount, err := optionalMoneyFromParts(item.TaxAmount, nil)
+	if err != nil {
+		return domain.OrderLineItem{}, err
+	}
 
 	manualUnit, err := optionalMoneyFromParts(item.ManualUnitPriceAmount, item.ManualUnitPriceCurrency)
 	if err != nil {
@@ -544,6 +564,8 @@ func orderLineItemToDomain(item OrderLineItemDataModel) (domain.OrderLineItem, e
 		ManualDiscountPerUnit:     manualDiscount,
 		FinalDiscountPerUnit:      finalDiscount,
 		Subtotal:                  subtotal,
+		TaxRate:                   item.TaxRate,
+		TaxAmount:                 derefMoneyOrZero(taxAmount, subtotal.Currency()),
 	}, nil
 }
 
@@ -659,6 +681,7 @@ func invoiceLineItemToDomain(item InvoiceLineItemDataModel) (domain.InvoiceLineI
 		ProductVariantID:     item.ProductVariantID,
 		Quantity:             item.Quantity,
 		UnitPrice:            unitPrice,
+		TaxRate:              item.TaxRate,
 		DiscountAmount:       discount,
 		Subtotal:             subtotal,
 		TaxAmount:            tax,
@@ -687,6 +710,14 @@ func optionalMoneyFromParts(amount *float64, currency *string) (*domain.Money, e
 		return nil, err
 	}
 	return &money, nil
+}
+
+func derefMoneyOrZero(value *domain.Money, currency string) domain.Money {
+	if value != nil {
+		return *value
+	}
+	zero, _ := domain.NewMoney(0, currency)
+	return zero
 }
 
 func toOptionalString(value string) *string {

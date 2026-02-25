@@ -49,9 +49,12 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 
 // AttributeValueDTO represents the data transfer object for an AttributeValue.
 type AttributeValueDTO struct {
-	ID    uuid.UUID `json:"id"`
-	Value string    `json:"value"`
-	Code  string    `json:"code"`
+	ID               uuid.UUID `json:"id"`
+	Value            string    `json:"value"`
+	Code             string    `json:"code"`
+	HasPriceModifier bool      `json:"hasPriceModifier"`
+	ModifierType     string    `json:"modifierType,omitempty"` // "FIXED" or "PERCENTAGE"
+	ModifierAmount   float64   `json:"modifierAmount,omitempty"`
 }
 
 // AttributeDTO represents the data transfer object for an Attribute (ProductOptionSet in API).
@@ -69,9 +72,12 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 	values := make([]AttributeValueDTO, len(a.Values))
 	for i, av := range a.Values {
 		values[i] = AttributeValueDTO{
-			ID:    av.ID,
-			Value: av.Value,
-			Code:  av.Code,
+			ID:               av.ID,
+			Value:            av.Value,
+			Code:             av.Code,
+			HasPriceModifier: av.HasPriceModifier,
+			ModifierType:     string(av.ModifierType),
+			ModifierAmount:   av.ModifierAmount,
 		}
 	}
 
@@ -85,13 +91,13 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 }
 
 // ProductVariantDTO represents the data transfer object for a ProductVariant.
+// Note: BaseCost is no longer exposed - it's calculated dynamically by the pricing module.
 type ProductVariantDTO struct {
 	ID                  uuid.UUID            `json:"id"`
 	ProductID           uuid.UUID            `json:"productId"`
 	SKU                 string               `json:"sku"`
 	Barcode             *string              `json:"barcode,omitempty"`
-	BaseCost            float64              `json:"baseCost"`
-	Price               float64              `json:"price"` // Missing in domain, assuming it will be added or fetched from pricing
+	Price               float64              `json:"price"` // Final sales price from pricing module
 	Status              domain.VariantStatus `json:"status"`
 	OptionConfiguration map[string]string    `json:"optionConfiguration"` // AttributeName -> Value
 	IsActive            bool                 `json:"isActive"`
@@ -136,7 +142,6 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*d
 		ProductID:           v.ProductID,
 		SKU:                 v.SKU,
 		Barcode:             v.Barcode,
-		BaseCost:            v.BaseCost,
 		Price:               0.0, // Placeholder, needs to come from pricing service/domain
 		Status:              v.Status,
 		OptionConfiguration: optionConfig,

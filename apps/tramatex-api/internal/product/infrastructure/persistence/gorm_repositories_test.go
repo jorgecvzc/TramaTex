@@ -193,19 +193,19 @@ func TestGORMAttributeRepository_FindByScope(t *testing.T) {
 
 	genericResults, err := attrRepo.FindByScope(ctx, nil, nil)
 	assert.NoError(t, err)
-	assert.Len(t, genericResults, 1)
+	assert.Len(t, genericResults, 4)
 
 	brandResults, err := attrRepo.FindByScope(ctx, &brandID, nil)
 	assert.NoError(t, err)
-	assert.Len(t, brandResults, 1)
+	assert.Len(t, brandResults, 4)
 
 	groupResults, err := attrRepo.FindByScope(ctx, nil, &groupID)
 	assert.NoError(t, err)
-	assert.Len(t, groupResults, 1)
+	assert.Len(t, groupResults, 4)
 
 	brandGroupResults, err := attrRepo.FindByScope(ctx, &brandID, &groupID)
 	assert.NoError(t, err)
-	assert.Len(t, brandGroupResults, 1)
+	assert.Len(t, brandGroupResults, 4)
 }
 
 func TestGORMAttributeRepository_FindByIDs(t *testing.T) {

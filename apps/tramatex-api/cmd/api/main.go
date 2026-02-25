@@ -141,6 +141,7 @@ func main() {
 	createPartyHandler := party_uc.NewCreatePartyHandler(partyRepo)
 	updatePartyHandler := party_uc.NewUpdatePartyHandler(partyRepo)
 	changePartyStatusHandler := party_uc.NewChangePartyStatusHandler(partyRepo)
+	deletePartyHandler := party_uc.NewDeletePartyHandler(partyRepo, partyRelationshipRepo)
 	getPartyHandler := party_uc.NewGetPartyHandler(partyRepo)
 	listPartiesHandler := party_uc.NewListPartiesHandler(partyRepo)
 	getPartiesBatchHandler := party_uc.NewGetPartiesBatchHandler(partyRepo)
@@ -161,6 +162,7 @@ func main() {
 		createPartyHandler,
 		updatePartyHandler,
 		changePartyStatusHandler,
+		deletePartyHandler,
 		getPartyHandler,
 		listPartiesHandler,
 		getPartiesBatchHandler,
@@ -297,6 +299,7 @@ func main() {
 				parties.POST("", infra_middleware.RequireRole("admin", "commercial"), partyHandler.CreateParty)
 				parties.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), partyHandler.UpdateParty)
 				parties.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), partyHandler.ChangePartyStatus)
+				parties.DELETE("/:id", infra_middleware.RequireRole("admin", "commercial"), partyHandler.DeleteParty)
 
 				parties.GET("", partyHandler.ListParties)
 				parties.GET("/batch", partyHandler.GetPartiesBatch)
@@ -475,6 +478,15 @@ func main() {
 					serviceGroups.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteServiceGroup)
 				}
 
+				serviceTemplates := mes.Group("/service-templates")
+				{
+					serviceTemplates.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateServiceTemplate)
+					serviceTemplates.GET("", mesHandler.ListServiceTemplates)
+					serviceTemplates.GET("/:id", mesHandler.GetServiceTemplate)
+					serviceTemplates.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateServiceTemplate)
+					serviceTemplates.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteServiceTemplate)
+				}
+
 				works := mes.Group("/works")
 				{
 					works.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateMESWork)
@@ -482,7 +494,19 @@ func main() {
 					works.GET("/dashboard/stats", mesHandler.GetMESWorkDashboardStats)
 					works.GET("/overdue", mesHandler.ListOverdueMESWorks)
 					works.GET("/:id", mesHandler.GetMESWork)
+					works.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateMESWork)
 					works.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateMESWorkTaskStatus)
+				}
+
+				workDefinitions := mes.Group("/work-definitions")
+				{
+					workDefinitions.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkDefinition)
+					workDefinitions.GET("", mesHandler.ListWorkDefinitions)
+					workDefinitions.GET("/dashboard/stats", mesHandler.GetWorkDefinitionDashboardStats)
+					workDefinitions.GET("/overdue", mesHandler.ListOverdueWorkDefinitions)
+					workDefinitions.GET("/:id", mesHandler.GetWorkDefinition)
+					workDefinitions.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkDefinition)
+					workDefinitions.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateWorkDefinitionTaskStatus)
 				}
 			}
 

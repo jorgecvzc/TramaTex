@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	pricingapp "github.com/joran-cortez/tramatex/internal/pricing/application"
+	productdomain "github.com/joran-cortez/tramatex/internal/product/domain"
 	productpersistence "github.com/joran-cortez/tramatex/internal/product/infrastructure/persistence"
 )
 
@@ -35,6 +36,13 @@ func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, varian
 		return nil, err
 	}
 
+	// Calculate BaseCost dynamically from product BasePrice + attribute modifiers
+	baseCost, err := c.calculateVariantBaseCost(ctx, product.BasePrice, variant.AttributeValues)
+	if err != nil {
+		// Log the error, but use BasePrice as fallback
+		baseCost = product.BasePrice
+	}
+
 	// Get brand markup percentage
 	var brand productpersistence.BrandDataModel
 	var brandMarkup float64
@@ -45,7 +53,7 @@ func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, varian
 	return &pricingapp.ProductPricingInfo{
 		VariantID:             variant.ID,
 		ProductID:             variant.ProductID,
-		BaseCost:              variant.BaseCost,
+		BaseCost:              baseCost,
 		Currency:              "EUR",
 		BrandID:               product.BrandID,
 		BrandMarkupPercentage: brandMarkup,
@@ -78,10 +86,17 @@ func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, prod
 	groupIDs := parseUUIDs(product.GroupIDs)
 	infos := make([]*pricingapp.ProductPricingInfo, 0, len(variants))
 	for _, variant := range variants {
+		// Calculate BaseCost dynamically for each variant
+		baseCost, err := c.calculateVariantBaseCost(ctx, product.BasePrice, variant.AttributeValues)
+		if err != nil {
+			// Log error, use product BasePrice as fallback
+			baseCost = product.BasePrice
+		}
+
 		infos = append(infos, &pricingapp.ProductPricingInfo{
 			VariantID:             variant.ID,
 			ProductID:             variant.ProductID,
-			BaseCost:              variant.BaseCost,
+			BaseCost:              baseCost,
 			Currency:              "EUR",
 			BrandID:               product.BrandID,
 			BrandMarkupPercentage: brandMarkup,
@@ -91,6 +106,43 @@ func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, prod
 	}
 
 	return infos, nil
+}
+
+// calculateVariantBaseCost calculates the base cost for a variant by loading attribute values
+// and applying their price modifiers to the product's base price.
+func (c *ProductPricingClient) calculateVariantBaseCost(ctx context.Context, productBasePrice float64, attributeValueIDStrings []string) (float64, error) {
+	if len(attributeValueIDStrings) == 0 {
+		return productBasePrice, nil
+	}
+
+	// Parse attribute value IDs
+	attributeValueIDs := make([]uuid.UUID, 0, len(attributeValueIDStrings))
+	for _, idStr := range attributeValueIDStrings {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			continue
+		}
+		attributeValueIDs = append(attributeValueIDs, id)
+	}
+
+	if len(attributeValueIDs) == 0 {
+		return productBasePrice, nil
+	}
+
+	// Load attribute values from database
+	var attrValueDataModels []productpersistence.AttributeValueDataModel
+	if err := c.db.WithContext(ctx).Where("id IN ?", attributeValueIDs).Find(&attrValueDataModels).Error; err != nil {
+		return 0, err
+	}
+
+	// Convert to domain models
+	attrValues := make([]productdomain.AttributeValue, 0, len(attrValueDataModels))
+	for _, dm := range attrValueDataModels {
+		attrValues = append(attrValues, *dm.ToDomain())
+	}
+
+	// Calculate base cost using domain logic
+	return productdomain.CalculateBaseCost(productBasePrice, attrValues), nil
 }
 
 func parseUUIDs(values []string) []uuid.UUID {

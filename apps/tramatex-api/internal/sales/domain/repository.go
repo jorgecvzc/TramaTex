@@ -12,6 +12,7 @@ type QuoteFilter struct {
 	Status   *QuoteStatus
 	FromDate *time.Time
 	ToDate   *time.Time
+	Search   *string
 }
 
 type SalesOrderFilter struct {
@@ -19,6 +20,7 @@ type SalesOrderFilter struct {
 	Status   *SalesOrderStatus
 	FromDate *time.Time
 	ToDate   *time.Time
+	Search   *string
 }
 
 type DeliveryNoteFilter struct {
@@ -27,6 +29,7 @@ type DeliveryNoteFilter struct {
 	Status       *DeliveryNoteStatus
 	FromDate     *time.Time
 	ToDate       *time.Time
+	Search       *string
 }
 
 type InvoiceFilter struct {
@@ -35,6 +38,7 @@ type InvoiceFilter struct {
 	Type     *InvoiceType // Filter by COMPLETA or SIMPLIFICADA
 	FromDate *time.Time
 	ToDate   *time.Time
+	Search   *string
 }
 
 type QuoteRepository interface {

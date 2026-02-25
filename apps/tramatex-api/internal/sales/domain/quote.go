@@ -28,10 +28,12 @@ type QuoteLineItem struct {
 	CalculatedUnitPrice       Money
 	ManualUnitPrice           *Money
 	FinalUnitPrice            Money
+	TaxRate                   float64 // Tax rate as percentage (e.g., 21.0 = 21%)
 	CalculatedDiscountPerUnit *Money
 	ManualDiscountPerUnit     *Money
 	FinalDiscountPerUnit      Money
 	Subtotal                  Money
+	TaxAmount                 Money // Tax calculated from Subtotal * TaxRate
 }
 
 func NewQuote(
@@ -83,12 +85,21 @@ func NewQuoteLineItem(
 	manualUnitPrice *Money,
 	calculatedDiscountPerUnit *Money,
 	manualDiscountPerUnit *Money,
+	taxRateOptional ...float64,
 ) (QuoteLineItem, error) {
 	if productVariantID == uuid.Nil {
 		return QuoteLineItem{}, NewValidationError("product variant ID cannot be empty")
 	}
 	if quantity <= 0 {
 		return QuoteLineItem{}, NewValidationError("quantity must be greater than zero")
+	}
+	taxRate := 0.0
+	if len(taxRateOptional) > 0 {
+		taxRate = taxRateOptional[0]
+	}
+
+	if taxRate < 0 || taxRate > 100 {
+		return QuoteLineItem{}, NewValidationError("tax rate must be between 0 and 100")
 	}
 
 	finalUnitPrice := calculatedUnitPrice
@@ -109,6 +120,12 @@ func NewQuoteLineItem(
 		return QuoteLineItem{}, err
 	}
 
+	// Calculate tax amount: subtotal * (taxRate / 100)
+	taxAmount, err := calculateTaxAmount(subtotal, taxRate)
+	if err != nil {
+		return QuoteLineItem{}, err
+	}
+
 	return QuoteLineItem{
 		ID:                        uuid.New(),
 		ProductVariantID:          productVariantID,
@@ -116,10 +133,12 @@ func NewQuoteLineItem(
 		CalculatedUnitPrice:       calculatedUnitPrice,
 		ManualUnitPrice:           manualUnitPrice,
 		FinalUnitPrice:            finalUnitPrice,
+		TaxRate:                   taxRate,
 		CalculatedDiscountPerUnit: calculatedDiscountPerUnit,
 		ManualDiscountPerUnit:     manualDiscountPerUnit,
 		FinalDiscountPerUnit:      finalDiscount,
 		Subtotal:                  subtotal,
+		TaxAmount:                 taxAmount,
 	}, nil
 }
 
@@ -140,6 +159,17 @@ func (q *Quote) RecalculateTotals() error {
 		return err
 	}
 	q.Subtotal = subtotal
+
+	// Recalculate tax from line items
+	taxTotal, err := sumLineItemTaxAmounts(q.LineItems)
+	if err != nil {
+		return err
+	}
+	if taxTotal.Amount() == 0 && q.TaxAmount.Amount() > 0 {
+		taxTotal = q.TaxAmount
+	}
+	q.TaxAmount = taxTotal
+
 	total, err := q.Subtotal.Add(q.TaxAmount)
 	if err != nil {
 		return err
@@ -172,6 +202,15 @@ func calculateLineSubtotal(unitPrice Money, discount Money, quantity int) (Money
 	return netUnit.Multiply(float64(quantity))
 }
 
+// calculateTaxAmount calculates tax amount from subtotal and tax rate percentage
+func calculateTaxAmount(subtotal Money, taxRate float64) (Money, error) {
+	if taxRate == 0 {
+		return NewMoney(0, subtotal.Currency())
+	}
+	// taxAmount = subtotal * (taxRate / 100)
+	taxMultiplier := taxRate / 100.0
+	return subtotal.Multiply(taxMultiplier)
+}
 func sumLineItemSubtotals(items []QuoteLineItem) (Money, error) {
 	subtotal, err := NewMoney(0, DefaultCurrency)
 	if err != nil {
@@ -184,4 +223,18 @@ func sumLineItemSubtotals(items []QuoteLineItem) (Money, error) {
 		}
 	}
 	return subtotal, nil
+}
+
+func sumLineItemTaxAmounts(items []QuoteLineItem) (Money, error) {
+	taxTotal, err := NewMoney(0, DefaultCurrency)
+	if err != nil {
+		return Money{}, err
+	}
+	for _, item := range items {
+		taxTotal, err = taxTotal.Add(item.TaxAmount)
+		if err != nil {
+			return Money{}, err
+		}
+	}
+	return taxTotal, nil
 }

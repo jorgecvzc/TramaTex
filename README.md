@@ -1,365 +1,133 @@
-# TramaTex - README
+# TramaTex - ERP Textil para Microempresas
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Go](https://img.shields.io/badge/Go-1.23+-00ADD8.svg)
-![Vue](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)
-![License](https://img.shields.io/badge/license-Proprietary-red.svg)
+<div align="center">
+  <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go 1.21+">
+  <img src="https://img.shields.io/badge/Vue.js-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue.js 3">
+  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 15">
+  <img src="https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white" alt="Docker">
+</div>
 
-**Estado:** ✅ MVP Completado - Listo para Producción
+> Un sistema ERP de código abierto, diseñado para las necesidades del sector textil a pequeña escala. Este proyecto fue desarrollado como un Trabajo Fin de Máster.
 
+## 💡 Sobre el Proyecto
 
-## 🚀 Punto de Partida
+TramaTex es un sistema de planificación de recursos empresariales (ERP) diseñado específicamente para **empresas de venta de vestuario laboral y EPIs (Equipos de Protección Individual)**. Busca ofrecer una solución integrada y de bajo coste para microempresas y talleres del sector textil. El objetivo es centralizar la gestión de las operaciones clave, desde el trato con clientes y proveedores, la administración de un catálogo de productos complejos que incluye la **marcación y personalización de prendas para uniformidad**, hasta el ciclo completo de ventas.
 
-- **[📖 Manual del Proyecto TramaTex](./docs/architecture/project-vision-and-scope.md)** ← **LEER PRIMERO**
-- **[📊 Estado del Proyecto](./docs/log/project-status.md)**
-- **[⚡ Quick Start](./docs/guides/quick-start.md)**
+El sistema está diseñado como un **monolito modular**, aplicando los principios de **Clean Architecture** y **Domain-Driven Design (DDD)** para asegurar un software mantenible, escalable y alineado con las necesidades del negocio.
 
----
+## ✨ Funcionalidades
 
-## vision-icon📋 Visión
+- **[Gestión de Identidad (IAM)](docs/modules/iam/README.md):** Sistema de autenticación y autorización basado en roles (JWT).
+- **[Gestión de Terceros (Party)](docs/modules/party/README.md):** Unifica la administración de clientes y proveedores, permitiendo que una misma entidad se comporte como ambos sin duplicar información.
+- **[Catálogo de Productos (Product)](docs/modules/product/README.md):** Permite la creación de productos con un sistema avanzado de variantes y atributos, tales como talla y color. Destaca la creación de variantes **"Just-In-Time" (JIT)**, que evita el engorroso trabajo de dar de alta manualmente miles de combinaciones.
+- **[Motor de Precios (Pricing)](docs/modules/pricing/README.md):** Sistema para definir reglas de precios y calcular costes y precios de venta de forma dinámica, permitiendo el cálculo del precio de variantes a partir del producto base y atributos.
+- **[Ciclo de Ventas (Sales)](docs/modules/sales/README.md):** Gestión completa del ciclo comercial, desde presupuestos hasta la emisión de facturas y tickets.
+- **[Ejecución de Manufactura (MES)](docs/modules/mes/README.md):** Módulo para la gestión y seguimiento de las órdenes de producción en taller, referidas a las manipulaciones sobre los productos, tales como el marcado de logotipos o los arreglos.
 
-Proporcionar una solución integrada que permita a microempresas:
-- **Gestionar clientes y proveedores** de forma centralizada (Party)
-- **Administrar catálogo de productos** con variantes (tallas, colores, modificaciones)
-- **Calcular precios** de forma inteligente y automática (tarificación)
-- **Gestionar pedidos** desde cotización hasta entrega
-- **Controlar producción personalizada** con seguimiento estado-a-estado
-- **Documentar procesos** con trazabilidad completa
+## 🛠️ Tecnologías Utilizadas
 
----
+Este proyecto se ha construido utilizando un stack de tecnologías modernas y robustas:
 
-## 🏗️ Arquitectura
+- **Backend:** Go (v1.21+)
+- **Frontend:** Vue.js (v3) con TypeScript
+- **Base de Datos:** PostgreSQL (v15+)
+- **UI Framework:** Tailwind CSS
+- **Contenerización:** Docker & Docker Compose
 
-### Stack Tecnológico
-- **Backend:** Go 1.21+ (Clean Architecture + DDD)
-- **Frontend:** Vue.js 3 + Vite + Tailwind CSS
-- **Base de Datos:** PostgreSQL 15+
-- **Contenedorización:** Docker + Docker Compose
-- **Testing:** TDD (Go testing + Vitest)
+## 🚀 Cómo Empezar
 
-### Estructura
+Para poner en marcha una copia local del proyecto, sigue estos pasos.
 
-TramaTex sigue un **monolito modular** basado en **Clean Architecture y Domain-Driven Design**:
+### Prerrequisitos
 
-```
-tramatex/
-├── apps/
-│   ├── tramatex-api/
-│   └── frontend/
-├── docs/
-│   ├── architecture/
-│   ├── guides/
-│   ├── modules/
-│   └── log/
-```
+La forma más sencilla y recomendada de ejecutar el proyecto es a través de Docker.
+- **Docker**: Asegúrate de tenerlo instalado y en ejecución. Puede ser Docker Desktop (para entornos de desarrollo en Windows/macOS) o Docker Engine en un servidor Linux.
 
-Más detalles en [ADR-009 – Estructura de Proyecto](docs/architecture/adrs/ADR-009-project-structure.md).
-## 🚀 Quick Start
+### Instalación
 
-### Requisitos
+1. **Clona el repositorio:**
+   ```sh
+   git clone git@github.com:jorgecvzc/TramaTex.git
+   cd TramaTex
+   ```
+2. **Copia los archivos de entorno:**
+   ```sh
+   cp apps/tramatex-api/.env.example apps/tramatex-api/.env
+   cp apps/frontend/.env.example apps/frontend/.env
+   ```
+   *(Opcional: edita los archivos `.env` para adaptar las configuraciones).*
 
-- **Docker Desktop** (incluye Docker y Docker Compose)
-- **Go 1.21+** (opcional, para desarrollo local)
-- **Node.js 18+** (opcional, para desarrollo local)
+3. **Levanta los servicios con Docker Compose:**
+   ```sh
+   docker-compose up --build
+   ```
 
-### Arrancar el Proyecto
+Una vez completado, el sistema estará disponible en:
+- **Aplicación Frontend:** `http://localhost:5173`
+- **API Backend:** `http://localhost:8080`
 
-#### Con Docker Compose (recomendado)
+## 📂 Estructura del Proyecto
 
-```bash
-cd tramatex
-docker-compose up --build
-```
-
-El sistema estará disponible en:
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8080
-- **PostgreSQL:** localhost:5432
-
-#### Sin Docker (desarrollo local)
-
-**Backend:**
-```bash
-cd apps/tramatex-api
-go install github.com/golang-migrate/migrate/cmd/migrate@latest
-make migrate-up
-make run
-```
-
-**Frontend:**
-```bash
-cd apps/frontend
-npm install
-npm run dev
-```
-
----
-
-## � Versionado y Contribución
-
-### Versionado Semántico
-
-TramaTex sigue [Semantic Versioning 2.0](https://semver.org/):
-
-- **MAJOR.MINOR.PATCH** (Ej: 1.0.0)
-- **MAJOR:** Cambios rompientes en API o arquitectura
-- **MINOR:** Nuevas funcionalidades compatibles
-- **PATCH:** Correcciones de bugs
-
-**Versión actual:** `v1.0.0` (MVP Completado - 2026-02-22)
-
-### Estrategia de Branches
-
-TramaTex utiliza **GitFlow Simplificado**:
-
-#### Ramas Principales
-
-- **`main`**: Código en producción, siempre estable y desplegable
-  - Solo recibe merges desde `develop` o `hotfix/*`
-  - Cada merge representa una release con tag vX.Y.Z
-  - **Protegida:** Requiere PR aprobado + tests pasando
-
-- **`develop`**: Rama de integración para desarrollo activo  - Base para todas las feature/bugfix branches
-  - **Protegida:** Requiere PR + tests pasando
-
-#### Ramas Temporales
-
-- **`feature/*`**: Nuevas funcionalidades (desde `develop`)
-- **`bugfix/*`**: Correcciones no críticas (desde `develop`)
-- **`hotfix/*`**: Correcciones críticas en producción (desde `main`)
-- **`release/*`**: Preparación de releases (desde `develop`)
-
-### Flujo de Trabajo
-
-#### Feature Development
-
-```bash
-# 1. Crear branch desde develop
-git checkout develop
-git pull origin develop
-git checkout -b feature/mi-funcionalidad
-
-# 2. Desarrollar y commitear
-git add .
-git commit -m "feat(module): add new functionality"
-
-# 3. Push y abrir Pull Request
-git push origin feature/mi-funcionalidad
-# Abrir PR en GitHub hacia develop
-```
-
-#### Commits Convencionales
-
-Usamos [Conventional Commits](https://www.conventionalcommits.org/):
+El proyecto sigue una estructura de monolito modular para separar las responsabilidades:
 
 ```
-<type>(<scope>): <description>
-
-[optional body]
+TramaTex/
+├── apps/                 # Contiene las aplicaciones principales
+│   ├── tramatex-api/     # El backend en Go (API REST)
+│   └── frontend/         # El frontend en Vue.js (SPA)
+│
+├── docs/                 # Toda la documentación del proyecto
+│   ├── architecture/     # Decisiones de arquitectura (ADRs), diagramas C4
+│   ├── guides/           # Guías para desarrolladores y usuarios
+│   ├── modules/          # Documentación funcional de cada módulo
+│   └── log/              # Registro de trabajo (sprints, etc.)
+│
+├── agents/               # Definiciones para asistentes de IA
+└── docker/               # Archivos de configuración de Docker Compose
 ```
 
-**Tipos:**
-- `feat`: Nueva funcionalidad
-- `fix`: Corrección de bug
-- `docs`: Documentación
-- `refactor`: Refactorización
-- `test`: Tests
-- `chore`: Cambios de build/config
 
-**Scopes:** `party`, `product`, `pricing`, `sales`, `iam`, `mes`, `frontend`, `backend`, `infra`
+## 📚 Documentación
 
-**Ejemplos:**
-```bash
-feat(pricing): add volume discount rules
-fix(party): resolve selector crash on empty results
-docs(adr): add versioning strategy ADR-021
-test(sales): increase coverage to 80%
-```
+El proyecto incluye documentación exhaustiva que cubre varios aspectos. Este `README.md` sirve como punto de partida para navegarla.
 
-### Configuración Inicial
-
-#### 1. Clonar Repositorio
-
-```bash
-git clone git@github.com:jorgecvzc/TramaTex.git
-cd TramaTex
-```
-
-#### 2. Configurar Variables de Entorno
-
-```bash
-# Backend
-cp apps/tramatex-api/.env.example apps/tramatex-api/.env
-# Editar apps/tramatex-api/.env con tus valores
-
-# Frontend
-cp 📄 Licencia
-
-Proprietary - Todos los derechos reservados
-
----
-
-## 👥 Autores y Equipo
-
-- **Jorge Cortés Villalba** - Product Owner, Arquitectura
-- **AI Assistant (Claude)** - Desarrollo técnico, Arquitectura, Documentación
-
----
-
-## 📊 Estadísticas del Proyecto
-
-**Líneas de Código (MVP v1.0.0):**
-- Backend (Go): ~25,000 líneas
-- Frontend (Vue/TS): ~15,000 líneas
-- Documentación: ~8,000 líneas
-- Tests: ~12,000 líneas
-
-**Cobertura de Tests:**
-- Backend: 75%+ (Pricing 85.4%, Party 86.7%, MES 86.9%)
-- Frontend: 77.63%
-
-**Módulos Completados:**
-- ✅ Party (Clientes/Proveedores)
-- ✅ Product (Catálogo y Variantes)
-- ✅ Pricing (Motor de Tarificación)
-- ✅ Sales (Ciclo Comercial)
-- ✅ IAM (Autenticación/Autorización)
-- ✅ MES (Producción y Taller)
-
----
-
-**Última Actualización:** 22/02/2026  
-**Versión:** 1.0.0 (MVP Completado)  
-**Estado:** ✅ Listo para Produc
-
-- **[ADR-021: Version Control & Branching Strategy](docs/architecture/adrs/ADR-021-version-control-and-branching-strategy.md)**
-- **[Guía de Contribución](docs/guides/developer/CONTRIBUTING.md)** [Por crear]
-
----
-
-## �📚 Documentación
-
-### Architecture Decision Records (ADRs)
-
-- [ADR-006: Estrategia de Desarrollo Dirigida por Dominio](docs/architecture/adrs/ADR-006-domain-driven-development-strategy.md)
-- [ADR-007: Orden de Implementación de Módulos](docs/architecture/adrs/ADR-007-module-implementation-order.md)
-- [ADR-008: Planificación y Cronograma](docs/architecture/adrs/ADR-008-mvp-timeline-planning.md)
-- [ADR-009: Estructura de Carpetas](docs/architecture/adrs/ADR-009-project-structure.md)
-
-### Estado del Proyecto
-
-- [project-status.md](docs/log/project-status.md) - Progreso actual, hitos, timeline
-
-### Guías
-
-- [Setup de Desarrollo](docs/guides/developer/github-setup.md) [Pendiente]
-- [Estrategia de Testing](docs/guides/developer/ci-cd.md) [Pendiente]
-- [Configuración de impresión Sales (perfil fiscal emisor)](apps/frontend/README.md#configuración-de-emisor-para-impresión-sales)
-
-### Módulos
-
-Cada módulo tiene su documentación en `docs/modules/[modulo]/`:
-
-- **Party:** Gestión de clientes y proveedores
-- **Product:** Catálogo de productos y variantes
-- **Pricing:** Motor de tarificación
-- **Sales:** Gestión de pedidos
-- **MES:** Producción personalizada y taller
-
----
-
-## 📅 Cronograma
-
-**Duración total:** 24 meses (Enero 2026 - Enero 2028)
-
-### Fases
-
-1. **Fase 0 (Q1 2026):** Fundaciones técnicas
-   - Setup Docker, Git, autenticación JWT
-   - **Hito:** Sistema arranca + login funcional
-   - Detalle: [MVP Specification](docs/architecture/project-vision-and-scope.md)
-
-2. **Fase 1 (Q2-Q4 2026):** Dominio base
-   - Módulos: Party, Producto, Tarificación
-   - **Hito:** Núcleo económico funcional
-
-3. **Fase 2 (Q1-Q2 2027):** Ventas
-   - Gestión de pedidos estándar
-   - **Hito:** Flujo completo de ventas
-
-4. **Fase 3 (Q3-Q4 2027):** MES
-   - Producción personalizada, terminal taller
-   - **Hito:** MVP completo
-
-5. **Fase 4 (Q1 2028):** Estabilización
-   - **Hito:** En producción estable
-
-Más detalles en [ADR-008 – Cronograma](docs/architecture/adrs/ADR-008-mvp-timeline-planning.md) y [project-status.md](docs/log/project-status.md).
-
----
-
-## 🛠️ Desarrollo
-
-### Comandos Principales
-
-**Backend:**
-```bash
-cd apps/tramatex-api
-make run              # Ejecutar servidor
-make test             # Tests
-make test-coverage    # Cobertura
-make lint             # Linter
-make migrate-up       # Migraciones
-make docker-up        # Stack completo en Docker
-```
-
-**Frontend:**
-```bash
-cd apps/frontend
-npm run dev           # Servidor desarrollo
-npm run build         # Build producción
-npm run lint          # Linter
-npm run format        # Prettier
-```
-
-### Testing
-
-- **Backend:** Go testing + assertions manuales
-- **Frontend:** Vitest (similar a Jest)
-- **Cobertura objetivo:** ≥85% global, ≥90% en Pricing
-
-### Code Style
-
-- **Backend:** `gofmt` + `golangci-lint`
-- **Frontend:** ESLint + Prettier
-
----
-
-## 🤝 Contribución
-
-[Guía de contribución](docs/guides/developer/CONTRIBUTING.md)
-
----
+-   **Decisiones de Arquitectura (ADRs):** Razón y justificación detrás de las decisiones arquitectónicas clave del proyecto.
+    -   [Índice de ADRs](docs/architecture/adrs/README.md)
+    -   [Visión y Alcance del Proyecto](docs/architecture/project-vision-and-scope.md)
+-   **Guías de Desarrollo:** Instrucciones y buenas prácticas para contribuir al código.
+    -   [Guía de Inicio Rápido](docs/guides/quick-start.md)
+    -   [Estándares de Código y Estilo](docs/guides/code-and-style-standards.md)
+-   **Documentación de Módulos:** Especificaciones detalladas para cada Módulo de Negocio (Bounded Context).
+    -   [Resumen de Módulos](docs/modules/README.md)
+    -   [Módulo Party](docs/modules/party/README.md)
+    -   [Módulo Product](docs/modules/product/README.md)
+    -   [Módulo Pricing](docs/modules/pricing/README.md)
+    -   [Módulo Sales](docs/modules/sales/README.md)
+    -   [Módulo IAM](docs/modules/iam/README.md)
+    -   [Módulo MES](docs/modules/mes/README.md)
+-   **Registros y Estado del Proyecto:** Historial de trabajo, resúmenes de sprints y el estado actual del proyecto.
+    -   [Estado del Proyecto](docs/log/project-status.md)
+    -   [Registros de Sprints](docs/log/sprints/README.md)
+    -   [Registro de Sesiones](docs/log/session-log.md)
 
 ## 📄 Licencia
 
-[Pendiente: Especificar licencia]
+Este proyecto está bajo la [Licencia MIT](LICENSE.md).
 
----
+## 🌱 Proyecto de Scaffolding
+
+Como resultado del desarrollo de TramaTex, se ha creado una tecnología de *scaffolding* para estandarizar la creación de futuros proyectos. Este sistema, ubicado en la carpeta `project-scaffolding/`, es una guía apoyada en Inteligencia Artificial para la generación de nuevos proyectos desde una base sólida y estandarizada.
+
+El objetivo principal es permitir a los equipos de desarrollo enfocarse en la lógica de negocio desde el primer día, al proporcionar automáticamente:
+
+-   Una estructura de directorios coherente.
+-   Configuraciones iniciales para CI/CD.
+-   Estrategias de testing.
+-   Templates para documentación, ADRs y guías de desarrollo.
+
+Al automatizar la configuración inicial, este proyecto de scaffolding fomenta la consistencia, las mejores prácticas y acelera significativamente el arranque de nuevos desarrollos.
 
 ## 👥 Autores
 
-- **Jorge Cortés Villalba** - Producto, Dominio
-- **Claude (Anthropic)** - Arquitectura, Copiloto técnico
-
----
-
-## 📞 Contacto
-
-[Información de contacto según necesario]
-
----
-
-**Última Actualización:** 11/01/2026  
-**Versión:** 0.1.0 (Pre-Fase 0)  
-**Estado:** En Planificación
+- **Jorge Cortés Villalba** - *Product Owner, Arquitectura y Desarrollo*
+- **AI Assistant (Gemini, Claude, Copilot & Perplexity)** - *Copilotos Técnicos y Asistentes de Desarrollo*

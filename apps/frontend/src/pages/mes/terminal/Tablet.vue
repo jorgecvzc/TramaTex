@@ -12,13 +12,14 @@
       </header>
 
       <section class="card filters">
-        <input v-model="search" type="text" class="input" placeholder="Buscar por trabajo o número" />
+        <input v-model="search" type="text" class="input" placeholder="Buscar por trabajo, número o cliente (nombre/referencia)" />
         <select v-model="taskStatusFilter" class="input">
           <option value="">Todos los estados</option>
           <option value="PENDING">Pendiente</option>
           <option value="IN_PROGRESS">En progreso</option>
           <option value="BLOCKED">Bloqueada</option>
           <option value="COMPLETED">Completada</option>
+          <option value="SKIPPED">Omitida</option>
         </select>
       </section>
 
@@ -65,7 +66,7 @@
                     class="btn btn-success btn-sm"
                   >Completar</button>
                   <button
-                    v-if="row.taskStatus !== 'COMPLETED'"
+                    v-if="row.taskStatus !== 'COMPLETED' && row.taskStatus !== 'SKIPPED'"
                     @click="runAction(row, 'BLOCK')"
                     class="btn btn-danger btn-sm"
                   >Bloquear</button>
@@ -86,12 +87,15 @@
 import { computed, onMounted, ref } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
+import { partyApi } from '@/services/partyApi'
 import type { MESWork, MESWorkTaskAction } from '@/types/mes'
 
 interface TaskRow {
   workId: string
   workNumber: string
   workName: string
+  partyName: string
+  partyReference: string
   taskId: string
   taskName: string
   taskStatus: string
@@ -101,6 +105,7 @@ interface TaskRow {
 
 const works = ref<MESWork[]>([])
 const taskNames = ref<Record<string, string>>({})
+const partiesCache = ref<Record<string, { name: string; reference: string }>>({})
 const isLoading = ref(false)
 const error = ref('')
 const search = ref('')
@@ -116,6 +121,8 @@ const rows = computed<TaskRow[]>(() => {
           workId: work.id,
           workNumber: work.work_number,
           workName: work.work_name,
+          partyName: partiesCache.value[work.party_id]?.name || '',
+          partyReference: partiesCache.value[work.party_id]?.reference || '',
           taskId: task.id,
           taskName: taskNames.value[task.task_id] || shortId(task.task_id),
           taskStatus: task.status,
@@ -138,7 +145,9 @@ const filteredRows = computed(() => {
       !term ||
       row.workNumber.toLowerCase().includes(term) ||
       row.workName.toLowerCase().includes(term) ||
-      row.taskName.toLowerCase().includes(term)
+      row.taskName.toLowerCase().includes(term) ||
+      row.partyName.toLowerCase().includes(term) ||
+      row.partyReference.toLowerCase().includes(term)
 
     return matchesStatus && matchesTerm
   })
@@ -155,11 +164,12 @@ async function loadData() {
 
   try {
     const [worksResult, tasksResult] = await Promise.all([
-      mesApi.listWorks({}),
+      mesApi.listWorkDefinitions({}),
       mesApi.listTasks({}),
     ])
 
     works.value = worksResult
+    await loadPartyDetails()
 
     const names: Record<string, string> = {}
     for (const task of tasksResult) {
@@ -170,6 +180,29 @@ async function loadData() {
     error.value = err.message || 'No se pudo cargar el terminal MES'
   } finally {
     isLoading.value = false
+  }
+}
+
+async function loadPartyDetails() {
+  const partyIds = [...new Set(works.value.map((work) => work.party_id).filter(Boolean))]
+  const uncachedIds = partyIds.filter((id) => !partiesCache.value[id])
+
+  if (uncachedIds.length === 0) {
+    return
+  }
+
+  try {
+    const partiesMap = await partyApi.getPartiesBatch(uncachedIds)
+
+    for (const partyId of uncachedIds) {
+      const party = partiesMap[partyId]
+      partiesCache.value[partyId] = {
+        name: party?.name || '',
+        reference: party?.reference || '',
+      }
+    }
+  } catch (loadError) {
+    console.error('Error loading MES terminal party details:', loadError)
   }
 }
 
@@ -216,6 +249,7 @@ onMounted(loadData)
 .status-pill.in_progress { background: #dbeafe; color: #1d4ed8; }
 .status-pill.blocked { background: #fee2e2; color: #991b1b; }
 .status-pill.completed { background: #dcfce7; color: #166534; }
+.status-pill.skipped { background: #e2e8f0; color: #334155; }
 .empty-state { text-align: center; color: #64748b; padding: 1rem; }
 .alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
 @media (max-width: 900px) {

@@ -154,10 +154,12 @@
             <thead>
               <tr>
                 <th>Variante</th>
-                <th>Trabajo MES</th>
+                <th>Definición MES</th>
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
                 <th>Descuento</th>
+                <th>IVA %</th>
+                <th>IVA línea</th>
                 <th>Subtotal</th>
                 <th v-if="canEdit">Acciones</th>
               </tr>
@@ -183,6 +185,8 @@
                   <span v-if="item.manualUnitPrice" class="manual-badge">Manual</span>
                 </td>
                 <td>{{ item.finalDiscountPerUnit ? salesApi.formatMoney(item.finalDiscountPerUnit) : '—' }}</td>
+                <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
+                <td>{{ salesApi.formatMoney(item.taxAmount) }}</td>
                 <td class="amount">{{ salesApi.formatMoney(item.subtotal) }}</td>
                 <td v-if="canEdit" class="actions-cell">
                   <button 
@@ -516,7 +520,7 @@ async function loadMesWorksForOrder() {
   const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
@@ -739,18 +743,18 @@ function formatMesWorkId(mesWorkId) {
 }
 
 function getMesWorkTooltip(mesWorkId) {
-  if (!mesWorkId) return 'Trabajo MES';
+  if (!mesWorkId) return 'Definición de trabajo MES';
   const mesWork = mesWorksCache.value[mesWorkId];
   if (mesWork?.work_number && mesWork?.work_name) {
     return `${mesWork.work_number} · ${mesWork.work_name}`;
   }
   if (mesWork?.work_number) return mesWork.work_number;
-  return `Trabajo MES ${mesWorkId}`;
+  return `Definición MES ${mesWorkId}`;
 }
 
 function goToMesWork(mesWorkId) {
   if (!mesWorkId) return;
-  router.push(`/mes/works/${mesWorkId}`);
+  router.push(`/mes/work-definitions/${mesWorkId}`);
 }
 </script>
 

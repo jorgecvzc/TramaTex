@@ -5,8 +5,8 @@
       <header class="page-header">
         <div>
           <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Nuevo grupo de servicio MES</h1>
-          <p class="subtitle">Define tareas y secuencia para un servicio de producción.</p>
+          <h1>Nueva plantilla de proceso MES</h1>
+          <p class="subtitle">Define tareas y secuencia para una plantilla operativa.</p>
         </div>
         <RouterLink to="/mes/service-groups" class="btn btn-secondary">Volver</RouterLink>
       </header>
@@ -20,8 +20,13 @@
         <label class="label">Descripción</label>
         <textarea v-model="form.description" class="input" rows="3" placeholder="Descripción opcional" />
 
-        <label class="label">Product Group ID (opcional)</label>
-        <input v-model="form.product_group_id" type="text" class="input" placeholder="UUID de product group" />
+        <label class="label">Categoría de producto (opcional)</label>
+        <select v-model="form.product_group_id" class="input">
+          <option value="">Sin categoría específica</option>
+          <option v-for="group in productGroups" :key="group.id" :value="group.id">
+            {{ group.name }} ({{ group.type }})
+          </option>
+        </select>
 
         <label class="check">
           <input v-model="form.is_active" type="checkbox" />
@@ -49,7 +54,7 @@
         </div>
 
         <button @click="submit" :disabled="isSaving" class="btn btn-primary">
-          {{ isSaving ? 'Guardando...' : 'Crear grupo de servicio' }}
+          {{ isSaving ? 'Guardando...' : 'Crear plantilla de proceso' }}
         </button>
       </section>
     </div>
@@ -61,12 +66,20 @@ import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
+import { productApi } from '@/services/productApi'
 import type { MESTask } from '@/types/mes'
+
+type ProductGroupOption = {
+  id: string
+  name: string
+  type: string
+}
 
 const router = useRouter()
 const isSaving = ref(false)
 const error = ref('')
 const tasks = ref<MESTask[]>([])
+const productGroups = ref<ProductGroupOption[]>([])
 
 const form = reactive({
   name: '',
@@ -89,6 +102,15 @@ async function loadTasks() {
     tasks.value = await mesApi.listTasks({ is_active: true })
   } catch (err: any) {
     error.value = err.message || 'No se pudieron cargar las tareas MES'
+  }
+}
+
+async function loadProductGroups() {
+  try {
+    const response = await productApi.listProductGroups({ isActive: true })
+    productGroups.value = response.data
+  } catch (err: any) {
+    error.value = err.message || 'No se pudieron cargar las categorías de producto'
   }
 }
 
@@ -116,7 +138,7 @@ async function submit() {
 
   isSaving.value = true
   try {
-    await mesApi.createServiceGroup({
+    await mesApi.createServiceTemplate({
       name: form.name.trim(),
       description: form.description.trim() || undefined,
       product_group_id: form.product_group_id.trim() || undefined,
@@ -126,13 +148,15 @@ async function submit() {
 
     await router.push('/mes/service-groups')
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear el grupo de servicio MES'
+    error.value = err.message || 'No se pudo crear la plantilla de proceso MES'
   } finally {
     isSaving.value = false
   }
 }
 
-onMounted(loadTasks)
+onMounted(async () => {
+  await Promise.all([loadTasks(), loadProductGroups()])
+})
 </script>
 
 <style scoped>

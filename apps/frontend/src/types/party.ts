@@ -7,7 +7,7 @@
 // ENUMS & LITERALS
 // ============================================================================
 
-export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH'
+export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH' | 'CONTACT'
 export type PartyStatus = 'ACTIVE' | 'INACTIVE'
 export type TaxIdType = 'RUT' | 'DNI' | 'CUIT' | 'CUIL' | 'OTHER'
 export type ContactType = 'EMPLOYEE' | 'EXTERNAL'
@@ -114,6 +114,7 @@ export interface CreatePartyRequest {
 
 export interface UpdatePartyRequest {
   name: string
+  role?: PartyRole
   taxId?: string | null
   taxIdType?: TaxIdType | null
   website?: string | null
@@ -125,11 +126,13 @@ export interface ChangePartyStatusRequest {
 
 export interface CreateContactRequest {
   id?: string
+  existingContactId?: string
   firstName: string
   lastName: string
   email: string
   phone: string
   jobTitle: string
+  isPrimary?: boolean
 }
 
 export interface UpdateContactRequest {
@@ -167,6 +170,7 @@ export interface PaginatedResponse<T> {
 export interface PartyBatchItem {
   id: string
   name: string
+  reference?: string
   tax_id: string | null
   tax_id_type: TaxIdType | null
 }

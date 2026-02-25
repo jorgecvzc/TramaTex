@@ -8,7 +8,7 @@ Este documento detalla los estándares y reglas a seguir para la creación y man
 - **Contenido de la Documentación:** ✅ **Castellano**.
 
 **Ejemplo:**
-- `docs/architecture/adrs/ADR-001-technology-stack-selection.md` (Correcto)
+- `docs/architecture/adrs/adr-001-technology-stack-selection.md` (Correcto)
 - `docs/arquitectura/adrs/001-stack-tecnologico.md` (Incorrecto)
 
 Esta regla es fundamental para mantener la consistencia del proyecto.

@@ -1,4 +1,6 @@
-# TramaTex – Project Charter & MVP Specification
+# 💡 TramaTex – Project Charter y Especificación del MVP
+
+---
 
 **Versión:** 3.0
 **Fecha:** 28/01/2026 (Consolidado)
@@ -7,7 +9,7 @@
 
 ---
 
-## 1. 📋 Antecedentes y Visión del Proyecto
+## 📋 Antecedentes y Visión del Proyecto
 
 Aunque la tendencia actual es el "cloud computing", más del 95% del tejido empresarial en España está formado por microempresas. Muchas carecen de los recursos o conocimientos para aplicar estas metodologías y requieren soluciones **integrables en sistemas locales** y de fácil mantenimiento.
 
@@ -26,7 +28,7 @@ TramaTex surge de la necesidad de una de estas microempresas, dedicada a la vent
 
 ---
 
-## 2. 🎯 Definición y Alcance del MVP
+## 🎯 Definición y Alcance del MVP
 
 **Objetivo Principal:** Controlar de forma fiable y trazable el ciclo completo de los pedidos, tanto estándar como personalizados, integrando gestión de ventas, tarificación y producción (MES).
 
@@ -49,7 +51,7 @@ Las siguientes funcionalidades se documentan para referencia futura y **no se im
 
 ---
 
-## 3. 🏗️ Arquitectura y Stack Tecnológico
+## 🏗️ Arquitectura y Stack Tecnológico
 
 TramaTex se concibe como un **monolito modular**, diseñado bajo principios de **Domain-Driven Design y Clean Architecture con rigor asimétrico**. Esta arquitectura está preparada para una evolución progresiva hacia microservicios si el negocio lo justifica.
 
@@ -72,7 +74,7 @@ TramaTex se concibe como un **monolito modular**, diseñado bajo principios de *
 
 ---
 
-## 4. 🚀 Fases de Implementación del MVP
+## 🚀 Fases de Implementación del MVP
 
 El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-module-implementation-order.md) para garantizar la coherencia del dominio.
 
@@ -98,7 +100,7 @@ El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-m
 
 ---
 
-## 5. ✅ Requisitos y Criterios de Éxito del MVP
+## ✅ Requisitos y Criterios de Éxito del MVP
 
 ### Requisitos Funcionales Clave
 

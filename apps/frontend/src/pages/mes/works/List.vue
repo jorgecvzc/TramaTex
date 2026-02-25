@@ -4,15 +4,15 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Trabajos</p>
-          <h1>Trabajos MES</h1>
+          <p class="breadcrumb">MES / Definiciones de trabajo</p>
+          <h1>Definiciones de trabajo MES</h1>
           <p class="subtitle">Seguimiento de órdenes de manufactura.</p>
         </div>
-        <RouterLink to="/mes/works/new" class="btn btn-primary">Nuevo trabajo</RouterLink>
+        <RouterLink to="/mes/work-definitions/new" class="btn btn-primary">Nueva definición</RouterLink>
       </header>
 
       <section class="card filters">
-        <input v-model="search" type="text" placeholder="Buscar por nombre o número" class="input" />
+        <input v-model="search" type="text" placeholder="Buscar por nombre, número o cliente (nombre/referencia)" class="input" />
         <select v-model="statusFilter" class="input">
           <option value="">Todos</option>
           <option value="DRAFT">Draft</option>
@@ -45,11 +45,11 @@
               <td>{{ work.status }}</td>
               <td>{{ work.priority }}</td>
               <td>
-                <RouterLink :to="`/mes/works/${work.id}`" class="btn-link">Ver</RouterLink>
+                <RouterLink :to="`/mes/work-definitions/${work.id}`" class="btn-link">Ver</RouterLink>
               </td>
             </tr>
             <tr v-if="works.length === 0">
-              <td colspan="5" class="empty-state">No hay trabajos MES registrados.</td>
+              <td colspan="5" class="empty-state">No hay definiciones MES registradas.</td>
             </tr>
           </tbody>
         </table>
@@ -76,12 +76,12 @@ async function loadWorks() {
   error.value = ''
 
   try {
-    works.value = await mesApi.listWorks({
+    works.value = await mesApi.listWorkDefinitions({
       search: search.value.trim() || undefined,
       status: statusFilter.value || undefined,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar los trabajos MES'
+    error.value = err.message || 'No se pudieron cargar las definiciones de trabajo MES'
   } finally {
     isLoading.value = false
   }

@@ -6,7 +6,7 @@
         <div>
           <p class="breadcrumb">MES / Datos Maestros</p>
           <h1>Nueva tarea MES</h1>
-          <p class="subtitle">Crea una tarea para usar en grupos de servicio.</p>
+          <p class="subtitle">Crea una tarea para usar en plantillas de proceso.</p>
         </div>
         <RouterLink to="/mes/tasks" class="btn btn-secondary">Volver</RouterLink>
       </header>

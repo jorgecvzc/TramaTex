@@ -93,12 +93,9 @@
           class="btn btn-primary"
           :disabled="isProcessing"
         >
-          <span v-if="isProcessing">🔄 Procesando...</span>
-          <span v-else>✨ Buscar o Crear Variante</span>
+          <span v-if="isProcessing">Cargando...</span>
+          <span v-else>Cargar</span>
         </button>
-        <p class="hint">
-          Si la variante no existe, se creará automáticamente con estado PROVISIONAL
-        </p>
       </div>
 
       <!-- Selected Variant Display -->
@@ -337,6 +334,7 @@ async function findOrCreateSelectedVariant() {
   
   isProcessing.value = true
   error.value = ''
+  selectedVariant.value = null
   
   try {
     // Build option configuration with AttributeCode: AttributeValue format
@@ -360,17 +358,12 @@ async function findOrCreateSelectedVariant() {
     
     if (result.variant) {
       selectedVariant.value = result.variant
-      
-      // Check if variant is inactive
-      if (!result.variant.is_active) {
-        setError('⚠️ Esta variante está marcada como inactiva')
-      }
     } else {
-      setError('No se pudo crear/obtener la variante')
+      setError('No se pudo cargar la variante')
     }
   } catch (err) {
     console.error('[VariantSelector] JIT error:', err)
-    setError(err.message || 'Error al buscar/crear la variante')
+    setError(err.message || 'Error al cargar la variante')
   } finally {
     isProcessing.value = false
   }
@@ -388,10 +381,6 @@ async function searchBySku() {
     
     if (variant) {
       selectedVariant.value = variant
-      
-      if (!variant.is_active) {
-        setError('⚠️ Esta variante está marcada como inactiva')
-      }
     }
   } catch (err) {
     console.error('[VariantSelector] SKU search error:', err)

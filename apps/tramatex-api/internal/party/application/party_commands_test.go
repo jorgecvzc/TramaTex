@@ -60,6 +60,10 @@ func (r *fakePartyRepo) Count(ctx context.Context) (int64, error) {
 	return int64(len(r.parties)), nil
 }
 
+func (r *fakePartyRepo) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
 type errorPartyRepo struct {
 	inner     *fakePartyRepo
 	saveErr   error
@@ -102,6 +106,10 @@ func (r *errorPartyRepo) Exists(ctx context.Context, id domain.PartyID) (bool, e
 
 func (r *errorPartyRepo) Count(ctx context.Context) (int64, error) {
 	return r.inner.Count(ctx)
+}
+
+func (r *errorPartyRepo) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return r.inner.HasContactDetailsReferences(ctx, partyID)
 }
 
 type fakeRelationshipRepo struct {

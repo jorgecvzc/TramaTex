@@ -102,6 +102,18 @@ describe('MESApi Service', () => {
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe('sg-1')
     })
+
+    it('should list service templates using alias method', async () => {
+      ;(globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => [{ id: 'sg-2', name: 'Plancha', is_active: true, tasks: [] }],
+      })
+
+      const result = await mesApi.listServiceTemplates()
+      expect(result).toHaveLength(1)
+      const url = (globalThis.fetch as any).mock.calls[0][0] as string
+      expect(url).toContain('/mes/service-groups')
+    })
   })
 
   describe('createServiceGroup', () => {
@@ -143,12 +155,35 @@ describe('MESApi Service', () => {
           name: 'Invalid',
           task_assignments: [{ task_id: 'task-1', sequence: 0 }],
         })
-      ).rejects.toThrow('No se pudo crear el grupo de servicio MES')
+      ).rejects.toThrow('No se pudo crear la plantilla de proceso MES')
+    })
+
+    it('should create service template using alias method', async () => {
+      ;(globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'sg-3',
+          name: 'Vinilo',
+          is_active: true,
+          tasks: [{ task_id: 'task-2', sequence: 1 }],
+        }),
+      })
+
+      const result = await mesApi.createServiceTemplate({
+        name: 'Vinilo',
+        task_assignments: [{ task_id: 'task-2', sequence: 1 }],
+      })
+
+      expect(result.id).toBe('sg-3')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/mes/service-groups'),
+        expect.objectContaining({ method: 'POST' })
+      )
     })
   })
 
   describe('works', () => {
-    it('should list mes works with filters', async () => {
+    it('should list mes work definitions with filters', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => [
@@ -170,12 +205,37 @@ describe('MESApi Service', () => {
       expect(result).toHaveLength(1)
       expect(result[0].work_number).toBe('MES-2026-001')
       const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/works')
+      expect(url).toContain('/mes/work-definitions')
       expect(url).toContain('search=Trabajo')
       expect(url).toContain('status=DRAFT')
     })
 
-    it('should create mes work', async () => {
+    it('should list work definitions using alias method', async () => {
+      ;(globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            id: 'work-11',
+            work_number: 'MES-2026-011',
+            work_name: 'Trabajo Definido A',
+            party_id: 'party-1',
+            tangible_group_id: 'group-1',
+            status: 'DRAFT',
+            priority: 'NORMAL',
+            service_groups: [],
+          },
+        ],
+      })
+
+      const result = await mesApi.listWorkDefinitions({ status: 'DRAFT' })
+
+      expect(result).toHaveLength(1)
+      const url = (globalThis.fetch as any).mock.calls[0][0] as string
+      expect(url).toContain('/mes/work-definitions')
+      expect(url).toContain('status=DRAFT')
+    })
+
+    it('should create mes work definition', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -205,12 +265,12 @@ describe('MESApi Service', () => {
 
       expect(result.id).toBe('work-2')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/works'),
+        expect.stringContaining('/mes/work-definitions'),
         expect.objectContaining({ method: 'POST' })
       )
     })
 
-    it('should get mes work by id', async () => {
+    it('should get mes work definition by id', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -228,7 +288,30 @@ describe('MESApi Service', () => {
       const result = await mesApi.getWork('work-1')
       expect(result.id).toBe('work-1')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/works/work-1'),
+        expect.stringContaining('/mes/work-definitions/work-1'),
+        expect.objectContaining({ method: 'GET' })
+      )
+    })
+
+    it('should get work definition by id using alias method', async () => {
+      ;(globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'work-12',
+          work_number: 'MES-2026-012',
+          work_name: 'Trabajo Definido B',
+          party_id: 'party-1',
+          tangible_group_id: 'group-1',
+          status: 'DRAFT',
+          priority: 'NORMAL',
+          service_groups: [],
+        }),
+      })
+
+      const result = await mesApi.getWorkDefinition('work-12')
+      expect(result.id).toBe('work-12')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/mes/work-definitions/work-12'),
         expect.objectContaining({ method: 'GET' })
       )
     })
@@ -247,7 +330,42 @@ describe('MESApi Service', () => {
           tangible_group_id: 'group-1',
           service_group_assignments: [{ service_group_id: 'sg-1', position_id: 'pos-1', sequence: 1 }],
         })
-      ).rejects.toThrow('No se pudo crear el trabajo MES')
+      ).rejects.toThrow('No se pudo crear la definición de trabajo MES')
+    })
+
+    it('should create work definition using alias method', async () => {
+      ;(globalThis.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'work-13',
+          work_number: 'MES-2026-013',
+          work_name: 'Trabajo Definido C',
+          party_id: 'party-1',
+          tangible_group_id: 'group-1',
+          status: 'DRAFT',
+          priority: 'NORMAL',
+          service_groups: [],
+        }),
+      })
+
+      const result = await mesApi.createWorkDefinition({
+        work_name: 'Trabajo Definido C',
+        party_id: 'party-1',
+        tangible_group_id: 'group-1',
+        service_group_assignments: [
+          {
+            service_group_id: 'sg-1',
+            position_id: 'pos-1',
+            sequence: 1,
+          },
+        ],
+      })
+
+      expect(result.id).toBe('work-13')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/mes/work-definitions'),
+        expect.objectContaining({ method: 'POST' })
+      )
     })
 
     it('should get dashboard stats', async () => {
@@ -266,7 +384,7 @@ describe('MESApi Service', () => {
       expect(result.total).toBe(10)
       expect(result.by_status.IN_PROGRESS).toBe(3)
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/works/dashboard/stats'),
+        expect.stringContaining('/mes/work-definitions/dashboard/stats'),
         expect.objectContaining({ method: 'GET' })
       )
     })
@@ -293,7 +411,7 @@ describe('MESApi Service', () => {
 
       expect(result).toHaveLength(1)
       const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/works/overdue')
+      expect(url).toContain('/mes/work-definitions/overdue')
       expect(url).toContain('limit=20')
     })
   })

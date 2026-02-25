@@ -68,7 +68,7 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 
 ### Política de Directorio Raíz Limpio (Regla de Oro)
 - El directorio raíz del proyecto debe permanecer lo más limpio posible.
-- **Archivos permitidos:** `README.md`, `AGENTS.md`, archivos de configuración esenciales (`.gitignore`, `Makefile`, `package.json`, etc.).
+- **Archivos permitidos:** `README.md`, `AGENTS.md`, `CONTRIBUTING.md`, `LICENSE`, `SECURITY.md`, `CHANGELOG.md`, y archivos de configuración esenciales (`.gitignore`, `Makefile`, `package.json`, etc.).
 - **Archivos NO permitidos:** Cualquier otro archivo `.md` (debe ir en `/docs`).
 
 ---

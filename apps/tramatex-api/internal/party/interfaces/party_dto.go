@@ -234,6 +234,7 @@ func MapAddressToDTO(address *domain.Address) *AddressDTO {
 type PartyBatchDTO struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
+	Reference string `json:"reference,omitempty"`
 	TaxID     string `json:"tax_id,omitempty"`
 	TaxIDType string `json:"tax_id_type,omitempty"`
 }
@@ -257,6 +258,20 @@ func MapPartyToBatchDTO(party *domain.Party) PartyBatchDTO {
 		}
 	} else if personProfile := party.PersonProfile(); personProfile != nil {
 		dto.Name = personProfile.FirstName() + " " + personProfile.LastName()
+	}
+
+	for _, role := range party.Roles() {
+		if role.CreationIdentifier() == nil {
+			continue
+		}
+
+		identifier := *role.CreationIdentifier()
+		if identifier == "" {
+			continue
+		}
+
+		dto.Reference = identifier
+		break
 	}
 
 	return dto

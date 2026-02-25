@@ -180,7 +180,11 @@ func (r *GORMPartyRepository) FindAll(ctx context.Context, filters *PartyFilters
 			query = query.Where("parties.status = ?", string(*filters.Status))
 		}
 		if filters.Role != nil {
-			query = query.Where("pr.role = ?", string(*filters.Role))
+			if *filters.Role == domain.PartyRoleContact {
+				query = query.Where("pr.role IN ?", []string{string(domain.PartyRoleContact), string(domain.PartyRoleEmployee)})
+			} else {
+				query = query.Where("pr.role = ?", string(*filters.Role))
+			}
 		}
 		if filters.Type != "" {
 			switch filters.Type {
@@ -247,6 +251,17 @@ func (r *GORMPartyRepository) Count(ctx context.Context) (int64, error) {
 		return 0, domain.WrapPersistence("failed to count parties", err)
 	}
 	return count, nil
+}
+
+// HasContactDetailsReferences checks if a party is referenced in contact_details.related_party_id
+func (r *GORMPartyRepository) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&ContactDetailsDataModel{}).
+		Where("related_party_id = ?", partyID.Value()).
+		Count(&count).Error; err != nil {
+		return false, domain.WrapPersistence("failed to check contact details references", err)
+	}
+	return count > 0, nil
 }
 
 func (r *GORMPartyRepository) loadPersonProfile(ctx context.Context, partyID string) (*domain.PersonProfile, error) {

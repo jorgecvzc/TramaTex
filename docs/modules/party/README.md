@@ -38,4 +38,4 @@ Consulte los siguientes documentos para una descripción más profunda del módu
 *   **Contratos de API:** [api-contracts.md](./api-contracts.md)
 *   **Diagramas Detallados del Dominio:** [diagrams/domain-model.md](./diagrams/domain-model.md)
 *   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
-*   **Resumen de Implementación (histórico):** [party-module-implementation-summary.md](./party-module-implementation-summary.md)
+*   **Resumen de Implementación (histórico):** [party-module-implementation-summary.md](../../archive/log/party-module-implementation-summary.md)
