@@ -32,13 +32,13 @@
                 class="form-control"
                 required
               >
-                <option value="">-- Seleccionar --</option>
+                <option value="" disabled>-- Seleccionar {{ attr.name }} --</option>
                 <option
                   v-for="value in attr.values"
                   :key="value.id"
                   :value="value.id"
                 >
-                  {{ value.display_value }}
+                  {{ value.value }}
                 </option>
               </select>
             </div>
@@ -238,11 +238,20 @@ async function loadProductAttributes() {
     // Get calculated option sets (attributes with values)
     const optionSets = product.calculated_option_sets || []
     productAttributes.value = optionSets.map(opt => ({
-      id: opt.attribute_id,
-      name: opt.attribute_name,
-      code: opt.attribute_code,
+      id: opt.id,
+      name: opt.name,
+      code: opt.code,
       values: opt.values || [],
     }))
+
+    // Initialize attributeValues keys for reactivity
+    if (!isEditMode.value) {
+      const newAttributeValues = {}
+      productAttributes.value.forEach(attr => {
+        newAttributeValues[attr.id] = form.value.attributeValues[attr.id] || ''
+      })
+      form.value.attributeValues = newAttributeValues
+    }
   } catch (err) {
     console.error('[VariantFormModal] Error loading attributes:', err)
     error.value = 'No se pudieron cargar los atributos del producto'
@@ -281,12 +290,17 @@ async function handleSubmit() {
 
 async function createNewVariant() {
   // Build option_configuration for JIT creation
+  // Backend expects: { AttributeCode: AttributeValue } (strings, not UUIDs)
   const optionConfiguration = {}
   
   for (const attr of productAttributes.value) {
     const valueId = form.value.attributeValues[attr.id]
     if (valueId) {
-      optionConfiguration[attr.id] = valueId
+      // Find the selected value to get its string value
+      const selectedValue = attr.values.find(v => v.id === valueId)
+      if (selectedValue) {
+        optionConfiguration[attr.code] = selectedValue.value
+      }
     }
   }
 
@@ -471,6 +485,7 @@ function handleClickOutside() {
   font-size: 0.9rem;
   color: #1e293b;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
 }
 
 .form-control:focus {
@@ -481,6 +496,18 @@ function handleClickOutside() {
 
 .form-control::placeholder {
   color: #94a3b8;
+}
+
+/* Better styling for select dropdowns */
+.form-control option {
+  color: #1e293b;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.form-control option:disabled {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .form-text {

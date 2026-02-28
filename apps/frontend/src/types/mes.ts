@@ -18,6 +18,8 @@ export interface MESServiceGroupTask {
   sequence: number
 }
 
+export type MESServiceTemplateTask = MESServiceGroupTask
+
 export interface MESServiceGroup {
   id: string
   name: string
@@ -26,6 +28,8 @@ export interface MESServiceGroup {
   is_active: boolean
   tasks: MESServiceGroupTask[]
 }
+
+export type MESServiceTemplate = MESServiceGroup
 
 export interface ListMESFilters {
   is_active?: boolean
@@ -50,6 +54,8 @@ export interface ServiceGroupTaskInput {
   sequence: number
 }
 
+export type ServiceTemplateTaskInput = ServiceGroupTaskInput
+
 export interface CreateServiceGroupRequest {
   name: string
   description?: string
@@ -57,6 +63,8 @@ export interface CreateServiceGroupRequest {
   is_active?: boolean
   task_assignments: ServiceGroupTaskInput[]
 }
+
+export type CreateServiceTemplateRequest = CreateServiceGroupRequest
 
 export interface MESWorkTask {
   id: string
@@ -79,6 +87,8 @@ export interface MESWorkServiceGroup {
   tasks: MESWorkTask[]
 }
 
+export type MESWorkServiceTemplate = MESWorkServiceGroup
+
 export interface MESWork {
   id: string
   work_number: string
@@ -94,6 +104,9 @@ export interface MESWork {
   service_groups: MESWorkServiceGroup[]
 }
 
+export type MESWorkDefinition = MESWork
+export type MESWorkExecution = MESWork
+
 export interface CreateMESWorkServiceGroupInput {
   service_group_id: string
   position_id: string
@@ -101,6 +114,8 @@ export interface CreateMESWorkServiceGroupInput {
   notes?: string
   sequence: number
 }
+
+export type CreateMESWorkServiceTemplateInput = CreateMESWorkServiceGroupInput
 
 export interface CreateMESWorkRequest {
   work_name: string
@@ -111,6 +126,20 @@ export interface CreateMESWorkRequest {
   priority?: string
   service_group_assignments: CreateMESWorkServiceGroupInput[]
 }
+
+export type CreateMESWorkDefinitionRequest = CreateMESWorkRequest
+
+export interface UpdateMESWorkRequest {
+  work_name?: string
+  party_id?: string
+  tangible_group_id?: string
+  garment_notes?: string
+  status?: string
+  priority?: string
+  due_date?: string
+}
+
+export type UpdateMESWorkDefinitionRequest = UpdateMESWorkRequest
 
 export interface ListMESWorkFilters {
   status?: string

@@ -2,7 +2,7 @@
   <div class="attribute-card" :class="`source-${source}`">
     <div class="card-header">
       <div class="attribute-name">
-        <span class="attribute-icon">{{ getSourceIcon(source) }}</span>
+        <component :is="getSourceIcon(source)" :size="18" class="attribute-icon" />
         <h5>{{ attribute.name }}</h5>
       </div>
       <code class="attribute-code">{{ attribute.code }}</code>
@@ -45,6 +45,8 @@
 </template>
 
 <script setup>
+import { Pin, Building, Folder, Tag, Globe, HelpCircle } from 'lucide-vue-next'
+
 defineProps({
   attribute: {
     type: Object,
@@ -59,13 +61,13 @@ defineProps({
 
 function getSourceIcon(source) {
   const icons = {
-    'direct': '📌',
-    'brand-group': '🏢',
-    'group': '📁',
-    'brand': '🏷️',
-    'generic': '🌐',
+    'direct': Pin,
+    'brand-group': Building,
+    'group': Folder,
+    'brand': Tag,
+    'generic': Globe,
   }
-  return icons[source] || '❓'
+  return icons[source] || HelpCircle
 }
 
 function getSourceLabel(source) {

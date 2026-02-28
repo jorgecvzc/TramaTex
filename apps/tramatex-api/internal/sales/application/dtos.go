@@ -20,10 +20,12 @@ type QuoteLineItemDTO struct {
 	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
 	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
 	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
+	TaxRate                   float64    `json:"taxRate"`
 	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
 	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
 	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
 	Subtotal                  MoneyDTO   `json:"subtotal"`
+	TaxAmount                 MoneyDTO   `json:"taxAmount"`
 }
 
 type QuoteDTO struct {
@@ -48,10 +50,12 @@ type OrderLineItemDTO struct {
 	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
 	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
 	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
+	TaxRate                   float64    `json:"taxRate"`
 	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
 	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
 	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
 	Subtotal                  MoneyDTO   `json:"subtotal"`
+	TaxAmount                 MoneyDTO   `json:"taxAmount"`
 }
 
 type SalesOrderDTO struct {
@@ -93,6 +97,7 @@ type InvoiceLineItemDTO struct {
 	ProductVariantID     uuid.UUID  `json:"productVariantId"`
 	Quantity             int        `json:"quantity"`
 	UnitPrice            MoneyDTO   `json:"unitPrice"`
+	TaxRate              float64    `json:"taxRate"`
 	DiscountAmount       *MoneyDTO  `json:"discountAmount,omitempty"`
 	Subtotal             MoneyDTO   `json:"subtotal"`
 	TaxAmount            *MoneyDTO  `json:"taxAmount,omitempty"`
@@ -147,10 +152,12 @@ func NewQuoteLineItemDTO(item domain.QuoteLineItem) QuoteLineItemDTO {
 		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
 		ManualUnitPrice:           toMoneyDTOPtr(item.ManualUnitPrice),
 		FinalUnitPrice:            NewMoneyDTO(item.FinalUnitPrice),
+		TaxRate:                   item.TaxRate,
 		CalculatedDiscountPerUnit: toMoneyDTOPtr(item.CalculatedDiscountPerUnit),
 		ManualDiscountPerUnit:     toMoneyDTOPtr(item.ManualDiscountPerUnit),
 		FinalDiscountPerUnit:      NewMoneyDTO(item.FinalDiscountPerUnit),
 		Subtotal:                  NewMoneyDTO(item.Subtotal),
+		TaxAmount:                 NewMoneyDTO(item.TaxAmount),
 	}
 }
 
@@ -184,10 +191,12 @@ func NewOrderLineItemDTO(item domain.OrderLineItem) OrderLineItemDTO {
 		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
 		ManualUnitPrice:           toMoneyDTOPtr(item.ManualUnitPrice),
 		FinalUnitPrice:            NewMoneyDTO(item.FinalUnitPrice),
+		TaxRate:                   item.TaxRate,
 		CalculatedDiscountPerUnit: toMoneyDTOPtr(item.CalculatedDiscountPerUnit),
 		ManualDiscountPerUnit:     toMoneyDTOPtr(item.ManualDiscountPerUnit),
 		FinalDiscountPerUnit:      NewMoneyDTO(item.FinalDiscountPerUnit),
 		Subtotal:                  NewMoneyDTO(item.Subtotal),
+		TaxAmount:                 NewMoneyDTO(item.TaxAmount),
 	}
 }
 
@@ -241,6 +250,7 @@ func NewInvoiceLineItemDTO(item domain.InvoiceLineItem) InvoiceLineItemDTO {
 		ProductVariantID:     item.ProductVariantID,
 		Quantity:             item.Quantity,
 		UnitPrice:            NewMoneyDTO(item.UnitPrice),
+		TaxRate:              item.TaxRate,
 		DiscountAmount:       toMoneyDTOPtr(item.DiscountAmount),
 		Subtotal:             NewMoneyDTO(item.Subtotal),
 		TaxAmount:            toMoneyDTOPtr(item.TaxAmount),

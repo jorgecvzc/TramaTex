@@ -227,6 +227,14 @@ func (s *MESService) CreateServiceGroup(ctx context.Context, cmd CreateServiceGr
 	return toServiceGroupDTO(serviceGroup), nil
 }
 
+func (s *MESService) CreateServiceTemplate(ctx context.Context, cmd CreateServiceTemplateCommand) (*ServiceTemplateDTO, error) {
+	result, err := s.CreateServiceGroup(ctx, CreateServiceGroupCommand(cmd))
+	if err != nil {
+		return nil, err
+	}
+	return (*ServiceTemplateDTO)(result), nil
+}
+
 func (s *MESService) GetServiceGroupByID(ctx context.Context, query GetServiceGroupByIDQuery) (*ServiceGroupDTO, error) {
 	serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -237,6 +245,14 @@ func (s *MESService) GetServiceGroupByID(ctx context.Context, query GetServiceGr
 	}
 
 	return toServiceGroupDTO(serviceGroup), nil
+}
+
+func (s *MESService) GetServiceTemplateByID(ctx context.Context, query GetServiceTemplateByIDQuery) (*ServiceTemplateDTO, error) {
+	result, err := s.GetServiceGroupByID(ctx, GetServiceGroupByIDQuery(query))
+	if err != nil {
+		return nil, err
+	}
+	return (*ServiceTemplateDTO)(result), nil
 }
 
 func (s *MESService) ListServiceGroups(ctx context.Context, query ListServiceGroupsQuery) ([]ServiceGroupDTO, error) {
@@ -253,6 +269,20 @@ func (s *MESService) ListServiceGroups(ctx context.Context, query ListServiceGro
 		dtos = append(dtos, *toServiceGroupDTO(serviceGroup))
 	}
 	return dtos, nil
+}
+
+func (s *MESService) ListServiceTemplates(ctx context.Context, query ListServiceTemplatesQuery) ([]ServiceTemplateDTO, error) {
+	results, err := s.ListServiceGroups(ctx, ListServiceGroupsQuery(query))
+	if err != nil {
+		return nil, err
+	}
+
+	aliases := make([]ServiceTemplateDTO, 0, len(results))
+	for _, result := range results {
+		aliases = append(aliases, ServiceTemplateDTO(result))
+	}
+
+	return aliases, nil
 }
 
 func (s *MESService) UpdateServiceGroup(ctx context.Context, cmd UpdateServiceGroupCommand) (*ServiceGroupDTO, error) {
@@ -287,11 +317,23 @@ func (s *MESService) UpdateServiceGroup(ctx context.Context, cmd UpdateServiceGr
 	return toServiceGroupDTO(serviceGroup), nil
 }
 
+func (s *MESService) UpdateServiceTemplate(ctx context.Context, cmd UpdateServiceTemplateCommand) (*ServiceTemplateDTO, error) {
+	result, err := s.UpdateServiceGroup(ctx, UpdateServiceGroupCommand(cmd))
+	if err != nil {
+		return nil, err
+	}
+	return (*ServiceTemplateDTO)(result), nil
+}
+
 func (s *MESService) DeleteServiceGroup(ctx context.Context, cmd DeleteServiceGroupCommand) error {
 	if err := s.serviceGroupRepo.Delete(ctx, cmd.ID); err != nil {
 		return fmt.Errorf("delete service group: %w", err)
 	}
 	return nil
+}
+
+func (s *MESService) DeleteServiceTemplate(ctx context.Context, cmd DeleteServiceTemplateCommand) error {
+	return s.DeleteServiceGroup(ctx, DeleteServiceGroupCommand(cmd))
 }
 
 func mapTaskAssignments(inputs []ServiceGroupTaskInput) []domain.ServiceGroupTask {
@@ -450,6 +492,89 @@ func (s *MESService) CreateMESWork(ctx context.Context, cmd CreateMESWorkCommand
 	return toMESWorkDTO(work), nil
 }
 
+func (s *MESService) CreateWorkDefinition(ctx context.Context, cmd CreateWorkDefinitionCommand) (*MESWorkDefinitionDTO, error) {
+	result, err := s.CreateMESWork(ctx, CreateMESWorkCommand(cmd))
+	if err != nil {
+		return nil, err
+	}
+	return (*MESWorkDefinitionDTO)(result), nil
+}
+
+func (s *MESService) UpdateMESWork(ctx context.Context, cmd UpdateMESWorkCommand) (*MESWorkDTO, error) {
+	work, err := s.mesWorkRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find mes work for update: %w", err)
+	}
+	if work == nil {
+		return nil, fmt.Errorf("mes work not found")
+	}
+
+	if cmd.WorkName != nil {
+		trimmed := strings.TrimSpace(*cmd.WorkName)
+		if trimmed == "" {
+			return nil, fmt.Errorf("work name is required")
+		}
+		work.WorkName = trimmed
+	}
+
+	if cmd.PartyID != nil {
+		trimmed := strings.TrimSpace(*cmd.PartyID)
+		if trimmed == "" {
+			return nil, fmt.Errorf("party id is required")
+		}
+		work.PartyID = trimmed
+	}
+
+	if cmd.TangibleGroupID != nil {
+		if *cmd.TangibleGroupID == uuid.Nil {
+			return nil, fmt.Errorf("tangible group id is required")
+		}
+		work.TangibleGroupID = *cmd.TangibleGroupID
+	}
+
+	if cmd.GarmentNotes != nil {
+		work.GarmentNotes = strings.TrimSpace(*cmd.GarmentNotes)
+	}
+
+	if cmd.Status != nil {
+		status := domain.ProductionStatus(strings.ToUpper(strings.TrimSpace(*cmd.Status)))
+		if !status.IsValid() {
+			return nil, fmt.Errorf("invalid production status")
+		}
+		work.Status = status
+	}
+
+	if cmd.Priority != nil {
+		priority := domain.WorkPriority(strings.ToUpper(strings.TrimSpace(*cmd.Priority)))
+		if !priority.IsValid() {
+			return nil, fmt.Errorf("invalid work priority")
+		}
+		work.Priority = priority
+	}
+
+	if cmd.DueDate != nil {
+		parsed, err := parseOptionalDate(*cmd.DueDate)
+		if err != nil {
+			return nil, err
+		}
+		work.DueDate = parsed
+	}
+
+	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save mes work update: %w", err)
+	}
+
+	return toMESWorkDTO(work), nil
+}
+
+func (s *MESService) UpdateWorkDefinition(ctx context.Context, cmd UpdateWorkDefinitionCommand) (*MESWorkDefinitionDTO, error) {
+	result, err := s.UpdateMESWork(ctx, UpdateMESWorkCommand(cmd))
+	if err != nil {
+		return nil, err
+	}
+	return (*MESWorkDefinitionDTO)(result), nil
+}
+
 func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESWorkTaskStatusCommand) (*MESWorkDTO, error) {
 	work, err := s.mesWorkRepo.FindByID(ctx, cmd.WorkID)
 	if err != nil {
@@ -521,6 +646,14 @@ func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESW
 	return toMESWorkDTO(work), nil
 }
 
+func (s *MESService) UpdateWorkDefinitionTaskStatus(ctx context.Context, cmd UpdateWorkDefinitionTaskStatusCommand) (*MESWorkDefinitionDTO, error) {
+	result, err := s.UpdateMESWorkTaskStatus(ctx, UpdateMESWorkTaskStatusCommand(cmd))
+	if err != nil {
+		return nil, err
+	}
+	return (*MESWorkDefinitionDTO)(result), nil
+}
+
 func (s *MESService) ListMESWorks(ctx context.Context, query ListMESWorksQuery) ([]MESWorkDTO, error) {
 	var status *domain.ProductionStatus
 	if query.Status != nil && *query.Status != "" {
@@ -544,6 +677,20 @@ func (s *MESService) ListMESWorks(ctx context.Context, query ListMESWorksQuery) 
 	return result, nil
 }
 
+func (s *MESService) ListWorkDefinitions(ctx context.Context, query ListWorkDefinitionsQuery) ([]MESWorkDefinitionDTO, error) {
+	results, err := s.ListMESWorks(ctx, ListMESWorksQuery(query))
+	if err != nil {
+		return nil, err
+	}
+
+	aliases := make([]MESWorkDefinitionDTO, 0, len(results))
+	for _, result := range results {
+		aliases = append(aliases, MESWorkDefinitionDTO(result))
+	}
+
+	return aliases, nil
+}
+
 func (s *MESService) GetMESWorkByID(ctx context.Context, query GetMESWorkByIDQuery) (*MESWorkDTO, error) {
 	work, err := s.mesWorkRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -553,6 +700,14 @@ func (s *MESService) GetMESWorkByID(ctx context.Context, query GetMESWorkByIDQue
 		return nil, fmt.Errorf("mes work not found")
 	}
 	return toMESWorkDTO(work), nil
+}
+
+func (s *MESService) GetWorkDefinitionByID(ctx context.Context, query GetWorkDefinitionByIDQuery) (*MESWorkDefinitionDTO, error) {
+	result, err := s.GetMESWorkByID(ctx, GetMESWorkByIDQuery(query))
+	if err != nil {
+		return nil, err
+	}
+	return (*MESWorkDefinitionDTO)(result), nil
 }
 
 func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDashboardStatsDTO, error) {
@@ -586,6 +741,10 @@ func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDash
 	return stats, nil
 }
 
+func (s *MESService) GetWorkDefinitionDashboardStats(ctx context.Context) (*MESWorkDashboardStatsDTO, error) {
+	return s.GetMESWorkDashboardStats(ctx)
+}
+
 func (s *MESService) ListOverdueMESWorks(ctx context.Context, query ListOverdueMESWorksQuery) ([]MESWorkDTO, error) {
 	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{})
 	if err != nil {
@@ -614,6 +773,20 @@ func (s *MESService) ListOverdueMESWorks(ctx context.Context, query ListOverdueM
 	}
 
 	return result, nil
+}
+
+func (s *MESService) ListOverdueWorkDefinitions(ctx context.Context, query ListOverdueWorkDefinitionsQuery) ([]MESWorkDefinitionDTO, error) {
+	results, err := s.ListOverdueMESWorks(ctx, ListOverdueMESWorksQuery(query))
+	if err != nil {
+		return nil, err
+	}
+
+	aliases := make([]MESWorkDefinitionDTO, 0, len(results))
+	for _, result := range results {
+		aliases = append(aliases, MESWorkDefinitionDTO(result))
+	}
+
+	return aliases, nil
 }
 
 func isOpenMESWorkStatus(status domain.ProductionStatus) bool {
@@ -688,6 +861,25 @@ func recalculateWorkStatus(work *domain.MESWork, now time.Time) {
 		work.Status = domain.ProductionStatusPending
 		return
 	}
+}
+
+func parseOptionalDate(raw string) (*time.Time, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	if parsed, err := time.Parse(time.RFC3339, trimmed); err == nil {
+		value := parsed.UTC()
+		return &value, nil
+	}
+
+	if parsed, err := time.Parse("2006-01-02", trimmed); err == nil {
+		value := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.UTC)
+		return &value, nil
+	}
+
+	return nil, fmt.Errorf("invalid due date format, expected RFC3339 or YYYY-MM-DD")
 }
 
 func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {

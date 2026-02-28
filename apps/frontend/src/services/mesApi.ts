@@ -1,16 +1,22 @@
 import { getApiBase } from './apiBase'
 import type {
   CreateMESWorkRequest,
+  CreateMESWorkDefinitionRequest,
   CreatePositionRequest,
   CreateServiceGroupRequest,
+  CreateServiceTemplateRequest,
   CreateTaskRequest,
   ListMESWorkFilters,
   ListMESFilters,
   MESWorkDashboardStats,
   MESWork,
+  MESWorkDefinition,
   MESPosition,
   MESServiceGroup,
+  MESServiceTemplate,
   MESTask,
+  UpdateMESWorkRequest,
+  UpdateMESWorkDefinitionRequest,
   UpdateMESWorkTaskStatusRequest,
 } from '@/types/mes'
 
@@ -27,6 +33,7 @@ class MESApiService {
   private positionsUrl = `${API_BASE}/mes/positions`
   private serviceGroupsUrl = `${API_BASE}/mes/service-groups`
   private worksUrl = `${API_BASE}/mes/works`
+  private workDefinitionsUrl = `${API_BASE}/mes/work-definitions`
 
   private getHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
     const token = localStorage.getItem('tramatex_auth_token')
@@ -194,7 +201,7 @@ class MESApiService {
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar los grupos de servicio MES')
+      await this.handleError(response, 'No se pudieron cargar las plantillas de proceso MES')
     }
 
     return response.json()
@@ -208,54 +215,92 @@ class MESApiService {
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear el grupo de servicio MES')
+      await this.handleError(response, 'No se pudo crear la plantilla de proceso MES')
     }
 
     return response.json()
   }
 
+  async listServiceTemplates(filters: ListMESFilters = {}): Promise<MESServiceTemplate[]> {
+    return this.listServiceGroups(filters)
+  }
+
+  async createServiceTemplate(data: CreateServiceTemplateRequest): Promise<MESServiceTemplate> {
+    return this.createServiceGroup(data)
+  }
+
   async listWorks(filters: ListMESWorkFilters = {}): Promise<MESWork[]> {
-    const response = await this.safeFetch(`${this.worksUrl}${this.buildWorkQuery(filters)}`, {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}${this.buildWorkQuery(filters)}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar los trabajos MES')
+      await this.handleError(response, 'No se pudieron cargar las definiciones de trabajo MES')
     }
 
     return response.json()
   }
 
   async getWork(id: string): Promise<MESWork> {
-    const response = await this.safeFetch(`${this.worksUrl}/${id}`, {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${id}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo cargar el trabajo MES')
+      await this.handleError(response, 'No se pudo cargar la definición de trabajo MES')
     }
 
     return response.json()
   }
 
   async createWork(data: CreateMESWorkRequest): Promise<MESWork> {
-    const response = await this.safeFetch(this.worksUrl, {
+    const response = await this.safeFetch(this.workDefinitionsUrl, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear el trabajo MES')
+      await this.handleError(response, 'No se pudo crear la definición de trabajo MES')
     }
 
     return response.json()
   }
 
+  async updateWork(id: string, data: UpdateMESWorkRequest): Promise<MESWork> {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la definición de trabajo MES')
+    }
+
+    return response.json()
+  }
+
+  async listWorkDefinitions(filters: ListMESWorkFilters = {}): Promise<MESWorkDefinition[]> {
+    return this.listWorks(filters)
+  }
+
+  async getWorkDefinition(id: string): Promise<MESWorkDefinition> {
+    return this.getWork(id)
+  }
+
+  async createWorkDefinition(data: CreateMESWorkDefinitionRequest): Promise<MESWorkDefinition> {
+    return this.createWork(data)
+  }
+
+  async updateWorkDefinition(id: string, data: UpdateMESWorkDefinitionRequest): Promise<MESWorkDefinition> {
+    return this.updateWork(id, data)
+  }
+
   async getWorkDashboardStats(): Promise<MESWorkDashboardStats> {
-    const response = await this.safeFetch(`${this.worksUrl}/dashboard/stats`, {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}/dashboard/stats`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
@@ -274,7 +319,7 @@ class MESApiService {
     }
     const query = params.toString()
 
-    const response = await this.safeFetch(`${this.worksUrl}/overdue${query ? `?${query}` : ''}`, {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}/overdue${query ? `?${query}` : ''}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
@@ -287,7 +332,7 @@ class MESApiService {
   }
 
   async updateWorkTaskStatus(workId: string, taskId: string, data: UpdateMESWorkTaskStatusRequest): Promise<MESWork> {
-    const response = await this.safeFetch(`${this.worksUrl}/${workId}/tasks/${taskId}/status`, {
+    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${workId}/tasks/${taskId}/status`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: JSON.stringify(data),

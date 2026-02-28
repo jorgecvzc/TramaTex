@@ -10,7 +10,7 @@
         </div>
         <div class="header-actions">
           <RouterLink to="/mes/terminal" class="btn btn-primary">Terminal Tablet</RouterLink>
-          <RouterLink to="/mes/works" class="btn btn-secondary">Ver trabajos</RouterLink>
+          <RouterLink to="/mes/work-definitions" class="btn btn-secondary">Ver definiciones</RouterLink>
         </div>
       </header>
 
@@ -53,10 +53,10 @@
       </section>
 
       <section class="card">
-        <h2>Trabajos vencidos</h2>
+        <h2>Definiciones vencidas</h2>
         <div v-if="isLoading" class="empty-state">Cargando dashboard MES...</div>
         <div v-else-if="error" class="alert">{{ error }}</div>
-        <div v-else-if="overdueWorks.length === 0" class="empty-state">No hay trabajos vencidos.</div>
+        <div v-else-if="overdueWorks.length === 0" class="empty-state">No hay definiciones vencidas.</div>
         <table v-else class="data-table">
           <thead>
             <tr>
@@ -74,7 +74,7 @@
               <td>{{ work.status }}</td>
               <td>{{ formatDate(work.due_date) }}</td>
               <td>
-                <RouterLink :to="`/mes/works/${work.id}`" class="btn-link">Ver</RouterLink>
+                <RouterLink :to="`/mes/work-definitions/${work.id}`" class="btn-link">Ver</RouterLink>
               </td>
             </tr>
           </tbody>

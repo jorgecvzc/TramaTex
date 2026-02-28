@@ -92,6 +92,8 @@ func TestNewProduct(t *testing.T) {
 				tc.productType,
 				tc.brandID,
 				tc.barcode,
+				0,
+				21,
 			)
 
 			if tc.expectError {
@@ -111,7 +113,7 @@ func TestNewProduct(t *testing.T) {
 }
 
 func TestProduct_AddGroup(t *testing.T) {
-	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil)
+	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil, 0, 21)
 	groupID1 := uuid.New()
 	groupID2 := uuid.New()
 
@@ -129,7 +131,7 @@ func TestProduct_AddGroup(t *testing.T) {
 }
 
 func TestProduct_AddDirectAttribute(t *testing.T) {
-	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil)
+	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil, 0, 21)
 	attrID1 := uuid.New()
 	attrID2 := uuid.New()
 

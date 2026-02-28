@@ -101,10 +101,10 @@ Esta decisión aplica al diseño y la implementación del módulo de IAM del sis
 
 ## 7. Integración con otros ADRs
 
--   ADR-002: Clean Architecture and DDD Adoption (Refuerza la pureza del dominio y la separación de capas).
--   ADR-006: Domain-Driven Development Strategy (Alineación con la definición explícita de entidades y Value Objects).
--   ADR-010: Estrategia de Seguridad: Defensa en Profundidad y Security by Default (IAM es una capa fundamental en esta estrategia).
--   ADR-007: Module Implementation Order (IAM es el primer módulo en ser implementado en Fase 0).
+-   [ADR-002: Clean Architecture and DDD Adoption](adr-002-clean-architecture-ddd-adoption.md) (Refuerza la pureza del dominio y la separación de capas).
+-   [ADR-006: Domain-Driven Development Strategy](adr-006-domain-driven-development-strategy.md) (Alineación con la definición explícita de entidades y Value Objects).
+-   [ADR-010: Estrategia de Seguridad: Defensa en Profundidad y Security by Default](adr-010-defense-in-depth-security-strategy.md) (IAM es una capa fundamental en esta estrategia).
+-   [ADR-007: Module Implementation Order](adr-007-module-implementation-order.md) (IAM es el primer módulo en ser implementado en Fase 0).
 
 ---
 

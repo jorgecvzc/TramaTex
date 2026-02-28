@@ -61,6 +61,18 @@ func (r *fakePartyRepo) Count(ctx context.Context) (int64, error) {
 	return int64(len(r.parties)), nil
 }
 
+func (r *fakePartyRepo) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
+func (r *fakePartyRepo) HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
+func (r *fakePartyRepo) HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
 type fakeRelationshipRepo struct {
 	rels map[string]domain.PartyRelationship
 }
@@ -90,22 +102,25 @@ func (r *fakeRelationshipRepo) Delete(ctx context.Context, id domain.PartyRelati
 }
 
 type fakeAddressRepo struct {
-	addressesByParty map[string][]*domain.Address
+	addressesByParty map[string][]*persistence.AddressWithID
 }
 
 func newFakeAddressRepo() *fakeAddressRepo {
-	return &fakeAddressRepo{addressesByParty: make(map[string][]*domain.Address)}
+	return &fakeAddressRepo{addressesByParty: make(map[string][]*persistence.AddressWithID)}
 }
 
 func (r *fakeAddressRepo) Save(ctx context.Context, address *domain.Address, addressID domain.AddressID, partyID domain.PartyID, createdBy string, modifiedBy string) error {
 	if address == nil {
 		return nil
 	}
-	r.addressesByParty[partyID.String()] = append(r.addressesByParty[partyID.String()], address)
+	r.addressesByParty[partyID.String()] = append(r.addressesByParty[partyID.String()], &persistence.AddressWithID{
+		ID:      addressID.String(),
+		Address: address,
+	})
 	return nil
 }
 
-func (r *fakeAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *fakeAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*persistence.AddressWithID, error) {
 	return r.addressesByParty[partyID.String()], nil
 }
 
@@ -114,7 +129,7 @@ func (r *fakeAddressRepo) FindPrimary(ctx context.Context, partyID domain.PartyI
 	if len(addresses) == 0 {
 		return nil, nil
 	}
-	return addresses[0], nil
+	return addresses[0].Address, nil
 }
 
 func (r *fakeAddressRepo) Delete(ctx context.Context, id domain.AddressID) error {
@@ -131,6 +146,7 @@ func setupHandlers() (*gin.Engine, *fakePartyRepo) {
 	createPartyHandler := application.NewCreatePartyHandler(partyRepo)
 	updatePartyHandler := application.NewUpdatePartyHandler(partyRepo)
 	changePartyStatusHandler := application.NewChangePartyStatusHandler(partyRepo)
+	deletePartyHandler := application.NewDeletePartyHandler(partyRepo, relRepo)
 	getPartyHandler := application.NewGetPartyHandler(partyRepo)
 	listPartiesHandler := application.NewListPartiesHandler(partyRepo)
 	getBatchHandler := application.NewGetPartiesBatchHandler(partyRepo)
@@ -146,7 +162,7 @@ func setupHandlers() (*gin.Engine, *fakePartyRepo) {
 	addAddressHandler := application.NewAddPartyAddressHandler(addressRepo)
 	listAddressesHandler := application.NewListPartyAddressesHandler(addressRepo)
 
-	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
+	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, deletePartyHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
 	partyRoleHandler := NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
 	partyRelationshipHandler := NewPartyRelationshipHandler(addRelationshipHandler, listRelationshipsHandler, removeRelationshipHandler)
 	contactDetailsHandler := NewContactDetailsHandler(addContactHandler, updateContactHandler, listContactsHandler, removeContactHandler)
@@ -162,6 +178,7 @@ func setupHandlers() (*gin.Engine, *fakePartyRepo) {
 	router.GET("/parties/:id", partyHandler.GetParty)
 	router.PUT("/parties/:id", partyHandler.UpdateParty)
 	router.PATCH("/parties/:id/status", partyHandler.ChangePartyStatus)
+	router.DELETE("/parties/:id", partyHandler.DeleteParty)
 	router.POST("/parties/:id/roles", partyRoleHandler.AddRole)
 	router.DELETE("/parties/:id/roles/:role", partyRoleHandler.RemoveRole)
 	router.POST("/parties/:id/relationships", partyRelationshipHandler.AddRelationship)
@@ -187,6 +204,7 @@ func setupHandlersWithoutUser() *gin.Engine {
 	createPartyHandler := application.NewCreatePartyHandler(partyRepo)
 	updatePartyHandler := application.NewUpdatePartyHandler(partyRepo)
 	changePartyStatusHandler := application.NewChangePartyStatusHandler(partyRepo)
+	deletePartyHandler := application.NewDeletePartyHandler(partyRepo, relRepo)
 	getPartyHandler := application.NewGetPartyHandler(partyRepo)
 	listPartiesHandler := application.NewListPartiesHandler(partyRepo)
 	getBatchHandler := application.NewGetPartiesBatchHandler(partyRepo)
@@ -202,7 +220,7 @@ func setupHandlersWithoutUser() *gin.Engine {
 	addAddressHandler := application.NewAddPartyAddressHandler(addressRepo)
 	listAddressesHandler := application.NewListPartyAddressesHandler(addressRepo)
 
-	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
+	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, deletePartyHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
 	partyRoleHandler := NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
 	partyRelationshipHandler := NewPartyRelationshipHandler(addRelationshipHandler, listRelationshipsHandler, removeRelationshipHandler)
 	contactDetailsHandler := NewContactDetailsHandler(addContactHandler, updateContactHandler, listContactsHandler, removeContactHandler)
@@ -211,6 +229,7 @@ func setupHandlersWithoutUser() *gin.Engine {
 	router := gin.New()
 	router.POST("/parties", partyHandler.CreateParty)
 	router.PATCH("/parties/:id/status", partyHandler.ChangePartyStatus)
+	router.DELETE("/parties/:id", partyHandler.DeleteParty)
 	router.POST("/parties/:id/roles", partyRoleHandler.AddRole)
 	router.POST("/parties/:id/relationships", partyRelationshipHandler.AddRelationship)
 	router.POST("/parties/:id/contact-details", contactDetailsHandler.AddContactDetails)
@@ -351,11 +370,12 @@ func TestPartyHandler_UpdateParty_Unauthorized(t *testing.T) {
 	createPartyHandler := application.NewCreatePartyHandler(partyRepo)
 	updatePartyHandler := application.NewUpdatePartyHandler(partyRepo)
 	changePartyStatusHandler := application.NewChangePartyStatusHandler(partyRepo)
+	deletePartyHandler := application.NewDeletePartyHandler(partyRepo, newFakeRelationshipRepo())
 	getPartyHandler := application.NewGetPartyHandler(partyRepo)
 	listPartiesHandler := application.NewListPartiesHandler(partyRepo)
 	getBatchHandler := application.NewGetPartiesBatchHandler(partyRepo)
 
-	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
+	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, deletePartyHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
 
 	router := gin.New()
 	router.PUT("/parties/:id", partyHandler.UpdateParty)
@@ -538,7 +558,7 @@ func TestContactDetailsHandler_AddUpdateRemove(t *testing.T) {
 	router, repo := setupHandlers()
 
 	partyID, _ := domain.NewPartyID("party-300")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	_ = repo.Save(context.Background(), party, "system", "system")
 
@@ -729,7 +749,7 @@ func TestContactDetailsHandler_List(t *testing.T) {
 	router, repo := setupHandlers()
 
 	partyID, _ := domain.NewPartyID("party-600")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	contactID, _ := domain.NewContactDetailsID("contact-600")
 	contact, _ := domain.NewContactDetails(contactID, "Ventas", nil, nil, nil)
@@ -806,7 +826,7 @@ func (r *failingAddressRepo) Save(ctx context.Context, address *domain.Address, 
 	return nil
 }
 
-func (r *failingAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *failingAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*persistence.AddressWithID, error) {
 	return nil, errors.New("db error")
 }
 
@@ -841,7 +861,7 @@ func TestContactDetailsHandler_UpdateContactDetails_NotFound(t *testing.T) {
 	router, repo := setupHandlers()
 
 	partyID, _ := domain.NewPartyID("party-910")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	_ = repo.Save(context.Background(), party, "system", "system")
 
@@ -858,7 +878,7 @@ func TestContactDetailsHandler_RemoveContactDetails_NotFound(t *testing.T) {
 	router, repo := setupHandlers()
 
 	partyID, _ := domain.NewPartyID("party-911")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	_ = repo.Save(context.Background(), party, "system", "system")
 
@@ -885,6 +905,7 @@ func TestPartyHandler_GetParty_MissingID(t *testing.T) {
 		application.NewCreatePartyHandler(partyRepo),
 		application.NewUpdatePartyHandler(partyRepo),
 		application.NewChangePartyStatusHandler(partyRepo),
+		application.NewDeletePartyHandler(partyRepo, newFakeRelationshipRepo()),
 		application.NewGetPartyHandler(partyRepo),
 		application.NewListPartiesHandler(partyRepo),
 		getBatchHandler,

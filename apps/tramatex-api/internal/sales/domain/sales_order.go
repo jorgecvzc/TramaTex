@@ -29,10 +29,12 @@ type OrderLineItem struct {
 	CalculatedUnitPrice       Money
 	ManualUnitPrice           *Money
 	FinalUnitPrice            Money
+	TaxRate                   float64 // Tax rate as percentage (e.g., 21.0 = 21%)
 	CalculatedDiscountPerUnit *Money
 	ManualDiscountPerUnit     *Money
 	FinalDiscountPerUnit      Money
 	Subtotal                  Money
+	TaxAmount                 Money // Tax calculated from Subtotal * TaxRate
 }
 
 func NewSalesOrder(
@@ -84,12 +86,21 @@ func NewOrderLineItem(
 	manualUnitPrice *Money,
 	calculatedDiscountPerUnit *Money,
 	manualDiscountPerUnit *Money,
+	taxRateOptional ...float64,
 ) (OrderLineItem, error) {
 	if productVariantID == uuid.Nil {
 		return OrderLineItem{}, NewValidationError("product variant ID cannot be empty")
 	}
 	if quantity <= 0 {
 		return OrderLineItem{}, NewValidationError("quantity must be greater than zero")
+	}
+	taxRate := 0.0
+	if len(taxRateOptional) > 0 {
+		taxRate = taxRateOptional[0]
+	}
+
+	if taxRate < 0 || taxRate > 100 {
+		return OrderLineItem{}, NewValidationError("tax rate must be between 0 and 100")
 	}
 
 	finalUnitPrice := calculatedUnitPrice
@@ -110,6 +121,12 @@ func NewOrderLineItem(
 		return OrderLineItem{}, err
 	}
 
+	// Calculate tax amount: subtotal * (taxRate / 100)
+	taxAmount, err := calculateTaxAmount(subtotal, taxRate)
+	if err != nil {
+		return OrderLineItem{}, err
+	}
+
 	return OrderLineItem{
 		ID:                        uuid.New(),
 		ProductVariantID:          productVariantID,
@@ -117,10 +134,12 @@ func NewOrderLineItem(
 		CalculatedUnitPrice:       calculatedUnitPrice,
 		ManualUnitPrice:           manualUnitPrice,
 		FinalUnitPrice:            finalUnitPrice,
+		TaxRate:                   taxRate,
 		CalculatedDiscountPerUnit: calculatedDiscountPerUnit,
 		ManualDiscountPerUnit:     manualDiscountPerUnit,
 		FinalDiscountPerUnit:      finalDiscount,
 		Subtotal:                  subtotal,
+		TaxAmount:                 taxAmount,
 	}, nil
 }
 
@@ -141,6 +160,17 @@ func (o *SalesOrder) RecalculateTotals() error {
 		return err
 	}
 	o.Subtotal = subtotal
+
+	// Recalculate tax from line items
+	taxTotal, err := sumOrderLineItemTaxAmounts(o.LineItems)
+	if err != nil {
+		return err
+	}
+	if taxTotal.Amount() == 0 && o.TaxAmount.Amount() > 0 {
+		taxTotal = o.TaxAmount
+	}
+	o.TaxAmount = taxTotal
+
 	total, err := o.Subtotal.Add(o.TaxAmount)
 	if err != nil {
 		return err
@@ -161,4 +191,18 @@ func sumOrderLineItemSubtotals(items []OrderLineItem) (Money, error) {
 		}
 	}
 	return subtotal, nil
+}
+
+func sumOrderLineItemTaxAmounts(items []OrderLineItem) (Money, error) {
+	taxTotal, err := NewMoney(0, DefaultCurrency)
+	if err != nil {
+		return Money{}, err
+	}
+	for _, item := range items {
+		taxTotal, err = taxTotal.Add(item.TaxAmount)
+		if err != nil {
+			return Money{}, err
+		}
+	}
+	return taxTotal, nil
 }

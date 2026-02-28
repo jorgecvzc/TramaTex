@@ -273,6 +273,10 @@ func (h *MESHandler) CreateServiceGroup(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+func (h *MESHandler) CreateServiceTemplate(c *gin.Context) {
+	h.CreateServiceGroup(c)
+}
+
 func (h *MESHandler) CreateMESWork(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
@@ -295,6 +299,44 @@ func (h *MESHandler) CreateMESWork(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+func (h *MESHandler) CreateWorkDefinition(c *gin.Context) {
+	h.CreateMESWork(c)
+}
+
+func (h *MESHandler) UpdateMESWork(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdateMESWorkCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	cmd.ID = id
+	cmd.ActorID = actorID
+
+	result, err := h.service.UpdateMESWork(c.Request.Context(), cmd)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) UpdateWorkDefinition(c *gin.Context) {
+	h.UpdateMESWork(c)
+}
+
 func (h *MESHandler) GetMESWork(c *gin.Context) {
 	id, ok := parseID(c, "id")
 	if !ok {
@@ -307,6 +349,10 @@ func (h *MESHandler) GetMESWork(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) GetWorkDefinition(c *gin.Context) {
+	h.GetMESWork(c)
 }
 
 func (h *MESHandler) ListMESWorks(c *gin.Context) {
@@ -324,6 +370,10 @@ func (h *MESHandler) ListMESWorks(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+func (h *MESHandler) ListWorkDefinitions(c *gin.Context) {
+	h.ListMESWorks(c)
+}
+
 func (h *MESHandler) GetMESWorkDashboardStats(c *gin.Context) {
 	result, err := h.service.GetMESWorkDashboardStats(c.Request.Context())
 	if err != nil {
@@ -331,6 +381,10 @@ func (h *MESHandler) GetMESWorkDashboardStats(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) GetWorkDefinitionDashboardStats(c *gin.Context) {
+	h.GetMESWorkDashboardStats(c)
 }
 
 func (h *MESHandler) ListOverdueMESWorks(c *gin.Context) {
@@ -346,6 +400,10 @@ func (h *MESHandler) ListOverdueMESWorks(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, results)
+}
+
+func (h *MESHandler) ListOverdueWorkDefinitions(c *gin.Context) {
+	h.ListOverdueMESWorks(c)
 }
 
 func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
@@ -384,6 +442,10 @@ func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *MESHandler) UpdateWorkDefinitionTaskStatus(c *gin.Context) {
+	h.UpdateMESWorkTaskStatus(c)
+}
+
 func (h *MESHandler) GetServiceGroup(c *gin.Context) {
 	id, ok := parseID(c, "id")
 	if !ok {
@@ -396,6 +458,10 @@ func (h *MESHandler) GetServiceGroup(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) GetServiceTemplate(c *gin.Context) {
+	h.GetServiceGroup(c)
 }
 
 func (h *MESHandler) ListServiceGroups(c *gin.Context) {
@@ -411,6 +477,10 @@ func (h *MESHandler) ListServiceGroups(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, results)
+}
+
+func (h *MESHandler) ListServiceTemplates(c *gin.Context) {
+	h.ListServiceGroups(c)
 }
 
 func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
@@ -441,6 +511,10 @@ func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *MESHandler) UpdateServiceTemplate(c *gin.Context) {
+	h.UpdateServiceGroup(c)
+}
+
 func (h *MESHandler) DeleteServiceGroup(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
@@ -458,4 +532,8 @@ func (h *MESHandler) DeleteServiceGroup(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func (h *MESHandler) DeleteServiceTemplate(c *gin.Context) {
+	h.DeleteServiceGroup(c)
 }

@@ -75,11 +75,27 @@ Esta secuencia respeta estrictamente las dependencias del dominio, garantizando 
 
 ---
 
-## 6. Integración con otros ADRs
+## 6. Alcance
+
+Aplica a la planificación de todos los módulos del ERP Core (IAM, Party, Product, Pricing, Sales) y el módulo MES durante la fase de desarrollo del MVP.
+
+---
+
+## 7. Integración con otros ADRs
 
 - **ADR-002 (Arquitectura Limpia y DDD):** Esta decisión es una implementación directa de los principios de DDD, donde se mapea el "Context Map" a un plan de acción.
 - **ADR-006 (Domain-Driven Development Strategy):** Proporciona la justificación estratégica para la separación de contextos que este ADR ordena.
 - **ADR-009 (Project Structure):** La estructura de directorios (`apps/internal/<module>`) está diseñada para soportar esta implementación modular.
 
 ---
+
+## 8. Notas Adicionales / Consideraciones Especiales
+
 *Nota: Este documento ha sido reconstruido el 2026-02-01 a partir de las referencias encontradas en el código y otros documentos del proyecto.*
+
+---
+
+## 9. Referencias
+
+- Contexto de Bounded Contexts (`agents/project/context/bounded-contexts.yaml`)
+- Guía de arquitectura de TramaTex.

@@ -54,6 +54,14 @@ func (r *GORMPartyRepository) Save(ctx context.Context, party *domain.Party, cre
 				FirstName: profile.FirstName(),
 				LastName:  profile.LastName(),
 			}
+			if profile.Phone() != nil {
+				phone := profile.Phone().Value()
+				profileModel.Phone = &phone
+			}
+			if profile.Email() != nil {
+				email := profile.Email().Value()
+				profileModel.Email = &email
+			}
 			if err := tx.Save(profileModel).Error; err != nil {
 				return domain.WrapPersistence("failed to save person profile", err)
 			}
@@ -79,6 +87,14 @@ func (r *GORMPartyRepository) Save(ctx context.Context, party *domain.Party, cre
 				TaxID:     taxID,
 				TaxIDType: taxType,
 				Website:   org.Website(),
+			}
+			if org.Phone() != nil {
+				phone := org.Phone().Value()
+				orgModel.Phone = &phone
+			}
+			if org.Email() != nil {
+				email := org.Email().Value()
+				orgModel.Email = &email
 			}
 			if err := tx.Save(orgModel).Error; err != nil {
 				return domain.WrapPersistence("failed to save organization profile", err)
@@ -180,7 +196,11 @@ func (r *GORMPartyRepository) FindAll(ctx context.Context, filters *PartyFilters
 			query = query.Where("parties.status = ?", string(*filters.Status))
 		}
 		if filters.Role != nil {
-			query = query.Where("pr.role = ?", string(*filters.Role))
+			if *filters.Role == domain.PartyRoleContact {
+				query = query.Where("pr.role IN ?", []string{string(domain.PartyRoleContact), string(domain.PartyRoleEmployee)})
+			} else {
+				query = query.Where("pr.role = ?", string(*filters.Role))
+			}
 		}
 		if filters.Type != "" {
 			switch filters.Type {
@@ -249,6 +269,92 @@ func (r *GORMPartyRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+// HasContactDetailsReferences checks if a party is referenced in contact_details.related_party_id
+func (r *GORMPartyRepository) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&ContactDetailsDataModel{}).
+		Where("related_party_id = ?", partyID.Value()).
+		Count(&count).Error; err != nil {
+		return false, domain.WrapPersistence("failed to check contact details references", err)
+	}
+	return count > 0, nil
+}
+
+// HasMESWorkReferences checks if a party is referenced in mes_works.party_id
+func (r *GORMPartyRepository) HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	var count int64
+	// Check if mes_works table exists (it may not in all environments)
+	var tableExists bool
+	err := r.db.WithContext(ctx).Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'mes_works')").Scan(&tableExists).Error
+	if err != nil {
+		return false, domain.WrapPersistence("failed to check mes_works table existence", err)
+	}
+
+	if !tableExists {
+		return false, nil
+	}
+
+	if err := r.db.WithContext(ctx).Table("mes_works").
+		Where("party_id = ?", partyID.Value()).
+		Count(&count).Error; err != nil {
+		return false, domain.WrapPersistence("failed to check MES work references", err)
+	}
+	return count > 0, nil
+}
+
+// HasSalesReferences checks if a party is referenced in sales tables (quotes, orders, invoices, delivery_notes)
+func (r *GORMPartyRepository) HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	// party_id in sales tables is UUID type, need to check compatibility
+	partyIDStr := partyID.Value()
+
+	// Check quotes table
+	var quotesCount int64
+	err := r.db.WithContext(ctx).Table("quotes").
+		Where("party_id::text = ?", partyIDStr).
+		Count(&quotesCount).Error
+	if err != nil {
+		return false, domain.WrapPersistence("failed to check quotes references", err)
+	}
+	if quotesCount > 0 {
+		return true, nil
+	}
+
+	// Check sales_orders table
+	var ordersCount int64
+	err = r.db.WithContext(ctx).Table("sales_orders").
+		Where("party_id::text = ?", partyIDStr).
+		Count(&ordersCount).Error
+	if err != nil {
+		return false, domain.WrapPersistence("failed to check sales orders references", err)
+	}
+	if ordersCount > 0 {
+		return true, nil
+	}
+
+	// Check invoices table
+	var invoicesCount int64
+	err = r.db.WithContext(ctx).Table("invoices").
+		Where("party_id::text = ?", partyIDStr).
+		Count(&invoicesCount).Error
+	if err != nil {
+		return false, domain.WrapPersistence("failed to check invoices references", err)
+	}
+	if invoicesCount > 0 {
+		return true, nil
+	}
+
+	// Check delivery_notes table
+	var deliveryNotesCount int64
+	err = r.db.WithContext(ctx).Table("delivery_notes").
+		Where("party_id::text = ?", partyIDStr).
+		Count(&deliveryNotesCount).Error
+	if err != nil {
+		return false, domain.WrapPersistence("failed to check delivery notes references", err)
+	}
+
+	return deliveryNotesCount > 0, nil
+}
+
 func (r *GORMPartyRepository) loadPersonProfile(ctx context.Context, partyID string) (*domain.PersonProfile, error) {
 	var profile PersonProfileDataModel
 	if err := r.db.WithContext(ctx).First(&profile, "party_id = ?", partyID).Error; err != nil {
@@ -257,7 +363,26 @@ func (r *GORMPartyRepository) loadPersonProfile(ctx context.Context, partyID str
 		}
 		return nil, domain.WrapPersistence("failed to load person profile", err)
 	}
-	return domain.NewPersonProfile(profile.FirstName, profile.LastName)
+
+	var phone *domain.Phone
+	if profile.Phone != nil && *profile.Phone != "" {
+		p, err := domain.NewPhone(*profile.Phone)
+		if err != nil {
+			return nil, err
+		}
+		phone = p
+	}
+
+	var email *domain.Email
+	if profile.Email != nil && *profile.Email != "" {
+		e, err := domain.NewEmail(*profile.Email)
+		if err != nil {
+			return nil, err
+		}
+		email = e
+	}
+
+	return domain.NewPersonProfile(profile.FirstName, profile.LastName, phone, email)
 }
 
 func (r *GORMPartyRepository) loadOrganizationProfile(ctx context.Context, partyID string) (*domain.OrganizationProfile, error) {
@@ -282,7 +407,25 @@ func (r *GORMPartyRepository) loadOrganizationProfile(ctx context.Context, party
 		tax = created
 	}
 
-	org, err := domain.NewOrganizationProfile(profile.Name, tax, profile.Website)
+	var phone *domain.Phone
+	if profile.Phone != nil && *profile.Phone != "" {
+		p, err := domain.NewPhone(*profile.Phone)
+		if err != nil {
+			return nil, err
+		}
+		phone = p
+	}
+
+	var email *domain.Email
+	if profile.Email != nil && *profile.Email != "" {
+		e, err := domain.NewEmail(*profile.Email)
+		if err != nil {
+			return nil, err
+		}
+		email = e
+	}
+
+	org, err := domain.NewOrganizationProfile(profile.Name, tax, profile.Website, phone, email)
 	if err != nil {
 		return nil, err
 	}
@@ -503,19 +646,22 @@ func (r *GORMPartyAddressRepository) Save(ctx context.Context, address *domain.A
 	return nil
 }
 
-func (r *GORMPartyAddressRepository) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *GORMPartyAddressRepository) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*AddressWithID, error) {
 	var models []PartyAddressDataModel
 	if err := r.db.WithContext(ctx).Where("party_id = ?", partyID.Value()).Order("created_at").Find(&models).Error; err != nil {
 		return nil, domain.WrapPersistence("failed to load addresses", err)
 	}
 
-	addresses := make([]*domain.Address, 0, len(models))
+	addresses := make([]*AddressWithID, 0, len(models))
 	for _, model := range models {
 		address, err := domain.NewAddress(model.Street, model.City, model.Province, model.PostalCode, model.Country)
 		if err != nil {
 			return nil, err
 		}
-		addresses = append(addresses, address)
+		addresses = append(addresses, &AddressWithID{
+			ID:      model.ID,
+			Address: address,
+		})
 	}
 
 	return addresses, nil

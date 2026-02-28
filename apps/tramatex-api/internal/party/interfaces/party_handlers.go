@@ -15,6 +15,7 @@ type PartyHandler struct {
 	createHandler       *application.CreatePartyHandler
 	updateHandler       *application.UpdatePartyHandler
 	changeStatusHandler *application.ChangePartyStatusHandler
+	deleteHandler       *application.DeletePartyHandler
 	getHandler          *application.GetPartyHandler
 	listHandler         *application.ListPartiesHandler
 	getBatchHandler     *application.GetPartiesBatchHandler
@@ -53,6 +54,7 @@ func NewPartyHandler(
 	createHandler *application.CreatePartyHandler,
 	updateHandler *application.UpdatePartyHandler,
 	changeStatusHandler *application.ChangePartyStatusHandler,
+	deleteHandler *application.DeletePartyHandler,
 	getHandler *application.GetPartyHandler,
 	listHandler *application.ListPartiesHandler,
 	getBatchHandler *application.GetPartiesBatchHandler,
@@ -61,6 +63,7 @@ func NewPartyHandler(
 		createHandler:       createHandler,
 		updateHandler:       updateHandler,
 		changeStatusHandler: changeStatusHandler,
+		deleteHandler:       deleteHandler,
 		getHandler:          getHandler,
 		listHandler:         listHandler,
 		getBatchHandler:     getBatchHandler,
@@ -91,6 +94,8 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 		cmd.PersonProfile = &application.PersonProfileInput{
 			FirstName: stringPtr(req.PersonProfile.FirstName),
 			LastName:  stringPtr(req.PersonProfile.LastName),
+			Phone:     stringPtr(req.PersonProfile.Phone),
+			Email:     stringPtr(req.PersonProfile.Email),
 		}
 	}
 
@@ -100,6 +105,8 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 			TaxID:     stringPtr(req.OrganizationProfile.TaxID),
 			TaxIDType: stringPtr(req.OrganizationProfile.TaxIDType),
 			Website:   stringPtr(req.OrganizationProfile.Website),
+			Phone:     stringPtr(req.OrganizationProfile.Phone),
+			Email:     stringPtr(req.OrganizationProfile.Email),
 		}
 	}
 
@@ -240,6 +247,8 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 		cmd.PersonProfile = &application.PersonProfileInput{
 			FirstName: stringPtr(req.PersonProfile.FirstName),
 			LastName:  stringPtr(req.PersonProfile.LastName),
+			Phone:     stringPtr(req.PersonProfile.Phone),
+			Email:     stringPtr(req.PersonProfile.Email),
 		}
 	}
 
@@ -249,6 +258,8 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 			TaxID:     stringPtr(req.OrganizationProfile.TaxID),
 			TaxIDType: stringPtr(req.OrganizationProfile.TaxIDType),
 			Website:   stringPtr(req.OrganizationProfile.Website),
+			Phone:     stringPtr(req.OrganizationProfile.Phone),
+			Email:     stringPtr(req.OrganizationProfile.Email),
 		}
 	}
 
@@ -293,6 +304,31 @@ func (h *PartyHandler) ChangePartyStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, MapPartyToDTO(party))
+}
+
+// DeleteParty handles DELETE /parties/{id}
+func (h *PartyHandler) DeleteParty(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Party ID is required"})
+		return
+	}
+
+	if err := h.deleteHandler.Handle(c.Request.Context(), &application.DeletePartyCommand{
+		ID:      id,
+		ActorID: actorID,
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // PartyRoleHandler handles role endpoints
@@ -549,10 +585,14 @@ func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
 	partyID := c.Param("id")
 	contactID := c.Param("contact_id")
 
+	// Check query parameter to decide if we should delete the party if no other references
+	deleteIfNoRefs := c.Query("deleteIfNoReferences") == "true"
+
 	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemoveContactDetailsCommand{
-		PartyID:   partyID,
-		ContactID: contactID,
-		ActorID:   actorID,
+		PartyID:              partyID,
+		ContactID:            contactID,
+		ActorID:              actorID,
+		DeleteIfNoReferences: deleteIfNoRefs,
 	}); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -564,15 +604,24 @@ func (h *ContactDetailsHandler) RemoveContactDetails(c *gin.Context) {
 // PartyAddressHandler handles party address endpoints
 
 type PartyAddressHandler struct {
-	addHandler  *application.AddPartyAddressHandler
-	listHandler *application.ListPartyAddressesHandler
+	addHandler    *application.AddPartyAddressHandler
+	updateHandler *application.UpdatePartyAddressHandler
+	removeHandler *application.RemovePartyAddressHandler
+	listHandler   *application.ListPartyAddressesHandler
 }
 
 func NewPartyAddressHandler(
 	addHandler *application.AddPartyAddressHandler,
+	updateHandler *application.UpdatePartyAddressHandler,
+	removeHandler *application.RemovePartyAddressHandler,
 	listHandler *application.ListPartyAddressesHandler,
 ) *PartyAddressHandler {
-	return &PartyAddressHandler{addHandler: addHandler, listHandler: listHandler}
+	return &PartyAddressHandler{
+		addHandler:    addHandler,
+		updateHandler: updateHandler,
+		removeHandler: removeHandler,
+		listHandler:   listHandler,
+	}
 }
 
 // AddAddress handles POST /parties/{id}/addresses
@@ -604,7 +653,7 @@ func (h *PartyAddressHandler) AddAddress(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, MapAddressToDTO(address))
+	c.JSON(http.StatusCreated, MapAddressToDTO(address, req.ID))
 }
 
 // ListAddresses handles GET /parties/{id}/addresses
@@ -617,10 +666,64 @@ func (h *PartyAddressHandler) ListAddresses(c *gin.Context) {
 	}
 
 	dtos := make([]*AddressDTO, len(addresses))
-	for i, address := range addresses {
-		dtos[i] = MapAddressToDTO(address)
+	for i, addressWithID := range addresses {
+		dtos[i] = MapAddressToDTO(addressWithID.Address, addressWithID.ID)
 	}
 
 	response := ListResponse{Data: dtos, Total: len(dtos)}
 	c.JSON(http.StatusOK, response)
+}
+
+// UpdateAddress handles PUT /parties/{id}/addresses/{addressId}
+func (h *PartyAddressHandler) UpdateAddress(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+	partyID := c.Param("id")
+	addressID := c.Param("addressId")
+
+	var req CreatePartyAddressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	address, err := h.updateHandler.Handle(c.Request.Context(), &application.UpdatePartyAddressCommand{
+		PartyID:    partyID,
+		AddressID:  addressID,
+		Street:     req.Street,
+		City:       req.City,
+		Province:   req.Province,
+		PostalCode: req.PostalCode,
+		Country:    req.Country,
+		ActorID:    actorID,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, MapAddressToDTO(address, addressID))
+}
+
+// DeleteAddress handles DELETE /parties/{id}/addresses/{addressId}
+func (h *PartyAddressHandler) DeleteAddress(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+	addressID := c.Param("addressId")
+
+	if err := h.removeHandler.Handle(c.Request.Context(), &application.RemovePartyAddressCommand{
+		AddressID: addressID,
+		ActorID:   actorID,
+	}); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

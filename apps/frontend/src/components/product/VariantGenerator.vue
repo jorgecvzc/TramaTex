@@ -8,7 +8,7 @@
     <form @submit.prevent="handleNext" class="step-form">
       <!-- Info Box -->
       <div class="info-box">
-        <span class="info-icon">ℹ️</span>
+        <Info :size="20" class="info-icon" />
         <div class="info-content">
           <p>
             <strong>¿Qué son las variantes?</strong> Una variante es una combinación específica de valores de atributos.
@@ -20,7 +20,7 @@
       <!-- Scenario: Product with NO attributes -->
       <div v-if="!hasAttributes" class="strategy-info-card simple-product">
         <div class="info-card-header">
-          <span class="info-card-icon">📦</span>
+          <Package :size="24" class="info-card-icon" />
           <div>
             <strong class="info-card-title">Producto Simple (Sin Variantes)</strong>
             <p class="info-card-description">
@@ -43,7 +43,7 @@
       <!-- Scenario: Product WITH attributes -->
       <div v-else class="strategy-info-card jit-product">
         <div class="info-card-header">
-          <span class="info-card-icon">⚡</span>
+          <Zap :size="24" class="info-card-icon" />
           <div>
             <strong class="info-card-title">Producto Configurable (Variantes JIT + Manual)</strong>
             <p class="info-card-description">
@@ -76,7 +76,8 @@
       <!-- Architecture Note -->
       <div class="architecture-note">
         <p>
-          <strong>📐 Según la arquitectura:</strong> La estrategia de generación de variantes no es configurable por el usuario.
+          <Triangle :size="18" style="vertical-align: middle; margin-right: 4px" />
+          <strong>Según la arquitectura:</strong> La estrategia de generación de variantes no es configurable por el usuario.
           Se determina automáticamente según el tipo de producto y sus atributos.
         </p>
       </div>
@@ -103,6 +104,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { Info, Package, Zap, Triangle } from 'lucide-vue-next'
 
 const props = defineProps({
   attributeCount: {

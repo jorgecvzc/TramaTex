@@ -32,17 +32,22 @@ interface ProductUI {
   long_name: string
   description: string
   product_type: string
+  base_price?: number
+  tax_rate?: number
   brand_id: string | null
   group_ids: string[]
   direct_attribute_ids: string[]
   is_active: boolean
   variants_count: number
+  calculated_option_sets?: CalculatedOptionSet[]
 }
 
 interface VariantUI {
   id: string
   sku: string
   product_id: string
+  barcode?: string
+  base_cost?: number
   option_configuration: Record<string, string>
   status: string
   is_active: boolean
@@ -51,6 +56,7 @@ interface VariantUI {
 interface BrandUI {
   id: string
   name: string
+  defaultMarkupPercentage: number
   is_active: boolean
   logo_url: string | null
 }
@@ -189,6 +195,8 @@ class ProductApiService {
       long_name: p.longName,
       description: p.description,
       product_type: p.productType,
+      base_price: p.basePrice,
+      tax_rate: p.taxRate !== undefined ? p.taxRate : 21,
       brand_id: p.brandId,
       group_ids: p.groupIds || [],
       direct_attribute_ids: p.directAttributeIds || [],
@@ -219,6 +227,16 @@ class ProductApiService {
     }
 
     const data = await response.json()
+    
+    // Fetch calculated option sets (attributes)
+    let calculatedOptionSets = []
+    try {
+      const optionsData = await this.getCalculatedOptionSets(id)
+      calculatedOptionSets = optionsData.attributes || []
+    } catch (err) {
+      console.warn('[productApi] Could not load calculated option sets:', err)
+    }
+    
     return {
       id: data.id,
       sku: data.sku,
@@ -226,11 +244,14 @@ class ProductApiService {
       long_name: data.longName,
       description: data.description,
       product_type: data.productType,
+      base_price: data.basePrice,
+      tax_rate: data.taxRate !== undefined ? data.taxRate : 21,
       brand_id: data.brandId,
       group_ids: data.groupIds || [],
       direct_attribute_ids: data.directAttributeIds || [],
       is_active: data.isActive,
       variants_count: data.variantsCount || 0,
+      calculated_option_sets: calculatedOptionSets,
     }
   }
 
@@ -244,6 +265,8 @@ class ProductApiService {
     longName: string
     description: string
     productType: string
+    basePrice: number
+    taxRate?: number
     brandId?: string
     groupIds?: string[]
     directAttributeIds?: string[]
@@ -259,6 +282,8 @@ class ProductApiService {
         long_name: data.longName,
         description: data.description,
         product_type: data.productType,
+        base_price: data.basePrice,
+        tax_rate: data.taxRate !== undefined ? data.taxRate : 21.0,
         brand_id: data.brandId,
         group_ids: data.groupIds || [],
         direct_attribute_ids: data.directAttributeIds || [],
@@ -279,6 +304,11 @@ class ProductApiService {
   async updateProduct(id: string, data: {
     name?: string
     longName?: string
+    sku?: string
+    barcode?: string
+    basePrice?: number
+    taxRate?: number
+    productType?: string
     description?: string
     brandId?: string
     groupIds?: string[]
@@ -291,6 +321,11 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         long_name: data.longName,
+        sku: data.sku,
+        barcode: data.barcode,
+        base_price: data.basePrice,
+        tax_rate: data.taxRate,
+        product_type: data.productType,
         description: data.description,
         brand_id: data.brandId,
         group_ids: data.groupIds,
@@ -309,6 +344,9 @@ class ProductApiService {
       sku: updated.sku,
       name: updated.name,
       long_name: updated.longName,
+      barcode: updated.barcode,
+      base_price: updated.basePrice,
+      tax_rate: updated.taxRate,
       description: updated.description,
       product_type: updated.productType,
       brand_id: updated.brandId,
@@ -432,6 +470,8 @@ class ProductApiService {
       id: v.id,
       sku: v.sku,
       product_id: v.productId,
+      barcode: v.barcode,
+      base_cost: v.baseCost,
       option_configuration: v.optionConfiguration,
       status: v.status,
       is_active: v.isActive,
@@ -488,12 +528,16 @@ class ProductApiService {
    * Find or create variant (JIT creation)
    */
   async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<any> {
+    if (!optionConfiguration || Object.keys(optionConfiguration).length === 0) {
+      throw new Error('Debe seleccionar al menos una opción para crear/buscar la variante')
+    }
+
     const response = await this.safeFetch(
       `${this.baseUrl}/${productId}/variants/find-or-create`,
       {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ option_configuration: optionConfiguration }),
+        body: JSON.stringify({ optionConfiguration: optionConfiguration }),
       },
     )
 
@@ -501,7 +545,8 @@ class ProductApiService {
       await this.handleError(response, 'No se pudo crear/obtener la variante')
     }
 
-    return response.json()
+    const payload = await response.json()
+    return payload?.variant ? payload : { variant: payload }
   }
 
   /**
@@ -580,6 +625,7 @@ class ProductApiService {
     const brands: BrandUI[] = rawBrands.map((b: any) => ({
       id: b.id,
       name: b.name,
+      defaultMarkupPercentage: b.defaultMarkupPercentage ?? 0,
       is_active: b.isActive,
       logo_url: b.logoUrl,
     }))
@@ -607,6 +653,7 @@ class ProductApiService {
     return {
       id: data.id,
       name: data.name,
+      defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
       is_active: data.isActive,
       logo_url: data.logoUrl,
     }
@@ -615,13 +662,14 @@ class ProductApiService {
   /**
    * Create brand
    */
-  async createBrand(data: { id?: string; name: string; isActive?: boolean }): Promise<any> {
+  async createBrand(data: { id?: string; name: string; defaultMarkupPercentage?: number; isActive?: boolean }): Promise<any> {
     const response = await this.safeFetch(this.brandsUrl, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
         id: data.id,
         name: data.name,
+        defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
         is_active: data.isActive !== undefined ? data.isActive : true,
       }),
     })

@@ -100,7 +100,6 @@ Esta decisión aplica al diseño y la implementación del módulo de Pricing del
 
 -   ADR-002: Clean Architecture and DDD Adoption (Refuerza principios de pureza de dominio y separación de capas).
 -   ADR-006: Domain-Driven Development Strategy (Alineación con la definición explícita de entidades y Value Objects).
--   ADR-pricing-domain-definition (OBSOLETE): Definicion del Dominio del Modulo de Precios (Sustituido por este ADR-016).
 
 ---
 

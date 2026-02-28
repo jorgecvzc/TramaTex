@@ -73,6 +73,34 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 	if filter.ToDate != nil {
 		query = query.Where("quote_date <= ?", *filter.ToDate)
 	}
+	if filter.Search != nil && *filter.Search != "" {
+		searchTerm := "%" + *filter.Search + "%"
+		query = query.Where(`
+			quote_number ILIKE ?
+			OR EXISTS (
+				SELECT 1
+				FROM organization_profiles op
+				WHERE op.party_id = CAST(quotes.party_id AS TEXT)
+				  AND op.name ILIKE ?
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM person_profiles pp
+				WHERE pp.party_id = CAST(quotes.party_id AS TEXT)
+				  AND (
+					pp.first_name ILIKE ?
+					OR pp.last_name ILIKE ?
+					OR (pp.first_name || ' ' || pp.last_name) ILIKE ?
+				  )
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM party_roles pr
+				WHERE pr.party_id = CAST(quotes.party_id AS TEXT)
+				  AND pr.creation_identifier ILIKE ?
+			)
+		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
+	}
 
 	var data []QuoteDataModel
 	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
@@ -164,6 +192,34 @@ func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.Sales
 	}
 	if filter.ToDate != nil {
 		query = query.Where("order_date <= ?", *filter.ToDate)
+	}
+	if filter.Search != nil && *filter.Search != "" {
+		searchTerm := "%" + *filter.Search + "%"
+		query = query.Where(`
+			order_number ILIKE ?
+			OR EXISTS (
+				SELECT 1
+				FROM organization_profiles op
+				WHERE op.party_id = CAST(sales_orders.party_id AS TEXT)
+				  AND op.name ILIKE ?
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM person_profiles pp
+				WHERE pp.party_id = CAST(sales_orders.party_id AS TEXT)
+				  AND (
+					pp.first_name ILIKE ?
+					OR pp.last_name ILIKE ?
+					OR (pp.first_name || ' ' || pp.last_name) ILIKE ?
+				  )
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM party_roles pr
+				WHERE pr.party_id = CAST(sales_orders.party_id AS TEXT)
+				  AND pr.creation_identifier ILIKE ?
+			)
+		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
 	var data []SalesOrderDataModel
@@ -259,6 +315,34 @@ func (r *GORMDeliveryNoteRepository) List(ctx context.Context, filter domain.Del
 	}
 	if filter.ToDate != nil {
 		query = query.Where("delivery_date <= ?", *filter.ToDate)
+	}
+	if filter.Search != nil && *filter.Search != "" {
+		searchTerm := "%" + *filter.Search + "%"
+		query = query.Where(`
+			delivery_note_number ILIKE ?
+			OR EXISTS (
+				SELECT 1
+				FROM organization_profiles op
+				WHERE op.party_id = CAST(delivery_notes.party_id AS TEXT)
+				  AND op.name ILIKE ?
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM person_profiles pp
+				WHERE pp.party_id = CAST(delivery_notes.party_id AS TEXT)
+				  AND (
+					pp.first_name ILIKE ?
+					OR pp.last_name ILIKE ?
+					OR (pp.first_name || ' ' || pp.last_name) ILIKE ?
+				  )
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM party_roles pr
+				WHERE pr.party_id = CAST(delivery_notes.party_id AS TEXT)
+				  AND pr.creation_identifier ILIKE ?
+			)
+		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
 	var data []DeliveryNoteDataModel
@@ -359,6 +443,34 @@ func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceF
 	}
 	if filter.ToDate != nil {
 		query = query.Where("invoice_date <= ?", *filter.ToDate)
+	}
+	if filter.Search != nil && *filter.Search != "" {
+		searchTerm := "%" + *filter.Search + "%"
+		query = query.Where(`
+			invoice_number ILIKE ?
+			OR EXISTS (
+				SELECT 1
+				FROM organization_profiles op
+				WHERE op.party_id = CAST(invoices.party_id AS TEXT)
+				  AND op.name ILIKE ?
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM person_profiles pp
+				WHERE pp.party_id = CAST(invoices.party_id AS TEXT)
+				  AND (
+					pp.first_name ILIKE ?
+					OR pp.last_name ILIKE ?
+					OR (pp.first_name || ' ' || pp.last_name) ILIKE ?
+				  )
+			)
+			OR EXISTS (
+				SELECT 1
+				FROM party_roles pr
+				WHERE pr.party_id = CAST(invoices.party_id AS TEXT)
+				  AND pr.creation_identifier ILIKE ?
+			)
+		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
 	var data []InvoiceDataModel

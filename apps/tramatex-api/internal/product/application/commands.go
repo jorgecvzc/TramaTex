@@ -17,18 +17,25 @@ type CreateProductCommand struct {
 	BrandID            uuid.UUID          `json:"brand_id"`
 	GroupIDs           []uuid.UUID        `json:"group_ids"`
 	DirectAttributeIDs []uuid.UUID        `json:"direct_attribute_ids"`
+	BasePrice          float64            `json:"base_price"`
+	TaxRate            float64            `json:"tax_rate"` // Tax rate as percentage (e.g., 21.0 = 21%)
 }
 
 // UpdateProductCommand is the input DTO for updating a product's general information.
 type UpdateProductCommand struct {
 	ActorID            string
 	ProductID          uuid.UUID
-	Name               *string
-	LongName           *string
-	Description        *string
-	BrandID            *uuid.UUID
-	GroupIDs           []uuid.UUID
-	DirectAttributeIDs []uuid.UUID
+	Name               *string             `json:"name,omitempty"`
+	LongName           *string             `json:"long_name,omitempty"`
+	SKU                *string             `json:"sku,omitempty"`
+	Barcode            *string             `json:"barcode,omitempty"`
+	BasePrice          *float64            `json:"base_price,omitempty"`
+	TaxRate            *float64            `json:"tax_rate,omitempty"` // Tax rate as percentage
+	ProductType        *domain.ProductType `json:"product_type,omitempty"`
+	Description        *string             `json:"description,omitempty"`
+	BrandID            *uuid.UUID          `json:"brand_id,omitempty"`
+	GroupIDs           []uuid.UUID         `json:"group_ids,omitempty"`
+	DirectAttributeIDs []uuid.UUID         `json:"direct_attribute_ids,omitempty"`
 }
 
 // AddGroupCommand is the input DTO for adding a group to a product.
@@ -54,8 +61,11 @@ type UpdateProductSKUCommand struct {
 
 // CreateAttributeValueCommand is the input DTO for creating an attribute value.
 type CreateAttributeValueCommand struct {
-	Value string
-	Code  string
+	Value            string
+	Code             string
+	HasPriceModifier bool
+	ModifierType     string // "FIXED" or "PERCENTAGE"
+	ModifierAmount   float64
 }
 
 // CreateAttributeCommand is the input DTO for the CreateAttribute use case.
@@ -70,9 +80,12 @@ type CreateAttributeCommand struct {
 
 // UpdateAttributeValueCommand is the input DTO for updating an attribute value.
 type UpdateAttributeValueCommand struct {
-	ID    *uuid.UUID // ID is nil for new values, present for existing values
-	Value string
-	Code  string
+	ID               *uuid.UUID // ID is nil for new values, present for existing values
+	Value            string
+	Code             string
+	HasPriceModifier bool
+	ModifierType     string // "FIXED" or "PERCENTAGE"
+	ModifierAmount   float64
 }
 
 // UpdateAttributeCommand is the input DTO for the UpdateAttribute use case.
@@ -92,11 +105,11 @@ type PreGenerateProductVariantsCommand struct {
 }
 
 // UpdateProductVariantCommand is the input DTO for the UpdateProductVariant use case.
+// Note: BaseCost is not updateable - it's calculated dynamically from Product.BasePrice + Attribute modifiers.
 type UpdateProductVariantCommand struct {
 	ActorID  string
 	ID       uuid.UUID
 	Barcode  *string
-	BaseCost *float64
 	IsActive *bool
 	Status   *domain.VariantStatus // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
 }
@@ -146,17 +159,19 @@ type DeletePartyServiceConfigurationCommand struct {
 
 // CreateBrandCommand is the input DTO for creating a brand.
 type CreateBrandCommand struct {
-	ActorID  string
-	Name     string
-	IsActive bool
+	ActorID                 string
+	Name                    string  `json:"name"`
+	DefaultMarkupPercentage float64 `json:"defaultMarkupPercentage"`
+	IsActive                bool    `json:"isActive"`
 }
 
 // UpdateBrandCommand is the input DTO for updating a brand.
 type UpdateBrandCommand struct {
-	ActorID  string
-	ID       uuid.UUID
-	Name     *string
-	IsActive *bool
+	ActorID                 string
+	ID                      uuid.UUID
+	Name                    *string  `json:"name,omitempty"`
+	DefaultMarkupPercentage *float64 `json:"defaultMarkupPercentage,omitempty"`
+	IsActive                *bool    `json:"isActive,omitempty"`
 }
 
 // DeleteBrandCommand is the input DTO for deleting a brand.

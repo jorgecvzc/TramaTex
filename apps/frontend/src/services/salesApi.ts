@@ -119,6 +119,7 @@ class SalesApi {
   async listQuotes(filters: ListQuotesFilters = {}): Promise<Quote[]> {
     const params = new URLSearchParams()
     
+    if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
     if (filters.status) params.append('status', filters.status)
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
@@ -232,6 +233,7 @@ class SalesApi {
   async listOrders(filters: ListOrdersFilters = {}): Promise<Order[]> {
     const params = new URLSearchParams()
     
+    if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
     if (filters.status) params.append('status', filters.status)
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
@@ -378,6 +380,7 @@ class SalesApi {
   async listDeliveryNotes(filters: ListDeliveryNotesFilters = {}): Promise<DeliveryNote[]> {
     const params = new URLSearchParams()
     
+    if (filters.searchText) params.append('search', filters.searchText)
     if (filters.orderId) params.append('salesOrderId', filters.orderId)
     if (filters.partyId) params.append('partyId', filters.partyId)
     if (filters.status) params.append('status', filters.status)
@@ -460,6 +463,7 @@ class SalesApi {
   async listInvoices(filters: ListInvoicesFilters = {}): Promise<Invoice[]> {
     const params = new URLSearchParams()
     
+    if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
     if (filters.orderId) params.append('orderId', filters.orderId)
     if (filters.invoiceType) params.append('type', filters.invoiceType)

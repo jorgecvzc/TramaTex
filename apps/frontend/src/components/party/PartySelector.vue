@@ -12,7 +12,7 @@
           :id="inputId"
           v-model="searchTerm"
           type="text"
-          :placeholder="placeholder || 'Buscar por nombre...'"
+          :placeholder="placeholder || 'Buscar por nombre o referencia...'"
           class="form-input"
           @input="handleSearch"
           @focus="showDropdown = true"
@@ -89,7 +89,7 @@ const props = defineProps({
   },
   placeholder: {
     type: String,
-    default: 'Buscar cliente...',
+    default: 'Buscar por nombre o referencia...',
   },
   required: {
     type: Boolean,
@@ -130,11 +130,21 @@ const filteredParties = computed(() => {
   }
   
   const term = searchTerm.value.toLowerCase();
-  return allParties.value.filter(p => 
-    p.name.toLowerCase().includes(term) ||
-    (p.tax_id && p.tax_id.toLowerCase().includes(term)) ||
-    p.id.toLowerCase().includes(term)
-  ).slice(0, 50);
+  return allParties.value
+    .filter((party) => {
+      const searchableValues = [
+        party?.name,
+        party?.tax_id,
+        party?.id,
+        party?.code,
+        party?.reference,
+      ]
+
+      return searchableValues
+        .filter((value) => typeof value === 'string' && value.trim().length > 0)
+        .some((value) => value.toLowerCase().includes(term))
+    })
+    .slice(0, 50)
 });
 
 // Methods

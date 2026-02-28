@@ -26,7 +26,7 @@
             }"
           >
             <div class="step-indicator">
-              <span v-if="currentStep > index" class="check-icon">✓</span>
+              <Check v-if="currentStep > index" :size="16" class="check-icon" />
               <span v-else class="step-number">{{ index + 1 }}</span>
             </div>
             <div class="step-label">
@@ -81,7 +81,7 @@
 
       <!-- Error Message -->
       <div v-if="errorMessage" class="alert alert-error">
-        <span class="alert-icon">✗</span>
+        <X :size="20" class="alert-icon" />
         <div class="alert-content">
           <strong>Error al crear el producto</strong>
           <p>{{ errorMessage }}</p>
@@ -101,6 +101,7 @@ import ProductFormClassification from '@/components/product/ProductFormClassific
 import ProductFormAttributes from '@/components/product/ProductFormAttributes.vue'
 import ProductFormPreview from '@/components/product/ProductFormPreview.vue'
 import { productApi } from '@/services/productApi'
+import { Check, X } from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -135,6 +136,7 @@ const formData = reactive({
     name: '',
     longName: '',
     description: '',
+    basePrice: 0,
   },
   classification: {
     brandId: '',
@@ -174,6 +176,7 @@ const allFormData = computed(() => ({
   name: formData.basic.name,
   longName: formData.basic.longName,
   description: formData.basic.description,
+  basePrice: formData.basic.basePrice,
   brandId: formData.classification.brandId,
   groupIds: formData.classification.groupIds,
   directAttributeIds: formData.attributes.directAttributeIds,
@@ -278,6 +281,7 @@ async function handleSubmit() {
       longName: formData.basic.longName || undefined,
       description: formData.basic.description || undefined,
       productType: formData.basic.productType,
+      basePrice: formData.basic.basePrice || 0,
       brandId: formData.classification.brandId, // Already validated above
       groupIds: formData.classification.groupIds || [],
       directAttributeIds: formData.attributes.directAttributeIds || [],

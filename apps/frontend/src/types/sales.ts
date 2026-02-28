@@ -240,10 +240,12 @@ export interface CreateInvoiceRequest {
 }
 
 export interface CreateSimplifiedInvoiceRequest {
-  party_id: string
-  line_items: CreateInvoiceLineItemRequest[]
-  payment_method: PaymentMethod
-  notes?: string
+  partyId: string
+  invoiceDate: string
+  items: Array<{
+    productVariantId: string
+    quantity: number
+  }>
 }
 
 export interface CreateInvoiceLineItemRequest {
@@ -259,6 +261,7 @@ export interface CreateInvoiceLineItemRequest {
 // ============================================================================
 
 export interface ListQuotesFilters {
+  searchText?: string
   partyId?: string
   status?: QuoteStatus
   fromDate?: string
@@ -268,6 +271,7 @@ export interface ListQuotesFilters {
 }
 
 export interface ListOrdersFilters {
+  searchText?: string
   partyId?: string
   status?: OrderStatus
   fromDate?: string
@@ -277,6 +281,7 @@ export interface ListOrdersFilters {
 }
 
 export interface ListDeliveryNotesFilters {
+  searchText?: string
   orderId?: string
   partyId?: string
   status?: DeliveryNoteStatus
@@ -287,6 +292,7 @@ export interface ListDeliveryNotesFilters {
 }
 
 export interface ListInvoicesFilters {
+  searchText?: string
   partyId?: string
   orderId?: string
   status?: InvoiceStatus

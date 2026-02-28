@@ -49,6 +49,8 @@ type ServiceGroupTaskInput struct {
 	Sequence int       `json:"sequence" binding:"required,min=1"`
 }
 
+type ServiceTemplateTaskInput = ServiceGroupTaskInput
+
 type CreateServiceGroupCommand struct {
 	ActorID         string                  `json:"-"`
 	Name            string                  `json:"name" binding:"required"`
@@ -57,6 +59,8 @@ type CreateServiceGroupCommand struct {
 	IsActive        *bool                   `json:"is_active"`
 	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
 }
+
+type CreateServiceTemplateCommand = CreateServiceGroupCommand
 
 type UpdateServiceGroupCommand struct {
 	ActorID         string `json:"-"`
@@ -68,10 +72,14 @@ type UpdateServiceGroupCommand struct {
 	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
 }
 
+type UpdateServiceTemplateCommand = UpdateServiceGroupCommand
+
 type DeleteServiceGroupCommand struct {
 	ActorID string
 	ID      uuid.UUID
 }
+
+type DeleteServiceTemplateCommand = DeleteServiceGroupCommand
 
 type CreateMESWorkServiceGroupInput struct {
 	ServiceGroupID uuid.UUID `json:"service_group_id" binding:"required"`
@@ -80,6 +88,8 @@ type CreateMESWorkServiceGroupInput struct {
 	Notes          *string   `json:"notes"`
 	Sequence       int       `json:"sequence" binding:"required,min=1"`
 }
+
+type CreateMESWorkServiceTemplateInput = CreateMESWorkServiceGroupInput
 
 type CreateMESWorkCommand struct {
 	ActorID                 string                           `json:"-"`
@@ -92,6 +102,22 @@ type CreateMESWorkCommand struct {
 	ServiceGroupAssignments []CreateMESWorkServiceGroupInput `json:"service_group_assignments" binding:"required,min=1"`
 }
 
+type CreateWorkDefinitionCommand = CreateMESWorkCommand
+
+type UpdateMESWorkCommand struct {
+	ActorID         string `json:"-"`
+	ID              uuid.UUID
+	WorkName        *string    `json:"work_name"`
+	PartyID         *string    `json:"party_id"`
+	TangibleGroupID *uuid.UUID `json:"tangible_group_id"`
+	GarmentNotes    *string    `json:"garment_notes"`
+	Status          *string    `json:"status"`
+	Priority        *string    `json:"priority"`
+	DueDate         *string    `json:"due_date"`
+}
+
+type UpdateWorkDefinitionCommand = UpdateMESWorkCommand
+
 type UpdateMESWorkTaskStatusCommand struct {
 	ActorID string `json:"-"`
 	WorkID  uuid.UUID
@@ -99,3 +125,5 @@ type UpdateMESWorkTaskStatusCommand struct {
 	Action  string  `json:"action" binding:"required"`
 	Notes   *string `json:"notes"`
 }
+
+type UpdateWorkDefinitionTaskStatusCommand = UpdateMESWorkTaskStatusCommand

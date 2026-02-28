@@ -100,6 +100,8 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		cmd.ProductType,
 		cmd.BrandID,
 		cmd.Barcode,
+		cmd.BasePrice,
+		cmd.TaxRate,
 	)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create product domain entity", err)
@@ -250,6 +252,27 @@ func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCom
 	if cmd.LongName != nil {
 		product.LongName = *cmd.LongName
 	}
+	if cmd.SKU != nil {
+		product.SKU = *cmd.SKU
+	}
+	if cmd.Barcode != nil {
+		product.Barcode = cmd.Barcode
+	}
+	if cmd.BasePrice != nil {
+		if *cmd.BasePrice < 0 {
+			return nil, domain.NewValidationError("base price cannot be negative")
+		}
+		product.BasePrice = *cmd.BasePrice
+	}
+	if cmd.TaxRate != nil {
+		if *cmd.TaxRate < 0 || *cmd.TaxRate > 100 {
+			return nil, domain.NewValidationError("tax rate must be between 0 and 100")
+		}
+		product.TaxRate = *cmd.TaxRate
+	}
+	if cmd.ProductType != nil {
+		product.ProductType = *cmd.ProductType
+	}
 	if cmd.Description != nil {
 		product.Description = *cmd.Description
 	}
@@ -308,7 +331,14 @@ func (s *ProductService) CreateAttribute(ctx context.Context, cmd CreateAttribut
 
 	// 3. Add values to the attribute
 	for _, valCmd := range cmd.Values {
-		_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
+		modifierType := domain.PriceModifierType(valCmd.ModifierType)
+		_, err := attribute.AddValueWithModifier(
+			valCmd.Value,
+			valCmd.Code,
+			valCmd.HasPriceModifier,
+			modifierType,
+			valCmd.ModifierAmount,
+		)
 		if err != nil {
 			return nil, domain.WrapValidation("failed to add attribute value", err)
 		}
@@ -357,7 +387,14 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 
 	for _, valCmd := range cmd.Values {
 		if valCmd.ID == nil { // New value
-			_, err := attribute.AddValue(valCmd.Value, valCmd.Code)
+			modifierType := domain.PriceModifierType(valCmd.ModifierType)
+			_, err := attribute.AddValueWithModifier(
+				valCmd.Value,
+				valCmd.Code,
+				valCmd.HasPriceModifier,
+				modifierType,
+				valCmd.ModifierAmount,
+			)
 			if err != nil {
 				return nil, domain.WrapValidation("failed to add new attribute value", err)
 			}
@@ -366,6 +403,15 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 				err := attribute.UpdateValue(*valCmd.ID, valCmd.Value, valCmd.Code)
 				if err != nil {
 					return nil, domain.WrapValidationf(err, "failed to update attribute value %s", valCmd.ID.String())
+				}
+				// Update price modifier fields directly
+				for i := range attribute.Values {
+					if attribute.Values[i].ID == *valCmd.ID {
+						attribute.Values[i].HasPriceModifier = valCmd.HasPriceModifier
+						attribute.Values[i].ModifierType = domain.PriceModifierType(valCmd.ModifierType)
+						attribute.Values[i].ModifierAmount = valCmd.ModifierAmount
+						break
+					}
 				}
 				delete(existingValuesMap, *valCmd.ID) // Mark as processed
 			} else {
@@ -667,41 +713,56 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 }
 
 func buildAttributeValueCombinations(attributes []*domain.Attribute) []struct {
-	values   []uuid.UUID
-	skuParts []struct{ AttributeCode, ValueCode string }
+	values          []uuid.UUID
+	attributeValues []*domain.AttributeValue
+	skuParts        []struct{ AttributeCode, ValueCode string }
 } {
 	type skuPart = struct{ AttributeCode, ValueCode string }
 	type combination = struct {
-		values   []uuid.UUID
-		skuParts []skuPart
+		values          []uuid.UUID
+		attributeValues []*domain.AttributeValue
+		skuParts        []skuPart
 	}
 
-	combinations := []combination{{values: []uuid.UUID{}, skuParts: []skuPart{}}}
+	combinations := []combination{{
+		values:          []uuid.UUID{},
+		attributeValues: []*domain.AttributeValue{},
+		skuParts:        []skuPart{},
+	}}
 
 	for _, attr := range attributes {
 		next := make([]combination, 0, len(combinations)*len(attr.Values))
 		for _, base := range combinations {
-			for _, val := range attr.Values {
+			for i := range attr.Values {
+				val := &attr.Values[i]
 				newValues := append(append([]uuid.UUID{}, base.values...), val.ID)
+				newAttrValues := append(append([]*domain.AttributeValue{}, base.attributeValues...), val)
 				newSkuParts := append(append([]skuPart{}, base.skuParts...), skuPart{AttributeCode: attr.Code, ValueCode: val.Code})
-				next = append(next, combination{values: newValues, skuParts: newSkuParts})
+				next = append(next, combination{
+					values:          newValues,
+					attributeValues: newAttrValues,
+					skuParts:        newSkuParts,
+				})
 			}
 		}
 		combinations = next
 	}
 
 	result := make([]struct {
-		values   []uuid.UUID
-		skuParts []struct{ AttributeCode, ValueCode string }
+		values          []uuid.UUID
+		attributeValues []*domain.AttributeValue
+		skuParts        []struct{ AttributeCode, ValueCode string }
 	}, len(combinations))
 
 	for i := range combinations {
 		result[i] = struct {
-			values   []uuid.UUID
-			skuParts []struct{ AttributeCode, ValueCode string }
+			values          []uuid.UUID
+			attributeValues []*domain.AttributeValue
+			skuParts        []struct{ AttributeCode, ValueCode string }
 		}{
-			values:   combinations[i].values,
-			skuParts: combinations[i].skuParts,
+			values:          combinations[i].values,
+			attributeValues: combinations[i].attributeValues,
+			skuParts:        combinations[i].skuParts,
 		}
 	}
 
@@ -746,6 +807,10 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	}
 	if product == nil {
 		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", cmd.ProductID)
+	}
+
+	if len(cmd.OptionConfiguration) == 0 {
+		return nil, domain.NewValidationError("optionConfiguration must include at least one selected attribute")
 	}
 
 	// Get applicable attributes for validation and SKU construction
@@ -813,6 +878,10 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		// For production, differentiate between "not found" error and other errors
 	}
 	if variant != nil {
+		if !variant.IsActive {
+			return nil, domain.NewValidationError("La variante está inactiva. Actívala para continuar.")
+		}
+
 		// Ensure SKU matches; if not, update. This handles potential SKU changes on product or attributes.
 		if variant.SKU != generatedSKU {
 			variant.SKU = generatedSKU
@@ -852,9 +921,6 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 
 	if cmd.Barcode != nil {
 		variant.Barcode = cmd.Barcode
-	}
-	if cmd.BaseCost != nil {
-		variant.BaseCost = *cmd.BaseCost
 	}
 	if cmd.IsActive != nil {
 		variant.IsActive = *cmd.IsActive
@@ -1017,9 +1083,10 @@ func (s *ProductService) DeletePartyServiceConfiguration(ctx context.Context, cm
 
 // BrandDTO represents a brand for API responses
 type BrandDTO struct {
-	ID       uuid.UUID `json:"id"`
-	Name     string    `json:"name"`
-	IsActive bool      `json:"isActive"`
+	ID                      uuid.UUID `json:"id"`
+	Name                    string    `json:"name"`
+	DefaultMarkupPercentage float64   `json:"defaultMarkupPercentage"`
+	IsActive                bool      `json:"isActive"`
 }
 
 // ListBrands retrieves all brands
@@ -1032,9 +1099,10 @@ func (s *ProductService) ListBrands(ctx context.Context) ([]BrandDTO, error) {
 	result := make([]BrandDTO, len(brands))
 	for i, brand := range brands {
 		result[i] = BrandDTO{
-			ID:       brand.ID,
-			Name:     brand.Name,
-			IsActive: brand.IsActive,
+			ID:                      brand.ID,
+			Name:                    brand.Name,
+			DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+			IsActive:                brand.IsActive,
 		}
 	}
 	return result, nil
@@ -1051,9 +1119,10 @@ func (s *ProductService) GetBrandByID(ctx context.Context, id uuid.UUID) (*Brand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 
@@ -1116,7 +1185,7 @@ func (s *ProductService) CreateBrand(ctx context.Context, cmd CreateBrandCommand
 		return nil, err
 	}
 
-	brand, err := domain.NewBrand(cmd.Name, cmd.IsActive)
+	brand, err := domain.NewBrand(cmd.Name, cmd.IsActive, cmd.DefaultMarkupPercentage)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create brand domain entity", err)
 	}
@@ -1126,9 +1195,10 @@ func (s *ProductService) CreateBrand(ctx context.Context, cmd CreateBrandCommand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 
@@ -1153,6 +1223,13 @@ func (s *ProductService) UpdateBrand(ctx context.Context, cmd UpdateBrandCommand
 		}
 	}
 
+	if cmd.DefaultMarkupPercentage != nil {
+		if *cmd.DefaultMarkupPercentage < 0 {
+			return nil, domain.NewValidationError("brand default markup percentage cannot be negative")
+		}
+		brand.DefaultMarkupPercentage = *cmd.DefaultMarkupPercentage
+	}
+
 	if cmd.IsActive != nil {
 		brand.IsActive = *cmd.IsActive
 	}
@@ -1162,9 +1239,10 @@ func (s *ProductService) UpdateBrand(ctx context.Context, cmd UpdateBrandCommand
 	}
 
 	return &BrandDTO{
-		ID:       brand.ID,
-		Name:     brand.Name,
-		IsActive: brand.IsActive,
+		ID:                      brand.ID,
+		Name:                    brand.Name,
+		DefaultMarkupPercentage: brand.DefaultMarkupPercentage,
+		IsActive:                brand.IsActive,
 	}, nil
 }
 

@@ -9,12 +9,12 @@ import (
 )
 
 // ProductVariant represents a specific, sellable instance of a Product.
+// Note: BaseCost is NOT stored - it is calculated dynamically from Product.BasePrice + AttributeValue modifiers.
 type ProductVariant struct {
 	ID              uuid.UUID
 	ProductID       uuid.UUID
 	SKU             string
 	Barcode         *string
-	BaseCost        float64
 	Status          VariantStatus
 	AttributeValues []uuid.UUID // IDs of associated AttributeValues
 	IsActive        bool
@@ -23,6 +23,7 @@ type ProductVariant struct {
 // NewProductVariant creates a new ProductVariant with validation.
 // It requires the composed SKU to be passed in, ensuring the domain service or use case
 // is responsible for its generation based on Product and Attribute data.
+// Note: BaseCost is NOT a parameter - it will be calculated dynamically when needed.
 func NewProductVariant(
 	productID uuid.UUID,
 	sku string,
@@ -55,7 +56,6 @@ func NewProductVariant(
 		ProductID:       productID,
 		SKU:             sku,
 		Barcode:         barcode,
-		BaseCost:        0,
 		Status:          status,
 		AttributeValues: attributeValueIDs,
 		IsActive:        true,

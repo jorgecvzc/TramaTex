@@ -10,7 +10,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <span class="section-icon">📄</span>
+            <FileText :size="20" class="section-icon" />
             Información básica
           </h4>
           <button
@@ -53,7 +53,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <span class="section-icon">🏷️</span>
+            <Tag :size="20" class="section-icon" />
             Clasificación
           </h4>
           <button
@@ -85,7 +85,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <span class="section-icon">⚙️</span>
+            <Settings :size="20" class="section-icon" />
             Atributos configurables
           </h4>
           <button
@@ -119,7 +119,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <span class="section-icon">🔢</span>
+            <Hash :size="20" class="section-icon" />
             Gestión de variantes
           </h4>
           <span class="auto-badge">Automático</span>
@@ -134,7 +134,7 @@
             </span>
           </div>
           <div v-if="formData.strategy === 'jit'" class="info-note">
-            <span class="note-icon">⚡</span>
+            <Zap :size="18" class="note-icon" />
             <div>
               <strong>Producto configurable con variantes JIT + Manual:</strong>
               <ul>
@@ -145,7 +145,7 @@
             </div>
           </div>
           <div v-else-if="formData.strategy === 'none'" class="info-note">
-            <span class="note-icon">📦</span>
+            <Package :size="18" class="note-icon" />
             <div>
               <strong>Producto simple sin variantes:</strong>
               <ul>
@@ -156,7 +156,7 @@
             </div>
           </div>
           <div class="architecture-info">
-            <span class="info-icon">📐</span>
+            <Triangle :size="18" class="info-icon" />
             <span>
               La estrategia se determina automáticamente según la arquitectura del sistema y los atributos del producto.
             </span>
@@ -181,7 +181,10 @@
           :disabled="isSubmitting"
         >
           <span v-if="isSubmitting">Creando producto...</span>
-          <span v-else>✓ Crear producto</span>
+          <span v-else>
+            <Check :size="16" />
+            Crear producto
+          </span>
         </button>
       </div>
     </div>
@@ -190,6 +193,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { FileText, Tag, Settings, Lightbulb, Hash, Zap, Package, Triangle, Check } from 'lucide-vue-next'
 
 const props = defineProps({
   formData: {

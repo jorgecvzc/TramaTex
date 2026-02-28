@@ -81,6 +81,7 @@
             <th>Marca</th>
             <th>Categoría</th>
             <th>Tipo</th>
+            <th class="align-right">Precio Base</th>
             <th>Variantes</th>
             <th>Estado</th>
             <th class="align-right">Acciones</th>
@@ -114,6 +115,11 @@
                 {{ formatProductType(product.product_type) }}
               </span>
             </td>
+            <td class="align-right">
+              <span class="price-value">
+                {{ formatPrice(product.base_price) }}
+              </span>
+            </td>
             <td>
               <span class="variants-badge">
                 {{ product.variants_count || 0 }} var{{ product.variants_count !== 1 ? 's' : '' }}
@@ -141,7 +147,7 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && products.length === 0" class="empty-state-block">
-      <div class="empty-icon">📦</div>
+      <Package :size="64" class="empty-icon" />
       <p v-if="hasFilters">
         No se encontraron productos con los filtros aplicados.
       </p>
@@ -186,6 +192,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { productApi } from '@/services/productApi';
+import { Package } from 'lucide-vue-next';
 
 const products = ref([]);
 const brands = ref([]);
@@ -338,6 +345,16 @@ function formatProductType(type) {
     SERVICE: 'Servicio',
   };
   return map[type] || type || '—';
+}
+
+function formatPrice(value) {
+  if (value === null || value === undefined) return '—';
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 </script>
 
@@ -539,6 +556,12 @@ td {
 .status-pill.status-inactive {
   background: rgba(158, 158, 158, 0.1);
   color: #9e9e9e;
+}
+
+.price-value {
+  font-weight: 600;
+  color: #16a34a;
+  font-size: 0.95rem;
 }
 
 .align-right {

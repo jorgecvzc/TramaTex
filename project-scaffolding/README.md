@@ -6,7 +6,7 @@ Este directorio contiene el sistema para generar automáticamente la estructura 
 
 ## 📚 Documentación
 
-[LICENSE](LICENSE) - La licencia bajo la que se distribuye este proyecto.
+[LICENSE](LICENSE.md) - La licencia bajo la que se distribuye este proyecto.
 
 ### Para Usuarios (Crear Proyectos)
 👉 **[user-guide.md](guides/user-guide.md)** - Cómo usar el scaffolding

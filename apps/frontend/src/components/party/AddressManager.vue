@@ -7,8 +7,9 @@
       </button>
     </div>
 
-    <!-- Add Form -->
+    <!-- Add/Edit Form -->
     <div v-if="showForm" class="form-section">
+      <h4 class="form-title">{{ isEditing ? 'Editar dirección' : 'Agregar nueva dirección' }}</h4>
       <form @submit.prevent="submitForm">
         <div class="form-group">
           <label for="street">Calle y número *</label>
@@ -68,7 +69,10 @@
 
         <div class="form-actions">
           <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
-            {{ isSubmitting ? 'Agregando...' : 'Agregar dirección' }}
+            {{ isSubmitting 
+              ? (isEditing ? 'Actualizando...' : 'Agregando...') 
+              : (isEditing ? 'Actualizar dirección' : 'Agregar dirección') 
+            }}
           </button>
           <button type="button" @click="resetForm" class="btn btn-secondary">
             Cancelar
@@ -94,6 +98,22 @@
             <span v-if="address.is_primary" class="badge primary">Principal</span>
             <span class="badge date">{{ formatDate(address.created_at) }}</span>
           </div>
+        </div>
+        <div class="address-actions">
+          <button 
+            @click="editAddress(address)" 
+            class="btn btn-edit"
+            title="Editar dirección"
+          >
+            Editar
+          </button>
+          <button 
+            @click="deleteAddress(address.id)" 
+            class="btn btn-delete"
+            title="Eliminar dirección"
+          >
+            Eliminar
+          </button>
         </div>
       </div>
     </div>
@@ -127,6 +147,8 @@ const isLoading = ref(false);
 const isSubmitting = ref(false);
 const showForm = ref(false);
 const formError = ref('');
+const isEditing = ref(false);
+const editingAddressId = ref(null);
 
 const form = reactive({
   street: '',
@@ -170,21 +192,53 @@ async function submitForm() {
   formError.value = '';
 
   try {
-    await partyApi.addPartyAddress(props.partyId, {
-      id: `addr-${Date.now()}`,
+    const addressData = {
+      id: isEditing.value ? editingAddressId.value : `addr-${Date.now()}`,
       street: form.street,
       city: form.city,
       province: form.province,
       postalCode: form.postalCode,
       country: form.country || 'Spain',
-    });
+    };
+
+    if (isEditing.value) {
+      await partyApi.updatePartyAddress(props.partyId, editingAddressId.value, addressData);
+    } else {
+      await partyApi.addPartyAddress(props.partyId, addressData);
+    }
 
     resetForm();
     await fetchAddresses();
   } catch (error) {
-    formError.value = error?.message || 'No se pudo agregar la dirección';
+    formError.value = error?.message || `No se pudo ${isEditing.value ? 'actualizar' : 'agregar'} la dirección`;
   } finally {
     isSubmitting.value = false;
+  }
+}
+
+function editAddress(address) {
+  form.street = address.street;
+  form.city = address.city;
+  form.province = address.province;
+  form.postalCode = address.postal_code;
+  form.country = address.country || 'Spain';
+  
+  isEditing.value = true;
+  editingAddressId.value = address.id;
+  showForm.value = true;
+  formError.value = '';
+}
+
+async function deleteAddress(addressId) {
+  if (!confirm('¿Estás seguro de que quieres eliminar esta dirección?')) {
+    return;
+  }
+
+  try {
+    await partyApi.deletePartyAddress(props.partyId, addressId);
+    await fetchAddresses();
+  } catch (error) {
+    formError.value = error?.message || 'No se pudo eliminar la dirección';
   }
 }
 
@@ -196,6 +250,8 @@ function resetForm() {
   form.country = 'Spain';
   formError.value = '';
   showForm.value = false;
+  isEditing.value = false;
+  editingAddressId.value = null;
 }
 
 function formatDate(dateString) {
@@ -235,6 +291,13 @@ function formatDate(dateString) {
   border-radius: 10px;
   margin-bottom: 1.5rem;
   border: 1px solid #e2e8f0;
+}
+
+.form-title {
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .form-row {
@@ -337,6 +400,42 @@ function formatDate(dateString) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.address-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-edit {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-edit:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-delete {
+  background: #ffffff;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
 }
 
 .address-info h4 {

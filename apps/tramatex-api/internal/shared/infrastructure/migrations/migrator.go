@@ -15,15 +15,14 @@ import (
 func RunMigrations(db *gorm.DB) error {
 	fmt.Println("🔄 Running database migrations...")
 
-	// Migration 1: Create users table (idempotent - doesn't fail if table exists)
-	if err := createUsersTable(db); err != nil {
-		return fmt.Errorf("failed to create users table: %w", err)
-	}
-
-	// Migration 2: Seed admin user (idempotent - doesn't fail if user exists)
-	if err := seedAdminUser(db); err != nil {
-		return fmt.Errorf("failed to seed admin user: %w", err)
-	}
+	// Migration 1 & 2: Now handled by v2_001_init_iam.sql (consolidated migrations)
+	// Uncomment below if you need GORM auto-migration for development/testing:
+	// if err := createUsersTable(db); err != nil {
+	// 	return fmt.Errorf("failed to create users table: %w", err)
+	// }
+	// if err := seedAdminUser(db); err != nil {
+	// 	return fmt.Errorf("failed to seed admin user: %w", err)
+	// }
 
 	// Migration 3: Execute SQL migrations from /app/migrations directory
 	if err := executeSQLMigrations(db); err != nil {
@@ -36,16 +35,10 @@ func RunMigrations(db *gorm.DB) error {
 
 // executeSQLMigrations executes all SQL migration files in order
 func executeSQLMigrations(db *gorm.DB) error {
-	migrationsPath := "/app/migrations"
-
-	// Check if migrations directory exists
-	if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
-		// Try relative path for local development
-		migrationsPath = "./migrations"
-		if _, err := os.Stat(migrationsPath); os.IsNotExist(err) {
-			fmt.Println("  ⚠ No migrations directory found, skipping SQLmigrations")
-			return nil
-		}
+	migrationsPath, err := resolveMigrationsPath()
+	if err != nil {
+		fmt.Println("  ⚠ No migrations directory found, skipping SQL migrations")
+		return nil
 	}
 
 	// Read all .sql files
@@ -110,6 +103,33 @@ func executeSQLMigrations(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+func resolveMigrationsPath() (string, error) {
+	candidates := []string{
+		"/app/migrations",
+		"./migrations",
+		"./apps/tramatex-api/migrations",
+		"../migrations",
+		"../../migrations",
+	}
+
+	for _, candidate := range candidates {
+		if _, err := os.Stat(candidate); os.IsNotExist(err) {
+			continue
+		}
+
+		files, err := filepath.Glob(filepath.Join(candidate, "*.sql"))
+		if err != nil {
+			continue
+		}
+		if len(files) > 0 {
+			fmt.Printf("  📁 Using migrations directory: %s\n", candidate)
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("no migration directory with SQL files found")
 }
 
 // ensureMigrationsTable creates the schema_migrations table if it doesn't exist

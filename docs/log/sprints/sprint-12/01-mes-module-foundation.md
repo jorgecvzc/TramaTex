@@ -1,6 +1,6 @@
-# Sprint 12 / Tarea 01 - MES Module Foundation & Architecture
+﻿# Sprint 12 / Tarea 01 - MES Module Foundation & Architecture
 
-**Estado:** 🔄 En Progreso  
+**Estado:** ðŸ”„ En Progreso  
 **Fecha de Inicio:** 2026-02-18  
 **Facilitador:** AI Assistant + Usuario  
 **Sprint:** 12  
@@ -8,21 +8,21 @@
 
 ---
 
-## 📋 Contexto
+## ðŸ“‹ Contexto
 
-Inicio del desarrollo del **MES Module (Manufacturing Execution System)** para TramaTex, que permitirá gestionar trabajos de manufactura textil con seguimiento de tareas de producción. Este módulo representa la expansión del sistema desde ERP hacia capacidades de gestión de producción.
+Inicio del desarrollo del **MES Module (Manufacturing Execution System)** para TramaTex, que permitirÃ¡ gestionar trabajos de manufactura textil con seguimiento de tareas de producciÃ³n. Este mÃ³dulo representa la expansiÃ³n del sistema desde ERP hacia capacidades de gestiÃ³n de producciÃ³n.
 
 ### Estado del Proyecto Previo
 
 **ERP Core (Sprint 10-11):**
-- ✅ Party Module: 86.7% coverage
-- ✅ Product Module: Domain 88.4%, Application 48.3%
-- ✅ Pricing Module: Domain 97.5%, Application 56.4%
-- ✅ Sales Module: Domain 79.2%, Application 47.0%
-- ✅ Frontend: 77.63% statements, 80.42% lines coverage
-- ✅ 0 errores TypeScript, 194 tests passing
-- ✅ Technical debt remediado (Sprint 11-02)
-- 🔄 UX Testing en progreso (Sprint 11-03)
+- âœ… Party Module: 86.7% coverage
+- âœ… Product Module: Domain 88.4%, Application 48.3%
+- âœ… Pricing Module: Domain 97.5%, Application 56.4%
+- âœ… Sales Module: Domain 79.2%, Application 47.0%
+- âœ… Frontend: 77.63% statements, 80.42% lines coverage
+- âœ… 0 errores TypeScript, 194 tests passing
+- âœ… Technical debt remediado (Sprint 11-02)
+- ðŸ”„ UX Testing en progreso (Sprint 11-03)
 
 **Arquitectura:**
 - Clean Architecture (DDD + Hexagonal)
@@ -33,32 +33,32 @@ Inicio del desarrollo del **MES Module (Manufacturing Execution System)** para T
 
 ---
 
-## 🎯 Objetivos del Sprint 12-01
+## ðŸŽ¯ Objetivos del Sprint 12-01
 
-### 1. **Definición de Arquitectura MES**
-   - Diseñar bounded context MES
+### 1. **DefiniciÃ³n de Arquitectura MES**
+   - DiseÃ±ar bounded context MES
    - Definir Domain Model con entidades, value objects y aggregates
-   - Establecer integración con ERP Core (Party, Product)
+   - Establecer integraciÃ³n con ERP Core (Party, Product)
 
-### 2. **Implementación de Foundation Backend**
+### 2. **ImplementaciÃ³n de Foundation Backend**
    - Infraestructura de base de datos (migraciones)
-   - Domain layer: Entidades y lógica de negocio
+   - Domain layer: Entidades y lÃ³gica de negocio
    - Application layer: Commands, Queries, DTOs, Service
    - Infrastructure layer: Persistence, HTTP handlers
 
-### 3. **Setup Frontend Básico**
-   - Estructura de módulo MES en UI
+### 3. **Setup Frontend BÃ¡sico**
+   - Estructura de mÃ³dulo MES en UI
    - API client para MES
-   - Rutas y navegación inicial
+   - Rutas y navegaciÃ³n inicial
 
-### 4. **Integración con ERP Core**
+### 4. **IntegraciÃ³n con ERP Core**
    - Consulta de clientes (Party Module)
    - Consulta de grupos de productos
    - Sales puede consultar MES works
 
 ---
 
-## 📐 Especificación Funcional MES
+## ðŸ“ EspecificaciÃ³n Funcional MES
 
 ### **Concepto Principal: Trabajo MES (MES Work)**
 
@@ -66,37 +66,37 @@ Un **Trabajo MES** es una orden de manufactura que define:
 - **Cliente:** Entidad (Party) asociada al trabajo
 - **Nombre del trabajo:** Identificador descriptivo
 - **Grupo de tangibles:** Tipo de prenda base (referencia a ProductGroup tangible)
-- **Observaciones de prenda:** Detalles específicos sobre la prenda
-- **Grupos de servicios:** Una o más configuraciones de servicios a aplicar
+- **Observaciones de prenda:** Detalles especÃ­ficos sobre la prenda
+- **Grupos de servicios:** Una o mÃ¡s configuraciones de servicios a aplicar
 
 ---
 
 ### **Entidades y Conceptos del Dominio MES**
 
 #### 1. **Task (Tarea)**
-Tarea genérica de manufactura que puede aplicarse a un trabajo.
+Tarea genÃ©rica de manufactura que puede aplicarse a un trabajo.
 
 **Atributos:**
 - `TaskID` (UUID)
-- `Name` (string) - ej: "Diseñar", "Imprimir", "Marcar", "Cortar"
+- `Name` (string) - ej: "DiseÃ±ar", "Imprimir", "Marcar", "Cortar"
 - `Description` (string)
 - `IsActive` (boolean)
 - `CreatedAt`, `UpdatedAt`
 
 **Ejemplo de tareas:**
-- Diseñar
+- DiseÃ±ar
 - Imprimir
-- Marcar (Serigrafía)
+- Marcar (SerigrafÃ­a)
 - Marcar (Bordado)
-- Marcar (Sublimación)
+- Marcar (SublimaciÃ³n)
 - Cortar
 - Coser
 - Planchar
 
 ---
 
-#### 2. **Position (Posición)**
-Posición física dentro de una prenda donde se aplica un servicio.
+#### 2. **Position (PosiciÃ³n)**
+PosiciÃ³n fÃ­sica dentro de una prenda donde se aplica un servicio.
 
 **Atributos:**
 - `PositionID` (UUID)
@@ -123,11 +123,11 @@ Posición física dentro de una prenda donde se aplica un servicio.
 ---
 
 #### 3. **ServiceGroup (Grupo de Servicio)**
-Define un conjunto de tareas que deben aplicarse según el tipo de servicio (ej: Serigrafía, Bordado).
+Define un conjunto de tareas que deben aplicarse segÃºn el tipo de servicio (ej: SerigrafÃ­a, Bordado).
 
 **Atributos:**
 - `ServiceGroupID` (UUID)
-- `Name` (string) - ej: "Serigrafía 1 color", "Bordado básico"
+- `Name` (string) - ej: "SerigrafÃ­a 1 color", "Bordado bÃ¡sico"
 - `Description` (string)
 - `ProductGroupID` (UUID, nullable) - Grupo de productos de servicio del ERP Core
 - `IsActive` (boolean)
@@ -137,8 +137,8 @@ Define un conjunto de tareas que deben aplicarse según el tipo de servicio (ej:
 - **ServiceGroupTasks** (many-to-many con Task)
   - `ServiceGroupID`
   - `TaskID`
-  - `Sequence` (int) - Orden de ejecución (1, 2, 3...)
-  - Ej: Serigrafía → 1:Diseñar, 2:Imprimir, 3:Marcar
+  - `Sequence` (int) - Orden de ejecuciÃ³n (1, 2, 3...)
+  - Ej: SerigrafÃ­a â†’ 1:DiseÃ±ar, 2:Imprimir, 3:Marcar
 
 ---
 
@@ -147,7 +147,7 @@ Orden de manufactura completa.
 
 **Atributos:**
 - `MESWorkID` (UUID) - Primary Key
-- `WorkNumber` (string) - Número único (ej: "MES-2026-001")
+- `WorkNumber` (string) - NÃºmero Ãºnico (ej: "MES-2026-001")
 - `WorkName` (string) - Nombre descriptivo
 - `PartyID` (UUID) - Cliente del ERP Core
 - `TangibleGroupID` (UUID) - Grupo de productos tangible (tipo de prenda)
@@ -161,42 +161,42 @@ Orden de manufactura completa.
 
 **Estados del trabajo:**
 - **DRAFT:** Borrador, no iniciado
-- **IN_PROGRESS:** En ejecución
+- **IN_PROGRESS:** En ejecuciÃ³n
 - **ON_HOLD:** Pausado temporalmente
 - **COMPLETED:** Finalizado exitosamente
 - **CANCELLED:** Cancelado
 
 **Prioridades:**
 - **LOW:** Baja prioridad
-- **NORMAL:** Prioridad estándar
+- **NORMAL:** Prioridad estÃ¡ndar
 - **HIGH:** Alta prioridad
 - **URGENT:** Urgente
 
 ---
 
-#### 5. **MESWorkServiceGroup (Aplicación de Servicio)**
-Instancia de un ServiceGroup aplicado a un MESWork específico.
+#### 5. **MESWorkServiceGroup (AplicaciÃ³n de Servicio)**
+Instancia de un ServiceGroup aplicado a un MESWork especÃ­fico.
 
 **Atributos:**
 - `MESWorkServiceGroupID` (UUID)
 - `MESWorkID` (UUID) - FK a MESWork
 - `ServiceGroupID` (UUID) - FK a ServiceGroup
-- `PositionID` (UUID) - FK a Position (dónde se aplica)
-- `DesignFilePath` (string, nullable) - Ruta al archivo de diseño
-- `Notes` (text) - Observaciones específicas
-- `Sequence` (int) - Orden dentro del trabajo (si hay múltiples grupos)
+- `PositionID` (UUID) - FK a Position (dÃ³nde se aplica)
+- `DesignFilePath` (string, nullable) - Ruta al archivo de diseÃ±o
+- `Notes` (text) - Observaciones especÃ­ficas
+- `Sequence` (int) - Orden dentro del trabajo (si hay mÃºltiples grupos)
 - `CreatedAt`, `UpdatedAt`
 
 ---
 
 #### 6. **MESWorkTask (Tarea de Trabajo Instanciada)**
-Tarea específica generada a partir de un ServiceGroup para seguimiento.
+Tarea especÃ­fica generada a partir de un ServiceGroup para seguimiento.
 
 **Atributos:**
 - `MESWorkTaskID` (UUID)
 - `MESWorkServiceGroupID` (UUID) - FK a MESWorkServiceGroup
 - `TaskID` (UUID) - FK a Task
-- `Sequence` (int) - Orden de ejecución (heredado de ServiceGroupTask)
+- `Sequence` (int) - Orden de ejecuciÃ³n (heredado de ServiceGroupTask)
 - `Status` (enum) - PENDING | IN_PROGRESS | COMPLETED | SKIPPED
 - `AssignedTo` (UUID, nullable) - UserID del operario (futuro)
 - `StartedAt` (timestamp, nullable)
@@ -206,7 +206,7 @@ Tarea específica generada a partir de un ServiceGroup para seguimiento.
 
 **Estados de tarea:**
 - **PENDING:** Sin iniciar
-- **IN_PROGRESS:** En ejecución
+- **IN_PROGRESS:** En ejecuciÃ³n
 - **COMPLETED:** Completada
 - **SKIPPED:** Omitida (no aplicable)
 
@@ -215,47 +215,47 @@ Tarea específica generada a partir de un ServiceGroup para seguimiento.
 ### **Flujo de Trabajo Completo**
 
 ```
-1. CONFIGURACIÓN (Admin UI):
-   - Crear Tasks (Diseñar, Imprimir, Marcar, Cortar...)
+1. CONFIGURACIÃ“N (Admin UI):
+   - Crear Tasks (DiseÃ±ar, Imprimir, Marcar, Cortar...)
    - Crear Positions (Pecho, Espalda, Manga...)
-   - Crear ServiceGroups (Serigrafía, Bordado...)
+   - Crear ServiceGroups (SerigrafÃ­a, Bordado...)
    - Asignar Tasks a ServiceGroups con orden
 
-2. CREACIÓN DE TRABAJO (Admin UI):
+2. CREACIÃ“N DE TRABAJO (Admin UI):
    - Seleccionar Cliente (Party)
    - Definir nombre de trabajo
    - Seleccionar tipo de prenda (ProductGroup tangible)
-   - Añadir observaciones de prenda
-   - Agregar uno o más ServiceGroups:
+   - AÃ±adir observaciones de prenda
+   - Agregar uno o mÃ¡s ServiceGroups:
      * Elegir ServiceGroup
      * Elegir Position
-     * Subir diseño (opcional)
-     * Añadir notas
-   - Al guardar → Se generan automáticamente MESWorkTasks
+     * Subir diseÃ±o (opcional)
+     * AÃ±adir notas
+   - Al guardar â†’ Se generan automÃ¡ticamente MESWorkTasks
 
-3. EJECUCIÓN (Tablet UI):
+3. EJECUCIÃ“N (Tablet UI):
    - Ver lista de trabajos (filtrado por estado/prioridad)
-   - Abrir un trabajo específico
+   - Abrir un trabajo especÃ­fico
    - Ver tareas en orden
    - Marcar tareas como completadas
-   - Añadir notas de producción
+   - AÃ±adir notas de producciÃ³n
 
 4. SEGUIMIENTO (Admin UI/Dashboard):
    - Ver estado de trabajos MES
    - Progreso de tareas (X de Y completadas)
    - Trabajos retrasados
-   - Estadísticas de producción
+   - EstadÃ­sticas de producciÃ³n
 
-5. INTEGRACIÓN CON SALES:
+5. INTEGRACIÃ“N CON SALES:
    - Al crear presupuesto/pedido:
      * Buscar trabajos MES del cliente
-     * Referenciar MES Work en línea de pedido
+     * Referenciar MES Work en lÃ­nea de pedido
      * Calcular pricing basado en ServiceGroups
 ```
 
 ---
 
-## 🗄️ Modelo de Base de Datos
+## ðŸ—„ï¸ Modelo de Base de Datos
 
 ### **Tabla: tasks**
 ```sql
@@ -397,109 +397,109 @@ CREATE INDEX idx_mes_work_tasks_sequence ON mes_work_tasks(mes_work_service_grou
 
 ---
 
-## 🏗️ Arquitectura Backend (Go)
+## ðŸ—ï¸ Arquitectura Backend (Go)
 
 ### Estructura de Directorios
 
 ```
 apps/tramatex-api/internal/mes/
-├── domain/
-│   ├── models/
-│   │   ├── task.go
-│   │   ├── position.go
-│   │   ├── service_group.go
-│   │   ├── mes_work.go (Aggregate Root)
-│   │   ├── mes_work_service_group.go
-│   │   └── mes_work_task.go
-│   ├── value_objects/
-│   │   ├── work_number.go
-│   │   ├── work_status.go
-│   │   ├── work_priority.go
-│   │   └── task_status.go
-│   └── repository/
-│       ├── task_repository.go (interface)
-│       ├── position_repository.go (interface)
-│       ├── service_group_repository.go (interface)
-│       └── mes_work_repository.go (interface)
-├── application/
-│   ├── commands/
-│   │   ├── create_task_command.go
-│   │   ├── create_position_command.go
-│   │   ├── create_service_group_command.go
-│   │   ├── create_mes_work_command.go
-│   │   ├── update_mes_work_command.go
-│   │   └── update_task_status_command.go
-│   ├── queries/
-│   │   ├── get_tasks_query.go
-│   │   ├── get_positions_query.go
-│   │   ├── get_service_groups_query.go
-│   │   ├── get_mes_works_query.go
-│   │   └── get_mes_work_details_query.go
-│   ├── dtos/
-│   │   ├── task_dto.go
-│   │   ├── position_dto.go
-│   │   ├── service_group_dto.go
-│   │   └── mes_work_dto.go
-│   └── service/
-│       └── mes_service.go
-├── infrastructure/
-│   ├── persistence/
-│   │   ├── task_repository_postgres.go
-│   │   ├── position_repository_postgres.go
-│   │   ├── service_group_repository_postgres.go
-│   │   └── mes_work_repository_postgres.go
-│   └── http/
-│       └── handlers/
-│           ├── task_handler.go
-│           ├── position_handler.go
-│           ├── service_group_handler.go
-│           └── mes_work_handler.go
-└── routes.go
+â”œâ”€â”€ domain/
+â”‚   â”œâ”€â”€ models/
+â”‚   â”‚   â”œâ”€â”€ task.go
+â”‚   â”‚   â”œâ”€â”€ position.go
+â”‚   â”‚   â”œâ”€â”€ service_group.go
+â”‚   â”‚   â”œâ”€â”€ mes_work.go (Aggregate Root)
+â”‚   â”‚   â”œâ”€â”€ mes_work_service_group.go
+â”‚   â”‚   â””â”€â”€ mes_work_task.go
+â”‚   â”œâ”€â”€ value_objects/
+â”‚   â”‚   â”œâ”€â”€ work_number.go
+â”‚   â”‚   â”œâ”€â”€ work_status.go
+â”‚   â”‚   â”œâ”€â”€ work_priority.go
+â”‚   â”‚   â””â”€â”€ task_status.go
+â”‚   â””â”€â”€ repository/
+â”‚       â”œâ”€â”€ task_repository.go (interface)
+â”‚       â”œâ”€â”€ position_repository.go (interface)
+â”‚       â”œâ”€â”€ service_group_repository.go (interface)
+â”‚       â””â”€â”€ mes_work_repository.go (interface)
+â”œâ”€â”€ application/
+â”‚   â”œâ”€â”€ commands/
+â”‚   â”‚   â”œâ”€â”€ create_task_command.go
+â”‚   â”‚   â”œâ”€â”€ create_position_command.go
+â”‚   â”‚   â”œâ”€â”€ create_service_group_command.go
+â”‚   â”‚   â”œâ”€â”€ create_mes_work_command.go
+â”‚   â”‚   â”œâ”€â”€ update_mes_work_command.go
+â”‚   â”‚   â””â”€â”€ update_task_status_command.go
+â”‚   â”œâ”€â”€ queries/
+â”‚   â”‚   â”œâ”€â”€ get_tasks_query.go
+â”‚   â”‚   â”œâ”€â”€ get_positions_query.go
+â”‚   â”‚   â”œâ”€â”€ get_service_groups_query.go
+â”‚   â”‚   â”œâ”€â”€ get_mes_works_query.go
+â”‚   â”‚   â””â”€â”€ get_mes_work_details_query.go
+â”‚   â”œâ”€â”€ dtos/
+â”‚   â”‚   â”œâ”€â”€ task_dto.go
+â”‚   â”‚   â”œâ”€â”€ position_dto.go
+â”‚   â”‚   â”œâ”€â”€ service_group_dto.go
+â”‚   â”‚   â””â”€â”€ mes_work_dto.go
+â”‚   â””â”€â”€ service/
+â”‚       â””â”€â”€ mes_service.go
+â”œâ”€â”€ infrastructure/
+â”‚   â”œâ”€â”€ persistence/
+â”‚   â”‚   â”œâ”€â”€ task_repository_postgres.go
+â”‚   â”‚   â”œâ”€â”€ position_repository_postgres.go
+â”‚   â”‚   â”œâ”€â”€ service_group_repository_postgres.go
+â”‚   â”‚   â””â”€â”€ mes_work_repository_postgres.go
+â”‚   â””â”€â”€ http/
+â”‚       â””â”€â”€ handlers/
+â”‚           â”œâ”€â”€ task_handler.go
+â”‚           â”œâ”€â”€ position_handler.go
+â”‚           â”œâ”€â”€ service_group_handler.go
+â”‚           â””â”€â”€ mes_work_handler.go
+â””â”€â”€ routes.go
 ```
 
 ---
 
-## 🎨 Frontend (Vue 3 + TypeScript)
+## ðŸŽ¨ Frontend (Vue 3 + TypeScript)
 
 ### Estructura de Directorios
 
 ```
 apps/frontend/src/
-├── api/
-│   └── mesApi.ts
-├── types/
-│   ├── mes/
-│   │   ├── task.ts
-│   │   ├── position.ts
-│   │   ├── serviceGroup.ts
-│   │   └── mesWork.ts
-├── pages/
-│   └── mes/
-│       ├── tasks/
-│       │   ├── List.vue
-│       │   ├── Create.vue
-│       ├── positions/
-│       │   ├── List.vue
-│       │   ├── Create.vue
-│       ├── service-groups/
-│       │   ├── List.vue
-│       │   ├── Create.vue
-│       ├── works/
-│       │   ├── List.vue
-│       │   ├── Create.vue
-│       │   └── Detail.vue
-│       └── Dashboard.vue
-└── components/
-    └── mes/
-        ├── TaskSelector.vue
-        ├── PositionSelector.vue
-        ├── ServiceGroupSelector.vue
-        └── WorkStatusBadge.vue
+â”œâ”€â”€ api/
+â”‚   â””â”€â”€ mesApi.ts
+â”œâ”€â”€ types/
+â”‚   â”œâ”€â”€ mes/
+â”‚   â”‚   â”œâ”€â”€ task.ts
+â”‚   â”‚   â”œâ”€â”€ position.ts
+â”‚   â”‚   â”œâ”€â”€ serviceGroup.ts
+â”‚   â”‚   â””â”€â”€ mesWork.ts
+â”œâ”€â”€ pages/
+â”‚   â””â”€â”€ mes/
+â”‚       â”œâ”€â”€ tasks/
+â”‚       â”‚   â”œâ”€â”€ List.vue
+â”‚       â”‚   â”œâ”€â”€ Create.vue
+â”‚       â”œâ”€â”€ positions/
+â”‚       â”‚   â”œâ”€â”€ List.vue
+â”‚       â”‚   â”œâ”€â”€ Create.vue
+â”‚       â”œâ”€â”€ service-groups/
+â”‚       â”‚   â”œâ”€â”€ List.vue
+â”‚       â”‚   â”œâ”€â”€ Create.vue
+â”‚       â”œâ”€â”€ works/
+â”‚       â”‚   â”œâ”€â”€ List.vue
+â”‚       â”‚   â”œâ”€â”€ Create.vue
+â”‚       â”‚   â””â”€â”€ Detail.vue
+â”‚       â””â”€â”€ Dashboard.vue
+â””â”€â”€ components/
+    â””â”€â”€ mes/
+        â”œâ”€â”€ TaskSelector.vue
+        â”œâ”€â”€ PositionSelector.vue
+        â”œâ”€â”€ ServiceGroupSelector.vue
+        â””â”€â”€ WorkStatusBadge.vue
 ```
 
 ---
 
-## 📋 Plan de Implementación (Fases)
+## ðŸ“‹ Plan de ImplementaciÃ³n (Fases)
 
 ### **FASE 1: Foundation - Master Data (~8-10h)**
 
@@ -507,7 +507,7 @@ apps/frontend/src/
 1. Crear migraciones de base de datos (tasks, positions, service_groups, service_group_tasks)
 2. Implementar Domain Models (Task, Position, ServiceGroup)
 3. Implementar Repositories (interfaces + PostgreSQL implementations)
-4. Implementar Commands/Queries para CRUD básico
+4. Implementar Commands/Queries para CRUD bÃ¡sico
 5. Implementar Service layer
 6. Implementar HTTP handlers
 7. Registrar rutas
@@ -515,22 +515,22 @@ apps/frontend/src/
 **Frontend:**
 8. Crear types TypeScript
 9. Implementar mesApi.ts (getTasks, createTask, getPositions, etc.)
-10. Crear páginas List/Create para Tasks
-11. Crear páginas List/Create para Positions
-12. Crear páginas List/Create para ServiceGroups
+10. Crear pÃ¡ginas List/Create para Tasks
+11. Crear pÃ¡ginas List/Create para Positions
+12. Crear pÃ¡ginas List/Create para ServiceGroups
 13. Agregar rutas en router
-14. Actualizar Navbar con sección MES
+14. Actualizar Navbar con secciÃ³n MES
 
 **Tests:**
 15. Unit tests backend (Domain + Application)
 16. Unit tests frontend (API + Components)
 
 **Entregables FASE 1:**
-- ✅ CRUD completo de Tasks
-- ✅ CRUD completo de Positions
-- ✅ CRUD completo de ServiceGroups
-- ✅ Asignación de Tasks a ServiceGroups
-- ✅ Tests con >70% coverage
+- âœ… CRUD completo de Tasks
+- âœ… CRUD completo de Positions
+- âœ… CRUD completo de ServiceGroups
+- âœ… AsignaciÃ³n de Tasks a ServiceGroups
+- âœ… Tests con >70% coverage
 
 ---
 
@@ -543,7 +543,7 @@ apps/frontend/src/
 4. Implementar Repository MESWorkRepository
 5. Implementar Commands (CreateMESWork, UpdateMESWork, UpdateTaskStatus)
 6. Implementar Queries (GetMESWorks, GetMESWorkDetails)
-7. Implementar lógica de generación automática de MESWorkTasks
+7. Implementar lÃ³gica de generaciÃ³n automÃ¡tica de MESWorkTasks
 8. Implementar HTTP handlers
 9. Registrar rutas
 
@@ -559,16 +559,16 @@ apps/frontend/src/
 18. Agregar rutas
 
 **Tests:**
-19. Unit tests backend (lógica de negocio crítica)
-20. Integration tests (creación completa de MES Work)
+19. Unit tests backend (lÃ³gica de negocio crÃ­tica)
+20. Integration tests (creaciÃ³n completa de MES Work)
 21. Unit tests frontend
 
 **Entregables FASE 2:**
-- ✅ Crear trabajos MES completos
-- ✅ Visualizar detalles de trabajo
-- ✅ Generación automática de tareas
-- ✅ Integración con Party y Product modules
-- ✅ Tests con >70% coverage
+- âœ… Crear trabajos MES completos
+- âœ… Visualizar detalles de trabajo
+- âœ… GeneraciÃ³n automÃ¡tica de tareas
+- âœ… IntegraciÃ³n con Party y Product modules
+- âœ… Tests con >70% coverage
 
 ---
 
@@ -587,9 +587,9 @@ apps/frontend/src/
 8. Agregar widget de estado MES en homepage
 
 **Entregables FASE 3:**
-- ✅ Dashboard MES con estadísticas
-- ✅ Vista de trabajos retrasados
-- ✅ Integración en Dashboard ERP
+- âœ… Dashboard MES con estadÃ­sticas
+- âœ… Vista de trabajos retrasados
+- âœ… IntegraciÃ³n en Dashboard ERP
 
 ---
 
@@ -605,12 +605,12 @@ apps/frontend/src/
 5. Crear MESWorkSelector component
 6. Integrar en OrderCreate/QuoteCreate
 7. Mostrar referencias a MES en OrderDetail/QuoteDetail
-8. Añadir pricing automático basado en ServiceGroups
+8. AÃ±adir pricing automÃ¡tico basado en ServiceGroups
 
 **Entregables FASE 4:**
-- ✅ Sales puede referenciar MES Works
-- ✅ Consulta de trabajos por cliente
-- ✅ Pricing integrado
+- âœ… Sales puede referenciar MES Works
+- âœ… Consulta de trabajos por cliente
+- âœ… Pricing integrado
 
 ---
 
@@ -620,27 +620,27 @@ _(Tablet interface para operarios, fuera del alcance de Sprint 12-01)_
 
 ---
 
-## ✅ Criterios de Aceptación (Sprint 12-01)
+## âœ… Criterios de AceptaciÃ³n (Sprint 12-01)
 
 ### Funcionales:
-- [x] **Administrador puede crear Tasks** (nombre, descripción)
-- [x] **Administrador puede crear Positions** (nombre, código)
+- [x] **Administrador puede crear Tasks** (nombre, descripciÃ³n)
+- [x] **Administrador puede crear Positions** (nombre, cÃ³digo)
 - [x] **Administrador puede crear ServiceGroups** y asignarles Tasks en orden
 - [x] **Administrador puede crear MES Work** completo:
   - Seleccionar cliente
   - Definir nombre y prenda base
-  - Agregar uno o más ServiceGroups con posiciones
-  - Sistema genera automáticamente las tareas (MESWorkTasks)
+  - Agregar uno o mÃ¡s ServiceGroups con posiciones
+  - Sistema genera automÃ¡ticamente las tareas (MESWorkTasks)
 - [x] **Administrador puede ver lista de MES Works** con filtros
 - [x] **Administrador puede ver detalle de MES Work** con todas las tareas
 - [x] **Dashboard muestra estado de MES Works** activos
 
-### Técnicos:
+### TÃ©cnicos:
 - [x] **Migraciones ejecutan sin errores** y crean todas las tablas
-- [x] **Backend respeta Clean Architecture** (Domain → Application → Infrastructure)
+- [x] **Backend respeta Clean Architecture** (Domain â†’ Application â†’ Infrastructure)
 - [~] **Todos los endpoints documentados** con ejemplos (implementados, Swagger pendiente Post-MVP)
-- [x] **Tests backend ≥70% coverage** en Domain y Application
-- [x] **Tests frontend ≥70% coverage** en componentes críticos
+- [x] **Tests backend â‰¥70% coverage** en Domain y Application
+- [x] **Tests frontend â‰¥70% coverage** en componentes crÃ­ticos
 - [x] **0 errores TypeScript**
 - [~] **0 errores de linting** (ESLint no configurado, pendiente Post-MVP)
 
@@ -651,94 +651,94 @@ _(Tablet interface para operarios, fuera del alcance de Sprint 12-01)_
 
 ---
 
-## 🚀 Próximos Pasos Inmediatos
+## ðŸš€ PrÃ³ximos Pasos Inmediatos
 
-### Sesión Actual (2026-02-18):
+### SesiÃ³n Actual (2026-02-18):
 
 1. **FASE 1 Backend (Completado 2026-02-20)**
-   - ✅ Migration `022_create_mes_master_data_tables.sql`
-   - ✅ Domain Models (Task, Position, ServiceGroup)
-   - ✅ Application layer (Commands/Queries/DTOs/Service)
-   - ✅ Infrastructure persistence (GORM repositories)
-   - ✅ HTTP handlers + rutas protegidas `/api/mes/*`
+   - âœ… Migration `022_create_mes_master_data_tables.sql`
+   - âœ… Domain Models (Task, Position, ServiceGroup)
+   - âœ… Application layer (Commands/Queries/DTOs/Service)
+   - âœ… Infrastructure persistence (GORM repositories)
+   - âœ… HTTP handlers + rutas protegidas `/api/mes/*`
 
 2. **Primera Funcionalidad: CRUD Tasks**
-   - ✅ Backend completo (Domain → Application → Infrastructure → HTTP)
-   - ✅ Frontend básico (List + Create)
-   - ⏳ Tests unitarios frontend
+   - âœ… Backend completo (Domain â†’ Application â†’ Infrastructure â†’ HTTP)
+   - âœ… Frontend bÃ¡sico (List + Create)
+   - â³ Tests unitarios frontend
 
 3. **Segunda Funcionalidad: CRUD Positions**
-   - ✅ Backend completo
-   - ✅ Frontend básico
-   - ⏳ Tests unitarios frontend
+   - âœ… Backend completo
+   - âœ… Frontend bÃ¡sico
+   - â³ Tests unitarios frontend
 
 4. **Tercera Funcionalidad: CRUD ServiceGroups**
-   - ✅ Backend completo con asignación de Tasks
-   - ✅ Frontend con selector multi-task
-   - ⏳ Tests unitarios frontend
+   - âœ… Backend completo con asignaciÃ³n de Tasks
+   - âœ… Frontend con selector multi-task
+   - â³ Tests unitarios frontend
 
-5. **Validación FASE 1:**
-   - ✅ Ejecutar compile/tests backend (`go test ./internal/mes/...`, `go test ./cmd/api`)
-   - ✅ Ejecutar tests frontend (MES API unit test)
-   - ✅ Validar cobertura ≥70%
+5. **ValidaciÃ³n FASE 1:**
+   - âœ… Ejecutar compile/tests backend (`go test ./internal/mes/...`, `go test ./cmd/api`)
+   - âœ… Ejecutar tests frontend (MES API unit test)
+   - âœ… Validar cobertura â‰¥70%
      - Backend Domain: **86.9%**
      - Backend Application: **72.8%**
      - Frontend `mesApi.ts`: **79.76%**
-   - ✅ Testing manual base de las 3 funcionalidades
-   - ✅ Build global frontend validado (`npm run build`)
+   - âœ… Testing manual base de las 3 funcionalidades
+   - âœ… Build global frontend validado (`npm run build`)
 
 6. **FASE 2 Core - MES Works (avance):**
-   - ✅ Migration `023_create_mes_works_tables.sql`
-   - ✅ Domain model `MESWork` + generación automática de `MESWorkTask` desde `service_group_tasks`
-   - ✅ Application layer (Create/List/Get MES Works)
-   - ✅ Persistence GORM para `mes_works`, `mes_work_service_groups`, `mes_work_tasks`
-   - ✅ HTTP routes `/api/mes/works` (POST/GET/GET:id)
-   - ✅ Frontend `/mes/works` (List/Create/Detail) + navegación
+   - âœ… Migration `023_create_mes_works_tables.sql`
+   - âœ… Domain model `MESWork` + generaciÃ³n automÃ¡tica de `MESWorkTask` desde `service_group_tasks`
+   - âœ… Application layer (Create/List/Get MES Works)
+   - âœ… Persistence GORM para `mes_works`, `mes_work_service_groups`, `mes_work_tasks`
+   - âœ… HTTP routes `/api/mes/works` (POST/GET/GET:id)
+   - âœ… Frontend `/mes/works` (List/Create/Detail) + navegaciÃ³n
 
 7. **FASE 3 Dashboard & Monitoring (completado y validado 2026-02-21):**
-   - ✅ Backend: endpoints `/api/mes/works/dashboard/stats` y `/api/mes/works/overdue`
-   - ✅ Frontend: página `/mes/dashboard` con KPIs, distribución por estado y trabajos vencidos
-   - ✅ Navegación: enlace al dashboard MES en Navbar
-   - ✅ Validación: tests relevantes en verde + `npm run build` exitoso
+   - âœ… Backend: endpoints `/api/mes/works/dashboard/stats` y `/api/mes/works/overdue`
+   - âœ… Frontend: pÃ¡gina `/mes/dashboard` con KPIs, distribuciÃ³n por estado y trabajos vencidos
+   - âœ… NavegaciÃ³n: enlace al dashboard MES en Navbar
+   - âœ… ValidaciÃ³n: tests relevantes en verde + `npm run build` exitoso
 
-8. **FASE 4 Ejecución Operativa Tablet/Workshop (completado y validado 2026-02-21):**
-   - ✅ Backend: endpoint `PATCH /api/mes/works/:workId/tasks/:taskId/status` y lógica de transición de tareas + recálculo de estado de trabajo
-   - ✅ Frontend: terminal `/mes/terminal` para operario/taller con acciones `START`, `PAUSE`, `COMPLETE`, `BLOCK`
-   - ✅ Integración UI: ruta activa, acceso desde navbar/dashboard MES y actualización de estado en tiempo real tras acción
-   - ✅ Validación técnica: `go test ./internal/mes/application/...`, `go test ./cmd/api ./internal/mes/...` y `npm run build` en verde
+8. **FASE 4 EjecuciÃ³n Operativa Tablet/Workshop (completado y validado 2026-02-21):**
+   - âœ… Backend: endpoint `PATCH /api/mes/works/:workId/tasks/:taskId/status` y lÃ³gica de transiciÃ³n de tareas + recÃ¡lculo de estado de trabajo
+   - âœ… Frontend: terminal `/mes/terminal` para operario/taller con acciones `START`, `PAUSE`, `COMPLETE`, `BLOCK`
+   - âœ… IntegraciÃ³n UI: ruta activa, acceso desde navbar/dashboard MES y actualizaciÃ³n de estado en tiempo real tras acciÃ³n
+   - âœ… ValidaciÃ³n tÃ©cnica: `go test ./internal/mes/application/...`, `go test ./cmd/api ./internal/mes/...` y `npm run build` en verde
 
-9. **Decisión de alcance MVP (aceptada):**
-   - ✅ Se mantiene implementado el flujo completo Backend + Frontend para ejecución operativa MES
-   - ⏳ Se difiere a **Post-MVP** el hardening estricto de bloqueos/guardas de transición (ej. validaciones adicionales de secuencia y reglas avanzadas de bloqueo)
+9. **DecisiÃ³n de alcance MVP (aceptada):**
+   - âœ… Se mantiene implementado el flujo completo Backend + Frontend para ejecuciÃ³n operativa MES
+   - â³ Se difiere a **Post-MVP** el hardening estricto de bloqueos/guardas de transiciÃ³n (ej. validaciones adicionales de secuencia y reglas avanzadas de bloqueo)
 
 ---
 
-## 📊 Métricas de Éxito
+## ðŸ“Š MÃ©tricas de Ã‰xito
 
-| Métrica | Target | Actual | Estado |
+| MÃ©trica | Target | Actual | Estado |
 |---------|--------|--------|--------|
-| Coverage Backend Domain | ≥80% | **86.9%** | ✅ Superado |
-| Coverage Backend Application | ≥70% | **72.9%** | ✅ Superado |
-| Coverage Frontend mesApi | ≥70% | **77.47%** | ✅ Superado |
-| Coverage Frontend Overall | ≥70% | **77.61%** | ✅ Superado |
-| TypeScript Errors | 0 | 0 | ✅ Cumplido |
-| Linting Errors | 0 | N/A | ⚠️ No configurado |
-| Frontend Tests Passing | >95% | **207/210 (98.6%)** | ✅ Superado |
-| Backend Tests Passing | 100% | 100% | ✅ Cumplido |
-| API Response Time | <200ms | No medido | ⏸️ Pendiente |
-| Funcionalidades FASE 1-4 | 4/4 | 4/4 | ✅ Completo |
+| Coverage Backend Domain | â‰¥80% | **86.9%** | âœ… Superado |
+| Coverage Backend Application | â‰¥70% | **72.9%** | âœ… Superado |
+| Coverage Frontend mesApi | â‰¥70% | **77.47%** | âœ… Superado |
+| Coverage Frontend Overall | â‰¥70% | **77.61%** | âœ… Superado |
+| TypeScript Errors | 0 | 0 | âœ… Cumplido |
+| Linting Errors | 0 | N/A | âš ï¸ No configurado |
+| Frontend Tests Passing | >95% | **207/210 (98.6%)** | âœ… Superado |
+| Backend Tests Passing | 100% | 100% | âœ… Cumplido |
+| API Response Time | <200ms | No medido | â¸ï¸ Pendiente |
+| Funcionalidades FASE 1-4 | 4/4 | 4/4 | âœ… Completo |
 
 ---
 
-## 📚 Referencias
+## ðŸ“š Referencias
 
-### Documentación Técnica:
+### DocumentaciÃ³n TÃ©cnica:
 - [Architecture Vision](../../../architecture/architecture-vision.md)
 - [Clean Architecture Guide](../../../guides/code-and-style-standards.md)
-- [ERP_CORE_COMPLETION.md](../../ERP_CORE_COMPLETION.md)
+- [erp-core-completion.md](../../erp-core-completion.md)
 - [Checklist Post-MVP MES Terminal Hardening](./02-mes-terminal-post-mvp-hardening.md)
 
-### Módulos Relacionados:
+### MÃ³dulos Relacionados:
 - Party Module: `internal/party/`
 - Product Module: `internal/product/`
 - Sales Module: `internal/sales/`
@@ -750,56 +750,57 @@ _(Tablet interface para operarios, fuera del alcance de Sprint 12-01)_
 
 ---
 
-## 🐛 Issues Conocidos
+## ðŸ› Issues Conocidos
 
-- Migration 020 (product_group_type) está deshabilitada temporalmente en `/tmp/`
-- Backend puede requerir corrección de esa migración antes de continuar
+- Migration 020 (product_group_type) estÃ¡ deshabilitada temporalmente en `/tmp/`
+- Backend puede requerir correcciÃ³n de esa migraciÃ³n antes de continuar
 
 ---
 
-## 📝 Notas de Implementación
+## ðŸ“ Notas de ImplementaciÃ³n
 
-### Consideraciones de Diseño:
+### Consideraciones de DiseÃ±o:
 
 1. **MESWork como Aggregate Root:**
-   - Toda modificación de tareas debe pasar por MESWork
+   - Toda modificaciÃ³n de tareas debe pasar por MESWork
    - Garantiza consistencia transaccional
 
-2. **Generación Automática de Tareas:**
-   - Al crear MESWorkServiceGroup, se generan automáticamente MESWorkTasks
+2. **GeneraciÃ³n AutomÃ¡tica de Tareas:**
+   - Al crear MESWorkServiceGroup, se generan automÃ¡ticamente MESWorkTasks
    - Basadas en service_group_tasks con sus sequences
 
-3. **Integración con ERP Core:**
+3. **IntegraciÃ³n con ERP Core:**
    - MES NO modifica entidades del ERP Core
    - MES solo lee (Party, ProductGroup)
-   - Relación unidireccional
+   - RelaciÃ³n unidireccional
 
 4. **Estados Inmutables:**
-   - WorkStatus y TaskStatus tienen transiciones válidas
+   - WorkStatus y TaskStatus tienen transiciones vÃ¡lidas
    - Implementar validaciones en Domain layer
 
-5. **Numeración de Trabajos:**
+5. **NumeraciÃ³n de Trabajos:**
    - WorkNumber auto-generado: formato "MES-YYYY-XXX"
    - Secuencial anual con reset
 
 ---
 
-## 🎉 Resultado Final
+## ðŸŽ‰ Resultado Final
 
-**Sprint 12-01 COMPLETADO con éxito el 2026-02-21**
+**Sprint 12-01 COMPLETADO con Ã©xito el 2026-02-21**
 
-- ✅ Todas las fases implementadas (1-4)
-- ✅ Criterios funcionales cumplidos (7/7)
-- ✅ Criterios técnicos cumplidos (5/7, 2 pendientes Post-MVP)
-- ✅ Integraciones operativas (3/3)
-- ✅ Sistema end-to-end funcional desde configuración hasta terminal de taller
+- âœ… Todas las fases implementadas (1-4)
+- âœ… Criterios funcionales cumplidos (7/7)
+- âœ… Criterios tÃ©cnicos cumplidos (5/7, 2 pendientes Post-MVP)
+- âœ… Integraciones operativas (3/3)
+- âœ… Sistema end-to-end funcional desde configuraciÃ³n hasta terminal de taller
 
-**Próximos Pasos:**
+**PrÃ³ximos Pasos:**
 - Hardening Post-MVP (ver checklist en `02-mes-terminal-post-mvp-hardening.md`)
 - Configurar ESLint para frontend
-- Agregar documentación Swagger/OpenAPI endpoints
+- Agregar documentaciÃ³n Swagger/OpenAPI endpoints
 
 ---
 
-**Última Actualización:** 2026-02-21  
+**Ãšltima ActualizaciÃ³n:** 2026-02-21  
 **Fecha Cierre:** 2026-02-21
+

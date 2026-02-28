@@ -237,9 +237,13 @@ Recurso base: `/products`
   "brandId": "string",
   "groupIds": ["string"],
   "directAttributeIds": ["string"],
+  "taxRate": "number",
   "isActive": "boolean"
 }
 ```
+
+**Campos:**
+- `taxRate`: Tasa de impuesto (IVA) aplicable al producto como porcentaje (ej: 21.00 = 21%). Valores típicos: 21.00 (general), 10.00 (reducido), 4.00 (súper reducido), 0.00 (exento)
 
 ### 2.2. Endpoints
 

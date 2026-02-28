@@ -67,7 +67,7 @@
 - [x] ~~Backend de Product debe estar documentado~~ ✅ Completado
 - [x] ~~Design system debe estar implementado~~ ✅ Completado
 - [x] ~~Party UI como referencia~~ ✅ Disponible
-- [ ] Backend de Product debe estar implementado (para testing real)
+- [x] Backend de Product debe estar implementado (para testing real)
 
 ### Prioridades para esta Tarea
 

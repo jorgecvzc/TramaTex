@@ -15,6 +15,8 @@ type PartyDTO struct {
 type PersonProfileDTO struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	Phone     string `json:"phone,omitempty"`
+	Email     string `json:"email,omitempty"`
 }
 
 type OrganizationProfileDTO struct {
@@ -22,6 +24,8 @@ type OrganizationProfileDTO struct {
 	TaxID     string              `json:"tax_id,omitempty"`
 	TaxIDType string              `json:"tax_id_type,omitempty"`
 	Website   string              `json:"website,omitempty"`
+	Phone     string              `json:"phone,omitempty"`
+	Email     string              `json:"email,omitempty"`
 	Contacts  []ContactDetailsDTO `json:"contacts,omitempty"`
 }
 
@@ -41,6 +45,7 @@ type PartyRelationshipDTO struct {
 }
 
 type AddressDTO struct {
+	ID         string `json:"id"`
 	Street     string `json:"street"`
 	City       string `json:"city"`
 	Province   string `json:"province,omitempty"`
@@ -61,6 +66,8 @@ type CreatePartyRequest struct {
 type PersonProfileRequest struct {
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
+	Phone     string `json:"phone,omitempty"`
+	Email     string `json:"email,omitempty"`
 }
 
 type OrganizationProfileRequest struct {
@@ -68,6 +75,8 @@ type OrganizationProfileRequest struct {
 	TaxID     string                  `json:"tax_id,omitempty"`
 	TaxIDType string                  `json:"tax_id_type,omitempty"`
 	Website   string                  `json:"website,omitempty"`
+	Phone     string                  `json:"phone,omitempty"`
+	Email     string                  `json:"email,omitempty"`
 	Contacts  []ContactDetailsRequest `json:"contacts,omitempty"`
 }
 
@@ -145,6 +154,12 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 			FirstName: profile.FirstName(),
 			LastName:  profile.LastName(),
 		}
+		if profile.Phone() != nil {
+			dto.PersonProfile.Phone = profile.Phone().Value()
+		}
+		if profile.Email() != nil {
+			dto.PersonProfile.Email = profile.Email().Value()
+		}
 	}
 
 	if profile := party.OrganizationProfile(); profile != nil {
@@ -156,6 +171,12 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 		if profile.TaxID() != nil {
 			orgDTO.TaxID = profile.TaxID().Value()
 			orgDTO.TaxIDType = profile.TaxID().Type()
+		}
+		if profile.Phone() != nil {
+			orgDTO.Phone = profile.Phone().Value()
+		}
+		if profile.Email() != nil {
+			orgDTO.Email = profile.Email().Value()
 		}
 
 		for _, contact := range profile.Contacts() {
@@ -216,12 +237,13 @@ func MapPartyRelationshipToDTO(relationship *domain.PartyRelationship) *PartyRel
 	}
 }
 
-func MapAddressToDTO(address *domain.Address) *AddressDTO {
+func MapAddressToDTO(address *domain.Address, addressID string) *AddressDTO {
 	if address == nil {
 		return nil
 	}
 
 	return &AddressDTO{
+		ID:         addressID,
 		Street:     address.Street(),
 		City:       address.City(),
 		Province:   address.Province(),
@@ -234,6 +256,7 @@ func MapAddressToDTO(address *domain.Address) *AddressDTO {
 type PartyBatchDTO struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
+	Reference string `json:"reference,omitempty"`
 	TaxID     string `json:"tax_id,omitempty"`
 	TaxIDType string `json:"tax_id_type,omitempty"`
 }
@@ -257,6 +280,20 @@ func MapPartyToBatchDTO(party *domain.Party) PartyBatchDTO {
 		}
 	} else if personProfile := party.PersonProfile(); personProfile != nil {
 		dto.Name = personProfile.FirstName() + " " + personProfile.LastName()
+	}
+
+	for _, role := range party.Roles() {
+		if role.CreationIdentifier() == nil {
+			continue
+		}
+
+		identifier := *role.CreationIdentifier()
+		if identifier == "" {
+			continue
+		}
+
+		dto.Reference = identifier
+		break
 	}
 
 	return dto

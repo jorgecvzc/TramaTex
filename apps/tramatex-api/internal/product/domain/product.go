@@ -4,20 +4,25 @@ import "github.com/google/uuid"
 
 // Brand represents an external aggregate root, defined here for context.
 type Brand struct {
-	ID       uuid.UUID
-	Name     string
-	IsActive bool
+	ID                      uuid.UUID
+	Name                    string
+	DefaultMarkupPercentage float64 // Default markup percentage for pricing (e.g., 30.0 = +30%)
+	IsActive                bool
 }
 
 // NewBrand creates a new Brand with validation.
-func NewBrand(name string, isActive bool) (*Brand, error) {
+func NewBrand(name string, isActive bool, defaultMarkupPercentage float64) (*Brand, error) {
 	if name == "" {
 		return nil, NewValidationError("brand name is required")
 	}
+	if defaultMarkupPercentage < 0 {
+		return nil, NewValidationError("brand default markup percentage cannot be negative")
+	}
 	return &Brand{
-		ID:       uuid.New(),
-		Name:     name,
-		IsActive: isActive,
+		ID:                      uuid.New(),
+		Name:                    name,
+		DefaultMarkupPercentage: defaultMarkupPercentage,
+		IsActive:                isActive,
 	}, nil
 }
 
@@ -111,6 +116,8 @@ type Product struct {
 	BrandID            uuid.UUID
 	GroupIDs           []uuid.UUID
 	DirectAttributeIDs []uuid.UUID
+	BasePrice          float64 // Base cost/price for this product, used as default for variants
+	TaxRate            float64 // Tax rate (VAT/IVA) as percentage (e.g., 21.0 = 21%)
 	IsActive           bool
 }
 
@@ -120,6 +127,8 @@ func NewProduct(
 	productType ProductType,
 	brandID uuid.UUID,
 	barcode *string,
+	basePrice float64,
+	taxRate float64,
 ) (*Product, error) {
 	if sku == "" {
 		return nil, NewValidationError("product SKU cannot be empty")
@@ -133,6 +142,12 @@ func NewProduct(
 	if brandID == uuid.Nil {
 		return nil, NewValidationError("product must be associated with a brand")
 	}
+	if basePrice < 0 {
+		return nil, NewValidationError("product base price cannot be negative")
+	}
+	if taxRate < 0 || taxRate > 100 {
+		return nil, NewValidationError("product tax rate must be between 0 and 100")
+	}
 
 	return &Product{
 		ID:                 uuid.New(),
@@ -145,6 +160,8 @@ func NewProduct(
 		BrandID:            brandID,
 		GroupIDs:           make([]uuid.UUID, 0),
 		DirectAttributeIDs: make([]uuid.UUID, 0),
+		BasePrice:          basePrice,
+		TaxRate:            taxRate,
 		IsActive:           true,
 	}, nil
 }

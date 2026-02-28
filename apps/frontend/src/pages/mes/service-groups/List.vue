@@ -5,10 +5,10 @@
       <header class="page-header">
         <div>
           <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Grupos de servicio MES</h1>
-          <p class="subtitle">Administra configuraciones de servicio y secuencias de tareas.</p>
+          <h1>Plantillas de proceso MES</h1>
+          <p class="subtitle">Administra plantillas operativas y secuencias de tareas.</p>
         </div>
-        <RouterLink to="/mes/service-groups/new" class="btn btn-primary">Nuevo grupo</RouterLink>
+        <RouterLink to="/mes/service-groups/new" class="btn btn-primary">Nueva plantilla</RouterLink>
       </header>
 
       <section class="card filters">
@@ -22,7 +22,7 @@
       </section>
 
       <section class="card">
-        <div v-if="isLoading" class="empty-state">Cargando grupos de servicio...</div>
+        <div v-if="isLoading" class="empty-state">Cargando plantillas de proceso...</div>
         <div v-else-if="error" class="alert">{{ error }}</div>
         <table v-else class="data-table">
           <thead>
@@ -45,7 +45,7 @@
               </td>
             </tr>
             <tr v-if="serviceGroups.length === 0">
-              <td colspan="4" class="empty-state">No hay grupos de servicio registrados.</td>
+              <td colspan="4" class="empty-state">No hay plantillas de proceso registradas.</td>
             </tr>
           </tbody>
         </table>
@@ -73,12 +73,12 @@ async function loadServiceGroups() {
 
   try {
     const isActive = statusFilter.value === '' ? undefined : statusFilter.value === 'true'
-    serviceGroups.value = await mesApi.listServiceGroups({
+    serviceGroups.value = await mesApi.listServiceTemplates({
       search: search.value.trim() || undefined,
       is_active: isActive,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar los grupos de servicio MES'
+    error.value = err.message || 'No se pudieron cargar las plantillas de proceso MES'
   } finally {
     isLoading.value = false
   }

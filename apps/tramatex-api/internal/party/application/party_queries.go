@@ -185,7 +185,7 @@ func NewListPartyAddressesHandler(addressRepo persistence.PartyAddressRepository
 	return &ListPartyAddressesHandler{addressRepo: addressRepo}
 }
 
-func (h *ListPartyAddressesHandler) Handle(ctx context.Context, query *ListPartyAddressesQuery) ([]*domain.Address, error) {
+func (h *ListPartyAddressesHandler) Handle(ctx context.Context, query *ListPartyAddressesQuery) ([]*persistence.AddressWithID, error) {
 	partyID, err := domain.NewPartyID(query.PartyID)
 	if err != nil {
 		return nil, domain.WrapValidation("invalid party ID", err)

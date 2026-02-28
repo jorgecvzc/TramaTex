@@ -103,6 +103,51 @@
         </span>
       </div>
 
+      <!-- Base Price -->
+      <div class="form-group">
+        <label for="basePrice">
+          Precio base (coste) *
+          <span class="required">obligatorio</span>
+        </label>
+        <input
+          id="basePrice"
+          v-model.number="localData.basePrice"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="ej. 25.50"
+          required
+          @blur="validateField('basePrice')"
+        />
+        <span v-if="errors.basePrice" class="error">{{ errors.basePrice }}</span>
+        <span class="hint">
+          Coste base del producto (usado para calcular precios de venta). Debe ser mayor o igual a 0.
+        </span>
+      </div>
+
+      <!-- Tax Rate -->
+      <div class="form-group">
+        <label for="taxRate">
+          IVA (%) *
+          <span class="required">obligatorio</span>
+        </label>
+        <select
+          id="taxRate"
+          v-model.number="localData.taxRate"
+          required
+          @change="validateField('taxRate')"
+        >
+          <option :value="21">21% (General)</option>
+          <option :value="10">10% (Reducido)</option>
+          <option :value="4">4% (Superreducido)</option>
+          <option :value="0">0% (Exento)</option>
+        </select>
+        <span v-if="errors.taxRate" class="error">{{ errors.taxRate }}</span>
+        <span class="hint">
+          Tipo de IVA aplicable al producto según legislación española.
+        </span>
+      </div>
+
       <!-- Form Actions -->
       <div class="form-actions">
         <button
@@ -143,6 +188,8 @@ const localData = reactive({
   name: props.modelValue.name || '',
   longName: props.modelValue.longName || '',
   description: props.modelValue.description || '',
+  basePrice: props.modelValue.basePrice !== undefined ? props.modelValue.basePrice : 0,
+  taxRate: props.modelValue.taxRate !== undefined ? props.modelValue.taxRate : 21,
 })
 
 // Validation errors
@@ -151,6 +198,8 @@ const errors = reactive({
   sku: '',
   name: '',
   longName: '',
+  basePrice: '',
+  taxRate: '',
 })
 
 // Watch local data changes and emit to parent
@@ -202,6 +251,32 @@ const validationRules = {
     }
     return ''
   },
+  basePrice: (value) => {
+    if (value === undefined || value === null || value === '') {
+      return 'El precio base es obligatorio'
+    }
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) {
+      return 'El precio base debe ser un número válido'
+    }
+    if (numValue < 0) {
+      return 'El precio base no puede ser negativo'
+    }
+    return ''
+  },
+  taxRate: (value) => {
+    if (value === undefined || value === null || value === '') {
+      return 'El IVA es obligatorio'
+    }
+    const numValue = parseFloat(value)
+    if (isNaN(numValue)) {
+      return 'El IVA debe ser un número válido'
+    }
+    if (numValue < 0 || numValue > 100) {
+      return 'El IVA debe estar entre 0 y 100'
+    }
+    return ''
+  },
 }
 
 // Validate a single field
@@ -234,10 +309,14 @@ const isStepValid = computed(() => {
     localData.productType !== '' &&
     localData.sku !== '' &&
     localData.name !== '' &&
+    localData.basePrice !== undefined &&
+    localData.basePrice !== null &&
+    localData.basePrice !== '' &&
     !errors.productType &&
     !errors.sku &&
     !errors.name &&
-    !errors.longName
+    !errors.longName &&
+    !errors.basePrice
   )
 })
 

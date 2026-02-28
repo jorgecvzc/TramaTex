@@ -26,6 +26,8 @@ type ServiceGroupTaskDTO struct {
 	Sequence int       `json:"sequence"`
 }
 
+type ServiceTemplateTaskDTO = ServiceGroupTaskDTO
+
 type ServiceGroupDTO struct {
 	ID             uuid.UUID             `json:"id"`
 	Name           string                `json:"name"`
@@ -34,6 +36,8 @@ type ServiceGroupDTO struct {
 	IsActive       bool                  `json:"is_active"`
 	Tasks          []ServiceGroupTaskDTO `json:"tasks"`
 }
+
+type ServiceTemplateDTO = ServiceGroupDTO
 
 type MESWorkTaskDTO struct {
 	ID          uuid.UUID  `json:"id"`
@@ -56,6 +60,8 @@ type MESWorkServiceGroupDTO struct {
 	Tasks          []MESWorkTaskDTO `json:"tasks"`
 }
 
+type MESWorkServiceTemplateDTO = MESWorkServiceGroupDTO
+
 type MESWorkDTO struct {
 	ID              uuid.UUID                `json:"id"`
 	WorkNumber      string                   `json:"work_number"`
@@ -70,6 +76,9 @@ type MESWorkDTO struct {
 	CompletedDate   *time.Time               `json:"completed_date,omitempty"`
 	ServiceGroups   []MESWorkServiceGroupDTO `json:"service_groups"`
 }
+
+type MESWorkDefinitionDTO = MESWorkDTO
+type MESWorkExecutionDTO = MESWorkDTO
 
 type MESWorkDashboardStatsDTO struct {
 	Total    int            `json:"total"`

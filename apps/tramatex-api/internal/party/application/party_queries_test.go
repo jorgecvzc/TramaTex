@@ -47,7 +47,7 @@ func (r *failingAddressRepo) Save(ctx context.Context, address *domain.Address, 
 	return nil
 }
 
-func (r *failingAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *failingAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*persistence.AddressWithID, error) {
 	return nil, r.findErr
 }
 
@@ -82,7 +82,7 @@ func assertPartyErrorCode(t *testing.T, err error, code domain.ErrorCode) {
 func TestGetPartyHandler_Success(t *testing.T) {
 	repo := newFakePartyRepo()
 	partyID, _ := domain.NewPartyID("party-q1")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 	_ = repo.Save(context.Background(), party, "user-1", "seed")
 

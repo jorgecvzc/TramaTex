@@ -13,6 +13,8 @@ import (
 type PersonProfileInput struct {
 	FirstName *string
 	LastName  *string
+	Phone     *string
+	Email     *string
 }
 
 type ContactDetailsInput struct {
@@ -28,6 +30,8 @@ type OrganizationProfileInput struct {
 	TaxID     *string
 	TaxIDType *string
 	Website   *string
+	Phone     *string
+	Email     *string
 }
 
 func stringValue(value *string) string {
@@ -82,9 +86,29 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 
 	var personProfile *domain.PersonProfile
 	if cmd.PersonProfile != nil {
+		var phone *domain.Phone
+		phoneValue := strings.TrimSpace(stringValue(cmd.PersonProfile.Phone))
+		if phoneValue != "" {
+			phone, err = domain.NewPhone(phoneValue)
+			if err != nil {
+				return nil, domain.WrapValidation("invalid phone", err)
+			}
+		}
+
+		var email *domain.Email
+		emailValue := strings.TrimSpace(stringValue(cmd.PersonProfile.Email))
+		if emailValue != "" {
+			email, err = domain.NewEmail(emailValue)
+			if err != nil {
+				return nil, domain.WrapValidation("invalid email", err)
+			}
+		}
+
 		personProfile, err = domain.NewPersonProfile(
 			stringValue(cmd.PersonProfile.FirstName),
 			stringValue(cmd.PersonProfile.LastName),
+			phone,
+			email,
 		)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid person profile", err)
@@ -106,10 +130,30 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 			}
 		}
 
+		var phone *domain.Phone
+		phoneValue := strings.TrimSpace(stringValue(cmd.OrganizationProfile.Phone))
+		if phoneValue != "" {
+			phone, err = domain.NewPhone(phoneValue)
+			if err != nil {
+				return nil, domain.WrapValidation("invalid phone", err)
+			}
+		}
+
+		var email *domain.Email
+		emailValue := strings.TrimSpace(stringValue(cmd.OrganizationProfile.Email))
+		if emailValue != "" {
+			email, err = domain.NewEmail(emailValue)
+			if err != nil {
+				return nil, domain.WrapValidation("invalid email", err)
+			}
+		}
+
 		organizationProfile, err = domain.NewOrganizationProfile(
 			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Name)),
 			taxID,
 			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Website)),
+			phone,
+			email,
 		)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid organization profile", err)
@@ -200,10 +244,14 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 	if cmd.PersonProfile != nil {
 		existing := party.PersonProfile()
 		var firstName, lastName string
+		var phone *domain.Phone
+		var email *domain.Email
 
 		if existing != nil {
 			firstName = existing.FirstName()
 			lastName = existing.LastName()
+			phone = existing.Phone()
+			email = existing.Email()
 		}
 
 		if cmd.PersonProfile.FirstName != nil {
@@ -213,12 +261,36 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			lastName = *cmd.PersonProfile.LastName
 		}
 
+		if cmd.PersonProfile.Phone != nil {
+			phoneValue := strings.TrimSpace(*cmd.PersonProfile.Phone)
+			if phoneValue == "" {
+				phone = nil
+			} else {
+				phone, err = domain.NewPhone(phoneValue)
+				if err != nil {
+					return nil, domain.WrapValidation("invalid phone", err)
+				}
+			}
+		}
+
+		if cmd.PersonProfile.Email != nil {
+			emailValue := strings.TrimSpace(*cmd.PersonProfile.Email)
+			if emailValue == "" {
+				email = nil
+			} else {
+				email, err = domain.NewEmail(emailValue)
+				if err != nil {
+					return nil, domain.WrapValidation("invalid email", err)
+				}
+			}
+		}
+
 		// If both are empty and there was no existing profile, it's an error.
 		if firstName == "" && lastName == "" && existing == nil {
 			return nil, domain.NewValidationError("person profile cannot be empty")
 		}
 
-		profile, err := domain.NewPersonProfile(firstName, lastName)
+		profile, err := domain.NewPersonProfile(firstName, lastName, phone, email)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid person profile", err)
 		}
@@ -230,9 +302,19 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 	if cmd.OrganizationProfile != nil {
 		existing := party.OrganizationProfile()
 		name := ""
+		var taxID *domain.TaxID
+		website := ""
+		var phone *domain.Phone
+		var email *domain.Email
+
 		if existing != nil {
 			name = existing.Name()
+			taxID = existing.TaxID()
+			website = existing.Website()
+			phone = existing.Phone()
+			email = existing.Email()
 		}
+
 		if cmd.OrganizationProfile.Name != nil {
 			name = strings.TrimSpace(*cmd.OrganizationProfile.Name)
 		}
@@ -240,10 +322,6 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			return nil, domain.NewValidationError("organization name is required")
 		}
 
-		var taxID *domain.TaxID
-		if existing != nil {
-			taxID = existing.TaxID()
-		}
 		if cmd.OrganizationProfile.TaxID != nil {
 			taxValue := strings.TrimSpace(*cmd.OrganizationProfile.TaxID)
 			if taxValue == "" {
@@ -260,15 +338,35 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			}
 		}
 
-		website := ""
-		if existing != nil {
-			website = existing.Website()
-		}
 		if cmd.OrganizationProfile.Website != nil {
 			website = strings.TrimSpace(*cmd.OrganizationProfile.Website)
 		}
 
-		profile, err := domain.NewOrganizationProfile(name, taxID, website)
+		if cmd.OrganizationProfile.Phone != nil {
+			phoneValue := strings.TrimSpace(*cmd.OrganizationProfile.Phone)
+			if phoneValue == "" {
+				phone = nil
+			} else {
+				phone, err = domain.NewPhone(phoneValue)
+				if err != nil {
+					return nil, domain.WrapValidation("invalid phone", err)
+				}
+			}
+		}
+
+		if cmd.OrganizationProfile.Email != nil {
+			emailValue := strings.TrimSpace(*cmd.OrganizationProfile.Email)
+			if emailValue == "" {
+				email = nil
+			} else {
+				email, err = domain.NewEmail(emailValue)
+				if err != nil {
+					return nil, domain.WrapValidation("invalid email", err)
+				}
+			}
+		}
+
+		profile, err := domain.NewOrganizationProfile(name, taxID, website, phone, email)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid organization profile", err)
 		}
@@ -342,6 +440,88 @@ func (h *ChangePartyStatusHandler) Handle(ctx context.Context, cmd *ChangePartyS
 	}
 
 	return party, nil
+}
+
+// DeletePartyCommand represents a hard delete request for a party
+type DeletePartyCommand struct {
+	ID      string
+	ActorID string
+}
+
+// DeletePartyHandler handles deletion of orphan contact parties
+type DeletePartyHandler struct {
+	partyRepo persistence.PartyRepository
+	relRepo   persistence.PartyRelationshipRepository
+}
+
+func NewDeletePartyHandler(partyRepo persistence.PartyRepository, relRepo persistence.PartyRelationshipRepository) *DeletePartyHandler {
+	return &DeletePartyHandler{partyRepo: partyRepo, relRepo: relRepo}
+}
+
+func (h *DeletePartyHandler) Handle(ctx context.Context, cmd *DeletePartyCommand) error {
+	actorID := strings.TrimSpace(cmd.ActorID)
+	if actorID == "" {
+		return domain.NewValidationError("actor ID is required")
+	}
+	if cmd.ID == "" {
+		return domain.NewValidationError("party ID cannot be empty")
+	}
+
+	partyID, err := domain.NewPartyID(cmd.ID)
+	if err != nil {
+		return domain.WrapValidation("invalid party ID", err)
+	}
+
+	// Verify party exists
+	_, err = h.partyRepo.FindByID(ctx, partyID)
+	if err != nil {
+		return domain.WrapNotFound("party not found", err)
+	}
+
+	// Check party relationships
+	relationships, err := h.relRepo.FindByPartyID(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to load party relationships", err)
+	}
+
+	if len(relationships) > 0 {
+		return domain.NewValidationError("party is linked to other entities and cannot be deleted")
+	}
+
+	hasContactRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to check contact details references", err)
+	}
+
+	if hasContactRefs {
+		return domain.NewValidationError("contact is referenced in organization contact details and cannot be deleted")
+	}
+
+	// Check MES work references
+	hasMESRefs, err := h.partyRepo.HasMESWorkReferences(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to check MES work references", err)
+	}
+
+	if hasMESRefs {
+		return domain.NewValidationError("party has MES work records and cannot be deleted")
+	}
+
+	// Check Sales references (quotes, orders, invoices, delivery notes)
+	hasSalesRefs, err := h.partyRepo.HasSalesReferences(ctx, partyID)
+	if err != nil {
+		return domain.WrapPersistence("failed to check sales references", err)
+	}
+
+	if hasSalesRefs {
+		return domain.NewValidationError("party has sales documents (quotes, orders, invoices, or delivery notes) and cannot be deleted")
+	}
+
+	if err := h.partyRepo.Delete(ctx, partyID); err != nil {
+		return domain.WrapPersistence("failed to delete party", err)
+	}
+
+	return nil
 }
 
 // AddPartyRoleCommand represents adding a role to a party
@@ -749,9 +929,10 @@ func (h *UpdateContactDetailsHandler) Handle(ctx context.Context, cmd *UpdateCon
 // RemoveContactDetailsCommand represents removing contact details from an organization profile
 
 type RemoveContactDetailsCommand struct {
-	PartyID   string
-	ContactID string
-	ActorID   string
+	PartyID              string
+	ContactID            string
+	ActorID              string
+	DeleteIfNoReferences bool // If true, also delete the contact party if it has no other references
 }
 
 // RemoveContactDetailsHandler handles removing contact details
@@ -802,6 +983,30 @@ func (h *RemoveContactDetailsHandler) Handle(ctx context.Context, cmd *RemoveCon
 
 	if err := h.partyRepo.Save(ctx, party, actorID, actorID); err != nil {
 		return domain.WrapPersistence("failed to save party", err)
+	}
+
+	// If requested, check if the contact party can be deleted
+	if cmd.DeleteIfNoReferences {
+		contactPartyID, err := domain.NewPartyID(cmd.ContactID)
+		if err != nil {
+			// Ignore error, just don't delete
+			return nil
+		}
+
+		// Check if contact has any other references
+		hasRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, contactPartyID)
+		if err != nil {
+			// Ignore error, just don't delete
+			return nil
+		}
+
+		// If no references, delete the contact party
+		if !hasRefs {
+			if err := h.partyRepo.Delete(ctx, contactPartyID); err != nil {
+				// Ignore error, the main operation succeeded
+				return nil
+			}
+		}
 	}
 
 	return nil
@@ -863,4 +1068,86 @@ func parsePartyRoleType(role string) (domain.PartyRoleType, error) {
 		return "", domain.NewValidationErrorf("invalid party role: %s", role)
 	}
 	return roleType, nil
+}
+
+// UpdatePartyAddressCommand represents updating an address of a party
+type UpdatePartyAddressCommand struct {
+	PartyID    string
+	AddressID  string
+	Street     string
+	City       string
+	Province   string
+	PostalCode string
+	Country    string
+	ActorID    string
+}
+
+// UpdatePartyAddressHandler handles updating addresses
+type UpdatePartyAddressHandler struct {
+	addressRepo persistence.PartyAddressRepository
+}
+
+func NewUpdatePartyAddressHandler(addressRepo persistence.PartyAddressRepository) *UpdatePartyAddressHandler {
+	return &UpdatePartyAddressHandler{addressRepo: addressRepo}
+}
+
+func (h *UpdatePartyAddressHandler) Handle(ctx context.Context, cmd *UpdatePartyAddressCommand) (*domain.Address, error) {
+	actorID := strings.TrimSpace(cmd.ActorID)
+	if actorID == "" {
+		return nil, domain.NewValidationError("actor ID is required")
+	}
+	partyID, err := domain.NewPartyID(cmd.PartyID)
+	if err != nil {
+		return nil, domain.WrapValidation("invalid party ID", err)
+	}
+
+	addressID, err := domain.NewAddressID(cmd.AddressID)
+	if err != nil {
+		return nil, domain.WrapValidation("invalid address ID", err)
+	}
+
+	address, err := domain.NewAddress(cmd.Street, cmd.City, cmd.Province, cmd.PostalCode, cmd.Country)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save method handles both create and update (upsert)
+	if err := h.addressRepo.Save(ctx, address, addressID, partyID, actorID, actorID); err != nil {
+		return nil, domain.WrapPersistence("failed to update address", err)
+	}
+
+	return address, nil
+}
+
+// RemovePartyAddressCommand represents removing an address from a party
+type RemovePartyAddressCommand struct {
+	AddressID string
+	ActorID   string
+}
+
+// RemovePartyAddressHandler handles address removal
+type RemovePartyAddressHandler struct {
+	addressRepo persistence.PartyAddressRepository
+}
+
+func NewRemovePartyAddressHandler(addressRepo persistence.PartyAddressRepository) *RemovePartyAddressHandler {
+	return &RemovePartyAddressHandler{addressRepo: addressRepo}
+}
+
+func (h *RemovePartyAddressHandler) Handle(ctx context.Context, cmd *RemovePartyAddressCommand) error {
+	actorID := strings.TrimSpace(cmd.ActorID)
+	if actorID == "" {
+		return domain.NewValidationError("actor ID is required")
+	}
+
+	addressID, err := domain.NewAddressID(cmd.AddressID)
+	if err != nil {
+		return domain.WrapValidation("invalid address ID", err)
+	}
+
+	if err := h.addressRepo.Delete(ctx, addressID); err != nil {
+		return domain.WrapPersistence("failed to delete address", err)
+	}
+
+	return nil
 }

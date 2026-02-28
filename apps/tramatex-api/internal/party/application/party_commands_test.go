@@ -60,6 +60,18 @@ func (r *fakePartyRepo) Count(ctx context.Context) (int64, error) {
 	return int64(len(r.parties)), nil
 }
 
+func (r *fakePartyRepo) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
+func (r *fakePartyRepo) HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
+func (r *fakePartyRepo) HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return false, nil
+}
+
 type errorPartyRepo struct {
 	inner     *fakePartyRepo
 	saveErr   error
@@ -102,6 +114,18 @@ func (r *errorPartyRepo) Exists(ctx context.Context, id domain.PartyID) (bool, e
 
 func (r *errorPartyRepo) Count(ctx context.Context) (int64, error) {
 	return r.inner.Count(ctx)
+}
+
+func (r *errorPartyRepo) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return r.inner.HasContactDetailsReferences(ctx, partyID)
+}
+
+func (r *errorPartyRepo) HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return r.inner.HasMESWorkReferences(ctx, partyID)
+}
+
+func (r *errorPartyRepo) HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
+	return r.inner.HasSalesReferences(ctx, partyID)
 }
 
 type fakeRelationshipRepo struct {
@@ -165,13 +189,13 @@ func (r *errorRelationshipRepo) Delete(ctx context.Context, id domain.PartyRelat
 }
 
 type fakePartyAddressRepo struct {
-	addressesByParty map[string][]*domain.Address
+	addressesByParty map[string][]*persistence.AddressWithID
 	addressesByID    map[string]*domain.Address
 }
 
 func newFakePartyAddressRepo() *fakePartyAddressRepo {
 	return &fakePartyAddressRepo{
-		addressesByParty: make(map[string][]*domain.Address),
+		addressesByParty: make(map[string][]*persistence.AddressWithID),
 		addressesByID:    make(map[string]*domain.Address),
 	}
 }
@@ -181,11 +205,14 @@ func (r *fakePartyAddressRepo) Save(ctx context.Context, address *domain.Address
 		return fmt.Errorf("address cannot be nil")
 	}
 	r.addressesByID[addressID.String()] = address
-	r.addressesByParty[partyID.String()] = append(r.addressesByParty[partyID.String()], address)
+	r.addressesByParty[partyID.String()] = append(r.addressesByParty[partyID.String()], &persistence.AddressWithID{
+		ID:      addressID.String(),
+		Address: address,
+	})
 	return nil
 }
 
-func (r *fakePartyAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *fakePartyAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*persistence.AddressWithID, error) {
 	return r.addressesByParty[partyID.String()], nil
 }
 
@@ -194,7 +221,7 @@ func (r *fakePartyAddressRepo) FindPrimary(ctx context.Context, partyID domain.P
 	if len(addresses) == 0 {
 		return nil, fmt.Errorf("no addresses")
 	}
-	return addresses[0], nil
+	return addresses[0].Address, nil
 }
 
 func (r *fakePartyAddressRepo) Delete(ctx context.Context, id domain.AddressID) error {
@@ -210,7 +237,7 @@ func (r *errorPartyAddressRepo) Save(ctx context.Context, address *domain.Addres
 	return r.saveErr
 }
 
-func (r *errorPartyAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error) {
+func (r *errorPartyAddressRepo) FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*persistence.AddressWithID, error) {
 	return nil, nil
 }
 
@@ -225,10 +252,10 @@ func (r *errorPartyAddressRepo) Delete(ctx context.Context, id domain.AddressID)
 func seedPartyWithProfiles(t *testing.T, repo *fakePartyRepo, id string, withOrg bool) *domain.Party {
 	t.Helper()
 	partyID, _ := domain.NewPartyID(id)
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	var orgProfile *domain.OrganizationProfile
 	if withOrg {
-		orgProfile, _ = domain.NewOrganizationProfile("Org", nil, "")
+		orgProfile, _ = domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	}
 	party, err := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, orgProfile)
 	if err != nil {
@@ -388,7 +415,7 @@ func TestUpdatePartyHandler_UpdatesProfilesAndStatus(t *testing.T) {
 func TestUpdatePartyHandler_ActivateStatus(t *testing.T) {
 	repo := newFakePartyRepo()
 	partyID, _ := domain.NewPartyID("party-activate")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusInactive, personProfile, nil)
 	_ = repo.Save(context.Background(), party, "user-1", "user-1")
 
@@ -459,7 +486,7 @@ func TestAddContactDetailsHandler_RequiresOrganizationProfile(t *testing.T) {
 func TestUpdateContactDetailsHandler_RequiresFields(t *testing.T) {
 	repo := newFakePartyRepo()
 	partyID, _ := domain.NewPartyID("party-contact-fields")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	_ = repo.Save(context.Background(), party, "user-1", "user-1")
 
@@ -478,7 +505,7 @@ func TestUpdateContactDetailsHandler_RequiresFields(t *testing.T) {
 func TestUpdateContactDetailsHandler_NotFound(t *testing.T) {
 	repo := newFakePartyRepo()
 	partyID, _ := domain.NewPartyID("party-contact-missing")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	_ = repo.Save(context.Background(), party, "user-1", "user-1")
 

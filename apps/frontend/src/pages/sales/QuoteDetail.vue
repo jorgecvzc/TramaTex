@@ -145,7 +145,7 @@
             <span class="value">{{ salesApi.formatMoney(quote.subtotal) }}</span>
           </div>
           <div class="info-row">
-            <span class="label">IVA (21%):</span>
+            <span class="label">IVA:</span>
             <span class="value">{{ salesApi.formatMoney(quote.taxAmount) }}</span>
           </div>
           <div class="info-row total">
@@ -179,7 +179,9 @@
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
                 <th>Descuento</th>
-                <th>Trabajo MES</th>
+                <th>IVA %</th>
+                <th>IVA línea</th>
+                <th>Definición MES</th>
                 <th>Subtotal</th>
               </tr>
             </thead>
@@ -192,6 +194,8 @@
                   <span v-if="item.manualUnitPrice" class="manual-badge">Manual</span>
                 </td>
                 <td>{{ item.finalDiscountPerUnit ? salesApi.formatMoney(item.finalDiscountPerUnit) : '—' }}</td>
+                <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
+                <td>{{ salesApi.formatMoney(item.taxAmount) }}</td>
                 <td>
                   <button
                     v-if="item.mesWorkId"
@@ -209,15 +213,15 @@
             </tbody>
             <tfoot>
               <tr class="totals-row">
-                <td colspan="5" class="totals-label">Subtotal:</td>
+                <td colspan="7" class="totals-label">Subtotal:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.subtotal) }}</td>
               </tr>
               <tr class="totals-row">
-                <td colspan="5" class="totals-label">IVA (21%):</td>
+                <td colspan="7" class="totals-label">IVA:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.taxAmount) }}</td>
               </tr>
               <tr class="totals-row total">
-                <td colspan="5" class="totals-label">Total:</td>
+                <td colspan="7" class="totals-label">Total:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.total) }}</td>
               </tr>
             </tfoot>
@@ -387,7 +391,7 @@ async function loadMesWorksForQuote() {
   const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
@@ -506,18 +510,18 @@ function formatMesWorkId(mesWorkId) {
 }
 
 function getMesWorkTooltip(mesWorkId) {
-  if (!mesWorkId) return 'Trabajo MES';
+  if (!mesWorkId) return 'Definición de trabajo MES';
   const mesWork = mesWorksCache.value[mesWorkId];
   if (mesWork?.work_number && mesWork?.work_name) {
     return `${mesWork.work_number} · ${mesWork.work_name}`;
   }
   if (mesWork?.work_number) return mesWork.work_number;
-  return `Trabajo MES ${mesWorkId}`;
+  return `Definición MES ${mesWorkId}`;
 }
 
 function goToMesWork(mesWorkId) {
   if (!mesWorkId) return;
-  router.push(`/mes/works/${mesWorkId}`);
+  router.push(`/mes/work-definitions/${mesWorkId}`);
 }
 
 function getStatusLabel(status) {

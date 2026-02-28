@@ -57,6 +57,9 @@ func (h *SalesHandler) ListQuotes(c *gin.Context) {
 	if partyID, ok := parseUUIDQuery(c, "partyId"); ok {
 		query.PartyID = partyID
 	}
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		query.Search = &search
+	}
 	if status := strings.TrimSpace(c.Query("status")); status != "" {
 		query.Status = &status
 	}
@@ -181,6 +184,9 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 	query := application.ListOrdersQuery{}
 	if partyID, ok := parseUUIDQuery(c, "partyId"); ok {
 		query.PartyID = partyID
+	}
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		query.Search = &search
 	}
 	if status := strings.TrimSpace(c.Query("status")); status != "" {
 		query.Status = &status
@@ -361,6 +367,9 @@ func (h *SalesHandler) ListDeliveryNotes(c *gin.Context) {
 	if partyID, ok := parseUUIDQuery(c, "partyId"); ok {
 		query.PartyID = partyID
 	}
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		query.Search = &search
+	}
 	if status := strings.TrimSpace(c.Query("status")); status != "" {
 		query.Status = &status
 	}
@@ -437,6 +446,9 @@ func (h *SalesHandler) ListInvoices(c *gin.Context) {
 	query := application.ListInvoicesQuery{}
 	if partyID, ok := parseUUIDQuery(c, "partyId"); ok {
 		query.PartyID = partyID
+	}
+	if search := strings.TrimSpace(c.Query("search")); search != "" {
+		query.Search = &search
 	}
 	if status := strings.TrimSpace(c.Query("status")); status != "" {
 		query.Status = &status

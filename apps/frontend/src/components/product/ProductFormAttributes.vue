@@ -8,7 +8,7 @@
     <form @submit.prevent="handleNext" class="step-form">
       <!-- Info Box -->
       <div class="info-box">
-        <span class="info-icon">ℹ️</span>
+        <Info :size="20" class="info-icon" />
         <div class="info-content">
           <p>
             <strong>¿Qué son los atributos?</strong> Los atributos definen las características configurables
@@ -121,7 +121,7 @@
 
         <!-- Empty State -->
         <div v-if="allAttributes.length === 0" class="empty-state">
-          <span class="empty-icon">📦</span>
+          <Package :size="64" class="empty-icon" />
           <p>No hay atributos disponibles.</p>
           <p class="empty-hint">
             Puedes crear atributos en la sección de "Gestión de Atributos" y luego asignarlos a este producto.
@@ -146,12 +146,13 @@
       <!-- Variant Strategy Info -->
       <div class="variant-info-box">
         <div class="variant-info-header">
-          <span class="variant-info-icon">🔄</span>
+          <RefreshCw :size="18" class="variant-info-icon" />
           <strong>Gestión de Variantes</strong>
         </div>
         <div v-if="hasAttributes" class="variant-info-content jit">
           <p>
-            <strong>⚡ Producto Configurable:</strong> Este producto tendrá variantes que se gestionarán automáticamente.
+            <Zap :size="16" style="vertical-align: middle; margin-right: 4px" />
+            <strong>Producto Configurable:</strong> Este producto tendrá variantes que se gestionarán automáticamente.
           </p>
           <ul>
             <li><strong>Just-in-Time (JIT):</strong> Al añadir a un pedido, las variantes se crearán automáticamente con estado PROVISIONAL</li>
@@ -161,7 +162,8 @@
         </div>
         <div v-else class="variant-info-content simple">
           <p>
-            <strong>📦 Producto Simple:</strong> Sin atributos configurables, este producto no tendrá variantes.
+            <Package :size="16" style="vertical-align: middle; margin-right: 4px" />
+            <strong>Producto Simple:</strong> Sin atributos configurables, este producto no tendrá variantes.
           </p>
           <ul>
             <li>Se podrá añadir directamente a pedidos usando su SKU base</li>
@@ -192,6 +194,7 @@
 
 <script setup>
 import { reactive, computed, onMounted, watch, ref } from 'vue'
+import { Info, Link, Package, RefreshCw, Zap } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

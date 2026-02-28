@@ -17,6 +17,10 @@ import { setupAuthGuards } from "./guards";
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/",
+    redirect: "/dashboard",
+  },
+  {
     path: "/login",
     name: "Login",
     component: Login,
@@ -292,7 +296,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/service-groups/List.vue"),
     meta: {
       requiresAuth: true,
-      title: "Grupos de Servicio MES - TramaTex",
+      title: "Plantillas de Proceso MES - TramaTex",
     },
   },
   {
@@ -301,35 +305,47 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/service-groups/Create.vue"),
     meta: {
       requiresAuth: true,
-      title: "Nuevo Grupo de Servicio MES - TramaTex",
+      title: "Nueva Plantilla de Proceso MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-definitions",
+    name: "MESWorkDefinitionsList",
+    component: () => import("@/pages/mes/works/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Definiciones de Trabajo MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-definitions/new",
+    name: "MESCreateWorkDefinition",
+    component: () => import("@/pages/mes/works/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nueva Definición de Trabajo MES - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-definitions/:id",
+    name: "MESWorkDefinitionDetail",
+    component: () => import("@/pages/mes/works/Detail.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Detalle Definición de Trabajo MES - TramaTex",
     },
   },
   {
     path: "/mes/works",
-    name: "MESWorksList",
-    component: () => import("@/pages/mes/works/List.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Trabajos MES - TramaTex",
-    },
+    redirect: "/mes/work-definitions",
   },
   {
     path: "/mes/works/new",
-    name: "MESCreateWork",
-    component: () => import("@/pages/mes/works/Create.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Nuevo Trabajo MES - TramaTex",
-    },
+    redirect: "/mes/work-definitions/new",
   },
   {
     path: "/mes/works/:id",
-    name: "MESWorkDetail",
-    component: () => import("@/pages/mes/works/Detail.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Detalle Trabajo MES - TramaTex",
-    },
+    redirect: to => `/mes/work-definitions/${to.params.id}`,
   },
   {
     path: "/mes/terminal",

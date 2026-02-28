@@ -21,9 +21,18 @@
           <PartySelector
             v-model="filters.partyId"
             label="Cliente"
-            placeholder="Buscar cliente..."
+            placeholder="Buscar cliente por nombre o referencia..."
             role-filter="CLIENT"
             :required="false"
+          />
+        </div>
+        <div class="filter-group">
+          <label>Búsqueda</label>
+          <input
+            v-model="filters.searchText"
+            type="text"
+            class="filter-input"
+            placeholder="Buscar por referencia o nombre"
           />
         </div>
         <div class="filter-group">
@@ -45,7 +54,7 @@
       </div>
       <div class="filter-actions">
         <button class="btn btn-secondary" @click="clearFilters">Limpiar</button>
-        <button class="btn btn-primary" @click="fetchInvoices">Buscar</button>
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">Buscar</button>
       </div>
     </div>
 
@@ -62,7 +71,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!invoices || invoices.length === 0" class="empty-state">
+    <div v-else-if="!filteredInvoices || filteredInvoices.length === 0" class="empty-state">
       <p>No se encontraron facturas con los criterios seleccionados</p>
       <button class="btn btn-primary" @click="showCreateInvoiceModal = true">
         Crear Primera Factura
@@ -86,7 +95,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="invoice in invoices"
+              v-for="invoice in filteredInvoices"
               :key="invoice.id"
               class="clickable-row"
               @click="navigateToDetail(invoice.id)"
@@ -115,7 +124,7 @@
         </table>
       </div>
       <div class="table-summary">
-        Mostrando {{ invoices.length }} factura(s)
+        Mostrando {{ filteredInvoices.length }} de {{ invoices.length }} factura(s)
       </div>
     </div>
 
@@ -131,7 +140,7 @@
             <PartySelector
               v-model="invoiceForm.partyId"
               label="Cliente"
-              placeholder="Buscar cliente..."
+              placeholder="Buscar cliente por nombre o referencia..."
               role-filter="CLIENT"
               :required="true"
               help-text="Cliente para el que se emitirá la factura"
@@ -184,7 +193,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -200,9 +209,77 @@ const partiesCache = ref({});
 
 const filters = ref({
   partyId: '',
+  searchText: '',
   type: '',
   fromDate: '',
   toDate: '',
+});
+
+const filteredInvoices = computed(() => {
+  return invoices.value;
+});
+
+const isDateRangeValid = computed(() => {
+  const hasFromDate = Boolean(filters.value.fromDate);
+  const hasToDate = Boolean(filters.value.toDate);
+  return hasFromDate === hasToDate;
+});
+
+let searchDebounceTimer = null;
+let autoFetchEnabled = false;
+
+function scheduleInvoicesFetch() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    fetchInvoices();
+  }, 300);
+}
+
+watch(
+  () => filters.value.searchText,
+  (newSearch, oldSearch) => {
+    const normalizedNew = (newSearch || '').trim();
+    const normalizedOld = (oldSearch || '').trim();
+    if (normalizedNew === normalizedOld) return;
+
+    scheduleInvoicesFetch();
+  },
+);
+
+watch(
+  () => [filters.value.partyId, filters.value.type],
+  (newValues, oldValues) => {
+    if (!oldValues) return;
+    if (newValues[0] === oldValues[0] && newValues[1] === oldValues[1]) return;
+
+    scheduleInvoicesFetch();
+  },
+);
+
+watch(
+  () => [filters.value.fromDate, filters.value.toDate],
+  (newValues, oldValues) => {
+    if (!autoFetchEnabled || !oldValues) return;
+
+    const [newFromDate, newToDate] = newValues;
+    const [oldFromDate, oldToDate] = oldValues;
+    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
+
+    const hasFromDate = Boolean(newFromDate);
+    const hasToDate = Boolean(newToDate);
+    if (hasFromDate !== hasToDate) return;
+
+    scheduleInvoicesFetch();
+  },
+);
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
 });
 
 const showCreateInvoiceModal = ref(false);
@@ -231,6 +308,8 @@ onMounted(() => {
   filters.value.fromDate = fromDate.toISOString().split('T')[0];
   filters.value.toDate = today.toISOString().split('T')[0];
 
+  autoFetchEnabled = true;
+
   fetchInvoices();
 });
 
@@ -241,6 +320,9 @@ async function fetchInvoices() {
   try {
     const params = {};
 
+    if (filters.value.searchText) {
+      params.searchText = filters.value.searchText;
+    }
     if (filters.value.partyId) {
       params.partyId = filters.value.partyId;
     }
@@ -333,10 +415,16 @@ async function createInvoice() {
 function clearFilters() {
   filters.value = {
     partyId: '',
+    searchText: '',
     type: '',
     fromDate: '',
     toDate: '',
   };
+  fetchInvoices();
+}
+
+function applyFilters() {
+  if (!isDateRangeValid.value) return;
   fetchInvoices();
 }
 

@@ -7,7 +7,7 @@
 // ENUMS & LITERALS
 // ============================================================================
 
-export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH'
+export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH' | 'CONTACT'
 export type PartyStatus = 'ACTIVE' | 'INACTIVE'
 export type TaxIdType = 'RUT' | 'DNI' | 'CUIT' | 'CUIL' | 'OTHER'
 export type ContactType = 'EMPLOYEE' | 'EXTERNAL'
@@ -56,6 +56,8 @@ export interface PartyUI {
   tax_id: string | null
   tax_id_type: TaxIdType | null
   website: string | null
+  phone: string | null
+  email: string | null
   created_at: string
   modified_at: string
   has_organization: boolean
@@ -92,7 +94,7 @@ export interface Address {
   id: string
   street: string
   city: string
-  state: string
+  province: string
   country: string
   postal_code: string
   is_primary: boolean
@@ -103,6 +105,8 @@ export interface Address {
 // REQUEST DTOs
 // ============================================================================
 
+export type EntityType = 'PERSON' | 'ORGANIZATION'
+
 export interface CreatePartyRequest {
   id?: string
   name: string
@@ -110,13 +114,21 @@ export interface CreatePartyRequest {
   taxId?: string | null
   taxIdType?: TaxIdType | null
   website?: string | null
+  phone?: string | null
+  email?: string | null
+  entityType?: EntityType  // New field to specify entity type
+  firstName?: string  // For person entities
+  lastName?: string   // For person entities
 }
 
 export interface UpdatePartyRequest {
   name: string
+  role?: PartyRole
   taxId?: string | null
   taxIdType?: TaxIdType | null
   website?: string | null
+  phone?: string | null
+  email?: string | null
 }
 
 export interface ChangePartyStatusRequest {
@@ -125,11 +137,13 @@ export interface ChangePartyStatusRequest {
 
 export interface CreateContactRequest {
   id?: string
+  existingContactId?: string
   firstName: string
   lastName: string
   email: string
   phone: string
   jobTitle: string
+  isPrimary?: boolean
 }
 
 export interface UpdateContactRequest {
@@ -167,6 +181,7 @@ export interface PaginatedResponse<T> {
 export interface PartyBatchItem {
   id: string
   name: string
+  reference?: string
   tax_id: string | null
   tax_id_type: TaxIdType | null
 }

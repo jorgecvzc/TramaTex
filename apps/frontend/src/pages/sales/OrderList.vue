@@ -17,9 +17,19 @@
           <PartySelector
             v-model="filters.partyId"
             label="Cliente"
-            placeholder="Buscar cliente..."
+            placeholder="Buscar cliente por nombre o referencia..."
             role-filter="CLIENT"
             :required="false"
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Búsqueda</label>
+          <input
+            v-model="filters.searchText"
+            type="text"
+            class="filter-input"
+            placeholder="Buscar por referencia o nombre"
           />
         </div>
 
@@ -58,7 +68,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
           Buscar
         </button>
       </div>
@@ -77,7 +87,7 @@
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="orders.length === 0" class="empty-state">
+    <div v-else-if="filteredOrders.length === 0" class="empty-state">
       <p>No se encontraron pedidos</p>
       <button class="btn btn-primary" @click="navigateToCreate">
         Crear Primer Pedido
@@ -100,7 +110,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="order in orders" :key="order.id" @click="navigateToDetail(order.id)" class="clickable-row">
+          <tr v-for="order in filteredOrders" :key="order.id" @click="navigateToDetail(order.id)" class="clickable-row">
             <td class="order-number">{{ order.orderNumber }}</td>
             <td>{{ formatPartyId(order.partyId) }}</td>
             <td>{{ formatDate(order.orderDate) }}</td>
@@ -143,14 +153,14 @@
 
       <!-- Summary -->
       <div class="table-summary">
-        <p>Mostrando {{ orders.length }} pedido(s)</p>
+        <p>Mostrando {{ filteredOrders.length }} de {{ orders.length }} pedido(s)</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -168,6 +178,7 @@ const mesWorksCache = ref({});
 
 const filters = ref({
   partyId: '',
+  searchText: '',
   status: '',
   fromDate: '',
   toDate: '',
@@ -175,9 +186,77 @@ const filters = ref({
 
 const hasFilters = computed(() => {
   return filters.value.partyId !== '' || 
+         filters.value.searchText.trim() !== '' ||
          filters.value.status !== '' || 
          filters.value.fromDate !== '' || 
          filters.value.toDate !== '';
+});
+
+const isDateRangeValid = computed(() => {
+  const hasFromDate = Boolean(filters.value.fromDate);
+  const hasToDate = Boolean(filters.value.toDate);
+  return hasFromDate === hasToDate;
+});
+
+const filteredOrders = computed(() => {
+  return orders.value;
+});
+
+let searchDebounceTimer = null;
+let autoFetchEnabled = false;
+
+function scheduleOrdersFetch() {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    fetchOrders();
+  }, 300);
+}
+
+watch(
+  () => filters.value.searchText,
+  (newSearch, oldSearch) => {
+    const normalizedNew = (newSearch || '').trim();
+    const normalizedOld = (oldSearch || '').trim();
+    if (normalizedNew === normalizedOld) return;
+
+    scheduleOrdersFetch();
+  },
+);
+
+watch(
+  () => [filters.value.partyId, filters.value.status],
+  (newValues, oldValues) => {
+    if (!oldValues) return;
+    if (newValues[0] === oldValues[0] && newValues[1] === oldValues[1]) return;
+
+    scheduleOrdersFetch();
+  },
+);
+
+watch(
+  () => [filters.value.fromDate, filters.value.toDate],
+  (newValues, oldValues) => {
+    if (!autoFetchEnabled || !oldValues) return;
+
+    const [newFromDate, newToDate] = newValues;
+    const [oldFromDate, oldToDate] = oldValues;
+    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
+
+    const hasFromDate = Boolean(newFromDate);
+    const hasToDate = Boolean(newToDate);
+    if (hasFromDate !== hasToDate) return;
+
+    scheduleOrdersFetch();
+  },
+);
+
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
 });
 
 onMounted(() => {
@@ -188,6 +267,8 @@ onMounted(() => {
   
   filters.value.fromDate = thirtyDaysAgo.toISOString().split('T')[0];
   filters.value.toDate = today.toISOString().split('T')[0];
+
+  autoFetchEnabled = true;
   
   fetchOrders();
 });
@@ -199,6 +280,7 @@ async function fetchOrders() {
   try {
     const apiFilters = {};
     
+    if (filters.value.searchText) apiFilters.searchText = filters.value.searchText;
     if (filters.value.partyId) apiFilters.partyId = filters.value.partyId;
     if (filters.value.status) apiFilters.status = filters.value.status;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
@@ -261,7 +343,7 @@ async function loadMesWorksForOrders() {
   const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWork(id)));
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
@@ -269,11 +351,13 @@ async function loadMesWorksForOrders() {
 }
 
 function applyFilters() {
+  if (!isDateRangeValid.value) return;
   fetchOrders();
 }
 
 function clearFilters() {
   filters.value.partyId = '';
+  filters.value.searchText = '';
   filters.value.status = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';

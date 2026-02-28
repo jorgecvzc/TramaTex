@@ -272,6 +272,8 @@ func (tdb *TestDB) SetUpSales() error {
 			"final_discount_per_unit_currency" VARCHAR(3) NOT NULL,
 			"subtotal_amount" NUMERIC(12,2) NOT NULL,
 			"subtotal_currency" VARCHAR(3) NOT NULL,
+			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
+			"tax_amount" NUMERIC(10,2),
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"deleted_at" TIMESTAMP WITH TIME ZONE
@@ -317,6 +319,8 @@ func (tdb *TestDB) SetUpSales() error {
 			"final_discount_per_unit_currency" VARCHAR(3) NOT NULL,
 			"subtotal_amount" NUMERIC(12,2) NOT NULL,
 			"subtotal_currency" VARCHAR(3) NOT NULL,
+			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
+			"tax_amount" NUMERIC(10,2),
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"deleted_at" TIMESTAMP WITH TIME ZONE
@@ -377,6 +381,7 @@ func (tdb *TestDB) SetUpSales() error {
 			"quantity" INT NOT NULL,
 			"unit_price_amount" NUMERIC(12,2) NOT NULL,
 			"unit_price_currency" VARCHAR(3) NOT NULL,
+			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
 			"discount_amount" NUMERIC(12,2),
 			"discount_currency" VARCHAR(3),
 			"subtotal_amount" NUMERIC(12,2) NOT NULL,

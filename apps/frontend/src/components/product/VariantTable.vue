@@ -4,15 +4,17 @@
       <div>
         <h3>Variantes del Producto</h3>
         <p class="table-description">
-          Listado de todas las variantes configuradas con sus precios base de venta.
+          Listado de todas las variantes configuradas con sus costos base.
         </p>
       </div>
       <div class="header-actions">
         <button @click="openAddVariantModal" class="btn btn-primary" :disabled="isLoading">
-          ➕ Añadir Variante
+          <Plus :size="16" />
+          Añadir Variante
         </button>
         <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-          🔄 Actualizar
+          <RefreshCw :size="16" />
+          Actualizar
         </button>
       </div>
     </div>
@@ -25,14 +27,15 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && variants.length === 0" class="empty-state">
-      <span class="empty-icon">📦</span>
+      <Package :size="64" class="empty-icon" />
       <p>No hay variantes creadas para este producto.</p>
       <p class="empty-hint">
         Las variantes se crean automáticamente (Just-in-Time) cuando se añaden a una orden,
         o puedes generarlas manualmente según las combinaciones de atributos disponibles.
       </p>
-      <button class="btn btn-primary">
-        ⚡ Generar variantes
+      <button class="btn btn-primary" @click="openBatchCreator">
+        <Zap :size="16" />
+        Generar variantes
       </button>
     </div>
 
@@ -45,7 +48,7 @@
             <th>Configuración</th>
             <th>Código de barras</th>
             <th>Estado</th>
-            <th class="align-right">Precio Base</th>
+            <th class="align-right">Costo Base</th>
             <th class="align-center">Acciones</th>
           </tr>
         </thead>
@@ -85,11 +88,8 @@
               <span v-else class="pill inactive">Inactivo</span>
             </td>
             <td class="align-right">
-              <span v-if="variantPrices[variant.id]" class="price">
-                {{ formatPrice(variantPrices[variant.id]) }}
-              </span>
-              <span v-else-if="loadingPrices[variant.id]" class="loading-price">
-                <div class="spinner-small"></div>
+              <span v-if="variant.base_cost !== undefined && variant.base_cost !== null" class="price base-cost">
+                {{ formatPrice(variant.base_cost) }}
               </span>
               <span v-else class="text-muted">—</span>
             </td>
@@ -99,14 +99,14 @@
                 class="btn-icon"
                 title="Ver detalles"
               >
-                👁️
+                <Eye :size="16" />
               </button>
               <button
                 @click="openEditVariantModal(variant)"
                 class="btn-icon"
                 title="Editar variante"
               >
-                ✏️
+                <Edit2 :size="16" />
               </button>
             </td>
           </tr>
@@ -130,13 +130,24 @@
       @close="closeVariantForm"
       @saved="handleVariantSaved"
     />
+
+    <!-- Batch Creator Modal -->
+    <VariantBatchCreator
+      v-if="showBatchCreator"
+      :product-id="productId"
+      :product-sku="productSku"
+      @close="closeBatchCreator"
+      @created="handleBatchCreated"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref } from 'vue'
+import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
+import VariantBatchCreator from './VariantBatchCreator.vue'
 
 const props = defineProps({
   productId: {
@@ -160,51 +171,11 @@ const props = defineProps({
 const emit = defineEmits(['refresh'])
 
 // State
-const variantPrices = ref({})
-const loadingPrices = ref({})
 const showVariantForm = ref(false)
 const editingVariant = ref(null)
-
-// Lifecycle
-onMounted(() => {
-  fetchPricesForVariants()
-})
-
-// Watchers
-watch(() => props.variants, () => {
-  fetchPricesForVariants()
-}, { deep: true })
+const showBatchCreator = ref(false)
 
 // Methods
-async function fetchPricesForVariants() {
-  if (!props.variants || props.variants.length === 0) return
-
-  // Mark all as loading
-  props.variants.forEach(variant => {
-    loadingPrices.value[variant.id] = true
-  })
-
-  // Fetch prices (this will call Pricing API in the future)
-  // For now, simulate with mock data
-  for (const variant of props.variants) {
-    try {
-      // TODO: Replace with actual Pricing API call
-      // const price = await pricingApi.calculateBaseSalesPrice(variant.id)
-
-      // Mock: Simulate API delay and random price
-      await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 500))
-      variantPrices.value[variant.id] = {
-        amount: (15 + Math.random() * 35).toFixed(2),
-        currency: 'EUR'
-      }
-    } catch (err) {
-      console.error(`Error fetching price for variant ${variant.id}:`, err)
-      variantPrices.value[variant.id] = null
-    } finally {
-      loadingPrices.value[variant.id] = false
-    }
-  }
-}
 
 function formatPrice(price) {
   if (!price || !price.amount) return '—'
@@ -249,6 +220,25 @@ function closeVariantForm() {
 
 function handleVariantSaved() {
   // Refresh the variant list
+  emit('refresh')
+}
+
+function openBatchCreator() {
+  showBatchCreator.value = true
+}
+
+function closeBatchCreator() {
+  showBatchCreator.value = false
+}
+
+function handleBatchCreated(result) {
+  console.log('Batch created:', result)
+  if (result.created && result.created.length > 0) {
+    alert(`✅ Se crearon ${result.created.length} variante(s) exitosamente`)
+  }
+  if (result.errors && result.errors.length > 0) {
+    console.error('Errors creating variants:', result.errors)
+  }
   emit('refresh')
 }
 </script>
@@ -685,5 +675,16 @@ td.align-center {
   .attribute-values {
     flex-direction: column;
   }
+}
+
+/* Price styling */
+.price.base-cost {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.price.sale-price {
+  color: #16a34a;
+  font-weight: 700;
 }
 </style>

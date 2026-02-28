@@ -123,6 +123,7 @@ describe('SalesApi Service', () => {
       })
 
       await salesApi.listQuotes({
+        searchText: 'acme',
         partyId: 'party-001',
         status: 'DRAFT',
         fromDate: '2026-01-01',
@@ -130,6 +131,7 @@ describe('SalesApi Service', () => {
       })
 
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
+      expect(fetchUrl).toContain('search=acme')
       expect(fetchUrl).toContain('partyId=party-001')
       expect(fetchUrl).toContain('status=DRAFT')
       expect(fetchUrl).toContain('fromDate=2026-01-01')
@@ -363,6 +365,7 @@ describe('SalesApi Service', () => {
       })
 
       await salesApi.listOrders({
+        searchText: 'acme',
         partyId: 'party-001',
         status: 'CONFIRMED',
         fromDate: '2026-01-01',
@@ -370,6 +373,7 @@ describe('SalesApi Service', () => {
       })
 
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
+      expect(fetchUrl).toContain('search=acme')
       expect(fetchUrl).toContain('partyId=party-001')
       expect(fetchUrl).toContain('status=CONFIRMED')
     })
@@ -670,16 +674,17 @@ describe('SalesApi Service', () => {
       expect(result[0].delivery_note_number).toBe('DN-001')
     })
 
-    it('should filter by orderId', async () => {
+    it('should filter by orderId and search', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => [],
       })
 
-      await salesApi.listDeliveryNotes({ orderId: 'order-001' })
+      await salesApi.listDeliveryNotes({ orderId: 'order-001', searchText: 'acme' })
 
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
       expect(fetchUrl).toContain('salesOrderId=order-001')
+      expect(fetchUrl).toContain('search=acme')
     })
 
     it('should handle error when listing delivery notes', async () => {
@@ -839,16 +844,17 @@ describe('SalesApi Service', () => {
       expect(result[0].invoice_number).toBe('INV-001')
     })
 
-    it('should filter by orderId', async () => {
+    it('should filter by orderId and search', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => [],
       })
 
-      await salesApi.listInvoices({ orderId: 'order-001' })
+      await salesApi.listInvoices({ orderId: 'order-001', searchText: 'acme' })
 
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
       expect(fetchUrl).toContain('orderId=order-001')
+      expect(fetchUrl).toContain('search=acme')
     })
 
     it('should filter by partyId', async () => {

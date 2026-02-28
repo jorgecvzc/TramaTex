@@ -146,11 +146,23 @@ func (m *MockPricingEngine) CalculateFinalSalePrice(ctx context.Context, req pri
 
 type MockPartyLookup struct {
 	mock.Mock
+	existsPartyFn  func(context.Context, uuid.UUID) (bool, error)
+	hasPartyRoleFn func(context.Context, uuid.UUID, string) (bool, error)
 }
 
 func (m *MockPartyLookup) ExistsParty(ctx context.Context, partyID uuid.UUID) (bool, error) {
+	if m.existsPartyFn != nil {
+		return m.existsPartyFn(ctx, partyID)
+	}
 	args := m.Called(ctx, partyID)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockPartyLookup) HasPartyRole(ctx context.Context, partyID uuid.UUID, role string) (bool, error) {
+	if m.hasPartyRoleFn != nil {
+		return m.hasPartyRoleFn(ctx, partyID, role)
+	}
+	return true, nil
 }
 
 type MockNumberGenerator struct {
@@ -257,6 +269,41 @@ func TestSalesService_CreateQuote_PartyNotFound(t *testing.T) {
 	var domainErr domain.DomainError
 	assert.True(t, errors.As(err, &domainErr))
 	assert.Equal(t, domain.ErrCodeNotFound, domainErr.Code)
+	quoteRepo.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
+}
+
+func TestSalesService_CreateQuote_PartyNotClient(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	pricing := new(MockPricingEngine)
+	partyLookup := &MockPartyLookup{
+		existsPartyFn: func(context.Context, uuid.UUID) (bool, error) {
+			return true, nil
+		},
+		hasPartyRoleFn: func(context.Context, uuid.UUID, string) (bool, error) {
+			return false, nil
+		},
+	}
+	numbers := new(MockNumberGenerator)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup)
+	cmd := application.CreateQuoteCommand{
+		PartyID:        partyID,
+		ExpirationDate: time.Now().Add(24 * time.Hour),
+		Items: []application.QuoteLineItemInput{
+			{ProductVariantID: variantID, Quantity: 1},
+		},
+	}
+
+	_, err := service.CreateQuote(ctx, cmd)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "party must have CLIENT role")
 	quoteRepo.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 }
 

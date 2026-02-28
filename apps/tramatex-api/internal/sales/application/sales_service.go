@@ -17,6 +17,7 @@ type PricingEngine interface {
 
 type PartyLookup interface {
 	ExistsParty(ctx context.Context, partyID uuid.UUID) (bool, error)
+	HasPartyRole(ctx context.Context, partyID uuid.UUID, role string) (bool, error)
 }
 
 type DocumentNumberGenerator interface {
@@ -86,6 +87,12 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 	taxAmount, err := zeroMoney()
 	if err != nil {
 		return nil, err
+	}
+	for _, lineItem := range lineItems {
+		taxAmount, err = taxAmount.Add(lineItem.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
 	}
 	notes := ""
 	if cmd.Notes != nil {
@@ -270,6 +277,12 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 	if err != nil {
 		return nil, err
 	}
+	for _, lineItem := range lineItems {
+		taxAmount, err = taxAmount.Add(lineItem.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
+	}
 	notes := ""
 	if cmd.Notes != nil {
 		notes = *cmd.Notes
@@ -382,6 +395,12 @@ func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineIte
 	taxAmount, err := zeroMoney()
 	if err != nil {
 		return nil, err
+	}
+	for _, lineItem := range lineItems {
+		taxAmount, err = taxAmount.Add(lineItem.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
 	}
 	order.LineItems = lineItems
 	order.TaxAmount = taxAmount
@@ -735,7 +754,7 @@ func (s *SalesService) GetQuote(ctx context.Context, query GetQuoteByIDQuery) (*
 }
 
 func (s *SalesService) ListQuotes(ctx context.Context, query ListQuotesQuery) ([]*QuoteDTO, error) {
-	filter := domain.QuoteFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate}
+	filter := domain.QuoteFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
 	if query.Status != nil {
 		status, err := parseQuoteStatus(*query.Status)
 		if err != nil {
@@ -766,7 +785,7 @@ func (s *SalesService) GetOrder(ctx context.Context, query GetOrderByIDQuery) (*
 }
 
 func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([]*SalesOrderDTO, error) {
-	filter := domain.SalesOrderFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate}
+	filter := domain.SalesOrderFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
 	if query.Status != nil {
 		status, err := parseOrderStatus(*query.Status)
 		if err != nil {
@@ -802,6 +821,7 @@ func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDelivery
 		PartyID:      query.PartyID,
 		FromDate:     query.FromDate,
 		ToDate:       query.ToDate,
+		Search:       query.Search,
 	}
 	if query.Status != nil {
 		status, err := parseDeliveryNoteStatus(*query.Status)
@@ -833,7 +853,7 @@ func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery
 }
 
 func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery) ([]*InvoiceDTO, error) {
-	filter := domain.InvoiceFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate}
+	filter := domain.InvoiceFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
 	if query.Status != nil {
 		status, err := parseInvoiceStatus(*query.Status)
 		if err != nil {
@@ -862,6 +882,13 @@ func (s *SalesService) ensurePartyExists(ctx context.Context, partyID uuid.UUID)
 	}
 	if !exists {
 		return domain.NewNotFoundError("party not found")
+	}
+	isClient, err := s.partyLookup.HasPartyRole(ctx, partyID, "CLIENT")
+	if err != nil {
+		return err
+	}
+	if !isClient {
+		return domain.NewValidationError("party must have CLIENT role to sell")
 	}
 	return nil
 }
@@ -941,6 +968,7 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 			manualUnit,
 			calculatedDiscount,
 			manualDiscount,
+			pricing.CalculatedItems[i].TaxRate,
 		)
 		if err != nil {
 			return nil, err
@@ -1022,6 +1050,7 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 			manualUnit,
 			calculatedDiscount,
 			manualDiscount,
+			pricing.CalculatedItems[i].TaxRate,
 		)
 		if err != nil {
 			return nil, err
@@ -1071,6 +1100,51 @@ func toDomainMoneyPtr(dto *MoneyDTO) (*domain.Money, error) {
 
 func zeroMoney() (domain.Money, error) {
 	return domain.NewMoney(0, domain.DefaultCurrency)
+}
+
+func sumQuoteLineItemTaxes(items []domain.QuoteLineItem) (domain.Money, error) {
+	total, err := zeroMoney()
+	if err != nil {
+		return domain.Money{}, err
+	}
+	for _, item := range items {
+		total, err = total.Add(item.TaxAmount)
+		if err != nil {
+			return domain.Money{}, err
+		}
+	}
+	return total, nil
+}
+
+func sumOrderLineItemTaxes(items []domain.OrderLineItem) (domain.Money, error) {
+	total, err := zeroMoney()
+	if err != nil {
+		return domain.Money{}, err
+	}
+	for _, item := range items {
+		total, err = total.Add(item.TaxAmount)
+		if err != nil {
+			return domain.Money{}, err
+		}
+	}
+	return total, nil
+}
+
+func sumInvoiceLineItemTaxes(items []domain.InvoiceLineItem) (domain.Money, error) {
+	total, err := zeroMoney()
+	if err != nil {
+		return domain.Money{}, err
+	}
+	for _, item := range items {
+		if item.TaxAmount == nil {
+			continue
+		}
+		total, err = total.Add(*item.TaxAmount)
+		if err != nil {
+			return domain.Money{}, err
+		}
+	}
+	return total, nil
 }
 
 func parseQuoteStatus(input string) (domain.QuoteStatus, error) {
@@ -1157,6 +1231,7 @@ func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (dom
 		item.FinalUnitPrice,
 		discount,
 		nil,
+		item.TaxRate,
 	)
 	if err != nil {
 		return domain.InvoiceLineItem{}, err
@@ -1289,13 +1364,8 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 // CreateSimplifiedInvoice (CU-S-019) creates a ticket (factura simplificada) for retail sales
 // Optimized for TPV/POS workflow: validates < 3,000 EUR limit, uses series "TKT", allows CONSUMIDOR_FINAL
 func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSimplifiedInvoiceCommand) (*InvoiceDTO, error) {
-	// Validate party exists
-	exists, err := s.partyLookup.ExistsParty(ctx, cmd.PartyID)
-	if err != nil {
+	if err := s.ensurePartyExists(ctx, cmd.PartyID); err != nil {
 		return nil, err
-	}
-	if !exists {
-		return nil, domain.NewNotFoundError("party not found")
 	}
 
 	// Build sale items for pricing calculation
@@ -1333,6 +1403,7 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 			unitPrice,
 			nil, // No discount
 			nil, // No tax breakdown per line
+			calculatedItem.TaxRate,
 		)
 		if err != nil {
 			return nil, err
@@ -1355,15 +1426,18 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 		return nil, err
 	}
 
-	// Calculate total before tax from line items
-	totalBeforeTax := priceResp.SaleTotal.Amount
-
-	// Simplified tax calculation (e.g., 21% IVA for Spain)
-	// TODO: Make tax rate configurable or fetch from tax service
-	taxRate := 0.21
-	taxAmount, err := domain.NewMoney(totalBeforeTax*taxRate, domain.DefaultCurrency)
+	taxAmount, err := zeroMoney()
 	if err != nil {
 		return nil, err
+	}
+	for _, lineItem := range lineItems {
+		if lineItem.TaxAmount == nil {
+			continue
+		}
+		taxAmount, err = taxAmount.Add(*lineItem.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create invoice - will validate < 3,000 EUR automatically via ValidateLegalLimits()

@@ -55,7 +55,7 @@ func TestGORMPartyRepository_Save_WithPersonProfile(t *testing.T) {
 	repo := NewGORMPartyRepository(db)
 
 	partyID, _ := domain.NewPartyID("party-1")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 
 	createdAt := time.Now()
@@ -81,7 +81,7 @@ func TestGORMPartyRepository_Save_WithOrganizationProfileAndRole(t *testing.T) {
 	repo := NewGORMPartyRepository(db)
 
 	partyID, _ := domain.NewPartyID("party-2")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 	role, _ := domain.NewPartyRole(domain.PartyRoleClient, nil)
 	_ = party.AddRole(role)
@@ -115,7 +115,7 @@ func TestGORMPartyRepository_Save_WithContactDetailsFields(t *testing.T) {
 	repo := NewGORMPartyRepository(db)
 
 	partyID, _ := domain.NewPartyID("party-3")
-	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org", nil, "", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, nil, orgProfile)
 
 	contactID, _ := domain.NewContactDetailsID("contact-3")
@@ -400,7 +400,7 @@ func TestGORMPartyRepository_Save_QueryError(t *testing.T) {
 	repo := NewGORMPartyRepository(db)
 
 	partyID, _ := domain.NewPartyID("party-err")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 
 	mock.ExpectBegin()

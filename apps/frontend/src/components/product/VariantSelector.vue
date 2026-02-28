@@ -69,13 +69,13 @@
             class="form-control"
             @change="handleAttributeChange"
           >
-            <option value="">-- Seleccionar --</option>
+            <option value="" disabled>-- Seleccionar --</option>
             <option
               v-for="value in attr.values"
               :key="value.id"
               :value="value.id"
             >
-              {{ value.display_value }}
+              {{ value.value }}
             </option>
           </select>
         </div>
@@ -93,12 +93,9 @@
           class="btn btn-primary"
           :disabled="isProcessing"
         >
-          <span v-if="isProcessing">🔄 Procesando...</span>
-          <span v-else>✨ Buscar o Crear Variante</span>
+          <span v-if="isProcessing">Cargando...</span>
+          <span v-else>Cargar</span>
         </button>
-        <p class="hint">
-          Si la variante no existe, se creará automáticamente con estado PROVISIONAL
-        </p>
       </div>
 
       <!-- Selected Variant Display -->
@@ -297,14 +294,18 @@ async function loadProductAttributes(productId) {
     
     const optionSets = product.calculated_option_sets || []
     productAttributes.value = optionSets.map(opt => ({
-      id: opt.attribute_id,
-      name: opt.attribute_name,
-      code: opt.attribute_code,
+      id: opt.id,
+      name: opt.name,
+      code: opt.code,
       values: opt.values || [],
     }))
     
-    // Reset selected attributes
-    selectedAttributes.value = {}
+    // Initialize selectedAttributes keys for reactivity
+    const newSelectedAttributes = {}
+    productAttributes.value.forEach(attr => {
+      newSelectedAttributes[attr.id] = selectedAttributes.value[attr.id] || ''
+    })
+    selectedAttributes.value = newSelectedAttributes
   } catch (err) {
     console.error('[VariantSelector] Error loading product attributes:', err)
     setError('No se pudieron cargar los atributos del producto')
@@ -333,14 +334,19 @@ async function findOrCreateSelectedVariant() {
   
   isProcessing.value = true
   error.value = ''
+  selectedVariant.value = null
   
   try {
-    // Build option configuration
+    // Build option configuration with AttributeCode: AttributeValue format
     const optionConfiguration = {}
     for (const attr of productAttributes.value) {
       const valueId = selectedAttributes.value[attr.id]
       if (valueId) {
-        optionConfiguration[attr.id] = valueId
+        // Find the selected value to get its string value
+        const selectedValue = attr.values.find(v => v.id === valueId)
+        if (selectedValue) {
+          optionConfiguration[attr.code] = selectedValue.value
+        }
       }
     }
     
@@ -352,17 +358,12 @@ async function findOrCreateSelectedVariant() {
     
     if (result.variant) {
       selectedVariant.value = result.variant
-      
-      // Check if variant is inactive
-      if (!result.variant.is_active) {
-        setError('⚠️ Esta variante está marcada como inactiva')
-      }
     } else {
-      setError('No se pudo crear/obtener la variante')
+      setError('No se pudo cargar la variante')
     }
   } catch (err) {
     console.error('[VariantSelector] JIT error:', err)
-    setError(err.message || 'Error al buscar/crear la variante')
+    setError(err.message || 'Error al cargar la variante')
   } finally {
     isProcessing.value = false
   }
@@ -380,10 +381,6 @@ async function searchBySku() {
     
     if (variant) {
       selectedVariant.value = variant
-      
-      if (!variant.is_active) {
-        setError('⚠️ Esta variante está marcada como inactiva')
-      }
     }
   } catch (err) {
     console.error('[VariantSelector] SKU search error:', err)
@@ -525,6 +522,7 @@ function setError(message) {
   font-size: 0.9rem;
   color: #1e293b;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff;
 }
 
 .form-control:focus {
@@ -537,6 +535,18 @@ function setError(message) {
   background: #f1f5f9;
   color: #94a3b8;
   cursor: not-allowed;
+}
+
+/* Better styling for select dropdowns */
+.form-control option {
+  color: #1e293b;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.form-control option:disabled {
+  color: #94a3b8;
+  font-style: italic;
 }
 
 .form-text {

@@ -14,6 +14,22 @@
     </div>
 
     <div class="form-group">
+      <label for="markupPercentage">Porcentaje de Beneficio (%)</label>
+      <input 
+        id="markupPercentage"
+        v-model.number="formData.defaultMarkupPercentage" 
+        type="number" 
+        step="0.01"
+        min="0"
+        class="form-input"
+        placeholder="Ej: 30.00"
+        @input="clearError('defaultMarkupPercentage')"
+      />
+      <small class="hint">Porcentaje aplicado al costo base de las variantes para calcular el precio de venta base. Ej: 30.00 = 30%</small>
+      <span v-if="errors.defaultMarkupPercentage" class="error-message">{{ errors.defaultMarkupPercentage }}</span>
+    </div>
+
+    <div class="form-group">
       <label class="checkbox-label">
         <input 
           type="checkbox" 
@@ -45,11 +61,13 @@ const emit = defineEmits(['submit'])
 
 const formData = reactive({
   name: props.brand?.name || '',
+  defaultMarkupPercentage: props.brand?.defaultMarkupPercentage ?? 0,
   isActive: props.brand?.is_active ?? true
 })
 
 const errors = reactive({
-  name: ''
+  name: '',
+  defaultMarkupPercentage: ''
 })
 
 function clearError(field) {
@@ -64,6 +82,11 @@ function validate() {
     isValid = false
   }
   
+  if (formData.defaultMarkupPercentage < 0) {
+    errors.defaultMarkupPercentage = 'El porcentaje de beneficio no puede ser negativo'
+    isValid = false
+  }
+  
   return isValid
 }
 
@@ -74,6 +97,7 @@ function handleSubmit() {
   
   const payload = {
     name: formData.name.trim(),
+    defaultMarkupPercentage: formData.defaultMarkupPercentage,
     isActive: formData.isActive
   }
   

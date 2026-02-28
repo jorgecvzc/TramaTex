@@ -62,32 +62,6 @@
                     required
                   />
                 </div>
-                <div class="form-group">
-                  <label>Precio Unit. (EUR) *</label>
-                  <input
-                    v-model.number="item.unitPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    class="form-input"
-                    required
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Descuento (EUR)</label>
-                  <input
-                    v-model.number="item.discountAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Opcional"
-                    class="form-input"
-                  />
-                </div>
-              </div>
-              <div class="line-item-summary">
-                <span class="label">Subtotal línea:</span>
-                <span class="value">{{ formatMoney(calculateLineTotal(item)) }}</span>
               </div>
             </div>
           </div>
@@ -95,17 +69,10 @@
 
         <!-- Total Summary -->
         <div v-if="formData.lineItems.length > 0" class="total-summary">
+          <p class="pricing-note">El precio final e IVA se calcularán automáticamente desde Pricing al crear el ticket.</p>
           <div class="total-row">
-            <span class="label">Subtotal:</span>
-            <span class="value">{{ formatMoney(calculateSubtotal()) }}</span>
-          </div>
-          <div class="total-row">
-            <span class="label">IVA (21%):</span>
-            <span class="value">{{ formatMoney(calculateTax()) }}</span>
-          </div>
-          <div class="total-row total">
-            <span class="label">TOTAL:</span>
-            <span class="value">{{ formatMoney(calculateTotal()) }}</span>
+            <span class="label">Líneas:</span>
+            <span class="value">{{ formData.lineItems.length }}</span>
           </div>
         </div>
 
@@ -156,8 +123,7 @@ const isFormValid = computed(() => {
     formData.value.lineItems.every(
       (item) =>
         item.productVariantId &&
-        item.quantity > 0 &&
-        item.unitPrice >= 0
+        item.quantity > 0
     )
   );
 });
@@ -166,41 +132,11 @@ function addLineItem() {
   formData.value.lineItems.push({
     productVariantId: '',
     quantity: 1,
-    unitPrice: 0,
-    discountAmount: null,
   });
 }
 
 function removeLineItem(index) {
   formData.value.lineItems.splice(index, 1);
-}
-
-function calculateLineTotal(item) {
-  const subtotal = item.quantity * item.unitPrice;
-  const discount = item.discountAmount || 0;
-  return Math.max(0, subtotal - discount);
-}
-
-function calculateSubtotal() {
-  return formData.value.lineItems.reduce((total, item) => {
-    return total + calculateLineTotal(item);
-  }, 0);
-}
-
-function calculateTax() {
-  const subtotal = calculateSubtotal();
-  return subtotal * 0.21; // 21% IVA
-}
-
-function calculateTotal() {
-  return calculateSubtotal() + calculateTax();
-}
-
-function formatMoney(amount) {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount);
 }
 
 async function handleSubmit() {
@@ -210,29 +146,16 @@ async function handleSubmit() {
   submitError.value = '';
 
   try {
-    // Prepare line items for API
-    const lineItems = formData.value.lineItems.map((item) => {
-      const lineItem = {
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-        unitPrice: {
-          amount: item.unitPrice,
-          currency: 'EUR',
-        },
-      };
+    const items = formData.value.lineItems.map((item) => ({
+      productVariantId: item.productVariantId,
+      quantity: item.quantity,
+    }));
 
-      if (item.discountAmount && item.discountAmount > 0) {
-        lineItem.discountAmount = {
-          amount: item.discountAmount,
-          currency: 'EUR',
-        };
-      }
-
-      return lineItem;
+    const newInvoice = await salesApi.createSimplifiedInvoice({
+      partyId: CONSUMIDOR_FINAL_ID,
+      invoiceDate: new Date().toISOString(),
+      items,
     });
-
-    // Create simplified invoice (ticket)
-    const newInvoice = await salesApi.createSimplifiedInvoice({ lineItems });
 
     // Navigate to invoice detail (if route exists) or back to invoice list
     router.push(`/sales/invoices/${newInvoice.id}`);
