@@ -20,9 +20,11 @@ func (PartyDataModel) TableName() string {
 }
 
 type PersonProfileDataModel struct {
-	PartyID   string `gorm:"primaryKey;column:party_id"`
-	FirstName string `gorm:"column:first_name"`
-	LastName  string `gorm:"column:last_name"`
+	PartyID   string  `gorm:"primaryKey;column:party_id"`
+	FirstName string  `gorm:"column:first_name"`
+	LastName  string  `gorm:"column:last_name"`
+	Phone     *string `gorm:"column:phone"`
+	Email     *string `gorm:"column:email"`
 }
 
 func (PersonProfileDataModel) TableName() string {
@@ -35,6 +37,8 @@ type OrganizationProfileDataModel struct {
 	TaxID     *string `gorm:"column:tax_id"`
 	TaxIDType *string `gorm:"column:tax_id_type"`
 	Website   string  `gorm:"column:website"`
+	Phone     *string `gorm:"column:phone"`
+	Email     *string `gorm:"column:email"`
 }
 
 func (OrganizationProfileDataModel) TableName() string {

@@ -23,6 +23,8 @@ Esta es una lista de todas las decisiones arquitectónicas clave tomadas para el
 - [ADR-019: Synchronous Inter-Module Communication for MVP](adr-019-synchronous-inter-module-communication-mvp.md)
 - [ADR-020: Tickets and Invoice Series](adr-020-tickets-and-invoice-series.md)
 - [ADR-021: Version Control and Branching Strategy](adr-021-version-control-and-branching-strategy.md)
+- [ADR-022: MES Microservice Extraction Strategy](../../post-mvp/adr-022-mes-microservice-extraction-strategy.md) (Propuesta Post-MVP)
+
 
 ---
 *Para crear un nuevo ADR, utiliza la plantilla `_adr-template.md`.*

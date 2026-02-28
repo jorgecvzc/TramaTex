@@ -109,7 +109,7 @@
           <p v-if="deliveryNote.deliveryAddress.city || deliveryNote.deliveryAddress.postalCode">
             {{ deliveryNote.deliveryAddress.postalCode }} {{ deliveryNote.deliveryAddress.city }}
           </p>
-          <p v-if="deliveryNote.deliveryAddress.state">{{ deliveryNote.deliveryAddress.state }}</p>
+          <p v-if="deliveryNote.deliveryAddress.province">{{ deliveryNote.deliveryAddress.province }}</p>
           <p v-if="deliveryNote.deliveryAddress.country">{{ deliveryNote.deliveryAddress.country }}</p>
         </div>
       </div>

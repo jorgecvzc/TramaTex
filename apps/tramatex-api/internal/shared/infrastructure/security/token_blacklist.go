@@ -8,7 +8,7 @@ import (
 // TokenBlacklist defines a blacklist for revoked tokens.
 // Used to invalidate access/refresh tokens on logout.
 type TokenBlacklist interface {
-	Revoke(token string, expiresAt time.Time)
+	Revoke(token string, userID string, expiresAt time.Time)
 	IsRevoked(token string) bool
 }
 
@@ -24,7 +24,7 @@ func NewInMemoryTokenBlacklist() *InMemoryTokenBlacklist {
 }
 
 // Revoke stores a token until its expiration.
-func (b *InMemoryTokenBlacklist) Revoke(token string, expiresAt time.Time) {
+func (b *InMemoryTokenBlacklist) Revoke(token string, userID string, expiresAt time.Time) {
 	if token == "" {
 		return
 	}

@@ -26,6 +26,53 @@ ESTRUCTURA DE UNA SESIÃ“N CERRADA (en el registro):
 
 # SESIONES ABIERTAS
 
+## Revisión y Refinamiento de la Documentación General
+
+- **Session ID:** `documentation-review-refinement-2026-02-28`
+- **Status:** En Progreso
+- **Sprint:** N/A
+- **Started:** 2026-02-28
+
+### Contexto
+
+Esta sesión se centra en el objetivo de estabilización final del proyecto, realizando una revisión profunda de la documentación existente para asegurar su coherencia con la implementación actual, identificar lagunas y preparar el material para la entrega/defensa final.
+
+### Objetivos Completados
+
+- [x] Limpieza de archivos huérfanos y vacíos (eliminado `docs/modules/iam.md`).
+- [x] Transformación de `docs/README.md` en un portal de documentación técnica centralizado.
+- [x] Creación de índices intermedios para mejorar la navegación:
+    - [x] `docs/architecture/README.md`
+    - [x] `docs/guides/README.md`
+    - [x] `docs/log/README.md`
+- [x] Actualización del índice de ADRs (añadido ADR-022 "Post-MVP").
+- [x] Actualización de `docs/log/project-status.md` con el estado real de la documentación.
+
+### Próximos Pasos
+
+- [ ] Realizar un inventario de la documentación actual y verificar enlaces en `docs/README.md`.
+- [ ] Validar la alineación entre los ADRs (`docs/architecture/adrs/`) y la realidad del código.
+- [ ] Revisar las especificaciones de cada módulo (`docs/modules/`) y actualizar diagramas o modelos si es necesario.
+- [ ] Identificar secciones faltantes o desactualizadas en las guías de desarrollo (`docs/guides/`).
+- [ ] Sincronizar los archivos de contexto de los agentes (`agents/project/context/*.yaml`) con la documentación actualizada.
+- [ ] Revisar y cerrar el `docs/log/project-status.md` reflejando el estado real de "ERP Core Completo".
+
+### Registro de hoy (2026-02-28)
+
+- Se ha profesionalizado la estructura de documentación eliminando la fragmentación y la falta de índices.
+- Se ha establecido un "Mapa de Navegación" claro para cualquier desarrollador o auditor del sistema.
+- La sesión queda abierta para que el usuario realice una revisión personal de los nuevos índices y contenidos.
+
+### Archivos de Contexto
+
+- `docs/README.md`
+- `docs/log/project-status.md`
+- `docs/architecture/architecture-vision.md`
+- `docs/guides/code-and-style-standards.md`
+- `docs/modules/README.md`
+
+---
+
 ## Party Module - Consolidación de Migraciones y Smart Contact Deletion
 
 - **Session ID:** `party-migrations-smart-deletion-2026-02-25`
@@ -52,7 +99,7 @@ Sesión enfocada en resolver issues críticos del módulo Party: problema de log
 - [x] Renombrar rama git: bugfix/ui-validation-fixes → party-module-fixes
 - [x] Commit y push de todos los cambios al repositorio remoto (commit 8b1d5ac)
 - [x] Eliminar console.log de debugging (9 statements)
-- [ ] **PENDIENTE:** Corregir tests unitarios que fallan (3 tests de removeContact)
+- [x] **COMPLETADO 2026-02-26:** Corregir tests unitarios que fallan (3 tests de removeContact)
 - [ ] **PENDIENTE:** Verificar funcionalidad en UI (smart deletion + dropdown contactos)
 
 ### Registro de hoy (2026-02-25 - Tarde)
@@ -66,14 +113,46 @@ Sesión enfocada en resolver issues críticos del módulo Party: problema de log
 - Quedaron 3 tests fallando por mocks incompletos en las llamadas múltiples de `removeContact`
 - La funcionalidad implementada está operativa, solo faltan tests que reflejen correctamente el flujo completo
 
-### Próximos Pasos (Para mañana)
+### Registro de hoy (2026-02-26)
 
-1. **Corregir mocks de tests** para `removeContact` (el método hace 7 llamadas fetch, los tests solo mockean 2-3)
-2. **Probar en UI** la funcionalidad de smart deletion:
+- **Corrección completa de tests unitarios** ✅: 3/3 tests fallando ahora pasando (40/40 tests total)
+  * `removeContact` con `deleteIfNoReferences=false`: corregido con 5 mocks (incluye verificación de relaciones existentes)
+  * `removeContact` con `deleteIfNoReferences=true`: corregido con 7 mocks (eliminación completa del party)
+  * `listAvailableContactsForParty`: corregido con 7 mocks (orden correcto del flujo)
+- **Análisis del flujo `removeContact`**: Identificado flujo completo de 4-7 llamadas fetch:
+  1. GET contact-details
+  2. DELETE contact-detail (con/sin query param deleteIfNoReferences)
+  3. GET relationships
+  4. DELETE relationship (si existe)
+  5. GET relationships (verificar restantes)
+  6. GET party (si no hay relaciones)
+  7. DELETE party (si es huérfano)
+- **Guía de validación creada**: `tmp/party-smart-deletion-validation.md` con:
+  * 3 escenarios de validación manual (eliminar único, eliminar compartido, dropdown)
+  * Comandos útiles y checklist de próximos pasos
+  * Estado actual: Tests ✅ | UI ⏳ Pendiente de validación manual
+- **Estado final**: Backend funcional, Frontend API con tests passing, UI lista para validación cuando se inicie el entorno
+- **Mejora crítica en formulario de Entidades** ✅:
+  * Agregado selector de tipo de entidad: **Persona Física** vs **Persona Jurídica**
+  * Campos condicionales según tipo:
+    - Persona: `firstName`, `lastName` (envía `person_profile` al backend)
+    - Organización: `name` (envía `organization_profile` al backend)
+  * Validaciones específicas por tipo de entidad
+  * Lista de entidades ahora muestra columna "Tipo" con indicador visual (👤 Persona / 🏢 Organización)
+- **Archivos modificados**:
+  * `types/party.ts`: agregado `EntityType`, `firstName`, `lastName` en `CreatePartyRequest`
+  * `services/partyApi.ts`: lógica para enviar perfil correcto según tipo
+  * `components/party/PartyForm.vue`: selector tipo + campos condicionales + validaciones
+  * `components/party/PartyList.vue`: columna "Tipo" con badges visuales
+
+### Próximos Pasos (Para próxima sesión)
+
+1. **Iniciar entorno de desarrollo**: `.\start-dev.ps1` (requiere Docker Desktop)
+2. **Validar en UI** la funcionalidad de smart deletion usando la guía `tmp/party-smart-deletion-validation.md`:
    - Escenario 1: Eliminar contacto que solo pertenece a una entidad (debe eliminarse completamente)
    - Escenario 2: Eliminar contacto que pertenece a múltiples entidades (debe permanecer)
-3. **Verificar dropdown** "Contacto existente" muestra los 3 contactos reparados
-4. **Crear Pull Request** si todo funciona correctamente
+   - Escenario 3: Verificar dropdown "Contacto existente" muestra los 3 contactos reparados
+3. **Crear Pull Request** si la validación UI es exitosa
 
 ### Resultados Técnicos
 
@@ -91,11 +170,67 @@ Sesión enfocada en resolver issues críticos del módulo Party: problema de log
 
 **Code Cleanup:**
 - 9 console.log eliminados de código de producción
-- Tests unitarios agregados (aunque 3 requieren corrección de mocks)
+- Tests unitarios completados: **40/40 tests pasando** ✅ (2026-02-26)
+  * Corregidos mocks para `removeContact` (de 3 a 5/7 llamadas fetch según escenario)
+  * Corregidos mocks para `listAvailableContactsForParty` (de 5 a 7 llamadas fetch)
 
 **Database Fixes:**
 - INSERT INTO person_profiles para 3 contactos existentes
 - Contactos ahora aparecen correctamente en dropdown "Contacto existente"
+
+### Registro de hoy (2026-02-28)
+
+- **Validación UI completada exitosamente** ✅:
+  * Escenario 1 (Eliminar contacto único): ✅ PASS - Contacto eliminado completamente del sistema
+  * Escenario 2 (Eliminar contacto compartido): ✅ PASS - Contacto desvinculado pero permanece en otras entidades
+  * Escenario 3 (Dropdown contactos): ✅ PASS - Los 3 contactos reparados aparecen correctamente
+  * Escenario 4 (Editar dirección): ✅ PASS - PUT endpoint funcional después de implementación
+  * Escenario 5 (Agregar dirección): ✅ PASS - POST endpoint funcional sin errores
+
+- **Bugs críticos resueltos durante validación**:
+  * **404 en edición de direcciones**: Faltaban endpoints PUT/DELETE para addresses
+    - Implementado `UpdatePartyAddressHandler` en `party_commands.go`
+    - Implementado `RemovePartyAddressHandler` en `party_commands.go`
+    - Registradas rutas PUT/DELETE en `cmd/api/main.go` (líneas 329-330)
+    - 4 rutas de addresses ahora completas: POST, GET, PUT, DELETE
+  
+  * **Error de autenticación `token_hash` no existe**: Desincronización modelo Go vs migración SQL
+    - Migración SQL usa `token_id` pero código Go buscaba `token_hash`
+    - Actualizado `RevokedTokenModel` en `token_blacklist_postgres.go` con mapping correcto
+    - Agregado campo `user_id` faltante en proceso de revocación de tokens
+    - Actualizada interfaz `TokenBlacklist.Revoke()` para incluir `userID`
+    - Correcciones aplicadas en `token_blacklist.go` y `logout_user.go`
+  
+  * **500 Internal Server Error al agregar direcciones**: Causado por error de autenticación secundario
+    - Resuelto con fix de token_id/user_id mencionado arriba
+    - Base de datos reconstruida con esquema limpio después de múltiples rebuilds Docker
+
+- **Mejoras UX adicionales**:
+  * Reordenado formulario de entidades: Selector "Tipo de NIF/CIF" ahora aparece **a la izquierda**, campo de entrada **a la derecha**
+  * Archivo modificado: `apps/frontend/src/components/party/PartyForm.vue` (líneas 116-136)
+
+- **Operaciones Docker/Infra**:
+  * Múltiples ciclos de rebuild Docker por problemas de cache (build, --no-cache, system prune)
+  * Imagen docker-api reconstruida completamente 4 veces hasta estabilización
+  * Contenedores tramatex_db y tramatex_api saludables al final de sesión
+  * Todas las rutas registradas correctamente en logs (verificado con `docker logs tramatex_api`)
+
+- **Estado final de sesión**:
+  * Módulo Party: ✅ **100% FUNCIONAL**
+  * Smart contact deletion: ✅ Validado UI + Backend
+  * Address CRUD: ✅ Completo (Create, Read, Update, Delete)
+  * Autenticación: ✅ Sin errores de token
+  * Tests unitarios: ✅ 40/40 passing
+  * UI/UX: ✅ Formularios optimizados
+
+### Próximos Pasos (Completados - Sesión lista para cierre)
+
+- [x] Validar smart deletion en UI (3 escenarios)
+- [x] Validar CRUD de addresses (2 escenarios)
+- [x] Corregir bugs encontrados durante validación
+- [x] Actualizar session-log.md con resultados
+- [ ] **PENDIENTE:** Crear Pull Request y fusionar con dev
+- [ ] **PENDIENTE:** Cerrar sesión
 
 **Git Operations:**
 - Rama renombrada localmente y en remoto

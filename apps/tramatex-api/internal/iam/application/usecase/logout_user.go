@@ -30,7 +30,7 @@ func (uc *LogoutUserUseCase) Execute(ctx context.Context, accessToken string, in
 	}
 
 	if uc.tokenBlacklist != nil {
-		uc.tokenBlacklist.Revoke(accessToken, claims.ExpiresAt())
+		uc.tokenBlacklist.Revoke(accessToken, claims.Subject(), claims.ExpiresAt())
 	}
 
 	if input.RefreshToken != "" && uc.tokenBlacklist != nil {
@@ -38,7 +38,7 @@ func (uc *LogoutUserUseCase) Execute(ctx context.Context, accessToken string, in
 		if err != nil {
 			return err
 		}
-		uc.tokenBlacklist.Revoke(input.RefreshToken, refreshClaims.ExpiresAt())
+		uc.tokenBlacklist.Revoke(input.RefreshToken, refreshClaims.Subject(), refreshClaims.ExpiresAt())
 	}
 
 	return nil

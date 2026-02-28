@@ -56,6 +56,7 @@
         <thead>
           <tr>
             <th>Nombre</th>
+            <th>Tipo</th>
             <th>Rol</th>
             <th>Estado</th>
             <th>NIF/CIF</th>
@@ -69,6 +70,11 @@
               <router-link :to="`/parties/${party.id}`" class="party-link">
                 {{ party.name }}
               </router-link>
+            </td>
+            <td>
+              <span class="type-pill" :class="`type-${party.has_person ? 'person' : 'organization'}`">
+                {{ party.has_person ? '👤 Persona' : '🏢 Organización' }}
+              </span>
             </td>
             <td>
               <span class="role-pill">{{ formatRole(party.role) }}</span>
@@ -88,11 +94,14 @@
                 <button class="btn btn-secondary" @click="toggleStatus(party)">
                   {{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}
                 </button>
+                <button class="btn btn-danger" @click="deleteParty(party)" title="Eliminar entidad">
+                  🗑️ Eliminar
+                </button>
               </div>
             </td>
           </tr>
           <tr v-if="!isLoading && parties.length === 0">
-            <td colspan="6" class="empty-state">No hay entidades para mostrar.</td>
+            <td colspan="7" class="empty-state">No hay entidades para mostrar.</td>
           </tr>
         </tbody>
       </table>
@@ -219,6 +228,55 @@ async function toggleStatus(party) {
     party.status = newStatus;
   } catch (err) {
     error.value = err?.message || `No se pudo cambiar el estado`;
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+async function deleteParty(party) {
+  // Confirmar eliminación
+  const confirmation = window.confirm(
+    `¿Estás seguro de que deseas eliminar la entidad "${party.name}"?\n\n` +
+    `⚠️ Esta acción no se puede deshacer.`
+  );
+
+  if (!confirmation) {
+    return;
+  }
+
+  isLoading.value = true;
+  error.value = '';
+
+  try {
+    await partyApi.deleteParty(party.id);
+    
+    // Mostrar mensaje de éxito
+    alert(`✅ La entidad "${party.name}" se eliminó correctamente.`);
+    
+    // Recargar la lista de entidades
+    await fetchParties();
+  } catch (err) {
+    // Mostrar error del backend de forma amigable
+    let errorMessage = 'No se pudo eliminar la entidad';
+    
+    if (err?.message) {
+      const msg = err.message.toLowerCase();
+      
+      if (msg.includes('sales documents') || msg.includes('sales') || msg.includes('document')) {
+        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nTiene documentos de ventas asociados (presupuestos, pedidos, facturas o albaranes).`;
+      } else if (msg.includes('mes work') || msg.includes('work record')) {
+        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nTiene trabajos MES asociados.`;
+      } else if (msg.includes('linked') || msg.includes('relationship')) {
+        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nEstá vinculada a otras entidades mediante relaciones.`;
+      } else if (msg.includes('contact details') || msg.includes('referenced')) {
+        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nEstá referenciada como contacto en otras organizaciones.`;
+      } else {
+        errorMessage = `❌ No se pudo eliminar "${party.name}"\n\n${err.message}`;
+      }
+    }
+    
+    error.value = errorMessage;
+    alert(errorMessage);
   } finally {
     isLoading.value = false;
   }
@@ -376,7 +434,8 @@ td {
 }
 
 .role-pill,
-.status-pill {
+.status-pill,
+.type-pill {
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
@@ -387,6 +446,22 @@ td {
 .role-pill {
   background-color: #e2e8f0;
   color: #1e293b;
+}
+
+.type-pill {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+}
+
+.type-pill.type-person {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+}
+
+.type-pill.type-organization {
+  background-color: rgba(168, 85, 247, 0.1);
+  color: #6b21a8;
 }
 
 .status-pill.status-active {
@@ -483,6 +558,22 @@ td {
   background: transparent;
   border: 1px solid #e2e8f0;
   color: #1e293b;
+}
+
+.btn-danger {
+  background: #ffffff;
+  border: 1px solid #dc2626;
+  color: #dc2626;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

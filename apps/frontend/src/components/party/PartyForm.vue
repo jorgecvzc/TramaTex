@@ -9,22 +9,6 @@
           <legend>Información básica</legend>
           
           <div class="form-group">
-            <label for="name">
-              Nombre de la entidad *
-              <span class="required">obligatorio</span>
-            </label>
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              placeholder="Ingresa el nombre"
-              required
-              @blur="validateField('name')"
-            />
-            <span v-if="errors.name" class="error">{{ errors.name }}</span>
-          </div>
-
-          <div class="form-group">
             <label for="role">
               Rol de la entidad *
               <span class="required">obligatorio</span>
@@ -33,7 +17,7 @@
               id="role"
               v-model="form.role"
               required
-              @change="validateField('role')"
+              @change="onRoleChange"
             >
               <option value="">-- Selecciona rol --</option>
               <option value="CLIENT">Cliente</option>
@@ -42,9 +26,103 @@
               <option value="CONTACT">Contacto</option>
             </select>
             <span v-if="errors.role" class="error">{{ errors.role }}</span>
+            <small v-if="form.role === 'CONTACT'" class="help-text warning">
+              ⚠️ Los contactos deben ser <strong>personas físicas</strong> únicamente.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="entityType">
+              Tipo de entidad *
+              <span class="required">obligatorio</span>
+            </label>
+            <select
+              id="entityType"
+              v-model="form.entityType"
+              required
+              @change="onEntityTypeChange"
+              :disabled="form.role === 'CONTACT'"
+            >
+              <option value="">-- Selecciona tipo --</option>
+              <option value="PERSON">Persona Física</option>
+              <option value="ORGANIZATION" :disabled="form.role === 'CONTACT'">
+                Persona Jurídica (Organización)
+              </option>
+            </select>
+            <span v-if="errors.entityType" class="error">{{ errors.entityType }}</span>
+            <small v-if="form.role !== 'CONTACT'" class="help-text">
+              • <strong>Persona Física:</strong> Individuo (cliente, contacto, empleado)<br>
+              • <strong>Persona Jurídica:</strong> Empresa, organización, entidad legal
+            </small>
+            <small v-else class="help-text warning">
+              ⚠️ Los contactos solo pueden ser <strong>personas físicas</strong>
+            </small>
+          </div>
+
+          <!-- Fields for PERSON entity type -->
+          <template v-if="form.entityType === 'PERSON'">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">
+                  Nombre *
+                  <span class="required">obligatorio</span>
+                </label>
+                <input
+                  id="firstName"
+                  v-model="form.firstName"
+                  type="text"
+                  placeholder="Ej: Juan"
+                  required
+                  @blur="validateField('firstName')"
+                />
+                <span v-if="errors.firstName" class="error">{{ errors.firstName }}</span>
+              </div>
+
+              <div class="form-group">
+                <label for="lastName">
+                  Apellido(s) *
+                  <span class="required">obligatorio</span>
+                </label>
+                <input
+                  id="lastName"
+                  v-model="form.lastName"
+                  type="text"
+                  placeholder="Ej: García López"
+                  required
+                  @blur="validateField('lastName')"
+                />
+                <span v-if="errors.lastName" class="error">{{ errors.lastName }}</span>
+              </div>
+            </div>
+          </template>
+
+          <!-- Fields for ORGANIZATION entity type -->
+          <div v-if="form.entityType === 'ORGANIZATION'" class="form-group">
+            <label for="name">
+              Nombre de la organización *
+              <span class="required">obligatorio</span>
+            </label>
+            <input
+              id="name"
+              v-model="form.name"
+              type="text"
+              placeholder="Ej: Acme Corporation S.L."
+              required
+              @blur="validateField('name')"
+            />
+            <span v-if="errors.name" class="error">{{ errors.name }}</span>
           </div>
 
           <div class="form-row">
+            <div class="form-group">
+              <label for="taxIdType">Tipo de NIF/CIF</label>
+              <select id="taxIdType" v-model="form.taxIdType" @change="validateField('taxId')">
+                <option value="NIF">NIF</option>
+                <option value="CIF">CIF</option>
+                <option value="VAT">VAT</option>
+              </select>
+            </div>
+
             <div class="form-group">
               <label for="taxId">NIF/CIF</label>
               <input
@@ -56,27 +134,44 @@
               />
               <span v-if="errors.taxId" class="error">{{ errors.taxId }}</span>
             </div>
-
-            <div class="form-group">
-              <label for="taxIdType">Tipo de NIF/CIF</label>
-              <select id="taxIdType" v-model="form.taxIdType">
-                <option value="NIF">NIF</option>
-                <option value="CIF">CIF</option>
-                <option value="VAT">VAT</option>
-              </select>
-            </div>
           </div>
 
           <div class="form-group">
-              <label for="website">Sitio web</label>
+            <label for="website">Sitio web</label>
             <input
               id="website"
               v-model="form.website"
-              type="url"
-              placeholder="https://example.com"
+              type="text"
+              placeholder="example.com"
               @blur="validateField('website')"
             />
             <span v-if="errors.website" class="error">{{ errors.website }}</span>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone">Teléfono</label>
+              <input
+                id="phone"
+                v-model="form.phone"
+                type="tel"
+                placeholder="p. ej., +34 123 456 789"
+                @blur="validateField('phone')"
+              />
+              <span v-if="errors.phone" class="error">{{ errors.phone }}</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input
+                id="email"
+                v-model="form.email"
+                type="email"
+                placeholder="p. ej., contacto@empresa.com"
+                @blur="validateField('email')"
+              />
+              <span v-if="errors.email" class="error">{{ errors.email }}</span>
+            </div>
           </div>
         </fieldset>
 
@@ -148,11 +243,16 @@ const emit = defineEmits(['submit', 'update']);
 // Form state
 const form = reactive({
   id: '',
+  entityType: '',
   name: '',
+  firstName: '',
+  lastName: '',
   role: '',
   taxId: '',
   taxIdType: 'NIF',
   website: '',
+  phone: '',
+  email: '',
   notes: '',
 });
 
@@ -180,15 +280,58 @@ if (props.initialData) {
 
 // Validation rules
 const validationRules = {
+  entityType: (value) => {
+    if (!value) {
+      return 'El tipo de entidad es obligatorio';
+    }
+    if (!['PERSON', 'ORGANIZATION'].includes(value)) {
+      return 'Tipo de entidad inválido';
+    }
+    // Validate contact must be person
+    if (form.role === 'CONTACT' && value !== 'PERSON') {
+      return 'Los contactos solo pueden ser personas físicas';
+    }
+    return '';
+  },
+  firstName: (value) => {
+    if (form.entityType === 'PERSON') {
+      if (!value || value.trim().length === 0) {
+        return 'El nombre es obligatorio';
+      }
+      if (value.length < 2) {
+        return 'El nombre debe tener al menos 2 caracteres';
+      }
+      if (value.length > 50) {
+        return 'El nombre no debe superar 50 caracteres';
+      }
+    }
+    return '';
+  },
+  lastName: (value) => {
+    if (form.entityType === 'PERSON') {
+      if (!value || value.trim().length === 0) {
+        return 'El apellido es obligatorio';
+      }
+      if (value.length < 2) {
+        return 'El apellido debe tener al menos 2 caracteres';
+      }
+      if (value.length > 50) {
+        return 'El apellido no debe superar 50 caracteres';
+      }
+    }
+    return '';
+  },
   name: (value) => {
-    if (!value || value.trim().length === 0) {
-      return 'El nombre es obligatorio';
-    }
-    if (value.length < 3) {
-      return 'El nombre debe tener al menos 3 caracteres';
-    }
-    if (value.length > 100) {
-      return 'El nombre no debe superar 100 caracteres';
+    if (form.entityType === 'ORGANIZATION') {
+      if (!value || value.trim().length === 0) {
+        return 'El nombre es obligatorio';
+      }
+      if (value.length < 3) {
+        return 'El nombre debe tener al menos 3 caracteres';
+      }
+      if (value.length > 100) {
+        return 'El nombre no debe superar 100 caracteres';
+      }
     }
     return '';
   },
@@ -199,11 +342,22 @@ const validationRules = {
     if (!['CLIENT', 'SUPPLIER', 'BOTH', 'CONTACT'].includes(value)) {
       return 'Rol inválido';
     }
+    // Validate contact must be person
+    if (value === 'CONTACT' && form.entityType === 'ORGANIZATION') {
+      return 'Los contactos solo pueden ser personas físicas';
+    }
     return '';
   },
   taxId: (value) => {
-    if (value && (value.length < 5 || value.length > 20)) {
-      return 'El NIF/CIF debe tener entre 5 y 20 caracteres';
+    if (value && !isValidTaxId(value, form.taxIdType)) {
+      if (form.taxIdType === 'NIF') {
+        return 'Formato de NIF inválido (debe ser 8 dígitos seguidos de una letra)';
+      } else if (form.taxIdType === 'CIF') {
+        return 'Formato de CIF inválido (debe ser letra + 7 dígitos + dígito o letra)';
+      } else if (form.taxIdType === 'VAT') {
+        return 'Formato de VAT inválido (al menos 2 caracteres)';
+      }
+      return 'Formato inválido';
     }
     return '';
   },
@@ -213,16 +367,82 @@ const validationRules = {
     }
     return '';
   },
+  phone: (value) => {
+    if (value && value.trim()) {
+      // Backend phone regex: ^[\+]?[\d\s\-()]{8,}$
+      const phoneRegex = /^[\+]?[\d\s\-()]{8,}$/;
+      if (!phoneRegex.test(value.trim())) {
+        return 'Formato inválido. Debe tener al menos 8 dígitos y puede incluir +, espacios, guiones y paréntesis';
+      }
+    }
+    return '';
+  },
+  email: (value) => {
+    if (value && value.trim() && !isValidEmail(value)) {
+      return 'Formato de email inválido';
+    }
+    return '';
+  },
 };
 
 // Helper functions
+function normalizeUrl(url) {
+  if (!url || !url.trim()) return url;
+  
+  const trimmedUrl = url.trim();
+  // Si ya tiene protocolo, devolver tal cual
+  if (/^https?:\/\//i.test(trimmedUrl)) {
+    return trimmedUrl;
+  }
+  
+  // Si no tiene protocolo, añadir https://
+  return `https://${trimmedUrl}`;
+}
+
 function isValidUrl(string) {
+  if (!string || !string.trim()) return true; // Empty is valid
+  
   try {
-    new URL(string);
+    const normalized = normalizeUrl(string);
+    const url = new URL(normalized);
+    
+    // Validar que el hostname tenga al menos un punto (dominio válido)
+    // Esto rechaza casos como "https://asdf" y acepta "https://example.com"
+    if (!url.hostname.includes('.')) {
+      return false;
+    }
+    
     return true;
   } catch (_) {
     return false;
   }
+}
+
+function isValidEmail(string) {
+  // Backend email regex: ^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$
+  const emailRegex = /^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(string.trim());
+}
+
+function isValidTaxId(taxId, taxIdType) {
+  if (!taxId || !taxId.trim()) return true; // Empty is valid
+  
+  const trimmed = taxId.trim().toUpperCase();
+  
+  if (taxIdType === 'NIF') {
+    // NIF español: 8 dígitos + letra
+    const nifRegex = /^[0-9]{8}[A-Z]$/;
+    return nifRegex.test(trimmed);
+  } else if (taxIdType === 'CIF') {
+    // CIF español: letra + 7 dígitos + dígito o letra
+    const cifRegex = /^[A-Z][0-9]{7}[0-9A-Z]$/;
+    return cifRegex.test(trimmed);
+  } else if (taxIdType === 'VAT') {
+    // VAT genérico: al menos 2 caracteres
+    return trimmed.length >= 2;
+  }
+  
+  return true;
 }
 
 function validateField(fieldName) {
@@ -245,6 +465,12 @@ async function submitForm() {
     return;
   }
 
+  // Additional validation: block if CONTACT role with ORGANIZATION type
+  if (form.role === 'CONTACT' && form.entityType !== 'PERSON') {
+    errorMessage.value = 'Error: Los contactos solo pueden ser personas físicas. Por favor, selecciona "Persona Física" como tipo de entidad.';
+    return;
+  }
+
   isSubmitting.value = true;
   errorMessage.value = '';
   successMessage.value = '';
@@ -254,24 +480,40 @@ async function submitForm() {
     
     if (isEditing.value) {
       result = await partyApi.updateParty(props.partyId, {
-        name: form.name,
+        name: form.entityType === 'PERSON' 
+          ? `${form.firstName} ${form.lastName}` 
+          : form.name,
         role: form.role,
         taxId: form.taxId,
         taxIdType: form.taxIdType,
-        website: form.website,
+        website: normalizeUrl(form.website),
+        phone: form.phone,
+        email: form.email,
         notes: form.notes,
       });
       successMessage.value = 'Entidad actualizada correctamente';
       emit('update', result);
     } else {
-      result = await partyApi.createParty({
+      const requestData = {
         id: form.id || generateId(),
-        name: form.name,
         role: form.role,
         taxId: form.taxId,
         taxIdType: form.taxIdType,
-        website: form.website,
-      });
+        website: normalizeUrl(form.website),
+        phone: form.phone,
+        email: form.email,
+        entityType: form.entityType,
+      };
+
+      if (form.entityType === 'PERSON') {
+        requestData.firstName = form.firstName;
+        requestData.lastName = form.lastName;
+        requestData.name = `${form.firstName} ${form.lastName}`;
+      } else {
+        requestData.name = form.name;
+      }
+
+      result = await partyApi.createParty(requestData);
       successMessage.value = 'Entidad creada correctamente';
       resetForm();
       emit('submit', result);
@@ -285,15 +527,42 @@ async function submitForm() {
 
 function resetForm() {
   form.id = '';
+  form.entityType = '';
   form.name = '';
+  form.firstName = '';
+  form.lastName = '';
   form.role = '';
   form.taxId = '';
   form.taxIdType = 'NIF';
   form.website = '';
+  form.phone = '';
+  form.email = '';
   form.notes = '';
   Object.keys(errors).forEach((key) => {
     errors[key] = '';
   });
+}
+
+function onEntityTypeChange() {
+  // Clear fields when entity type changes
+  form.name = '';
+  form.firstName = '';
+  validateField('entityType');
+}
+
+function onRoleChange() {
+  // If role is CONTACT, force entity type to PERSON
+  if (form.role === 'CONTACT') {
+    if (form.entityType !== 'PERSON') {
+      form.entityType = 'PERSON';
+      onEntityTypeChange();
+    }
+  }
+  validateField('role');
+  form.lastName = '';
+  errors.name = '';
+  errors.firstName = '';
+  errors.lastName = '';
 }
 
 function generateId() {
@@ -407,6 +676,14 @@ textarea {
   color: #ef4444;
   font-size: 0.875rem;
   margin-top: 0.25rem;
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .form-actions {

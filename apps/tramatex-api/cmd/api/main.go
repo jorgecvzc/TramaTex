@@ -155,6 +155,8 @@ func main() {
 	listContactDetailsHandler := party_uc.NewListContactDetailsHandler(partyRepo)
 	removeContactDetailsHandler := party_uc.NewRemoveContactDetailsHandler(partyRepo)
 	addPartyAddressHandler := party_uc.NewAddPartyAddressHandler(partyAddressRepo)
+	updatePartyAddressHandler := party_uc.NewUpdatePartyAddressHandler(partyAddressRepo)
+	removePartyAddressHandler := party_uc.NewRemovePartyAddressHandler(partyAddressRepo)
 	listPartyAddressesHandler := party_uc.NewListPartyAddressesHandler(partyAddressRepo)
 
 	// 3. HTTP Handlers
@@ -179,7 +181,12 @@ func main() {
 		listContactDetailsHandler,
 		removeContactDetailsHandler,
 	)
-	partyAddressHandler := party_handler.NewPartyAddressHandler(addPartyAddressHandler, listPartyAddressesHandler)
+	partyAddressHandler := party_handler.NewPartyAddressHandler(
+		addPartyAddressHandler,
+		updatePartyAddressHandler,
+		removePartyAddressHandler,
+		listPartyAddressesHandler,
+	)
 
 	// --- Product Module Dependencies ---
 	// 1. Repositories
@@ -319,6 +326,8 @@ func main() {
 
 				parties.POST("/:id/addresses", infra_middleware.RequireRole("admin", "commercial"), partyAddressHandler.AddAddress)
 				parties.GET("/:id/addresses", partyAddressHandler.ListAddresses)
+				parties.PUT("/:id/addresses/:addressId", infra_middleware.RequireRole("admin", "commercial"), partyAddressHandler.UpdateAddress)
+				parties.DELETE("/:id/addresses/:addressId", infra_middleware.RequireRole("admin", "commercial"), partyAddressHandler.DeleteAddress)
 
 				// New PartyServiceConfiguration routes
 				parties.POST("/:id/service-configurations", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreatePartyServiceConfiguration)

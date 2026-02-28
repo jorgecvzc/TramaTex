@@ -4,9 +4,9 @@ import "testing"
 
 func TestPartyGettersAndSetters(t *testing.T) {
 	partyID, _ := NewPartyID("party-g1")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	taxID, _ := NewTaxID("B12345", "CIF")
-	orgProfile, _ := NewOrganizationProfile("Org", taxID, "https://org.local")
+	orgProfile, _ := NewOrganizationProfile("Org", taxID, "https://org.local", nil, nil)
 
 	party, err := NewParty(partyID, PartyStatusActive, personProfile, orgProfile)
 	if err != nil {
@@ -31,7 +31,7 @@ func TestPartyGettersAndSetters(t *testing.T) {
 		t.Fatalf("expected no relationships by default")
 	}
 
-	newPerson, _ := NewPersonProfile("Luis", "Lopez")
+	newPerson, _ := NewPersonProfile("Luis", "Lopez", nil, nil)
 	if err := party.SetPersonProfile(newPerson); err != nil {
 		t.Fatalf("unexpected error setting person profile: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestPartyGettersAndSetters(t *testing.T) {
 		t.Fatalf("expected updated person profile")
 	}
 
-	newOrg, _ := NewOrganizationProfile("Org 2", taxID, "https://org2.local")
+	newOrg, _ := NewOrganizationProfile("Org 2", taxID, "https://org2.local", nil, nil)
 	if err := party.SetOrganizationProfile(newOrg); err != nil {
 		t.Fatalf("unexpected error setting organization profile: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestPartyRelationshipGetters(t *testing.T) {
 
 func TestProfileAndContactGetters(t *testing.T) {
 	taxID, _ := NewTaxID("B12345", "CIF")
-	orgProfile, _ := NewOrganizationProfile("Org", taxID, "https://org.local")
+	orgProfile, _ := NewOrganizationProfile("Org", taxID, "https://org.local", nil, nil)
 	if orgProfile.Name() != "Org" {
 		t.Fatalf("expected organization name to match input")
 	}
@@ -139,7 +139,7 @@ func TestValueObjectsAndIDValues(t *testing.T) {
 
 func TestPartyStatusTransitions(t *testing.T) {
 	partyID, _ := NewPartyID("party-g6")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
 	if err := party.Activate(); err == nil {

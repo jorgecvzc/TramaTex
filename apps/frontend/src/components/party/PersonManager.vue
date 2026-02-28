@@ -72,19 +72,23 @@
             <input
               id="email"
               v-model="form.email"
-              type="email"
+              type="text"
               placeholder="correo@ejemplo.com"
+              @blur="validateField('email')"
               required
             />
+            <span v-if="formErrors.email" class="error">{{ formErrors.email }}</span>
           </div>
           <div class="form-group">
             <label for="phone">Teléfono</label>
             <input
               id="phone"
               v-model="form.phone"
-              type="tel"
+              type="text"
               placeholder="+34 123 456 789"
+              @blur="validateField('phone')"
             />
+            <span v-if="formErrors.phone" class="error">{{ formErrors.phone }}</span>
           </div>
         </div>
         </template>
@@ -152,6 +156,13 @@
             <span class="badge date">{{ formatDate(person.created_at) }}</span>
             <button
               type="button"
+              class="btn btn-primary"
+              @click="navigateToContact(person.id)"
+            >
+              Ver detalles
+            </button>
+            <button
+              type="button"
               class="btn btn-danger"
               :disabled="isRemovingId === person.id"
               @click="handleRemoveContact(person)"
@@ -178,7 +189,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
+
+const router = useRouter();
 
 const props = defineProps({
   partyId: {
@@ -204,6 +218,11 @@ const form = reactive({
   phone: '',
   jobTitle: '',
   isPrimary: false,
+});
+
+const formErrors = reactive({
+  email: '',
+  phone: '',
 });
 
 onMounted(() => {
@@ -236,6 +255,45 @@ async function fetchPersons() {
   }
 }
 
+function validateEmail(email) {
+  if (!email || !email.trim()) return true; // Email is optional
+  const emailRegex = /^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email.trim());
+}
+
+function navigateToContact(partyId) {
+  router.push({ name: 'PartyDetail', params: { id: partyId } });
+}
+
+function validatePhone(phone) {
+  if (!phone || !phone.trim()) return true; // Phone is optional
+  const phoneRegex = /^[\+]?[\d\s\-()]{8,}$/;
+  return phoneRegex.test(phone.trim());
+}
+
+const validationRules = {
+  email: (value) => {
+    if (!value || !value.trim()) return ''; // Email is required but error is handled elsewhere
+    if (!validateEmail(value)) {
+      return 'Formato de email inválido';
+    }
+    return '';
+  },
+  phone: (value) => {
+    if (value && value.trim() && !validatePhone(value)) {
+      return 'Formato inválido. Debe tener al menos 8 dígitos y puede incluir +, espacios, guiones y paréntesis';
+    }
+    return '';
+  },
+};
+
+function validateField(fieldName) {
+  const validator = validationRules[fieldName];
+  if (validator) {
+    formErrors[fieldName] = validator(form[fieldName]);
+  }
+}
+
 async function submitForm() {
   isSubmitting.value = true;
   formError.value = '';
@@ -256,8 +314,19 @@ async function submitForm() {
         isPrimary: form.isPrimary,
       });
     } else {
+      // Validaciones obligatorias
       if (!form.firstName || !form.lastName || !form.email) {
         formError.value = 'Nombre, apellido y correo son obligatorios';
+        return;
+      }
+
+      // Validar todos los campos
+      validateField('email');
+      validateField('phone');
+
+      // Verificar si hay errores
+      if (formErrors.email || formErrors.phone) {
+        formError.value = 'Por favor, corrija los errores en el formulario antes de guardar';
         return;
       }
 
@@ -356,6 +425,8 @@ function resetForm() {
   selectedContactId.value = '';
   formMode.value = 'new';
   formError.value = '';
+  formErrors.email = '';
+  formErrors.phone = '';
   showForm.value = false;
 }
 
@@ -465,6 +536,12 @@ function formatDate(dateString) {
   margin: 0;
 }
 
+.form-group .error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -499,13 +576,14 @@ function formatDate(dateString) {
 }
 
 .btn-primary {
-  background: #e6b800;
+  background: #eac54f;
   color: #1e293b;
-  font-weight: 700;
+  border: none;
+  font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #d6aa00;
+  background: #d4a41d;
 }
 
 .btn-secondary {
@@ -562,6 +640,10 @@ function formatDate(dateString) {
   margin: 0 0 0.5rem 0;
 }
 
+.person-info {
+  flex: 1;
+}
+
 .person-info p {
   color: #64748b;
   margin: 0.25rem 0;
@@ -572,6 +654,8 @@ function formatDate(dateString) {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .badge {

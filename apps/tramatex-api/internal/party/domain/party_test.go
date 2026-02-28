@@ -13,7 +13,7 @@ func TestNewPartyRequiresProfile(t *testing.T) {
 
 func TestNewPartyValidatesStatus(t *testing.T) {
 	partyID, _ := NewPartyID("party-002")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	if _, err := NewParty(partyID, PartyStatus("INVALID"), personProfile, nil); err == nil {
 		t.Fatalf("expected error for invalid status")
 	}
@@ -21,7 +21,7 @@ func TestNewPartyValidatesStatus(t *testing.T) {
 
 func TestPartyActivateDeactivate(t *testing.T) {
 	partyID, _ := NewPartyID("party-004")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
 	if err := party.Activate(); err == nil {
@@ -40,7 +40,7 @@ func TestPartyActivateDeactivate(t *testing.T) {
 
 func TestPartyRolesAddRemove(t *testing.T) {
 	partyID, _ := NewPartyID("party-005")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
 	role, _ := NewPartyRole(PartyRoleClient, nil)
@@ -60,7 +60,7 @@ func TestPartyRolesAddRemove(t *testing.T) {
 
 func TestPartyRelationshipAdd(t *testing.T) {
 	partyID, _ := NewPartyID("party-006")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 	party, _ := NewParty(partyID, PartyStatusActive, personProfile, nil)
 
 	invalidRel := PartyRelationship{typeValue: RelationshipType("INVALID")}
@@ -78,20 +78,20 @@ func TestPartyRelationshipAdd(t *testing.T) {
 }
 
 func TestPersonProfileValidation(t *testing.T) {
-	if _, err := NewPersonProfile("", "Perez"); err == nil {
+	if _, err := NewPersonProfile("", "Perez", nil, nil); err == nil {
 		t.Fatalf("expected error when first name is empty")
 	}
-	if _, err := NewPersonProfile("Ana", ""); err == nil {
+	if _, err := NewPersonProfile("Ana", "", nil, nil); err == nil {
 		t.Fatalf("expected error when last name is empty")
 	}
 }
 
 func TestOrganizationProfileAndContacts(t *testing.T) {
-	if _, err := NewOrganizationProfile("", nil, ""); err == nil {
+	if _, err := NewOrganizationProfile("", nil, "", nil, nil); err == nil {
 		t.Fatalf("expected error when organization name is empty")
 	}
 
-	profile, err := NewOrganizationProfile("Org", nil, "")
+	profile, err := NewOrganizationProfile("Org", nil, "", nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestPartyTypesValidation(t *testing.T) {
 
 func TestNewPartyFromPersistence(t *testing.T) {
 	partyID, _ := NewPartyID("party-008")
-	personProfile, _ := NewPersonProfile("Ana", "Perez")
+	personProfile, _ := NewPersonProfile("Ana", "Perez", nil, nil)
 
 	role, _ := NewPartyRole(PartyRoleClient, nil)
 	party, err := NewPartyFromPersistence(

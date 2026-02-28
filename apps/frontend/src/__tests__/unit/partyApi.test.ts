@@ -931,11 +931,23 @@ describe('PartyApi Service', () => {
         modified_at: '2026-02-10T08:00:00Z',
       }
 
+      const linkedParty = {
+        id: 'person-502',
+        roles: ['EMPLOYEE'],
+        status: 'ACTIVE',
+        person_profile: { first_name: 'Luis', last_name: 'Diaz' },
+        organization_profile: null,
+        created_at: '2026-02-10T08:00:00Z',
+        modified_at: '2026-02-10T08:00:00Z',
+      }
+
       ;(global.fetch as any)
         .mockResolvedValueOnce({ ok: true, json: async () => listPayload })
-        .mockResolvedValueOnce({ ok: true, json: async () => orphanRelationships })
-        .mockResolvedValueOnce({ ok: true, json: async () => linkedRelationships })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }) })
         .mockResolvedValueOnce({ ok: true, json: async () => orphanParty })
+        .mockResolvedValueOnce({ ok: true, json: async () => orphanRelationships })
+        .mockResolvedValueOnce({ ok: true, json: async () => linkedParty })
+        .mockResolvedValueOnce({ ok: true, json: async () => linkedRelationships })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }) })
 
       const result = await partyApi.listAvailableContactsForParty('party-001')
@@ -1211,12 +1223,35 @@ describe('PartyApi Service', () => {
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ data: [] }),
+          json: async () => ({
+            data: [
+              {
+                id: 'rel-001',
+                type: 'IS_EMPLOYEE_OF',
+                from_party_id: 'person-001',
+                to_party_id: 'party-001',
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'rel-002',
+                type: 'IS_EMPLOYEE_OF',
+                from_party_id: 'person-001',
+                to_party_id: 'party-002',
+              },
+            ],
+          }),
         })
 
       await expect(partyApi.removeContact('party-001', 'person-001', false)).resolves.toBeUndefined()
 
-      expect(global.fetch).toHaveBeenCalledTimes(3)
+      expect(global.fetch).toHaveBeenCalledTimes(5)
       // Verify the DELETE URL does NOT contain deleteIfNoReferences query param
       const deleteCall = (global.fetch as any).mock.calls[1]
       expect(deleteCall[0]).toContain('/contact-details/cd-001')
@@ -1242,12 +1277,39 @@ describe('PartyApi Service', () => {
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
         .mockResolvedValueOnce({
           ok: true,
+          json: async () => ({
+            data: [
+              {
+                id: 'rel-001',
+                type: 'IS_EMPLOYEE_OF',
+                from_party_id: 'person-001',
+                to_party_id: 'party-001',
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+        .mockResolvedValueOnce({
+          ok: true,
           json: async () => ({ data: [] }),
         })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'person-001',
+            roles: ['CONTACT'],
+            status: 'ACTIVE',
+            person_profile: { first_name: 'John', last_name: 'Doe', has_person: true, has_organization: false },
+            organization_profile: null,
+            created_at: '2026-02-10T08:00:00Z',
+            modified_at: '2026-02-10T08:00:00Z',
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({}) })
 
       await expect(partyApi.removeContact('party-001', 'person-001', true)).resolves.toBeUndefined()
 
-      expect(global.fetch).toHaveBeenCalledTimes(3)
+      expect(global.fetch).toHaveBeenCalledTimes(7)
       // Verify the DELETE URL DOES contain deleteIfNoReferences query param
       const deleteCall = (global.fetch as any).mock.calls[1]
       expect(deleteCall[0]).toContain('/contact-details/cd-001?deleteIfNoReferences=true')

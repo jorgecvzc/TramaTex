@@ -7,13 +7,24 @@
   <img src="https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white" alt="Docker">
 </div>
 
-> Un sistema ERP de código abierto, diseñado para las necesidades del sector textil a pequeña escala. Este proyecto fue desarrollado como un Trabajo Fin de Máster.
+> Un sistema ERP modular de código abierto especializado en la gestión integral de empresas de vestuario laboral y EPIs.
 
-## 💡 Sobre el Proyecto
+## 💡 Sobre TramaTex
 
-TramaTex es un sistema de planificación de recursos empresariales (ERP) diseñado específicamente para **empresas de venta de vestuario laboral y EPIs (Equipos de Protección Individual)**. Busca ofrecer una solución integrada y de bajo coste para microempresas y talleres del sector textil. El objetivo es centralizar la gestión de las operaciones clave, desde el trato con clientes y proveedores, la administración de un catálogo de productos complejos que incluye la **marcación y personalización de prendas para uniformidad**, hasta el ciclo completo de ventas.
+TramaTex nace con la misión de digitalizar y profesionalizar a las microempresas dedicadas a la venta de vestuario laboral y EPIs. Tradicionalmente, este sector ha carecido de herramientas adaptadas a su escala y a sus necesidades específicas de personalización y marcaje.
 
-El sistema está diseñado como un **monolito modular**, aplicando los principios de **Clean Architecture** y **Domain-Driven Design (DDD)** para asegurar un software mantenible, escalable y alineado con las necesidades del negocio.
+Este proyecto cierra esa brecha ofreciendo una solución integral para:
+- Centralizar la administración de **clientes y proveedores**.
+- Gestionar **catálogos complejos** con variantes JIT (tallas/colores).
+- Controlar el **ciclo de ventas** (presupuestos, facturas, tickets).
+- Supervisar la **ejecución en taller (MES)** de personalizaciones y arreglos.
+
+## 🏛️ Arquitectura y Calidad Técnica
+
+El sistema se ha desarrollado bajo los principios de **Clean Architecture** y **Domain-Driven Design (DDD)**, estructurado como un **monolito modular**. Esta elección asegura un software profesional, mantenible y escalable, diseñado para durar y evolucionar junto al negocio.
+
+Para profundizar en los objetivos estratégicos y el modelo de negocio, consulta:
+👉 **[Visión y Alcance del Proyecto](docs/architecture/project-vision-and-scope.md)**
 
 ## ✨ Funcionalidades
 
@@ -92,8 +103,8 @@ TramaTex/
 El proyecto incluye documentación exhaustiva que cubre varios aspectos. Este `README.md` sirve como punto de partida para navegarla.
 
 -   **Decisiones de Arquitectura (ADRs):** Razón y justificación detrás de las decisiones arquitectónicas clave del proyecto.
-    -   [Índice de ADRs](docs/architecture/adrs/README.md)
     -   [Visión y Alcance del Proyecto](docs/architecture/project-vision-and-scope.md)
+    -   [Índice de ADRs](docs/architecture/adrs/README.md)
 -   **Guías de Desarrollo:** Instrucciones y buenas prácticas para contribuir al código.
     -   [Guía de Inicio Rápido](docs/guides/quick-start.md)
     -   [Estándares de Código y Estilo](docs/guides/code-and-style-standards.md)

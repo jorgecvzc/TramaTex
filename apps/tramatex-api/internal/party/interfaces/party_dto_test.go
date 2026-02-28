@@ -8,9 +8,9 @@ import (
 
 func TestMapPartyToDTO(t *testing.T) {
 	partyID, _ := domain.NewPartyID("party-100")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Perez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Perez", nil, nil)
 	taxID, _ := domain.NewTaxID("B12345678", "CIF")
-	orgProfile, _ := domain.NewOrganizationProfile("Textiles Perez", taxID, "https://textiles.local")
+	orgProfile, _ := domain.NewOrganizationProfile("Textiles Perez", taxID, "https://textiles.local", nil, nil)
 
 	contactID, _ := domain.NewContactDetailsID("contact-100")
 	phone, _ := domain.NewPhone("+34 600 111 222")
@@ -80,8 +80,8 @@ func TestMapPartyRelationshipToDTO(t *testing.T) {
 
 func TestMapAddressToDTO(t *testing.T) {
 	address, _ := domain.NewAddress("Calle 1", "Madrid", "Madrid", "28001", "Spain")
-	dto := MapAddressToDTO(address)
-	if dto == nil || dto.City != "Madrid" {
+	dto := MapAddressToDTO(address, "addr-001")
+	if dto == nil || dto.City != "Madrid" || dto.ID != "addr-001" {
 		t.Fatalf("Address mapping failed")
 	}
 }
@@ -96,7 +96,7 @@ func TestMapDTOs_NilInputs(t *testing.T) {
 	if MapPartyRelationshipToDTO(nil) != nil {
 		t.Fatalf("expected nil relationship dto")
 	}
-	if MapAddressToDTO(nil) != nil {
+	if MapAddressToDTO(nil, "") != nil {
 		t.Fatalf("expected nil address dto")
 	}
 }

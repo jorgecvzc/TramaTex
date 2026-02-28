@@ -5,13 +5,20 @@ package domain
 type PersonProfile struct {
 	firstName string
 	lastName  string
+	phone     *Phone
+	email     *Email
 }
 
-func NewPersonProfile(firstName, lastName string) (*PersonProfile, error) {
+func NewPersonProfile(firstName, lastName string, phone *Phone, email *Email) (*PersonProfile, error) {
 	if firstName == "" || lastName == "" {
 		return nil, NewValidationError("first name and last name are required")
 	}
-	return &PersonProfile{firstName: firstName, lastName: lastName}, nil
+	return &PersonProfile{
+		firstName: firstName,
+		lastName:  lastName,
+		phone:     phone,
+		email:     email,
+	}, nil
 }
 
 func (p *PersonProfile) FirstName() string {
@@ -22,15 +29,25 @@ func (p *PersonProfile) LastName() string {
 	return p.lastName
 }
 
+func (p *PersonProfile) Phone() *Phone {
+	return p.phone
+}
+
+func (p *PersonProfile) Email() *Email {
+	return p.email
+}
+
 // OrganizationProfile holds organization-specific data for a Party
 type OrganizationProfile struct {
 	name     string
 	taxID    *TaxID
 	website  string
+	phone    *Phone
+	email    *Email
 	contacts []*ContactDetails
 }
 
-func NewOrganizationProfile(name string, taxID *TaxID, website string) (*OrganizationProfile, error) {
+func NewOrganizationProfile(name string, taxID *TaxID, website string, phone *Phone, email *Email) (*OrganizationProfile, error) {
 	if name == "" {
 		return nil, NewValidationError("organization name is required")
 	}
@@ -38,6 +55,8 @@ func NewOrganizationProfile(name string, taxID *TaxID, website string) (*Organiz
 		name:     name,
 		taxID:    taxID,
 		website:  website,
+		phone:    phone,
+		email:    email,
 		contacts: make([]*ContactDetails, 0),
 	}, nil
 }
@@ -52,6 +71,14 @@ func (o *OrganizationProfile) TaxID() *TaxID {
 
 func (o *OrganizationProfile) Website() string {
 	return o.website
+}
+
+func (o *OrganizationProfile) Phone() *Phone {
+	return o.phone
+}
+
+func (o *OrganizationProfile) Email() *Email {
+	return o.email
 }
 
 func (o *OrganizationProfile) Contacts() []*ContactDetails {

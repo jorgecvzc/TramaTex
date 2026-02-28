@@ -233,20 +233,44 @@ class PartyApiService {
    */
   async createParty(data: CreatePartyRequest): Promise<PartyUI | null> {
     const roles = this.mapRoleToPartyRoles(data.role)
-    const response = await this.safeFetch(this.baseUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        id: data.id,
-        status: 'ACTIVE',
-        roles,
-        organization_profile: {
-          name: data.name,
+    
+    // Determine entity type and build appropriate profile
+    const entityType = data.entityType || 'ORGANIZATION'
+    const body: any = {
+      id: data.id,
+      status: 'ACTIVE',
+      roles,
+    }
+
+    if (entityType === 'PERSON') {
+      // Create person profile
+      body.person_profile = {
+        first_name: data.firstName || '',
+        last_name: data.lastName || '',
+      }
+      // Person entities can still have tax_id (NIE/NIF)
+      if (data.taxId) {
+        body.organization_profile = {
+          name: `${data.firstName} ${data.lastName}`,
           tax_id: data.taxId,
           tax_id_type: data.taxIdType,
           website: data.website,
-        },
-      }),
+        }
+      }
+    } else {
+      // Create organization profile
+      body.organization_profile = {
+        name: data.name,
+        tax_id: data.taxId,
+        tax_id_type: data.taxIdType,
+        website: data.website,
+      }
+    }
+
+    const response = await this.safeFetch(this.baseUrl, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -487,7 +511,7 @@ class PartyApiService {
       body: JSON.stringify({
         id: personId,
         status: 'ACTIVE',
-        roles: ['EMPLOYEE'],
+        roles: ['CONTACT'],
         person_profile: {
           first_name: data.firstName,
           last_name: data.lastName,
@@ -855,21 +879,58 @@ class PartyApiService {
       await this.handleError(response, 'No se pudieron cargar las direcciones')
     }
 
-    const payload: { data: Array<{ street: string; city: string; province: string; postal_code: string; country: string }> } = await response.json()
+    const payload: { data: Array<{ id: string; street: string; city: string; province: string; postal_code: string; country: string; is_primary?: boolean; created_at?: string }> } = await response.json()
     const data: Address[] = (payload.data || []).map((address) => ({
-      id: `${address.street}-${address.postal_code}-${address.city}`,
+      id: address.id,
       street: address.street,
       city: address.city,
-      state: address.province,
+      province: address.province,
       country: address.country,
       postal_code: address.postal_code,
-      is_primary: false,
-      created_at: '',
+      is_primary: address.is_primary || false,
+      created_at: address.created_at || '',
     }))
 
     return {
       data,
       total: data.length,
+    }
+  }
+
+  /**
+   * Update address for party
+   */
+  async updatePartyAddress(partyId: string, addressId: string, data: { id?: string; street: string; city: string; province: string; postalCode: string; country: string }): Promise<Address> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/addresses/${addressId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        street: data.street,
+        city: data.city,
+        province: data.province,
+        postal_code: data.postalCode,
+        country: data.country,
+      }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la dirección')
+    }
+
+    return response.json()
+  }
+
+  /**
+   * Delete address from party
+   */
+  async deletePartyAddress(partyId: string, addressId: string): Promise<void> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/addresses/${addressId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la dirección')
     }
   }
 

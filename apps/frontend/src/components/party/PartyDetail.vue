@@ -73,6 +73,20 @@
               </a>
             </p>
           </div>
+          
+          <div v-if="party.phone" class="info-item">
+            <label>Teléfono</label>
+            <p>{{ party.phone }}</p>
+          </div>
+          
+          <div v-if="party.email" class="info-item">
+            <label>Email</label>
+            <p>
+              <a :href="`mailto:${party.email}`">
+                {{ party.email }}
+              </a>
+            </p>
+          </div>
 
           <div class="info-item">
             <label>Creado</label>
@@ -121,7 +135,9 @@
                   id="editTaxId"
                   v-model="editForm.taxId"
                   type="text"
+                  @blur="validateEditField('taxId')"
                 />
+                <span v-if="editErrors.taxId" class="error">{{ editErrors.taxId }}</span>
               </div>
 
               <div class="form-group">
@@ -142,8 +158,35 @@
               <input
                 id="editWebsite"
                 v-model="editForm.website"
-                type="url"
+                type="text"
+                placeholder="example.com"
+                @blur="validateEditField('website')"
               />
+              <span v-if="editErrors.website" class="error">{{ editErrors.website }}</span>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="editPhone">Teléfono</label>
+                <input
+                  id="editPhone"
+                  v-model="editForm.phone"
+                  type="tel"
+                  @blur="validateEditField('phone')"
+                />
+                <span v-if="editErrors.phone" class="error">{{ editErrors.phone }}</span>
+              </div>
+              
+              <div class="form-group">
+                <label for="editEmail">Email</label>
+                <input
+                  id="editEmail"
+                  v-model="editForm.email"
+                  type="email"
+                  @blur="validateEditField('email')"
+                />
+                <span v-if="editErrors.email" class="error">{{ editErrors.email }}</span>
+              </div>
             </div>
 
             <div class="form-group">
@@ -174,15 +217,60 @@
         </div>
       </div>
 
+      <!-- Related Entities Section (for CONTACT role only) -->
+      <div v-if="party.role === 'CONTACT'" class="card related-entities-section">
+        <h3>Entidades Vinculadas</h3>
+        
+        <div v-if="isLoadingRelations" class="loading-relations">
+          <div class="spinner-small"></div>
+          <p>Cargando entidades...</p>
+        </div>
+
+        <div v-else-if="relatedEntities.length > 0" class="related-entities-list">
+          <div 
+            v-for="entity in relatedEntities" 
+            :key="entity.id" 
+            class="entity-card"
+          >
+            <div class="entity-header">
+              <div class="entity-info">
+                <div class="info-header">
+                  <h4>{{ entity.name }}</h4>
+                  <span class="badge" :class="`role-${entity.role.toLowerCase()}`">
+                    {{ formatRole(entity.role) }}
+                  </span>
+                </div>
+                <p v-if="entity.email" class="email">📧 {{ entity.email }}</p>
+                <p v-if="entity.phone" class="phone">📞 {{ entity.phone }}</p>
+                <p v-if="entity.tax_id" class="tax-id">🆔 {{ entity.tax_id }}</p>
+              </div>
+              <div class="entity-badges">
+                <button 
+                  type="button"
+                  class="btn btn-primary" 
+                  @click="navigateToEntity(entity.id)"
+                >
+                  Ver detalles
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="empty-state">
+          <p>Este contacto no está vinculado a ninguna entidad aún.</p>
+        </div>
+
+        <div v-if="relationError" class="error-message-inline">
+          <span>⚠️ {{ relationError }}</span>
+        </div>
+      </div>
+
       <!-- Contacts Section -->
       <person-manager
         v-if="party.role !== 'CONTACT'"
         :party-id="partyId"
       />
-      <div v-else class="card info-note">
-        <h3>Contactos</h3>
-        <p>Una entidad de tipo Contacto no puede contener otros contactos.</p>
-      </div>
 
       <!-- Addresses Section -->
       <address-manager :party-id="partyId" />
@@ -191,7 +279,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
 import PersonManager from './PersonManager.vue';
@@ -200,7 +288,7 @@ import AddressManager from './AddressManager.vue';
 const route = useRoute();
 const router = useRouter();
 
-const partyId = route.params.id;
+const partyId = ref(route.params.id);
 
 const party = ref(null);
 const isLoading = ref(false);
@@ -208,13 +296,27 @@ const isUpdating = ref(false);
 const error = ref('');
 const isEditing = ref(false);
 
+// Related entities (for CONTACT role)
+const relatedEntities = ref([]);
+const isLoadingRelations = ref(false);
+const relationError = ref('');
+
 const editForm = reactive({
   name: '',
   role: 'CLIENT',
   taxId: '',
   taxIdType: 'NIF',
   website: '',
+  phone: '',
+  email: '',
   notes: '',
+});
+
+const editErrors = reactive({
+  taxId: '',
+  phone: '',
+  email: '',
+  website: '',
 });
 
 onMounted(() => {
@@ -226,7 +328,7 @@ async function fetchParty() {
   error.value = '';
 
   try {
-    const data = await partyApi.getParty(partyId);
+    const data = await partyApi.getParty(partyId.value);
     party.value = data;
     
     // Initialize edit form
@@ -235,7 +337,14 @@ async function fetchParty() {
     editForm.taxId = data.tax_id || '';
     editForm.taxIdType = data.tax_id_type || 'NIF';
     editForm.website = data.website || '';
+    editForm.phone = data.phone || '';
+    editForm.email = data.email || '';
     editForm.notes = data.notes || '';
+
+    // Load related entities if this is a CONTACT
+    if (data.role === 'CONTACT') {
+      await fetchRelatedEntities();
+    }
   } catch (err) {
     error.value = err?.message || 'Entidad no encontrada';
   } finally {
@@ -243,21 +352,95 @@ async function fetchParty() {
   }
 }
 
+async function fetchRelatedEntities() {
+  isLoadingRelations.value = true;
+  relationError.value = '';
+  
+  try {
+    // Get relationships for the contact
+    const relationships = await partyApi.listRelationships(partyId.value);
+    
+    if (!relationships || relationships.length === 0) {
+      relatedEntities.value = [];
+      return;
+    }
+
+    // Extract entity IDs (from_party_id where contact is to_party_id, or vice versa)
+    const entityIds = relationships
+      .map(rel => {
+        // If this contact is to_party_id, get from_party_id
+        if (rel.to_party_id === partyId.value) {
+          return rel.from_party_id;
+        }
+        // If this contact is from_party_id, get to_party_id
+        if (rel.from_party_id === partyId.value) {
+          return rel.to_party_id;
+        }
+        return null;
+      })
+      .filter(id => id !== null);
+
+    // Fetch details for each related entity
+    const entityPromises = entityIds.map(entityId => 
+      partyApi.getParty(entityId).catch(() => null)
+    );
+    
+    const entities = await Promise.all(entityPromises);
+    relatedEntities.value = entities.filter(e => e !== null);
+  } catch (err) {
+    relationError.value = err?.message || 'No se pudieron cargar las entidades vinculadas';
+  } finally {
+    isLoadingRelations.value = false;
+  }
+}
+
+function navigateToEntity(entityId) {
+  partyId.value = entityId;
+  router.push({ name: 'PartyDetail', params: { id: entityId } });
+}
+
+// Watch for route changes to reload data
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    partyId.value = newId;
+    fetchParty();
+  }
+});
+
 async function submitEdit() {
   if (!editForm.name.trim()) {
     alert('El nombre es obligatorio');
     return;
   }
 
+  // Validar todos los campos
+  validateEditField('taxId');
+  validateEditField('email');
+  validateEditField('phone');
+  validateEditField('website');
+
+  // Verificar si hay errores
+  if (editErrors.taxId || editErrors.email || editErrors.phone || editErrors.website) {
+    alert('Por favor, corrija los errores en el formulario antes de guardar');
+    return;
+  }
+
+  // Normalizar URL si se proporciona
+  if (editForm.website && editForm.website.trim()) {
+    editForm.website = normalizeUrl(editForm.website);
+  }
+
   isUpdating.value = true;
 
   try {
-    const updated = await partyApi.updateParty(partyId, {
+    const updated = await partyApi.updateParty(partyId.value, {
       name: editForm.name,
       role: editForm.role,
       taxId: editForm.taxId,
       taxIdType: editForm.taxIdType,
-      website: editForm.website,
+      website: editForm.website || '',
+      phone: editForm.phone,
+      email: editForm.email,
       notes: editForm.notes,
     });
 
@@ -277,7 +460,7 @@ async function toggleStatus() {
 
   try {
     const newStatus = party.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const updated = await partyApi.changePartyStatus(partyId, newStatus);
+    const updated = await partyApi.changePartyStatus(partyId.value, newStatus);
     party.value = updated;
   } catch (err) {
     error.value = err?.message || 'No se pudo actualizar el estado';
@@ -303,6 +486,110 @@ function formatDate(dateString) {
     month: 'long',
     day: 'numeric',
   });
+}
+
+function normalizeUrl(url) {
+  if (!url || !url.trim()) return url;
+  
+  const trimmedUrl = url.trim();
+  // Si ya tiene protocolo, devolver tal cual
+  if (/^https?:\/\//i.test(trimmedUrl)) {
+    return trimmedUrl;
+  }
+  
+  // Si no tiene protocolo, añadir https://
+  return `https://${trimmedUrl}`;
+}
+
+function isValidUrl(string) {
+  if (!string || !string.trim()) return true; // Empty is valid
+  
+  try {
+    const url = new URL(string);
+    
+    // Validar que el hostname tenga al menos un punto (dominio válido)
+    // Esto rechaza casos como "https://asdf" y acepta "https://example.com"
+    if (!url.hostname.includes('.')) {
+      return false;
+    }
+    
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function isValidEmail(string) {
+  const emailRegex = /^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(string.trim());
+}
+
+function isValidPhone(string) {
+  const phoneRegex = /^[\+]?[\d\s\-()]{8,}$/;
+  return phoneRegex.test(string.trim());
+}
+
+function isValidTaxId(taxId, taxIdType) {
+  if (!taxId || !taxId.trim()) return true; // Empty is valid
+  
+  const trimmed = taxId.trim().toUpperCase();
+  
+  if (taxIdType === 'NIF') {
+    // NIF español: 8 dígitos + letra
+    const nifRegex = /^[0-9]{8}[A-Z]$/;
+    return nifRegex.test(trimmed);
+  } else if (taxIdType === 'CIF') {
+    // CIF español: letra + 7 dígitos + dígito o letra
+    const cifRegex = /^[A-Z][0-9]{7}[0-9A-Z]$/;
+    return cifRegex.test(trimmed);
+  } else if (taxIdType === 'VAT') {
+    // VAT genérico: al menos 2 caracteres
+    return trimmed.length >= 2;
+  }
+  
+  return true;
+}
+
+const editValidationRules = {
+  taxId: (value) => {
+    if (value && !isValidTaxId(value, editForm.taxIdType)) {
+      if (editForm.taxIdType === 'NIF') {
+        return 'Formato de NIF inválido (debe ser 8 dígitos seguidos de una letra)';
+      } else if (editForm.taxIdType === 'CIF') {
+        return 'Formato de CIF inválido (debe ser letra + 7 dígitos + dígito o letra)';
+      }
+      return 'Formato inválido';
+    }
+    return '';
+  },
+  website: (value) => {
+    if (value && value.trim()) {
+      const normalized = normalizeUrl(value);
+      if (!isValidUrl(normalized)) {
+        return 'Formato de URL inválido';
+      }
+    }
+    return '';
+  },
+  phone: (value) => {
+    if (value && value.trim() && !isValidPhone(value)) {
+      return 'Formato inválido. Debe tener al menos 8 dígitos y puede incluir +, espacios, guiones y paréntesis';
+    }
+    return '';
+  },
+  email: (value) => {
+    if (value && value.trim() && !isValidEmail(value)) {
+      return 'Formato de email inválido';
+    }
+    return '';
+  },
+};
+
+function validateEditField(fieldName) {
+  const validator = editValidationRules[fieldName];
+  if (validator) {
+    editErrors[fieldName] = validator(editForm[fieldName]);
+  }
 }
 </script>
 
@@ -435,13 +722,14 @@ function formatDate(dateString) {
 }
 
 .btn-primary {
-  background: #e6b800;
+  background: #eac54f;
   color: #1e293b;
-  font-weight: 700;
+  border: none;
+  font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #d6aa00;
+  background: #d4a41d;
 }
 
 .btn-secondary {
@@ -559,10 +847,117 @@ function formatDate(dateString) {
   gap: 1rem;
 }
 
+.form-group .error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
 .edit-actions {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+/* Related Entities Section */
+.related-entities-section {
+  margin-top: 1.5rem;
+}
+
+.related-entities-section h3 {
+  color: #1b3a6b;
+  margin: 0 0 1rem 0;
+}
+
+.loading-relations {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  justify-content: center;
+  color: #64748b;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(230, 184, 0, 0.2);
+  border-top-color: #e6b800;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.related-entities-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.entity-card {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.entity-card:hover {
+  border-color: #002395;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.entity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.entity-info h4 {
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.entity-info {
+  flex: 1;
+}
+
+.info-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.info-header h4 {
+  margin: 0;
+}
+
+.entity-info p {
+  color: #64748b;
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.entity-badges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.error-message-inline {
+  color: #991b1b;
+  background-color: #fee2e2;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border: 1px solid #ef4444;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748b;
 }
 
 @media (max-width: 768px) {
@@ -581,6 +976,16 @@ function formatDate(dateString) {
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .entity-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .entity-meta {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }
 </style>

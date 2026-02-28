@@ -16,6 +16,8 @@ type PartyRepository interface {
 	Exists(ctx context.Context, id domain.PartyID) (bool, error)
 	Count(ctx context.Context) (int64, error)
 	HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error)
+	HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error)
+	HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error)
 }
 
 // PartyRelationshipRepository defines methods for relationships persistence
@@ -36,9 +38,15 @@ type ContactDetailsRepository interface {
 // PartyAddressRepository defines methods for address persistence attached to Party
 type PartyAddressRepository interface {
 	Save(ctx context.Context, address *domain.Address, addressID domain.AddressID, partyID domain.PartyID, createdBy string, modifiedBy string) error
-	FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*domain.Address, error)
+	FindByPartyID(ctx context.Context, partyID domain.PartyID) ([]*AddressWithID, error)
 	FindPrimary(ctx context.Context, partyID domain.PartyID) (*domain.Address, error)
 	Delete(ctx context.Context, id domain.AddressID) error
+}
+
+// AddressWithID contains an address with its ID
+type AddressWithID struct {
+	ID      string
+	Address *domain.Address
 }
 
 // PartyFilters defines filtering options for parties

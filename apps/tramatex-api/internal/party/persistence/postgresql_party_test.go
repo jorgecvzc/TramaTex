@@ -28,9 +28,9 @@ func TestPostgreSQLPartyRepository_Save_And_FindByID_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	partyID, _ := domain.NewPartyID("party-001")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Pérez")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Pérez", nil, nil)
 	taxID, _ := domain.NewTaxID("B12345678", "CIF")
-	orgProfile, _ := domain.NewOrganizationProfile("Textiles Pérez", taxID, "https://textiles.local")
+	orgProfile, _ := domain.NewOrganizationProfile("Textiles Pérez", taxID, "https://textiles.local", nil, nil)
 
 	contactID, _ := domain.NewContactDetailsID("contact-001")
 	phone, _ := domain.NewPhone("+34 600 111 222")
@@ -87,8 +87,8 @@ func TestPostgreSQLPartyRelationshipRepository_Save_And_FindByPartyID_Integratio
 
 	partyID1, _ := domain.NewPartyID("party-a")
 	partyID2, _ := domain.NewPartyID("party-b")
-	personProfile, _ := domain.NewPersonProfile("A", "One")
-	orgProfile, _ := domain.NewOrganizationProfile("Org B", nil, "")
+	personProfile, _ := domain.NewPersonProfile("A", "One", nil, nil)
+	orgProfile, _ := domain.NewOrganizationProfile("Org B", nil, "", nil, nil)
 
 	partyA, _ := domain.NewParty(partyID1, domain.PartyStatusActive, personProfile, nil)
 	partyB, _ := domain.NewParty(partyID2, domain.PartyStatusActive, nil, orgProfile)
@@ -136,7 +136,7 @@ func TestPostgreSQLPartyAddressRepository_Save_And_ListByParty_Integration(t *te
 	ctx := context.Background()
 
 	partyID, _ := domain.NewPartyID("party-addr")
-	personProfile, _ := domain.NewPersonProfile("Addr", "Test")
+	personProfile, _ := domain.NewPersonProfile("Addr", "Test", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 	if err := partyRepo.Save(ctx, party, testUserID, testUserID); err != nil {
 		t.Fatalf("Failed to save party: %v", err)
@@ -178,8 +178,8 @@ func TestPostgreSQLPartyRelationshipRepository_Delete_Integration(t *testing.T) 
 
 	partyID1, _ := domain.NewPartyID("party-rel-del-a")
 	partyID2, _ := domain.NewPartyID("party-rel-del-b")
-	personProfile, _ := domain.NewPersonProfile("Rel", "One")
-	orgProfile, _ := domain.NewOrganizationProfile("Rel Org", nil, "")
+	personProfile, _ := domain.NewPersonProfile("Rel", "One", nil, nil)
+	orgProfile, _ := domain.NewOrganizationProfile("Rel Org", nil, "", nil, nil)
 
 	partyA, _ := domain.NewParty(partyID1, domain.PartyStatusActive, personProfile, nil)
 	partyB, _ := domain.NewParty(partyID2, domain.PartyStatusActive, nil, orgProfile)
@@ -230,7 +230,7 @@ func TestPostgreSQLPartyAddressRepository_FindPrimary_And_Delete_Integration(t *
 	ctx := context.Background()
 
 	partyID, _ := domain.NewPartyID("party-primary")
-	personProfile, _ := domain.NewPersonProfile("Primary", "Address")
+	personProfile, _ := domain.NewPersonProfile("Primary", "Address", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 	if err := partyRepo.Save(ctx, party, testUserID, testUserID); err != nil {
 		t.Fatalf("Failed to save party: %v", err)
@@ -293,11 +293,11 @@ func TestPostgreSQLPartyRepository_FindAll_Filters_Integration(t *testing.T) {
 	ctx := context.Background()
 
 	personID, _ := domain.NewPartyID("party-person")
-	personProfile, _ := domain.NewPersonProfile("Ana", "Persona")
+	personProfile, _ := domain.NewPersonProfile("Ana", "Persona", nil, nil)
 	partyPerson, _ := domain.NewParty(personID, domain.PartyStatusActive, personProfile, nil)
 
 	orgID, _ := domain.NewPartyID("party-org")
-	orgProfile, _ := domain.NewOrganizationProfile("Org Name", nil, "")
+	orgProfile, _ := domain.NewOrganizationProfile("Org Name", nil, "", nil, nil)
 	partyOrg, _ := domain.NewParty(orgID, domain.PartyStatusActive, nil, orgProfile)
 	role, _ := domain.NewPartyRole(domain.PartyRoleClient, nil)
 	_ = partyOrg.AddRole(role)
@@ -354,7 +354,7 @@ func TestPostgreSQLPartyRepository_Count_Exists_Delete_Integration(t *testing.T)
 	}
 
 	partyID, _ := domain.NewPartyID("party-delete")
-	personProfile, _ := domain.NewPersonProfile("Delete", "Test")
+	personProfile, _ := domain.NewPersonProfile("Delete", "Test", nil, nil)
 	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
 	if err := repo.Save(ctx, party, testUserID, testUserID); err != nil {
 		t.Fatalf("Save should not error: %v", err)
