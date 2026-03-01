@@ -14,10 +14,16 @@ type PricingEngineService struct {
 	saleRuleRepo   domain.SaleModificationRuleRepository
 	productInfo    ProductInfoProvider
 	basePriceCache BasePriceCache
+	clientInfo     ClientInfoProvider
 }
 
 type ProductVariantsProvider interface {
 	ListVariantsPricingInfo(ctx context.Context, productID uuid.UUID) ([]*ProductPricingInfo, error)
+}
+
+// ClientInfoProvider abstracts client/party info for pricing calculations (anti-corruption layer)
+type ClientInfoProvider interface {
+	GetClientDefaultDiscount(ctx context.Context, clientID string) (float64, error)
 }
 
 func NewPricingEngineService(
@@ -25,12 +31,14 @@ func NewPricingEngineService(
 	saleRuleRepo domain.SaleModificationRuleRepository,
 	productInfo ProductInfoProvider,
 	basePriceCache BasePriceCache,
+	clientInfo ClientInfoProvider,
 ) *PricingEngineService {
 	return &PricingEngineService{
 		baseRuleRepo:   baseRuleRepo,
 		saleRuleRepo:   saleRuleRepo,
 		productInfo:    productInfo,
 		basePriceCache: basePriceCache,
+		clientInfo:     clientInfo,
 	}
 }
 
@@ -295,6 +303,12 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		return nil, err
 	}
 
+	// Fetch client default discount as fallback when no specific rules apply
+	var clientDefaultDiscount float64
+	if req.ClientID != "" && s.clientInfo != nil {
+		clientDefaultDiscount, _ = s.clientInfo.GetClientDefaultDiscount(ctx, req.ClientID)
+	}
+
 	for index, item := range req.SaleItems {
 		basePrice := basePrices[index]
 		productInfo := productInfos[index]
@@ -316,14 +330,28 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 				}
 				finalPrice = updated
 			}
+		} else if clientDefaultDiscount > 0 {
+			// Apply client's default discount as fallback when no specific rules exist
+			discountMultiplier := 1 - (clientDefaultDiscount / 100)
+			discounted, err := finalPrice.Multiply(discountMultiplier)
+			if err != nil {
+				return nil, err
+			}
+			finalPrice = discounted
+		}
+
+		finalPriceWithTax, err := finalPrice.Multiply(1 + productInfo.TaxRate/100)
+		if err != nil {
+			return nil, err
 		}
 
 		items = append(items, CalculatedSaleItemResponse{
-			ProductVariantID: item.ProductVariantID,
-			Quantity:         item.Quantity,
-			BaseSalesPrice:   NewMoneyDTO(basePrice),
-			FinalPrice:       NewMoneyDTO(finalPrice),
-			TaxRate:          productInfo.TaxRate,
+			ProductVariantID:  item.ProductVariantID,
+			Quantity:          item.Quantity,
+			BaseSalesPrice:    NewMoneyDTO(basePrice),
+			FinalPrice:        NewMoneyDTO(finalPrice),
+			TaxRate:           productInfo.TaxRate,
+			FinalPriceWithTax: NewMoneyDTO(finalPriceWithTax),
 		})
 
 		lineTotal, err := finalPrice.Multiply(float64(item.Quantity))
@@ -336,9 +364,25 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		}
 	}
 
+	saleTotalWithTax, err := domain.NewMoney(0, saleTotal.Currency())
+	if err != nil {
+		return nil, err
+	}
+	for _, calcItem := range items {
+		lineTotalWithTax, err := domain.NewMoney(calcItem.FinalPriceWithTax.Amount*float64(calcItem.Quantity), calcItem.FinalPriceWithTax.Currency)
+		if err != nil {
+			return nil, err
+		}
+		saleTotalWithTax, err = saleTotalWithTax.Add(lineTotalWithTax)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &CalculateFinalSalePriceResponse{
-		CalculatedItems: items,
-		SaleTotal:       NewMoneyDTO(saleTotal),
+		CalculatedItems:  items,
+		SaleTotal:        NewMoneyDTO(saleTotal),
+		SaleTotalWithTax: NewMoneyDTO(saleTotalWithTax),
 	}, nil
 }
 

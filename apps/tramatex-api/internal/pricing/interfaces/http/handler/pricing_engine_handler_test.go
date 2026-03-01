@@ -92,7 +92,7 @@ func performEngineRequest(t *testing.T, handlerFunc func(*gin.Context), method, 
 
 func TestPricingEngineHandler_CalculateBaseSalesPrice(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CalculateBaseSalesPrice, http.MethodPost, "/pricing/base", "{")
@@ -108,7 +108,7 @@ func TestPricingEngineHandler_CalculateBaseSalesPrice(t *testing.T) {
 
 func TestPricingEngineHandler_CreateBaseSalesPriceRule(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CreateBaseSalesPriceRule, http.MethodPost, "/pricing/base-rules", "{")
@@ -130,7 +130,7 @@ func TestPricingEngineHandler_CreateBaseSalesPriceRule(t *testing.T) {
 }
 
 func TestPricingEngineHandler_UpdateBaseSalesPriceRule_InvalidID(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	req := httptest.NewRequest(http.MethodPut, "/pricing/base-rules/invalid", nil)
@@ -157,7 +157,7 @@ func TestPricingEngineHandler_CalculateFinalSalePrice(t *testing.T) {
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 	}}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CalculateFinalSalePrice, http.MethodPost, "/pricing/final", "{")

@@ -172,6 +172,8 @@
                 <th class="align-right">Coste Base</th>
                 <th class="align-right">Precio Base Venta</th>
                 <th class="align-right">Precio Final</th>
+                <th class="align-right">IVA (%)</th>
+                <th class="align-right">Precio Final + IVA</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -222,6 +224,19 @@
                   <span v-else-if="!selectedClientId" class="text-muted">Sin cliente</span>
                   <span v-else class="text-muted">—</span>
                 </td>
+                <td class="align-right">
+                  <span v-if="variantPrices[variant.id]?.taxRate != null && variantPrices[variant.id]?.finalPrice" class="price-value muted">
+                    {{ variantPrices[variant.id].taxRate }}%
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <td class="align-right">
+                  <span v-if="variantPrices[variant.id]?.finalPriceWithTax" class="price-value highlight-tax">
+                    {{ formatMoney(variantPrices[variant.id].finalPriceWithTax) }}
+                  </span>
+                  <span v-else-if="loadingPrices[variant.id]" class="text-muted">Calculando...</span>
+                  <span v-else class="text-muted">—</span>
+                </td>
                 <td>
                   <span class="pill" :class="variant.is_active ? 'active' : 'inactive'">
                     {{ variant.is_active ? 'Activo' : 'Inactivo' }}
@@ -230,6 +245,18 @@
               </tr>
             </tbody>
           </table>
+
+          <!-- Totals summary -->
+          <div v-if="saleTotal" class="totals-summary">
+            <div class="total-row">
+              <span class="total-label">Total (sin IVA):</span>
+              <span class="total-value">{{ formatMoney(saleTotal) }}</span>
+            </div>
+            <div v-if="saleTotalWithTax" class="total-row total-row-highlight">
+              <span class="total-label">Total (con IVA):</span>
+              <span class="total-value highlight-tax">{{ formatMoney(saleTotalWithTax) }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -260,6 +287,8 @@ const loadingPrices = ref({})
 const isCalculatingBase = ref(false)
 const isCalculatingFinal = ref(false)
 const calculationError = ref('')
+const saleTotal = ref(null)
+const saleTotalWithTax = ref(null)
 
 // State - Filters
 const quantity = ref(100)
@@ -390,9 +419,14 @@ async function calculateFinalPrices() {
           ...variantPrices.value[variantId],
           baseSalesPrice: item.baseSalesPrice || variantPrices.value[variantId]?.baseSalesPrice || null,
           finalPrice: item.finalPrice || null,
+          taxRate: item.taxRate ?? null,
+          finalPriceWithTax: item.finalPriceWithTax || null,
           finalError: null,
         }
       }
+      // Store totals
+      saleTotal.value = result.saleTotal || null
+      saleTotalWithTax.value = result.saleTotalWithTax || null
     }
   } catch (err) {
     console.error('Error calculating final prices:', err)
@@ -402,9 +436,13 @@ async function calculateFinalPrices() {
       variantPrices.value[variant.id] = {
         ...variantPrices.value[variant.id],
         finalPrice: null,
+        taxRate: null,
+        finalPriceWithTax: null,
         finalError: err?.message || 'Error de cálculo',
       }
     }
+    saleTotal.value = null
+    saleTotalWithTax.value = null
   } finally {
     isCalculatingFinal.value = false
   }
@@ -785,6 +823,46 @@ function formatMoney(moneyDTO) {
 .price-value.highlight {
   color: #1b3a6b;
   font-size: 1rem;
+}
+
+.price-value.highlight-tax,
+.total-value.highlight-tax {
+  color: #166534;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.totals-summary {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-top: 2px solid #e2e8f0;
+  border-radius: 0 0 8px 8px;
+}
+
+.total-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.total-label {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.total-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1b3a6b;
+}
+
+.total-row-highlight {
+  padding-left: 1rem;
+  border-left: 2px solid #166534;
 }
 
 .text-muted {

@@ -59,16 +59,18 @@ type CalculateFinalSalePriceRequest struct {
 }
 
 type CalculatedSaleItemResponse struct {
-	ProductVariantID uuid.UUID `json:"productVariantId"`
-	Quantity         int       `json:"quantity"`
-	BaseSalesPrice   MoneyDTO  `json:"baseSalesPrice"`
-	FinalPrice       MoneyDTO  `json:"finalPrice"`
-	TaxRate          float64   `json:"taxRate"`
+	ProductVariantID  uuid.UUID `json:"productVariantId"`
+	Quantity          int       `json:"quantity"`
+	BaseSalesPrice    MoneyDTO  `json:"baseSalesPrice"`
+	FinalPrice        MoneyDTO  `json:"finalPrice"`
+	TaxRate           float64   `json:"taxRate"`
+	FinalPriceWithTax MoneyDTO  `json:"finalPriceWithTax"`
 }
 
 type CalculateFinalSalePriceResponse struct {
-	CalculatedItems []CalculatedSaleItemResponse `json:"calculatedItems"`
-	SaleTotal       MoneyDTO                     `json:"saleTotal"`
+	CalculatedItems  []CalculatedSaleItemResponse `json:"calculatedItems"`
+	SaleTotal        MoneyDTO                     `json:"saleTotal"`
+	SaleTotalWithTax MoneyDTO                     `json:"saleTotalWithTax"`
 }
 
 func NewRuleValueDTO(value domain.RuleValue) RuleValueDTO {

@@ -7,12 +7,13 @@ import (
 )
 
 type PartyDataModel struct {
-	ID         string    `gorm:"primaryKey;column:id"`
-	Status     string    `gorm:"column:status"`
-	CreatedBy  string    `gorm:"column:created_by"`
-	CreatedAt  time.Time `gorm:"column:created_at"`
-	ModifiedBy string    `gorm:"column:modified_by"`
-	ModifiedAt time.Time `gorm:"column:modified_at"`
+	ID                        string    `gorm:"primaryKey;column:id"`
+	Status                    string    `gorm:"column:status"`
+	DefaultDiscountPercentage float64   `gorm:"column:default_discount_percentage"`
+	CreatedBy                 string    `gorm:"column:created_by"`
+	CreatedAt                 time.Time `gorm:"column:created_at"`
+	ModifiedBy                string    `gorm:"column:modified_by"`
+	ModifiedAt                time.Time `gorm:"column:modified_at"`
 }
 
 func (PartyDataModel) TableName() string {
@@ -104,7 +105,8 @@ func (PartyAddressDataModel) TableName() string {
 
 func partyDataModelFromDomain(party *domain.Party) *PartyDataModel {
 	return &PartyDataModel{
-		ID:     party.ID().Value(),
-		Status: string(party.Status()),
+		ID:                        party.ID().Value(),
+		Status:                    string(party.Status()),
+		DefaultDiscountPercentage: party.DefaultDiscountPercentage(),
 	}
 }

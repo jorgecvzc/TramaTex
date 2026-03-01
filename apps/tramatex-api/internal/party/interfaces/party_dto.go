@@ -5,11 +5,12 @@ import "github.com/joran-cortez/tramatex/internal/party/domain"
 // PartyDTO represents a party in API responses
 
 type PartyDTO struct {
-	ID                  string                  `json:"id"`
-	Status              string                  `json:"status"`
-	Roles               []string                `json:"roles"`
-	PersonProfile       *PersonProfileDTO       `json:"person_profile,omitempty"`
-	OrganizationProfile *OrganizationProfileDTO `json:"organization_profile,omitempty"`
+	ID                        string                  `json:"id"`
+	Status                    string                  `json:"status"`
+	Roles                     []string                `json:"roles"`
+	DefaultDiscountPercentage float64                 `json:"default_discount_percentage"`
+	PersonProfile             *PersonProfileDTO       `json:"person_profile,omitempty"`
+	OrganizationProfile       *OrganizationProfileDTO `json:"organization_profile,omitempty"`
 }
 
 type PersonProfileDTO struct {
@@ -56,11 +57,12 @@ type AddressDTO struct {
 // Requests
 
 type CreatePartyRequest struct {
-	ID                  string                      `json:"id"`
-	Status              string                      `json:"status"`
-	Roles               []string                    `json:"roles"`
-	PersonProfile       *PersonProfileRequest       `json:"person_profile,omitempty"`
-	OrganizationProfile *OrganizationProfileRequest `json:"organization_profile,omitempty"`
+	ID                        string                      `json:"id"`
+	Status                    string                      `json:"status"`
+	Roles                     []string                    `json:"roles"`
+	DefaultDiscountPercentage *float64                    `json:"default_discount_percentage,omitempty"`
+	PersonProfile             *PersonProfileRequest       `json:"person_profile,omitempty"`
+	OrganizationProfile       *OrganizationProfileRequest `json:"organization_profile,omitempty"`
 }
 
 type PersonProfileRequest struct {
@@ -89,9 +91,10 @@ type ContactDetailsRequest struct {
 }
 
 type UpdatePartyRequest struct {
-	Status              string                      `json:"status,omitempty"`
-	PersonProfile       *PersonProfileRequest       `json:"person_profile,omitempty"`
-	OrganizationProfile *OrganizationProfileRequest `json:"organization_profile,omitempty"`
+	Status                    string                      `json:"status,omitempty"`
+	DefaultDiscountPercentage *float64                    `json:"default_discount_percentage,omitempty"`
+	PersonProfile             *PersonProfileRequest       `json:"person_profile,omitempty"`
+	OrganizationProfile       *OrganizationProfileRequest `json:"organization_profile,omitempty"`
 }
 
 type ChangePartyStatusRequest struct {
@@ -140,9 +143,10 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 	}
 
 	dto := &PartyDTO{
-		ID:     party.ID().String(),
-		Status: string(party.Status()),
-		Roles:  make([]string, 0),
+		ID:                        party.ID().String(),
+		Status:                    string(party.Status()),
+		Roles:                     make([]string, 0),
+		DefaultDiscountPercentage: party.DefaultDiscountPercentage(),
 	}
 
 	for _, role := range party.Roles() {

@@ -3,12 +3,13 @@ package domain
 // Party is the aggregate root for the Party module
 // It can contain a PersonProfile, OrganizationProfile, or both.
 type Party struct {
-	id                  PartyID
-	status              PartyStatus
-	personProfile       *PersonProfile
-	organizationProfile *OrganizationProfile
-	roles               []PartyRole
-	relationships       []PartyRelationship
+	id                        PartyID
+	status                    PartyStatus
+	personProfile             *PersonProfile
+	organizationProfile       *OrganizationProfile
+	roles                     []PartyRole
+	relationships             []PartyRelationship
+	defaultDiscountPercentage float64
 }
 
 func NewParty(
@@ -104,6 +105,18 @@ func (p *Party) SetPersonProfile(profile *PersonProfile) error {
 
 func (p *Party) SetOrganizationProfile(profile *OrganizationProfile) error {
 	p.organizationProfile = profile
+	return nil
+}
+
+func (p *Party) DefaultDiscountPercentage() float64 {
+	return p.defaultDiscountPercentage
+}
+
+func (p *Party) SetDefaultDiscountPercentage(percentage float64) error {
+	if percentage < 0 || percentage > 100 {
+		return NewValidationError("discount percentage must be between 0 and 100")
+	}
+	p.defaultDiscountPercentage = percentage
 	return nil
 }
 

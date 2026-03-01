@@ -307,6 +307,7 @@ func (tdb *TestDB) SetUpParty() error {
 		CREATE TABLE parties (
 			id VARCHAR(36) PRIMARY KEY,
 			status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+			default_discount_percentage NUMERIC(5,2) NOT NULL DEFAULT 0,
 			created_by UUID NOT NULL REFERENCES users(id),
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			modified_by UUID NOT NULL REFERENCES users(id),
@@ -316,7 +317,9 @@ func (tdb *TestDB) SetUpParty() error {
 		CREATE TABLE person_profiles (
 			party_id VARCHAR(36) PRIMARY KEY REFERENCES parties(id) ON DELETE CASCADE,
 			first_name VARCHAR(100) NOT NULL,
-			last_name VARCHAR(100) NOT NULL
+			last_name VARCHAR(100) NOT NULL,
+			phone VARCHAR(30),
+			email VARCHAR(255)
 		);
 
 		CREATE TABLE organization_profiles (
@@ -324,12 +327,15 @@ func (tdb *TestDB) SetUpParty() error {
 			name VARCHAR(255) NOT NULL,
 			tax_id VARCHAR(50),
 			tax_id_type VARCHAR(20),
-			website VARCHAR(255)
+			website VARCHAR(255),
+			phone VARCHAR(30),
+			email VARCHAR(255)
 		);
 
 		CREATE TABLE party_roles (
 			party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
 			role VARCHAR(30) NOT NULL,
+			creation_identifier VARCHAR(100),
 			PRIMARY KEY (party_id, role)
 		);
 
