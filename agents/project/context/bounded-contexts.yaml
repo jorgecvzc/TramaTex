@@ -1,158 +1,91 @@
 metadata:
   filename: bounded-contexts.yaml
-  version: '1.1'
+  version: '1.2'
   location: /agents/context/
-  last_updated: '2026-02-15'
+  last_updated: '2026-03-01'
   references:
-  - ADR-005-unified-customer-supplier-management.md
+  - adr-005-unified-customer-supplier-management.md
+  - adr-012-party-module-architecture.md
+  - adr-014-iam-module-architecture.md
+  - adr-015-product-module-architecture.md
+  - adr-016-pricing-module-architecture.md
+  - adr-017-sales-module-architecture.md
+  - adr-018-mes-module-architecture.md
 bounded_contexts_overview:
-  title: "\U0001F3AF TramaTex Bounded Contexts"
-  description: Modules organized by business domain
+  title: "🎯 TramaTex Bounded Contexts"
+  description: Módulos organizados por dominio de negocio (Clean Architecture).
 erp_core_modules:
-  title: "\U0001F4E6 ERP Core Modules"
-  description: Group of foundational and core business modules that provide the primary
-    ERP functionalities. MES depends on these for core data.
+  title: "📦 ERP Core Modules"
+  description: Módulos fundamentales del ERP que proporcionan la funcionalidad base.
   modules:
-  - YourCoreModule1
-  - YourCoreModule2
+  - IAM (Identity and Access Management)
+  - Party (Gestión de Terceros)
+  - Product (Catálogo y Variantes)
+  - Pricing (Motor de Precios)
+  - Sales (Ciclo Comercial)
 core_contexts:
   iam:
-    title: "Arquitectura del M\xF3dulo de IAM"
-    description: "El m\xF3dulo de IAM (Identity and Access Management) es un componente\
-      \ transversal y fundamental en TramaTex, responsable de gestionar la identidad\
-      \ de los usuarios, su autenticaci\xF3n en el sistema, y su autorizaci\xF3n para\
-      \ acceder a recursos y realizar acciones. Dado que TramaTex gestiona datos cr\xED\
-      ticos de negocio y opera en un entorno de m\xFAltiples roles de usuario, un\
-      \ dise\xF1o robusto y seguro del IAM es de m\xE1xima prioridad."
+    title: "Gestión de Identidad (IAM)"
+    description: Responsable de la autenticación y autorización de usuarios, roles y permisos.
     criticality: CRITICAL
-    implementation_phase: 0 (Before MVP)
-    key_entities: []
+    implementation_phase: ✅ Completado
+    key_entities: [User, Role, Permission, Token]
     dependencies_on: []
-    depended_on_by: []
-    use_cases: []
-    api_endpoints: []
+    depended_on_by: [All Modules]
   party:
-    title: Party
-    description: null
+    title: "Gestión de Terceros (Party)"
+    description: Unifica la administración de clientes, proveedores y otros contactos.
     criticality: CRITICAL
-    implementation_phase: '1'
-    key_entities: []
-    dependencies_on: []
-    depended_on_by: []
-    use_cases: []
-    api_endpoints: []
+    implementation_phase: ✅ Completado
+    key_entities: [Party, PersonProfile, OrganizationProfile, Relationship, Address]
+    dependencies_on: [IAM]
+    depended_on_by: [Product, Pricing, Sales, MES]
   product:
-    title: "Arquitectura del M\xF3dulo de Product"
-    description: "El m\xF3dulo `Product` es fundacional para TramaTex, sirviendo como\
-      \ la fuente de verdad para la definici\xF3n de todos los bienes y servicios\
-      \ vendibles. La complejidad radica en la necesidad de gestionar productos con\
-      \ un alto grado de configuraci\xF3n (variantes, atributos, opciones) y un enfoque\
-      \ \"Just-in-Time\" (JIT) para la creaci\xF3n de variantes."
+    title: "Catálogo de Productos (Product)"
+    description: Fuente de verdad para bienes y servicios, incluyendo variantes JIT y atributos.
     criticality: CRITICAL
-    implementation_phase: '1'
-    key_entities: []
-    dependencies_on: []
-    depended_on_by: []
-    use_cases: []
-    api_endpoints: []
+    implementation_phase: ✅ Completado
+    key_entities: [Product, ProductVariant, Attribute, Brand, ProductGroup]
+    dependencies_on: [Party]
+    depended_on_by: [Pricing, Sales, MES]
   pricing:
-    title: "Arquitectura del M\xF3dulo de Pricing"
-    description: "El sistema TramaTex necesita un m\xF3dulo robusto para gestionar\
-      \ la l\xF3gica de pricing de productos, tanto para el c\xE1lculo de precios\
-      \ base de venta como para la aplicaci\xF3n de modificaciones en el momento de\
-      \ la venta (descuentos promocionales). La necesidad surge de la complejidad\
-      \ inherente a la determinaci\xF3n de precios en el sector textil, incluyendo\
-      \ m\xE1rgenes, descuentos por volumen, promociones y la diversidad de productos\
-      \ y variantes."
+    title: "Motor de Precios (Pricing)"
+    description: Cálculo automático de precios basado en reglas, márgenes y descuentos.
     criticality: CRITICAL
-    implementation_phase: '1'
-    key_entities: []
-    dependencies_on: []
-    depended_on_by: []
-    use_cases: []
-    api_endpoints: []
+    implementation_phase: ✅ Completado
+    key_entities: [PricingRule, PriceCalculation, BrandProfitMargin, SalesDiscountRule]
+    dependencies_on: [Product, Party]
+    depended_on_by: [Sales]
   sales:
-    title: "Arquitectura del M\xF3dulo de Sales"
-    description: "El m\xF3dulo de Sales es cr\xEDtico para el negocio TramaTex, ya\
-      \ que gestiona todo el ciclo de vida de la venta, desde la cotizaci\xF3n inicial\
-      \ hasta la facturaci\xF3n. La complejidad surge de la necesidad de manejar diferentes\
-      \ tipos de documentos (cotizaciones, pedidos, albaranes, facturas), sus interrelaciones,\
-      \ flujos de estado, y la integraci\xF3n con otros m\xF3dulos fundamentales como\
-      \ `Party` (clientes), `Product` (productos y variantes) y `Pricing` (motor de\
-      \ precios)."
+    title: "Ciclo de Ventas (Sales)"
+    description: Gestiona desde presupuestos hasta facturas (completas y tickets).
     criticality: CRITICAL
-    implementation_phase: '2'
-    key_entities: []
-    dependencies_on: []
-    depended_on_by: []
-    use_cases: []
-    api_endpoints: []
+    implementation_phase: ✅ Completado
+    key_entities: [Quote, SalesOrder, DeliveryNote, Invoice]
+    dependencies_on: [Party, Product, Pricing]
+    depended_on_by: [MES]
   mes:
-    title: MES Module Architecture - Independent Schema and Inter-module Communication
-    description: "El m\xF3dulo MES (Manufacturing Execution System) es identificado\
-      \ como un subdominio cr\xEDtico para la planificaci\xF3n, ejecuci\xF3n y control\
-      \ de calidad de la producci\xF3n. Aunque inicialmente se integrar\xE1 en un\
-      \ monolito modular, existe un requisito claro de dise\xF1arlo para una eventual\
-      \ extracci\xF3n a un microservicio separado. Esto requiere una consideraci\xF3\
-      n cuidadosa de su esquema de base de datos y los patrones de comunicaci\xF3\
-      n con otros contextos delimitados (Bounded Contexts)."
-    criticality: MEDIUM
-    implementation_phase: '3'
-    key_entities: []
-    dependencies_on:
-    - Sales (production order source from ERP Core)
-    - Product (what to produce from ERP Core)
-    - Party (Client references from ERP Core)
-    - IAM (Inspector/User references from ERP Core)
-    depended_on_by:
-    - Inventory (stock completion in ERP Core)
-    - Reports (production metrics in ERP Core)
-    use_cases: []
-    api_endpoints: []
+    title: "Ejecución de Manufactura (MES)"
+    description: Control de producción en taller y terminal de operarios.
+    criticality: HIGH
+    implementation_phase: ✅ Completado
+    key_entities: [WorkDefinition, WorkExecution, Phase, Task]
+    dependencies_on: [Sales, Product, Party, IAM]
+    depended_on_by: []
 context_dependencies:
-  title: "\U0001F4CA Bounded Context Dependencies"
-  description: Define the dependencies and implementation order of your bounded contexts
-    here.
-  dependency_graph: '# Use Mermaid to visualize your dependency graph. Example:
-
-    # graph TD
-
-    #   A[Context A] --> B(Context B)
-
-    #   B --> C{Context C}
-
-    #   C -- depends on --> A
-
-    # Replace with your project''s specific dependency graph.
-
-    '
+  title: "📊 Bounded Context Dependencies"
+  description: Dependencias y orden de implementación de los contextos delimitados.
   implementation_order:
-  - '1: Context A - reason'
-  - '2: Context B - reason'
-  blocking_dependencies:
-  - 'Context X cannot start until: Context Y is complete'
+  - '1: IAM - Seguridad base'
+  - '2: Party - Entidades base'
+  - '3: Product - Catálogo base'
+  - '4: Pricing - Reglas económicas'
+  - '5: Sales - Flujo comercial'
+  - '6: MES - Producción'
 inter_context_communication:
-  title: "\U0001F517 How Contexts Communicate"
-  principle: Loose coupling through interfaces
+  title: "🔗 Comunicación entre Contextos"
+  principle: Acoplamiento débil a través de interfaces explícitas.
   patterns:
-  - A context exposes use cases as application services
-  - Other contexts call through service interfaces
-  - No direct database access across boundaries
-  - DTOs for data transfer between contexts
-  - Dependency Injection in application layer
-  example:
-    scenario: Context A needs data from Context B
-    flow: '1. Context A calls a service in Context B
-
-      2. Context B processes the request and returns data
-
-      3. Context A continues its operation with data from Context B
-
-      '
-context_ownership:
-  title: "\U0001F464 Context Ownership"
-  recommendation:
-  - Assign one developer per Bounded Context
-  - That developer owns domain + use cases
-  - Shared infrastructure layer code (factories, config)
-  - Clear interfaces between contexts
+  - Comunicación síncrona vía servicios de aplicación.
+  - No hay acceso directo a base de datos de otros módulos.
+  - Uso de DTOs para transferencia de datos.

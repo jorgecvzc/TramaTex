@@ -149,6 +149,22 @@ class ProductApiService {
     }
   }
 
+  /**
+   * Transform variant from backend camelCase to frontend snake_case
+   */
+  private transformVariantResponse(v: any): VariantUI {
+    return {
+      id: v.id,
+      sku: v.sku,
+      product_id: v.productId,
+      barcode: v.barcode,
+      base_cost: v.baseCost,
+      option_configuration: v.optionConfiguration || {},
+      status: v.status,
+      is_active: v.isActive,
+    }
+  }
+
   // ============================================================================
   // PRODUCT ENDPOINTS
   // ============================================================================
@@ -466,16 +482,7 @@ class ProductApiService {
     const payload = await response.json()
     const rawVariants = Array.isArray(payload) ? payload : (payload.data || [])
     
-    const variants: VariantUI[] = rawVariants.map((v: any) => ({
-      id: v.id,
-      sku: v.sku,
-      product_id: v.productId,
-      barcode: v.barcode,
-      base_cost: v.baseCost,
-      option_configuration: v.optionConfiguration,
-      status: v.status,
-      is_active: v.isActive,
-    }))
+    const variants: VariantUI[] = rawVariants.map((v: any) => this.transformVariantResponse(v))
     
     return {
       data: variants,
@@ -489,7 +496,7 @@ class ProductApiService {
   /**
    * Get variant by ID
    */
-  async getVariant(variantId: string): Promise<any> {
+  async getVariant(variantId: string): Promise<VariantUI> {
     const response = await this.safeFetch(
       `${this.baseUrl}/variants/${variantId}`,
       {
@@ -502,13 +509,14 @@ class ProductApiService {
       await this.handleError(response, 'Variante no encontrada')
     }
 
-    return response.json()
+    const data = await response.json()
+    return this.transformVariantResponse(data)
   }
 
   /**
    * Get variant by SKU
    */
-  async getVariantBySku(sku: string): Promise<any> {
+  async getVariantBySku(sku: string): Promise<VariantUI> {
     const response = await this.safeFetch(
       `${this.baseUrl}/variants?sku=${sku}`,
       {
@@ -521,13 +529,14 @@ class ProductApiService {
       await this.handleError(response, 'Variante no encontrada')
     }
 
-    return response.json()
+    const data = await response.json()
+    return this.transformVariantResponse(data)
   }
 
   /**
    * Find or create variant (JIT creation)
    */
-  async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<any> {
+  async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<{ variant: VariantUI }> {
     if (!optionConfiguration || Object.keys(optionConfiguration).length === 0) {
       throw new Error('Debe seleccionar al menos una opción para crear/buscar la variante')
     }
@@ -546,7 +555,8 @@ class ProductApiService {
     }
 
     const payload = await response.json()
-    return payload?.variant ? payload : { variant: payload }
+    const variantData = payload?.variant || payload
+    return { variant: this.transformVariantResponse(variantData) }
   }
 
   /**
@@ -575,7 +585,7 @@ class ProductApiService {
   /**
    * Update variant
    */
-  async updateVariant(variantId: string, data: any): Promise<any> {
+  async updateVariant(variantId: string, data: any): Promise<VariantUI> {
     const response = await this.safeFetch(
       `${this.baseUrl}/variants/${variantId}`,
       {
@@ -589,7 +599,8 @@ class ProductApiService {
       await this.handleError(response, 'No se pudo actualizar la variante')
     }
 
-    return response.json()
+    const responseData = await response.json()
+    return this.transformVariantResponse(responseData)
   }
 
   // ============================================================================
@@ -884,7 +895,13 @@ class ProductApiService {
     name: string
     code: string
     order?: number
-    values?: string[]
+    values?: Array<{
+      value: string
+      code: string
+      hasPriceModifier?: boolean
+      modifierType?: string
+      modifierAmount?: number
+    }>
   }): Promise<any> {
     const response = await this.safeFetch(this.attributesUrl, {
       method: 'POST',
@@ -893,7 +910,16 @@ class ProductApiService {
         name: data.name,
         code: data.code,
         sortOrder: data.order || 0,
-        values: data.values || [],
+        values: (data.values || []).map(v => {
+          const hasPriceModifier = v.hasPriceModifier || false
+          return {
+            value: v.value,
+            code: v.code,
+            hasPriceModifier: hasPriceModifier,
+            modifierType: hasPriceModifier && v.modifierType ? v.modifierType : null,
+            modifierAmount: hasPriceModifier ? (v.modifierAmount || 0) : 0,
+          }
+        }),
       }),
     })
 
@@ -913,7 +939,14 @@ class ProductApiService {
     name?: string
     code?: string
     order?: number
-    values?: string[]
+    values?: Array<{
+      id?: string
+      value: string
+      code: string
+      hasPriceModifier?: boolean
+      modifierType?: string
+      modifierAmount?: number
+    }>
   }): Promise<any> {
     const response = await this.safeFetch(`${this.attributesUrl}/${id}`, {
       method: 'PUT',
@@ -922,7 +955,17 @@ class ProductApiService {
         name: data.name,
         code: data.code,
         sortOrder: data.order || 0,
-        values: data.values || [],
+        values: (data.values || []).map(v => {
+          const hasPriceModifier = v.hasPriceModifier || false
+          return {
+            id: v.id || null,
+            value: v.value,
+            code: v.code,
+            hasPriceModifier: hasPriceModifier,
+            modifierType: hasPriceModifier && v.modifierType ? v.modifierType : null,
+            modifierAmount: hasPriceModifier ? (v.modifierAmount || 0) : 0,
+          }
+        }),
       }),
     })
 

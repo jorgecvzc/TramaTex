@@ -754,9 +754,12 @@ func TestProductService_ListProductVariantsByProductID(t *testing.T) {
 	t.Run("should list variants and map options", func(t *testing.T) {
 		mockVariantRepo.ExpectedCalls = nil
 		mockAttributeRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
 		query := application.ListProductVariantsByProductIDQuery{ProductID: productID}
 
+		expectedProduct := &domain.Product{ID: productID, Name: "Test Product"}
 		mockVariantRepo.On("FindByProductID", ctx, productID).Return(variants, nil).Once()
+		mockProductRepo.On("FindByID", ctx, productID).Return(expectedProduct, nil).Once()
 		mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return(attributes, nil).Once()
 
 		result, err := productService.ListProductVariantsByProductID(ctx, query)
@@ -767,6 +770,7 @@ func TestProductService_ListProductVariantsByProductID(t *testing.T) {
 		assert.Equal(t, "Red", result[0].OptionConfiguration["Color"])
 		mockVariantRepo.AssertExpectations(t)
 		mockAttributeRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return empty list when no variants", func(t *testing.T) {

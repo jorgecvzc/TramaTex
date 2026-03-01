@@ -6,7 +6,7 @@ Registro de la evolución, el estado actual y los hitos alcanzados durante el de
 
 - **[Estado Actual del Proyecto](./project-status.md):** Resumen de la situación actual y prioridades.
 - **[Completitud ERP Core](./erp-core-completion.md):** Informe detallado de la finalización del núcleo del sistema.
-- **[Completitud Módulo MES](./MES-completion.md):** Informe detallado de la finalización del módulo de producción.
+- **[Completitud Módulo MES](./mes-completion.md):** Informe detallado de la finalización del módulo de producción.
 
 ## 📅 Historial de Trabajo
 

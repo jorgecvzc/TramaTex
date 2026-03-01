@@ -1,6 +1,6 @@
 # Flujo de Creación de Carpetas por Fase en el Proyecto TramaTex
 
-Este documento detalla el flujo incremental de creación de carpetas por fase de desarrollo en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md). Este enfoque modular y por fases se alinea con el [ADR-007: Orden de Implementación de Módulos](../../architecture/adrs/ADR-007-module-implementation-order.md).
+Este documento detalla el flujo incremental de creación de carpetas por fase de desarrollo en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md). Este enfoque modular y por fases se alinea con el [ADR-007: Orden de Implementación de Módulos](../../architecture/adrs/adr-007-module-implementation-order.md).
 
 ---
 

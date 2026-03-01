@@ -1,91 +1,58 @@
-# Especificación del Módulo - MES
+# Módulo de MES (Manufacturing Execution System)
 
-## Objetivo de esta revisión
+**Estado:** ✅ **COMPLETO (100%)**  
+**Última actualización:** 1 de marzo de 2026
 
-Establecer una nomenclatura clara para diferenciar:
+## 1. Propósito
 
-1. El trabajo definido por cliente (plantilla reusable).
-2. La ejecución real de producción derivada de esa plantilla.
-
-Esta actualización **no crea sprint ni ADR nuevos**. Se documenta para guiar el refactor progresivo de MES.
+*   **Visión del Módulo:** Controlar y monitorizar el proceso de fabricación en el taller de TramaTex, asegurando la trazabilidad desde la orden de venta hasta el producto terminado.
+*   **Objetivos Clave:**
+    *   Proporcionar visibilidad en tiempo real del estado de la producción.
+    *   Gestionar plantillas de procesos reusables para diferentes tipos de trabajos.
+    *   Optimizar la interacción de los operarios mediante un terminal de taller intuitivo.
 
 ---
 
-## Nomenclatura canónica propuesta
+## 2. Definiciones Clave (Nomenclatura)
 
 ### 1) Trabajo Definido (Plantilla)
-
-- **Nombre funcional (UI):** `Trabajo Definido`
-- **Nombre técnico recomendado (backend/frontend):** `MESWorkDefinition`
-- **Plural API recomendado:** `work-definitions`
-- **Propósito:** Define *qué* hay que hacer para un cliente/tipo de prenda.
-- **Incluye:**
-	- cliente (`party_id`)
-	- grupo tangible / familia de producto
-	- secuencia de grupos de servicio
-	- secuencia de tareas por grupo
-	- parámetros por defecto (notas, diseño, etc.)
+- **Nombre técnico:** `MESWorkDefinition`
+- **Propósito:** Define *qué* hay que hacer (plantilla reusable por cliente/producto).
+- **Incluye:** Secuencia de fases, tareas y parámetros por defecto.
 
 ### 2) Trabajo Real (Ejecución)
-
-- **Nombre funcional (UI):** `Trabajo Real`
-- **Nombre técnico recomendado (backend/frontend):** `MESWorkExecution`
-- **Plural API recomendado:** `work-executions`
-- **Propósito:** Representa una instancia operativa de producción.
-- **Incluye:**
-	- referencia al `work_definition_id`
-	- fechas reales (`start_date`, `due_date`, `completed_date`)
-	- prendas/lotes concretos a producir
-	- estado global de ejecución
-	- estado de tareas ejecutables (START/PAUSE/COMPLETE/BLOCK)
+- **Nombre técnico:** `MESWorkExecution`
+- **Propósito:** Representa una instancia operativa de producción (instancia real).
+- **Incluye:** Referencia a la definición, fechas reales, lotes y estados de tareas.
 
 ---
 
-## Regla de negocio principal
+## 3. Componentes Implementados ✅
 
-- De **un Trabajo Definido** se pueden crear **múltiples Trabajos Reales**.
-- Un **Trabajo Real** siempre debe estar vinculado a un único **Trabajo Definido**.
+### Backend
+- **Gestión de Definiciones:** CRUD completo de `WorkDefinitions` y sus fases/tareas asociadas.
+- **Motor de Ejecución:** Lógica de transiciones de estado (START, PAUSE, COMPLETE, BLOCK).
+- **Integración Sales:** Generación automática de `WorkExecution` al aceptar un pedido en Sales.
+- **Trazabilidad:** Registro de tiempos y operarios por tarea.
 
----
-
-## Problema actual detectado
-
-El modelo actual usa `MESWork` / `works` para todo y mezcla en una misma entidad:
-
-- información de definición (estructura de servicio/tareas), y
-- información de ejecución (estado/fechas).
-
-Esto dificulta la trazabilidad, la reutilización y la semántica de UI/API.
+### Frontend
+- **Dashboard de Producción:** Vista Kanban para el seguimiento global de trabajos.
+- **Terminal de Taller (Tablet):** Interfaz simplificada para operarios con botones de acción rápida.
+- **Gestión de Plantillas:** UI para la creación y edición de flujos de trabajo reusables.
 
 ---
 
-## Mapeo de transición (actual → propuesto)
+## 4. Decisiones de Diseño
 
-| Actual | Propuesto | Observación |
-|---|---|---|
-| `MESWork` | `MESWorkExecution` | Queda para la instancia real |
-| `work_name` | `execution_name` (opcional) | Nombre operativo de la ejecución |
-| `service_group_assignments` en creación de work | En `MESWorkDefinition` | La estructura base debe vivir en la plantilla |
-| `works` endpoint | `work-executions` | Mantener alias temporal para compatibilidad |
+*   **Arquitectura Extraíble:** Diseñado siguiendo Clean Architecture para permitir su futura extracción como microservicio independiente (ver ADR-018 y ADR-022).
+*   **Independencia de Esquema:** Utiliza su propio esquema lógico en la base de datos para evitar acoplamiento con el Core ERP.
+*   **Interfaz de Operario Simplificada:** Foco en minimizar la introducción de datos manual mediante el uso de estados predefinidos.
 
 ---
 
-## Convención de términos en UI
+## 5. Fases de Desarrollo
 
-- Menú y pantallas:
-	- `Trabajos Definidos`
-	- `Trabajos Reales`
-- Evitar etiquetas ambiguas como solo `Trabajos` en pantallas donde coexistan ambos conceptos.
-
----
-
-## Alcance de implementación sugerido (sin romper de golpe)
-
-1. Introducir términos en documentación y textos UI.
-2. Mantener endpoints actuales como alias de compatibilidad.
-3. Incorporar nuevos endpoints/versionado para definición vs ejecución.
-4. Migrar frontend gradualmente a la nueva semántica.
-
----
-
-**Última Actualización:** 2026-02-23
+*   [x] **Fase 1:** Cimentación y arquitectura del módulo.
+*   [x] **Fase 2:** CRUD de maestros y definiciones de trabajo.
+*   [x] **Fase 3:** Motor de estados y terminal de taller (Tablet).
+*   [x] **Fase 4:** Dashboard de seguimiento e integración con Sales.

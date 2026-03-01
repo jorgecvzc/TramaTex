@@ -1,6 +1,6 @@
 # Checklist de Cumplimiento de Seguridad
 
-Este checklist es una herramienta para validar que los módulos y componentes del proyecto TramaTex cumplen con la estrategia de seguridad definida en [ADR-010: Estrategia de Seguridad](../../architecture/adrs/ADR-010-defense-in-depth-security-strategy.md) y su [Guía de Implementación de Seguridad](../developer/security-implementation-guide.md).
+Este checklist es una herramienta para validar que los módulos y componentes del proyecto TramaTex cumplen con la estrategia de seguridad definida en [ADR-010: Estrategia de Seguridad](../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md) y su [Guía de Implementación de Seguridad](../developer/security-implementation-guide.md).
 
 ---
 

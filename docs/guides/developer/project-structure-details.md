@@ -1,6 +1,6 @@
 # Detalles de la Estructura del Proyecto TramaTex
 
-Este documento proporciona una vista detallada de la estructura de carpetas del proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md).
+Este documento proporciona una vista detallada de la estructura de carpetas del proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md).
 
 ---
 
@@ -16,8 +16,9 @@ tramatex/
 │
 ├── docs/                              # DOCUMENTACIÓN (en Español)
 │   ├── architecture/                  # Arquitectura del sistema (ADRs, diagramas)
-│   │   ├── adr/                       # Architecture Decision Records
+│   │   ├── adrs/                      # Architecture Decision Records
 │   │   │   └── ...
+│   │   ├── design-system/             # Principios de diseño y UI
 │   │   └── diagrams/                  # Diagramas (C4, ER, etc.)
 │   │
 │   ├── guides/                        # Guías y tutoriales (desarrolladores, usuarios)
@@ -25,21 +26,23 @@ tramatex/
 │   │   └── user/
 │   │
 │   ├── modules/                       # Documentación detallada por Bounded Context (specs, diagramas)
-│   │   ├── _MODULE_TEMPLATE.md
+│   │   ├── _module-template.md
 │   │   ├── iam/
 │   │   ├── party/
 │   │   └── ...
 │   │
 │   └── log/                           # Registros del proyecto (sprints, hitos, gobernanza)
-│       ├── sprints/                  # Planificación y logs de Sprints y Tareas
-│       │   ├── _SPRINT_TEMPLATE.md
-│       │   ├── _TASK_TEMPLATE.md
-│       │   └── sprint-01/
-│       │       └── ...
-│       ├── milestones/                # Hitos históricos y reportes de estado
-│       │   └── ...
-│       └── governance/                # Políticas del proyecto
-│           └── ...
+│       ├── erp-core-completion.md     # Informe de completitud del ERP Core
+│       ├── mes-completion.md          # Informe de completitud del módulo MES
+│       ├── project-status.md          # Estado actual del proyecto
+│       ├── session-log.md             # Registro de sesiones de agentes
+│       ├── analysis/                  # Análisis técnicos y gap reports
+│       ├── governance/                # Políticas del proyecto
+│       └── sprints/                  # Planificación y logs de Sprints y Tareas
+│           ├── _sprint-summary-template.md
+│           ├── _task-template.md
+│           └── sprint-01/
+│               └── ...
 │
 ├── apps/
 │   ├── tramatex-api/                  # Backend API (Go)
@@ -63,8 +66,8 @@ tramatex/
 │   └── frontend/                      # Frontend (Vue.js 3)
 │       ├── src/
 │       │   ├── components/
-│       │   ├── views/
-│   │   │   ├── stores/
+│       │   ├── pages/                 # Páginas principales (anteriormente views)
+│       │   ├── stores/
 │       │   ├── services/
 │       │   ├── composables/
 │       │   └── ...

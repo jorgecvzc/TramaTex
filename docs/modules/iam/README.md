@@ -6,7 +6,7 @@ Este módulo es fundamental para TramaTex, ya que gestiona la identidad de los u
 
 Para una descripción detallada de las decisiones arquitectónicas, entidades de dominio, objetos de valor, casos de uso, y estrategia de seguridad de este módulo, consulte el siguiente Architectural Decision Record (ADR):
 
-*   [ADR-014: Arquitectura del Módulo de IAM](../../architecture/adrs/ADR-014-iam-module-architecture.md)
+*   [ADR-014: Arquitectura del Módulo de IAM](../../architecture/adrs/adr-014-iam-module-architecture.md)
 
 ## Componentes Clave
 

@@ -71,8 +71,8 @@ Documentar formalmente la estrategia de calidad del proyecto y establecer un reg
 ## 🛠️ PLAN DE TRABAJO
 
 ### Fase 1: ADR-010 - Estrategia de Testing y Coverage
-**Archivo a crear:** `docs/architecture/adrs/ADR-011-testing-coverage-strategy.md`
-**Resumen:** Se documentará formalmente la estrategia de testing del proyecto, incluyendo niveles de testing (unitarios, integración, E2E), política de cobertura por capa, responsabilidades y herramientas/frameworks. Para más detalles, consulte [ADR-011: Estrategia de Testing y Cobertura](../../../architecture/adrs/ADR-011-testing-coverage-strategy.md).
+**Archivo a crear:** `docs/architecture/adrs/adr-011-testing-coverage-strategy.md`
+**Resumen:** Se documentará formalmente la estrategia de testing del proyecto, incluyendo niveles de testing (unitarios, integración, E2E), política de cobertura por capa, responsabilidades y herramientas/frameworks. Para más detalles, consulte [ADR-011: Estrategia de Testing y Cobertura](../../../architecture/adrs/adr-011-testing-coverage-strategy.md).
 
 ### Fase 2: Registro de Deuda Técnica
 **Archivo a crear:** `docs/guides/developer/technical-debt.md`
@@ -308,7 +308,7 @@ npm run format  # Solo Prettier
 
 ### Política de Coverage
 
-Ver [ADR-011](../../architecture/adrs/ADR-011-testing-coverage-strategy.md) para detalles completos.
+Ver [ADR-011](../../architecture/adrs/adr-011-testing-coverage-strategy.md) para detalles completos.
 
 **Mínimos:**
 - Domain: 100%

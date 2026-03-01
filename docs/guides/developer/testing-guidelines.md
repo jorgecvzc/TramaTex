@@ -1,6 +1,6 @@
 # Guía de Ubicación de Tests en el Proyecto TramaTex
 
-Este documento detalla dónde se deben ubicar los diferentes tipos de tests en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md) y la estrategia de testing de [ADR-011: Estrategia de Testing y Cobertura](../../architecture/adrs/ADR-011-testing-coverage-strategy.md).
+Este documento detalla dónde se deben ubicar los diferentes tipos de tests en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md) y la estrategia de testing de [ADR-011: Estrategia de Testing y Cobertura](../../architecture/adrs/adr-011-testing-coverage-strategy.md).
 
 ---
 

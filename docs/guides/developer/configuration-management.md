@@ -1,6 +1,6 @@
 # Gestión de Configuraciones en el Proyecto TramaTex
 
-Este documento describe cómo se gestionan las configuraciones en el proyecto TramaTex, incluyendo variables de entorno y archivos de configuración, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md).
+Este documento describe cómo se gestionan las configuraciones en el proyecto TramaTex, incluyendo variables de entorno y archivos de configuración, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md).
 
 ---
 

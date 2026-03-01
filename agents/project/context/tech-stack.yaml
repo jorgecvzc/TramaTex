@@ -8,9 +8,9 @@ metadata:
   filename: "tech-stack.yaml"
   version: "1.0"
   location: "/agents/context/"
-  last_updated: "2026-02-15"
+  last_updated: "2026-03-01"
   references:
-    - "ADR-001-technology-stack-selection.md"
+    - "adr-001-technology-stack-selection.md"
 
 backend_stack:
   title: "🔧 tramatex-api Stack (Go)"
@@ -108,6 +108,12 @@ frontend_stack:
     location: "dist/"
     format: "SPA (Single Page Application)"
     deployment: "Static file server or embedded in tramatex-api"
+  
+  structure:
+    pages: "apps/frontend/src/pages/"
+    components: "apps/frontend/src/components/"
+    stores: "apps/frontend/src/stores/"
+    services: "apps/frontend/src/services/"
 
 infrastructure_and_deployment:
   title: "🐳 Infrastructure & Deployment"

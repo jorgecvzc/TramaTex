@@ -30,8 +30,8 @@ type AttributeValueDataModel struct {
 	Value            string    `gorm:"not null"`
 	Code             string    `gorm:"not null"`
 	HasPriceModifier bool      `gorm:"not null;default:false"`
-	ModifierType     string    `gorm:"type:varchar(20);check:modifier_type IN ('FIXED', 'PERCENTAGE')"`
-	ModifierAmount   float64   `gorm:"type:numeric(10,2);default:0"`
+	ModifierType     *string   `gorm:"type:varchar(20);check:modifier_type IN ('FIXED', 'PERCENTAGE')"`
+	ModifierAmount   *float64  `gorm:"type:numeric(10,2)"`
 }
 
 func (AttributeValueDataModel) TableName() string {
@@ -56,14 +56,23 @@ func (a *AttributeDataModel) ToDomain() *domain.Attribute {
 
 // ToDomain converts the attribute value data model to a domain model.
 func (av *AttributeValueDataModel) ToDomain() *domain.AttributeValue {
+	var modifierType domain.PriceModifierType
+	var modifierAmount float64
+	if av.ModifierType != nil {
+		modifierType = domain.PriceModifierType(*av.ModifierType)
+	}
+	if av.ModifierAmount != nil {
+		modifierAmount = *av.ModifierAmount
+	}
+
 	return &domain.AttributeValue{
 		ID:               av.ID,
 		AttributeID:      av.AttributeID,
 		Value:            av.Value,
 		Code:             av.Code,
 		HasPriceModifier: av.HasPriceModifier,
-		ModifierType:     domain.PriceModifierType(av.ModifierType),
-		ModifierAmount:   av.ModifierAmount,
+		ModifierType:     modifierType,
+		ModifierAmount:   modifierAmount,
 	}
 }
 
@@ -85,13 +94,24 @@ func AttributeFromDomain(a *domain.Attribute) *AttributeDataModel {
 
 // AttributeValueFromDomain converts an attribute value domain model to a data model.
 func AttributeValueFromDomain(av *domain.AttributeValue) *AttributeValueDataModel {
+	var modifierType *string
+	var modifierAmount *float64
+
+	// Only set ModifierType and ModifierAmount if HasPriceModifier is true
+	if av.HasPriceModifier && av.ModifierType != "" {
+		mt := string(av.ModifierType)
+		modifierType = &mt
+		ma := av.ModifierAmount
+		modifierAmount = &ma
+	}
+
 	return &AttributeValueDataModel{
 		ID:               av.ID,
 		AttributeID:      av.AttributeID,
 		Value:            av.Value,
 		Code:             av.Code,
 		HasPriceModifier: av.HasPriceModifier,
-		ModifierType:     string(av.ModifierType),
-		ModifierAmount:   av.ModifierAmount,
+		ModifierType:     modifierType,
+		ModifierAmount:   modifierAmount,
 	}
 }

@@ -547,6 +547,15 @@ func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, que
 		return []*ProductVariantDTO{}, nil
 	}
 
+	// Fetch product for baseCost calculation
+	product, err := s.productRepo.FindByID(ctx, query.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to fetch product for baseCost calculation", err)
+	}
+	if product == nil {
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", query.ProductID)
+	}
+
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
 		return nil, domain.WrapPersistence("failed to fetch attributes for variants", err)
@@ -554,7 +563,7 @@ func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, que
 
 	dtos := make([]*ProductVariantDTO, len(variants))
 	for i, variant := range variants {
-		dtos[i] = NewProductVariantDTOFromDomain(variant, allAttributes)
+		dtos[i] = NewProductVariantDTOFromDomain(variant, product, allAttributes)
 	}
 	return dtos, nil
 }
@@ -590,12 +599,20 @@ func (s *ProductService) GetProductVariantByID(ctx context.Context, query GetPro
 	if variant == nil {
 		return nil, domain.NewNotFoundErrorf("product variant with ID %s does not exist", query.ID)
 	}
+	// Fetch product for baseCost calculation
+	product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to fetch product for baseCost calculation", err)
+	}
+	if product == nil {
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", variant.ProductID)
+	}
 	// Need to fetch all attributes to populate OptionConfiguration in ProductVariantDTO
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil) // Fetch all attributes for now
 	if err != nil {
 		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
-	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
+	return NewProductVariantDTOFromDomain(variant, product, allAttributes), nil
 }
 
 // GetProductVariantBySKU handles fetching a single product variant by its SKU.
@@ -607,11 +624,19 @@ func (s *ProductService) GetProductVariantBySKU(ctx context.Context, query GetPr
 	if variant == nil {
 		return nil, domain.NewNotFoundErrorf("product variant with SKU %s does not exist", query.SKU)
 	}
+	// Fetch product for baseCost calculation
+	product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to fetch product for baseCost calculation", err)
+	}
+	if product == nil {
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", variant.ProductID)
+	}
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
 		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
-	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
+	return NewProductVariantDTOFromDomain(variant, product, allAttributes), nil
 }
 
 // GenerateProductVariants handles UC-P-007: Pre-generate Variants for a Product.
@@ -889,7 +914,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 				return nil, domain.WrapPersistencef(err, "failed to update SKU of existing variant %s", variant.ID)
 			}
 		}
-		return NewProductVariantDTOFromDomain(variant, applicableAttributes), nil
+		return NewProductVariantDTOFromDomain(variant, product, applicableAttributes), nil
 	}
 
 	// If not found, create new variant
@@ -902,7 +927,7 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		return nil, domain.WrapPersistence("failed to save new product variant", err)
 	}
 
-	return NewProductVariantDTOFromDomain(newVariant, applicableAttributes), nil
+	return NewProductVariantDTOFromDomain(newVariant, product, applicableAttributes), nil
 }
 
 // UpdateProductVariant handles UC-P-008: Modificar una Variante Específica.
@@ -936,13 +961,22 @@ func (s *ProductService) UpdateProductVariant(ctx context.Context, cmd UpdatePro
 		return nil, domain.WrapPersistence("failed to save updated product variant", err)
 	}
 
+	// Fetch product for baseCost calculation
+	product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+	if err != nil {
+		return nil, domain.WrapPersistence("failed to fetch product for baseCost calculation", err)
+	}
+	if product == nil {
+		return nil, domain.NewNotFoundErrorf("product with ID %s does not exist", variant.ProductID)
+	}
+
 	// Need to fetch all attributes to populate OptionConfiguration in ProductVariantDTO
 	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
 	if err != nil {
 		return nil, domain.WrapPersistence("failed to fetch attributes for variant", err)
 	}
 
-	return NewProductVariantDTOFromDomain(variant, allAttributes), nil
+	return NewProductVariantDTOFromDomain(variant, product, allAttributes), nil
 }
 
 // GetPartyServiceConfigurationByID handles fetching a single PartyServiceConfiguration by its ID and PartyID.

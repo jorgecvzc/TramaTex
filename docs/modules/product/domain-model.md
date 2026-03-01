@@ -3,7 +3,7 @@
 - **Version:** 1.2.0
 - **Status:** Implementado (MVP parcial)
 
-Este documento define el modelo de dominio para el módulo de `product`, basado en los requisitos iniciales y las decisiones tomadas en el [ADR-013](./../../architecture/adrs/ADR-013-manejo-de-modificaciones-de-producto.md). Esta versión incorpora un modelo de Atributos/Valores con SKUs jerárquicos.
+Este documento define el modelo de dominio para el módulo de `product`, basado en los requisitos iniciales y las decisiones tomadas en el [ADR-013](./../../architecture/adrs/adr-013-product-modifications-handling.md). Esta versión incorpora un modelo de Atributos/Valores con SKUs jerárquicos.
 
 ---
 

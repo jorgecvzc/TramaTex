@@ -6,7 +6,7 @@ Este documento sirve como punto de entrada para los desarrolladores que trabajan
 
 La arquitectura del proyecto es la base de todo el desarrollo. Antes de escribir código, es fundamental comprender las decisiones y la estructura establecidas.
 
--   **Fuente de Verdad Arquitectónica:** [ADR-009 – Estructura de Carpetas y Organización del Proyecto](../architecture/adrs/ADR-009-estructura-proyecto.md)
+-   **Fuente de Verdad Arquitectónica:** [ADR-009 – Estructura de Carpetas y Organización del Proyecto](../architecture/adrs/adr-009-project-structure.md)
     -   Este documento contiene la estructura completa y actualizada de todo el proyecto, incluyendo el backend. Describe cómo se organizan los módulos (Bounded Contexts) y las capas de la Clean Architecture.
 
 -   **Principios Clave:**

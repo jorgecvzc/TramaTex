@@ -75,19 +75,19 @@
               <small class="form-text">Opcional. Código EAN/UPC para escáner</small>
             </div>
 
-            <!-- Base Cost -->
+            <!-- Base Cost (Read-only, calculated) -->
             <div class="form-group">
               <label for="baseCost">Costo base</label>
               <input
                 id="baseCost"
-                v-model.number="form.baseCost"
-                type="number"
-                step="0.01"
-                min="0"
-                class="form-control"
-                placeholder="0.00"
+                :value="displayBaseCost"
+                type="text"
+                class="form-control readonly-field"
+                readonly
               />
-              <small class="form-text">Costo unitario (opcional)</small>
+              <small class="form-text">
+                {{ baseCostHint }}
+              </small>
             </div>
 
             <!-- Status -->
@@ -222,6 +222,33 @@ const computedSku = computed(() => {
   return `${props.productSku}-${attrCodes.join('-')}`
 })
 
+const displayBaseCost = computed(() => {
+  if (isEditMode.value && form.value.baseCost !== null && form.value.baseCost !== undefined) {
+    // Edit mode: show the calculated baseCost from backend
+    return formatPrice(form.value.baseCost)
+  }
+  // Create mode: baseCost not yet calculated
+  return 'Se calculará automáticamente'
+})
+
+const baseCostHint = computed(() => {
+  if (isEditMode.value) {
+    return 'Calculado dinámicamente: Precio base del producto + modificadores de atributos'
+  }
+  return 'El costo base se calculará cuando se cree la variante (precio base + modificadores)'
+})
+
+// Helper function for formatting prices
+function formatPrice(value) {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
 // Lifecycle
 onMounted(() => {
   loadProductAttributes()
@@ -316,14 +343,12 @@ async function createNewVariant() {
     
     // Update metadata fields if provided
     const hasMetadata = form.value.barcode || 
-                        form.value.baseCost !== null || 
                         form.value.status !== 'PROVISIONAL' ||
                         !form.value.isActive
 
     if (hasMetadata) {
       await productApi.updateVariant(variantId, {
         barcode: form.value.barcode || undefined,
-        base_cost: form.value.baseCost || undefined,
         status: form.value.status,
         is_active: form.value.isActive,
       })
@@ -334,7 +359,6 @@ async function createNewVariant() {
 async function updateExistingVariant() {
   await productApi.updateVariant(props.variant.id, {
     barcode: form.value.barcode || undefined,
-    base_cost: form.value.baseCost || undefined,
     status: form.value.status,
     is_active: form.value.isActive,
   })
@@ -492,6 +516,19 @@ function handleClickOutside() {
   outline: none;
   border-color: #1b3a6b;
   box-shadow: 0 0 0 3px rgba(27, 58, 107, 0.1);
+}
+
+.form-control.readonly-field {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+  border: 1px solid #e2e8f0;
+  font-weight: 500;
+}
+
+.form-control.readonly-field:focus {
+  border-color: #e2e8f0;
+  box-shadow: none;
 }
 
 .form-control::placeholder {

@@ -22,7 +22,7 @@ El objetivo de esta tarea es realizar un análisis profundo y un diseño para el
     - [X] Crear un diagrama de dominio en `docs/modules/party/diagrams/domain-model.md`.
     - [X] Documentar los casos de uso en `docs/modules/party/use-cases.md`.
 2.  [X] **Fase 2: Creación de ADR (Architectural Decision Record)**
-    - [X] Crear un nuevo ADR en `docs/architecture/adrs/ADR-012-arquitectura-modulo-party.md`.
+    - [X] Crear un nuevo ADR en `docs/architecture/adrs/adr-012-party-module-architecture.md`.
     - [X] Documentar las decisiones de diseño clave, patrones y tecnologías a utilizar.
 3.  [X] **Fase 3: Comparación con la Implementación Actual**
     - [X] Analizar el código existente en `apps/tramatex-api/internal/party/` y `apps/frontend/src/modules/party/`.
@@ -58,11 +58,11 @@ El objetivo de esta tarea es realizar un análisis profundo y un diseño para el
 
 ### 2026-02-01 - Finalización Fase 1 y 2
 - **Fase 1 completada:** Se ha definido y actualizado la documentación de dominio (`domain-model.md`, `diagrams/domain-model.md`, `use-cases.md`) para el módulo `party` según los requisitos iniciales.
-- **Fase 2 completada:** Se ha creado y finalizado el ADR `ADR-012-arquitectura-modulo-party.md`, donde se documenta la decisión de adoptar el "Modelo de Party con Roles y Relaciones" y el "Modelo de Contactos Simplificado" para el módulo `Party`. Esta decisión fue colaborativa y aprobada por el usuario.
+- **Fase 2 completada:** Se ha creado y finalizado el ADR `adr-012-party-module-architecture.md`, donde se documenta la decisión de adoptar el "Modelo de Party con Roles y Relaciones" y el "Modelo de Contactos Simplificado" para el módulo `Party`. Esta decisión fue colaborativa y aprobada por el usuario.
 
 ### 2026-02-01 - Hallazgos Fase 3: Comparación con la Implementación Actual
 
-Tras un análisis exhaustivo del código existente en comparación con el diseño aprobado en `ADR-012-arquitectura-modulo-party.md`, se han identificado las siguientes discrepancias:
+Tras un análisis exhaustivo del código existente en comparación con el diseño aprobado en `adr-012-party-module-architecture.md`, se han identificado las siguientes discrepancias:
 
 **1. Capa de Dominio (`apps/tramatex-api/internal/party/domain/`):**
 -   **Modelo Fundamental:** La implementación actual se basa en `Organization` como Aggregate Root, con `Person` y `Address` dependientes. El nuevo diseño requiere un `Party` Aggregate Root, con `PersonProfile` y `OrganizationProfile` (que implementan `PartyProfile`), `PartyRole`, `PartyRelationship` y `ContactDetails`.

@@ -588,7 +588,7 @@ type PriceModifier struct {
 - `apps/frontend/src/components/product/VariantFormModal.vue`
 - `docs/modules/pricing/pricing-domain.md`
 - `docs/modules/product/domain-model.md`
-- `docs/architecture/adrs/ADR-016-pricing-module-architecture.md`
+- `docs/architecture/adrs/adr-016-pricing-module-architecture.md`
 
 ---
 

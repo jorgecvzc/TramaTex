@@ -72,8 +72,8 @@ El plan de trabajo se ha seguido según lo conversado, ejecutando los pasos de l
 | `README.md` | MODIFIED | Readme actualizado. |
 | `docs/documentation-index.md` | MODIFIED | Índice de documentación actualizado. |
 | `project-status.md` | MODIFIED | Estado del proyecto actualizado. |
-| `docs/architecture/adrs/ADR-008-mvp-timeline-planning.md` | MODIFIED | ADR-008 actualizado. |
-| `docs/architecture/adrs/ADR-009-project-structure.md` | MODIFIED | ADR-009 actualizado. |
+| `docs/architecture/adrs/adr-008-mvp-timeline-planning.md` | MODIFIED | ADR-008 actualizado. |
+| `docs/architecture/adrs/adr-009-project-structure.md` | MODIFIED | ADR-009 actualizado. |
 | `docs/archive/sprints/sprint-02/01-refactorizacion-sistema-documentacion.md` | NEW | Esta misma tarea. |
 
 ---

@@ -64,7 +64,7 @@
 
 - `docs/modules/product/domain-model.md`
 - `docs/modules/product/api-contracts.md`
-- `docs/architecture/adrs/ADR-013-manejo-de-modificaciones-de-producto.md`
+- `docs/architecture/adrs/adr-013-product-modifications-handling.md`
 
 ---
 

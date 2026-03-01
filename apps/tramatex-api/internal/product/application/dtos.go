@@ -91,13 +91,13 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 }
 
 // ProductVariantDTO represents the data transfer object for a ProductVariant.
-// Note: BaseCost is no longer exposed - it's calculated dynamically by the pricing module.
 type ProductVariantDTO struct {
 	ID                  uuid.UUID            `json:"id"`
 	ProductID           uuid.UUID            `json:"productId"`
 	SKU                 string               `json:"sku"`
 	Barcode             *string              `json:"barcode,omitempty"`
-	Price               float64              `json:"price"` // Final sales price from pricing module
+	BaseCost            float64              `json:"baseCost"` // Calculated: Product.BasePrice + AttributeValue modifiers (NOT stored)
+	Price               float64              `json:"price"`    // Final sales price from pricing module
 	Status              domain.VariantStatus `json:"status"`
 	OptionConfiguration map[string]string    `json:"optionConfiguration"` // AttributeName -> Value
 	IsActive            bool                 `json:"isActive"`
@@ -105,9 +105,11 @@ type ProductVariantDTO struct {
 
 // NewProductVariantDTOFromDomain creates a ProductVariantDTO from a domain.ProductVariant entity.
 // NOTE: Populating OptionConfiguration requires fetching Attribute and AttributeValue data.
-// For now, it will be an empty map or partially populated if attribute data is available.
-func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*domain.Attribute) *ProductVariantDTO {
+// The BaseCost is calculated dynamically from Product.BasePrice + AttributeValue price modifiers.
+func NewProductVariantDTOFromDomain(v *domain.ProductVariant, product *domain.Product, allAttributes []*domain.Attribute) *ProductVariantDTO {
 	optionConfig := make(map[string]string)
+	var variantAttributeValues []domain.AttributeValue // To calculate baseCost
+
 	if allAttributes != nil {
 		attributeMap := make(map[uuid.UUID]*domain.Attribute)
 		attributeValueMap := make(map[uuid.UUID]*domain.AttributeValue)
@@ -121,6 +123,9 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*d
 
 		for _, avID := range v.AttributeValues {
 			if av, found := attributeValueMap[avID]; found {
+				// Collect attribute values for price calculation
+				variantAttributeValues = append(variantAttributeValues, *av)
+
 				// Find the parent attribute for this attribute value
 				for _, attr := range allAttributes {
 					for _, value := range attr.Values {
@@ -137,11 +142,18 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, allAttributes []*d
 		}
 	}
 
+	// Calculate BaseCost: Product.BasePrice + AttributeValue modifiers
+	baseCost := 0.0
+	if product != nil {
+		baseCost = domain.CalculateBaseCost(product.BasePrice, variantAttributeValues)
+	}
+
 	return &ProductVariantDTO{
 		ID:                  v.ID,
 		ProductID:           v.ProductID,
 		SKU:                 v.SKU,
 		Barcode:             v.Barcode,
+		BaseCost:            baseCost,
 		Price:               0.0, // Placeholder, needs to come from pricing service/domain
 		Status:              v.Status,
 		OptionConfiguration: optionConfig,

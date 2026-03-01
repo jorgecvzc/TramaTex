@@ -128,7 +128,7 @@ POST-MVP (No implementado en proyecto actual):
 
 ### Seguridad (MVP: básica; Post-MVP: avanzada)
 **Concepto:** Autenticación JWT, RBAC básico y hash de passwords para proteger el sistema.
-**Más detalles:** Consulte [ADR-010 - Estrategia de Seguridad](../adrs/ADR-010-defense-in-depth-security-strategy.md)
+**Más detalles:** Consulte [ADR-010 - Estrategia de Seguridad](../adrs/adr-010-defense-in-depth-security-strategy.md)
 **Implementación MVP:** Fase 0
 
 ---

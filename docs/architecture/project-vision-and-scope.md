@@ -43,7 +43,7 @@ TramaTex surge de la necesidad de una de estas microempresas, dedicada a la vent
 
 ### Funcionalidades Post-MVP (Fuera de Alcance)
 
-Las siguientes funcionalidades se documentan para referencia futura y **no se implementarán** en este proyecto (ver [**ADR-004**](./adrs/ADR-004-mvp-development-lifecycle.md)):
+Las siguientes funcionalidades se documentan para referencia futura y **no se implementarán** en este proyecto (ver [**ADR-004**](./adrs/adr-004-mvp-development-lifecycle.md)):
 - Gestión formal de compras y control de stock completo.
 - Tarificación avanzada (campañas, promociones).
 - Multimoneda y facturación legal completa.
@@ -76,7 +76,7 @@ TramaTex se concibe como un **monolito modular**, diseñado bajo principios de *
 
 ## 🚀 Fases de Implementación del MVP
 
-El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-module-implementation-order.md) para garantizar la coherencia del dominio.
+El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/adr-007-module-implementation-order.md) para garantizar la coherencia del dominio.
 
 ### Fase 0 – Fundaciones Técnicas
 - **Objetivo:** Infraestructura mínima sin lógica de negocio.
@@ -120,7 +120,7 @@ El desarrollo sigue un orden estricto definido en [**ADR-007**](./adrs/ADR-007-m
 |---|---|---|
 | RNF1 | Eficiencia de recursos | <150MB RAM en servidor. |
 | RNF2 | Operativa 100% local | No requiere conexión a internet. |
-| RNF3 | Mantenibilidad base | TDD + **cobertura ≥85%** (ver [**ADR-011**](./adrs/ADR-011-testing-coverage-strategy.md) para detalles). |
+| RNF3 | Mantenibilidad base | TDD + **cobertura ≥85%** (ver [**ADR-011**](./adrs/adr-011-testing-coverage-strategy.md) para detalles). |
 | RNF4 | Integridad de datos | Transacciones ACID garantizadas por PostgreSQL. |
 | RNF5 | Seguridad básica | Autenticación JWT y RBAC (Roles: Admin, Comercial, Diseño, Taller). |
 

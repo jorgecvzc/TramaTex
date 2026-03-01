@@ -165,7 +165,7 @@ Tras análisis técnico y consulta con el usuario, se decide **ajustar el objeti
 
 #### Actualización ADR-011
 
-Se actualizó `ADR-011-testing-coverage-strategy.md` con:
+Se actualizó `adr-011-testing-coverage-strategy.md` con:
 - Separación explícita de objetivos: Product (Domain) vs Product (Application)
 - Objetivo ajustado: Product Application ≥ 50% (vs 75% original)
 - Nota explicativa con justificación técnica completa
@@ -255,7 +255,7 @@ Se actualizó `ADR-011-testing-coverage-strategy.md` con:
 - `apps/tramatex-api/internal/product/application/product_service_coverage_test.go` (813 líneas, 14 tests)
 
 ### Modificados
-- `docs/architecture/adrs/ADR-011-testing-coverage-strategy.md` (objetivo Product Application ajustado)
+- `docs/architecture/adrs/adr-011-testing-coverage-strategy.md` (objetivo Product Application ajustado)
 
 ---
 

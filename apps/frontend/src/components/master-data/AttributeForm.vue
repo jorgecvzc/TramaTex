@@ -42,31 +42,72 @@
 
     <div class="form-section">
       <h3>Valores del Atributo</h3>
-      <p class="section-description">Define los valores posibles para este atributo</p>
+      <p class="section-description">Define los valores posibles para este atributo y sus modificadores de precio</p>
       
       <div class="values-list">
-        <div v-for="(val, index) in formData.values" :key="index" class="value-item">
-          <input 
-            v-model="val.value" 
-            type="text" 
-            class="form-input"
-            placeholder="Nombre del valor"
-          />
-          <input 
-            v-model="val.code" 
-            type="text" 
-            class="form-input"
-            placeholder="Código"
-            @input="val.code = val.code.toUpperCase()"
-          />
-          <button 
-            type="button" 
-            @click="removeValue(index)" 
-            class="btn-icon btn-danger"
-            :disabled="formData.values.length === 1"
-          >
-            ✕
-          </button>
+        <div v-for="(val, index) in formData.values" :key="index" class="value-item-wrapper">
+          <div class="value-item-main">
+            <input 
+              v-model="val.value" 
+              type="text" 
+              class="form-input"
+              placeholder="Nombre del valor"
+            />
+            <input 
+              v-model="val.code" 
+              type="text" 
+              class="form-input"
+              placeholder="Código"
+              @input="val.code = val.code.toUpperCase()"
+            />
+            <button 
+              type="button" 
+              @click="removeValue(index)" 
+              class="btn-icon btn-danger"
+              :disabled="formData.values.length === 1"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <!-- Price Modifier Section -->
+          <div class="price-modifier-section">
+            <label class="checkbox-inline">
+              <input 
+                type="checkbox" 
+                v-model="val.hasPriceModifier"
+                @change="onPriceModifierToggle(val)"
+              />
+              <span>Modifica precio base</span>
+            </label>
+            
+            <div v-if="val.hasPriceModifier" class="modifier-inputs">
+              <select 
+                v-model="val.modifierType" 
+                class="form-input modifier-type"
+              >
+                <option value="FIXED">Cantidad Fija (€)</option>
+                <option value="PERCENTAGE">Porcentaje (%)</option>
+              </select>
+              
+              <input 
+                v-model.number="val.modifierAmount" 
+                type="number" 
+                step="0.01"
+                class="form-input modifier-amount"
+                :placeholder="val.modifierType === 'PERCENTAGE' ? 'Ej: 10 (= +10%)' : 'Ej: 5.00 (= +5.00€)'"
+              />
+              
+              <small class="modifier-hint">
+                <span v-if="val.modifierType === 'FIXED'">
+                  Positivo (+) incrementa, negativo (-) reduce
+                </span>
+                <span v-else>
+                  Ej: 10 = +10%, -15 = -15%
+                </span>
+              </small>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -99,7 +140,13 @@ const formData = reactive({
   code: '',
   order: 0,
   values: [
-    { value: '', code: '' }
+    { 
+      value: '', 
+      code: '',
+      hasPriceModifier: false,
+      modifierType: 'FIXED',
+      modifierAmount: 0
+    }
   ]
 })
 
@@ -118,7 +165,20 @@ function clearError(field) {
 }
 
 function addValue() {
-  formData.values.push({ value: '', code: '' })
+  formData.values.push({ 
+    value: '', 
+    code: '',
+    hasPriceModifier: false,
+    modifierType: 'FIXED',
+    modifierAmount: 0
+  })
+}
+
+function onPriceModifierToggle(val) {
+  if (!val.hasPriceModifier) {
+    val.modifierType = 'FIXED'
+    val.modifierAmount = 0
+  }
 }
 
 function removeValue(index) {
@@ -178,6 +238,9 @@ onMounted(() => {
       formData.values = props.attribute.values.map(v => ({
         value: v.value || '',
         code: v.code || '',
+        hasPriceModifier: v.hasPriceModifier || v.has_price_modifier || false,
+        modifierType: v.modifierType || v.modifier_type || 'FIXED',
+        modifierAmount: v.modifierAmount || v.modifier_amount || 0,
         id: v.id // Preserve ID for existing values
       }))
     }
@@ -273,8 +336,25 @@ defineExpose({
 .values-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.value-item-wrapper {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.value-item-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .value-item {
@@ -282,6 +362,52 @@ defineExpose({
   grid-template-columns: 1fr 1fr auto;
   gap: 0.5rem;
   align-items: center;
+}
+
+.price-modifier-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: #475569;
+}
+
+.checkbox-inline input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.modifier-inputs {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0.5rem;
+  align-items: start;
+  margin-left: 1.5rem;
+}
+
+.modifier-type {
+  font-size: 0.875rem;
+}
+
+.modifier-amount {
+  font-size: 0.875rem;
+}
+
+.modifier-hint {
+  grid-column: 1 / -1;
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-top: -0.25rem;
 }
 
 .btn-icon {

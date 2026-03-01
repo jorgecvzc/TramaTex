@@ -6,7 +6,7 @@ Este módulo es el encargado de toda la lógica relacionada con el cálculo de p
 
 Para una descripción detallada de las decisiones arquitectónicas, entidades de dominio, objetos de valor, casos de uso, estrategia de caché e infraestructura asociada a este módulo, consulte el siguiente Architectural Decision Record (ADR):
 
-*   [ADR-016: Arquitectura del Módulo de Pricing](../../architecture/adrs/ADR-016-pricing-module-architecture.md)
+*   [ADR-016: Arquitectura del Módulo de Pricing](../../architecture/adrs/adr-016-pricing-module-architecture.md)
 
 ## Componentes Clave
 

@@ -18,7 +18,7 @@ Este documento proporciona una visión de alto nivel de la arquitectura de Trama
 
 Este overview es el punto de partida. Para profundizar, consulta los siguientes recursos:
 
-*   **[Contextos Delimitados (Bounded Contexts)](./diagrams/C1-context.md)**
+*   **[Contextos Delimitados (Bounded Contexts)](./diagrams/c1-context.md)**
 *   **[Glosario Ubicuo](./glossary.md)**
 *   **[Decisiones Arquitectónicas (ADRs)](./adrs/README.md)**
     *   [ADR-001: Stack Tecnológico](./adrs/adr-001-technology-stack-selection.md)

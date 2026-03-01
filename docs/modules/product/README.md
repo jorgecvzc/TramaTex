@@ -6,7 +6,7 @@ Este módulo es fundamental para TramaTex, ya que gestiona todo el catálogo de 
 
 Para una descripción detallada de las decisiones arquitectónicas, entidades de dominio, objetos de valor, casos de uso y estrategia de gestión de variantes de este módulo, consulte el siguiente Architectural Decision Record (ADR):
 
-*   [ADR-015: Arquitectura del Módulo de Product](../../architecture/adrs/ADR-015-product-module-architecture.md)
+*   [ADR-015: Arquitectura del Módulo de Product](../../architecture/adrs/adr-015-product-module-architecture.md)
 
 ## Componentes Clave
 

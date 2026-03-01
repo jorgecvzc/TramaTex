@@ -13,7 +13,7 @@ El informe previo indicaba tres problemas persistentes (cobertura, errores tipad
 
 - **Estado:** Cumplido.
 - **Evidencia:** El modulo Party supera el minimo de cobertura para MVP (>= 85%).
-- **Referencia de politica:** [docs/architecture/adrs/ADR-011-testing-coverage-strategy.md](../../architecture/adrs/ADR-011-testing-coverage-strategy.md)
+- **Referencia de politica:** [docs/architecture/adrs/adr-011-testing-coverage-strategy.md](../../architecture/adrs/adr-011-testing-coverage-strategy.md)
 
 ### 2) Manejo de errores tipados
 

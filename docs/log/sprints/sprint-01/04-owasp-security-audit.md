@@ -50,10 +50,10 @@
 ---
 ## 📝 HALLAZGOS Y ACCIONES
 
-Este informe detalla los hallazgos y las acciones tomadas para cada una de las 10 categorías del OWASP Top 10. Para el informe detallado, consulte [docs/log/sprints/sprint-01/04-owasp-findings.md](./04-owasp-findings.md). Para una descripción más extensa de la estrategia de seguridad y los controles implementados, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/ADR-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
+Este informe detalla los hallazgos y las acciones tomadas para cada una de las 10 categorías del OWASP Top 10. Para el informe detallado, consulte [docs/log/sprints/sprint-01/04-owasp-findings.md](./04-owasp-findings.md). Para una descripción más extensa de la estrategia de seguridad y los controles implementados, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
 
 ## 📊 RESUMEN EJECUTIVO DE AUDITORÍA
-Este resumen ejecutivo de la auditoría de seguridad se realizó conforme al OWASP Top 10 2021. Para el informe detallado, consulte [docs/log/sprints/sprint-01/04-owasp-executive-summary.md](./04-owasp-executive-summary.md). Para todos los detalles, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/ADR-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
+Este resumen ejecutivo de la auditoría de seguridad se realizó conforme al OWASP Top 10 2021. Para el informe detallado, consulte [docs/log/sprints/sprint-01/04-owasp-executive-summary.md](./04-owasp-executive-summary.md). Para todos los detalles, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
 
 ---
 

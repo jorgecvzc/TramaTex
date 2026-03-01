@@ -6,7 +6,7 @@ Este módulo es fundamental para TramaTex, ya que gestiona la información de to
 
 Para una descripción detallada de las decisiones arquitectónicas, entidades de dominio, objetos de valor, casos de uso y estrategia de gestión de Party de este módulo, consulte el siguiente Architectural Decision Record (ADR):
 
-*   [ADR-012: Arquitectura del Módulo Party](../../architecture/adrs/ADR-012-arquitectura-modulo-party.md)
+*   [ADR-012: Arquitectura del Módulo Party](../../architecture/adrs/adr-012-party-module-architecture.md)
 
 ## Componentes Clave
 

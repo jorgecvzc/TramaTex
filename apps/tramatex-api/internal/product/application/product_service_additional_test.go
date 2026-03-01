@@ -215,12 +215,14 @@ func TestProductService_GetProductAndVariants(t *testing.T) {
 	assert.Equal(t, product.ID, result.ID)
 
 	mockVariantRepo.On("FindByID", ctx, variant.ID).Return(variant, nil).Once()
+	mockProductRepo.On("FindByID", ctx, product.ID).Return(product, nil).Once()
 	mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return([]*domain.Attribute{attr}, nil).Once()
 	variantResult, err := service.GetProductVariantByID(ctx, application.GetProductVariantByIDQuery{ID: variant.ID})
 	assert.NoError(t, err)
 	assert.Equal(t, variant.ID, variantResult.ID)
 
 	mockVariantRepo.On("FindBySKU", ctx, variant.SKU).Return(variant, nil).Once()
+	mockProductRepo.On("FindByID", ctx, product.ID).Return(product, nil).Once()
 	mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return([]*domain.Attribute{attr}, nil).Once()
 	variantSKUResult, err := service.GetProductVariantBySKU(ctx, application.GetProductVariantBySKUQuery{SKU: variant.SKU})
 	assert.NoError(t, err)
@@ -302,9 +304,13 @@ func TestProductService_UpdateProductVariant(t *testing.T) {
 	newBarcode := "123"
 	active := true
 
+	product := &domain.Product{ID: uuid.New(), Name: "Test Product"}
+	variant.ProductID = product.ID
+
 	mockVariantRepo.On("FindByID", ctx, variant.ID).Return(variant, nil).Once()
 	mockVariantRepo.On("Save", ctx, mock.AnythingOfType("*domain.ProductVariant")).Return(nil).Once()
 	mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return([]*domain.Attribute{attr}, nil).Once()
+	mockProductRepo.On("FindByID", ctx, product.ID).Return(product, nil).Once()
 
 	result, err := service.UpdateProductVariant(ctx, application.UpdateProductVariantCommand{ID: variant.ID, Barcode: &newBarcode, IsActive: &active})
 
@@ -314,6 +320,7 @@ func TestProductService_UpdateProductVariant(t *testing.T) {
 
 	mockVariantRepo.AssertExpectations(t)
 	mockAttributeRepo.AssertExpectations(t)
+	mockProductRepo.AssertExpectations(t)
 }
 
 func TestProductService_PartyServiceConfigurations(t *testing.T) {
@@ -499,8 +506,11 @@ func TestProductService_GetProductVariantByID_Success(t *testing.T) {
 			IsActive:        true,
 		}
 
+		expectedProduct := &domain.Product{ID: productID, Name: "Test Product"}
+
 		mockVariantRepo.On("FindByID", ctx, variantID).Return(expectedVariant, nil).Once()
 		mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return([]*domain.Attribute{}, nil).Once()
+		mockProductRepo.On("FindByID", ctx, productID).Return(expectedProduct, nil).Once()
 
 		result, err := service.GetProductVariantByID(ctx, application.GetProductVariantByIDQuery{ID: variantID})
 
@@ -509,6 +519,7 @@ func TestProductService_GetProductVariantByID_Success(t *testing.T) {
 		assert.Equal(t, "VAR-001", result.SKU)
 		mockVariantRepo.AssertExpectations(t)
 		mockAttributeRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when variant not found", func(t *testing.T) {
@@ -548,8 +559,11 @@ func TestProductService_GetProductVariantBySKU_Success(t *testing.T) {
 			IsActive:        true,
 		}
 
+		expectedProduct := &domain.Product{ID: productID, Name: "Test Product"}
+
 		mockVariantRepo.On("FindBySKU", ctx, sku).Return(expectedVariant, nil).Once()
 		mockAttributeRepo.On("FindByScope", ctx, (*uuid.UUID)(nil), (*uuid.UUID)(nil)).Return([]*domain.Attribute{}, nil).Once()
+		mockProductRepo.On("FindByID", ctx, productID).Return(expectedProduct, nil).Once()
 
 		result, err := service.GetProductVariantBySKU(ctx, application.GetProductVariantBySKUQuery{SKU: sku})
 
@@ -558,6 +572,7 @@ func TestProductService_GetProductVariantBySKU_Success(t *testing.T) {
 		assert.Equal(t, sku, result.SKU)
 		mockVariantRepo.AssertExpectations(t)
 		mockAttributeRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when variant not found", func(t *testing.T) {

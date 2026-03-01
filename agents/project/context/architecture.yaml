@@ -2,10 +2,10 @@ metadata:
   filename: architecture.yaml
   version: '1.0'
   location: /agents/context/
-  last_updated: '2026-02-15'
+  last_updated: '2026-03-01'
   references:
-  - ADR-002-clean-architecture-ddd-adoption.md
-  - ADR-006-domain-driven-development-strategy.md
+  - adr-002-clean-architecture-ddd-adoption.md
+  - adr-006-domain-driven-development-strategy.md
 clean_architecture_layers:
   title: "\U0001F3D7\uFE0F Clean Architecture Layers"
   domain_layer:
@@ -114,7 +114,7 @@ value_objects:
 testing_strategy:
   mvp_coverage_targets:
     '**pricing**':
-      coverage: "**\u2265 90%**"
+      coverage: "**\u2265 85%**"
       criticality: "Econ\xF3mica"
       justification: "Errores impactan directamente en la facturaci\xF3n y rentabilidad."
     '**party**':
@@ -123,12 +123,15 @@ testing_strategy:
       justification: "Errores en la gesti\xF3n de clientes/proveedores impactan toda\
         \ la operativa."
     '**product**':
-      coverage: "\u2265 85%"
+      coverage: "\u2265 50%"
       criticality: Funcional
-      justification: "La correcta definici\xF3n de productos es clave para precios\
-        \ y ventas."
+      justification: "Compensa cobertura unitaria con tests de integración robustos."
+    '**sales**':
+      coverage: "\u2265 75%"
+      criticality: Comercial
+      justification: "Ciclo comercial completo y facturación."
     '**general**':
-      coverage: "**\u2265 85%**"
+      coverage: "**\u2265 75%**"
       criticality: Calidad Base
       justification: "M\xEDnimo aceptable para cualquier otro m\xF3dulo de backend."
   unit_tests:

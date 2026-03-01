@@ -12,6 +12,7 @@ Los siguientes Value Objects son fundamentales para la consistencia del módulo 
 *   **`Percentage`:** Valor porcentual.
 *   **`PartyID`:** Identificador de una Party (del módulo Party).
 *   **`ProductVariantID`:** Identificador de una ProductVariant (del módulo Product).
+    *   **⚠️ Nota sobre Pricing:** El costo base (`baseCost`) de una variante se calcula dinámicamente en el módulo Product como `Product.BasePrice` + modificadores de precio de `AttributeValue` (FIXED o PERCENTAGE). Este `baseCost` es la base para el cálculo del precio unitario en el módulo Pricing. Sales debe consultar el `baseCost` actual de cada variante al momento de crear líneas de pedido.
 *   **`OrderNumber`:** String (Value Object para números de pedido únicos, encapsula formato y generación).
 *   **`QuoteNumber`:** String (Value Object para números de cotización únicos).
 *   **`DeliveryNoteNumber`:** String (Value Object para números de albarán únicos).

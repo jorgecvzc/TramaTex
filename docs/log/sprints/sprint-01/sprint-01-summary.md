@@ -147,15 +147,15 @@ La definición explícita del alcance del MVP fue una decisión clave.
 ### Nuevos Archivos
 
 **ADRs:**
-- `ADR-001-technology-stack-selection.md`
-- `ADR-002-clean-architecture-ddd-adoption.md`
-- `ADR-003-application-distribution-type.md`
-- `ADR-004-mvp-development-lifecycle.md`
-- `ADR-005-unified-customer-supplier-management.md`
-- `ADR-006-domain-driven-development-strategy.md`
-- `ADR-007-module-implementation-order.md`
-- `ADR-008-mvp-timeline-planning.md`
-- `ADR-009-project-structure.md`
+- `adr-001-technology-stack-selection.md`
+- `adr-002-clean-architecture-ddd-adoption.md`
+- `adr-003-application-distribution-type.md`
+- `adr-004-mvp-development-lifecycle.md`
+- `adr-005-unified-customer-supplier-management.md`
+- `adr-006-domain-driven-development-strategy.md`
+- `adr-007-module-implementation-order.md`
+- `adr-008-mvp-timeline-planning.md`
+- `adr-009-project-structure.md`
 
 **Tareas:**
 - `01-initial-design-and-architecture.md`
