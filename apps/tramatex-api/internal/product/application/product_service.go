@@ -569,6 +569,15 @@ func (s *ProductService) ListProductVariantsByProductID(ctx context.Context, que
 }
 
 func productMatchesQuery(product *domain.Product, query ListProductsQuery) bool {
+	if query.Search != nil {
+		s := strings.ToLower(*query.Search)
+		nameMatch := strings.Contains(strings.ToLower(product.Name), s)
+		skuMatch := strings.Contains(strings.ToLower(product.SKU), s)
+		longNameMatch := strings.Contains(strings.ToLower(product.LongName), s)
+		if !nameMatch && !skuMatch && !longNameMatch {
+			return false
+		}
+	}
 	if query.BrandID != nil && product.BrandID != *query.BrandID {
 		return false
 	}
@@ -576,6 +585,9 @@ func productMatchesQuery(product *domain.Product, query ListProductsQuery) bool 
 		return false
 	}
 	if query.IsActive != nil && product.IsActive != *query.IsActive {
+		return false
+	}
+	if query.ProductType != nil && string(product.ProductType) != *query.ProductType {
 		return false
 	}
 	return true

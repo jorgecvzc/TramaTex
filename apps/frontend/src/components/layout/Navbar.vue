@@ -96,6 +96,11 @@ onBeforeUnmount(() => {
                 <Folder :size="20" />
               </RouterLink>
             </li>
+            <li>
+              <RouterLink to="/products/pricing" class="dropdown-item" title="Consulta de Precios" @click="closeAllDropdowns">
+                <DollarSign :size="20" />
+              </RouterLink>
+            </li>
           </ul>
         </li>
         <li class="dropdown" @click.stop>

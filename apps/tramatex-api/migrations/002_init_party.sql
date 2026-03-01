@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS parties (
     CONSTRAINT fk_parties_modified_by FOREIGN KEY (modified_by) REFERENCES users(id)
 );
 
-CREATE INDEX idx_parties_status ON parties(status);
+CREATE INDEX IF NOT EXISTS idx_parties_status ON parties(status);
 
 COMMENT ON TABLE parties IS 'Parties aggregate root - represents any entity (person or organization)';
 COMMENT ON COLUMN parties.status IS 'Party status: ACTIVE, INACTIVE';
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS organization_profiles (
     CONSTRAINT fk_organization_profiles_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_organization_profiles_tax_id ON organization_profiles(tax_id);
+CREATE INDEX IF NOT EXISTS idx_organization_profiles_tax_id ON organization_profiles(tax_id);
 
 COMMENT ON TABLE organization_profiles IS 'Organization-specific profile data (1:1 with party)';
 
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS party_roles (
     CONSTRAINT fk_party_roles_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_party_roles_role ON party_roles(role);
+CREATE INDEX IF NOT EXISTS idx_party_roles_role ON party_roles(role);
 
 COMMENT ON TABLE party_roles IS 'Party roles (CLIENT, SUPPLIER, EMPLOYEE, etc.)';
 COMMENT ON COLUMN party_roles.creation_identifier IS 'Identifier from the source system that created this role';
@@ -93,9 +93,9 @@ CREATE TABLE IF NOT EXISTS party_relationships (
     CONSTRAINT fk_party_relationships_modified_by FOREIGN KEY (modified_by) REFERENCES users(id)
 );
 
-CREATE INDEX idx_party_relationships_from ON party_relationships(from_party_id);
-CREATE INDEX idx_party_relationships_to ON party_relationships(to_party_id);
-CREATE INDEX idx_party_relationships_type ON party_relationships(type);
+CREATE INDEX IF NOT EXISTS idx_party_relationships_from ON party_relationships(from_party_id);
+CREATE INDEX IF NOT EXISTS idx_party_relationships_to ON party_relationships(to_party_id);
+CREATE INDEX IF NOT EXISTS idx_party_relationships_type ON party_relationships(type);
 
 COMMENT ON TABLE party_relationships IS 'Relationships between parties (EMPLOYEE_OF, CONTACT_FOR, etc.)';
 
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS contact_details (
     CONSTRAINT fk_contact_details_related_party FOREIGN KEY (related_party_id) REFERENCES parties(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_contact_details_org_party ON contact_details(organization_party_id);
+CREATE INDEX IF NOT EXISTS idx_contact_details_org_party ON contact_details(organization_party_id);
 
 COMMENT ON TABLE contact_details IS 'Contact information for organization parties';
 
@@ -140,8 +140,8 @@ CREATE TABLE IF NOT EXISTS party_addresses (
     CONSTRAINT fk_party_addresses_modified_by FOREIGN KEY (modified_by) REFERENCES users(id)
 );
 
-CREATE INDEX idx_party_addresses_party_id ON party_addresses(party_id);
-CREATE INDEX idx_party_addresses_is_primary ON party_addresses(is_primary);
+CREATE INDEX IF NOT EXISTS idx_party_addresses_party_id ON party_addresses(party_id);
+CREATE INDEX IF NOT EXISTS idx_party_addresses_is_primary ON party_addresses(is_primary);
 
 COMMENT ON TABLE party_addresses IS 'Physical addresses for parties';
 
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS party_service_configurations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_party_service_configurations_party_id ON party_service_configurations(party_id);
+CREATE INDEX IF NOT EXISTS idx_party_service_configurations_party_id ON party_service_configurations(party_id);
 
 DROP TRIGGER IF EXISTS trg_party_service_configurations_updated_at ON party_service_configurations;
 CREATE TRIGGER trg_party_service_configurations_updated_at

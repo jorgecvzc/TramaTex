@@ -251,6 +251,7 @@ export interface ListProductsFilters {
   groupId?: string
   isActive?: boolean | ''
   type?: ProductType
+  productType?: string
   pageNumber?: number
   pageSize?: number
 }

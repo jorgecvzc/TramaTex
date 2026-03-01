@@ -184,6 +184,7 @@ class ProductApiService {
       params.append('isActive', String(filters.isActive))
     }
     if (filters.type) params.append('productType', filters.type)
+    if (filters.productType) params.append('productType', filters.productType)
     if (filters.pageNumber) params.append('page', filters.pageNumber.toString())
     if (filters.pageSize) params.append('page_size', filters.pageSize.toString())
 

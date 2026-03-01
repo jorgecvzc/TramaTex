@@ -160,13 +160,15 @@ func setupHandlers() (*gin.Engine, *fakePartyRepo) {
 	listContactsHandler := application.NewListContactDetailsHandler(partyRepo)
 	removeContactHandler := application.NewRemoveContactDetailsHandler(partyRepo)
 	addAddressHandler := application.NewAddPartyAddressHandler(addressRepo)
+	updateAddressHandler := application.NewUpdatePartyAddressHandler(addressRepo)
+	removeAddressHandler := application.NewRemovePartyAddressHandler(addressRepo)
 	listAddressesHandler := application.NewListPartyAddressesHandler(addressRepo)
 
 	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, deletePartyHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
 	partyRoleHandler := NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
 	partyRelationshipHandler := NewPartyRelationshipHandler(addRelationshipHandler, listRelationshipsHandler, removeRelationshipHandler)
 	contactDetailsHandler := NewContactDetailsHandler(addContactHandler, updateContactHandler, listContactsHandler, removeContactHandler)
-	partyAddressHandler := NewPartyAddressHandler(addAddressHandler, listAddressesHandler)
+	partyAddressHandler := NewPartyAddressHandler(addAddressHandler, updateAddressHandler, removeAddressHandler, listAddressesHandler)
 
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
@@ -218,13 +220,15 @@ func setupHandlersWithoutUser() *gin.Engine {
 	listContactsHandler := application.NewListContactDetailsHandler(partyRepo)
 	removeContactHandler := application.NewRemoveContactDetailsHandler(partyRepo)
 	addAddressHandler := application.NewAddPartyAddressHandler(addressRepo)
+	updateAddressHandler := application.NewUpdatePartyAddressHandler(addressRepo)
+	removeAddressHandler := application.NewRemovePartyAddressHandler(addressRepo)
 	listAddressesHandler := application.NewListPartyAddressesHandler(addressRepo)
 
 	partyHandler := NewPartyHandler(createPartyHandler, updatePartyHandler, changePartyStatusHandler, deletePartyHandler, getPartyHandler, listPartiesHandler, getBatchHandler)
 	partyRoleHandler := NewPartyRoleHandler(addPartyRoleHandler, removePartyRoleHandler)
 	partyRelationshipHandler := NewPartyRelationshipHandler(addRelationshipHandler, listRelationshipsHandler, removeRelationshipHandler)
 	contactDetailsHandler := NewContactDetailsHandler(addContactHandler, updateContactHandler, listContactsHandler, removeContactHandler)
-	partyAddressHandler := NewPartyAddressHandler(addAddressHandler, listAddressesHandler)
+	partyAddressHandler := NewPartyAddressHandler(addAddressHandler, updateAddressHandler, removeAddressHandler, listAddressesHandler)
 
 	router := gin.New()
 	router.POST("/parties", partyHandler.CreateParty)
@@ -843,6 +847,8 @@ func TestPartyAddressHandler_ListAddresses_Error(t *testing.T) {
 	addressRepo := &failingAddressRepo{}
 	partyAddressHandler := NewPartyAddressHandler(
 		application.NewAddPartyAddressHandler(addressRepo),
+		application.NewUpdatePartyAddressHandler(addressRepo),
+		application.NewRemovePartyAddressHandler(addressRepo),
 		application.NewListPartyAddressesHandler(addressRepo),
 	)
 
@@ -996,7 +1002,7 @@ func TestPartyHandlers_Constructors(t *testing.T) {
 	if NewContactDetailsHandler(application.NewAddContactDetailsHandler(partyRepo), application.NewUpdateContactDetailsHandler(partyRepo), application.NewListContactDetailsHandler(partyRepo), application.NewRemoveContactDetailsHandler(partyRepo)) == nil {
 		t.Fatalf("expected contact details handler")
 	}
-	if NewPartyAddressHandler(application.NewAddPartyAddressHandler(addressRepo), application.NewListPartyAddressesHandler(addressRepo)) == nil {
+	if NewPartyAddressHandler(application.NewAddPartyAddressHandler(addressRepo), application.NewUpdatePartyAddressHandler(addressRepo), application.NewRemovePartyAddressHandler(addressRepo), application.NewListPartyAddressesHandler(addressRepo)) == nil {
 		t.Fatalf("expected party address handler")
 	}
 }

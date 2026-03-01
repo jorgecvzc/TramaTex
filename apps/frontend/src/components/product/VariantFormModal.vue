@@ -241,9 +241,9 @@ const baseCostHint = computed(() => {
 // Helper function for formatting prices
 function formatPrice(value) {
   if (value === null || value === undefined) return '—'
-  return new Intl.NumberFormat('es-MX', {
+  return new Intl.NumberFormat('es-ES', {
     style: 'currency',
-    currency: 'MXN',
+    currency: 'EUR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)

@@ -8,7 +8,7 @@
           v-model="filters.search"
           type="text"
           placeholder="Buscar producto..."
-          @input="applyFilters"
+          @input="debouncedSearch"
         />
       </div>
 
@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { productApi } from '@/services/productApi';
 import { Package } from 'lucide-vue-next';
 
@@ -202,6 +202,7 @@ const error = ref('');
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+let searchTimeout = null;
 
 const filters = reactive({
   search: '',
@@ -226,6 +227,10 @@ onMounted(() => {
   fetchBrands();
   fetchProductGroups();
   fetchProducts();
+});
+
+onUnmounted(() => {
+  if (searchTimeout) clearTimeout(searchTimeout);
 });
 
 async function fetchProducts() {
@@ -274,6 +279,13 @@ async function fetchProductGroups() {
 function applyFilters() {
   currentPage.value = 1;
   fetchProducts();
+}
+
+function debouncedSearch() {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    applyFilters();
+  }, 350);
 }
 
 function clearFilters() {

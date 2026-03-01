@@ -353,6 +353,12 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 
 func (h *ProductHandler) ListProducts(c *gin.Context) {
 	var query application.ListProductsQuery
+	if searchStr := strings.TrimSpace(c.Query("search")); searchStr != "" {
+		query.Search = &searchStr
+	}
+	if productTypeStr := strings.TrimSpace(c.Query("productType")); productTypeStr != "" {
+		query.ProductType = &productTypeStr
+	}
 	if brandIDStr := strings.TrimSpace(c.Query("brandId")); brandIDStr != "" {
 		brandID, err := uuid.Parse(brandIDStr)
 		if err != nil {
