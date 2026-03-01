@@ -24,6 +24,45 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ---
 # SESIONES ABIERTAS
 
+## Product Module - Comprobaciones y Validación Continua
+
+- **Session ID:** `product-validation-continued-2026-03-01`
+- **Status:** En Progreso
+- **Sprint:** N/A
+- **Started:** 2026-03-01
+
+### Contexto
+
+Continuación de la validación del módulo Product tras las correcciones de bugs y mejoras implementadas en la rama `product-module-validation` (commits `182d769` y `3a9fd9c`). En la sesión anterior se corrigieron bugs críticos (ClientID uuid→string, product_variants table, tax_rate handler) y se implementaron nuevas funcionalidades (tax display con/sin impuestos, client default discount). La documentación ya fue actualizada (pricing, party). Esta sesión se centra en las **comprobaciones finales del módulo Product** para asegurar estabilidad completa.
+
+### Trabajo Previo (sesión anterior, misma rama)
+
+- [x] Bug crítico ClientID uuid→string en pricing engine corregido (commit `127c3f2`)
+- [x] Tax display + client default discount implementado (commit `182d769`)
+- [x] Documentación pricing y party actualizada (commit `3a9fd9c`)
+
+### Próximos Pasos
+
+- [ ] Verificar tests unitarios del módulo Product (domain, application, infrastructure, interfaces)
+- [ ] Validar CRUD de productos vía API (crear, leer, actualizar, eliminar)
+- [ ] Comprobar generación de variantes con baseCost correcto
+- [ ] Verificar cálculo de precios con tax_rate (21%/10%/4%/0%)
+- [ ] Comprobar integración pricing engine con client discount fallback
+- [ ] Validar UI frontend del módulo Product (listado, formulario, variantes, pestaña precios)
+- [ ] Ejecutar tests frontend relacionados con Product
+
+### Archivos de Contexto
+
+- `apps/tramatex-api/internal/product/`
+- `apps/tramatex-api/internal/pricing/`
+- `apps/frontend/src/pages/product/`
+- `apps/frontend/src/services/productApi.ts`
+- `apps/frontend/src/services/pricingApi.ts`
+- `docs/modules/product/`
+- `docs/modules/pricing/`
+
+---
+
 ## Revisión y Refinamiento de la Documentación General
 
 - **Session ID:** `documentation-review-refinement-2026-02-28`
