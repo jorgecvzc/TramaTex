@@ -41,12 +41,14 @@
     2.  Aplicar `BrandProfitMargin` configurado.
     3.  Buscar y aplicar `PriceRule` específica por cliente o categoría.
     4.  Aplicar descuentos por volumen (SalesDiscountRule).
-    5.  Validar margen de contribución mínimo.
-    6.  Registrar el cálculo en `PriceCalculation`.
+    4b. Si no hay reglas específicas, aplicar `DefaultDiscountPercentage` del cliente (del módulo Party) como descuento fallback.
+    5.  Calcular precio final con IVA (`finalPriceWithTax = finalPrice × (1 + taxRate/100)`).
+    6.  Validar margen de contribución mínimo.
+    7.  Registrar el cálculo en `PriceCalculation`.
 *   **Relaciones con Otros Módulos:**
-    *   **Product**: Lee el coste base de la variante.
-    *   **Party**: Obtiene la categoría y descuentos específicos del cliente.
-    *   **Sales**: Provee los precios unitarios definitivos para presupuestos y pedidos.
+    *   **Product**: Lee el coste base de la variante y el tipo impositivo (taxRate).
+    *   **Party**: Obtiene la categoría, descuentos específicos del cliente y el `defaultDiscountPercentage` vía `PartyPricingClient` (anti-corruption layer).
+    *   **Sales**: Provee los precios unitarios definitivos (con y sin IVA) para presupuestos y pedidos.
 
 ---
 

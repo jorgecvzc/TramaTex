@@ -21,6 +21,8 @@ This document specifies the API contracts for the Pricing module.
   {
     "final_price": 175.50,
     "currency": "EUR",
+    "tax_rate": 21.0,
+    "final_price_with_tax": 212.36,
     "breakdown": {
       "base_cost": 120.00,
       "margin_applied": "25%",

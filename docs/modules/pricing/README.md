@@ -158,7 +158,10 @@ Los siguientes DTOs (Data Transfer Objects) definen los contratos para la intera
     *   `quantity`: Integer
     *   `baseSalesPrice`: `MoneyDTO`
     *   `finalPrice`: `MoneyDTO`
+    *   `taxRate`: DECIMAL (porcentaje de IVA, ej. 21.0)
+    *   `finalPriceWithTax`: `MoneyDTO` (precio final con IVA incluido)
 
 6.  **`CalculateFinalSalePriceResponse`**
     *   `calculatedItems`: List of `CalculatedSaleItemResponse`
-    *   `saleTotal`: `MoneyDTO`
+    *   `saleTotal`: `MoneyDTO` (total sin IVA)
+    *   `saleTotalWithTax`: `MoneyDTO` (total con IVA incluido)
