@@ -282,7 +282,7 @@ func (r *GORMSaleModificationRuleRepository) FindByID(ctx context.Context, id uu
 	return data.ToDomain()
 }
 
-func (r *GORMSaleModificationRuleRepository) ListApplicable(ctx context.Context, clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
+func (r *GORMSaleModificationRuleRepository) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
 	var data []SaleModificationRuleDataModel
 	query := r.db.WithContext(ctx).
 		Where("is_active = true").

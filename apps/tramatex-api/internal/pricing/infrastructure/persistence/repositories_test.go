@@ -242,9 +242,9 @@ func TestGORMSaleModificationRuleRepository(t *testing.T) {
 		t.Fatalf("expected find success")
 	}
 
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	applicableRows := sqlmock.NewRows([]string{"id", "name", "client_ids", "value_type", "percentage_value", "money_value_currency", "priority", "effective_from", "is_active", "min_order_total_currency"}).
-		AddRow(uuid.New(), "Sale", pq.StringArray{clientID.String()}, string(domain.RuleValuePercentageMarkup), 0.1, "EUR", 1, time.Now(), true, "EUR")
+		AddRow(uuid.New(), "Sale", pq.StringArray{clientID}, string(domain.RuleValuePercentageMarkup), 0.1, "EUR", 1, time.Now(), true, "EUR")
 	mock.ExpectQuery("SELECT .* FROM \"sale_modification_rules\"").WillReturnRows(applicableRows)
 	orderTotal, _ := domain.NewMoney(100, "EUR")
 	list, err := repo.ListApplicable(context.Background(), clientID, nil, orderTotal, time.Now())

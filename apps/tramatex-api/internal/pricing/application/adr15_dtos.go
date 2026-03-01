@@ -27,7 +27,7 @@ type BaseSalesPriceRuleDTO struct {
 type SaleModificationRuleDTO struct {
 	ID                  uuid.UUID    `json:"id"`
 	Name                string       `json:"name"`
-	ClientIDs           []uuid.UUID  `json:"clientIds,omitempty"`
+	ClientIDs           []string     `json:"clientIds,omitempty"`
 	ProductGroupID      *uuid.UUID   `json:"productGroupId,omitempty"`
 	MinOrderTotalAmount *MoneyDTO    `json:"minOrderTotalAmount,omitempty"`
 	Value               RuleValueDTO `json:"value"`
@@ -54,7 +54,7 @@ type SaleItemRequest struct {
 
 type CalculateFinalSalePriceRequest struct {
 	SaleItems []SaleItemRequest `json:"saleItems"`
-	ClientID  uuid.UUID         `json:"clientId"`
+	ClientID  string            `json:"clientId"`
 	SaleDate  time.Time         `json:"saleDate"`
 }
 

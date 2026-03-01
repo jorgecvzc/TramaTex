@@ -27,17 +27,17 @@ func TestSaleModificationRuleValidation(t *testing.T) {
 func TestSaleModificationRuleAppliesTo(t *testing.T) {
 	p, _ := NewPercentage(0.1)
 	value, _ := NewRuleValue(RuleValuePercentageMarkup, &p, nil)
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	groupID := uuid.New()
 	minOrder, _ := NewMoney(100, DefaultCurrency)
 	start := time.Now().Add(-time.Hour)
 	end := time.Now().Add(time.Hour)
 
-	rule, err := NewSaleModificationRule("rule", []uuid.UUID{clientID}, &groupID, &minOrder, value, 1, start, &end)
+	rule, err := NewSaleModificationRule("rule", []string{clientID}, &groupID, &minOrder, value, 1, start, &end)
 	require.NoError(t, err)
 
 	orderTotal := Money{amount: 200, currency: DefaultCurrency}
-	require.False(t, rule.AppliesTo(uuid.New(), &groupID, orderTotal, time.Now()))
+	require.False(t, rule.AppliesTo(uuid.New().String(), &groupID, orderTotal, time.Now()))
 	require.False(t, rule.AppliesTo(clientID, nil, orderTotal, time.Now()))
 
 	lowOrder := Money{amount: 50, currency: DefaultCurrency}
@@ -61,7 +61,7 @@ func TestSaleModificationRuleAppliesToCurrencyMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	orderTotal := Money{amount: 200, currency: "USD"}
-	require.False(t, rule.AppliesTo(uuid.New(), nil, orderTotal, time.Now()))
+	require.False(t, rule.AppliesTo(uuid.New().String(), nil, orderTotal, time.Now()))
 }
 
 func TestSaleModificationRuleAppliesToNoFilters(t *testing.T) {
@@ -74,5 +74,5 @@ func TestSaleModificationRuleAppliesToNoFilters(t *testing.T) {
 	require.NoError(t, err)
 
 	orderTotal := Money{amount: 1, currency: DefaultCurrency}
-	require.True(t, rule.AppliesTo(uuid.New(), nil, orderTotal, time.Now()))
+	require.True(t, rule.AppliesTo(uuid.New().String(), nil, orderTotal, time.Now()))
 }

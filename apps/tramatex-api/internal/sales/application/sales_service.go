@@ -923,7 +923,7 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 		return nil, fmt.Errorf("pricing engine not configured")
 	}
 	request := pricing_app.CalculateFinalSalePriceRequest{
-		ClientID:  partyID,
+		ClientID:  partyID.String(),
 		SaleItems: make([]pricing_app.SaleItemRequest, len(items)),
 	}
 	for i, item := range items {
@@ -1004,7 +1004,7 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 		return nil, fmt.Errorf("pricing engine not configured")
 	}
 	request := pricing_app.CalculateFinalSalePriceRequest{
-		ClientID:  partyID,
+		ClientID:  partyID.String(),
 		SaleItems: make([]pricing_app.SaleItemRequest, len(seeds)),
 	}
 	for i, seed := range seeds {
@@ -1380,7 +1380,7 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 	// Calculate prices using pricing engine
 	priceReq := pricing_app.CalculateFinalSalePriceRequest{
 		SaleItems: saleItems,
-		ClientID:  cmd.PartyID,
+		ClientID:  cmd.PartyID.String(),
 		SaleDate:  cmd.InvoiceDate,
 	}
 	priceResp, err := s.pricingEngine.CalculateFinalSalePrice(ctx, priceReq)

@@ -207,7 +207,7 @@ func TestSalesService_CreateQuote_Success(t *testing.T) {
 	numbers.On("NextQuoteNumber", mock.Anything).Return(quoteNumber, nil)
 
 	pricing.On("CalculateFinalSalePrice", mock.Anything, mock.MatchedBy(func(req pricing_app.CalculateFinalSalePriceRequest) bool {
-		return req.ClientID == partyID && len(req.SaleItems) == 1 && req.SaleItems[0].ProductVariantID == variantID && req.SaleItems[0].Quantity == 2
+		return req.ClientID == partyID.String() && len(req.SaleItems) == 1 && req.SaleItems[0].ProductVariantID == variantID && req.SaleItems[0].Quantity == 2
 	})).Return(&pricing_app.CalculateFinalSalePriceResponse{
 		CalculatedItems: []pricing_app.CalculatedSaleItemResponse{
 			{

@@ -12,7 +12,7 @@ import (
 type SaleModificationRuleDataModel struct {
 	ID                    uuid.UUID      `gorm:"type:uuid;primary_key;"`
 	Name                  string         `gorm:"not null"`
-	ClientIDs             pq.StringArray `gorm:"type:uuid[]"`
+	ClientIDs             pq.StringArray `gorm:"type:text[]"`
 	ProductGroupID        *uuid.UUID     `gorm:"type:uuid"`
 	MinOrderTotalAmount   *float64       `gorm:"type:numeric(12,2)"`
 	MinOrderTotalCurrency string         `gorm:"type:varchar(3);not null"`
@@ -66,7 +66,7 @@ func (m *SaleModificationRuleDataModel) ToDomain() (*domain.SaleModificationRule
 	return &domain.SaleModificationRule{
 		ID:             m.ID,
 		Name:           m.Name,
-		ClientIDs:      stringArrayToUUIDs(m.ClientIDs),
+		ClientIDs:      []string(m.ClientIDs),
 		ProductGroupID: m.ProductGroupID,
 		MinOrderTotal:  minOrder,
 		Value:          value,
@@ -103,7 +103,7 @@ func SaleModificationRuleFromDomain(rule *domain.SaleModificationRule) *SaleModi
 	return &SaleModificationRuleDataModel{
 		ID:                    rule.ID,
 		Name:                  rule.Name,
-		ClientIDs:             uuidArrayToStringArray(rule.ClientIDs),
+		ClientIDs:             pq.StringArray(rule.ClientIDs),
 		ProductGroupID:        rule.ProductGroupID,
 		MinOrderTotalAmount:   minOrderAmount,
 		MinOrderTotalCurrency: minOrderCurrency,

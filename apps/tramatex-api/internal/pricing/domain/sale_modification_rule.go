@@ -9,7 +9,7 @@ import (
 type SaleModificationRule struct {
 	ID             uuid.UUID
 	Name           string
-	ClientIDs      []uuid.UUID
+	ClientIDs      []string
 	ProductGroupID *uuid.UUID
 	MinOrderTotal  *Money
 	Value          RuleValue
@@ -21,7 +21,7 @@ type SaleModificationRule struct {
 
 func NewSaleModificationRule(
 	name string,
-	clientIDs []uuid.UUID,
+	clientIDs []string,
 	productGroupID *uuid.UUID,
 	minOrderTotal *Money,
 	value RuleValue,
@@ -53,7 +53,7 @@ func NewSaleModificationRule(
 	}, nil
 }
 
-func (r *SaleModificationRule) AppliesTo(clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal Money, at time.Time) bool {
+func (r *SaleModificationRule) AppliesTo(clientID string, productGroupID *uuid.UUID, orderTotal Money, at time.Time) bool {
 	if !r.IsActive {
 		return false
 	}

@@ -46,7 +46,7 @@ func (f *fakeSaleRuleRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	return nil, nil
 }
 
-func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
+func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
 	return f.rules, nil
 }
 
@@ -148,7 +148,7 @@ func TestPricingEngineHandler_UpdateBaseSalesPriceRule_InvalidID(t *testing.T) {
 func TestPricingEngineHandler_CalculateFinalSalePrice(t *testing.T) {
 	variantID := uuid.New()
 	productID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	provider := &fakeProductProvider{info: &application.ProductPricingInfo{
 		VariantID: variantID,
