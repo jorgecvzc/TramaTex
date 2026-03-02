@@ -27,39 +27,11 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Product Module - Comprobaciones y Validación Continua
 
 - **Session ID:** `product-validation-continued-2026-03-01`
-- **Status:** En Progreso
+- **Status:** Completada
 - **Sprint:** N/A
 - **Started:** 2026-03-01
-
-### Contexto
-
-Continuación de la validación del módulo Product tras las correcciones de bugs y mejoras implementadas en la rama `product-module-validation` (commits `182d769` y `3a9fd9c`). En la sesión anterior se corrigieron bugs críticos (ClientID uuid→string, product_variants table, tax_rate handler) y se implementaron nuevas funcionalidades (tax display con/sin impuestos, client default discount). La documentación ya fue actualizada (pricing, party). Esta sesión se centra en las **comprobaciones finales del módulo Product** para asegurar estabilidad completa.
-
-### Trabajo Previo (sesión anterior, misma rama)
-
-- [x] Bug crítico ClientID uuid→string en pricing engine corregido (commit `127c3f2`)
-- [x] Tax display + client default discount implementado (commit `182d769`)
-- [x] Documentación pricing y party actualizada (commit `3a9fd9c`)
-
-### Próximos Pasos
-
-- [ ] Verificar tests unitarios del módulo Product (domain, application, infrastructure, interfaces)
-- [ ] Validar CRUD de productos vía API (crear, leer, actualizar, eliminar)
-- [ ] Comprobar generación de variantes con baseCost correcto
-- [ ] Verificar cálculo de precios con tax_rate (21%/10%/4%/0%)
-- [ ] Comprobar integración pricing engine con client discount fallback
-- [ ] Validar UI frontend del módulo Product (listado, formulario, variantes, pestaña precios)
-- [ ] Ejecutar tests frontend relacionados con Product
-
-### Archivos de Contexto
-
-- `apps/tramatex-api/internal/product/`
-- `apps/tramatex-api/internal/pricing/`
-- `apps/frontend/src/pages/product/`
-- `apps/frontend/src/services/productApi.ts`
-- `apps/frontend/src/services/pricingApi.ts`
-- `docs/modules/product/`
-- `docs/modules/pricing/`
+- **Completed:** 2026-03-02
+- **Nota:** Sesión movida al Registro de Sesiones Cerradas. Ver detalle completo abajo.
 
 ---
 
@@ -192,6 +164,7 @@ Nueva sesión solicitada para pulir MES sin abrir sprint ni ADR: diferenciar cla
 
 # REGISTRO DE SESIONES CERRADAS
 ---
+- **Product Module - Comprobaciones y Validación Continua** | Iniciada: 2026-03-01 | Finalizada: 2026-03-02 | Status: ✅ COMPLETADO - **Validación exhaustiva final del módulo Product**: Backend unit tests (domain ✅, application ✅, interfaces ✅, pricing ✅). API CRUD completo validado (Products, Brands, Attributes, Groups). Variantes con baseCost correcto (WHT=30.50, PLT=35.075). **Bug encontrado y corregido**: `tax_rate=0` → GORM `default:21.00` tag en `product_data_model.go` ignoraba zero values; fix: eliminación de tags `default`. 4 tasas IVA verificadas post-fix (21/10/4/0%). **Pricing engine integración completa**: BSP (30.50×1.25=38.125€) ✅, FSP con 5% descuento cliente (36.22€) ✅, IVA 21% (43.82€) ✅. Frontend: productApi.ts + pricingApi.ts validados, 76/76 tests Product+Pricing pass, 223/235 total (12 fallos pre-existentes PartyForm).
 - **Product Module - Validación de Funcionalidad y Corrección de Bugs** | Iniciada: 2026-02-28 | Finalizada: 2026-03-01 | Status: ✅ COMPLETADO - **Validación exhaustiva del módulo Product (API)**: Bug crítico de atributos corregido (3 capas: data structure, enum, CHECK constraint), baseCost dinámico implementado (6 endpoints), **bug TaxRate descubierto y corregido** (handler UpdateProduct ignoraba tax_rate). **Validación API completa**: CRUD productos ✅, 4 tasas IVA (21%/10%/4%/0%) ✅, generador 12 variantes (baseCost correcto: Blanco=30.50, Platino=35.075, Dorado=36.00) ✅, markup marca 25% ✅, eliminación atributos CASCADE ✅. **Tests corregidos**: 5 archivos de test actualizados (mock expectations para FindByID en variant methods, price modifier columns en test schema, findByIDFn en stubProductRepo). **Resultado**: 4/4 paquetes backend Product pasan, frontend 223/235 (12 fallos pre-existentes PartyForm).
 - **Party Module - Consolidación de Migraciones y Smart Contact Deletion** | Iniciada: 2026-02-25 | Finalizada: 2026-02-28 | Status: ✅ COMPLETADO - **Módulo Party 100% funcional**: Consolidación exitosa de 35 migraciones en 6 archivos modulares, smart contact deletion implementado (backend+frontend, verificación de referencias, mensajes contextuales, 40/40 tests passing), endpoints CRUD completos para addresses (POST/GET/PUT/DELETE), corrección crítica de bugs de autenticación (token_id mapping, user_id en revocación), mejoras UX (reorden campos NIF/CIF, entity type selector). **Validación UI completa**: 5/5 escenarios PASS (smart deletion unique/shared, dropdown contactos, address create/edit). **Infraestructura**: Múltiples rebuilds Docker con limpieza cache, esquema BD estabilizado, 4 rutas addresses registradas correctamente. **Commit c55ae1b** fusionado con develop. Documentación actualizada con resultados exhaustivos 2026-02-28.
 - **Seguimiento Sprint 13 - Validación final Sales/Tax** | Iniciada: 2026-02-23 | Finalizada: 2026-02-24 | Status: ✅ COMPLETADO - Validación funcional final registrada en entorno compartido: reinicio operativo, fix de migración `033_repair_parties_table_if_missing.sql`, verificación de `quotes` existente y endpoint Sales Quotes en `200` sin `SQLSTATE 42P01` en logs. Scripts smoke de Sales en `tmp/` corregidos y reutilizables.
