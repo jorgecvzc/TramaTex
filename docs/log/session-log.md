@@ -27,7 +27,7 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Sales Module - Revisión UX y Validación Funcional
 
 - **Session ID:** `sales-ux-review-validation-2026-03-02`
-- **Status:** En Progreso
+- **Status:** En Pausa
 - **Sprint:** N/A
 - **Started:** 2026-03-02
 
@@ -60,6 +60,19 @@ Revisión y mejora del módulo Sales centrada en la experiencia de usuario. Obje
 | VariantSelector en OrderDetail | OrderDetail | Sustituido UUID crudo en modal add-line por VariantSelector inline |
 | Totales en OrderCreate | OrderCreate | Añadidos subtotales por línea + sección resumen (subtotal, IVA estimado, total) — paridad con QuoteCreate |
 | Responsive breakpoints | QuoteCreate, OrderCreate, TicketCreate | `@media ≤1024px: 2col`, `@media ≤640px: 1col` |
+
+### Registro del día (2026-03-02)
+
+- **Análisis completo de UX Sales**: Se analizaron las 4 pantallas principales (QuoteCreate, OrderCreate, TicketCreate, OrderDetail) identificando 5 problemas de UX.
+- **Full-width containers**: Eliminado `max-width: 900px; margin: 0 auto` de las 3 páginas de creación, sustituido por `padding: 1.5rem 2rem`.
+- **Grid explícito de 1 fila**: Cambiado de `repeat(auto-fit, minmax(150px, 1fr))` a `grid-template-columns: 3fr 2fr 1fr 1fr 1fr` para que todos los campos de una línea de venta se vean en una sola fila.
+- **VariantSelector en TicketCreate**: Sustituido el input de UUID crudo por un modal con VariantSelector (mismo patrón que Quote/Order).
+- **VariantSelector en OrderDetail**: Sustituido el input de UUID en el modal add-line por un VariantSelector inline.
+- **Totales en OrderCreate**: Añadidos subtotales por línea + sección resumen (subtotal, IVA estimado, total) para paridad con QuoteCreate.
+- **Responsive breakpoints**: Añadidos `@media ≤1024px: 2col` y `@media ≤640px: 1col` a las 3 páginas de creación.
+- **Tests OK**: Frontend Sales 50/50, Backend Sales 4/4 paquetes, regresión total 223/235 (12 fallos preexistentes PartyForm).
+- **Commit y push**: `3d17842` en rama `sales-ux-validation`.
+- **Pendiente**: Validación CRUD Sales vía API y revisión visual manual por el usuario.
 
 ### Archivos de Contexto
 
