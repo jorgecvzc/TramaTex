@@ -43,12 +43,23 @@ Revisión y mejora del módulo Sales centrada en la experiencia de usuario. Obje
 
 ### Próximos Pasos
 
-- [ ] Analizar estado actual de las pantallas Sales (OrderCreate, QuoteCreate, etc.)
-- [ ] Implementar layout full-width para líneas de venta
-- [ ] Mejorar selector de productos/variantes en líneas de venta
+- [x] Analizar estado actual de las pantallas Sales (OrderCreate, QuoteCreate, etc.)
+- [x] Implementar layout full-width para líneas de venta
+- [x] Mejorar selector de productos/variantes en líneas de venta
 - [ ] Validar CRUD Sales vía API (quotes, orders, invoices, delivery notes)
-- [ ] Ejecutar tests frontend Sales
-- [ ] Ejecutar tests backend Sales
+- [x] Ejecutar tests frontend Sales — 50/50 salesApi + 223/235 total (12 fallos preexistentes PartyForm)
+- [x] Ejecutar tests backend Sales — 4/4 paquetes OK (domain, application, persistence, handler)
+
+### Resultados UX (commit `3d17842`)
+
+| Mejora | Archivo(s) | Detalle |
+|--------|-----------|---------|
+| Full-width containers | QuoteCreate, OrderCreate, TicketCreate | Eliminado `max-width:900px`, padding directo |
+| Grid explícito 1 fila | QuoteCreate, OrderCreate | `grid-template-columns: 3fr 2fr 1fr 1fr 1fr` — Variante·MES·Qty·Precio·Descuento en 1 fila |
+| VariantSelector en TicketCreate | TicketCreate | Sustituido UUID crudo por modal con VariantSelector (mismo patrón que Quote/Order) |
+| VariantSelector en OrderDetail | OrderDetail | Sustituido UUID crudo en modal add-line por VariantSelector inline |
+| Totales en OrderCreate | OrderCreate | Añadidos subtotales por línea + sección resumen (subtotal, IVA estimado, total) — paridad con QuoteCreate |
+| Responsive breakpoints | QuoteCreate, OrderCreate, TicketCreate | `@media ≤1024px: 2col`, `@media ≤640px: 1col` |
 
 ### Archivos de Contexto
 
