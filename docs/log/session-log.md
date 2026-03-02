@@ -24,14 +24,39 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ---
 # SESIONES ABIERTAS
 
-## Product Module - Comprobaciones y Validación Continua
+## Sales Module - Revisión UX y Validación Funcional
 
-- **Session ID:** `product-validation-continued-2026-03-01`
-- **Status:** Completada
+- **Session ID:** `sales-ux-review-validation-2026-03-02`
+- **Status:** En Progreso
 - **Sprint:** N/A
-- **Started:** 2026-03-01
-- **Completed:** 2026-03-02
-- **Nota:** Sesión movida al Registro de Sesiones Cerradas. Ver detalle completo abajo.
+- **Started:** 2026-03-02
+
+### Contexto
+
+Revisión y mejora del módulo Sales centrada en la experiencia de usuario. Objetivo principal: optimizar la interfaz de líneas de venta para que la selección de productos sea sencilla y toda la información de una línea de venta sea visible en una sola fila (full-width). Se validará también la funcionalidad end-to-end del módulo Sales (quotes, orders, invoices, delivery notes).
+
+### Requisitos UX Identificados
+
+- Las interfaces de líneas de venta deben ocupar el **ancho completo de pantalla**
+- Toda la información de una línea de venta debe verse **en la misma fila** (producto, variante, cantidad, precio unitario, descuento, impuesto, total)
+- La selección de productos/variantes ha de ser **sencilla e intuitiva** (autocomplete/search, no UUID manual)
+
+### Próximos Pasos
+
+- [ ] Analizar estado actual de las pantallas Sales (OrderCreate, QuoteCreate, etc.)
+- [ ] Implementar layout full-width para líneas de venta
+- [ ] Mejorar selector de productos/variantes en líneas de venta
+- [ ] Validar CRUD Sales vía API (quotes, orders, invoices, delivery notes)
+- [ ] Ejecutar tests frontend Sales
+- [ ] Ejecutar tests backend Sales
+
+### Archivos de Contexto
+
+- `apps/frontend/src/pages/sales/`
+- `apps/frontend/src/services/salesApi.ts`
+- `apps/frontend/src/types/sales.ts`
+- `apps/tramatex-api/internal/sales/`
+- `docs/modules/sales/`
 
 ---
 
