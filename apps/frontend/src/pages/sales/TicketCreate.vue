@@ -42,13 +42,18 @@
                 </button>
               </div>
               <div class="line-item-fields">
-                <div class="form-group field-variant">
+                <div class="form-group">
                   <label>Variante de Producto *</label>
+                  <button
+                    type="button"
+                    class="btn-select-variant"
+                    @click="openVariantSelector(index)"
+                  >
+                    {{ item.selectedVariantName || 'Seleccionar variante...' }}
+                  </button>
                   <input
                     v-model="item.productVariantId"
-                    type="text"
-                    placeholder="UUID de la variante"
-                    class="form-input"
+                    type="hidden"
                     required
                   />
                 </div>
@@ -96,6 +101,24 @@
         {{ submitError }}
       </div>
     </div>
+
+    <!-- Variant Selector Modal -->
+    <div v-if="showVariantSelector" class="modal-overlay" @click.self="showVariantSelector = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Seleccionar Variante de Producto</h3>
+          <button class="btn-close" @click="showVariantSelector = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <VariantSelector
+            :product-id="null"
+            title=""
+            description="Seleccione una variante de producto"
+            @variant-selected="handleVariantSelected"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -103,6 +126,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
 
 const router = useRouter();
@@ -116,6 +140,8 @@ const formData = ref({
 
 const isSubmitting = ref(false);
 const submitError = ref('');
+const showVariantSelector = ref(false);
+const editingLineIndex = ref(null);
 
 const isFormValid = computed(() => {
   return (
@@ -131,8 +157,25 @@ const isFormValid = computed(() => {
 function addLineItem() {
   formData.value.lineItems.push({
     productVariantId: '',
+    selectedVariantName: '',
     quantity: 1,
   });
+}
+
+function openVariantSelector(index) {
+  editingLineIndex.value = index;
+  showVariantSelector.value = true;
+}
+
+function handleVariantSelected(payload) {
+  const variant = payload?.variant || payload;
+  if (editingLineIndex.value !== null && variant) {
+    const item = formData.value.lineItems[editingLineIndex.value];
+    item.productVariantId = variant.id;
+    item.selectedVariantName = `${variant.product_name || 'Producto'} - ${variant.sku}`;
+  }
+  showVariantSelector.value = false;
+  editingLineIndex.value = null;
 }
 
 function removeLineItem(index) {
@@ -174,9 +217,7 @@ function goBack() {
 
 <style scoped>
 .ticket-create-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 1.5rem 2rem;
 }
 
 .page-header {
@@ -293,12 +334,13 @@ function goBack() {
 
 .line-item-fields {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: 1rem;
+  align-items: end;
 }
 
-.field-variant {
-  grid-column: span 2;
+.line-item-fields .form-group {
+  margin-bottom: 0;
 }
 
 .form-group {
@@ -433,13 +475,83 @@ function goBack() {
   font-size: 0.875rem;
 }
 
+.btn-select-variant {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.btn-select-variant:hover {
+  border-color: #3b82f6;
+  background: #f9fafb;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1b3a6b;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.btn-close:hover {
+  color: #dc2626;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
 @media (max-width: 768px) {
   .line-item-fields {
     grid-template-columns: 1fr;
-  }
-
-  .field-variant {
-    grid-column: span 1;
   }
 }
 </style>

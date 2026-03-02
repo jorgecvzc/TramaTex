@@ -474,9 +474,7 @@ function goBack() {
 
 <style scoped>
 .quote-create-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 1.5rem 2rem;
 }
 
 .page-header {
@@ -633,8 +631,13 @@ function goBack() {
 
 .line-item-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: 3fr 2fr 1fr 1fr 1fr;
   gap: 1rem;
+  align-items: end;
+}
+
+.line-item-fields .form-group {
+  margin-bottom: 0;
 }
 
 .line-item-subtotal {
@@ -834,5 +837,17 @@ function goBack() {
   border-radius: 4px;
   color: #991b1b;
   font-size: 0.875rem;
+}
+
+@media (max-width: 1024px) {
+  .line-item-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .line-item-fields {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

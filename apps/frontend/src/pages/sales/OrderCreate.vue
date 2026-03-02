@@ -132,6 +132,7 @@
                     min="1"
                     class="form-input"
                     required
+                    @input="calculateTotals"
                   />
                 </div>
                 <div class="form-group">
@@ -143,6 +144,7 @@
                     min="0"
                     placeholder="Opcional"
                     class="form-input"
+                    @input="calculateTotals"
                   />
                 </div>
                 <div class="form-group">
@@ -154,9 +156,34 @@
                     min="0"
                     placeholder="Opcional"
                     class="form-input"
+                    @input="calculateTotals"
                   />
                 </div>
               </div>
+              <!-- Line Item Subtotal -->
+              <div class="line-item-subtotal">
+                <span class="subtotal-label">Subtotal línea:</span>
+                <span class="subtotal-value">{{ formatMoney(calculateLineSubtotal(item)) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totals Summary -->
+        <div v-if="formData.lineItems.length > 0" class="totals-section">
+          <h3>Resumen de Totales</h3>
+          <div class="totals-grid">
+            <div class="total-row">
+              <span class="total-label">Subtotal:</span>
+              <span class="total-value">{{ formatMoney(calculatedTotals.subtotal) }}</span>
+            </div>
+            <div class="total-row">
+              <span class="total-label">IVA estimado:</span>
+              <span class="total-value">{{ formatMoney(calculatedTotals.tax) }}</span>
+            </div>
+            <div class="total-row total-final">
+              <span class="total-label">Total:</span>
+              <span class="total-value">{{ formatMoney(calculatedTotals.total) }}</span>
             </div>
           </div>
         </div>
@@ -225,6 +252,12 @@ const isSubmitting = ref(false);
 const submitError = ref('');
 const mesWorks = ref([]);
 const isLoadingMesWorks = ref(false);
+
+const calculatedTotals = ref({
+  subtotal: 0,
+  tax: 0,
+  total: 0,
+});
 
 const minDeliveryDate = computed(() => {
   return new Date().toISOString().split('T')[0];
@@ -306,6 +339,34 @@ function handleVariantSelected(payload) {
 
 function removeLineItem(index) {
   formData.value.lineItems.splice(index, 1);
+  calculateTotals();
+}
+
+function calculateLineSubtotal(item) {
+  if (!item.quantity || item.quantity <= 0) return 0;
+  const unitPrice = item.manualUnitPrice || 0;
+  const discount = item.manualDiscountPerUnit || 0;
+  const finalPrice = Math.max(0, unitPrice - discount);
+  return finalPrice * item.quantity;
+}
+
+function calculateTotals() {
+  let subtotal = 0;
+  for (const item of formData.value.lineItems) {
+    subtotal += calculateLineSubtotal(item);
+  }
+  const tax = subtotal * 0.21;
+  const total = subtotal + tax;
+  calculatedTotals.value = { subtotal, tax, total };
+}
+
+function formatMoney(amount) {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 async function handleSubmit() {
@@ -375,9 +436,7 @@ function goBack() {
 
 <style scoped>
 .order-create-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 1.5rem 2rem;
 }
 
 .page-header {
@@ -534,8 +593,88 @@ function goBack() {
 
 .line-item-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: 3fr 2fr 1fr 1fr 1fr;
   gap: 1rem;
+  align-items: end;
+}
+
+.line-item-fields .form-group {
+  margin-bottom: 0;
+}
+
+.line-item-subtotal {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  gap: 1rem;
+}
+
+.subtotal-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.subtotal-value {
+  font-size: 1rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.totals-section {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.totals-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem;
+}
+
+.totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.total-row.total-final {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid #d1d5db;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.total-label {
+  color: #6b7280;
+}
+
+.total-row.total-final .total-label {
+  color: #1f2937;
+}
+
+.total-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.total-row.total-final .total-value {
+  color: #E6B800;
 }
 
 .form-actions {
@@ -659,5 +798,17 @@ function goBack() {
   border-radius: 4px;
   color: #991b1b;
   font-size: 0.875rem;
+}
+
+@media (max-width: 1024px) {
+  .line-item-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .line-item-fields {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

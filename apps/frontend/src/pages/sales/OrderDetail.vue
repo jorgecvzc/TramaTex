@@ -329,20 +329,39 @@
 
     <!-- Add/Edit Line Item Modal -->
     <div v-if="showAddItemModal || showEditItemModal" class="modal-overlay" @click="closeModals">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content modal-wide" @click.stop>
         <div class="modal-header">
           <h3>{{ showEditItemModal ? 'Editar Línea' : 'Agregar Línea' }}</h3>
           <button class="btn-close" @click="closeModals">✕</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
+          <!-- Variant selector (add mode) -->
+          <div v-if="!showEditItemModal" class="form-group">
             <label>Variante de Producto *</label>
+            <button
+              type="button"
+              class="btn-select-variant"
+              @click="showInlineVariantPicker = !showInlineVariantPicker"
+            >
+              {{ lineItemForm.selectedVariantName || 'Seleccionar variante...' }}
+            </button>
+            <div v-if="showInlineVariantPicker" class="inline-variant-picker">
+              <VariantSelector
+                :product-id="null"
+                title=""
+                description="Seleccione una variante de producto"
+                @variant-selected="handleVariantForLineItem"
+              />
+            </div>
+          </div>
+          <!-- Variant display (edit mode) -->
+          <div v-else class="form-group">
+            <label>Variante de Producto</label>
             <input
-              v-model="lineItemForm.productVariantId"
+              :value="lineItemForm.selectedVariantName || lineItemForm.productVariantId"
               type="text"
-              placeholder="UUID de la variante"
               class="form-input"
-              :disabled="showEditItemModal"
+              disabled
             />
           </div>
           <div class="form-group">
@@ -396,6 +415,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
 import { mesApi } from '@/services/mesApi';
 import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
@@ -413,6 +433,7 @@ const issuerProfile = getPrintIssuerProfile();
 const showAddItemModal = ref(false);
 const showEditItemModal = ref(false);
 const editingItemId = ref(null);
+const showInlineVariantPicker = ref(false);
 
 const showDeliveryNoteModal = ref(false);
 const isCreatingDeliveryNote = ref(false);
@@ -426,6 +447,7 @@ const deliveryNoteForm = ref({
 
 const lineItemForm = ref({
   productVariantId: '',
+  selectedVariantName: '',
   quantity: 1,
   manualUnitPrice: null,
   manualDiscountPerUnit: null,
@@ -649,6 +671,7 @@ function editLineItem(item) {
   editingItemId.value = item.id;
   lineItemForm.value = {
     productVariantId: item.productVariantID,
+    selectedVariantName: item.variantSku || item.productVariantID,
     quantity: item.quantity,
     manualUnitPrice: item.manualUnitPrice?.amount || null,
     manualDiscountPerUnit: item.manualDiscountPerUnit?.amount || null,
@@ -699,12 +722,23 @@ function closeModals() {
   showAddItemModal.value = false;
   showEditItemModal.value = false;
   editingItemId.value = null;
+  showInlineVariantPicker.value = false;
   lineItemForm.value = {
     productVariantId: '',
+    selectedVariantName: '',
     quantity: 1,
     manualUnitPrice: null,
     manualDiscountPerUnit: null,
   };
+}
+
+function handleVariantForLineItem(payload) {
+  const variant = payload?.variant || payload;
+  if (variant) {
+    lineItemForm.value.productVariantId = variant.id;
+    lineItemForm.value.selectedVariantName = `${variant.product_name || 'Producto'} - ${variant.sku}`;
+    showInlineVariantPicker.value = false;
+  }
 }
 
 function goBack() {
@@ -1311,7 +1345,32 @@ function goToMesWork(mesWorkId) {
 }
 
 .modal-wide {
-  max-width: 700px;
+  max-width: 900px;
+}
+
+.btn-select-variant {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.btn-select-variant:hover {
+  border-color: #3b82f6;
+  background: #f9fafb;
+}
+
+.inline-variant-picker {
+  margin-top: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+  background: #f9fafb;
 }
 
 .modal-header {
