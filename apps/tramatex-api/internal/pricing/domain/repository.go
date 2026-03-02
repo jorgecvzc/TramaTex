@@ -43,5 +43,5 @@ type BaseSalesPriceRuleRepository interface {
 type SaleModificationRuleRepository interface {
 	Save(ctx context.Context, rule *SaleModificationRule) error
 	FindByID(ctx context.Context, id uuid.UUID) (*SaleModificationRule, error)
-	ListApplicable(ctx context.Context, clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal Money, at time.Time) ([]*SaleModificationRule, error)
+	ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal Money, at time.Time) ([]*SaleModificationRule, error)
 }

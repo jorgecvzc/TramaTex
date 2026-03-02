@@ -22,9 +22,11 @@ type GetProductByIDQuery struct {
 
 // ListProductsQuery defines the query for listing products with optional filtering.
 type ListProductsQuery struct {
-	BrandID  *uuid.UUID
-	GroupID  *uuid.UUID
-	IsActive *bool
+	Search      *string
+	BrandID     *uuid.UUID
+	GroupID     *uuid.UUID
+	IsActive    *bool
+	ProductType *string
 }
 
 // ListProductVariantsByProductIDQuery defines the query for listing product variants by product ID.

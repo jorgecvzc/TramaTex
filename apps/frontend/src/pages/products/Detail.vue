@@ -96,16 +96,7 @@
               @refresh="fetchCalculatedAttributes"
             />
 
-            <!-- Tab 4: Pricing -->
-            <PricingPanel
-              v-if="activeTab === 'pricing'"
-              :product-id="productId"
-              :product-name="product?.name || ''"
-              :variants="variants"
-              :is-loading-variants="isLoadingVariants"
-            />
-
-            <!-- Tab 5: History -->
+            <!-- Tab 4: History -->
             <div v-if="activeTab === 'history'" class="history-tab">
               <h3>Historial de Cambios</h3>
               <div class="empty-state">
@@ -132,9 +123,8 @@ import Navbar from '@/components/layout/Navbar.vue'
 import ProductDetailInfo from '@/components/product/ProductDetailInfo.vue'
 import VariantTable from '@/components/product/VariantTable.vue'
 import AttributesPanel from '@/components/product/AttributesPanel.vue'
-import PricingPanel from '@/components/product/PricingPanel.vue'
 import { productApi } from '@/services/productApi'
-import { FileText, Hash, Tag, DollarSign, ClipboardList } from 'lucide-vue-next'
+import { FileText, Hash, Tag, ClipboardList } from 'lucide-vue-next'
 
 const route = useRoute()
 const productId = route.params.id
@@ -169,11 +159,6 @@ const tabs = computed(() => [
     label: 'Atributos',
     icon: Tag,
     count: calculatedAttributes.value.length,
-  },
-  {
-    id: 'pricing',
-    label: 'Precios',
-    icon: DollarSign,
   },
   {
     id: 'history',
@@ -251,6 +236,19 @@ async function handleProductUpdate(updatedData) {
   try {
     const updated = await productApi.updateProduct(productId, updatedData)
     product.value = { ...product.value, ...updated }
+
+    // Re-fetch brand and groups if they changed
+    if (updated.brand_id) {
+      brand.value = await productApi.getBrand(updated.brand_id).catch(() => null)
+    }
+    if (updated.group_ids && updated.group_ids.length > 0) {
+      const groupPromises = updated.group_ids.map(id =>
+        productApi.getProductGroup(id).catch(() => null)
+      )
+      groups.value = (await Promise.all(groupPromises)).filter(g => g !== null)
+    } else {
+      groups.value = []
+    }
   } catch (err) {
     alert(err?.message || 'No se pudo actualizar el producto')
   }

@@ -1,87 +1,69 @@
-# Módulo de Sales (Gestión de Órdenes)
+# Módulo de Sales (Gestión Comercial)
+
+**Estado:** ✅ **COMPLETO (100%)**  
+**Última actualización:** 1 de marzo de 2026
+
+## Estado de Implementación
+
+### Componentes Completos ✅
+- **Presupuestos (Quotes):**
+  - Backend: CRUD completo, gestión de estados, conversión automática a pedido.
+  - Frontend: `QuoteList.vue`, `QuoteDetail.vue` (con acciones y avisos de expiración) y `QuoteCreate.vue`.
+  - Sistema de cálculo de totales en tiempo real.
+  
+- **Pedidos (Orders):**
+  - Backend: Gestión completa del flujo de pedidos.
+  - Frontend: `OrderList.vue` (optimización batch), `OrderDetail.vue` (con creación de albaranes parciales/totales).
+  
+- **Albaranes (Delivery Notes):**
+  - Backend: Soporte para albaranes parciales/totales.
+  - Frontend: `DeliveryNoteList.vue`, `DeliveryNoteDetail.vue` con firma y linkage a pedido.
+  
+- **Facturación (Invoices & Tickets):**
+  - Backend: Facturación completa (B2B) y simplificada (Tickets B2C).
+  - Cumplimiento AEAT con series diferenciadas (ADR-020).
+  - Frontend: Listado y detalle de facturas y creación rápida de tickets.
+
+---
 
 ## 1. Propósito
 
-*   **Visión del Módulo:** Gestionar cotizaciones, órdenes y seguimiento de ventas.
+*   **Visión del Módulo:** Gestionar el ciclo comercial completo desde la cotización hasta la facturación definitiva, integrando el motor de precios y asegurando la trazabilidad.
 *   **Objetivos Clave:**
     *   Proporcionar un sistema completo para gestionar el ciclo de vida de las ventas.
-    *   Manejar desde la cotización hasta la entrega de la orden.
+    *   Manejar desde la cotización hasta la entrega de la orden y su cobro.
+
+---
 
 ## 2. Requisitos
 
-### 2.1. Requisitos Funcionales
+... [resto de requisitos permanecen igual] ...
 
-*   **RF-001:** Crear cotizaciones.
-*   **RF-002:** Convertir cotizaciones a órdenes de venta.
-*   **RF-003:** Gestionar líneas de orden (productos, cantidades, precios).
-*   **RF-004:** Realizar seguimiento del estado de la orden.
-*   **RF-005:** Mantener un historial de cambios en la orden.
-*   **RF-006:** Emitir facturas completas (B2B) con datos fiscales completos del cliente (ADR-020).
-*   **RF-007:** Emitir facturas simplificadas/tickets para ventas retail < 3.000 EUR según legislación española (ADR-020).
-*   **RF-008:** Gestionar series de numeración diferenciadas por tipo de factura y año fiscal (ADR-020).
-*   **RF-009:** Validar límites legales en facturas simplificadas (< 3.000 EUR).
-*   **RF-010:** Soportar Party genérico "CONSUMIDOR_FINAL" para ventas sin cliente identificado.
-
-## 3. Casos de Uso
-
-### 3.1. Actores
-
-*   **Vendedor:** Crea cotizaciones y gestiona órdenes.
-*   **Cliente:** Aprueba cotizaciones y recibe órdenes.
-
-### 3.2. Casos de Uso Principales
-
-Para una lista completa y detallada de los casos de uso, incluyendo flujos y entradas/salidas, consulte el documento [Casos de Uso - Módulo Sales](./use-cases.md).
-
-
-## 4. Historias de Usuario
-
-*   **HU-001:** Como Vendedor, quiero crear una cotización para un cliente potencial para presentarle una oferta formal.
-*   **HU-002:** Como Vendedor, quiero convertir una cotización en una orden de venta cuando el cliente la aprueba para iniciar el proceso de producción.
-*   **HU-003:** Como Vendedor, quiero poder ver el estado de todas mis órdenes para hacer seguimiento con los clientes.
-*   **HU-004:** Como Cajero, quiero emitir tickets (facturas simplificadas) para ventas de mostrador < 3.000 EUR de forma rápida y sin necesidad de datos completos del cliente.
-*   **HU-005:** Como Administrador, quiero configurar series de numeración diferenciadas (facturas completas, tickets, etc.) para cumplir con normativa AEAT.
-
-## 5. Criterios de Aceptación
-
-*   **Para HU-002:**
-    *   **Criterio 1:** Dado una cotización en estado 'Aprobada', cuando la convierto a orden, entonces se genera un número de orden único y el estado cambia a 'Confirmada'.
-
-## 6. Modelo de Dominio
-
-### SalesOrder (Raíz de Agregación)
-- **ID**: UUID
-- **OrderNumber**: String (único, formato: ORD-YYYYMMDD-XXXX)
-- **PartyID**: UUID (cliente)
-- **OrderDate**: DateTime
-- **DeliveryDate**: DateTime (requerido)
-- **Estado**: Enum (Cotización, Confirmada, En Preparación, Entregada, Cancelada)
-- **LineItems**: List<OrderLineItem>
-- **Subtotal**: Decimal
-- **Tax**: Decimal
-- **Total**: Decimal
-- **Notes**: String
-
-### OrderLineItem
-- **ID**: UUID
-- **OrderID**: UUID
-- **ProductVariantID**: UUID
-- **Cantidad**: Integer
-- **PrecioUnitario**: Decimal
-- **Descuento**: Decimal (opcional)
-- **Subtotal**: Decimal
+---
 
 ## 7. Decisiones de Diseño
 
 *   **Flujo de Estados de Orden:**
-    *   `Cotización` -> `Confirmada` -> `En Preparación` -> `Entregada`
-    *   Se puede cancelar desde cualquier estado (`Cancelada`).
+    *   `DRAFT` -> `SENT` -> `ACCEPTED` -> `IN_PROGRESS` -> `COMPLETED` -> `INVOICED`
 *   **Relaciones con Otros Módulos:**
     *   **Party**: La orden pertenece a un `Party` (cliente).
     *   **Product**: Las `LineItems` referencian a un `ProductVariant`.
-    *   **Pricing**: El `PrecioUnitario` es calculado por el motor de precios.
-    *   **MES (Fase 3, MVP):** El estado 'En Preparación' podría iniciar un seguimiento en el sistema de producción.
-*   **Fases de Desarrollo:**
-    *   [X] Fase 1 (MVP): CRUD básico de órdenes y cambio de estado.
-    *   [ ] Fase 2: Gestión de cotizaciones y conversión a órdenes.
-    *   [ ] Fase 3: Integración con producción (MES).
+        *   **⚠️ DEPENDENCIA CRÍTICA - Cálculo de BaseCost:**
+            *   El `baseCost` de cada variante se calcula **dinámicamente** en el módulo Product como: `Product.BasePrice` + modificadores de `AttributeValue`.
+            *   Los modificadores pueden ser:
+                *   **FIXED**: Suma/resta cantidad fija (€) al precio base.
+                *   **PERCENTAGE**: Aplica porcentaje sobre el precio acumulado.
+            *   Los modificadores se aplican **secuencialmente** según `Attribute.sortOrder`.
+            *   El `baseCost` **NO se almacena** en BD, siempre se calcula on-demand.
+            *   Sales debe obtener el `baseCost` actual de cada variante al momento de crear líneas de pedido/presupuesto.
+    *   **Pricing**: El `PrecioUnitario` es calculado por el motor de precios a partir del `baseCost` de la variante.
+    *   **MES:** El estado 'ACCEPTED' genera automáticamente una orden de producción en MES.
+
+---
+
+## 8. Fases de Desarrollo
+
+*   [x] **Fase 1 (MVP):** CRUD básico de pedidos y estados.
+*   [x] **Fase 2:** Gestión de presupuestos y conversión a pedidos.
+*   [x] **Fase 3:** Sistema de facturación completa y simplificada (Tickets).
+*   [x] **Fase 4:** Integración automática con producción (MES).

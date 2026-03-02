@@ -95,13 +95,6 @@
             </td>
             <td class="align-center">
               <button
-                @click="viewVariantDetail(variant)"
-                class="btn-icon"
-                title="Ver detalles"
-              >
-                <Eye :size="16" />
-              </button>
-              <button
                 @click="openEditVariantModal(variant)"
                 class="btn-icon"
                 title="Editar variante"
@@ -144,7 +137,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Plus, RefreshCw, Package, Zap, Eye, Edit2 } from 'lucide-vue-next'
+import { Plus, RefreshCw, Package, Zap, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
@@ -178,11 +171,13 @@ const showBatchCreator = ref(false)
 // Methods
 
 function formatPrice(price) {
-  if (!price || !price.amount) return '—'
+  if (price === null || price === undefined) return '—'
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
-    currency: price.currency || 'EUR'
-  }).format(price.amount)
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price)
 }
 
 function formatStatus(status) {
@@ -195,12 +190,6 @@ function formatStatus(status) {
 
 function getStatusClass(status) {
   return status === 'CONFIRMED' ? 'status-confirmed' : 'status-provisional'
-}
-
-function viewVariantDetail(variant) {
-  // TODO: Implement variant detail view
-  console.log('View variant:', variant)
-  alert(`Vista de detalle de variante:\n\nSKU: ${variant.sku}\n\nEsta funcionalidad se implementará en futuras iteraciones.`)
 }
 
 function openAddVariantModal() {

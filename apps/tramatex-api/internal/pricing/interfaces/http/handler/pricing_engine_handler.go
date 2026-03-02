@@ -120,7 +120,7 @@ func (h *PricingEngineHandler) CalculateFinalSalePrice(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	if req.ClientID == uuid.Nil {
+	if req.ClientID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "clientId is required"})
 		return
 	}

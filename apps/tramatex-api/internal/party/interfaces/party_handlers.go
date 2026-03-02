@@ -84,10 +84,11 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 	}
 
 	cmd := &application.CreatePartyCommand{
-		ID:      req.ID,
-		Status:  req.Status,
-		Roles:   req.Roles,
-		ActorID: actorID,
+		ID:                        req.ID,
+		Status:                    req.Status,
+		Roles:                     req.Roles,
+		DefaultDiscountPercentage: req.DefaultDiscountPercentage,
+		ActorID:                   actorID,
 	}
 
 	if req.PersonProfile != nil {
@@ -238,9 +239,10 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 	}
 
 	cmd := &application.UpdatePartyCommand{
-		ID:      id,
-		Status:  req.Status,
-		ActorID: actorID,
+		ID:                        id,
+		Status:                    req.Status,
+		DefaultDiscountPercentage: req.DefaultDiscountPercentage,
+		ActorID:                   actorID,
 	}
 
 	if req.PersonProfile != nil {

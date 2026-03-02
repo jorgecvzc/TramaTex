@@ -8,8 +8,8 @@ La herramienta estándar para crear estos diagramas es **Mermaid**, incrustada d
 
 Estos diagramas describen la arquitectura general del sistema.
 
-- **[C1-context.md](./C1-context.md):** (Ya existe, renombrado desde `context.md`) Diagrama de Contexto del Sistema (Nivel 1 de C4). Muestra cómo TramaTex se relaciona con sus usuarios y sistemas externos.
-- **[C2-containers.md](./C2-containers.md):** Diagrama de Contenedores (Nivel 2 de C4). Descompone el sistema en sus principales bloques ejecutables (API, Frontend, Base de Datos).
+- **[c1-context.md](./c1-context.md):** (Ya existe, renombrado desde `context.md`) Diagrama de Contexto del Sistema (Nivel 1 de C4). Muestra cómo TramaTex se relaciona con sus usuarios y sistemas externos.
+- **[c2-containers.md](./c2-containers.md):** Diagrama de Contenedores (Nivel 2 de C4). Descompone el sistema en sus principales bloques ejecutables (API, Frontend, Base de Datos).
 
 ## 2. Diagramas de Módulos (C3 y otros)
 

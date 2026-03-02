@@ -9,13 +9,13 @@ import (
 )
 
 // VariantDataModel represents the product variant entity in the database.
+// Note: BaseCost is NOT stored - it is calculated dynamically in the application layer.
 type VariantDataModel struct {
 	gorm.Model
 	ID              uuid.UUID      `gorm:"type:uuid;primary_key;"`
 	ProductID       uuid.UUID      `gorm:"not null"`
 	SKU             string         `gorm:"uniqueIndex;not null"`
 	Barcode         *string        `gorm:"uniqueIndex"`
-	BaseCost        float64        `gorm:"type:numeric(12,2);not null;default:0"`
 	Status          string         `gorm:"type:variant_status;not null"`
 	AttributeValues pq.StringArray `gorm:"type:uuid[]"`
 	IsActive        bool           `gorm:"not null;default:true"`
@@ -42,14 +42,13 @@ func (v *VariantDataModel) ToDomain() *domain.ProductVariant {
 }
 
 // VariantFromDomain converts a variant domain model to a data model.
-// Note: BaseCost is set to 0 as it's now calculated dynamically, not stored.
+// Note: BaseCost is NOT stored - it is calculated dynamically in the application layer.
 func VariantFromDomain(v *domain.ProductVariant) *VariantDataModel {
 	return &VariantDataModel{
 		ID:              v.ID,
 		ProductID:       v.ProductID,
 		SKU:             v.SKU,
 		Barcode:         v.Barcode,
-		BaseCost:        0, // Legacy field, no longer used
 		Status:          string(v.Status),
 		AttributeValues: stringArrayFromUUIDArray(v.AttributeValues),
 		IsActive:        v.IsActive,

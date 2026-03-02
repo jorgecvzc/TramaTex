@@ -62,7 +62,7 @@ func (f *fakeSaleRuleRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	return f.rule, nil
 }
 
-func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
+func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
 	if f.listErr != nil {
 		return nil, f.listErr
 	}
@@ -120,7 +120,7 @@ func (f *fakeProductProvider) ListVariantsPricingInfo(ctx context.Context, produ
 
 func TestPricingEngineService_CreateBaseSalesPriceRule(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.1}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{Name: "Rule", Value: value})
@@ -134,7 +134,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule(t *testing.T) {
 
 func TestPricingEngineService_UpdateBaseSalesPriceRule_NotFound(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	_, err := service.UpdateBaseSalesPriceRule(context.Background(), application.UpdateBaseSalesPriceRuleCommand{ID: uuid.New()})
 	if err == nil {
@@ -146,7 +146,7 @@ func TestPricingEngineService_CalculateBaseSalesPrice_CacheSet(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, cache)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, cache, nil)
 
 	brandID := uuid.New()
 	variantID := uuid.New()
@@ -179,11 +179,11 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	groupID := uuid.New()
 
 	basePrice, _ := domain.NewMoney(100, "EUR")
@@ -191,7 +191,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 
 	discount, _ := domain.NewMoney(10, "EUR")
 	value, _ := domain.NewRuleValue(domain.RuleValueApplyFixedAmountDiscount, nil, &discount)
-	rule, _ := domain.NewSaleModificationRule("Promo", []uuid.UUID{clientID}, &groupID, nil, value, 1, time.Now().Add(-time.Hour), nil)
+	rule, _ := domain.NewSaleModificationRule("Promo", []string{clientID}, &groupID, nil, value, 1, time.Now().Add(-time.Hour), nil)
 	saleRepo.rules = []*domain.SaleModificationRule{rule}
 
 	provider.info = &application.ProductPricingInfo{
@@ -222,7 +222,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 }
 
 func TestPricingEngineService_CalculateFinalSalePrice_Validation(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	_, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{})
 	if err == nil {
@@ -239,7 +239,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_Success(t *testing.T) {
 	existingRule.ID = ruleID
 
 	repo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	newPercentage := application.PercentageDTO{Value: 0.3}
 	newValue := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &newPercentage}
@@ -262,16 +262,16 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_Success(t *testing.T) {
 
 func TestPricingEngineService_CreateSaleModificationRule_PercentageDiscount(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
 
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	groupID := uuid.New()
 	percentage := application.PercentageDTO{Value: 0.15}
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &percentage}
 
 	_, err := service.CreateSaleModificationRule(context.Background(), application.CreateSaleModificationRuleCommand{
 		Name:           "BulkDiscount",
-		ClientIDs:      []uuid.UUID{clientID},
+		ClientIDs:      []string{clientID},
 		ProductGroupID: &groupID,
 		Value:          value,
 		Priority:       10,
@@ -289,7 +289,7 @@ func TestPricingEngineService_CreateSaleModificationRule_PercentageDiscount(t *t
 
 func TestPricingEngineService_CreateSaleModificationRule_FixedDiscount(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
 
 	money := application.MoneyDTO{Amount: 25, Currency: "EUR"}
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyFixedAmountDiscount), MoneyValue: &money}
@@ -312,7 +312,7 @@ func TestPricingEngineService_CreateSaleModificationRule_FixedDiscount(t *testin
 
 func TestPricingEngineService_CreateSaleModificationRule_WithEffectiveDates(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
 
 	effectiveFrom := time.Now().Add(-24 * time.Hour)
 	effectiveTo := time.Now().Add(7 * 24 * time.Hour)
@@ -341,7 +341,7 @@ func TestPricingEngineService_CreateSaleModificationRule_WithEffectiveDates(t *t
 }
 
 func TestPricingEngineService_UpdateSaleModificationRule_NotFound(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	percentage := application.PercentageDTO{Value: 0.1}
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &percentage}
@@ -360,7 +360,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_NotFound(t *testing.T) 
 func TestPricingEngineService_CalculateBaseSalesPrice_NoRules(t *testing.T) {
 	repo := &fakeBaseRuleRepo{rules: []*domain.BaseSalesPriceRule{}}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, nil, nil)
 
 	variantID := uuid.New()
 	provider.info = &application.ProductPricingInfo{
@@ -385,7 +385,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_CacheHit(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{rules: []*domain.SaleModificationRule{}}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -401,7 +401,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_CacheHit(t *testing.T) {
 	}
 
 	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
-		ClientID: uuid.New(),
+		ClientID: uuid.New().String(),
 		SaleItems: []application.SaleItemRequest{{
 			ProductVariantID: variantID,
 			Quantity:         1,
@@ -420,7 +420,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{rules: []*domain.SaleModificationRule{}}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -437,7 +437,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 	}
 
 	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
-		ClientID: uuid.New(),
+		ClientID: uuid.New().String(),
 		SaleItems: []application.SaleItemRequest{{
 			ProductVariantID: variantID,
 			Quantity:         1,
@@ -453,7 +453,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_RepositoryError(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{saveErr: domain.NewValidationError("db error")}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.2}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{
@@ -466,14 +466,14 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_RepositoryError(t *testin
 }
 
 func TestPricingEngineService_CreateSaleModificationRule_InvalidValue(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, nil, nil, nil)
 
 	discountPercent := -0.5
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	_, err := service.CreateSaleModificationRule(context.Background(), application.CreateSaleModificationRuleCommand{
 		Name:          "Invalid Rule",
 		Value:         application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &application.PercentageDTO{Value: discountPercent}},
-		ClientIDs:     []uuid.UUID{clientID},
+		ClientIDs:     []string{clientID},
 		EffectiveFrom: time.Now(),
 	})
 	if err == nil {
@@ -486,7 +486,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_MultipleItems(t *testing.T
 	modRepo := &fakeSaleRuleRepo{}
 	provider := &fakeProductProvider{}
 
-	service := application.NewPricingEngineService(baseRepo, modRepo, provider, nil)
+	service := application.NewPricingEngineService(baseRepo, modRepo, provider, nil, nil)
 
 	variantID1 := uuid.New()
 	variantID2 := uuid.New()
@@ -515,7 +515,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_MultipleItems(t *testing.T
 	}
 
 	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
-		ClientID: uuid.New(),
+		ClientID: uuid.New().String(),
 		SaleItems: []application.SaleItemRequest{
 			{ProductVariantID: variantID1, Quantity: 2},
 			{ProductVariantID: variantID2, Quantity: 1},
@@ -535,10 +535,10 @@ func TestPricingEngineService_CalculateFinalSalePrice_MultipleItems(t *testing.T
 
 func TestPricingEngineService_CalculateFinalSalePrice_ProductInfoError(t *testing.T) {
 	provider := &fakeProductProvider{err: domain.NewNotFoundError("product not found")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
 
 	_, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
-		ClientID: uuid.New(),
+		ClientID: uuid.New().String(),
 		SaleItems: []application.SaleItemRequest{{
 			ProductVariantID: uuid.New(),
 			Quantity:         1,
@@ -614,13 +614,13 @@ func TestNewBaseSalesPriceRuleDTO(t *testing.T) {
 }
 
 func TestNewSaleModificationRuleDTO(t *testing.T) {
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	percentage, _ := domain.NewPercentage(0.15)
 	ruleValue, _ := domain.NewRuleValue(domain.RuleValueApplyPercentageDiscount, &percentage, nil)
 
 	rule, _ := domain.NewSaleModificationRule(
 		"Discount Rule",
-		[]uuid.UUID{clientID},
+		[]string{clientID},
 		nil,
 		nil,
 		ruleValue,
@@ -647,8 +647,8 @@ func TestNewSaleModificationRuleDTO(t *testing.T) {
 
 func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T) {
 	ruleID := uuid.New()
-	clientID1 := uuid.New()
-	clientID2 := uuid.New()
+	clientID1 := uuid.New().String()
+	clientID2 := uuid.New().String()
 	productGroupID := uuid.New()
 
 	percentage, _ := domain.NewPercentage(0.1)
@@ -656,7 +656,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T)
 
 	existingRule, _ := domain.NewSaleModificationRule(
 		"Old Name",
-		[]uuid.UUID{clientID1},
+		[]string{clientID1},
 		nil,
 		nil,
 		ruleValue,
@@ -666,7 +666,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T)
 	)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
 
 	newName := "Updated Name"
 	newPercentage := &application.PercentageDTO{Value: 0.2}
@@ -680,7 +680,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T)
 	resp, err := service.UpdateSaleModificationRule(context.Background(), application.UpdateSaleModificationRuleCommand{
 		ID:                  ruleID,
 		Name:                &newName,
-		ClientIDs:           []uuid.UUID{clientID2},
+		ClientIDs:           []string{clientID2},
 		ProductGroupID:      &productGroupID,
 		MinOrderTotalAmount: minOrderTotal,
 		Value:               newValue,
@@ -706,14 +706,14 @@ func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T)
 
 func TestPricingEngineService_UpdateSaleModificationRule_PartialUpdate(t *testing.T) {
 	ruleID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	percentage, _ := domain.NewPercentage(0.15)
 	ruleValue, _ := domain.NewRuleValue(domain.RuleValueApplyPercentageDiscount, &percentage, nil)
 
 	existingRule, _ := domain.NewSaleModificationRule(
 		"Original",
-		[]uuid.UUID{clientID},
+		[]string{clientID},
 		nil,
 		nil,
 		ruleValue,
@@ -723,7 +723,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_PartialUpdate(t *testin
 	)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
 
 	newName := "Partially Updated"
 
@@ -754,7 +754,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_MultipleFields(t *testing
 	existingRule, _ := domain.NewBaseSalesPriceRule("Original Rule", &brandID, nil, nil, nil, ruleValue)
 
 	baseRepo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
 
 	newName := "Updated Base Rule"
 	newPercentage := &application.PercentageDTO{Value: 0.3}
@@ -782,7 +782,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_MultipleFields(t *testing
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_WithProductGroup(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, nil, nil, nil)
 
 	groupID := uuid.New()
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.25}}
@@ -804,12 +804,12 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_WithProductGroup(t *testi
 func TestPricingEngineService_CalculateFinalSalePrice_WithCache(t *testing.T) {
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
 	brandID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	cachedPrice, _ := domain.NewMoney(120, "EUR")
 	cache.prices = map[string]domain.Money{
@@ -845,14 +845,14 @@ func TestPricingEngineService_CalculateFinalSalePrice_WithCache(t *testing.T) {
 
 func TestPricingEngineService_UpdateSaleModificationRule_InvalidPercentage(t *testing.T) {
 	ruleID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	percentage, _ := domain.NewPercentage(0.1)
 	ruleValue, _ := domain.NewRuleValue(domain.RuleValueApplyPercentageDiscount, &percentage, nil)
-	existingRule, _ := domain.NewSaleModificationRule("Rule", []uuid.UUID{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
+	existingRule, _ := domain.NewSaleModificationRule("Rule", []string{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
 
 	invalidValue := &application.RuleValueDTO{
 		Type:            string(domain.RuleValueApplyPercentageDiscount),
@@ -871,14 +871,14 @@ func TestPricingEngineService_UpdateSaleModificationRule_InvalidPercentage(t *te
 
 func TestPricingEngineService_UpdateSaleModificationRule_InvalidMoney(t *testing.T) {
 	ruleID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	percentage, _ := domain.NewPercentage(0.1)
 	ruleValue, _ := domain.NewRuleValue(domain.RuleValueApplyPercentageDiscount, &percentage, nil)
-	existingRule, _ := domain.NewSaleModificationRule("Rule", []uuid.UUID{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
+	existingRule, _ := domain.NewSaleModificationRule("Rule", []string{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
 
 	invalidMinOrder := &application.MoneyDTO{Amount: -100, Currency: "EUR"}
 
@@ -901,7 +901,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_InvalidValue(t *testing.T
 	existingRule, _ := domain.NewBaseSalesPriceRule("Rule", &brandID, nil, nil, nil, ruleValue)
 
 	baseRepo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
 
 	invalidValue := &application.RuleValueDTO{
 		Type:            string(domain.RuleValuePercentageMarkup),
@@ -942,7 +942,7 @@ func TestPricingEngineService_SelectBaseRule_WithNonMatchingProductGroup(t *test
 			GroupIDs:  []uuid.UUID{groupID1},
 		},
 	}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil)
 
 	resp, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: variantID,
@@ -981,7 +981,7 @@ func TestPricingEngineService_SelectBaseRule_WithMatchingProductGroup(t *testing
 			GroupIDs:  []uuid.UUID{groupID},
 		},
 	}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil)
 
 	resp, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: variantID,
@@ -997,7 +997,7 @@ func TestPricingEngineService_SelectBaseRule_WithMatchingProductGroup(t *testing
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_SaveError(t *testing.T) {
 	repo := &fakeBaseRuleRepo{saveErr: fmt.Errorf("save failed")}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.2}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{Name: "Rule", Value: value})
@@ -1009,7 +1009,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_SaveError(t *testing.T) {
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_NoIsActive(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.15}}
 	resp, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{
@@ -1027,7 +1027,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_NoIsActive(t *testing.T) 
 
 func TestPricingEngineService_CalculateBaseSalesPrice_ProductInfoError(t *testing.T) {
 	provider := &fakeProductProvider{err: fmt.Errorf("product lookup failed")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
 
 	_, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: uuid.New(),
@@ -1040,14 +1040,14 @@ func TestPricingEngineService_CalculateBaseSalesPrice_ProductInfoError(t *testin
 
 func TestPricingEngineService_CreateSaleModificationRule_SaveError(t *testing.T) {
 	repo := &fakeSaleRuleRepo{saveErr: fmt.Errorf("save failed")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, nil, nil, nil)
 
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &application.PercentageDTO{Value: 0.1}}
 
 	_, err := service.CreateSaleModificationRule(context.Background(), application.CreateSaleModificationRuleCommand{
 		Name:      "Test Rule",
-		ClientIDs: []uuid.UUID{clientID},
+		ClientIDs: []string{clientID},
 		Value:     value,
 		Priority:  1,
 	})

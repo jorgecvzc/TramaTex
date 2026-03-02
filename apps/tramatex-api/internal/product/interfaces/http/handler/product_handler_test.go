@@ -780,7 +780,9 @@ func TestProductHandler_VariantEndpoints_Success(t *testing.T) {
 	value, _ := attribute.AddValue("Red", "R")
 	variant := &domain.ProductVariant{ID: uuid.New(), ProductID: productID, SKU: "P-1-C.R", AttributeValues: []uuid.UUID{value.ID}, Status: domain.StatusConfirmed, IsActive: true}
 	service := application.NewProductService(
-		&stubProductRepo{},
+		&stubProductRepo{findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.Product, error) {
+			return &domain.Product{ID: productID, SKU: "P-1", Name: "Product", BrandID: uuid.New(), IsActive: true, BasePrice: 10.0}, nil
+		}},
 		&stubBrandRepo{},
 		&stubGroupRepo{},
 		&stubAttributeRepo{findByScope: func(ctx context.Context, brandID *uuid.UUID, groupID *uuid.UUID) ([]*domain.Attribute, error) {

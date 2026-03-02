@@ -19,7 +19,7 @@
 
 | ID | Título | Estado | Duración | Enlace |
 |----|--------|--------|----------|--------|
-| 07-01 | Definición del Dominio del Módulo de Precios (ADR-016) | ✅ Completado | X horas | [ADR-016-pricing-module-architecture.md](../../../architecture/adrs/ADR-016-pricing-module-architecture.md) |
+| 07-01 | Definición del Dominio del Módulo de Precios (ADR-016) | ✅ Completado | X horas | [adr-016-pricing-module-architecture.md](../../../architecture/adrs/adr-016-pricing-module-architecture.md) |
 
 **Total de tareas:** 1 completada
 

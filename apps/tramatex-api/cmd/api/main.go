@@ -28,6 +28,7 @@ import (
 	// Pricing Module Imports
 	pricing_uc "github.com/joran-cortez/tramatex/internal/pricing/application"
 	pricing_cache "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/cache"
+	pricing_partyclient "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/partyclient"
 	pricing_repo "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/persistence"
 	pricing_productclient "github.com/joran-cortez/tramatex/internal/pricing/infrastructure/productclient"
 	pricing_handler "github.com/joran-cortez/tramatex/internal/pricing/interfaces/http/handler"
@@ -228,11 +229,13 @@ func main() {
 	basePriceCache := pricing_cache.NewRedisBasePriceCache(redisClient, cfg.Redis.TTL)
 	baseRuleRepo := pricing_repo.NewGORMBaseSalesPriceRuleRepository(db)
 	saleRuleRepo := pricing_repo.NewGORMSaleModificationRuleRepository(db)
+	partyPricingClient := pricing_partyclient.NewPartyPricingClient(db)
 	pricingEngineService := pricing_uc.NewPricingEngineService(
 		baseRuleRepo,
 		saleRuleRepo,
 		productPricingClient,
 		basePriceCache,
+		partyPricingClient,
 	)
 	pricingEngineHandler := pricing_handler.NewPricingEngineHandler(pricingEngineService)
 

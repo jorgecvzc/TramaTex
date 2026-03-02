@@ -1,6 +1,6 @@
 ## 📝 HALLAZGOS Y ACCIONES
 
-Este informe detalla los hallazgos y las acciones tomadas para cada una de las 10 categorías del OWASP Top 10. Para una descripción más extensa de la estrategia de seguridad y los controles implementados, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/ADR-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
+Este informe detalla los hallazgos y las acciones tomadas para cada una de las 10 categorías del OWASP Top 10. Para una descripción más extensa de la estrategia de seguridad y los controles implementados, consulte el [ADR-010: Estrategia de Seguridad](../../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md) y la [Guía de Implementación de Seguridad](../../../guides/developer/security-implementation-guide.md).
 
 ### **A01:2021 - Broken Access Control**
 **Hallazgo Crítico:** Falta validación de autorización a nivel de recurso.

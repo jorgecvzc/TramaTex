@@ -284,7 +284,7 @@ body: JSON.stringify({
 - [Tarea 01: Product List UI](./01-product-ui-list-implementation.md)
 - [Tarea 02: Product Detail UI](./02-product-ui-detail-implementation.md)
 - [Tarea 03: Product Create Forms](./03-product-ui-create-forms-implementation.md)
-- [Dominio Product - ADR-015](../../../architecture/adrs/ADR-015-product-module-architecture.md)
+- [Dominio Product - ADR-015](../../../architecture/adrs/adr-015-product-module-architecture.md)
 
 ---
 

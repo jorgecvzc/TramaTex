@@ -1,6 +1,6 @@
 # Convenciones de Nomenclatura del Proyecto TramaTex
 
-Este documento detalla las convenciones de nomenclatura para archivos, carpetas, paquetes, y elementos de código en el proyecto TramaTex. Estas convenciones aseguran la consistencia y legibilidad del código, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md).
+Este documento detalla las convenciones de nomenclatura para archivos, carpetas, paquetes, y elementos de código en el proyecto TramaTex. Estas convenciones aseguran la consistencia y legibilidad del código, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md).
 
 ---
 

@@ -1,34 +1,33 @@
 # Módulo de Product (Catálogo de Productos)
 
-**Estado:** En Implementación (MVP)  
-**Última actualización:** 13 de febrero de 2026
+**Estado:** ✅ **COMPLETO (100%)**  
+**Última actualización:** 1 de marzo de 2026
 
 ## Estado de Implementación
 
 ### Componentes Completos ✅
 - **Atributos (Attributes):**
-  - Backend: CREATE, READ, UPDATE funcionales
-  - DTOs con estructura completa (`AttributeValueDTO` incluye id, value, code)
-  - Frontend: UI completa con CRUD funcional
-  - Encoding UTF-8 verificado y funcionando
+  - Backend: CRUD completo funcional.
+  - DTOs con estructura completa (`AttributeValueDTO`).
+  - Frontend: UI completa con gestión de valores y modificadores de precio.
   
-- **Marcas (Brands):**
-  - Backend: CREATE, UPDATE funcionales
-  - Frontend: UI básica implementada
+- **Marcas (Brands) y Grupos (Product Groups):**
+  - Backend: CRUD completo.
+  - Frontend: UI de gestión integrada en Datos Maestros.
+  - Clasificación de grupos en `TANGIBLE` vs `SERVICE`.
 
-- **Grupos de Productos (Product Groups):**
-  - Backend: CREATE, UPDATE funcionales
-  - Frontend: UI básica implementada
+- **Productos (Products):**
+  - Backend: Gestión completa de productos base.
+  - Frontend: `ProductList.vue` y `ProductDetail.vue` con wizard de creación.
+  - Integración de herencia de atributos.
 
-### Componentes Pendientes ⏳
-- **Productos (Products):** UI pendiente (lógica backend lista)
-- **Variantes (Product Variants):** Pendiente
-- **Configuraciones de Servicio:** Pendiente
+- **Variantes (Product Variants):**
+  - Backend: Generador de variantes bulk y creación Just-in-Time (JIT).
+  - Frontend: Tabla dinámica de variantes con edición de SKUs y costes.
+  - Selector de variantes interactivo para el módulo de Sales.
 
-### Simplificaciones MVP
-- Sistema de scope (brand/group) de atributos removido temporalmente
-- Atributos son globales (asignación manual por usuario)
-- Ver ADR-015 para detalles completos
+- **Configuraciones de Servicio:**
+  - Implementación de `PartyServiceConfiguration` para vincular servicios a terceros específicos.
 
 ---
 
@@ -65,13 +64,15 @@ Para una descripción detallada del modelo de dominio, incluyendo entidades, Val
 ## 5. Decisiones de Diseño
 
 *   **Modelo de Atributos/Valores Explícito:** Se utiliza un modelo flexible de `Attribute` y `AttributeValue` para gestionar las características configurables de los productos.
+*   **Modificadores de Precio en Atributos:** Los `AttributeValue` pueden incluir modificadores de precio (FIXED o PERCENTAGE) que ajustan dinámicamente el precio base de las variantes. Los modificadores pueden ser positivos (incrementan precio) o negativos (reducen precio).
+*   **Cálculo Dinámico de Precio Base de Variante:** El `baseCost` de una variante se calcula algorítmicamente: `baseCost = producto.basePrice + sum(modificadores de atributos)`. Este valor NO se almacena, se calcula en tiempo real para mantener coherencia con los cambios en los modificadores.
 *   **Herencia de Atributos con Anulación:** Los atributos se heredan de marcas y grupos, permitiendo la anulación en niveles más específicos (directo, grupo+marca, grupo, marca, genérico).
 *   **Creación JIT de `ProductVariant`s:** Las variantes se crean en la base de datos bajo demanda para evitar la pre-generación masiva, comenzando con un estado `PROVISIONAL`.
 *   **Composición de SKU Determinista:** Los SKUs de las variantes se construyen algorítmicamente a partir de los códigos de atributos y valores.
 *   **`ProductType` (`TANGIBLE` vs `SERVICE`):** Permite diferenciar entre bienes físicos y servicios, con un manejo especial para `PartyServiceConfiguration`s en el caso de servicios (ver `ADR-013`).
 *   **Relaciones con Otros Módulos:**
-    *   **Pricing:** Consume `ProductVariantID`s y sus atributos para el cálculo de precios.
-    *   **Sales:** Las órdenes de venta contienen `ProductVariant`s.
+    *   **Pricing:** Consume el `baseCost` calculado de las variantes para aplicar márgenes de beneficio, descuentos y reglas de pricing específicas.
+    *   **Sales:** Las órdenes de venta y presupuestos referencian `ProductVariant`s. **⚠️ IMPORTANTE:** Sales debe obtener el `baseCost` actualizado de cada variante al momento de crear líneas de pedido, ya que este valor se calcula dinámicamente y puede cambiar si se modifican el precio base del producto o los modificadores de atributos. Ver [Sección 5 de API Contracts](./api-contracts.md#5-cálculo-de-precio-de-variante) para detalles del algoritmo.
     *   **Party:** Referenciado por `PartyServiceConfiguration`.
     *   **MES:** Utiliza `ProductVariant`s para la planificación de la producción.
 

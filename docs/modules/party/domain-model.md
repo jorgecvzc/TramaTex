@@ -9,6 +9,7 @@ Este documento describe el modelo de dominio vigente para el módulo `Party`, al
 ### Atributos principales
 - **ID**: `PartyID`
 - **Status**: `PartyStatus` (enum: `ACTIVE`, `INACTIVE`)
+- **DefaultDiscountPercentage**: `float64` (0-100, descuento por defecto cuando actúa como cliente, usado por el módulo Pricing como fallback)
 - **PersonProfile**: `*PersonProfile` (opcional)
 - **OrganizationProfile**: `*OrganizationProfile` (opcional)
 - **Roles**: `[]PartyRole`
@@ -63,4 +64,4 @@ Detalle de contacto asociado a una organización.
 **Enumeraciones:** `PartyStatus`, `PartyRoleType`, `RelationshipType`.
 
 ---
-**Última Actualización:** 2026-02-03
+**Última Actualización:** 2026-03-01

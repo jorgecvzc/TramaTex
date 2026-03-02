@@ -29,10 +29,10 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT chk_password_not_empty CHECK (password <> '')
 );
 
-CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_is_active ON users(is_active) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_created_at ON users(created_at);
-CREATE INDEX idx_users_deleted_at ON users(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 
 COMMENT ON TABLE users IS 'Users table - stores user accounts with authentication data';
 COMMENT ON COLUMN users.id IS 'Unique identifier (UUID)';
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS permissions (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_permissions_category ON permissions(category);
+CREATE INDEX IF NOT EXISTS idx_permissions_category ON permissions(category);
 
 COMMENT ON TABLE permissions IS 'System permissions catalog';
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     CONSTRAINT fk_role_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_role_permissions_role ON role_permissions(role);
+CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role);
 
 COMMENT ON TABLE role_permissions IS 'Maps roles to permissions';
 
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS revoked_tokens (
     CONSTRAINT fk_revoked_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_revoked_tokens_user_id ON revoked_tokens(user_id);
-CREATE INDEX idx_revoked_tokens_expires_at ON revoked_tokens(expires_at);
+CREATE INDEX IF NOT EXISTS idx_revoked_tokens_user_id ON revoked_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_revoked_tokens_expires_at ON revoked_tokens(expires_at);
 
 COMMENT ON TABLE revoked_tokens IS 'Stores revoked JWT tokens for logout functionality';
 

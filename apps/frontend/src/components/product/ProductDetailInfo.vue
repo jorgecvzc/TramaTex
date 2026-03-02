@@ -173,11 +173,55 @@
 
       <div class="form-row">
         <div class="form-group">
+          <label for="edit-tax-rate">Tasa de IVA (%)</label>
+          <select id="edit-tax-rate" v-model.number="editForm.tax_rate">
+            <option :value="21">21% — General</option>
+            <option :value="10">10% — Reducido</option>
+            <option :value="4">4% — Superreducido</option>
+            <option :value="0">0% — Exento</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label for="edit-type">Tipo de producto</label>
           <select id="edit-type" v-model="editForm.product_type">
             <option value="TANGIBLE">Tangible</option>
             <option value="SERVICE">Servicio</option>
           </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="edit-brand">Marca *</label>
+          <select id="edit-brand" v-model="editForm.brand_id" :disabled="isLoadingOptions">
+            <option value="">Seleccionar marca...</option>
+            <option v-for="b in availableBrands" :key="b.id" :value="b.id">
+              {{ b.name }}
+            </option>
+          </select>
+          <small v-if="isLoadingOptions" class="hint">Cargando marcas...</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Categorías</label>
+        <div v-if="isLoadingOptions" class="hint">Cargando categorías...</div>
+        <div v-else-if="availableGroups.length === 0" class="hint">No hay categorías disponibles</div>
+        <div v-else class="checkbox-group">
+          <label
+            v-for="group in availableGroups"
+            :key="group.id"
+            class="checkbox-option"
+          >
+            <input
+              type="checkbox"
+              :value="group.id"
+              v-model="editForm.group_ids"
+            />
+            <span>{{ group.name }}</span>
+            <span v-if="group.group_type" class="pill-small">{{ group.group_type }}</span>
+          </label>
         </div>
       </div>
 
@@ -214,7 +258,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { productApi } from '@/services/productApi'
 
 const props = defineProps({
   product: {
@@ -237,6 +282,9 @@ const emit = defineEmits(['update', 'toggle-status'])
 const isEditing = ref(false)
 const isUpdating = ref(false)
 const editError = ref('')
+const availableBrands = ref([])
+const availableGroups = ref([])
+const isLoadingOptions = ref(false)
 
 const editForm = reactive({
   name: '',
@@ -244,8 +292,11 @@ const editForm = reactive({
   sku: '',
   barcode: '',
   base_price: 0,
+  tax_rate: 21,
   product_type: 'TANGIBLE',
   description: '',
+  brand_id: '',
+  group_ids: [],
 })
 
 // Computed
@@ -254,16 +305,34 @@ const isFormValid = computed(() => {
 })
 
 // Methods
-function startEditing() {
+async function startEditing() {
   editForm.name = props.product.name || ''
   editForm.long_name = props.product.long_name || ''
   editForm.sku = props.product.sku || ''
   editForm.barcode = props.product.barcode || ''
   editForm.base_price = props.product.base_price ?? 0
+  editForm.tax_rate = props.product.tax_rate ?? 21
   editForm.product_type = props.product.product_type || 'TANGIBLE'
   editForm.description = props.product.description || ''
+  editForm.brand_id = props.product.brand_id || ''
+  editForm.group_ids = [...(props.product.group_ids || [])]
   isEditing.value = true
   editError.value = ''
+
+  // Load available brands and groups
+  isLoadingOptions.value = true
+  try {
+    const [brandsResult, groupsResult] = await Promise.all([
+      productApi.listBrands(),
+      productApi.listProductGroups(),
+    ])
+    availableBrands.value = brandsResult.data || []
+    availableGroups.value = groupsResult.data || []
+  } catch (err) {
+    console.error('Error loading brands/groups:', err)
+  } finally {
+    isLoadingOptions.value = false
+  }
 }
 
 function cancelEdit() {
@@ -287,8 +356,11 @@ async function submitEdit() {
       sku: editForm.sku.trim() || null,
       barcode: editForm.barcode.trim() || null,
       basePrice: editForm.base_price,
+      taxRate: editForm.tax_rate,
       productType: editForm.product_type,
       description: editForm.description.trim() || null,
+      brandId: editForm.brand_id || undefined,
+      groupIds: editForm.group_ids.length > 0 ? editForm.group_ids : [],
     })
     isEditing.value = false
   } catch (err) {
@@ -575,6 +647,47 @@ function formatPrice(price) {
   color: #64748b;
   font-size: 0.8rem;
   font-style: italic;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.3rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.checkbox-option:hover {
+  background: #e2e8f0;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.pill-small {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #64748b;
+  text-transform: uppercase;
 }
 
 @media (max-width: 768px) {

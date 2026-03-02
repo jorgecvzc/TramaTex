@@ -1,6 +1,6 @@
 # Guía de Implementación de Seguridad: Defensa en Profundidad
 
-Este documento detalla las implementaciones específicas para la estrategia de seguridad de Defensa en Profundidad y Security by Default en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-010: Estrategia de Seguridad](../../architecture/adrs/ADR-010-defense-in-depth-security-strategy.md).
+Este documento detalla las implementaciones específicas para la estrategia de seguridad de Defensa en Profundidad y Security by Default en el proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-010: Estrategia de Seguridad](../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md).
 
 ---
 

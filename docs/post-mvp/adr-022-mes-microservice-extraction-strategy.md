@@ -1,5 +1,11 @@
 # ADR-022: Estrategia de Extracción del Microservicio MES (Post-MVP)
 
+- Mejorar UI e interacción con ella. Direcciónaplicación dirigida por teclado.
+- Implementar caché de productos/variantes y precios para mayor rapidez de consulta. Cuando se actualize un precio base habrá que borrar todas sus entradas de la caché.
+- Mejorar interfaz TPV para gran agiliad.
+- Mejorar MES para mayor información y control de pedidos. Comjunicación entre Salees y MES
+- Separar MES en un servicio aparte
+
 ## Estado
 Propuesto (Estudio Post-MVP)
 

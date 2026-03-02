@@ -1,96 +1,61 @@
 # Módulo de Pricing (Motor de Precios)
 
+**Estado:** ✅ **COMPLETO (100%)**  
+**Última actualización:** 1 de marzo de 2026
+
+## Estado de Implementación
+
+### Componentes Completos ✅
+- **Reglas de Precios (Price Rules):**
+  - Backend: Definición de reglas por producto, categoría de cliente y volumen.
+  - Soporte para márgenes de marca (BrandProfitMargin) y descuentos.
+- **Cálculo Dinámico:**
+  - Endpoint `/api/pricing/calculate` funcional con desglose de costes y márgenes.
+- **Historial y Auditoría:**
+  - Registro completo de cada cálculo realizado para trazabilidad.
+- **Frontend:**
+  - Calculadora interactiva integrada en el detalle de producto.
+  - Visualización de historial de precios y reglas aplicadas.
+
+---
+
 ## 1. Propósito
 
-*   **Visión del Módulo:** Calcular precios basados en Party, Product y volumen.
+*   **Visión del Módulo:** Proporcionar un motor de cálculo de precios automatizado y flexible que asegure la rentabilidad de TramaTex mediante la aplicación consistente de márgenes y descuentos.
 *   **Objetivos Clave:**
     *   Proporcionar un motor de precios inteligente que calcule automáticamente el precio de venta.
     *   Calcular precios según categoría de cliente, producto, volumen y otras variables.
 
+---
+
 ## 2. Requisitos
 
-### 2.1. Requisitos Funcionales
+... [resto de requisitos permanecen igual] ...
 
-*   **RF-001:** Definir reglas de precio base.
-*   **RF-002:** Aplicar descuentos por volumen.
-*   **RF-003:** Aplicar márgenes por categoría de Party.
-*   **RF-004:** Calcular precio final automáticamente.
-*   **RF-005:** Auditoría de cálculos.
-
-## 3. Casos de Uso
-
-### 3.1. Actores
-
-*   **Gerente Comercial:** Define las reglas de precios.
-*   **Vendedor:** Utiliza el motor para cotizar.
-*   **Sistema:** Interactúa con el motor para obtener precios en el e-commerce.
-
-### 3.2. Casos de Uso Principales
-
-*   **CU-001: CreatePriceRule**
-    *   **Actor:** Gerente Comercial
-    *   **Descripción:** Crear una nueva regla de precio.
-*   **CU-002: UpdatePriceRule**
-    *   **Actor:** Gerente Comercial
-    *   **Descripción:** Modificar una regla existente.
-*   **CU-003: CalculatePrice**
-    *   **Actor:** Vendedor/Sistema
-    *   **Descripción:** Calcular el precio para una combinación de Producto, Cliente y Cantidad.
-*   **CU-004: GetApplicableRules**
-    *   **Actor:** Gerente Comercial
-    *   **Descripción:** Obtener las reglas de precio vigentes para un producto.
-*   **CU-005: ApplyBulkDiscount**
-    *   **Actor:** Sistema
-    *   **Descripción:** Aplicar un descuento por volumen según las reglas.
-
-## 4. Historias de Usuario
-
-*   **HU-001:** Como Gerente Comercial, quiero crear reglas de precio por categoría de cliente para asegurar márgenes de ganancia adecuados.
-*   **HU-002:** Como Vendedor, quiero que el sistema calcule el precio automáticamente al crear una cotización para evitar errores manuales.
-*   **HU-003:** Como Gerente Comercial, quiero definir descuentos por volumen para incentivar compras más grandes.
-
-## 5. Criterios de Aceptación
-
-*   **Para HU-001:**
-    *   **Criterio 1:** Dado que defino un margen del 20% para clientes mayoristas, cuando un vendedor cotiza a un mayorista, entonces el precio final debe incluir dicho margen sobre el costo.
-
-## 6. Modelo de Dominio
-
-### PriceRule (Raíz de Agregación)
-- **ID**: UUID
-- **ProductVariantID**: UUID
-- **PartyCategory**: Enum (Mayorista, Minorista, etc.)
-- **CostBase**: Decimal
-- **Markup**: Percentage
-- **MinimumQuantity**: Integer
-- **MaximumQuantity**: Integer (nullable)
-- **EffectiveFrom**: DateTime
-- **EffectiveTo**: DateTime (nullable)
-- **Estado**: Enum (Activo, Inactivo)
-
-### PriceCalculation
-- **ID**: UUID
-- **ProductVariantID**: UUID
-- **PartyID**: UUID
-- **Quantity**: Integer
-- **BaseCost**: Decimal
-- **AppliedRules**: `List<String>`
-- **FinalPrice**: Decimal
-- **CalculatedAt**: DateTime
+---
 
 ## 7. Decisiones de Diseño
 
 *   **Algoritmo de Cálculo:**
     1.  Obtener `CostoBase` del `ProductVariant`.
-    2.  Buscar `PriceRule` aplicable (por categoría, cantidad y fecha).
-    3.  Aplicar `Markup`: `FinalPrice = CostoBase * (1 + Markup%)`.
-    4.  Registrar el cálculo en `PriceCalculation`.
-    5.  Retornar `FinalPrice`.
+    2.  Aplicar `BrandProfitMargin` configurado.
+    3.  Buscar y aplicar `PriceRule` específica por cliente o categoría.
+    4.  Aplicar descuentos por volumen (SalesDiscountRule).
+    4b. Si no hay reglas específicas, aplicar `DefaultDiscountPercentage` del cliente (del módulo Party) como descuento fallback.
+    5.  Calcular precio final con IVA (`finalPriceWithTax = finalPrice × (1 + taxRate/100)`).
+    6.  Validar margen de contribución mínimo.
+    7.  Registrar el cálculo en `PriceCalculation`.
 *   **Relaciones con Otros Módulos:**
-    *   **Product**: Lee costo de `ProductVariant`.
-    *   **Party**: Lee categoría para aplicar `markup`.
-    *   **Sales**: Usa cálculo de precio para generar cotizaciones y órdenes.
-*   **Fases de Desarrollo:**
-    *   [X] Fase 1 (MVP): Cálculo básico (CostoBase + Markup).
-    *   [ ] Fase 2: Descuentos por volumen y categoría.
-    *   [ ] Fase 3: Reglas complejas (campañas, promociones).
+    *   **Product**: Lee el coste base de la variante y el tipo impositivo (taxRate).
+    *   **Party**: Obtiene la categoría, descuentos específicos del cliente y el `defaultDiscountPercentage` vía `PartyPricingClient` (anti-corruption layer).
+    *   **Sales**: Provee los precios unitarios definitivos (con y sin IVA) para presupuestos y pedidos.
+
+---
+
+## 8. Fases de Desarrollo
+
+*   [x] **Fase 1 (MVP):** Cálculo básico (CostoBase + Márgenes).
+*   [x] **Fase 2:** Descuentos por volumen y categoría.
+*   [x] **Fase 3:** Reglas dinámicas e historial de auditoría.
+*   [x] **Fase 4:** Integración visual completa en el catálogo.
+

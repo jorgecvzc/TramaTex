@@ -21,6 +21,7 @@
 *   **RF-P-004:** Gestionar puntos de contacto para perfiles de organización.
 *   **RF-P-005:** Listar Parties con filtros por roles, tipo de perfil, estado y datos de perfil.
 *   **RF-P-006:** Activar y desactivar Parties.
+*   **RF-P-007:** Gestionar un porcentaje de descuento por defecto (`defaultDiscountPercentage`) por Party, utilizado por el módulo Pricing como fallback cuando no existen reglas de descuento específicas.
 
 ## 3. Casos de Uso
 
@@ -39,5 +40,5 @@ Para una descripción detallada del modelo de dominio, incluyendo entidades, Val
 *   **Relaciones con Otros Módulos:**
     *   **IAM:** Una Party puede vincularse a un usuario de IAM.
     *   **Product:** Referenciado por `PartyServiceConfiguration` (en el módulo Product).
-    *   **Pricing:** Consume `PartyID` y atributos relevantes del cliente para el cálculo de precios.
+    *   **Pricing:** Consume `PartyID` y atributos relevantes del cliente (incluyendo `defaultDiscountPercentage`) para el cálculo de precios, a través del `PartyPricingClient` (anti-corruption layer).
     *   **Sales:** Las órdenes y cotizaciones referencian `PartyID`.

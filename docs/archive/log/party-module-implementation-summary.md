@@ -170,7 +170,7 @@ apps/apps/frontend/
 
 ### Project Documentation
 - [07-implementacion-modulo-party.md](docs/journals/07-implementacion-modulo-party.md) - Full journey log
-- [ADR-005-unified-customer-supplier-management.md](../../architecture/adrs/ADR-005-unified-customer-supplier-management.md) - Decision record
+- [adr-005-unified-customer-supplier-management.md](../../architecture/adrs/adr-005-unified-customer-supplier-management.md) - Decision record
 
 ---
 

@@ -29,7 +29,7 @@ type UpdateBaseSalesPriceRuleCommand struct {
 
 type CreateSaleModificationRuleCommand struct {
 	Name                string       `json:"name"`
-	ClientIDs           []uuid.UUID  `json:"clientIds"`
+	ClientIDs           []string     `json:"clientIds"`
 	ProductGroupID      *uuid.UUID   `json:"productGroupId"`
 	MinOrderTotalAmount *MoneyDTO    `json:"minOrderTotalAmount"`
 	Value               RuleValueDTO `json:"value"`
@@ -42,7 +42,7 @@ type CreateSaleModificationRuleCommand struct {
 type UpdateSaleModificationRuleCommand struct {
 	ID                  uuid.UUID
 	Name                *string       `json:"name"`
-	ClientIDs           []uuid.UUID   `json:"clientIds"`
+	ClientIDs           []string      `json:"clientIds"`
 	ProductGroupID      *uuid.UUID    `json:"productGroupId"`
 	MinOrderTotalAmount *MoneyDTO     `json:"minOrderTotalAmount"`
 	Value               *RuleValueDTO `json:"value"`

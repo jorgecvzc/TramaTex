@@ -44,12 +44,13 @@ func stringValue(value *string) string {
 // CreatePartyCommand represents a command to create a Party
 // At least one profile must be provided.
 type CreatePartyCommand struct {
-	ID                  string
-	Status              string
-	Roles               []string
-	PersonProfile       *PersonProfileInput
-	OrganizationProfile *OrganizationProfileInput
-	ActorID             string
+	ID                        string
+	Status                    string
+	Roles                     []string
+	DefaultDiscountPercentage *float64
+	PersonProfile             *PersonProfileInput
+	OrganizationProfile       *OrganizationProfileInput
+	ActorID                   string
 }
 
 // CreatePartyHandler handles party creation
@@ -165,6 +166,12 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 		return nil, domain.WrapValidation("failed to create party", err)
 	}
 
+	if cmd.DefaultDiscountPercentage != nil {
+		if err := party.SetDefaultDiscountPercentage(*cmd.DefaultDiscountPercentage); err != nil {
+			return nil, err
+		}
+	}
+
 	for _, role := range cmd.Roles {
 		roleType, err := parsePartyRoleType(role)
 		if err != nil {
@@ -189,11 +196,12 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 // UpdatePartyCommand represents a command to update Party profiles
 
 type UpdatePartyCommand struct {
-	ID                  string
-	Status              string
-	PersonProfile       *PersonProfileInput
-	OrganizationProfile *OrganizationProfileInput
-	ActorID             string
+	ID                        string
+	Status                    string
+	DefaultDiscountPercentage *float64
+	PersonProfile             *PersonProfileInput
+	OrganizationProfile       *OrganizationProfileInput
+	ActorID                   string
 }
 
 // UpdatePartyHandler handles party updates
@@ -372,6 +380,12 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 		}
 
 		if err := party.SetOrganizationProfile(profile); err != nil {
+			return nil, err
+		}
+	}
+
+	if cmd.DefaultDiscountPercentage != nil {
+		if err := party.SetDefaultDiscountPercentage(*cmd.DefaultDiscountPercentage); err != nil {
 			return nil, err
 		}
 	}

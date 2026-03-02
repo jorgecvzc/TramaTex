@@ -76,6 +76,6 @@ El archivo `AGENTS.md` (en la raíz del proyecto) es la guía maestra de todos l
 -   [AGENTS.md](../../../AGENTS.md) (Guía Maestra de Agentes)
 -   [generic-rules.yaml](../../../agents/generic-rules.yaml) (Reglas Fundamentales del Proyecto)
 -   [load-session.yaml](../../../agents/load-session.yaml) (Agente de Gestión de Sesiones)
--   [ADR-009: Estructura de Carpetas y Organización](../../architecture/adrs/ADR-009-project-structure.md) (Estructura de `docs/` y `agents/`)
+-   [ADR-009: Estructura de Carpetas y Organización](../../architecture/adrs/adr-009-project-structure.md) (Estructura de `docs/` y `agents/`)
 
 ---

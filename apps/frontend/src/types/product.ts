@@ -129,6 +129,16 @@ export interface AttributeOption {
   sort_order: number
 }
 
+// AttributeValue with price modifiers for variant pricing
+export interface AttributeValue {
+  id: string
+  value: string
+  code: string
+  hasPriceModifier: boolean
+  modifierType?: 'FIXED' | 'PERCENTAGE' | null
+  modifierAmount?: number
+}
+
 export interface CalculatedOptionSet {
   attribute_id: string
   attribute_name: string
@@ -214,6 +224,14 @@ export interface CreateAttributeRequest {
   default_value?: string
 }
 
+export interface CreateAttributeValueRequest {
+  value: string
+  code: string
+  hasPriceModifier?: boolean
+  modifierType?: 'FIXED' | 'PERCENTAGE'
+  modifierAmount?: number
+}
+
 export interface UpdateAttributeRequest {
   name?: string
   code?: string
@@ -233,6 +251,7 @@ export interface ListProductsFilters {
   groupId?: string
   isActive?: boolean | ''
   type?: ProductType
+  productType?: string
   pageNumber?: number
   pageSize?: number
 }

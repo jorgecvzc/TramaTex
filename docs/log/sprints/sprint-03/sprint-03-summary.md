@@ -87,7 +87,7 @@
 
 ### Nuevos Archivos
 
-- `docs/architecture/adrs/ADR-011-testing-coverage-strategy.md`
+- `docs/architecture/adrs/adr-011-testing-coverage-strategy.md`
 - `docs/guides/developer/technical-debt.md`
 - `CONTRIBUTING.md`
 

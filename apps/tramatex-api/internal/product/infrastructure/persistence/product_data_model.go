@@ -21,8 +21,8 @@ type ProductDataModel struct {
 	BrandID            uuid.UUID      `gorm:"not null"`
 	GroupIDs           pq.StringArray `gorm:"type:uuid[]"`
 	DirectAttributeIDs pq.StringArray `gorm:"type:uuid[]"`
-	BasePrice          float64        `gorm:"type:numeric(12,2);not null;default:0"`
-	TaxRate            float64        `gorm:"type:numeric(5,2);not null;default:21.00"`
+	BasePrice          float64        `gorm:"type:numeric(12,2);not null"`
+	TaxRate            float64        `gorm:"type:numeric(5,2);not null"`
 	IsActive           bool           `gorm:"not null;default:true"`
 }
 

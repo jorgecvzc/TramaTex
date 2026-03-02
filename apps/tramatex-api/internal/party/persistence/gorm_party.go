@@ -182,7 +182,14 @@ func (r *GORMPartyRepository) FindByID(ctx context.Context, id domain.PartyID) (
 		return nil, domain.NewValidationErrorf("invalid party status in storage: %s", partyModel.Status)
 	}
 
-	return domain.NewPartyFromPersistence(id, status, personProfile, organizationProfile, roles)
+	party, err := domain.NewPartyFromPersistence(id, status, personProfile, organizationProfile, roles)
+	if err != nil {
+		return nil, err
+	}
+	if partyModel.DefaultDiscountPercentage > 0 {
+		_ = party.SetDefaultDiscountPercentage(partyModel.DefaultDiscountPercentage)
+	}
+	return party, nil
 }
 
 func (r *GORMPartyRepository) FindAll(ctx context.Context, filters *PartyFilters) ([]*domain.Party, error) {

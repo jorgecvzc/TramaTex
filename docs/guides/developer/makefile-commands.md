@@ -1,6 +1,6 @@
 # Comandos Make Comunes en el Proyecto TramaTex
 
-Este documento lista los comandos `make` comunes utilizados en el proyecto TramaTex para automatizar tareas de desarrollo, testing y construcción, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/ADR-009-project-structure.md).
+Este documento lista los comandos `make` comunes utilizados en el proyecto TramaTex para automatizar tareas de desarrollo, testing y construcción, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md).
 
 ---
 

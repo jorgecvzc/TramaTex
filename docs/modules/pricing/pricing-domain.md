@@ -104,6 +104,6 @@ Los Servicios de Dominio encapsulan lógica de negocio que no pertenece naturalm
 El módulo de `Pricing` interactúa con otros Bounded Contexts principalmente para obtener información de entrada necesaria para sus cálculos:
 
 *   **Módulo `Product`:** `Pricing` consume `ProductBasePrice`, `VariantModifier`, `Brand` (o sus identificadores) para el cálculo del precio de venta.
-*   **Módulo `Party`:** `Pricing` consume `Cliente` (o sus identificadores y atributos relevantes) para aplicar `ClientPricing` y `SalesDiscountRule` específicos.
+*   **Módulo `Party`:** `Pricing` consume `Cliente` (o sus identificadores y atributos relevantes, incluyendo `defaultDiscountPercentage`) para aplicar `ClientPricing` y `SalesDiscountRule` específicos. Si no existen reglas específicas para el cliente, se aplica su `defaultDiscountPercentage` como descuento fallback. La comunicación se realiza a través del `PartyPricingClient`, un adaptador anti-corruption layer en `pricing/infrastructure/partyclient/`.
 
 Estas interacciones se realizan a través de interfaces bien definidas en el `Application Layer` de `Pricing`, que son implementadas por clientes en el `Infrastructure Layer`. El `Domain Layer` de `Pricing` permanece agnóstico a los detalles de implementación de `Product` y `Party`.

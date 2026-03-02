@@ -46,7 +46,7 @@ func (f *fakeSaleRuleRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	return nil, nil
 }
 
-func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID uuid.UUID, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
+func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
 	return f.rules, nil
 }
 
@@ -92,7 +92,7 @@ func performEngineRequest(t *testing.T, handlerFunc func(*gin.Context), method, 
 
 func TestPricingEngineHandler_CalculateBaseSalesPrice(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CalculateBaseSalesPrice, http.MethodPost, "/pricing/base", "{")
@@ -108,7 +108,7 @@ func TestPricingEngineHandler_CalculateBaseSalesPrice(t *testing.T) {
 
 func TestPricingEngineHandler_CreateBaseSalesPriceRule(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CreateBaseSalesPriceRule, http.MethodPost, "/pricing/base-rules", "{")
@@ -130,7 +130,7 @@ func TestPricingEngineHandler_CreateBaseSalesPriceRule(t *testing.T) {
 }
 
 func TestPricingEngineHandler_UpdateBaseSalesPriceRule_InvalidID(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	req := httptest.NewRequest(http.MethodPut, "/pricing/base-rules/invalid", nil)
@@ -148,7 +148,7 @@ func TestPricingEngineHandler_UpdateBaseSalesPriceRule_InvalidID(t *testing.T) {
 func TestPricingEngineHandler_CalculateFinalSalePrice(t *testing.T) {
 	variantID := uuid.New()
 	productID := uuid.New()
-	clientID := uuid.New()
+	clientID := uuid.New().String()
 
 	provider := &fakeProductProvider{info: &application.ProductPricingInfo{
 		VariantID: variantID,
@@ -157,7 +157,7 @@ func TestPricingEngineHandler_CalculateFinalSalePrice(t *testing.T) {
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 	}}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
 	h := NewPricingEngineHandler(service)
 
 	resp := performEngineRequest(t, h.CalculateFinalSalePrice, http.MethodPost, "/pricing/final", "{")

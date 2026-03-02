@@ -6,7 +6,7 @@ Este módulo es el núcleo del proceso de ventas en TramaTex. Gestiona el ciclo 
 
 Para una descripción detallada de las decisiones arquitectónicas del módulo de Sales, consulte el siguiente Architectural Decision Record (ADR):
 
-*   [ADR-017: Arquitectura del Módulo de Sales](../../architecture/adrs/ADR-017-sales-module-architecture.md)
+*   [ADR-017: Arquitectura del Módulo de Sales](../../architecture/adrs/adr-017-sales-module-architecture.md)
 
 ## Componentes Clave
 
