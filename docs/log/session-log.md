@@ -92,7 +92,7 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 ## Refinamiento y Estabilización ERP Core
 
 - **Session ID:** `erp-core-refinement-2026-03-09`
-- **Status:** En Progreso (Fase 5: Trazabilidad Factura↔Albarán)
+- **Status:** ✅ Cerrada (2026-03-14)
 - **Sprint:** N/A
 - **Started:** 2026-03-09
 
@@ -279,30 +279,41 @@ Revisión funcional y estabilización de los 4 módulos del ERP Core (Party, Pro
 ## Refinamiento y Estabilización MES
 
 - **Session ID:** `mes-refinement-2026-03-09`
-- **Status:** En Pausa
+- **Status:** En Progreso
 - **Sprint:** N/A
 - **Started:** 2026-03-09
 
 ### Contexto
 
-Revisión funcional y estabilización del módulo MES (Manufacturing Execution System). Incluye la validación de los flujos de taller, la gestión de definiciones de trabajo y órdenes de producción, y el diseño futuro de la integración Sales↔MES.
+Revisión funcional y estabilización del módulo MES (Manufacturing Execution System). La primera tarea es un refactoring de los nombres de las secciones del módulo (navegación, títulos de página, breadcrumbs).
+
+**Estado actual del módulo MES:**
+- **Entidades de dominio:** Task, Position, ServiceGroup, MESWork, MESWorkServiceGroup, MESWorkTask
+- **Frontend URLs:** `/mes/tasks`, `/mes/positions`, `/mes/service-groups`, `/mes/work-definitions`, `/mes/terminal`
+- **Breadcrumbs actuales (ES):** "MES / Datos Maestros" (tasks, positions, service-groups), "MES / Definiciones de trabajo" (works), "MES / Terminal" (tablet)
+- **Backend API:** `/api/mes/tasks`, `/positions`, `/service-groups`, `/works`, `/works/{id}/tasks/{id}`, dashboard stats
+
+**Rama git:** `mes-refactor` (creada desde `develop` el 2026-03-14)
 
 ### Próximos Pasos
 
-- [ ] Revisión funcional del módulo MES (maestros, órdenes, dashboard).
+- [ ] Refactoring de nombres de secciones del módulo MES (navegación, títulos, breadcrumbs).
 - [ ] Validar integración Sales → MES (generación de órdenes de producción).
+- [ ] Revisión funcional del módulo MES (maestros, órdenes, dashboard).
 - [ ] Evaluar diseño futuro: creación de cabeceras MESWorkDefinition desde Sales.
 
 ### Archivos de Contexto
 
-- `apps/tramatex-api/internal/mes/`
-- `apps/frontend/src/pages/mes/`
-- `docs/modules/mes/`
-- `docs/log/mes-completion.md`
+- `apps/tramatex-api/internal/mes/` (backend completo)
+- `apps/frontend/src/pages/mes/` (frontend: Dashboard, Tasks, Positions, ServiceGroups, Works, Terminal)
+- `apps/frontend/src/components/layout/Navbar.vue` (menú de navegación MES)
+- `apps/frontend/src/services/mesApi.ts` (API client)
+- `docs/modules/mes/` (documentación: README, module-spec, domain-model, use-cases, api-contracts)
 
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
+- **Refinamiento y Estabilización ERP Core** | Iniciada: 2026-03-09 | Finalizada: 2026-03-14 (Todos los módulos validados, Sales completo con tickets TPV, trazabilidad factura↔albarán, robustez transaccional, documentación alineada)
 - **Generación de Entorno de Despliegue de Desarrollo (Dev)** | Iniciada: 2026-03-09 | Finalizada: 2026-03-10 (Absorbida por infra-multi-env-deployment-impl-2026-03-10)
 - **Sales UX - Edición de Documentos, Creación de Pedido desde Presupuesto y Normalización de Estados** | Iniciada: 2026-03-06 | Finalizada: 2026-03-07
 
