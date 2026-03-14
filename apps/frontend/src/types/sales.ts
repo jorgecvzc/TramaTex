@@ -7,10 +7,10 @@
 // ENUMS & LITERALS
 // ============================================================================
 
-export type QuoteStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'IN_PRODUCTION' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
-export type DeliveryNoteStatus = 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
-export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'CANCELLED'
+export type QuoteStatus = 'DRAFT' | 'ISSUED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PARTIALLY_DELIVERED' | 'DELIVERED' | 'CANCELLED' | 'PARTIALLY_INVOICED' | 'INVOICED'
+export type DeliveryNoteStatus = 'PENDING' | 'DELIVERED' | 'CANCELLED'
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'VOID'
 export type InvoiceType = 'STANDARD' | 'SIMPLIFIED'
 export type PaymentMethod = 'CASH' | 'TRANSFER' | 'CREDIT_CARD' | 'CHECK' | 'OTHER'
 
@@ -84,6 +84,8 @@ export interface Quote {
   tax_total: number
   total: number
   notes: string | null
+  generated_order_id?: string | null
+  generated_order_number?: string | null
   created_at: string
   updated_at: string
 }
@@ -139,6 +141,7 @@ export interface Invoice {
   id: string
   invoice_number: string
   invoice_type: InvoiceType
+  series_code: string
   order_id: string | null
   order_number: string | null
   party_id: string
@@ -163,80 +166,78 @@ export interface Invoice {
 // ============================================================================
 
 export interface CreateQuoteRequest {
-  party_id: string
-  valid_until: string
-  line_items: CreateQuoteLineItemRequest[]
+  partyId: string
+  expirationDate: string
+  items: CreateQuoteLineItemRequest[]
+  mesWorkIds?: string[]
   notes?: string
 }
 
 export interface CreateQuoteLineItemRequest {
-  mesWorkId?: string
-  product_variant_id: string
+  productVariantId: string
   quantity: number
-  unit_price: number
-  discount_percentage?: number
+  unitPrice?: { amount: number; currency: string }
+  discountPerUnit?: { amount: number; currency: string }
 }
 
 export interface UpdateQuoteRequest {
-  status?: QuoteStatus
-  valid_until?: string
-  line_items?: CreateQuoteLineItemRequest[]
+  expirationDate?: string
+  mesWorkIds?: string[]
   notes?: string
+  items?: CreateQuoteLineItemRequest[]
 }
 
 export interface ConvertQuoteToOrderRequest {
-  delivery_date: string
+  deliveryDate: string
 }
 
 export interface CreateOrderRequest {
-  party_id: string
-  quote_id?: string
-  delivery_date?: string
-  line_items: CreateOrderLineItemRequest[]
+  partyId: string
+  quoteId?: string
+  deliveryDate?: string
+  items: CreateOrderLineItemRequest[]
+  mesWorkIds?: string[]
   notes?: string
 }
 
 export interface CreateOrderLineItemRequest {
-  mesWorkId?: string
-  product_variant_id: string
+  productVariantId: string
   quantity: number
-  unit_price: number
-  discount_percentage?: number
+  unitPrice?: { amount: number; currency: string }
+  discountPerUnit?: { amount: number; currency: string }
 }
 
 export interface UpdateOrderRequest {
-  status?: OrderStatus
-  delivery_date?: string | null
-  line_items?: CreateOrderLineItemRequest[]
+  partyId?: string
+  deliveryDate?: string | null
   notes?: string
 }
 
 export interface UpdateOrderLineItemRequest {
   quantity?: number
-  unit_price?: number
-  discount_percentage?: number
-  production_status?: string
-  notes?: string
+  unitPrice?: { amount: number; currency: string }
+  discountPerUnit?: { amount: number; currency: string }
 }
 
 export interface CreateDeliveryNoteRequest {
-  order_id: string
-  dispatch_date: string
-  line_items: CreateDeliveryLineItemRequest[]
+  salesOrderId: string
+  deliveryDate: string
+  items: CreateDeliveryLineItemRequest[]
   notes?: string
 }
 
 export interface CreateDeliveryLineItemRequest {
-  order_line_item_id: string
-  quantity_delivered: number
-  notes?: string
+  salesOrderLineItemId: string
+  deliveredQuantity: number
 }
 
 export interface CreateInvoiceRequest {
-  order_id: string
-  due_date: string
-  line_items: CreateInvoiceLineItemRequest[]
-  notes?: string
+  partyId: string
+  salesOrderIds: string[]
+  deliveryNoteIds: string[]
+  invoiceDate: string
+  dueDate: string
+  paymentTerms?: string
 }
 
 export interface CreateSimplifiedInvoiceRequest {
@@ -245,16 +246,11 @@ export interface CreateSimplifiedInvoiceRequest {
   items: Array<{
     productVariantId: string
     quantity: number
+    discountPercent?: number
   }>
 }
 
-export interface CreateInvoiceLineItemRequest {
-  order_line_item_id: string
-  quantity: number
-  unit_price: number
-  discount_percentage?: number
-  tax_percentage?: number
-}
+// CreateInvoiceLineItemRequest removed — invoices are created from orders/delivery notes, not line-by-line
 
 // ============================================================================
 // FILTERS & PAGINATION
@@ -266,6 +262,7 @@ export interface ListQuotesFilters {
   status?: QuoteStatus
   fromDate?: string
   toDate?: string
+  limit?: number
   pageNumber?: number
   pageSize?: number
 }
@@ -276,6 +273,7 @@ export interface ListOrdersFilters {
   status?: OrderStatus
   fromDate?: string
   toDate?: string
+  limit?: number
   pageNumber?: number
   pageSize?: number
 }
@@ -287,6 +285,7 @@ export interface ListDeliveryNotesFilters {
   status?: DeliveryNoteStatus
   fromDate?: string
   toDate?: string
+  limit?: number
   pageNumber?: number
   pageSize?: number
 }
@@ -295,10 +294,12 @@ export interface ListInvoicesFilters {
   searchText?: string
   partyId?: string
   orderId?: string
+  deliveryNoteId?: string
   status?: InvoiceStatus
   invoiceType?: InvoiceType
   fromDate?: string
   toDate?: string
+  limit?: number
   pageNumber?: number
   pageSize?: number
 }

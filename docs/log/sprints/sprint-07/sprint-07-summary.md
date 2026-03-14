@@ -299,4 +299,3 @@ recomendaciones para el equipo, etc.]
 - [XX-02-nombre-tarea.md](./XX-02-nombre-tarea.md)
 - [XX-03-nombre-tarea.md](./XX-03-nombre-tarea.md)
 
-**Plantilla:** `/docs/archive/sprints/_SPRINT_SUMMARY_TEMPLATE.md`

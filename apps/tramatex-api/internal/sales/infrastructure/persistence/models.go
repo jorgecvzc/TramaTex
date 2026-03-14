@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ type QuoteDataModel struct {
 	QuoteDate        time.Time `gorm:"column:quote_date;not null"`
 	ExpirationDate   time.Time `gorm:"column:expiration_date;not null"`
 	Status           string    `gorm:"type:quote_status;not null"`
+	MESWorkRefs      *string   `gorm:"column:mes_work_refs;type:jsonb"`
 	SubtotalAmount   float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 	TaxAmount        float64   `gorm:"column:tax_amount;type:numeric(12,2);not null"`
@@ -33,27 +35,21 @@ func (QuoteDataModel) TableName() string {
 
 type QuoteLineItemDataModel struct {
 	gorm.Model
-	ID                          uuid.UUID  `gorm:"type:uuid;primary_key;"`
-	QuoteID                     uuid.UUID  `gorm:"column:quote_id;not null"`
-	MESWorkID                   *uuid.UUID `gorm:"column:mes_work_id;type:uuid"`
-	ProductVariantID            uuid.UUID  `gorm:"column:product_variant_id;not null"`
-	Quantity                    int        `gorm:"column:quantity;not null"`
-	CalculatedUnitPriceAmount   float64    `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
-	CalculatedUnitPriceCurrency string     `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
-	ManualUnitPriceAmount       *float64   `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
-	ManualUnitPriceCurrency     *string    `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
-	FinalUnitPriceAmount        float64    `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
-	FinalUnitPriceCurrency      string     `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
-	CalculatedDiscountAmount    *float64   `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
-	CalculatedDiscountCurrency  *string    `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
-	ManualDiscountAmount        *float64   `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
-	ManualDiscountCurrency      *string    `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
-	FinalDiscountAmount         float64    `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
-	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
-	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
-	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
-	TaxRate                     float64    `gorm:"column:tax_rate;type:numeric(5,2);not null"`
-	TaxAmount                   *float64   `gorm:"column:tax_amount;type:numeric(10,2)"`
+	ID                    uuid.UUID `gorm:"type:uuid;primary_key;"`
+	QuoteID               uuid.UUID `gorm:"column:quote_id;not null"`
+	ProductVariantID      uuid.UUID `gorm:"column:product_variant_id;not null"`
+	Quantity              int       `gorm:"column:quantity;not null"`
+	ListUnitPriceAmount   float64   `gorm:"column:list_unit_price_amount;type:numeric(12,2);not null"`
+	ListUnitPriceCurrency string    `gorm:"column:list_unit_price_currency;type:varchar(3);not null"`
+	UnitPriceAmount       float64   `gorm:"column:unit_price_amount;type:numeric(12,2);not null"`
+	UnitPriceCurrency     string    `gorm:"column:unit_price_currency;type:varchar(3);not null"`
+	DiscountPercent       float64   `gorm:"column:discount_percent;type:numeric(5,2);not null;default:0"`
+	DiscountAmount        float64   `gorm:"column:discount_per_unit_amount;type:numeric(12,2);not null"`
+	DiscountCurrency      string    `gorm:"column:discount_per_unit_currency;type:varchar(3);not null"`
+	SubtotalAmount        float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
+	SubtotalCurrency      string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	TaxRate               float64   `gorm:"column:tax_rate;type:numeric(5,2);not null"`
+	TaxAmount             *float64  `gorm:"column:tax_amount;type:numeric(10,2)"`
 }
 
 func (QuoteLineItemDataModel) TableName() string {
@@ -69,6 +65,7 @@ type SalesOrderDataModel struct {
 	OrderDate        time.Time  `gorm:"column:order_date;not null"`
 	DeliveryDate     time.Time  `gorm:"column:delivery_date;not null"`
 	Status           string     `gorm:"type:sales_order_status;not null"`
+	MESWorkRefs      *string    `gorm:"column:mes_work_refs;type:jsonb"`
 	SubtotalAmount   float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 	TaxAmount        float64    `gorm:"column:tax_amount;type:numeric(12,2);not null"`
@@ -84,27 +81,21 @@ func (SalesOrderDataModel) TableName() string {
 
 type OrderLineItemDataModel struct {
 	gorm.Model
-	ID                          uuid.UUID  `gorm:"type:uuid;primary_key;"`
-	SalesOrderID                uuid.UUID  `gorm:"column:sales_order_id;not null"`
-	MESWorkID                   *uuid.UUID `gorm:"column:mes_work_id;type:uuid"`
-	ProductVariantID            uuid.UUID  `gorm:"column:product_variant_id;not null"`
-	Quantity                    int        `gorm:"column:quantity;not null"`
-	CalculatedUnitPriceAmount   float64    `gorm:"column:calculated_unit_price_amount;type:numeric(12,2);not null"`
-	CalculatedUnitPriceCurrency string     `gorm:"column:calculated_unit_price_currency;type:varchar(3);not null"`
-	ManualUnitPriceAmount       *float64   `gorm:"column:manual_unit_price_amount;type:numeric(12,2)"`
-	ManualUnitPriceCurrency     *string    `gorm:"column:manual_unit_price_currency;type:varchar(3)"`
-	FinalUnitPriceAmount        float64    `gorm:"column:final_unit_price_amount;type:numeric(12,2);not null"`
-	FinalUnitPriceCurrency      string     `gorm:"column:final_unit_price_currency;type:varchar(3);not null"`
-	CalculatedDiscountAmount    *float64   `gorm:"column:calculated_discount_per_unit_amount;type:numeric(12,2)"`
-	CalculatedDiscountCurrency  *string    `gorm:"column:calculated_discount_per_unit_currency;type:varchar(3)"`
-	ManualDiscountAmount        *float64   `gorm:"column:manual_discount_per_unit_amount;type:numeric(12,2)"`
-	ManualDiscountCurrency      *string    `gorm:"column:manual_discount_per_unit_currency;type:varchar(3)"`
-	FinalDiscountAmount         float64    `gorm:"column:final_discount_per_unit_amount;type:numeric(12,2);not null"`
-	FinalDiscountCurrency       string     `gorm:"column:final_discount_per_unit_currency;type:varchar(3);not null"`
-	SubtotalAmount              float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
-	SubtotalCurrency            string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
-	TaxRate                     float64    `gorm:"column:tax_rate;type:numeric(5,2);not null"`
-	TaxAmount                   *float64   `gorm:"column:tax_amount;type:numeric(10,2)"`
+	ID                    uuid.UUID `gorm:"type:uuid;primary_key;"`
+	SalesOrderID          uuid.UUID `gorm:"column:sales_order_id;not null"`
+	ProductVariantID      uuid.UUID `gorm:"column:product_variant_id;not null"`
+	Quantity              int       `gorm:"column:quantity;not null"`
+	ListUnitPriceAmount   float64   `gorm:"column:list_unit_price_amount;type:numeric(12,2);not null"`
+	ListUnitPriceCurrency string    `gorm:"column:list_unit_price_currency;type:varchar(3);not null"`
+	UnitPriceAmount       float64   `gorm:"column:unit_price_amount;type:numeric(12,2);not null"`
+	UnitPriceCurrency     string    `gorm:"column:unit_price_currency;type:varchar(3);not null"`
+	DiscountPercent       float64   `gorm:"column:discount_percent;type:numeric(5,2);not null;default:0"`
+	DiscountAmount        float64   `gorm:"column:discount_per_unit_amount;type:numeric(12,2);not null"`
+	DiscountCurrency      string    `gorm:"column:discount_per_unit_currency;type:varchar(3);not null"`
+	SubtotalAmount        float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
+	SubtotalCurrency      string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
+	TaxRate               float64   `gorm:"column:tax_rate;type:numeric(5,2);not null"`
+	TaxAmount             *float64  `gorm:"column:tax_amount;type:numeric(10,2)"`
 }
 
 func (OrderLineItemDataModel) TableName() string {
@@ -128,11 +119,12 @@ func (DeliveryNoteDataModel) TableName() string {
 
 type DeliveryNoteLineItemDataModel struct {
 	gorm.Model
-	ID                   uuid.UUID `gorm:"type:uuid;primary_key;"`
-	DeliveryNoteID       uuid.UUID `gorm:"column:delivery_note_id;not null"`
-	SalesOrderLineItemID uuid.UUID `gorm:"column:sales_order_line_item_id;not null"`
-	ProductVariantID     uuid.UUID `gorm:"column:product_variant_id;not null"`
-	DeliveredQuantity    int       `gorm:"column:delivered_quantity;not null"`
+	ID                   uuid.UUID  `gorm:"type:uuid;primary_key;"`
+	DeliveryNoteID       uuid.UUID  `gorm:"column:delivery_note_id;not null"`
+	SalesOrderLineItemID uuid.UUID  `gorm:"column:sales_order_line_item_id;not null"`
+	ProductVariantID     uuid.UUID  `gorm:"column:product_variant_id;not null"`
+	DeliveredQuantity    int        `gorm:"column:delivered_quantity;not null"`
+	InvoiceLineItemID    *uuid.UUID `gorm:"column:invoice_line_item_id"`
 }
 
 func (DeliveryNoteLineItemDataModel) TableName() string {
@@ -197,6 +189,7 @@ func quoteFromDomain(quote *domain.Quote) (*QuoteDataModel, error) {
 		QuoteDate:        quote.QuoteDate,
 		ExpirationDate:   quote.ExpirationDate,
 		Status:           string(quote.Status),
+		MESWorkRefs:      mesWorkRefsToJSON(quote.MESWorkRefs),
 		SubtotalAmount:   quote.Subtotal.Amount(),
 		SubtotalCurrency: quote.Subtotal.Currency(),
 		TaxAmount:        quote.TaxAmount.Amount(),
@@ -221,27 +214,21 @@ func quoteLineItemsFromDomain(quoteID uuid.UUID, items []domain.QuoteLineItem) (
 
 func quoteLineItemFromDomain(quoteID uuid.UUID, item domain.QuoteLineItem) (*QuoteLineItemDataModel, error) {
 	return &QuoteLineItemDataModel{
-		ID:                          item.ID,
-		QuoteID:                     quoteID,
-		MESWorkID:                   item.MESWorkID,
-		ProductVariantID:            item.ProductVariantID,
-		Quantity:                    item.Quantity,
-		CalculatedUnitPriceAmount:   item.CalculatedUnitPrice.Amount(),
-		CalculatedUnitPriceCurrency: item.CalculatedUnitPrice.Currency(),
-		ManualUnitPriceAmount:       optionalAmount(item.ManualUnitPrice),
-		ManualUnitPriceCurrency:     optionalCurrency(item.ManualUnitPrice),
-		FinalUnitPriceAmount:        item.FinalUnitPrice.Amount(),
-		FinalUnitPriceCurrency:      item.FinalUnitPrice.Currency(),
-		CalculatedDiscountAmount:    optionalAmount(item.CalculatedDiscountPerUnit),
-		CalculatedDiscountCurrency:  optionalCurrency(item.CalculatedDiscountPerUnit),
-		ManualDiscountAmount:        optionalAmount(item.ManualDiscountPerUnit),
-		ManualDiscountCurrency:      optionalCurrency(item.ManualDiscountPerUnit),
-		FinalDiscountAmount:         item.FinalDiscountPerUnit.Amount(),
-		FinalDiscountCurrency:       item.FinalDiscountPerUnit.Currency(),
-		SubtotalAmount:              item.Subtotal.Amount(),
-		SubtotalCurrency:            item.Subtotal.Currency(),
-		TaxRate:                     item.TaxRate,
-		TaxAmount:                   optionalAmount(&item.TaxAmount),
+		ID:                    item.ID,
+		QuoteID:               quoteID,
+		ProductVariantID:      item.ProductVariantID,
+		Quantity:              item.Quantity,
+		ListUnitPriceAmount:   item.ListUnitPrice.Amount(),
+		ListUnitPriceCurrency: item.ListUnitPrice.Currency(),
+		UnitPriceAmount:       item.UnitPrice.Amount(),
+		UnitPriceCurrency:     item.UnitPrice.Currency(),
+		DiscountPercent:       item.DiscountPercent,
+		DiscountAmount:        item.DiscountPerUnit.Amount(),
+		DiscountCurrency:      item.DiscountPerUnit.Currency(),
+		SubtotalAmount:        item.Subtotal.Amount(),
+		SubtotalCurrency:      item.Subtotal.Currency(),
+		TaxRate:               item.TaxRate,
+		TaxAmount:             optionalAmount(&item.TaxAmount),
 	}, nil
 }
 
@@ -255,6 +242,7 @@ func salesOrderFromDomain(order *domain.SalesOrder) (*SalesOrderDataModel, error
 		OrderDate:        order.OrderDate,
 		DeliveryDate:     order.DeliveryDate,
 		Status:           string(order.Status),
+		MESWorkRefs:      mesWorkRefsToJSON(order.MESWorkRefs),
 		SubtotalAmount:   order.Subtotal.Amount(),
 		SubtotalCurrency: order.Subtotal.Currency(),
 		TaxAmount:        order.TaxAmount.Amount(),
@@ -279,27 +267,21 @@ func orderLineItemsFromDomain(orderID uuid.UUID, items []domain.OrderLineItem) (
 
 func orderLineItemFromDomain(orderID uuid.UUID, item domain.OrderLineItem) (*OrderLineItemDataModel, error) {
 	return &OrderLineItemDataModel{
-		ID:                          item.ID,
-		SalesOrderID:                orderID,
-		MESWorkID:                   item.MESWorkID,
-		ProductVariantID:            item.ProductVariantID,
-		Quantity:                    item.Quantity,
-		CalculatedUnitPriceAmount:   item.CalculatedUnitPrice.Amount(),
-		CalculatedUnitPriceCurrency: item.CalculatedUnitPrice.Currency(),
-		ManualUnitPriceAmount:       optionalAmount(item.ManualUnitPrice),
-		ManualUnitPriceCurrency:     optionalCurrency(item.ManualUnitPrice),
-		FinalUnitPriceAmount:        item.FinalUnitPrice.Amount(),
-		FinalUnitPriceCurrency:      item.FinalUnitPrice.Currency(),
-		CalculatedDiscountAmount:    optionalAmount(item.CalculatedDiscountPerUnit),
-		CalculatedDiscountCurrency:  optionalCurrency(item.CalculatedDiscountPerUnit),
-		ManualDiscountAmount:        optionalAmount(item.ManualDiscountPerUnit),
-		ManualDiscountCurrency:      optionalCurrency(item.ManualDiscountPerUnit),
-		FinalDiscountAmount:         item.FinalDiscountPerUnit.Amount(),
-		FinalDiscountCurrency:       item.FinalDiscountPerUnit.Currency(),
-		SubtotalAmount:              item.Subtotal.Amount(),
-		SubtotalCurrency:            item.Subtotal.Currency(),
-		TaxRate:                     item.TaxRate,
-		TaxAmount:                   optionalAmount(&item.TaxAmount),
+		ID:                    item.ID,
+		SalesOrderID:          orderID,
+		ProductVariantID:      item.ProductVariantID,
+		Quantity:              item.Quantity,
+		ListUnitPriceAmount:   item.ListUnitPrice.Amount(),
+		ListUnitPriceCurrency: item.ListUnitPrice.Currency(),
+		UnitPriceAmount:       item.UnitPrice.Amount(),
+		UnitPriceCurrency:     item.UnitPrice.Currency(),
+		DiscountPercent:       item.DiscountPercent,
+		DiscountAmount:        item.DiscountPerUnit.Amount(),
+		DiscountCurrency:      item.DiscountPerUnit.Currency(),
+		SubtotalAmount:        item.Subtotal.Amount(),
+		SubtotalCurrency:      item.Subtotal.Currency(),
+		TaxRate:               item.TaxRate,
+		TaxAmount:             optionalAmount(&item.TaxAmount),
 	}, nil
 }
 
@@ -325,6 +307,7 @@ func deliveryNoteLineItemsFromDomain(noteID uuid.UUID, items []domain.DeliveryNo
 			SalesOrderLineItemID: item.SalesOrderLineItemID,
 			ProductVariantID:     item.ProductVariantID,
 			DeliveredQuantity:    item.DeliveredQuantity,
+			InvoiceLineItemID:    item.InvoiceLineItemID,
 		})
 	}
 	return models, nil
@@ -413,6 +396,7 @@ func quoteToDomain(quote *QuoteDataModel, items []QuoteLineItemDataModel) (*doma
 		QuoteDate:      quote.QuoteDate,
 		ExpirationDate: quote.ExpirationDate,
 		Status:         domain.QuoteStatus(quote.Status),
+		MESWorkRefs:    mesWorkRefsFromJSON(quote.MESWorkRefs),
 		LineItems:      lineItems,
 		Subtotal:       subtotal,
 		TaxAmount:      tax,
@@ -422,15 +406,15 @@ func quoteToDomain(quote *QuoteDataModel, items []QuoteLineItemDataModel) (*doma
 }
 
 func quoteLineItemToDomain(item QuoteLineItemDataModel) (domain.QuoteLineItem, error) {
-	calculatedUnit, err := moneyFromParts(item.CalculatedUnitPriceAmount, item.CalculatedUnitPriceCurrency)
+	listUnit, err := moneyFromParts(item.ListUnitPriceAmount, item.ListUnitPriceCurrency)
 	if err != nil {
 		return domain.QuoteLineItem{}, err
 	}
-	finalUnit, err := moneyFromParts(item.FinalUnitPriceAmount, item.FinalUnitPriceCurrency)
+	unitPrice, err := moneyFromParts(item.UnitPriceAmount, item.UnitPriceCurrency)
 	if err != nil {
 		return domain.QuoteLineItem{}, err
 	}
-	finalDiscount, err := moneyFromParts(item.FinalDiscountAmount, item.FinalDiscountCurrency)
+	discount, err := moneyFromParts(item.DiscountAmount, item.DiscountCurrency)
 	if err != nil {
 		return domain.QuoteLineItem{}, err
 	}
@@ -443,33 +427,17 @@ func quoteLineItemToDomain(item QuoteLineItemDataModel) (domain.QuoteLineItem, e
 		return domain.QuoteLineItem{}, err
 	}
 
-	manualUnit, err := optionalMoneyFromParts(item.ManualUnitPriceAmount, item.ManualUnitPriceCurrency)
-	if err != nil {
-		return domain.QuoteLineItem{}, err
-	}
-	calculatedDiscount, err := optionalMoneyFromParts(item.CalculatedDiscountAmount, item.CalculatedDiscountCurrency)
-	if err != nil {
-		return domain.QuoteLineItem{}, err
-	}
-	manualDiscount, err := optionalMoneyFromParts(item.ManualDiscountAmount, item.ManualDiscountCurrency)
-	if err != nil {
-		return domain.QuoteLineItem{}, err
-	}
-
 	return domain.QuoteLineItem{
-		ID:                        item.ID,
-		MESWorkID:                 item.MESWorkID,
-		ProductVariantID:          item.ProductVariantID,
-		Quantity:                  item.Quantity,
-		CalculatedUnitPrice:       calculatedUnit,
-		ManualUnitPrice:           manualUnit,
-		FinalUnitPrice:            finalUnit,
-		CalculatedDiscountPerUnit: calculatedDiscount,
-		ManualDiscountPerUnit:     manualDiscount,
-		FinalDiscountPerUnit:      finalDiscount,
-		Subtotal:                  subtotal,
-		TaxRate:                   item.TaxRate,
-		TaxAmount:                 derefMoneyOrZero(taxAmount, subtotal.Currency()),
+		ID:               item.ID,
+		ProductVariantID: item.ProductVariantID,
+		Quantity:         item.Quantity,
+		ListUnitPrice:    listUnit,
+		UnitPrice:        unitPrice,
+		DiscountPercent:  item.DiscountPercent,
+		DiscountPerUnit:  discount,
+		Subtotal:         subtotal,
+		TaxRate:          item.TaxRate,
+		TaxAmount:        derefMoneyOrZero(taxAmount, subtotal.Currency()),
 	}, nil
 }
 
@@ -509,6 +477,7 @@ func salesOrderToDomain(order *SalesOrderDataModel, items []OrderLineItemDataMod
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       domain.SalesOrderStatus(order.Status),
+		MESWorkRefs:  mesWorkRefsFromJSON(order.MESWorkRefs),
 		LineItems:    lineItems,
 		Subtotal:     subtotal,
 		TaxAmount:    tax,
@@ -518,15 +487,15 @@ func salesOrderToDomain(order *SalesOrderDataModel, items []OrderLineItemDataMod
 }
 
 func orderLineItemToDomain(item OrderLineItemDataModel) (domain.OrderLineItem, error) {
-	calculatedUnit, err := moneyFromParts(item.CalculatedUnitPriceAmount, item.CalculatedUnitPriceCurrency)
+	listUnit, err := moneyFromParts(item.ListUnitPriceAmount, item.ListUnitPriceCurrency)
 	if err != nil {
 		return domain.OrderLineItem{}, err
 	}
-	finalUnit, err := moneyFromParts(item.FinalUnitPriceAmount, item.FinalUnitPriceCurrency)
+	unitPrice, err := moneyFromParts(item.UnitPriceAmount, item.UnitPriceCurrency)
 	if err != nil {
 		return domain.OrderLineItem{}, err
 	}
-	finalDiscount, err := moneyFromParts(item.FinalDiscountAmount, item.FinalDiscountCurrency)
+	discount, err := moneyFromParts(item.DiscountAmount, item.DiscountCurrency)
 	if err != nil {
 		return domain.OrderLineItem{}, err
 	}
@@ -539,33 +508,17 @@ func orderLineItemToDomain(item OrderLineItemDataModel) (domain.OrderLineItem, e
 		return domain.OrderLineItem{}, err
 	}
 
-	manualUnit, err := optionalMoneyFromParts(item.ManualUnitPriceAmount, item.ManualUnitPriceCurrency)
-	if err != nil {
-		return domain.OrderLineItem{}, err
-	}
-	calculatedDiscount, err := optionalMoneyFromParts(item.CalculatedDiscountAmount, item.CalculatedDiscountCurrency)
-	if err != nil {
-		return domain.OrderLineItem{}, err
-	}
-	manualDiscount, err := optionalMoneyFromParts(item.ManualDiscountAmount, item.ManualDiscountCurrency)
-	if err != nil {
-		return domain.OrderLineItem{}, err
-	}
-
 	return domain.OrderLineItem{
-		ID:                        item.ID,
-		MESWorkID:                 item.MESWorkID,
-		ProductVariantID:          item.ProductVariantID,
-		Quantity:                  item.Quantity,
-		CalculatedUnitPrice:       calculatedUnit,
-		ManualUnitPrice:           manualUnit,
-		FinalUnitPrice:            finalUnit,
-		CalculatedDiscountPerUnit: calculatedDiscount,
-		ManualDiscountPerUnit:     manualDiscount,
-		FinalDiscountPerUnit:      finalDiscount,
-		Subtotal:                  subtotal,
-		TaxRate:                   item.TaxRate,
-		TaxAmount:                 derefMoneyOrZero(taxAmount, subtotal.Currency()),
+		ID:               item.ID,
+		ProductVariantID: item.ProductVariantID,
+		Quantity:         item.Quantity,
+		ListUnitPrice:    listUnit,
+		UnitPrice:        unitPrice,
+		DiscountPercent:  item.DiscountPercent,
+		DiscountPerUnit:  discount,
+		Subtotal:         subtotal,
+		TaxRate:          item.TaxRate,
+		TaxAmount:        derefMoneyOrZero(taxAmount, subtotal.Currency()),
 	}, nil
 }
 
@@ -577,6 +530,7 @@ func deliveryNoteToDomain(note *DeliveryNoteDataModel, items []DeliveryNoteLineI
 			SalesOrderLineItemID: item.SalesOrderLineItemID,
 			ProductVariantID:     item.ProductVariantID,
 			DeliveredQuantity:    item.DeliveredQuantity,
+			InvoiceLineItemID:    item.InvoiceLineItemID,
 		})
 	}
 
@@ -749,4 +703,43 @@ func optionalCurrency(money *domain.Money) *string {
 	}
 	value := money.Currency()
 	return &value
+}
+
+// Helper functions to convert between []domain.MESWorkRef and JSONB string for PostgreSQL
+type mesWorkRefJSON struct {
+	MESWorkID    string `json:"mes_work_id"`
+	Observations string `json:"observations"`
+}
+
+func mesWorkRefsToJSON(refs []domain.MESWorkRef) *string {
+	if len(refs) == 0 {
+		return nil
+	}
+	items := make([]mesWorkRefJSON, len(refs))
+	for i, r := range refs {
+		items[i] = mesWorkRefJSON{MESWorkID: r.MESWorkID.String(), Observations: r.Observations}
+	}
+	data, err := json.Marshal(items)
+	if err != nil {
+		return nil
+	}
+	s := string(data)
+	return &s
+}
+
+func mesWorkRefsFromJSON(data *string) []domain.MESWorkRef {
+	if data == nil || *data == "" {
+		return nil
+	}
+	var items []mesWorkRefJSON
+	if err := json.Unmarshal([]byte(*data), &items); err != nil {
+		return nil
+	}
+	refs := make([]domain.MESWorkRef, 0, len(items))
+	for _, item := range items {
+		if u, err := uuid.Parse(item.MESWorkID); err == nil {
+			refs = append(refs, domain.MESWorkRef{MESWorkID: u, Observations: item.Observations})
+		}
+	}
+	return refs
 }

@@ -20,6 +20,7 @@
             role-filter="CLIENT"
             :required="true"
             help-text="Seleccione el cliente para este presupuesto"
+            @select="onPartySelected"
           />
         </div>
 
@@ -51,14 +52,44 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="internalNotes">Notas Internas</label>
+            <label for="internalNotes">Observaciones</label>
             <textarea
               id="internalNotes"
               v-model="formData.internalNotes"
               class="form-textarea"
               rows="3"
-              placeholder="Notas internas sobre el presupuesto (no visibles para el cliente)..."
+              placeholder="Observaciones sobre el presupuesto..."
             ></textarea>
+          </div>
+        </div>
+
+        <!-- MES Work Definitions (Document-level) -->
+        <div v-if="formData.partyId" class="form-section">
+          <h2>Trabajos MES</h2>
+          <p class="help-text">Asocie trabajos MES a este presupuesto. Para cada trabajo puede añadir observaciones.</p>
+          <div class="mes-selector">
+            <div v-if="isLoadingMesWorks" class="mes-loading">Cargando trabajos MES...</div>
+            <div v-else-if="mesWorks.length === 0" class="mes-empty">No hay trabajos MES disponibles para este cliente.</div>
+            <div v-else class="mes-ref-list">
+              <div v-for="work in mesWorks" :key="work.id" class="mes-ref-item">
+                <label class="mes-checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="isMesWorkSelected(work.id)"
+                    @change="toggleMesWork(work.id)"
+                  />
+                  <span>{{ work.work_number }} - {{ work.work_name }}</span>
+                </label>
+                <textarea
+                  v-if="isMesWorkSelected(work.id)"
+                  class="mes-observations"
+                  rows="2"
+                  placeholder="Observaciones para este trabajo MES..."
+                  :value="getMesWorkObservations(work.id)"
+                  @input="setMesWorkObservations(work.id, $event.target.value)"
+                ></textarea>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -77,97 +108,118 @@
             <p>No hay líneas agregadas. Agregue al menos una línea para crear el presupuesto.</p>
           </div>
 
-          <div v-else class="line-items-list">
-            <div
-              v-for="(item, index) in formData.lineItems"
-              :key="index"
-              class="line-item-card"
-            >
-              <div class="line-item-header">
-                <span class="line-item-number">Línea {{ index + 1 }}</span>
-                <button
-                  type="button"
-                  class="btn-remove"
-                  @click="removeLineItem(index)"
-                  title="Eliminar línea"
-                >
-                  ✕
-                </button>
-              </div>
-              <div class="line-item-fields">
-                <div class="form-group">
-                  <label>Variante de Producto *</label>
-                  <button
-                    type="button"
-                    class="btn-select-variant"
-                    @click="openVariantSelector(index)"
-                  >
-                    {{ item.selectedVariantName || 'Seleccionar variante...' }}
-                  </button>
-                  <input
-                    v-model="item.productVariantId"
-                    type="hidden"
-                    required
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Definición de trabajo MES (opcional)</label>
-                  <select
-                    v-model="item.mesWorkId"
-                    class="form-input"
-                    :disabled="!formData.partyId || isLoadingMesWorks"
-                  >
-                    <option value="">
-                      {{ isLoadingMesWorks ? 'Cargando definiciones MES...' : 'Sin referencia MES' }}
-                    </option>
-                    <option v-for="work in mesWorks" :key="work.id" :value="work.id">
-                      {{ work.work_number }} - {{ work.work_name }} ({{ work.status }})
-                    </option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Cantidad *</label>
-                  <input
-                    v-model.number="item.quantity"
-                    type="number"
-                    min="1"
-                    class="form-input"
-                    required
-                    @input="calculateTotals"
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Precio Unitario (EUR)</label>
-                  <input
-                    v-model.number="item.manualUnitPrice"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Opcional (auto desde pricing)"
-                    class="form-input"
-                    @input="calculateTotals"
-                  />
-                  <small class="help-text">Si se deja vacío, se obtendrá desde Pricing</small>
-                </div>
-                <div class="form-group">
-                  <label>Descuento (EUR)</label>
-                  <input
-                    v-model.number="item.manualDiscountPerUnit"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="Opcional"
-                    class="form-input"
-                    @input="calculateTotals"
-                  />
-                </div>
-              </div>
-              <!-- Line Item Subtotal -->
-              <div class="line-item-subtotal">
-                <span class="subtotal-label">Subtotal línea:</span>
-                <span class="subtotal-value">{{ formatMoney(calculateLineSubtotal(item)) }}</span>
-              </div>
-            </div>
+          <div v-else class="line-items-table-wrapper">
+            <table class="line-items-table">
+              <thead>
+                <tr>
+                  <th class="col-num">#</th>
+                  <th class="col-variant">Referencia</th>
+                  <th class="col-product-name">Nombre</th>
+                  <th class="col-qty">Cant.</th>
+                  <th class="col-list-price">P. Tarifa</th>
+                  <th class="col-price">Precio</th>
+                  <th class="col-discount">Dto. %</th>
+                  <th class="col-subtotal">Subtotal</th>
+                  <th class="col-actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in formData.lineItems" :key="index" class="line-item-row">
+                  <td class="col-num">{{ index + 1 }}</td>
+                  <td class="col-variant">
+                    <div class="variant-inline-search">
+                      <input
+                        v-if="!item.productVariantId"
+                        v-model="item.quickSearchQuery"
+                        type="text"
+                        class="form-input"
+                        placeholder="SKU o código de barras..."
+                        @keyup.enter="inlineSmartSearch(index)"
+                      />
+                      <span
+                        v-else
+                        class="variant-selected-label"
+                        @click="clearLineVariant(index)"
+                        title="Haz clic para cambiar"
+                      >
+                        {{ item.selectedVariantName }}
+                      </span>
+                      <button
+                        type="button"
+                        class="btn-browse-variant"
+                        @click="openVariantSelector(index)"
+                        title="Buscar en catálogo"
+                      >
+                        📋
+                      </button>
+                    </div>
+                    <small v-if="item.inlineSearchError" class="inline-search-error">
+                      {{ item.inlineSearchError }}
+                    </small>
+                    <input v-model="item.productVariantId" type="hidden" required />
+                  </td>
+                  <td class="col-product-name">
+                    <span class="product-name-readonly">{{ buildDisplayName(item) }}</span>
+                  </td>
+                  <td class="col-qty">
+                    <input
+                      v-model.number="item.quantity"
+                      type="number"
+                      min="1"
+                      class="form-input"
+                      required
+                      @input="calculateTotals"
+                    />
+                  </td>
+                  <td class="col-list-price">
+                    <input
+                      :value="item.listPrice != null ? item.listPrice.toFixed(3) : ''"
+                      type="text"
+                      class="form-input input-readonly"
+                      readonly
+                      tabindex="-1"
+                      placeholder="—"
+                    />
+                  </td>
+                  <td class="col-price">
+                    <input
+                      v-model.number="item.unitPrice"
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      class="form-input"
+                      @input="calculateTotals"
+                    />
+                  </td>
+                  <td class="col-discount">
+                    <input
+                      v-model.number="item.discountPercent"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="0.00"
+                      class="form-input"
+                      @input="calculateTotals"
+                    />
+                  </td>
+                  <td class="col-subtotal">
+                    <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
+                    <span v-else class="subtotal-value">{{ formatMoney(calculateLineSubtotal(item)) }}</span>
+                  </td>
+                  <td class="col-actions">
+                    <button
+                      type="button"
+                      class="btn-remove"
+                      @click="removeLineItem(index)"
+                      title="Eliminar línea"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -180,7 +232,7 @@
               <span class="total-value">{{ formatMoney(calculatedTotals.subtotal) }}</span>
             </div>
             <div class="total-row">
-              <span class="total-label">IVA estimado:</span>
+              <span class="total-label">IVA:</span>
               <span class="total-value">{{ formatMoney(calculatedTotals.tax) }}</span>
             </div>
             <div class="total-row total-final">
@@ -220,7 +272,10 @@
         </div>
         <div class="modal-body">
           <VariantSelector
+            :key="variantSelectorQuery + '-' + editingLineIndex"
             :product-id="null"
+            :initial-query="variantSelectorQuery"
+            initial-mode="quick"
             title=""
             description="Seleccione una variante de producto"
             @variant-selected="handleVariantSelected"
@@ -238,6 +293,8 @@ import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
+import { productApi } from '@/services/productApi';
+import { calculateBaseSalesPrice } from '@/services/pricingApi';
 import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
@@ -247,6 +304,7 @@ const formData = ref({
   quoteDate: '',
   validUntil: '',
   internalNotes: '',
+  mesWorkRefs: [],
   lineItems: [],
 });
 
@@ -260,6 +318,7 @@ const isSubmitting = ref(false);
 const submitError = ref('');
 const mesWorks = ref([]);
 const isLoadingMesWorks = ref(false);
+const partyDefaultDiscount = ref(null);
 
 const minValidUntilDate = computed(() => {
   if (!formData.value.quoteDate) {
@@ -315,26 +374,37 @@ watch(() => formData.value.partyId, (partyId) => {
   loadMesWorksForParty(partyId);
 });
 
+function onPartySelected(party) {
+  partyDefaultDiscount.value = party?.default_discount_percentage || null;
+}
+
 const showVariantSelector = ref(false);
 const editingLineIndex = ref(null);
+const variantSelectorQuery = ref('');
 
 function addLineItem() {
   formData.value.lineItems.push({
     productVariantId: '',
-    mesWorkId: '',
+    productId: '',
     selectedVariantName: '',
+    productName: '',
+    optionConfiguration: {},
+    quickSearchQuery: '',
+    inlineSearchError: '',
     quantity: 1,
-    manualUnitPrice: null,
-    manualDiscountPerUnit: null,
+    listPrice: null,
+    unitPrice: null,
+    discountPercent: partyDefaultDiscount.value || null,
+    productBasePrice: null,
+    productDescription: '',
+    taxRate: 21,
   });
 }
 
 async function loadMesWorksForParty(partyId) {
   if (!partyId) {
     mesWorks.value = [];
-    formData.value.lineItems.forEach((item) => {
-      item.mesWorkId = '';
-    });
+    formData.value.mesWorkRefs = [];
     return;
   }
 
@@ -349,8 +419,32 @@ async function loadMesWorksForParty(partyId) {
   }
 }
 
+function isMesWorkSelected(workId) {
+  return formData.value.mesWorkRefs.some(r => r.mesWorkId === workId);
+}
+
+function toggleMesWork(workId) {
+  const idx = formData.value.mesWorkRefs.findIndex(r => r.mesWorkId === workId);
+  if (idx >= 0) {
+    formData.value.mesWorkRefs.splice(idx, 1);
+  } else {
+    formData.value.mesWorkRefs.push({ mesWorkId: workId, observations: '' });
+  }
+}
+
+function getMesWorkObservations(workId) {
+  return formData.value.mesWorkRefs.find(r => r.mesWorkId === workId)?.observations || '';
+}
+
+function setMesWorkObservations(workId, value) {
+  const ref = formData.value.mesWorkRefs.find(r => r.mesWorkId === workId);
+  if (ref) ref.observations = value;
+}
+
 function openVariantSelector(index) {
   editingLineIndex.value = index;
+  const item = formData.value.lineItems[index];
+  variantSelectorQuery.value = item?.quickSearchQuery?.trim() || '';
   showVariantSelector.value = true;
 }
 
@@ -359,11 +453,121 @@ function handleVariantSelected(payload) {
     const variant = payload.variant;
     const item = formData.value.lineItems[editingLineIndex.value];
     item.productVariantId = variant.id;
-    item.selectedVariantName = `${variant.product_name || 'Producto'} - ${variant.sku}`;
+    item.productId = variant.product_id || '';
+    item.selectedVariantName = variant.sku;
+    item.productName = variant.product_name || '';
+    item.optionConfiguration = variant.option_configuration || {};
+    item.productDescription = variant.product_description || '';
+    item.quickSearchQuery = '';
+    item.inlineSearchError = '';
+    item.productBasePrice = variant.product_base_price ?? variant.base_cost ?? null;
+    // Immediately show base_cost so price is never blank
+    if (item.productBasePrice != null && item.unitPrice == null) {
+      item.listPrice = item.productBasePrice;
+      item.unitPrice = item.productBasePrice;
+    }
+    fetchPriceForLineItem(item);
   }
   showVariantSelector.value = false;
   editingLineIndex.value = null;
   calculateTotals();
+}
+
+/**
+ * Inline smart search per line item: type SKU/barcode → auto-resolve exact variant
+ * If ambiguous, opens modal with query pre-filled
+ */
+async function inlineSmartSearch(index) {
+  const item = formData.value.lineItems[index];
+  const query = item.quickSearchQuery?.trim();
+  if (!query) return;
+  
+  item.inlineSearchError = '';
+  
+  try {
+    const result = await productApi.smartSearch(query);
+    
+    if (result.type === 'exact_variant' && result.variant) {
+      // Direct match → fill line item immediately
+      item.productVariantId = result.variant.id;
+      item.productId = result.variant.product_id || result.product?.id || '';
+      item.selectedVariantName = result.variant.sku;
+      item.productName = result.product?.name || '';
+      item.optionConfiguration = result.variant.option_configuration || {};
+      item.productDescription = result.product?.description || '';
+      item.quickSearchQuery = '';
+      item.productBasePrice = result.product?.base_price ?? result.variant.base_cost ?? null;
+      if (item.productBasePrice != null && item.unitPrice == null) {
+        item.listPrice = item.productBasePrice;
+        item.unitPrice = item.productBasePrice;
+      }
+      fetchPriceForLineItem(item);
+      calculateTotals();
+    } else if (result.type === 'no_match') {
+      item.inlineSearchError = 'No encontrado. Usa 📋 para buscar en catálogo.';
+    } else {
+      // Ambiguous or partial result → open modal with query pre-filled
+      editingLineIndex.value = index;
+      variantSelectorQuery.value = query;
+      showVariantSelector.value = true;
+    }
+  } catch (err) {
+    console.error('[QuoteCreate] Inline search error:', err);
+    item.inlineSearchError = err.message || 'Error en búsqueda';
+  }
+}
+
+function clearLineVariant(index) {
+  const item = formData.value.lineItems[index];
+  item.productVariantId = '';
+  item.productId = '';
+  item.selectedVariantName = '';
+  item.productName = '';
+  item.optionConfiguration = {};
+  item.productDescription = '';
+  item.quickSearchQuery = '';
+  item.inlineSearchError = '';
+  item.listPrice = null;
+  item.unitPrice = null;
+  item.discountPercent = null;
+  item.productBasePrice = null;
+  calculateTotals();
+}
+
+/**
+ * Fetch sale price from Pricing Engine (ADR-015) and auto-fill listPrice + unitPrice.
+ * Sale price = base_price + attribute modifiers + brand markup.
+ * Falls back to product base_price when pricing engine is unavailable.
+ */
+async function fetchPriceForLineItem(item) {
+  if (!item.productVariantId || !item.productId) {
+    // Without productId we cannot call the pricing engine
+    if (item.productBasePrice != null) {
+      item.listPrice = item.productBasePrice;
+      item.unitPrice = item.productBasePrice;
+      calculateTotals();
+    }
+    return;
+  }
+  try {
+    const result = await calculateBaseSalesPrice(item.productId, item.productVariantId);
+    const rawBaseCost = result.baseCost?.amount ?? item.productBasePrice ?? null;
+    const rawSalesPrice = result.baseSalesPrice?.amount ?? item.productBasePrice ?? null;
+    item.listPrice = rawBaseCost != null ? Math.round(rawBaseCost * 1000) / 1000 : null;
+    item.unitPrice = rawSalesPrice != null ? Math.round(rawSalesPrice * 1000) / 1000 : null;
+    if (result.taxRate != null) {
+      item.taxRate = result.taxRate;
+    }
+    calculateTotals();
+  } catch (err) {
+    console.warn('[QuoteCreate] Error fetching sale price:', err.message);
+    // Pricing engine unavailable — fall back to product base price
+    if (item.productBasePrice != null) {
+      item.listPrice = item.productBasePrice;
+      item.unitPrice = item.productBasePrice;
+      calculateTotals();
+    }
+  }
 }
 
 function removeLineItem(index) {
@@ -371,31 +575,70 @@ function removeLineItem(index) {
   calculateTotals();
 }
 
+// Backend-driven preview: all monetary calculations come from the API.
+const previewResult = ref(null);
+const isPreviewLoading = ref(false);
+let previewDebounceTimer = null;
+
 function calculateLineSubtotal(item) {
-  if (!item.quantity || item.quantity <= 0) return 0;
-  
-  const unitPrice = item.manualUnitPrice || 0;
-  const discount = item.manualDiscountPerUnit || 0;
-  const finalPrice = Math.max(0, unitPrice - discount);
-  
-  return finalPrice * item.quantity;
+  if (!previewResult.value) return 0;
+  const match = previewResult.value.lineItems.find(
+    li => li.productVariantId === item.productVariantId
+  );
+  return match?.subtotal?.amount ?? 0;
+}
+
+function buildPreviewItems() {
+  return formData.value.lineItems
+    .filter(item => item.productVariantId)
+    .map(item => {
+      const entry = {
+        productVariantId: item.productVariantId,
+        quantity: item.quantity || 1,
+      };
+      if (item.unitPrice != null && item.unitPrice > 0) {
+        entry.unitPrice = { amount: item.unitPrice, currency: 'EUR' };
+      }
+      if (item.discountPercent != null) {
+        entry.discountPercent = item.discountPercent;
+      }
+      return entry;
+    });
+}
+
+async function fetchPreviewCalculation() {
+  const partyId = formData.value.partyId;
+  const items = buildPreviewItems();
+  if (!partyId || items.length === 0) {
+    previewResult.value = null;
+    calculatedTotals.value = { subtotal: 0, tax: 0, total: 0 };
+    return;
+  }
+  isPreviewLoading.value = true;
+  try {
+    previewResult.value = await salesApi.previewQuoteCalculation(partyId, items);
+    calculatedTotals.value = {
+      subtotal: previewResult.value.subtotal?.amount ?? 0,
+      tax: previewResult.value.taxAmount?.amount ?? 0,
+      total: previewResult.value.total?.amount ?? 0,
+    };
+  } catch (err) {
+    console.warn('[QuoteCreate] Preview calculation error:', err.message);
+  } finally {
+    isPreviewLoading.value = false;
+  }
 }
 
 function calculateTotals() {
-  let subtotal = 0;
-  
-  for (const item of formData.value.lineItems) {
-    subtotal += calculateLineSubtotal(item);
-  }
-  
-  const tax = subtotal * 0.21; // 21% IVA
-  const total = subtotal + tax;
-  
-  calculatedTotals.value = {
-    subtotal,
-    tax,
-    total,
-  };
+  clearTimeout(previewDebounceTimer);
+  previewDebounceTimer = setTimeout(fetchPreviewCalculation, 400);
+}
+
+function buildDisplayName(item) {
+  if (!item.productName) return '';
+  const config = item.optionConfiguration;
+  if (!config || Object.keys(config).length === 0) return item.productName;
+  return item.productName + ' - ' + Object.values(config).join(', ');
 }
 
 function formatMoney(amount) {
@@ -421,37 +664,33 @@ async function handleSubmit() {
         quantity: item.quantity,
       };
 
-      if (item.manualUnitPrice) {
-        lineItem.manualUnitPrice = {
-          amount: item.manualUnitPrice,
+      if (item.unitPrice != null && item.unitPrice > 0) {
+        lineItem.unitPrice = {
+          amount: item.unitPrice,
           currency: 'EUR',
         };
       }
 
-      if (item.manualDiscountPerUnit) {
-        lineItem.manualDiscountPerUnit = {
-          amount: item.manualDiscountPerUnit,
-          currency: 'EUR',
-        };
-      }
-
-      if (item.mesWorkId) {
-        lineItem.mesWorkId = item.mesWorkId;
+      if (item.discountPercent != null) {
+        lineItem.discountPercent = item.discountPercent;
       }
 
       return lineItem;
     });
 
-    // Prepare quote data
+    // Prepare quote data — field names must match backend CreateQuoteCommand json tags
     const quoteData = {
       partyId: formData.value.partyId,
-      quoteDate: salesApi.formatDateForAPI(new Date(formData.value.quoteDate)),
-      validUntil: salesApi.formatDateForAPI(new Date(formData.value.validUntil)),
-      lineItems,
+      expirationDate: salesApi.formatDateForAPI(new Date(formData.value.validUntil)),
+      items: lineItems,
     };
 
+    if (formData.value.mesWorkRefs.length > 0) {
+      quoteData.mesWorkRefs = formData.value.mesWorkRefs;
+    }
+
     if (formData.value.internalNotes) {
-      quoteData.internalNotes = formData.value.internalNotes;
+      quoteData.notes = formData.value.internalNotes;
     }
 
     // Create quote
@@ -474,9 +713,7 @@ function goBack() {
 
 <style scoped>
 .quote-create-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
+  padding: 1.5rem 2rem;
 }
 
 .page-header {
@@ -582,6 +819,13 @@ function goBack() {
   margin-top: 0.25rem;
 }
 
+.input-readonly {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
 .empty-state {
   text-align: center;
   padding: 2rem;
@@ -590,30 +834,91 @@ function goBack() {
   border-radius: 4px;
 }
 
-.line-items-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ── Line Items Table ── */
+.line-items-table-wrapper {
+  overflow-x: auto;
+  margin-top: 0.5rem;
 }
 
-.line-item-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 1rem;
+.line-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.line-items-table thead th {
+  background: #f3f4f6;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.625rem 0.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.line-items-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.15s;
+}
+
+.line-items-table tbody tr:hover {
   background: #f9fafb;
 }
 
-.line-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+.line-items-table td {
+  padding: 0.5rem;
+  vertical-align: middle;
 }
 
-.line-item-number {
-  font-size: 0.875rem;
+.line-items-table .col-num {
+  width: 2.5rem;
+  text-align: center;
+  color: #9ca3af;
   font-weight: 600;
-  color: #4b5563;
+}
+
+.line-items-table .col-variant {
+  width: 280px;
+  min-width: 240px;
+}
+
+.line-items-table .col-product-name {
+  min-width: 200px;
+}
+
+.product-name-readonly {
+  font-size: 0.8125rem;
+  color: #374151;
+}
+
+.line-items-table .col-mes {
+  min-width: 160px;
+}
+
+.line-items-table .col-qty,
+.line-items-table .col-list-price,
+.line-items-table .col-price,
+.line-items-table .col-discount {
+  width: 90px;
+}
+
+.line-items-table .col-subtotal {
+  width: 100px;
+  text-align: right;
+}
+
+.line-items-table .col-actions {
+  width: 40px;
+  text-align: center;
+}
+
+.line-items-table .form-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.8125rem;
 }
 
 .btn-remove {
@@ -621,42 +926,22 @@ function goBack() {
   border: none;
   color: #dc2626;
   cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0.25rem 0.5rem;
+  font-size: 1.125rem;
+  padding: 0.25rem 0.4rem;
   border-radius: 4px;
   transition: background 0.2s;
+  line-height: 1;
 }
 
 .btn-remove:hover {
   background: rgba(220, 38, 38, 0.1);
 }
 
-.line-item-fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.line-item-subtotal {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e5e7eb;
-  gap: 1rem;
-}
-
-.subtotal-label {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-}
-
 .subtotal-value {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: #1f2937;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .totals-section {
@@ -769,6 +1054,68 @@ function goBack() {
   background: #f9fafb;
 }
 
+.variant-inline-search {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.variant-inline-search .form-input {
+  flex: 1;
+}
+
+.variant-selected-label {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #166534;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.variant-description {
+  display: block;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.variant-selected-label:hover {
+  background: #dcfce7;
+  border-color: #22c55e;
+}
+
+.btn-browse-variant {
+  background: #f8fafc;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s;
+}
+
+.btn-browse-variant:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.inline-search-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -834,5 +1181,109 @@ function goBack() {
   border-radius: 4px;
   color: #991b1b;
   font-size: 0.875rem;
+}
+
+@media (max-width: 1024px) {
+  .line-items-table .col-mes {
+    display: none;
+  }
+  .line-items-table thead th.col-mes {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .line-items-table thead {
+    display: none;
+  }
+  .line-items-table,
+  .line-items-table tbody,
+  .line-items-table tr,
+  .line-items-table td {
+    display: block;
+    width: 100%;
+  }
+  .line-items-table tr {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: #f9fafb;
+  }
+  .line-items-table td {
+    padding: 0.25rem 0;
+  }
+  .line-items-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #6b7280;
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  .line-items-table .col-num {
+    display: none;
+  }
+}
+
+/* MES selector styles */
+.mes-selector {
+  margin-top: 0.5rem;
+}
+
+.mes-loading,
+.mes-empty {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.mes-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mes-ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mes-ref-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mes-observations {
+  margin-left: 1.75rem;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.mes-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mes-checkbox-label:hover {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+}
+
+.mes-checkbox-label input[type="checkbox"] {
+  accent-color: #2563eb;
 }
 </style>

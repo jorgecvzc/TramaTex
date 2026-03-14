@@ -56,10 +56,10 @@ func (r *GORMProductRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 	return dataModel.ToDomain(), nil
 }
 
-// FindBySKU finds a product by its SKU
+// FindBySKU finds a product by its SKU (case-insensitive)
 func (r *GORMProductRepository) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
 	var dataModel ProductDataModel
-	err := r.db.WithContext(ctx).First(&dataModel, "sku = ?", sku).Error
+	err := r.db.WithContext(ctx).First(&dataModel, "LOWER(sku) = LOWER(?)", sku).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil // Or a custom not found error
@@ -67,6 +67,33 @@ func (r *GORMProductRepository) FindBySKU(ctx context.Context, sku string) (*dom
 		return nil, err
 	}
 	return dataModel.ToDomain(), nil
+}
+
+// FindByBarcode finds a product by its barcode
+func (r *GORMProductRepository) FindByBarcode(ctx context.Context, barcode string) (*domain.Product, error) {
+	var dataModel ProductDataModel
+	err := r.db.WithContext(ctx).First(&dataModel, "barcode = ?", barcode).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return dataModel.ToDomain(), nil
+}
+
+// FindBySKUPrefix finds products whose SKU starts with the given prefix
+func (r *GORMProductRepository) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.Product, error) {
+	var dataModels []ProductDataModel
+	err := r.db.WithContext(ctx).Where("LOWER(sku) LIKE LOWER(?)", prefix+"%").Order("sku asc").Limit(20).Find(&dataModels).Error
+	if err != nil {
+		return nil, err
+	}
+	products := make([]*domain.Product, len(dataModels))
+	for i := range dataModels {
+		products[i] = dataModels[i].ToDomain()
+	}
+	return products, nil
 }
 
 // FindAll lists all products.

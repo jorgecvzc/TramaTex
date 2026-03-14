@@ -56,6 +56,24 @@ func (m *MockProductRepository) UpdateSKUs(ctx context.Context, productID uuid.U
 	return args.Error(0)
 }
 
+func (m *MockProductRepository) FindByBarcode(ctx context.Context, barcode string) (*domain.Product, error) {
+	args := m.Called(ctx, barcode)
+	var product *domain.Product
+	if args.Get(0) != nil {
+		product = args.Get(0).(*domain.Product)
+	}
+	return product, args.Error(1)
+}
+
+func (m *MockProductRepository) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.Product, error) {
+	args := m.Called(ctx, prefix)
+	var products []*domain.Product
+	if args.Get(0) != nil {
+		products = args.Get(0).([]*domain.Product)
+	}
+	return products, args.Error(1)
+}
+
 // MockBrandRepository is a mock implementation of domain.BrandRepository
 type MockBrandRepository struct {
 	mock.Mock
@@ -217,6 +235,24 @@ func (m *MockProductVariantRepository) FindByProductIDAndAttributeValues(ctx con
 		variant = args.Get(0).(*domain.ProductVariant)
 	}
 	return variant, args.Error(1)
+}
+
+func (m *MockProductVariantRepository) FindByBarcode(ctx context.Context, barcode string) (*domain.ProductVariant, error) {
+	args := m.Called(ctx, barcode)
+	var variant *domain.ProductVariant
+	if args.Get(0) != nil {
+		variant = args.Get(0).(*domain.ProductVariant)
+	}
+	return variant, args.Error(1)
+}
+
+func (m *MockProductVariantRepository) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.ProductVariant, error) {
+	args := m.Called(ctx, prefix)
+	var variants []*domain.ProductVariant
+	if args.Get(0) != nil {
+		variants = args.Get(0).([]*domain.ProductVariant)
+	}
+	return variants, args.Error(1)
 }
 
 // MockPartyServiceConfigurationRepository is a mock implementation of domain.PartyServiceConfigurationRepository

@@ -88,6 +88,11 @@
             </p>
           </div>
 
+          <div v-if="party.role === 'CLIENT' || party.role === 'BOTH'" class="info-item">
+            <label>Bonificación por defecto</label>
+            <p>{{ party.default_discount_percentage != null ? party.default_discount_percentage + '%' : '0%' }}</p>
+          </div>
+
           <div class="info-item">
             <label>Creado</label>
             <p>{{ formatDate(party.created_at) }}</p>
@@ -187,6 +192,19 @@
                 />
                 <span v-if="editErrors.email" class="error">{{ editErrors.email }}</span>
               </div>
+            </div>
+
+            <div v-if="editForm.role === 'CLIENT' || editForm.role === 'BOTH'" class="form-group">
+              <label for="editDiscount">Bonificación por defecto (%)</label>
+              <input
+                id="editDiscount"
+                v-model.number="editForm.defaultDiscountPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="0.00"
+              />
             </div>
 
             <div class="form-group">
@@ -310,6 +328,7 @@ const editForm = reactive({
   phone: '',
   email: '',
   notes: '',
+  defaultDiscountPercentage: 0,
 });
 
 const editErrors = reactive({
@@ -340,6 +359,7 @@ async function fetchParty() {
     editForm.phone = data.phone || '';
     editForm.email = data.email || '';
     editForm.notes = data.notes || '';
+    editForm.defaultDiscountPercentage = data.default_discount_percentage ?? 0;
 
     // Load related entities if this is a CONTACT
     if (data.role === 'CONTACT') {
@@ -433,7 +453,7 @@ async function submitEdit() {
   isUpdating.value = true;
 
   try {
-    const updated = await partyApi.updateParty(partyId.value, {
+    const updatePayload = {
       name: editForm.name,
       role: editForm.role,
       taxId: editForm.taxId,
@@ -442,7 +462,11 @@ async function submitEdit() {
       phone: editForm.phone,
       email: editForm.email,
       notes: editForm.notes,
-    });
+    };
+    if (editForm.role === 'CLIENT' || editForm.role === 'BOTH') {
+      updatePayload.default_discount_percentage = editForm.defaultDiscountPercentage || 0;
+    }
+    const updated = await partyApi.updateParty(partyId.value, updatePayload);
 
     party.value = updated;
     isEditing.value = false;

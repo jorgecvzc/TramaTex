@@ -24,6 +24,7 @@ type stubQuoteRepo struct {
 	saveFn     func(context.Context, *domain.Quote) error
 	findByIDFn func(context.Context, uuid.UUID) (*domain.Quote, error)
 	listFn     func(context.Context, domain.QuoteFilter) ([]*domain.Quote, error)
+	deleteFn   func(context.Context, uuid.UUID) error
 }
 
 func (s *stubQuoteRepo) Save(ctx context.Context, quote *domain.Quote) error {
@@ -47,6 +48,13 @@ func (s *stubQuoteRepo) List(ctx context.Context, filter domain.QuoteFilter) ([]
 	return []*domain.Quote{}, nil
 }
 
+func (s *stubQuoteRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	if s.deleteFn != nil {
+		return s.deleteFn(ctx, id)
+	}
+	return nil
+}
+
 type stubOrderRepo struct {
 	saveFn     func(context.Context, *domain.SalesOrder) error
 	findByIDFn func(context.Context, uuid.UUID) (*domain.SalesOrder, error)
@@ -67,6 +75,10 @@ func (s *stubOrderRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.Sal
 	return nil, domain.NewNotFoundError("order not found")
 }
 
+func (s *stubOrderRepo) FindByIDForUpdate(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
+	return s.FindByID(ctx, id)
+}
+
 func (s *stubOrderRepo) List(ctx context.Context, filter domain.SalesOrderFilter) ([]*domain.SalesOrder, error) {
 	if s.listFn != nil {
 		return s.listFn(ctx, filter)
@@ -74,11 +86,16 @@ func (s *stubOrderRepo) List(ctx context.Context, filter domain.SalesOrderFilter
 	return []*domain.SalesOrder{}, nil
 }
 
+func (s *stubOrderRepo) FindByQuoteID(ctx context.Context, quoteID uuid.UUID) (*domain.SalesOrder, error) {
+	return nil, nil
+}
+
 type stubDeliveryNoteRepo struct {
 	saveFn               func(context.Context, *domain.DeliveryNote) error
 	findByIDFn           func(context.Context, uuid.UUID) (*domain.DeliveryNote, error)
 	listFn               func(context.Context, domain.DeliveryNoteFilter) ([]*domain.DeliveryNote, error)
 	listBySalesOrderIDFn func(context.Context, uuid.UUID) ([]*domain.DeliveryNote, error)
+	linkLineItemsFn      func(context.Context, map[uuid.UUID]uuid.UUID) error
 }
 
 func (s *stubDeliveryNoteRepo) Save(ctx context.Context, note *domain.DeliveryNote) error {
@@ -109,11 +126,20 @@ func (s *stubDeliveryNoteRepo) ListBySalesOrderID(ctx context.Context, orderID u
 	return []*domain.DeliveryNote{}, nil
 }
 
+func (s *stubDeliveryNoteRepo) LinkLineItemsToInvoice(ctx context.Context, links map[uuid.UUID]uuid.UUID) error {
+	if s.linkLineItemsFn != nil {
+		return s.linkLineItemsFn(ctx, links)
+	}
+	return nil
+}
+
 type stubInvoiceRepo struct {
-	saveFn               func(context.Context, *domain.Invoice) error
-	findByIDFn           func(context.Context, uuid.UUID) (*domain.Invoice, error)
-	listFn               func(context.Context, domain.InvoiceFilter) ([]*domain.Invoice, error)
-	listBySalesOrderIDFn func(context.Context, uuid.UUID) ([]*domain.Invoice, error)
+	saveFn                 func(context.Context, *domain.Invoice) error
+	findByIDFn             func(context.Context, uuid.UUID) (*domain.Invoice, error)
+	listFn                 func(context.Context, domain.InvoiceFilter) ([]*domain.Invoice, error)
+	listBySalesOrderIDFn   func(context.Context, uuid.UUID) ([]*domain.Invoice, error)
+	findByDeliveryNoteIDFn func(context.Context, uuid.UUID) (*domain.Invoice, error)
+	listDeliveryNoteIDsFn  func(context.Context, uuid.UUID) ([]uuid.UUID, error)
 }
 
 func (s *stubInvoiceRepo) Save(ctx context.Context, invoice *domain.Invoice) error {
@@ -144,18 +170,32 @@ func (s *stubInvoiceRepo) ListBySalesOrderID(ctx context.Context, orderID uuid.U
 	return []*domain.Invoice{}, nil
 }
 
+func (s *stubInvoiceRepo) FindByDeliveryNoteID(ctx context.Context, deliveryNoteID uuid.UUID) (*domain.Invoice, error) {
+	if s.findByDeliveryNoteIDFn != nil {
+		return s.findByDeliveryNoteIDFn(ctx, deliveryNoteID)
+	}
+	return nil, nil
+}
+
+func (s *stubInvoiceRepo) ListDeliveryNoteIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	if s.listDeliveryNoteIDsFn != nil {
+		return s.listDeliveryNoteIDsFn(ctx, invoiceID)
+	}
+	return nil, nil
+}
+
 type stubDocumentNumberGenerator struct {
 	nextQuoteNumberFn        func(context.Context) (domain.QuoteNumber, error)
 	nextOrderNumberFn        func(context.Context) (domain.OrderNumber, error)
 	nextDeliveryNoteNumberFn func(context.Context) (domain.DeliveryNoteNumber, error)
-	nextInvoiceNumberFn      func(context.Context) (domain.InvoiceNumber, error)
+	nextInvoiceNumberFn      func(context.Context, domain.InvoiceSeries) (domain.InvoiceNumber, error)
 }
 
 func (s *stubDocumentNumberGenerator) NextQuoteNumber(ctx context.Context) (domain.QuoteNumber, error) {
 	if s.nextQuoteNumberFn != nil {
 		return s.nextQuoteNumberFn(ctx)
 	}
-	qn, _ := domain.NewQuoteNumber("Q-2026-0001")
+	qn, _ := domain.NewQuoteNumber("PRE-2026-0001")
 	return qn, nil
 }
 
@@ -163,7 +203,7 @@ func (s *stubDocumentNumberGenerator) NextOrderNumber(ctx context.Context) (doma
 	if s.nextOrderNumberFn != nil {
 		return s.nextOrderNumberFn(ctx)
 	}
-	on, _ := domain.NewOrderNumber("O-2026-0001")
+	on, _ := domain.NewOrderNumber("PED-2026-0001")
 	return on, nil
 }
 
@@ -171,15 +211,15 @@ func (s *stubDocumentNumberGenerator) NextDeliveryNoteNumber(ctx context.Context
 	if s.nextDeliveryNoteNumberFn != nil {
 		return s.nextDeliveryNoteNumberFn(ctx)
 	}
-	dn, _ := domain.NewDeliveryNoteNumber("DN-2026-0001")
+	dn, _ := domain.NewDeliveryNoteNumber("ALB-2026-0001")
 	return dn, nil
 }
 
-func (s *stubDocumentNumberGenerator) NextInvoiceNumber(ctx context.Context) (domain.InvoiceNumber, error) {
+func (s *stubDocumentNumberGenerator) NextInvoiceNumber(ctx context.Context, series domain.InvoiceSeries) (domain.InvoiceNumber, error) {
 	if s.nextInvoiceNumberFn != nil {
-		return s.nextInvoiceNumberFn(ctx)
+		return s.nextInvoiceNumberFn(ctx, series)
 	}
-	in, _ := domain.NewInvoiceNumber("A/2026/0001")
+	in, _ := domain.NewInvoiceNumber("FV-2026-0001")
 	return in, nil
 }
 
@@ -261,7 +301,7 @@ func TestCreateQuote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		numberGen, pricingEngine, partyLookup,
+		numberGen, pricingEngine, partyLookup, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -308,7 +348,7 @@ func TestGetQuote_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -327,7 +367,7 @@ func TestGetQuote_NotFound(t *testing.T) {
 func TestGetQuote_InvalidID(t *testing.T) {
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -376,7 +416,7 @@ func TestCreateOrder_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		numberGen, pricingEngine, partyLookup,
+		numberGen, pricingEngine, partyLookup, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -423,7 +463,7 @@ func TestGetOrder_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -456,13 +496,13 @@ func TestCreateDeliveryNote_Success(t *testing.T) {
 		Status:       domain.SalesOrderStatusPending,
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:                   lineItemID,
-				ProductVariantID:     variantID,
-				Quantity:             10,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               lineItemID,
+				ProductVariantID: variantID,
+				Quantity:         10,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  money,
+				Subtotal:         money,
 			},
 		},
 		Subtotal:  money,
@@ -487,7 +527,7 @@ func TestCreateDeliveryNote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -540,13 +580,13 @@ func TestCreateInvoice_Success(t *testing.T) {
 		Status:       domain.SalesOrderStatusDelivered, // Status must be Delivered for invoicing
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:                   uuid.New(),
-				ProductVariantID:     variantID,
-				Quantity:             10,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               uuid.New(),
+				ProductVariantID: variantID,
+				Quantity:         10,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  money,
+				Subtotal:         money,
 			},
 		},
 		Subtotal:  money,
@@ -572,7 +612,7 @@ func TestCreateInvoice_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
-		numberGen, &stubPricingEngine{}, &stubPartyLookup{},
+		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -617,7 +657,7 @@ func TestGetInvoice_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, invoiceRepo,
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -656,7 +696,7 @@ func TestListQuotes_Success(t *testing.T) {
 		PartyID:        partyID,
 		QuoteDate:      time.Now(),
 		ExpirationDate: time.Now().Add(30 * 24 * time.Hour),
-		Status:         domain.QuoteStatusSent,
+		Status:         domain.QuoteStatusIssued,
 		Subtotal:       money,
 		TaxAmount:      money,
 		Total:          money,
@@ -670,7 +710,7 @@ func TestListQuotes_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -736,7 +776,7 @@ func TestUpdateQuote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -795,7 +835,7 @@ func TestChangeQuoteStatus_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -803,7 +843,7 @@ func TestChangeQuoteStatus_Success(t *testing.T) {
 	router.POST("/quotes/:id/status", handler.ChangeQuoteStatus)
 
 	reqBody := map[string]interface{}{
-		"newStatus": "ENVIADA",
+		"newStatus": "EMITIDA",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -856,7 +896,7 @@ func TestListOrders_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -905,7 +945,7 @@ func TestUpdateOrderDetails_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -960,7 +1000,7 @@ func TestChangeOrderStatus_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1031,7 +1071,7 @@ func TestAddOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1063,6 +1103,7 @@ func TestUpdateOrderLineItem_Success(t *testing.T) {
 	lineItemID := uuid.New()
 	variantID := uuid.New()
 	money, _ := domain.NewMoney(100.0, "EUR")
+	zero, _ := domain.NewMoney(0.0, "EUR")
 
 	existingOrder := &domain.SalesOrder{
 		ID:           orderID,
@@ -1072,13 +1113,13 @@ func TestUpdateOrderLineItem_Success(t *testing.T) {
 		Status:       domain.SalesOrderStatusPending,
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:                   lineItemID,
-				ProductVariantID:     variantID,
-				Quantity:             2,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               lineItemID,
+				ProductVariantID: variantID,
+				Quantity:         2,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  zero,
+				Subtotal:         money,
 			},
 		},
 		Subtotal:  money,
@@ -1116,7 +1157,7 @@ func TestUpdateOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1155,22 +1196,22 @@ func TestRemoveOrderLineItem_Success(t *testing.T) {
 		Status:       domain.SalesOrderStatusPending,
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:                   lineItemID,
-				ProductVariantID:     variantID,
-				Quantity:             2,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               lineItemID,
+				ProductVariantID: variantID,
+				Quantity:         2,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  money,
+				Subtotal:         money,
 			},
 			{
-				ID:                   uuid.New(),
-				ProductVariantID:     variantID2,
-				Quantity:             1,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               uuid.New(),
+				ProductVariantID: variantID2,
+				Quantity:         1,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  money,
+				Subtotal:         money,
 			},
 		},
 		Subtotal:  money,
@@ -1215,7 +1256,7 @@ func TestRemoveOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1260,7 +1301,7 @@ func TestGetDeliveryNote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1314,7 +1355,7 @@ func TestListDeliveryNotes_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1350,13 +1391,13 @@ func TestCreateSimplifiedInvoice_Success(t *testing.T) {
 		Status:       domain.SalesOrderStatusDelivered,
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:                   uuid.New(),
-				ProductVariantID:     variantID,
-				Quantity:             10,
-				CalculatedUnitPrice:  money,
-				FinalUnitPrice:       money,
-				FinalDiscountPerUnit: money,
-				Subtotal:             money,
+				ID:               uuid.New(),
+				ProductVariantID: variantID,
+				Quantity:         10,
+				ListUnitPrice:    money,
+				UnitPrice:        money,
+				DiscountPerUnit:  money,
+				Subtotal:         money,
 			},
 		},
 		Subtotal:  money,
@@ -1382,7 +1423,7 @@ func TestCreateSimplifiedInvoice_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
-		numberGen, &stubPricingEngine{}, &stubPartyLookup{},
+		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1456,7 +1497,7 @@ func TestListInvoices_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, invoiceRepo,
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{},
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
 	)
 	handler := NewSalesHandler(service)
 

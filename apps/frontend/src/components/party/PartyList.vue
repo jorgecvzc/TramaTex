@@ -311,13 +311,13 @@ function formatDate(dateString) {
 
 .filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
 .filters > div {
   flex: 1;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .filter-actions {

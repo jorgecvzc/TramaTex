@@ -15,17 +15,43 @@
     </div>
 
     <!-- Invoice Detail -->
-    <div v-else-if="invoice" class="invoice-content">
+    <div v-else-if="invoice" ref="invoiceContentRef" class="invoice-content">
       <!-- Header -->
       <div class="page-header">
         <div>
           <button class="btn-back" @click="goBack">← Volver</button>
-          <h1>Factura {{ invoice.invoiceNumber }}</h1>
+          <h1>Factura {{ invoice.invoiceNumber }}
+            <span :class="['status-badge', 'status-' + salesApi.getStatusClass(invoice.status)]">{{ salesApi.getStatusLabel(invoice.status) }}</span>
+          </h1>
           <span :class="['type-badge', `type-${invoice.type.toLowerCase()}`]">
             {{ getTypeLabel(invoice.type) }}
           </span>
         </div>
         <div class="header-actions">
+          <button
+            v-if="invoice.status === 'DRAFT'"
+            class="btn btn-primary"
+            @click="emitInvoice"
+            :disabled="isChangingStatus"
+          >
+            📤 Emitir
+          </button>
+          <button
+            v-if="invoice.status === 'ISSUED' || invoice.status === 'OVERDUE'"
+            class="btn btn-success"
+            @click="markAsPaid"
+            :disabled="isChangingStatus"
+          >
+            💰 Marcar como Pagada
+          </button>
+          <button
+            v-if="invoice.status !== 'VOID' && invoice.status !== 'PAID'"
+            class="btn btn-danger"
+            @click="voidInvoice"
+            :disabled="isChangingStatus"
+          >
+            🚫 Anular
+          </button>
           <button
             class="btn btn-secondary"
             @click="printInvoice"
@@ -43,7 +69,7 @@
         <p v-if="issuerProfile.contactLine" class="print-issuer-line">{{ issuerProfile.contactLine }}</p>
         <h2>Factura {{ invoice.invoiceNumber }}</h2>
         <div class="print-doc-meta">
-          <span>Cliente: {{ formatPartyId(invoice.partyId) }}</span>
+          <span>Cliente: {{ partyName }}</span>
           <span>Fecha emisión: {{ formatDate(invoice.issueDate) }}</span>
           <span>Tipo: {{ getTypeLabel(invoice.type) }}</span>
         </div>
@@ -55,7 +81,7 @@
           <h3>Información General</h3>
           <div class="info-row">
             <span class="label">Cliente:</span>
-            <span class="value">{{ formatPartyId(invoice.partyId) }}</span>
+            <span class="value">{{ partyName }}</span>
           </div>
           <div class="info-row">
             <span class="label">Fecha de Emisión:</span>
@@ -90,26 +116,30 @@
         <p>{{ invoice.paymentTerms }}</p>
       </div>
 
-      <!-- Related Orders -->
-      <div v-if="invoice.salesOrderIds && invoice.salesOrderIds.length > 0" class="related-section">
-        <h3>Pedidos Relacionados</h3>
-        <ul class="related-list">
-          <li v-for="orderId in invoice.salesOrderIds" :key="orderId">
-            <a :href="`/sales/orders/${orderId}`" class="related-link">
-              {{ formatId(orderId) }}
-            </a>
-          </li>
-        </ul>
-      </div>
+      <!-- Documentos Relacionados -->
+      <div v-if="(invoice.salesOrderIds && invoice.salesOrderIds.length > 0) || (invoice.deliveryNoteIds && invoice.deliveryNoteIds.length > 0)" class="related-documents-section">
+        <h3>Documentos Relacionados</h3>
+        <div class="documents-list">
+          <div v-for="order in relatedOrders" :key="order.id" class="document-item">
+            <span class="document-icon">📄</span>
+            <div class="document-info">
+              <span class="document-label">Pedido</span>
+              <a href="#" @click.prevent="$router.push(`/sales/orders/${order.id}`)" class="document-link">
+                {{ order.orderNumber || formatId(order.id) }}
+              </a>
+            </div>
+          </div>
 
-      <!-- Related Delivery Notes -->
-      <div v-if="invoice.deliveryNoteIds && invoice.deliveryNoteIds.length > 0" class="related-section">
-        <h3>Albaranes Relacionados</h3>
-        <ul class="related-list">
-          <li v-for="noteId in invoice.deliveryNoteIds" :key="noteId">
-            {{ formatId(noteId) }}
-          </li>
-        </ul>
+          <div v-for="dn in relatedDeliveryNotes" :key="dn.id" class="document-item">
+            <span class="document-icon">📦</span>
+            <div class="document-info">
+              <span class="document-label">Albarán</span>
+              <a href="#" @click.prevent="$router.push(`/sales/delivery-notes/${dn.id}`)" class="document-link">
+                {{ dn.noteNumber || formatId(dn.id) }}
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Line Items -->
@@ -124,10 +154,11 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Variante</th>
+                <th>Referencia</th>
+                <th>Nombre</th>
                 <th>Cantidad</th>
                 <th>Precio Unitario</th>
-                <th>Descuento</th>
+                <th>Dto. %</th>
                 <th>IVA %</th>
                 <th>IVA línea</th>
                 <th>Subtotal</th>
@@ -136,10 +167,14 @@
             </thead>
             <tbody>
               <tr v-for="item in invoice.lineItems" :key="item.id || item.productVariantID">
-                <td class="variant-id">{{ formatId(item.productVariantID) }}</td>
+                <td class="variant-id">
+                  <span v-if="item.variantSku">{{ item.variantSku }}</span>
+                  <span v-else>{{ formatId(item.productVariantID) }}</span>
+                </td>
+                <td>{{ buildDisplayName(item) }}</td>
                 <td>{{ item.quantity }}</td>
-                <td>{{ salesApi.formatMoney(item.unitPrice) }}</td>
-                <td>{{ item.discountAmount ? salesApi.formatMoney(item.discountAmount) : '—' }}</td>
+                <td>{{ salesApi.formatUnitPrice(item.unitPrice) }}</td>
+                <td>{{ item.discountAmount && item.unitPrice?.amount ? ((item.discountAmount.amount / item.unitPrice.amount) * 100).toFixed(2) + '%' : '—' }}</td>
                 <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
                 <td>{{ item.taxAmount ? salesApi.formatMoney(item.taxAmount) : '—' }}</td>
                 <td class="amount">{{ salesApi.formatMoney(item.subtotal) }}</td>
@@ -155,6 +190,37 @@
         <span>Vencimiento: {{ formatDate(invoice.dueDate) }}</span>
       </div>
     </div>
+
+    <!-- Post-Issue Actions Modal -->
+    <div v-if="showPostIssueModal" class="modal-overlay" @click="showPostIssueModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Factura Emitida</h3>
+          <button class="btn-close" @click="showPostIssueModal = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">
+            La factura <strong>{{ invoice?.invoiceNumber }}</strong> se ha emitido correctamente.
+          </p>
+          <p class="post-issue-prompt">¿Qué desea hacer a continuación?</p>
+          <div class="post-issue-actions">
+            <button class="btn btn-primary post-issue-btn" @click="postIssuePrint">
+              🖨️ Imprimir
+            </button>
+            <button class="btn btn-primary post-issue-btn" @click="postIssueEmail">
+              📧 Descargar PDF y enviar por correo
+            </button>
+            <button class="btn btn-primary post-issue-btn" @click="postIssueBoth">
+              🖨️📧 Descargar PDF, imprimir y enviar
+            </button>
+          </div>
+          <p class="post-issue-hint">El PDF se descargará automáticamente para adjuntarlo al correo.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showPostIssueModal = false">Cerrar sin acción</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -163,15 +229,23 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
+import { partyApi } from '@/services/partyApi';
 import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 
 const invoice = ref(null);
 const isLoading = ref(false);
+const isChangingStatus = ref(false);
 const error = ref('');
 const issuerProfile = getPrintIssuerProfile();
+const invoiceContentRef = ref(null);
+const showPostIssueModal = ref(false);
+const partyName = ref('');
+const relatedOrders = ref([]);
+const relatedDeliveryNotes = ref([]);
 
 onMounted(() => {
   fetchInvoice();
@@ -189,11 +263,143 @@ async function fetchInvoice() {
 
   try {
     invoice.value = await salesApi.getInvoice(invoiceId);
+    await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
   } catch (err) {
     error.value = err?.message || 'No se pudo cargar la factura';
     console.error('Error loading invoice:', err);
   } finally {
     isLoading.value = false;
+  }
+}
+
+async function emitInvoice() {
+  if (!confirm('¿Emitir esta factura? Una vez emitida no se puede volver a borrador.')) return;
+  isChangingStatus.value = true;
+  try {
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'ISSUED');
+    showPostIssueModal.value = true;
+  } catch (err) {
+    alert(err?.message || 'No se pudo emitir la factura');
+  } finally {
+    isChangingStatus.value = false;
+  }
+}
+
+async function loadPartyName() {
+  if (!invoice.value?.partyId) { partyName.value = 'Desconocido'; return; }
+  try {
+    const party = await partyApi.getParty(invoice.value.partyId);
+    partyName.value = party.name || 'Sin nombre';
+  } catch {
+    partyName.value = 'Desconocido';
+  }
+}
+
+async function loadRelatedOrders() {
+  const ids = invoice.value?.salesOrderIds;
+  if (!ids || ids.length === 0) { relatedOrders.value = []; return; }
+  const results = await Promise.all(
+    ids.map(id => salesApi.getOrder(id).catch(() => ({ id, orderNumber: null })))
+  );
+  relatedOrders.value = results;
+}
+
+async function loadRelatedDeliveryNotes() {
+  const ids = invoice.value?.deliveryNoteIds;
+  if (!ids || ids.length === 0) { relatedDeliveryNotes.value = []; return; }
+  const results = await Promise.all(
+    ids.map(id => salesApi.getDeliveryNote(id).catch(() => ({ id, noteNumber: null })))
+  );
+  relatedDeliveryNotes.value = results;
+}
+
+function openMailClient() {
+  let email = '';
+  try {
+    partyApi.listContacts(invoice.value.partyId).then(({ data: contacts }) => {
+      const primary = contacts.find(c => c.email);
+      if (primary) email = primary.email;
+    }).catch(() => {});
+  } catch { /* no bloquear */ }
+
+  const inv = invoice.value;
+  const subject = encodeURIComponent(`Factura ${inv.invoiceNumber || inv.id}`);
+  const total = inv.total?.amount != null ? Number(inv.total.amount).toFixed(2) + ' €' : '(pendiente)';
+  const body = encodeURIComponent(
+    `Estimado/a ${partyName.value},\n\n` +
+    `Adjunto le enviamos la factura ${inv.invoiceNumber || ''} ` +
+    `por un total de ${total}.\n\n` +
+    `Quedamos a su disposición para cualquier consulta.\n\n` +
+    `Un saludo.`
+  );
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_self');
+}
+
+function postIssuePrint() {
+  showPostIssueModal.value = false;
+  window.print();
+}
+
+async function postIssueEmail() {
+  showPostIssueModal.value = false;
+  await generateInvoicePdf();
+  openMailClient();
+}
+
+async function postIssueBoth() {
+  showPostIssueModal.value = false;
+  await generateInvoicePdf();
+  window.print();
+  setTimeout(() => openMailClient(), 500);
+}
+
+async function generateInvoicePdf() {
+  const el = invoiceContentRef.value;
+  if (!el) return;
+  const { default: html2pdf } = await import('html2pdf.js');
+  const filename = `Factura_${invoice.value.invoiceNumber || invoice.value.id}.pdf`;
+
+  el.classList.add('pdf-rendering');
+  await new Promise(r => setTimeout(r, 100));
+
+  try {
+    await html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      })
+      .from(el)
+      .save();
+  } finally {
+    el.classList.remove('pdf-rendering');
+  }
+}
+
+async function markAsPaid() {
+  if (!confirm('¿Marcar esta factura como pagada?')) return;
+  isChangingStatus.value = true;
+  try {
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'PAID');
+  } catch (err) {
+    alert(err?.message || 'No se pudo marcar como pagada');
+  } finally {
+    isChangingStatus.value = false;
+  }
+}
+
+async function voidInvoice() {
+  if (!confirm('¿Anular esta factura? Esta acción no se puede deshacer.')) return;
+  isChangingStatus.value = true;
+  try {
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'VOID');
+  } catch (err) {
+    alert(err?.message || 'No se pudo anular la factura');
+  } finally {
+    isChangingStatus.value = false;
   }
 }
 
@@ -223,6 +429,14 @@ function formatPartyId(partyId) {
 function formatId(id) {
   if (!id) return '—';
   return id.substring(0, 8) + '...';
+}
+
+function buildDisplayName(item) {
+  const name = item.productName || '';
+  const config = item.optionConfiguration;
+  if (!name) return '—';
+  if (!config || Object.keys(config).length === 0) return name;
+  return name + ' - ' + Object.values(config).join(', ');
 }
 
 function getTypeLabel(type) {
@@ -351,8 +565,7 @@ function getTypeLabel(type) {
 }
 
 .info-card,
-.notes-card,
-.related-section {
+.notes-card {
   background: white;
   border-radius: 8px;
   padding: 1.5rem;
@@ -360,8 +573,7 @@ function getTypeLabel(type) {
 }
 
 .info-card h3,
-.notes-card h3,
-.related-section h3 {
+.notes-card h3 {
   font-size: 1rem;
   font-weight: 600;
   color: #1f2937;
@@ -405,34 +617,65 @@ function getTypeLabel(type) {
   margin: 0;
 }
 
-.related-section {
+.related-documents-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
 }
 
-.related-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.related-list li {
-  padding: 0.5rem 0;
+.related-documents-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #f3f4f6;
 }
 
-.related-list li:last-child {
-  border-bottom: none;
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.related-link {
-  font-family: 'Courier New', monospace;
-  color: #002395;
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.document-icon {
+  font-size: 1.5rem;
+}
+
+.document-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.document-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.document-link {
+  color: #3b82f6;
   text-decoration: none;
-  transition: color 0.2s;
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
-.related-link:hover {
-  color: #E6B800;
+.document-link:hover {
   text-decoration: underline;
 }
 
@@ -481,8 +724,13 @@ function getTypeLabel(type) {
 }
 
 .variant-id {
-  font-family: 'Courier New', monospace;
+  color: #374151;
+}
+
+.variant-sku {
   color: #6b7280;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
 }
 
 .amount {
@@ -496,92 +744,112 @@ function getTypeLabel(type) {
   color: #9ca3af;
 }
 
-.print-doc-header,
-.print-doc-footer {
-  display: none;
-}
+/* Print styles: see @/assets/sales-print.css */
 
-.print-brand {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #374151;
-}
-
-.print-doc-header h2 {
-  margin: 0.35rem 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.print-issuer-line {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #4b5563;
-}
-
-.print-doc-meta {
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: #4b5563;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-@media print {
-  :deep(.navbar),
-  :deep(nav),
-  .page-header,
-  .btn-back,
-  .header-actions,
-  .btn,
-  .related-link {
-    display: none !important;
-  }
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
 
-  .invoice-detail-container {
-    padding: 0;
-    max-width: none;
-  }
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
 
-  .print-doc-header,
-  .print-doc-footer {
-    display: block;
-    border: 1px solid #d1d5db;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: white;
-  }
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+}
 
-  .print-doc-footer {
-    margin-top: 0.75rem;
-    margin-bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: #4b5563;
-  }
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
 
-  .info-card,
-  .notes-card,
-  .related-section,
-  .line-items-section,
-  .table-container {
-    box-shadow: none !important;
-    border: 1px solid #d1d5db;
-  }
+.btn-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
 
-  .type-badge {
-    border: 1px solid #9ca3af;
-    color: #111827 !important;
-    background: transparent !important;
-  }
+.modal-body {
+  padding: 1.5rem;
+}
 
-  .data-table {
-    font-size: 0.75rem;
-  }
+.modal-description {
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.post-issue-prompt {
+  font-size: 0.95rem;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.post-issue-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-issue-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+}
+
+.post-issue-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--tt-text-secondary, #64748b);
+  text-align: center;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #f3f4f6;
 }
 </style>

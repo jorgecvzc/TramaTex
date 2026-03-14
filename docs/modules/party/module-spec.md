@@ -1,44 +1,41 @@
-# Módulo de Party (Gestión de Terceros)
+# Especificación del Módulo: Party (Gestión de Terceros)
 
-**Estado:** Aceptado
+El módulo Party es el núcleo de identidad de TramaTex. Su propósito es proporcionar una fuente de verdad única para cualquier actor externo o interno, eliminando la necesidad de silos de datos para clientes, proveedores o empleados.
 
-## 1. Propósito
+---
 
-*   **Visión del Módulo:** Gestionar la información de todos los terceros (clientes, proveedores, empleados) que interactúan con el sistema TramaTex, consolidando sus identidades, roles, perfiles (persona/organización), contactos y relaciones.
-*   **Objetivos Clave:**
-    *   Proporcionar un sistema centralizado y unificado para la gestión de clientes y proveedores, evitando la duplicación de datos.
-    *   Soportar la complejidad de un mismo tercero asumiendo múltiples roles (ej. cliente y proveedor).
-    *   Gestionar relaciones complejas entre terceros (ej. jerarquías de empresas, empleados de organizaciones).
-    *   Proveer información de Party a otros módulos (Product, Pricing, Sales, IAM).
+## 1. Filosofía de Identidad Unificada
 
-## 2. Requisitos
+A diferencia de sistemas tradicionales que separan físicamente a un "Cliente" de un "Proveedor", TramaTex utiliza el patrón **Party**. Esto permite que una entidad (ej. una empresa textil que nos compra botones pero nos vende uniformes) mantenga una única ficha técnica, dirección y contactos, asumiendo múltiples roles comerciales simultáneamente.
 
-### 2.1. Requisitos Funcionales
+### Objetivos de Valor
+- **Integridad de Datos:** Evitar que cambios en la dirección o razón social deban replicarse en múltiples tablas.
+- **Trazabilidad 360°:** Permitir al sistema conocer la relación total con un tercero (cuánto le debemos, cuánto nos debe, qué produce para nosotros) desde un único punto.
+- **Flexibilidad Operativa:** Facilitar la promoción de un prospecto a cliente o la contratación de un proveedor como empleado sin pérdida de historial.
 
-*   **RF-P-001:** Crear y mantener Parties con perfil de persona, organización o ambos.
-*   **RF-P-002:** Gestionar los roles de una Party (ej. Cliente, Proveedor, Empleado).
-*   **RF-P-003:** Gestionar relaciones entre Parties (ej. "es empleado de", "es filial de").
-*   **RF-P-004:** Gestionar puntos de contacto para perfiles de organización.
-*   **RF-P-005:** Listar Parties con filtros por roles, tipo de perfil, estado y datos de perfil.
-*   **RF-P-006:** Activar y desactivar Parties.
-*   **RF-P-007:** Gestionar un porcentaje de descuento por defecto (`defaultDiscountPercentage`) por Party, utilizado por el módulo Pricing como fallback cuando no existen reglas de descuento específicas.
+---
 
-## 3. Casos de Uso
+## 2. Capacidades Estratégicas
 
-Para una lista completa y detallada de los casos de uso, incluyendo flujos y entradas/salidas, consulte el documento [Casos de Uso - Módulo Party](./use-cases.md).
+### Gestión de Perfiles Adaptativos
+El módulo distingue entre la naturaleza de la entidad (**Persona** vs. **Organización**). El comportamiento del sistema se adapta automáticamente:
+- Si es organización, activa la gestión de puntos de contacto y datos fiscales corporativos.
+- Si es persona, se enfoca en la identidad individual y roles operativos (ej. operario de taller).
 
-## 4. Modelo de Dominio
+### Arquitectura de Roles Dinámicos
+Los roles no son definiciones estáticas, sino "capas" de comportamiento que se añaden a la identidad. Una Party puede nacer como un contacto genérico y evolucionar a Cliente o Proveedor según se generen documentos en los módulos de **Sales** o **Product**.
 
-Para una descripción detallada del modelo de dominio, incluyendo entidades, Value Objects, agregados y sus relaciones, consulte el documento [Modelo de Dominio - Módulo Party](./domain-model.md).
+### Gobernanza de la Relación
+El módulo permite modelar el mercado real mediante relaciones jerárquicas (Filial de, Empleado de), permitiendo que las reglas de negocio (como descuentos heredados) fluyan a través de la estructura organizativa del cliente.
 
-## 5. Decisiones de Diseño
+---
 
-*   **Patrón Party (Unificado):** Se adopta un modelo de `Party` unificado que puede tener un perfil de persona, de organización, o ambos. Esto elimina la duplicación de datos y permite múltiples roles por Party (`ADR-005`).
-*   **Roles y Relaciones Explícitas:** Los roles (`PartyRole`) y las relaciones (`PartyRelationship`) son entidades de dominio explícitas que definen la función y el vínculo de una Party con otras.
-*   **Contactos Simplificados:** El `OrganizationProfile` gestiona una lista de `ContactDetails` (Value Object), permitiendo flexibilidad sin sobre-ingeniería (`ADR-012`).
-*   **Exclusión de Campos de Auditoría del Dominio:** `CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy` se gestionan en la capa de infraestructura/persistencia.
-*   **Relaciones con Otros Módulos:**
-    *   **IAM:** Una Party puede vincularse a un usuario de IAM.
-    *   **Product:** Referenciado por `PartyServiceConfiguration` (en el módulo Product).
-    *   **Pricing:** Consume `PartyID` y atributos relevantes del cliente (incluyendo `defaultDiscountPercentage`) para el cálculo de precios, a través del `PartyPricingClient` (anti-corruption layer).
-    *   **Sales:** Las órdenes y cotizaciones referencian `PartyID`.
+## 3. Interacción con el Ecosistema
+
+Party actúa como un **Proveedor de Contexto** para el resto de módulos:
+- **Sales:** Provee la identidad fiscal y el descuento base para presupuestos.
+- **MES:** Provee la identidad de los operarios para el reporte de tiempos.
+- **Pricing:** Facilita la segmentación de reglas de precio basadas en la categoría de la Party.
+
+---
+**Última Actualización:** 2026-03-07

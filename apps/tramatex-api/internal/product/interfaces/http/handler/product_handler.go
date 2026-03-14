@@ -89,7 +89,7 @@ func (h *ProductHandler) AddGroupToProduct(c *gin.Context) {
 
 	product, err := h.service.AddGroupToProduct(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *ProductHandler) AddDirectAttributeToProduct(c *gin.Context) {
 
 	product, err := h.service.AddDirectAttributeToProduct(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *ProductHandler) UpdateProductSKU(c *gin.Context) {
 
 	product, err := h.service.UpdateProductSKU(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -204,7 +204,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 
 	product, err := h.service.UpdateProduct(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -236,7 +236,7 @@ func (h *ProductHandler) CreateAttribute(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Ya existe un atributo con ese código"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -267,7 +267,7 @@ func (h *ProductHandler) ListAttributes(c *gin.Context) {
 
 	attributes, err := h.service.ListAttributes(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -299,7 +299,7 @@ func (h *ProductHandler) UpdateAttribute(c *gin.Context) {
 
 	attribute, err := h.service.UpdateAttribute(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -327,7 +327,7 @@ func (h *ProductHandler) DeleteAttribute(c *gin.Context) {
 
 	err = h.service.DeleteAttribute(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -386,7 +386,7 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 
 	products, err := h.service.ListProducts(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -402,7 +402,7 @@ func (h *ProductHandler) GetCalculatedOptionSetsForProduct(c *gin.Context) {
 
 	attributes, err := h.service.GetApplicableAttributesForProduct(c.Request.Context(), productID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -419,7 +419,7 @@ func (h *ProductHandler) GenerateProductVariants(c *gin.Context) {
 	cmd := application.GenerateProductVariantsCommand{ProductID: productID}
 	err = h.service.GenerateProductVariants(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -471,7 +471,7 @@ func (h *ProductHandler) ListProductVariantsByProductID(c *gin.Context) {
 	query := application.ListProductVariantsByProductIDQuery{ProductID: productID}
 	variants, err := h.service.ListProductVariantsByProductID(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -534,7 +534,7 @@ func (h *ProductHandler) UpdateProductVariant(c *gin.Context) {
 
 	variant, err := h.service.UpdateProductVariant(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -563,7 +563,7 @@ func (h *ProductHandler) CreatePartyServiceConfiguration(c *gin.Context) {
 
 	config, err := h.service.CreatePartyServiceConfiguration(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -580,7 +580,7 @@ func (h *ProductHandler) ListPartyServiceConfigurationsByPartyID(c *gin.Context)
 	query := application.ListPartyServiceConfigurationsByPartyIDQuery{PartyID: partyID}
 	configs, err := h.service.ListPartyServiceConfigurationsByPartyID(c.Request.Context(), query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -637,7 +637,7 @@ func (h *ProductHandler) UpdatePartyServiceConfiguration(c *gin.Context) {
 
 	config, err := h.service.UpdatePartyServiceConfiguration(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -664,7 +664,7 @@ func (h *ProductHandler) DeletePartyServiceConfiguration(c *gin.Context) {
 	cmd := application.DeletePartyServiceConfigurationCommand{ID: configID, PartyID: partyID, ActorID: actorID}
 	err = h.service.DeletePartyServiceConfiguration(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -679,7 +679,7 @@ func (h *ProductHandler) DeletePartyServiceConfiguration(c *gin.Context) {
 func (h *ProductHandler) ListBrands(c *gin.Context) {
 	brands, err := h.service.ListBrands(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -699,7 +699,7 @@ func (h *ProductHandler) GetBrandByID(c *gin.Context) {
 
 	brand, err := h.service.GetBrandByID(c.Request.Context(), brandID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -722,7 +722,7 @@ func (h *ProductHandler) CreateBrand(c *gin.Context) {
 
 	brand, err := h.service.CreateBrand(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -752,7 +752,7 @@ func (h *ProductHandler) UpdateBrand(c *gin.Context) {
 
 	brand, err := h.service.UpdateBrand(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -780,7 +780,7 @@ func (h *ProductHandler) DeleteBrand(c *gin.Context) {
 
 	err = h.service.DeleteBrand(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -795,7 +795,7 @@ func (h *ProductHandler) DeleteBrand(c *gin.Context) {
 func (h *ProductHandler) ListProductGroups(c *gin.Context) {
 	groups, err := h.service.ListProductGroups(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -815,7 +815,7 @@ func (h *ProductHandler) GetProductGroupByID(c *gin.Context) {
 
 	group, err := h.service.GetProductGroupByID(c.Request.Context(), groupID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -838,7 +838,7 @@ func (h *ProductHandler) CreateProductGroup(c *gin.Context) {
 
 	group, err := h.service.CreateProductGroup(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -868,7 +868,7 @@ func (h *ProductHandler) UpdateProductGroup(c *gin.Context) {
 
 	group, err := h.service.UpdateProductGroup(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
@@ -896,9 +896,26 @@ func (h *ProductHandler) DeleteProductGroup(c *gin.Context) {
 
 	err = h.service.DeleteProductGroup(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
 		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// SmartSearch handles intelligent product/variant search by SKU, barcode, or partial reference.
+func (h *ProductHandler) SmartSearch(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
+		return
+	}
+
+	result, err := h.service.SmartSearch(c.Request.Context(), application.SmartSearchQuery{Query: q})
+	if err != nil {
+		c.JSON(mapErrorToHTTP(err), gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

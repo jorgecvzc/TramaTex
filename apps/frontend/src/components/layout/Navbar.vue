@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserMenu from './UserMenu.vue'
-import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Folder, Zap, User, Wrench, Tag, Plus } from 'lucide-vue-next'
+import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Folder, Zap, User, Wrench, Tag, Plus } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
@@ -126,6 +126,11 @@ onBeforeUnmount(() => {
             <li>
               <RouterLink to="/sales/invoices" class="dropdown-item" title="Facturas" @click="closeAllDropdowns">
                 <Receipt :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/sales/tickets/new" class="dropdown-item" title="Nuevo Ticket" @click="closeAllDropdowns">
+                <Ticket :size="20" />
               </RouterLink>
             </li>
           </ul>

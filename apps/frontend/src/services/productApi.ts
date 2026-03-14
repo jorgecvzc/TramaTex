@@ -48,6 +48,7 @@ interface VariantUI {
   product_id: string
   barcode?: string
   base_cost?: number
+  price?: number
   option_configuration: Record<string, string>
   status: string
   is_active: boolean
@@ -68,6 +69,29 @@ interface ProductGroupUI {
   is_active: boolean
   parent_group_id: string | null
   description: string | null
+}
+
+/**
+ * Smart search result from backend.
+ * type: "exact_variant" | "exact_product" | "partial_match" | "product_list" | "no_match"
+ */
+export interface SmartSearchResult {
+  type: 'exact_variant' | 'exact_product' | 'partial_match' | 'product_list' | 'no_match'
+  product?: ProductUI
+  variant?: VariantUI
+  products?: ProductUI[]
+  optionSets?: Array<{
+    attributeId: string
+    attributeName: string
+    attributeCode: string
+    values: Array<{
+      id: string
+      value: string
+      code: string
+    }>
+  }>
+  selectedAttributes?: Record<string, string>
+  matchingVariants?: VariantUI[]
 }
 
 class ProductApiService {
@@ -159,6 +183,7 @@ class ProductApiService {
       product_id: v.productId,
       barcode: v.barcode,
       base_cost: v.baseCost,
+      price: v.price,
       option_configuration: v.optionConfiguration || {},
       status: v.status,
       is_active: v.isActive,
@@ -535,13 +560,91 @@ class ProductApiService {
   }
 
   /**
+   * Smart search: searches by SKU, barcode, or partial reference.
+   * Returns typed result for auto-resolution in sales line items.
+   */
+  async smartSearch(query: string): Promise<SmartSearchResult> {
+    const response = await this.safeFetch(
+      `${this.baseUrl}/smart-search?q=${encodeURIComponent(query)}`,
+      {
+        method: 'GET',
+        headers: this.getHeaders(),
+      },
+    )
+
+    if (!response.ok) {
+      await this.handleError(response, 'Error en búsqueda inteligente')
+    }
+
+    const data = await response.json()
+    return this.transformSmartSearchResponse(data)
+  }
+
+  /**
+   * Transform smart search response from backend camelCase to frontend format
+   */
+  private transformSmartSearchResponse(data: any): SmartSearchResult {
+    const result: SmartSearchResult = {
+      type: data.type,
+    }
+
+    if (data.product) {
+      result.product = this.transformProductResponse(data.product)
+    }
+    if (data.variant) {
+      result.variant = this.transformVariantResponse(data.variant)
+    }
+    if (data.products) {
+      result.products = data.products.map((p: any) => this.transformProductResponse(p))
+    }
+    if (data.optionSets) {
+      result.optionSets = data.optionSets.map((os: any) => ({
+        attributeId: os.id,
+        attributeName: os.name,
+        attributeCode: os.code,
+        values: (os.values || []).map((v: any) => ({
+          id: v.id,
+          value: v.value,
+          code: v.code,
+        })),
+      }))
+    }
+    if (data.selectedAttributes) {
+      result.selectedAttributes = data.selectedAttributes
+    }
+    if (data.matchingVariants) {
+      result.matchingVariants = data.matchingVariants.map((v: any) => this.transformVariantResponse(v))
+    }
+
+    return result
+  }
+
+  /**
+   * Transform product from backend camelCase to frontend snake_case
+   */
+  private transformProductResponse(p: any): ProductUI {
+    return {
+      id: p.id,
+      sku: p.sku,
+      name: p.name,
+      long_name: p.longName || '',
+      description: p.description || '',
+      product_type: p.productType || '',
+      base_price: p.basePrice,
+      tax_rate: p.taxRate,
+      brand_id: p.brandId || null,
+      group_ids: p.groupIds || [],
+      direct_attribute_ids: p.directAttributeIds || [],
+      is_active: p.isActive,
+      variants_count: p.variantsCount || 0,
+      calculated_option_sets: p.calculatedOptionSets,
+    }
+  }
+
+  /**
    * Find or create variant (JIT creation)
    */
   async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<{ variant: VariantUI }> {
-    if (!optionConfiguration || Object.keys(optionConfiguration).length === 0) {
-      throw new Error('Debe seleccionar al menos una opción para crear/buscar la variante')
-    }
-
     const response = await this.safeFetch(
       `${this.baseUrl}/${productId}/variants/find-or-create`,
       {

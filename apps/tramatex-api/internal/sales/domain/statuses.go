@@ -12,7 +12,7 @@ type InvoiceStatus string
 
 const (
 	QuoteStatusDraft     QuoteStatus = "BORRADOR"
-	QuoteStatusSent      QuoteStatus = "ENVIADA"
+	QuoteStatusIssued    QuoteStatus = "EMITIDA"
 	QuoteStatusApproved  QuoteStatus = "APROBADA"
 	QuoteStatusRejected  QuoteStatus = "RECHAZADA"
 	QuoteStatusExpired   QuoteStatus = "EXPIRADA"
@@ -39,7 +39,7 @@ const (
 
 func (s QuoteStatus) IsValid() error {
 	switch s {
-	case QuoteStatusDraft, QuoteStatusSent, QuoteStatusApproved, QuoteStatusRejected, QuoteStatusExpired, QuoteStatusConverted:
+	case QuoteStatusDraft, QuoteStatusIssued, QuoteStatusApproved, QuoteStatusRejected, QuoteStatusExpired, QuoteStatusConverted:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid quote status: %s", s))
@@ -77,11 +77,13 @@ func (s InvoiceStatus) IsValid() error {
 func canTransitionQuote(from QuoteStatus, to QuoteStatus) bool {
 	switch from {
 	case QuoteStatusDraft:
-		return to == QuoteStatusSent
-	case QuoteStatusSent:
-		return to == QuoteStatusApproved || to == QuoteStatusRejected || to == QuoteStatusExpired
+		return to == QuoteStatusIssued
+	case QuoteStatusIssued:
+		return to == QuoteStatusApproved || to == QuoteStatusRejected || to == QuoteStatusExpired || to == QuoteStatusDraft
 	case QuoteStatusApproved:
 		return to == QuoteStatusConverted
+	case QuoteStatusRejected:
+		return to == QuoteStatusDraft
 	default:
 		return false
 	}
@@ -94,11 +96,13 @@ func canTransitionOrder(from SalesOrderStatus, to SalesOrderStatus) bool {
 	case SalesOrderStatusInPreparation:
 		return to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusDelivered || to == SalesOrderStatusCanceled
 	case SalesOrderStatusPartiallyDelivered:
-		return to == SalesOrderStatusDelivered || to == SalesOrderStatusCanceled
+		return to == SalesOrderStatusDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced || to == SalesOrderStatusCanceled
 	case SalesOrderStatusDelivered:
 		return to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced
 	case SalesOrderStatusPartiallyInvoiced:
 		return to == SalesOrderStatusInvoiced
+	case SalesOrderStatusCanceled:
+		return to == SalesOrderStatusPending
 	default:
 		return false
 	}

@@ -15,7 +15,7 @@
     </div>
 
     <!-- Quote Detail -->
-    <div v-else-if="quote" class="quote-content">
+    <div v-else-if="quote" ref="quoteContentRef" class="quote-content">
       <!-- Header -->
       <div class="page-header">
         <div>
@@ -27,23 +27,57 @@
         </div>
         <div class="header-actions">
           <button
+            v-if="quote.status !== 'DRAFT'"
             class="btn btn-secondary"
             @click="printQuote"
             title="Imprimir presupuesto"
           >
             🖨️ Imprimir
           </button>
-          <!-- DRAFT: Enviar, Editar (implícito), Eliminar -->
+          <!-- DRAFT/ISSUED: Editar, Emitir, Eliminar -->
           <button 
-            v-if="quote.status === 'DRAFT'" 
+            v-if="canEdit && !isEditing" 
             class="btn btn-primary" 
-            @click="sendQuote"
-            title="Enviar presupuesto al cliente"
+            @click="enterEditMode"
+            title="Editar presupuesto"
           >
-            📧 Enviar
+            ✏️ Editar
           </button>
           <button 
-            v-if="quote.status === 'DRAFT'" 
+            v-if="isEditing" 
+            class="btn btn-success" 
+            @click="saveQuote"
+            :disabled="isSaving"
+            title="Guardar cambios"
+          >
+            {{ isSaving ? 'Guardando...' : '💾 Guardar' }}
+          </button>
+          <button 
+            v-if="isEditing" 
+            class="btn btn-secondary" 
+            @click="cancelEdit"
+            title="Cancelar edición"
+          >
+            ✕ Cancelar
+          </button>
+          <button 
+            v-if="quote.status === 'DRAFT' && !isEditing" 
+            class="btn btn-primary" 
+            @click="confirmIssueQuote"
+            title="Emitir presupuesto al cliente"
+          >
+            📧 Emitir
+          </button>
+          <button
+            v-if="(quote.status === 'DRAFT' || quote.status === 'ISSUED') && !isEditing"
+            class="btn btn-primary"
+            @click="createOrderFromQuote"
+            title="Crear un pedido a partir de este presupuesto"
+          >
+            📦 Crear Pedido
+          </button>
+          <button 
+            v-if="quote.status === 'DRAFT' && !isEditing" 
             class="btn btn-danger" 
             @click="deleteQuote"
             title="Eliminar presupuesto"
@@ -51,40 +85,32 @@
             🗑️ Eliminar
           </button>
           
-          <!-- SENT: Aceptar, Rechazar, Convertir a Pedido -->
+          <!-- ISSUED: Editar, Aceptar (abre modal de conversión), Rechazar -->
           <button 
-            v-if="quote.status === 'SENT'" 
+            v-if="quote.status === 'ISSUED' && !isExpired && !isEditing" 
             class="btn btn-success" 
-            @click="acceptQuote"
-            title="Marcar como aceptado"
+            @click="showConvertModal = true"
+            title="Aceptar presupuesto y generar pedido"
           >
-            ✓ Aceptar
+            ✓ Aceptar y Generar Pedido
           </button>
           <button 
-            v-if="quote.status === 'SENT'" 
+            v-if="quote.status === 'ISSUED' && !isEditing" 
             class="btn btn-danger" 
             @click="rejectQuote"
             title="Marcar como rechazado"
           >
             ✕ Rechazar
           </button>
-          <button 
-            v-if="quote.status === 'SENT' && !isExpired" 
-            class="btn btn-primary" 
-            @click="showConvertModal = true"
-            title="Convertir a pedido"
-          >
-            🔄 Convertir a Pedido
-          </button>
 
-          <!-- ACCEPTED: Convertir a Pedido -->
+          <!-- REJECTED: Reactivar -->
           <button 
-            v-if="quote.status === 'ACCEPTED'" 
+            v-if="quote.status === 'REJECTED'" 
             class="btn btn-primary" 
-            @click="showConvertModal = true"
-            title="Convertir a pedido"
+            @click="reactivateQuote"
+            title="Volver a borrador para editar y reemitir"
           >
-            🔄 Convertir a Pedido
+            🔄 Reactivar
           </button>
         </div>
       </div>
@@ -102,12 +128,20 @@
         </div>
       </div>
 
-      <!-- Expiration Warning (SENT and approaching expiration) -->
-      <div v-if="quote.status === 'SENT' && daysUntilExpiration <= 7 && daysUntilExpiration > 0" class="warning-card">
+      <!-- Expiration Warning (ISSUED and approaching expiration) -->
+      <div v-if="quote.status === 'ISSUED' && daysUntilExpiration <= 7 && daysUntilExpiration > 0" class="warning-card">
         ⚠️ Este presupuesto vence en <strong>{{ daysUntilExpiration }}</strong> día{{ daysUntilExpiration !== 1 ? 's' : '' }}.
       </div>
-      <div v-if="isExpired && quote.status === 'SENT'" class="error-card">
+      <div v-if="isExpired && quote.status === 'ISSUED'" class="error-card">
         ❌ Este presupuesto ha <strong>EXPIRADO</strong>. No se puede convertir a pedido.
+      </div>
+
+      <!-- Generated Order Link -->
+      <div v-if="quote.generatedOrderId" class="success-card">
+        📦 Este presupuesto ha generado el pedido
+        <router-link :to="`/sales/orders/${quote.generatedOrderId}`" class="order-link">
+          {{ quote.generatedOrderNumber }}
+        </router-link>
       </div>
 
       <!-- Quote Info Cards -->
@@ -132,9 +166,10 @@
           </div>
           <div class="info-row">
             <span class="label">Válido Hasta:</span>
-            <span class="value" :class="{'text-danger': isExpired, 'text-warning': daysUntilExpiration <= 7 && daysUntilExpiration > 0}">
-              {{ formatDate(quote.validUntil) }}
+            <span v-if="!isEditing" class="value" :class="{'text-danger': isExpired, 'text-warning': daysUntilExpiration <= 7 && daysUntilExpiration > 0}">
+              {{ formatDate(quote.expirationDate) }}
             </span>
+            <input v-else v-model="editForm.validUntil" type="date" class="form-input form-input-inline" />
           </div>
         </div>
 
@@ -155,18 +190,55 @@
         </div>
       </div>
 
-      <!-- Internal Notes -->
-      <div v-if="quote.internalNotes" class="notes-card">
-        <h3>Notas Internas</h3>
-        <p>{{ quote.internalNotes }}</p>
+      <!-- Observaciones -->
+      <div v-if="quote.notes || isEditing" class="notes-card">
+        <h3>Observaciones</h3>
+        <p v-if="!isEditing">{{ quote.notes }}</p>
+        <textarea v-else v-model="editForm.notes" class="form-textarea" rows="3" placeholder="Observaciones sobre el presupuesto..."></textarea>
+      </div>
+
+      <!-- MES Work References (Document-level) -->
+      <div v-if="(quote.mesWorkRefs && quote.mesWorkRefs.length > 0) || isEditing" class="notes-card">
+        <h3>Trabajos MES</h3>
+        <template v-if="!isEditing">
+          <div v-for="mesRef in quote.mesWorkRefs" :key="mesRef.mesWorkId" class="mes-ref-view">
+            <button class="mes-link" @click="goToMesWork(mesRef.mesWorkId)" type="button"
+              :title="getMesWorkTooltip(mesRef.mesWorkId)">
+              {{ formatMesWorkId(mesRef.mesWorkId) }}
+            </button>
+            <span v-if="mesRef.observations" class="mes-observations-text">— {{ mesRef.observations }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando trabajos MES...</div>
+          <div v-else-if="mesWorks.length === 0" class="mes-empty">No hay trabajos MES disponibles para este cliente.</div>
+          <div v-else class="mes-ref-list">
+            <div v-for="work in mesWorks" :key="work.id" class="mes-ref-item">
+              <label class="mes-checkbox-label">
+                <input type="checkbox" :checked="isEditMesWorkSelected(work.id)" @change="toggleEditMesWork(work.id)" />
+                <span>{{ work.work_number }} - {{ work.work_name }}</span>
+              </label>
+              <textarea v-if="isEditMesWorkSelected(work.id)" class="mes-observations" rows="2"
+                placeholder="Observaciones para este trabajo MES..."
+                :value="getEditMesWorkObservations(work.id)"
+                @input="setEditMesWorkObservations(work.id, $event.target.value)"
+              ></textarea>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Line Items -->
       <div class="line-items-section">
         <div class="section-header">
           <h2>Líneas del Presupuesto</h2>
+          <button v-if="isEditing" type="button" class="btn btn-primary" @click="addEditLineItem">
+            + Agregar Línea
+          </button>
         </div>
 
+        <!-- View mode -->
+        <template v-if="!isEditing">
         <div v-if="!quote.lineItems || quote.lineItems.length === 0" class="empty-state">
           <p>No hay líneas en este presupuesto</p>
         </div>
@@ -175,63 +247,157 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Variante de Producto</th>
+                <th>Referencia</th>
+                <th>Nombre</th>
                 <th>Cantidad</th>
-                <th>Precio Unitario</th>
-                <th>Descuento</th>
-                <th>IVA %</th>
-                <th>IVA línea</th>
-                <th>Definición MES</th>
+                <th>P. Tarifa</th>
+                <th>P. Venta</th>
+                <th>Dto. %</th>
                 <th>Subtotal</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in quote.lineItems" :key="item.id">
-                <td class="variant-id">{{ formatVariantId(item.productVariantID) }}</td>
+                <td class="variant-id">
+                  <span v-if="item.variantSku">{{ item.variantSku }}</span>
+                  <span v-else>{{ formatVariantId(item.productVariantID) }}</span>
+                </td>
+                <td>{{ buildDisplayName(item) }}</td>
                 <td>{{ item.quantity }}</td>
                 <td>
-                  {{ salesApi.formatMoney(item.finalUnitPrice) }}
-                  <span v-if="item.manualUnitPrice" class="manual-badge">Manual</span>
+                  {{ salesApi.formatUnitPrice(item.listUnitPrice) }}
                 </td>
-                <td>{{ item.finalDiscountPerUnit ? salesApi.formatMoney(item.finalDiscountPerUnit) : '—' }}</td>
-                <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
-                <td>{{ salesApi.formatMoney(item.taxAmount) }}</td>
                 <td>
-                  <button
-                    v-if="item.mesWorkId"
-                    class="mes-link"
-                    @click="goToMesWork(item.mesWorkId)"
-                    type="button"
-                    :title="getMesWorkTooltip(item.mesWorkId)"
-                  >
-                    {{ formatMesWorkId(item.mesWorkId) }}
-                  </button>
-                  <span v-else>—</span>
+                  {{ salesApi.formatUnitPrice(item.unitPrice) }}
                 </td>
+                <td>{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</td>
                 <td class="amount">{{ salesApi.formatMoney(item.subtotal) }}</td>
               </tr>
             </tbody>
             <tfoot>
               <tr class="totals-row">
-                <td colspan="7" class="totals-label">Subtotal:</td>
+                <td colspan="6" class="totals-label">Subtotal:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.subtotal) }}</td>
               </tr>
               <tr class="totals-row">
-                <td colspan="7" class="totals-label">IVA:</td>
+                <td colspan="6" class="totals-label">IVA:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.taxAmount) }}</td>
               </tr>
               <tr class="totals-row total">
-                <td colspan="7" class="totals-label">Total:</td>
+                <td colspan="6" class="totals-label">Total:</td>
                 <td class="amount">{{ salesApi.formatMoney(quote.total) }}</td>
               </tr>
             </tfoot>
           </table>
         </div>
+        </template>
+
+        <!-- Edit mode -->
+        <template v-else>
+        <div v-if="editForm.lineItems.length === 0" class="empty-state">
+          <p>No hay líneas. Agregue al menos una línea.</p>
+        </div>
+
+        <div v-else class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Referencia</th>
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>P. Tarifa</th>
+                <th>P. Venta</th>
+                <th>Dto. %</th>
+                <th>Subtotal</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in editForm.lineItems" :key="idx">
+                <td class="variant-id">
+                  <span v-if="item.variantSku">{{ item.variantSku }}</span>
+                  <span v-else>{{ formatVariantId(item.productVariantId) }}</span>
+                </td>
+                <td>{{ item.displayName || '—' }}</td>
+                <td>
+                  <input v-model.number="item.quantity" type="number" min="1" class="form-input form-input-small" />
+                </td>
+                <td class="col-readonly">
+                  {{ item.listPrice != null ? item.listPrice.toFixed(3) : '—' }}
+                </td>
+                <td>
+                  <input v-model.number="item.unitPrice" type="number" step="0.001" min="0" placeholder="Auto" class="form-input form-input-small" />
+                </td>
+                <td>
+                  <input v-model.number="item.discountPercent" type="number" step="0.01" min="0" max="100" placeholder="0" class="form-input form-input-small" />
+                </td>
+                <td class="col-subtotal">
+                  <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
+                  <span v-else class="subtotal-value">{{ formatMoneyAmount(getEditLineSubtotal(item)) }}</span>
+                </td>
+                <td class="actions-cell">
+                  <button type="button" class="btn-icon danger" @click="removeEditLineItem(idx)" title="Eliminar">🗑️</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Totals Summary -->
+        <div v-if="editForm.lineItems.length > 0" class="totals-section">
+          <h3>Resumen de Totales</h3>
+          <div class="totals-grid">
+            <div class="total-row">
+              <span class="total-label">Subtotal:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.subtotal) }}</span>
+            </div>
+            <div class="total-row">
+              <span class="total-label">IVA:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.tax) }}</span>
+            </div>
+            <div class="total-row total-final">
+              <span class="total-label">Total:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.total) }}</span>
+            </div>
+          </div>
+        </div>
+        </template>
       </div>
 
       <div class="print-doc-footer">
         <span>Documento generado por {{ issuerProfile.displayName }}</span>
-        <span>Válido hasta: {{ formatDate(quote.validUntil) }}</span>
+        <span>Válido hasta: {{ formatDate(quote.expirationDate) }}</span>
+      </div>
+    </div>
+
+    <!-- Post-Issue Actions Modal -->
+    <div v-if="showPostIssueModal" class="modal-overlay" @click="showPostIssueModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Presupuesto Emitido</h3>
+          <button class="btn-close" @click="showPostIssueModal = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-description">
+            El presupuesto <strong>{{ quote?.quoteNumber }}</strong> se ha emitido correctamente.
+          </p>
+          <p class="post-issue-prompt">¿Qué desea hacer a continuación?</p>
+          <div class="post-issue-actions">
+            <button class="btn btn-primary post-issue-btn" @click="postIssuePrint">
+              🖨️ Imprimir
+            </button>
+            <button class="btn btn-primary post-issue-btn" @click="postIssueEmail">
+              📧 Descargar PDF y enviar por correo
+            </button>
+            <button class="btn btn-primary post-issue-btn" @click="postIssueBoth">
+              🖨️📧 Descargar PDF, imprimir y enviar
+            </button>
+          </div>
+          <p class="post-issue-hint">El PDF se descargará automáticamente para adjuntarlo al correo.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showPostIssueModal = false">Cerrar sin acción</button>
+        </div>
       </div>
     </div>
 
@@ -239,7 +405,7 @@
     <div v-if="showConvertModal" class="modal-overlay" @click="showConvertModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Convertir Presupuesto a Pedido</h3>
+          <h3>Aceptar Presupuesto y Generar Pedido</h3>
           <button class="btn-close" @click="showConvertModal = false">✕</button>
         </div>
         <div class="modal-body">
@@ -282,33 +448,70 @@
         </div>
       </div>
     </div>
+
+    <!-- Variant Selector Modal (Edit mode) -->
+    <div v-if="showVariantSelector" class="modal-overlay" @click.self="showVariantSelector = false">
+      <div class="modal-content modal-wide" @click.stop>
+        <div class="modal-header">
+          <h3>Seleccionar Variante de Producto</h3>
+          <button class="btn-close" @click="showVariantSelector = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <VariantSelector
+            :product-id="null"
+            title=""
+            description="Seleccione una variante de producto"
+            @variant-selected="handleVariantSelected"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
 import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
+import { calculateBaseSalesPrice } from '@/services/pricingApi';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 
+const quoteContentRef = ref(null);
 const quote = ref(null);
 const isLoading = ref(false);
 const error = ref('');
 const partyName = ref('Cargando...');
+const partyDefaultDiscount = ref(null);
 const mesWorksCache = ref({});
+const mesWorks = ref([]);
+const isLoadingMesWorks = ref(false);
 const issuerProfile = getPrintIssuerProfile();
 
+const showPostIssueModal = ref(false);
 const showConvertModal = ref(false);
 const isConverting = ref(false);
 const convertForm = ref({
   deliveryDate: '',
   notes: '',
+});
+
+// Edit mode state
+const isEditing = ref(false);
+const isSaving = ref(false);
+const showVariantSelector = ref(false);
+const editForm = ref({
+  validUntil: '',
+  notes: '',
+  mesWorkRefs: [],
+  lineItems: [],
 });
 
 const minDeliveryDate = computed(() => {
@@ -317,20 +520,25 @@ const minDeliveryDate = computed(() => {
   return tomorrow.toISOString().split('T')[0];
 });
 
+const canEdit = computed(() => {
+  const s = quote.value?.status;
+  return s === 'DRAFT' || s === 'ISSUED';
+});
+
 const isExpired = computed(() => {
-  if (!quote.value?.validUntil) return false;
+  if (!quote.value?.expirationDate) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const validUntil = new Date(quote.value.validUntil);
+  const validUntil = new Date(quote.value.expirationDate);
   validUntil.setHours(0, 0, 0, 0);
   return validUntil < today;
 });
 
 const daysUntilExpiration = computed(() => {
-  if (!quote.value?.validUntil) return null;
+  if (!quote.value?.expirationDate) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const validUntil = new Date(quote.value.validUntil);
+  const validUntil = new Date(quote.value.expirationDate);
   validUntil.setHours(0, 0, 0, 0);
   const diffTime = validUntil - today;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -372,6 +580,7 @@ async function loadPartyName() {
   try {
     const party = await partyApi.getParty(quote.value.partyId);
     partyName.value = party.name || 'Sin nombre';
+    partyDefaultDiscount.value = party.default_discount_percentage || null;
   } catch (err) {
     console.error('Error loading party name:', err);
     partyName.value = 'Error al cargar';
@@ -379,49 +588,80 @@ async function loadPartyName() {
 }
 
 async function loadMesWorksForQuote() {
-  const lineItems = quote.value?.lineItems;
-  if (!Array.isArray(lineItems) || lineItems.length === 0) return;
+  const refs = quote.value?.mesWorkRefs;
+  if (!Array.isArray(refs) || refs.length === 0) return;
 
-  const mesWorkIds = [...new Set(
-    lineItems
-      .map((item) => item?.mesWorkId)
-      .filter((mesWorkId) => typeof mesWorkId === 'string' && mesWorkId.length > 0),
-  )];
-
-  const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
+  const mesWorkIds = refs.map(r => r.mesWorkId).filter(Boolean);
+  const uncachedIds = mesWorkIds.filter(id => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
+  const results = await Promise.allSettled(uncachedIds.map(id => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
   });
 }
 
-async function sendQuote() {
-  if (!confirm('¿Enviar este presupuesto al cliente? El estado cambiará a "Enviado".')) return;
+async function confirmIssueQuote() {
+  if (!confirm('¿Emitir este presupuesto al cliente? El estado cambiará a "Emitido".')) return;
 
   try {
-    await salesApi.changeQuoteStatus(quote.value.id, 'SENT');
+    await salesApi.changeQuoteStatus(quote.value.id, 'ISSUED');
     await fetchQuote();
+    showPostIssueModal.value = true;
   } catch (err) {
-    alert(err?.message || 'No se pudo enviar el presupuesto');
+    alert(err?.message || 'No se pudo emitir el presupuesto');
   }
+}
+
+function openMailClient() {
+  let email = '';
+  try {
+    // Best-effort: intentar obtener email del contacto principal
+    partyApi.listContacts(quote.value.partyId).then(({ data: contacts }) => {
+      const primary = contacts.find(c => c.email);
+      if (primary) email = primary.email;
+    }).catch(() => {});
+  } catch { /* no bloquear */ }
+
+  const q = quote.value;
+  const subject = encodeURIComponent(`Presupuesto ${q.quoteNumber || q.id}`);
+  const total = q.total?.amount != null ? Number(q.total.amount).toFixed(2) + ' €' : '(pendiente)';
+  const body = encodeURIComponent(
+    `Estimado/a ${partyName.value},\n\n` +
+    `Adjunto le enviamos el presupuesto ${q.quoteNumber || ''} ` +
+    `por un total de ${total}.\n\n` +
+    `Quedamos a su disposición para cualquier consulta.\n\n` +
+    `Un saludo.`
+  );
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_self');
+}
+
+function postIssuePrint() {
+  showPostIssueModal.value = false;
+  window.print();
+}
+
+async function postIssueEmail() {
+  showPostIssueModal.value = false;
+  await generateQuotePdf();
+  openMailClient();
+}
+
+async function postIssueBoth() {
+  showPostIssueModal.value = false;
+  await generateQuotePdf();
+  window.print();
+  setTimeout(() => openMailClient(), 500);
 }
 
 async function acceptQuote() {
-  if (!confirm('¿Marcar este presupuesto como aceptado?')) return;
-
-  try {
-    await salesApi.changeQuoteStatus(quote.value.id, 'ACCEPTED');
-    await fetchQuote();
-  } catch (err) {
-    alert(err?.message || 'No se pudo aceptar el presupuesto');
-  }
+  // Now handled by the accept-and-convert modal flow
+  showConvertModal.value = true;
 }
 
 async function rejectQuote() {
-  if (!confirm('¿Marcar este presupuesto como rechazado? Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Marcar este presupuesto como rechazado? Podrá reactivarse más tarde.')) return;
 
   try {
     await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED');
@@ -431,17 +671,47 @@ async function rejectQuote() {
   }
 }
 
+async function reactivateQuote() {
+  if (!confirm('¿Reactivar este presupuesto? Volverá al estado Borrador para poder editarlo y reemitirlo.')) return;
+
+  try {
+    await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT');
+    await fetchQuote();
+  } catch (err) {
+    alert(err?.message || 'No se pudo reactivar el presupuesto');
+  }
+}
+
 async function deleteQuote() {
   if (!confirm('¿Eliminar este presupuesto? Esta acción no se puede deshacer.')) return;
 
   try {
-    // Note: salesApi might not have deleteQuote yet, this is a placeholder
-    // await salesApi.deleteQuote(quote.value.id);
-    alert('Funcionalidad de eliminación pendiente de implementación en el backend');
-    // router.push('/sales/quotes');
+    await salesApi.deleteQuote(quote.value.id);
+    router.push('/sales/quotes');
   } catch (err) {
     alert(err?.message || 'No se pudo eliminar el presupuesto');
   }
+}
+
+function createOrderFromQuote() {
+  const q = quote.value;
+  const fromQuote = {
+    partyId: q.partyId,
+    notes: q.notes || '',
+    mesWorkRefs: (q.mesWorkRefs || []).map(r => ({ mesWorkId: r.mesWorkId, observations: r.observations || '' })),
+    lineItems: (q.lineItems || []).map(item => ({
+      productVariantId: item.productVariantId,
+      selectedVariantName: item.variantSku || '',
+      productName: item.productName || '',
+      optionConfiguration: item.optionConfiguration || {},
+      quantity: item.quantity,
+      unitPrice: item.unitPrice?.amount ?? null,
+      listPrice: item.listUnitPrice?.amount ?? null,
+      discountPercent: item.discountPercent ?? null,
+    })),
+  };
+  sessionStorage.setItem('orderFromQuote', JSON.stringify(fromQuote));
+  router.push('/sales/orders/new');
 }
 
 async function convertToOrder() {
@@ -458,7 +728,14 @@ async function convertToOrder() {
   isConverting.value = true;
 
   try {
-    const order = await salesApi.convertQuoteToOrder(quote.value.id, convertForm.value.deliveryDate);
+    let order;
+    if (quote.value.status === 'ISSUED') {
+      // Accept + convert in one atomic operation
+      order = await salesApi.acceptAndConvertQuote(quote.value.id, salesApi.formatDateForAPI(new Date(convertForm.value.deliveryDate)));
+    } else {
+      // Already ACCEPTED, just convert
+      order = await salesApi.convertQuoteToOrder(quote.value.id, salesApi.formatDateForAPI(new Date(convertForm.value.deliveryDate)));
+    }
     
     alert(`✓ Presupuesto convertido exitosamente.\nPedido creado: ${order.orderNumber || order.id}`);
     
@@ -474,12 +751,293 @@ async function convertToOrder() {
   }
 }
 
+function enterEditMode() {
+  editForm.value.validUntil = quote.value.expirationDate ? new Date(quote.value.expirationDate).toISOString().split('T')[0] : '';
+  editForm.value.notes = quote.value.notes || '';
+  editForm.value.mesWorkRefs = (quote.value.mesWorkRefs || []).map(r => ({
+    mesWorkId: r.mesWorkId,
+    observations: r.observations || '',
+  }));
+  editForm.value.lineItems = (quote.value.lineItems || []).map(item => ({
+    productVariantId: item.productVariantId,
+    variantSku: item.variantSku || '',
+    displayName: buildDisplayName(item),
+    quantity: item.quantity,
+    listPrice: item.listUnitPrice?.amount ?? null,
+    unitPrice: item.unitPrice?.amount ?? null,
+    discountPercent: item.discountPercent ?? null,
+    taxRate: item.taxRate ?? 21,
+  }));
+  isEditing.value = true;
+  loadMesWorksForParty();
+  fetchPreviewCalculation();
+}
+
+function cancelEdit() {
+  isEditing.value = false;
+  showVariantSelector.value = false;
+}
+
+async function loadMesWorksForParty() {
+  const partyId = quote.value?.partyId;
+  if (!partyId) return;
+  isLoadingMesWorks.value = true;
+  try {
+    mesWorks.value = await mesApi.listWorkDefinitions({ party_id: partyId });
+  } catch (err) {
+    console.error('Error loading MES works for party:', err);
+    mesWorks.value = [];
+  } finally {
+    isLoadingMesWorks.value = false;
+  }
+}
+
+function isEditMesWorkSelected(workId) {
+  return editForm.value.mesWorkRefs.some(r => r.mesWorkId === workId);
+}
+
+function toggleEditMesWork(workId) {
+  const idx = editForm.value.mesWorkRefs.findIndex(r => r.mesWorkId === workId);
+  if (idx >= 0) {
+    editForm.value.mesWorkRefs.splice(idx, 1);
+  } else {
+    editForm.value.mesWorkRefs.push({ mesWorkId: workId, observations: '' });
+  }
+}
+
+function getEditMesWorkObservations(workId) {
+  return editForm.value.mesWorkRefs.find(r => r.mesWorkId === workId)?.observations || '';
+}
+
+function setEditMesWorkObservations(workId, value) {
+  const ref = editForm.value.mesWorkRefs.find(r => r.mesWorkId === workId);
+  if (ref) ref.observations = value;
+}
+
+function addEditLineItem() {
+  showVariantSelector.value = true;
+}
+
+function handleVariantSelected(payload) {
+  const variant = payload?.variant;
+  if (variant) {
+    const name = variant.product_name || '';
+    const config = variant.option_configuration;
+    let displayName = name || '—';
+    if (config && Object.keys(config).length > 0) {
+      displayName = name + ' - ' + Object.values(config).join(', ');
+    }
+    const newItem = {
+      productVariantId: variant.id,
+      variantSku: variant.sku || '',
+      displayName,
+      quantity: 1,
+      listPrice: null,
+      unitPrice: null,
+      discountPercent: partyDefaultDiscount.value || null,
+      taxRate: 21,
+    };
+    editForm.value.lineItems.push(newItem);
+    showVariantSelector.value = false;
+    // Use the reactive proxy from the array, not the plain object, so Vue detects async mutations
+    const reactiveItem = editForm.value.lineItems[editForm.value.lineItems.length - 1];
+    fetchEditLinePrice(reactiveItem, variant.product_id || '', variant.product_base_price);
+  }
+}
+
+async function fetchEditLinePrice(item, productId, basePrice) {
+  if (!item.productVariantId || !productId) {
+    if (basePrice != null) {
+      const price = Math.round(basePrice * 1000) / 1000;
+      item.listPrice = price;
+      item.unitPrice = price;
+    }
+    return;
+  }
+  try {
+    const result = await calculateBaseSalesPrice(productId, item.productVariantId);
+    const rawBaseCost = result.baseCost?.amount ?? basePrice ?? null;
+    const rawSalesPrice = result.baseSalesPrice?.amount ?? basePrice ?? null;
+    item.listPrice = rawBaseCost != null ? Math.round(rawBaseCost * 1000) / 1000 : null;
+    item.unitPrice = rawSalesPrice != null ? Math.round(rawSalesPrice * 1000) / 1000 : null;
+    if (result.taxRate != null) {
+      item.taxRate = result.taxRate;
+    }
+  } catch (err) {
+    console.warn('[QuoteDetail] Error fetching sale price:', err.message);
+    if (basePrice != null) {
+      const price = Math.round(basePrice * 1000) / 1000;
+      item.listPrice = price;
+      item.unitPrice = price;
+    }
+  }
+}
+
+function removeEditLineItem(index) {
+  editForm.value.lineItems.splice(index, 1);
+}
+
+// Backend-driven preview: all monetary calculations come from the API.
+const previewResult = ref(null);
+const isPreviewLoading = ref(false);
+let previewDebounceTimer = null;
+
+function getEditLineSubtotal(item) {
+  if (!previewResult.value) return 0;
+  const match = previewResult.value.lineItems.find(
+    li => li.productVariantId === item.productVariantId
+  );
+  return match?.subtotal?.amount ?? 0;
+}
+
+const editCalculatedTotals = computed(() => {
+  if (!previewResult.value) return { subtotal: 0, tax: 0, total: 0 };
+  return {
+    subtotal: previewResult.value.subtotal?.amount ?? 0,
+    tax: previewResult.value.taxAmount?.amount ?? 0,
+    total: previewResult.value.total?.amount ?? 0,
+  };
+});
+
+function buildPreviewItems() {
+  return editForm.value.lineItems
+    .filter(item => item.productVariantId)
+    .map(item => {
+      const entry = {
+        productVariantId: item.productVariantId,
+        quantity: item.quantity || 1,
+      };
+      if (item.unitPrice != null && item.unitPrice > 0) {
+        entry.unitPrice = { amount: item.unitPrice, currency: 'EUR' };
+      }
+      if (item.discountPercent != null) {
+        entry.discountPercent = item.discountPercent;
+      }
+      return entry;
+    });
+}
+
+async function fetchPreviewCalculation() {
+  const partyId = quote.value?.partyId;
+  const items = buildPreviewItems();
+  if (!partyId || items.length === 0) {
+    previewResult.value = null;
+    return;
+  }
+  isPreviewLoading.value = true;
+  try {
+    previewResult.value = await salesApi.previewQuoteCalculation(partyId, items);
+  } catch (err) {
+    console.warn('[QuoteDetail] Preview calculation error:', err.message);
+  } finally {
+    isPreviewLoading.value = false;
+  }
+}
+
+function debouncedPreview() {
+  clearTimeout(previewDebounceTimer);
+  previewDebounceTimer = setTimeout(fetchPreviewCalculation, 400);
+}
+
+watch(
+  () => editForm.value.lineItems.map(i => `${i.productVariantId}|${i.quantity}|${i.unitPrice}|${i.discountPercent}`).join(','),
+  () => {
+    if (isEditing.value) debouncedPreview();
+  }
+);
+
+function formatMoneyAmount(amount) {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+async function saveQuote() {
+  if (editForm.value.lineItems.length === 0) {
+    alert('Debe haber al menos una línea en el presupuesto');
+    return;
+  }
+
+  isSaving.value = true;
+
+  try {
+    const items = editForm.value.lineItems.map(item => {
+      const lineItem = {
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+      };
+
+      if (item.unitPrice != null && item.unitPrice > 0) {
+        lineItem.unitPrice = {
+          amount: item.unitPrice,
+          currency: 'EUR',
+        };
+      }
+
+      if (item.discountPercent != null) {
+        lineItem.discountPercent = item.discountPercent;
+      }
+
+      return lineItem;
+    });
+
+    const updateData = {
+      items,
+      notes: editForm.value.notes || undefined,
+      mesWorkRefs: editForm.value.mesWorkRefs,
+    };
+
+    if (editForm.value.validUntil) {
+      updateData.expirationDate = salesApi.formatDateForAPI(new Date(editForm.value.validUntil));
+    }
+
+    await salesApi.updateQuote(quote.value.id, updateData);
+    isEditing.value = false;
+    await fetchQuote();
+  } catch (err) {
+    alert(err?.message || 'No se pudo actualizar el presupuesto');
+  } finally {
+    isSaving.value = false;
+  }
+}
+
 function goBack() {
   router.push('/sales/quotes');
 }
 
 function printQuote() {
   window.print();
+}
+
+async function generateQuotePdf() {
+  const el = quoteContentRef.value;
+  if (!el) return;
+  const { default: html2pdf } = await import('html2pdf.js');
+  const filename = `Presupuesto_${quote.value.quoteNumber || quote.value.id}.pdf`;
+
+  // Toggle print-like styling so html2pdf captures the professional layout
+  el.classList.add('pdf-rendering');
+  // Allow the browser to repaint before capture
+  await new Promise(r => setTimeout(r, 100));
+
+  try {
+    await html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+      })
+      .from(el)
+      .save();
+  } finally {
+    el.classList.remove('pdf-rendering');
+  }
 }
 
 function formatDate(dateString) {
@@ -500,6 +1058,14 @@ function formatPartyId(partyId) {
 function formatVariantId(variantId) {
   if (!variantId) return '—';
   return variantId.substring(0, 8) + '...';
+}
+
+function buildDisplayName(item) {
+  const name = item.productName || '';
+  const config = item.optionConfiguration;
+  if (!name) return '—';
+  if (!config || Object.keys(config).length === 0) return name;
+  return name + ' - ' + Object.values(config).join(', ');
 }
 
 function formatMesWorkId(mesWorkId) {
@@ -527,10 +1093,11 @@ function goToMesWork(mesWorkId) {
 function getStatusLabel(status) {
   const labels = {
     DRAFT: 'Borrador',
-    SENT: 'Enviado',
+    ISSUED: 'Emitido',
     ACCEPTED: 'Aceptado',
     REJECTED: 'Rechazado',
     EXPIRED: 'Expirado',
+    CONVERTED: 'Convertido a Pedido',
   };
   return labels[status] || status;
 }
@@ -538,10 +1105,11 @@ function getStatusLabel(status) {
 function getStatusClass(status) {
   const classes = {
     DRAFT: 'warning',
-    SENT: 'info',
+    ISSUED: 'info',
     ACCEPTED: 'success',
     REJECTED: 'danger',
     EXPIRED: 'secondary',
+    CONVERTED: 'primary',
   };
   return classes[status] || 'secondary';
 }
@@ -617,7 +1185,8 @@ function getStatusClass(status) {
 }
 
 .warning-card,
-.error-card {
+.error-card,
+.success-card {
   padding: 1rem 1.5rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
@@ -634,6 +1203,19 @@ function getStatusClass(status) {
   background: #fee2e2;
   border-left: 4px solid #ef4444;
   color: #991b1b;
+}
+
+.success-card {
+  background: #d1fae5;
+  border-left: 4px solid #10b981;
+  color: #065f46;
+}
+
+.success-card .order-link {
+  font-weight: 600;
+  color: #047857;
+  text-decoration: underline;
+  margin-left: 0.25rem;
 }
 
 .info-grid {
@@ -869,25 +1451,18 @@ function getStatusClass(status) {
 }
 
 .variant-id {
-  font-family: 'Courier New', monospace;
+  color: #374151;
+}
+
+.variant-sku {
   color: #6b7280;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
 }
 
 .amount {
   font-weight: 600;
   text-align: right;
-}
-
-.manual-badge {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.125rem 0.375rem;
-  background: #e0e7ff;
-  color: #3730a3;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
 }
 
 .mes-link {
@@ -902,6 +1477,68 @@ function getStatusClass(status) {
 
 .mes-link:hover {
   color: #1d4ed8;
+}
+
+.mes-ref-view {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.mes-observations-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.mes-ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mes-ref-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mes-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mes-checkbox-label:hover {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+}
+
+.mes-checkbox-label input[type="checkbox"] {
+  accent-color: #2563eb;
+}
+
+.mes-observations {
+  margin-left: 1.75rem;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.mes-loading,
+.mes-empty {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.5rem 0;
 }
 
 .empty-state {
@@ -983,6 +1620,32 @@ function getStatusClass(status) {
   border-radius: 4px;
 }
 
+.post-issue-prompt {
+  font-size: 0.95rem;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.post-issue-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-issue-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 0.95rem;
+  padding: 0.75rem 1rem;
+}
+
+.post-issue-hint {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--tt-text-secondary, #64748b);
+  text-align: center;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }
@@ -1031,97 +1694,132 @@ function getStatusClass(status) {
   border-top: 1px solid #f3f4f6;
 }
 
-.print-doc-header,
-.print-doc-footer {
-  display: none;
-}
+/* Print styles: see @/assets/sales-print.css */
 
-.print-brand {
-  margin: 0;
+.form-input-inline {
+  max-width: 180px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
   font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #374151;
 }
 
-.print-doc-header h2 {
-  margin: 0.35rem 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #111827;
+.form-input-inline:focus {
+  outline: none;
+  border-color: #E6B800;
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
 }
 
-.print-issuer-line {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #4b5563;
+.form-input-small {
+  width: 100px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
 }
 
-.print-doc-meta {
+.form-input-small:focus {
+  outline: none;
+  border-color: #E6B800;
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.col-subtotal {
+  text-align: right;
+}
+
+.subtotal-value {
+  font-size: 0.875rem;
+  color: #1f2937;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.totals-section {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.totals-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem;
+}
+
+.totals-grid {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: #4b5563;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-@media print {
-  :deep(.navbar),
-  :deep(nav),
-  .page-header,
-  .btn-back,
-  .header-actions,
-  .modal-overlay,
-  .btn,
-  .btn-icon {
-    display: none !important;
-  }
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
 
-  .quote-detail-container {
-    padding: 0;
-    max-width: none;
-  }
+.total-row.total-final {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid #d1d5db;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
 
-  .print-doc-header,
-  .print-doc-footer {
-    display: block;
-    border: 1px solid #d1d5db;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: white;
-  }
+.total-label {
+  color: #6b7280;
+}
 
-  .print-doc-footer {
-    margin-top: 0.75rem;
-    margin-bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: #4b5563;
-  }
+.total-row.total-final .total-label {
+  color: #1f2937;
+}
 
-  .info-card,
-  .notes-card,
-  .line-items-section,
-  .table-container {
-    box-shadow: none !important;
-    border: 1px solid #d1d5db;
-  }
+.total-value {
+  color: #1f2937;
+  font-weight: 600;
+}
 
-  .info-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
+.total-row.total-final .total-value {
+  color: #E6B800;
+}
 
-  .status-badge {
-    border: 1px solid #9ca3af;
-    color: #111827 !important;
-    background: transparent !important;
-  }
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
 
-  .data-table {
-    font-size: 0.75rem;
-  }
+.btn-icon:hover {
+  background: #f3f4f6;
+}
+
+.btn-icon.danger:hover {
+  background: #fee2e2;
+}
+
+.modal-wide {
+  max-width: 700px;
+}
+
+.tax-notice {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fffbea;
+  border-left: 3px solid #E6B800;
+  border-radius: 4px;
+  color: #92710c;
 }
 </style>

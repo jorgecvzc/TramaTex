@@ -21,12 +21,11 @@ classDiagram
         -personProfile: PersonProfile
         -organizationProfile: OrganizationProfile
         -roles: []PartyRole
-        -relationships: []PartyRelationship
-        +Activate(modifiedBy) error
-        +Deactivate(modifiedBy) error
+        +Activate() error
+        +Deactivate() error
+        +Block() error
         +AddRole(role) error
         +RemoveRole(roleType) error
-        +AddRelationship(rel) error
     }
 
     class PersonProfile {
@@ -45,8 +44,8 @@ classDiagram
     class ContactDetails {
         -id: ContactDetailsID
         -typeDescription: string
-        -phone: Phone
-        -email: Email
+        -phone: string
+        -email: string
         -relatedPartyID: PartyID
     }
 
@@ -54,17 +53,11 @@ classDiagram
         -typeValue: PartyRoleType
     }
 
-    class PartyRelationship {
-        -id: PartyRelationshipID
-        -fromID: PartyID
-        -toID: PartyID
-        -typeValue: RelationshipType
-    }
-
     class PartyStatus {
         <<Enumeration>>
         ACTIVE
         INACTIVE
+        BLOCKED
     }
 
     class PartyRoleType {
@@ -74,20 +67,12 @@ classDiagram
         EMPLOYEE
     }
 
-    class RelationshipType {
-        <<Enumeration>>
-        IS_EMPLOYEE_OF
-        IS_SUBSIDIARY_OF
-    }
-
     Party "1" o-- "0..1" PersonProfile : has
     Party "1" o-- "0..1" OrganizationProfile : has
     OrganizationProfile "1" o-- "0..*" ContactDetails : contains
     Party "1" o-- "0..*" PartyRole : roles
-    Party "1" o-- "0..*" PartyRelationship : relationships
     Party --o PartyStatus : uses
     PartyRole --o PartyRoleType : uses
-    PartyRelationship --o RelationshipType : uses
 
 ```
 
@@ -95,13 +80,10 @@ classDiagram
 
 ## Descripción del Modelo
 
-1. **Party (Raíz del Agregado):** Entidad central que representa una persona, una organización o ambas. Garantiza la consistencia de perfiles, roles y relaciones.
+1. **Party (Raíz del Agregado):** Entidad central que representa una persona, una organización o ambas. Garantiza la consistencia de perfiles y roles.
 2. **PersonProfile:** Datos personales básicos (nombre y apellidos).
 3. **OrganizationProfile:** Datos corporativos básicos y contactos asociados.
-4. **ContactDetails:** Detalle de contacto con email/teléfono, opcionalmente vinculado a otra Party.
-5. **Roles y Relaciones:** Modelan el rol que cumple la Party y sus vínculos con otras Parties.
+4. **ContactDetails:** Detalle de contacto con email/teléfono (tipos string básicos), opcionalmente vinculado a otra Party.
+5. **Roles:** Modelan el rol que cumple la Party en el sistema.
 
-### Relaciones Clave
-- Un `Party` puede tener 0 o 1 `PersonProfile` y 0 o 1 `OrganizationProfile`.
-- Un `OrganizationProfile` puede tener múltiples `ContactDetails`.
-- Un `Party` puede tener múltiples roles y relaciones tipadas.
+*Nota: Las **Relaciones** entre Parties y las **Direcciones** se gestionan como servicios de aplicación sobre persistencia relacional, por lo que no figuran como entidades ricas en este diagrama de dominio.*

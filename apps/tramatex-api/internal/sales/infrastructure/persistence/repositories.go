@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"github.com/joran-cortez/tramatex/internal/sales/domain"
 )
@@ -28,7 +30,7 @@ func (r *GORMQuoteRepository) Save(ctx context.Context, quote *domain.Quote) err
 		return err
 	}
 
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(data).Error; err != nil {
 			return err
 		}
@@ -44,7 +46,7 @@ func (r *GORMQuoteRepository) Save(ctx context.Context, quote *domain.Quote) err
 
 func (r *GORMQuoteRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Quote, error) {
 	var data QuoteDataModel
-	if err := r.db.WithContext(ctx).First(&data, "id = ?", id).Error; err != nil {
+	if err := getDB(ctx, r.db).First(&data, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -59,8 +61,17 @@ func (r *GORMQuoteRepository) FindByID(ctx context.Context, id uuid.UUID) (*doma
 	return quoteToDomain(&data, items)
 }
 
+func (r *GORMQuoteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Where("quote_id = ?", id).Delete(&QuoteLineItemDataModel{}).Error; err != nil {
+			return err
+		}
+		return tx.Unscoped().Where("id = ?", id).Delete(&QuoteDataModel{}).Error
+	})
+}
+
 func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilter) ([]*domain.Quote, error) {
-	query := r.db.WithContext(ctx).Model(&QuoteDataModel{})
+	query := getDB(ctx, r.db).Model(&QuoteDataModel{})
 	if filter.PartyID != nil {
 		query = query.Where("party_id = ?", *filter.PartyID)
 	}
@@ -102,6 +113,10 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+
 	var data []QuoteDataModel
 	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
 		return nil, err
@@ -124,7 +139,7 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 
 func (r *GORMQuoteRepository) loadQuoteLineItems(ctx context.Context, quoteID uuid.UUID) ([]QuoteLineItemDataModel, error) {
 	var items []QuoteLineItemDataModel
-	if err := r.db.WithContext(ctx).Where("quote_id = ?", quoteID).Order("created_at asc").Find(&items).Error; err != nil {
+	if err := getDB(ctx, r.db).Where("quote_id = ?", quoteID).Order("created_at asc").Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
@@ -148,23 +163,67 @@ func (r *GORMSalesOrderRepository) Save(ctx context.Context, order *domain.Sales
 		return err
 	}
 
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(data).Error; err != nil {
 			return err
 		}
-		if err := tx.Unscoped().Where("sales_order_id = ?", order.ID).Delete(&OrderLineItemDataModel{}).Error; err != nil {
+
+		// Build a set of incoming line-item IDs so we only delete the removed ones.
+		// This avoids FK violations when delivery_note_line_items reference existing items.
+		incomingIDs := make(map[uuid.UUID]struct{}, len(items))
+		for _, item := range items {
+			incomingIDs[item.ID] = struct{}{}
+		}
+
+		var existingIDs []uuid.UUID
+		if err := tx.Model(&OrderLineItemDataModel{}).
+			Where("sales_order_id = ?", order.ID).
+			Pluck("id", &existingIDs).Error; err != nil {
 			return err
 		}
-		if len(items) == 0 {
-			return nil
+
+		var toDelete []uuid.UUID
+		for _, eid := range existingIDs {
+			if _, keep := incomingIDs[eid]; !keep {
+				toDelete = append(toDelete, eid)
+			}
 		}
-		return tx.Create(&items).Error
+		if len(toDelete) > 0 {
+			if err := tx.Unscoped().Where("id IN ?", toDelete).Delete(&OrderLineItemDataModel{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// Upsert remaining items
+		for i := range items {
+			if err := tx.Save(&items[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
 func (r *GORMSalesOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
 	var data SalesOrderDataModel
-	if err := r.db.WithContext(ctx).First(&data, "id = ?", id).Error; err != nil {
+	if err := getDB(ctx, r.db).First(&data, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	items, err := r.loadOrderLineItems(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return salesOrderToDomain(&data, items)
+}
+
+func (r *GORMSalesOrderRepository) FindByIDForUpdate(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
+	var data SalesOrderDataModel
+	if err := getDB(ctx, r.db).Clauses(clause.Locking{Strength: "UPDATE"}).First(&data, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -180,7 +239,7 @@ func (r *GORMSalesOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (
 }
 
 func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.SalesOrderFilter) ([]*domain.SalesOrder, error) {
-	query := r.db.WithContext(ctx).Model(&SalesOrderDataModel{})
+	query := getDB(ctx, r.db).Model(&SalesOrderDataModel{})
 	if filter.PartyID != nil {
 		query = query.Where("party_id = ?", *filter.PartyID)
 	}
@@ -222,6 +281,10 @@ func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.Sales
 		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+
 	var data []SalesOrderDataModel
 	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
 		return nil, err
@@ -242,9 +305,26 @@ func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.Sales
 	return result, nil
 }
 
+func (r *GORMSalesOrderRepository) FindByQuoteID(ctx context.Context, quoteID uuid.UUID) (*domain.SalesOrder, error) {
+	var data SalesOrderDataModel
+	if err := getDB(ctx, r.db).First(&data, "quote_id = ?", quoteID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	items, err := r.loadOrderLineItems(ctx, data.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return salesOrderToDomain(&data, items)
+}
+
 func (r *GORMSalesOrderRepository) loadOrderLineItems(ctx context.Context, orderID uuid.UUID) ([]OrderLineItemDataModel, error) {
 	var items []OrderLineItemDataModel
-	if err := r.db.WithContext(ctx).Where("sales_order_id = ?", orderID).Order("created_at asc").Find(&items).Error; err != nil {
+	if err := getDB(ctx, r.db).Where("sales_order_id = ?", orderID).Order("created_at asc").Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
@@ -268,7 +348,7 @@ func (r *GORMDeliveryNoteRepository) Save(ctx context.Context, note *domain.Deli
 		return err
 	}
 
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(data).Error; err != nil {
 			return err
 		}
@@ -284,7 +364,7 @@ func (r *GORMDeliveryNoteRepository) Save(ctx context.Context, note *domain.Deli
 
 func (r *GORMDeliveryNoteRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.DeliveryNote, error) {
 	var data DeliveryNoteDataModel
-	if err := r.db.WithContext(ctx).First(&data, "id = ?", id).Error; err != nil {
+	if err := getDB(ctx, r.db).First(&data, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -300,7 +380,7 @@ func (r *GORMDeliveryNoteRepository) FindByID(ctx context.Context, id uuid.UUID)
 }
 
 func (r *GORMDeliveryNoteRepository) List(ctx context.Context, filter domain.DeliveryNoteFilter) ([]*domain.DeliveryNote, error) {
-	query := r.db.WithContext(ctx).Model(&DeliveryNoteDataModel{})
+	query := getDB(ctx, r.db).Model(&DeliveryNoteDataModel{})
 	if filter.SalesOrderID != nil {
 		query = query.Where("sales_order_id = ?", *filter.SalesOrderID)
 	}
@@ -345,6 +425,10 @@ func (r *GORMDeliveryNoteRepository) List(ctx context.Context, filter domain.Del
 		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+
 	var data []DeliveryNoteDataModel
 	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
 		return nil, err
@@ -372,10 +456,26 @@ func (r *GORMDeliveryNoteRepository) ListBySalesOrderID(ctx context.Context, ord
 
 func (r *GORMDeliveryNoteRepository) loadDeliveryNoteLineItems(ctx context.Context, noteID uuid.UUID) ([]DeliveryNoteLineItemDataModel, error) {
 	var items []DeliveryNoteLineItemDataModel
-	if err := r.db.WithContext(ctx).Where("delivery_note_id = ?", noteID).Order("created_at asc").Find(&items).Error; err != nil {
+	if err := getDB(ctx, r.db).Where("delivery_note_id = ?", noteID).Order("created_at asc").Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
+}
+
+func (r *GORMDeliveryNoteRepository) LinkLineItemsToInvoice(ctx context.Context, links map[uuid.UUID]uuid.UUID) error {
+	if len(links) == 0 {
+		return nil
+	}
+	db := getDB(ctx, r.db)
+	for dnLineItemID, invoiceLineItemID := range links {
+		ilID := invoiceLineItemID
+		if err := db.Model(&DeliveryNoteLineItemDataModel{}).
+			Where("id = ?", dnLineItemID).
+			Update("invoice_line_item_id", ilID).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type GORMInvoiceRepository struct {
@@ -396,23 +496,73 @@ func (r *GORMInvoiceRepository) Save(ctx context.Context, invoice *domain.Invoic
 		return err
 	}
 
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Save(data).Error; err != nil {
 			return err
 		}
+
+		// Save existing DN-to-invoice line item links before deleting
+		type dnInvoiceLink struct {
+			DNLineItemID      uuid.UUID `gorm:"column:dn_line_item_id"`
+			InvoiceLineItemID uuid.UUID `gorm:"column:invoice_line_item_id"`
+		}
+		var existingLinks []dnInvoiceLink
+		if err := tx.Raw(
+			"SELECT id AS dn_line_item_id, invoice_line_item_id FROM delivery_note_line_items WHERE invoice_line_item_id IN (SELECT id FROM invoice_line_items WHERE invoice_id = ?)",
+			invoice.ID,
+		).Scan(&existingLinks).Error; err != nil {
+			return err
+		}
+
+		// Clear FK references before deleting invoice line items
+		if len(existingLinks) > 0 {
+			linkedIDs := make([]uuid.UUID, len(existingLinks))
+			for i, l := range existingLinks {
+				linkedIDs[i] = l.DNLineItemID
+			}
+			if err := tx.Exec(
+				"UPDATE delivery_note_line_items SET invoice_line_item_id = NULL WHERE id = ANY(?)",
+				pq.Array(linkedIDs),
+			).Error; err != nil {
+				return err
+			}
+		}
+
 		if err := tx.Unscoped().Where("invoice_id = ?", invoice.ID).Delete(&InvoiceLineItemDataModel{}).Error; err != nil {
 			return err
 		}
 		if len(items) == 0 {
 			return nil
 		}
-		return tx.Create(&items).Error
+		if err := tx.Create(&items).Error; err != nil {
+			return err
+		}
+
+		// Restore FK references for line items that still exist
+		if len(existingLinks) > 0 {
+			newItemIDSet := make(map[uuid.UUID]struct{}, len(items))
+			for _, item := range items {
+				newItemIDSet[item.ID] = struct{}{}
+			}
+			for _, link := range existingLinks {
+				if _, exists := newItemIDSet[link.InvoiceLineItemID]; exists {
+					if err := tx.Exec(
+						"UPDATE delivery_note_line_items SET invoice_line_item_id = ? WHERE id = ?",
+						link.InvoiceLineItemID, link.DNLineItemID,
+					).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		return nil
 	})
 }
 
 func (r *GORMInvoiceRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Invoice, error) {
 	var data InvoiceDataModel
-	if err := r.db.WithContext(ctx).First(&data, "id = ?", id).Error; err != nil {
+	if err := getDB(ctx, r.db).First(&data, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -428,7 +578,7 @@ func (r *GORMInvoiceRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 }
 
 func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceFilter) ([]*domain.Invoice, error) {
-	query := r.db.WithContext(ctx).Model(&InvoiceDataModel{})
+	query := getDB(ctx, r.db).Model(&InvoiceDataModel{})
 	if filter.PartyID != nil {
 		query = query.Where("party_id = ?", *filter.PartyID)
 	}
@@ -473,6 +623,10 @@ func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceF
 		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
+	}
+
 	var data []InvoiceDataModel
 	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
 		return nil, err
@@ -495,7 +649,7 @@ func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceF
 
 func (r *GORMInvoiceRepository) ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*domain.Invoice, error) {
 	var data []InvoiceDataModel
-	query := r.db.WithContext(ctx).
+	query := getDB(ctx, r.db).
 		Model(&InvoiceDataModel{}).
 		Joins("JOIN invoice_line_items ON invoice_line_items.invoice_id = invoices.id").
 		Joins("JOIN order_line_items ON order_line_items.id = invoice_line_items.sales_order_line_item_id").
@@ -523,8 +677,44 @@ func (r *GORMInvoiceRepository) ListBySalesOrderID(ctx context.Context, orderID 
 
 func (r *GORMInvoiceRepository) loadInvoiceLineItems(ctx context.Context, invoiceID uuid.UUID) ([]InvoiceLineItemDataModel, error) {
 	var items []InvoiceLineItemDataModel
-	if err := r.db.WithContext(ctx).Where("invoice_id = ?", invoiceID).Order("created_at asc").Find(&items).Error; err != nil {
+	if err := getDB(ctx, r.db).Where("invoice_id = ?", invoiceID).Order("created_at asc").Find(&items).Error; err != nil {
 		return nil, err
 	}
 	return items, nil
+}
+
+func (r *GORMInvoiceRepository) FindByDeliveryNoteID(ctx context.Context, deliveryNoteID uuid.UUID) (*domain.Invoice, error) {
+	var data InvoiceDataModel
+	err := getDB(ctx, r.db).
+		Model(&InvoiceDataModel{}).
+		Joins("JOIN invoice_line_items ON invoice_line_items.invoice_id = invoices.id").
+		Joins("JOIN delivery_note_line_items ON delivery_note_line_items.invoice_line_item_id = invoice_line_items.id").
+		Where("delivery_note_line_items.delivery_note_id = ?", deliveryNoteID).
+		First(&data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	items, err := r.loadInvoiceLineItems(ctx, data.ID)
+	if err != nil {
+		return nil, err
+	}
+	return invoiceToDomain(&data, items)
+}
+
+func (r *GORMInvoiceRepository) ListDeliveryNoteIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := getDB(ctx, r.db).
+		Model(&DeliveryNoteLineItemDataModel{}).
+		Joins("JOIN invoice_line_items ON invoice_line_items.id = delivery_note_line_items.invoice_line_item_id").
+		Where("invoice_line_items.invoice_id = ?", invoiceID).
+		Distinct("delivery_note_line_items.delivery_note_id").
+		Pluck("delivery_note_line_items.delivery_note_id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

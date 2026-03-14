@@ -20,6 +20,16 @@
         </div>
 
         <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.status" class="filter-input">
+            <option value="">Todos</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="DELIVERED">Entregado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
           <label>Desde</label>
           <input
             v-model="filters.fromDate"
@@ -39,6 +49,16 @@
       </div>
 
       <div class="filters-actions">
+        <div class="limit-group">
+          <label>Mostrar</label>
+          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="0">Todos</option>
+          </select>
+          <span class="limit-label">registros</span>
+        </div>
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
@@ -72,25 +92,19 @@
         <thead>
           <tr>
             <th>Número</th>
+            <th>Cliente</th>
             <th>Pedido</th>
             <th>Fecha Entrega</th>
-            <th>Acciones</th>
+            <th>Estado</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="note in filteredDeliveryNotes" :key="note.id" @click="navigateToDetail(note.id)" class="clickable-row">
             <td class="note-number">{{ note.deliveryNoteNumber }}</td>
+            <td>{{ partiesCache[note.partyId] || '—' }}</td>
             <td>{{ ordersCache[note.salesOrderId] || formatOrderId(note.salesOrderId) }}</td>
             <td>{{ formatDate(note.deliveryDate) }}</td>
-            <td class="actions-cell" @click.stop>
-              <button 
-                class="btn-icon" 
-                @click="navigateToDetail(note.id)"
-                title="Ver detalle"
-              >
-                👁️
-              </button>
-            </td>
+            <td><span :class="['status-badge', 'status-' + salesApi.getStatusClass(note.status)]">{{ salesApi.getStatusLabel(note.status) }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -103,7 +117,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 
 const router = useRouter();
 
@@ -115,12 +129,15 @@ const ordersCache = ref({});
 
 const filters = ref({
   searchText: '',
+  status: '',
   fromDate: '',
   toDate: '',
+  limit: 50,
 });
 
 const hasFilters = computed(() => {
   return filters.value.searchText.trim() !== '' || 
+         filters.value.status !== '' ||
          filters.value.fromDate !== '' || 
          filters.value.toDate !== '';
 });
@@ -185,14 +202,6 @@ onBeforeUnmount(() => {
 });
 
 onMounted(() => {
-  // Set default date range (last 30 days)
-  const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
-  
-  filters.value.fromDate = thirtyDaysAgo.toISOString().split('T')[0];
-  filters.value.toDate = today.toISOString().split('T')[0];
-
   autoFetchEnabled = true;
   
   fetchDeliveryNotes();
@@ -206,8 +215,10 @@ async function fetchDeliveryNotes() {
     const apiFilters = {};
     
     if (filters.value.searchText) apiFilters.searchText = filters.value.searchText;
+    if (filters.value.status) apiFilters.status = filters.value.status;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
     if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
+    if (filters.value.limit) apiFilters.limit = filters.value.limit;
 
     const response = await salesApi.listDeliveryNotes(apiFilters);
     deliveryNotes.value = Array.isArray(response) ? response : (response.data || []);
@@ -227,8 +238,10 @@ function applyFilters() {
 
 function clearFilters() {
   filters.value.searchText = '';
+  filters.value.status = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';
+  filters.value.limit = 50;
   fetchDeliveryNotes();
 }
 
@@ -311,41 +324,65 @@ function formatOrderId(orderId) {
 .filters-card {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: contents;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .filter-group label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
-.filter-input {
-  padding: 0.5rem;
+.filter-input,
+.filter-select {
+  padding: 0.4rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .filters-actions {
+  display: contents;
+}
+
+.limit-group {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.limit-group label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.limit-select {
+  width: 70px;
+}
+
+.limit-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .loading-state,
@@ -468,5 +505,34 @@ function formatOrderId(orderId) {
 
 .btn-secondary:hover {
   background: #e5e7eb;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-primary {
+  background: #dbeafe;
+  color: #1e40af;
 }
 </style>

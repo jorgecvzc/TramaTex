@@ -1,55 +1,57 @@
-# Guia de Implementacion - Modulo Product
+# Guía de Implementación - Módulo Product
 
 ## Estructura de Directorios
 
-La estructura del modulo `product` en tramatex-api sigue Clean Architecture y refleja el modelo Product:
+La estructura del módulo `product` en tramatex-api sigue Clean Architecture y los estándares del proyecto:
 
 ```
 apps/tramatex-api/internal/product/
-├── application/
+├── application/             # Casos de Uso y Servicios
 │   ├── commands.go
 │   ├── queries.go
 │   ├── dtos.go
 │   └── product_service.go
-├── domain/
+├── domain/                  # Lógica de Negocio (Entidades, VOs, Repo interfaces)
 │   ├── attribute.go
 │   ├── product.go
 │   ├── variant.go
-│   ├── party_service_configuration.go
 │   ├── enums.go
-│   ├── errors.go
-│   └── repository.go
-├── infrastructure/
-│   └── persistence/
-│       ├── gorm_attribute_repository.go
-│       ├── gorm_brand_repository.go
-│       ├── gorm_product_group_repository.go
-│       ├── gorm_product_repository.go
-│       ├── gorm_variant_repository.go
-│       ├── gorm_party_service_configuration_repository.go
-│       ├── product_data_model.go
-│       ├── attribute_data_model.go
-│       ├── variant_data_model.go
-│       ├── party_service_configuration_data_model.go
-│       ├── audit_context.go
-│       └── test_helpers.go
-└── interfaces/
-	└── http/handler/
-		├── product_handler.go
-		└── product_handler_test.go
+│   └── errors.go
+├── persistence/             # Infraestructura GORM (Data Models y Repositorios)
+│   ├── gorm_product_repository.go
+│   ├── gorm_variant_repository.go
+│   ├── product_data_model.go
+│   ├── variant_data_model.go
+│   └── repository.go        # Interfaces de dominio implementadas aquí
+└── interfaces/              # Capa de Entrada (HTTP Handlers)
+    └── http/handler/
+        ├── product_handler.go
+        └── ...
 ```
+
+## Estándares de Datos y Negocio
+
+### 1. Mandatos Globales
+- **Campos de Auditoría:** Los campos `CreatedAt`, `UpdatedAt`, `CreatedBy` y `UpdatedBy` **deben excluirse** de las entidades de dominio (`domain/`). Solo deben existir en los modelos de datos de persistencia (`persistence/*_data_model.go`).
+- **Moneda Única:** Todas las operaciones de precios y costes deben gestionarse exclusivamente en **Euros (€)**.
+
+### 2. Mapeo de Errores
+El módulo debe mapear sus errores de dominio (`domain/errors.go`) a códigos HTTP estándar en la capa de interfaces:
+- `ErrCodeValidation` -> `400 Bad Request`
+- `ErrCodeNotFound`   -> `404 Not Found`
+- `ErrCodeConflict`   -> `409 Conflict`
 
 ## Dependencias Clave
 
-* **GORM:** Para la capa de persistencia (`infrastructure/persistence`).
-* **Gin:** Para los handlers HTTP (`interfaces/http/handler`).
-* **Testify:** Para aserciones en las pruebas.
+* **GORM:** Para la capa de persistencia e infraestructura.
+* **Gin:** Para los handlers HTTP.
+* **Testify:** Para aserciones en las pruebas unitarias e integración.
 
-## Flujo de Implementacion Sugerido
+## Flujo de Implementación Sugerido
 
-1. **Definir Modelo de Dominio:** `attribute.go`, `product.go`, `variant.go`, `party_service_configuration.go`.
-2. **Definir Interfaces de Repositorio:** `domain/repository.go`.
-3. **Implementar Casos de Uso:** `commands.go`, `queries.go` y `product_service.go` en `application`.
-4. **Implementar Repositorios GORM:** archivos `gorm_*.go` y `*_data_model.go`.
-5. **Exponer Handlers HTTP:** `interfaces/http/handler/product_handler.go`.
-6. **Añadir Pruebas:** unitarias y de integracion por capa.
+1. **Definir Modelo de Dominio:** Entidades, VOs y enums sin campos de infraestructura.
+2. **Definir Interfaces de Repositorio:** En la capa de dominio.
+3. **Implementar Casos de Uso:** En la capa de aplicación (servicios).
+4. **Implementar Repositorios GORM:** Modelos de datos y mapeadores en la capa de persistencia.
+5. **Exponer Handlers HTTP:** Handlers en la capa de interfaces.
+6. **Añadir Pruebas:** unitarias por capa y de integración para los repositorios.

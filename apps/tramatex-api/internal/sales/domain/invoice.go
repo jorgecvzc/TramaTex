@@ -64,7 +64,11 @@ func NewInvoice(
 	if err != nil {
 		return nil, err
 	}
-	total, err := subtotal.Add(taxAmount)
+	calculatedTax, err := sumInvoiceLineItemTaxAmounts(lineItems)
+	if err != nil {
+		return nil, err
+	}
+	total, err := subtotal.Add(calculatedTax)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +84,7 @@ func NewInvoice(
 		Status:        InvoiceStatusDraft,
 		LineItems:     lineItems,
 		Subtotal:      subtotal,
-		TaxAmount:     taxAmount,
+		TaxAmount:     calculatedTax,
 		Total:         total,
 		PaymentTerms:  paymentTerms,
 	}
@@ -184,6 +188,11 @@ func (i *Invoice) RecalculateTotals() error {
 		return err
 	}
 	i.Subtotal = subtotal
+	calculatedTax, err := sumInvoiceLineItemTaxAmounts(i.LineItems)
+	if err != nil {
+		return err
+	}
+	i.TaxAmount = calculatedTax
 	total, err := i.Subtotal.Add(i.TaxAmount)
 	if err != nil {
 		return err
@@ -213,6 +222,22 @@ func (i *Invoice) ValidateLegalLimits() error {
 		}
 	}
 	return nil
+}
+
+func sumInvoiceLineItemTaxAmounts(items []InvoiceLineItem) (Money, error) {
+	taxTotal, err := NewMoney(0, DefaultCurrency)
+	if err != nil {
+		return Money{}, err
+	}
+	for _, item := range items {
+		if item.TaxAmount != nil {
+			taxTotal, err = taxTotal.Add(*item.TaxAmount)
+			if err != nil {
+				return Money{}, err
+			}
+		}
+	}
+	return taxTotal, nil
 }
 
 func sumInvoiceLineItemSubtotals(items []InvoiceLineItem) (Money, error) {

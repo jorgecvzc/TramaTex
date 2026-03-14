@@ -34,6 +34,31 @@
             🖨️ Imprimir
           </button>
           <button 
+            v-if="canEdit && !isEditingHeader" 
+            class="btn btn-primary" 
+            @click="enterHeaderEditMode"
+            title="Editar datos del pedido"
+          >
+            ✏️ Editar
+          </button>
+          <button 
+            v-if="isEditingHeader" 
+            class="btn btn-success" 
+            @click="saveOrderHeader"
+            :disabled="isSavingHeader"
+            title="Guardar cambios"
+          >
+            {{ isSavingHeader ? 'Guardando...' : '💾 Guardar' }}
+          </button>
+          <button 
+            v-if="isEditingHeader" 
+            class="btn btn-secondary" 
+            @click="cancelHeaderEdit"
+            title="Cancelar edición"
+          >
+            ✕ Cancelar
+          </button>
+          <button 
             v-if="order.status === 'PENDING'" 
             class="btn btn-success" 
             @click="confirmOrder"
@@ -49,11 +74,27 @@
             📦 Crear Albarán
           </button>
           <button 
+            v-if="canCreateInvoice" 
+            class="btn btn-success" 
+            @click="createInvoiceFromOrder"
+            :disabled="isCreatingInvoice"
+            title="Crear factura para este pedido"
+          >
+            🧾 {{ isCreatingInvoice ? 'Creando...' : 'Crear Factura' }}
+          </button>
+          <button 
             v-if="canCancel" 
             class="btn btn-danger" 
             @click="cancelOrder"
           >
             Cancelar Pedido
+          </button>
+          <button
+            v-if="order.status === 'CANCELLED'"
+            class="btn btn-success"
+            @click="reactivateOrder"
+          >
+            ♻️ Reactivar Pedido
           </button>
         </div>
       </div>
@@ -85,7 +126,8 @@
           </div>
           <div class="info-row">
             <span class="label">Fecha de Entrega:</span>
-            <span class="value">{{ formatDate(order.deliveryDate) }}</span>
+            <span v-if="!isEditingHeader" class="value">{{ formatDate(order.deliveryDate) }}</span>
+            <input v-else v-model="headerEditForm.deliveryDate" type="date" class="form-input form-input-inline" />
           </div>
         </div>
 
@@ -107,9 +149,41 @@
       </div>
 
       <!-- Notes -->
-      <div v-if="order.notes" class="notes-card">
+      <div v-if="order.notes || isEditingHeader" class="notes-card">
         <h3>Notas</h3>
-        <p>{{ order.notes }}</p>
+        <p v-if="!isEditingHeader">{{ order.notes }}</p>
+        <textarea v-else v-model="headerEditForm.notes" class="form-textarea" rows="3" placeholder="Notas del pedido..."></textarea>
+      </div>
+
+      <!-- MES Work References (Document-level) -->
+      <div v-if="(order.mesWorkRefs && order.mesWorkRefs.length > 0) || isEditingHeader" class="notes-card">
+        <h3>Trabajos MES</h3>
+        <template v-if="!isEditingHeader">
+          <div v-for="mesRef in order.mesWorkRefs" :key="mesRef.mesWorkId" class="mes-ref-view">
+            <button class="mes-link" @click="goToMesWork(mesRef.mesWorkId)" type="button"
+              :title="getMesWorkTooltip(mesRef.mesWorkId)">
+              {{ formatMesWorkId(mesRef.mesWorkId) }}
+            </button>
+            <span v-if="mesRef.observations" class="mes-observations-text">— {{ mesRef.observations }}</span>
+          </div>
+        </template>
+        <template v-else>
+          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando trabajos MES...</div>
+          <div v-else-if="mesWorks.length === 0" class="mes-empty">No hay trabajos MES disponibles para este cliente.</div>
+          <div v-else class="mes-ref-list">
+            <div v-for="work in mesWorks" :key="work.id" class="mes-ref-item">
+              <label class="mes-checkbox-label">
+                <input type="checkbox" :checked="isEditMesWorkSelected(work.id)" @change="toggleEditMesWork(work.id)" />
+                <span>{{ work.work_number }} - {{ work.work_name }}</span>
+              </label>
+              <textarea v-if="isEditMesWorkSelected(work.id)" class="mes-observations" rows="2"
+                placeholder="Observaciones para este trabajo MES..."
+                :value="getEditMesWorkObservations(work.id)"
+                @input="setEditMesWorkObservations(work.id, $event.target.value)"
+              ></textarea>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Delivery Notes Section -->
@@ -137,14 +211,16 @@
         <div class="section-header">
           <h2>Líneas del Pedido</h2>
           <button 
-            v-if="canEdit" 
+            v-if="canEdit && isEditingHeader" 
             class="btn btn-primary" 
-            @click="showAddItemModal = true"
+            @click="addEditLineItem"
           >
             + Agregar Línea
           </button>
         </div>
 
+        <!-- View mode -->
+        <template v-if="!isEditingHeader">
         <div v-if="!order.lineItems || order.lineItems.length === 0" class="empty-state">
           <p>No hay líneas en este pedido</p>
         </div>
@@ -153,61 +229,107 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Variante</th>
-                <th>Definición MES</th>
+                <th>Referencia</th>
+                <th>Nombre</th>
                 <th>Cantidad</th>
-                <th>Precio Unitario</th>
-                <th>Descuento</th>
-                <th>IVA %</th>
-                <th>IVA línea</th>
+                <th>P. Tarifa</th>
+                <th>P. Venta</th>
+                <th>Dto. %</th>
                 <th>Subtotal</th>
-                <th v-if="canEdit">Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in order.lineItems" :key="item.id">
-                <td class="variant-id">{{ formatVariantId(item.productVariantID) }}</td>
-                 <td>
-                   <button
-                     v-if="item.mesWorkId"
-                     class="mes-link"
-                     @click="goToMesWork(item.mesWorkId)"
-                     type="button"
-                     :title="getMesWorkTooltip(item.mesWorkId)"
-                   >
-                     {{ formatMesWorkId(item.mesWorkId) }}
-                   </button>
-                   <span v-else>—</span>
-                 </td>
+                <td class="variant-id">
+                  <span v-if="item.variantSku">{{ item.variantSku }}</span>
+                  <span v-else>{{ formatVariantId(item.productVariantId) }}</span>
+                </td>
+                <td>{{ buildDisplayName(item) }}</td>
                 <td>{{ item.quantity }}</td>
                 <td>
-                  {{ salesApi.formatMoney(item.finalUnitPrice) }}
-                  <span v-if="item.manualUnitPrice" class="manual-badge">Manual</span>
+                  {{ salesApi.formatUnitPrice(item.listUnitPrice) }}
                 </td>
-                <td>{{ item.finalDiscountPerUnit ? salesApi.formatMoney(item.finalDiscountPerUnit) : '—' }}</td>
-                <td>{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '—' }}</td>
-                <td>{{ salesApi.formatMoney(item.taxAmount) }}</td>
+                <td>
+                  {{ salesApi.formatUnitPrice(item.unitPrice) }}
+                </td>
+                <td>{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</td>
                 <td class="amount">{{ salesApi.formatMoney(item.subtotal) }}</td>
-                <td v-if="canEdit" class="actions-cell">
-                  <button 
-                    class="btn-icon" 
-                    @click="editLineItem(item)"
-                    title="Editar"
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    class="btn-icon danger" 
-                    @click="removeLineItem(item.id)"
-                    title="Eliminar"
-                  >
-                    🗑️
-                  </button>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </template>
+
+        <!-- Edit mode (inline) -->
+        <template v-else>
+        <div v-if="editLineItems.length === 0" class="empty-state">
+          <p>No hay líneas. Agregue al menos una línea.</p>
+        </div>
+
+        <div v-else class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Referencia</th>
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>P. Tarifa</th>
+                <th>P. Venta</th>
+                <th>Dto. %</th>
+                <th>Subtotal</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in editLineItems" :key="idx">
+                <td class="variant-id">
+                  <span v-if="item.variantSku">{{ item.variantSku }}</span>
+                  <span v-else>{{ formatVariantId(item.productVariantId) }}</span>
+                </td>
+                <td>{{ item.displayName || '—' }}</td>
+                <td>
+                  <input v-model.number="item.quantity" type="number" min="1" class="form-input form-input-small" />
+                </td>
+                <td class="col-readonly">
+                  {{ item.listPrice != null ? item.listPrice.toFixed(3) : '—' }}
+                </td>
+                <td>
+                  <input v-model.number="item.unitPrice" type="number" step="0.001" min="0" placeholder="Auto" class="form-input form-input-small" />
+                </td>
+                <td>
+                  <input v-model.number="item.discountPercent" type="number" step="0.01" min="0" max="100" placeholder="0" class="form-input form-input-small" />
+                </td>
+                <td class="col-subtotal">
+                  <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
+                  <span v-else class="subtotal-value">{{ formatMoneyAmount(calculateEditLineSubtotal(item)) }}</span>
+                </td>
+                <td class="actions-cell">
+                  <button type="button" class="btn-icon danger" @click="removeEditLineItem(idx)" title="Eliminar">🗑️</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <!-- Totals Summary -->
+        <div v-if="editLineItems.length > 0" class="totals-section">
+          <h3>Resumen de Totales</h3>
+          <div class="totals-grid">
+            <div class="total-row">
+              <span class="total-label">Subtotal:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.subtotal) }}</span>
+            </div>
+            <div class="total-row">
+              <span class="total-label">IVA:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.tax) }}</span>
+            </div>
+            <div class="total-row total-final">
+              <span class="total-label">Total:</span>
+              <span class="total-value">{{ formatMoneyAmount(editCalculatedTotals.total) }}</span>
+            </div>
+          </div>
+        </div>
+        </template>
       </div>
 
       <div class="print-doc-footer">
@@ -274,7 +396,8 @@
                     :id="`item-${index}`"
                   />
                   <label :for="`item-${index}`" class="item-label">
-                    <span class="item-variant">{{ formatVariantId(item.productVariantId) }}</span>
+                    <span class="item-sku">{{ item.variantSku || formatVariantId(item.productVariantId) }}</span>
+                    <span class="item-name">{{ item.productName }}</span>
                     <span class="item-available">Disponible: {{ item.availableQuantity }}</span>
                   </label>
                 </div>
@@ -327,65 +450,20 @@
       </div>
     </div>
 
-    <!-- Add/Edit Line Item Modal -->
-    <div v-if="showAddItemModal || showEditItemModal" class="modal-overlay" @click="closeModals">
-      <div class="modal-content" @click.stop>
+    <!-- Variant Selector Modal (Edit mode) -->
+    <div v-if="showVariantSelector" class="modal-overlay" @click.self="showVariantSelector = false">
+      <div class="modal-content modal-wide" @click.stop>
         <div class="modal-header">
-          <h3>{{ showEditItemModal ? 'Editar Línea' : 'Agregar Línea' }}</h3>
-          <button class="btn-close" @click="closeModals">✕</button>
+          <h3>Seleccionar Variante de Producto</h3>
+          <button class="btn-close" @click="showVariantSelector = false">✕</button>
         </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label>Variante de Producto *</label>
-            <input
-              v-model="lineItemForm.productVariantId"
-              type="text"
-              placeholder="UUID de la variante"
-              class="form-input"
-              :disabled="showEditItemModal"
-            />
-          </div>
-          <div class="form-group">
-            <label>Cantidad *</label>
-            <input
-              v-model.number="lineItemForm.quantity"
-              type="number"
-              min="1"
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Precio Unitario Manual (opcional)</label>
-            <input
-              v-model.number="lineItemForm.manualUnitPrice"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Dejar vacío para precio calculado"
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Descuento Por Unidad Manual (opcional)</label>
-            <input
-              v-model.number="lineItemForm.manualDiscountPerUnit"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Dejar vacío para descuento calculado"
-              class="form-input"
-            />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModals">Cancelar</button>
-          <button 
-            class="btn btn-primary" 
-            @click="showEditItemModal ? updateLineItem() : addLineItem()"
-            :disabled="!isLineItemFormValid"
-          >
-            {{ showEditItemModal ? 'Actualizar' : 'Agregar' }}
-          </button>
+          <VariantSelector
+            :product-id="null"
+            title=""
+            description="Seleccione una variante de producto"
+            @variant-selected="handleVariantSelected"
+          />
         </div>
       </div>
     </div>
@@ -393,12 +471,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
+import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
 import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
+import { calculateBaseSalesPrice } from '@/services/pricingApi';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -408,11 +490,12 @@ const isLoading = ref(false);
 const error = ref('');
 const deliveryNotes = ref([]);
 const mesWorksCache = ref({});
+const mesWorks = ref([]);
+const isLoadingMesWorks = ref(false);
 const issuerProfile = getPrintIssuerProfile();
 
-const showAddItemModal = ref(false);
-const showEditItemModal = ref(false);
-const editingItemId = ref(null);
+const showVariantSelector = ref(false);
+const partyDefaultDiscount = ref(null);
 
 const showDeliveryNoteModal = ref(false);
 const isCreatingDeliveryNote = ref(false);
@@ -424,11 +507,19 @@ const deliveryNoteForm = ref({
   notes: '',
 });
 
-const lineItemForm = ref({
-  productVariantId: '',
-  quantity: 1,
-  manualUnitPrice: null,
-  manualDiscountPerUnit: null,
+// Inline edit state for line items (populated on enterHeaderEditMode)
+const editLineItems = ref([]);
+const previewResult = ref(null);
+const isPreviewLoading = ref(false);
+let previewDebounceTimer = null;
+
+// Header edit state
+const isEditingHeader = ref(false);
+const isSavingHeader = ref(false);
+const headerEditForm = ref({
+  deliveryDate: '',
+  notes: '',
+  mesWorkRefs: [],
 });
 
 const canEdit = computed(() => {
@@ -440,16 +531,19 @@ const canCancel = computed(() => {
 });
 
 const canCreateDeliveryNote = computed(() => {
-  return order.value && ['IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(order.value.status);
+  return order.value && ['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(order.value.status);
 });
+
+const canCreateInvoice = computed(() => {
+  return order.value && ['DELIVERED', 'PARTIALLY_INVOICED'].includes(order.value.status);
+});
+
+const isCreatingInvoice = ref(false);
 
 const minDeliveryDate = computed(() => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-});
-
-const isLineItemFormValid = computed(() => {
-  return lineItemForm.value.productVariantId && lineItemForm.value.quantity > 0;
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
 });
 
 const isDeliveryNoteFormValid = computed(() => {
@@ -486,6 +580,7 @@ async function fetchOrder() {
     order.value = await salesApi.getOrder(orderId);
     await loadDeliveryNotes();
     await loadMesWorksForOrder();
+    await loadPartyDiscount();
     initializeDeliveryNoteForm();
   } catch (err) {
     error.value = err?.message || 'No se pudo cargar el pedido';
@@ -495,11 +590,21 @@ async function fetchOrder() {
   }
 }
 
+async function loadPartyDiscount() {
+  if (!order.value?.partyId) return;
+  try {
+    const party = await partyApi.getParty(order.value.partyId);
+    partyDefaultDiscount.value = party.default_discount_percentage || null;
+  } catch (err) {
+    console.warn('[OrderDetail] Could not load party discount:', err.message);
+  }
+}
+
 async function loadDeliveryNotes() {
   if (!order.value?.id) return;
   
   try {
-    const response = await salesApi.listDeliveryNotes({ salesOrderId: order.value.id });
+    const response = await salesApi.listDeliveryNotes({ orderId: order.value.id });
     deliveryNotes.value = Array.isArray(response) ? response : (response.data || []);
   } catch (err) {
     console.error('Error loading delivery notes:', err);
@@ -508,19 +613,14 @@ async function loadDeliveryNotes() {
 }
 
 async function loadMesWorksForOrder() {
-  const lineItems = order.value?.lineItems;
-  if (!Array.isArray(lineItems) || lineItems.length === 0) return;
+  const refs = order.value?.mesWorkRefs;
+  if (!Array.isArray(refs) || refs.length === 0) return;
 
-  const mesWorkIds = [...new Set(
-    lineItems
-      .map((item) => item?.mesWorkId)
-      .filter((mesWorkId) => typeof mesWorkId === 'string' && mesWorkId.length > 0),
-  )];
-
-  const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
+  const mesWorkIds = refs.map(r => r.mesWorkId).filter(Boolean);
+  const uncachedIds = mesWorkIds.filter(id => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
+  const results = await Promise.allSettled(uncachedIds.map(id => mesApi.getWorkDefinition(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
@@ -530,16 +630,32 @@ async function loadMesWorksForOrder() {
 function initializeDeliveryNoteForm() {
   if (!order.value?.lineItems) return;
   
+  // Calculate already-delivered quantities from existing delivery notes
+  const deliveredByLineItem = {};
+  for (const note of deliveryNotes.value) {
+    if (note.status === 'CANCELLED') continue;
+    for (const noteItem of (note.lineItems || [])) {
+      const key = noteItem.salesOrderLineItemId;
+      deliveredByLineItem[key] = (deliveredByLineItem[key] || 0) + noteItem.deliveredQuantity;
+    }
+  }
+
   const today = new Date().toISOString().split('T')[0];
   deliveryNoteForm.value.deliveryDate = today;
   deliveryNoteForm.value.type = 'TOTAL';
-  deliveryNoteForm.value.items = order.value.lineItems.map(item => ({
-    lineItemId: item.id,
-    productVariantId: item.productVariantID,
-    availableQuantity: item.quantity,
-    quantityToDeliver: item.quantity,
-    selected: false,
-  }));
+  deliveryNoteForm.value.items = order.value.lineItems.map(item => {
+    const alreadyDelivered = deliveredByLineItem[item.id] || 0;
+    const available = Math.max(0, item.quantity - alreadyDelivered);
+    return {
+      lineItemId: item.id,
+      productVariantId: item.productVariantId,
+      productName: item.productName || '',
+      variantSku: item.variantSku || '',
+      availableQuantity: available,
+      quantityToDeliver: available,
+      selected: false,
+    };
+  });
 }
 
 async function createDeliveryNote() {
@@ -548,25 +664,29 @@ async function createDeliveryNote() {
   isCreatingDeliveryNote.value = true;
   
   try {
+    let items;
+    if (deliveryNoteForm.value.type === 'PARTIAL') {
+      items = deliveryNoteForm.value.items
+        .filter(item => item.selected)
+        .map(item => ({
+          salesOrderLineItemId: item.lineItemId,
+          deliveredQuantity: item.quantityToDeliver,
+        }));
+    } else {
+      // TOTAL: include all line items with remaining quantity (skip fully delivered)
+      items = deliveryNoteForm.value.items
+        .filter(item => item.availableQuantity > 0)
+        .map(item => ({
+          salesOrderLineItemId: item.lineItemId,
+          deliveredQuantity: item.availableQuantity,
+        }));
+    }
+
     const deliveryNoteData = {
       salesOrderId: order.value.id,
       deliveryDate: salesApi.formatDateForAPI(new Date(deliveryNoteForm.value.deliveryDate)),
+      items,
     };
-    
-    if (deliveryNoteForm.value.type === 'PARTIAL') {
-      const selectedItems = deliveryNoteForm.value.items
-        .filter(item => item.selected)
-        .map(item => ({
-          lineItemId: item.lineItemId,
-          quantityDelivered: item.quantityToDeliver,
-        }));
-      
-      deliveryNoteData.lineItems = selectedItems;
-    }
-    
-    if (deliveryNoteForm.value.deliveryAddress) {
-      deliveryNoteData.deliveryAddress = deliveryNoteForm.value.deliveryAddress;
-    }
     
     if (deliveryNoteForm.value.notes) {
       deliveryNoteData.notes = deliveryNoteForm.value.notes;
@@ -594,6 +714,32 @@ function navigateToDeliveryNote(noteId) {
   router.push(`/sales/delivery-notes/${noteId}`);
 }
 
+async function createInvoiceFromOrder() {
+  if (!confirm('¿Crear factura para este pedido?')) return;
+  
+  isCreatingInvoice.value = true;
+  try {
+    const now = new Date();
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 30);
+
+    const data = {
+      partyId: order.value.partyId,
+      salesOrderIds: [order.value.id],
+      invoiceDate: now.toISOString(),
+      dueDate: dueDate.toISOString(),
+    };
+    
+    const newInvoice = await salesApi.createInvoice(data);
+    router.push(`/sales/invoices/${newInvoice.id}`);
+  } catch (err) {
+    alert(err?.message || 'No se pudo crear la factura');
+    console.error('Error creating invoice:', err);
+  } finally {
+    isCreatingInvoice.value = false;
+  }
+}
+
 async function confirmOrder() {
   if (!confirm('¿Confirmar este pedido?')) return;
 
@@ -616,95 +762,270 @@ async function cancelOrder() {
   }
 }
 
-async function addLineItem() {
+async function reactivateOrder() {
+  if (!confirm('¿Reactivar este pedido? Volverá a estado Pendiente.')) return;
+
   try {
-    const itemData = {
-      productVariantId: lineItemForm.value.productVariantId,
-      quantity: lineItemForm.value.quantity,
-    };
-
-    if (lineItemForm.value.manualUnitPrice) {
-      itemData.manualUnitPrice = {
-        amount: lineItemForm.value.manualUnitPrice,
-        currency: 'EUR',
-      };
-    }
-
-    if (lineItemForm.value.manualDiscountPerUnit) {
-      itemData.manualDiscountPerUnit = {
-        amount: lineItemForm.value.manualDiscountPerUnit,
-        currency: 'EUR',
-      };
-    }
-
-    await salesApi.addOrderLineItem(order.value.id, itemData);
+    await salesApi.changeOrderStatus(order.value.id, 'PENDING');
     await fetchOrder();
-    closeModals();
   } catch (err) {
-    alert(err?.message || 'No se pudo agregar la línea');
+    alert(err?.message || 'No se pudo reactivar el pedido');
   }
 }
 
-function editLineItem(item) {
-  editingItemId.value = item.id;
-  lineItemForm.value = {
-    productVariantId: item.productVariantID,
+function addEditLineItem() {
+  showVariantSelector.value = true;
+}
+
+function handleVariantSelected(payload) {
+  const variant = payload?.variant || payload;
+  if (variant) {
+    const name = variant.product_name || '';
+    const config = variant.option_configuration;
+    let displayName = name || '—';
+    if (config && Object.keys(config).length > 0) {
+      displayName = name + ' - ' + Object.values(config).join(', ');
+    }
+    const newItem = {
+      id: null,
+      productVariantId: variant.id,
+      variantSku: variant.sku || '',
+      displayName,
+      quantity: 1,
+      unitPrice: null,
+      discountPercent: partyDefaultDiscount.value || null,
+      effectiveUnitPrice: 0,
+    };
+    editLineItems.value.push(newItem);
+    showVariantSelector.value = false;
+    fetchEditLinePrice(newItem, variant.product_id || '', variant.product_base_price ?? variant.base_cost);
+  }
+}
+
+async function fetchEditLinePrice(item, productId, basePrice) {
+  if (!item.productVariantId || !productId) {
+    if (basePrice != null) {
+      item.unitPrice = Math.round(basePrice * 1000) / 1000;
+    }
+    return;
+  }
+  try {
+    const result = await calculateBaseSalesPrice(productId, item.productVariantId);
+    const rawPrice = result.baseSalesPrice?.amount ?? basePrice ?? null;
+    item.unitPrice = rawPrice != null ? Math.round(rawPrice * 1000) / 1000 : 0;
+  } catch (err) {
+    console.warn('[OrderDetail] Error fetching sale price:', err.message);
+    if (basePrice != null) {
+      item.unitPrice = Math.round(basePrice * 1000) / 1000;
+    }
+  }
+}
+
+function removeEditLineItem(index) {
+  editLineItems.value.splice(index, 1);
+}
+
+function calculateEditLineSubtotal(item) {
+  if (!previewResult.value) return 0;
+  const match = previewResult.value.lineItems.find(
+    li => li.productVariantId === item.productVariantId
+  );
+  return match?.subtotal?.amount ?? 0;
+}
+
+const editCalculatedTotals = computed(() => {
+  if (!previewResult.value) return { subtotal: 0, tax: 0, total: 0 };
+  return {
+    subtotal: previewResult.value.subtotal?.amount ?? 0,
+    tax: previewResult.value.taxAmount?.amount ?? 0,
+    total: previewResult.value.total?.amount ?? 0,
+  };
+});
+
+function debouncedPreview() {
+  clearTimeout(previewDebounceTimer);
+  previewDebounceTimer = setTimeout(fetchPreviewCalculation, 400);
+}
+
+function buildPreviewItems() {
+  return editLineItems.value
+    .filter(item => item.productVariantId)
+    .map(item => ({
+      productVariantId: item.productVariantId,
+      quantity: item.quantity || 1,
+      unitPrice: item.unitPrice ? { amount: item.unitPrice, currency: 'EUR' } : undefined,
+      discountPercent: item.discountPercent != null ? item.discountPercent : undefined,
+    }));
+}
+
+async function fetchPreviewCalculation() {
+  const partyId = order.value?.partyId;
+  const items = buildPreviewItems();
+  if (!partyId || items.length === 0) {
+    previewResult.value = null;
+    return;
+  }
+  isPreviewLoading.value = true;
+  try {
+    previewResult.value = await salesApi.previewOrderCalculation(partyId, items);
+  } catch (err) {
+    console.warn('[OrderDetail] Preview calculation error:', err.message);
+  } finally {
+    isPreviewLoading.value = false;
+  }
+}
+
+watch(
+  () => editLineItems.value.map(i => `${i.productVariantId}|${i.quantity}|${i.unitPrice}|${i.discountPercent}`).join(','),
+  () => {
+    if (isEditingHeader.value) debouncedPreview();
+  }
+);
+
+function formatMoneyAmount(amount) {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function enterHeaderEditMode() {
+  headerEditForm.value.deliveryDate = order.value.deliveryDate 
+    ? new Date(order.value.deliveryDate).toISOString().split('T')[0] 
+    : '';
+  headerEditForm.value.notes = order.value.notes || '';
+  headerEditForm.value.mesWorkRefs = (order.value.mesWorkRefs || []).map(r => ({
+    mesWorkId: r.mesWorkId,
+    observations: r.observations || '',
+  }));
+  // Populate inline edit line items from current order
+  editLineItems.value = (order.value.lineItems || []).map(item => ({
+    id: item.id,
+    productVariantId: item.productVariantId,
+    variantSku: item.variantSku || '',
+    displayName: buildDisplayName(item),
     quantity: item.quantity,
-    manualUnitPrice: item.manualUnitPrice?.amount || null,
-    manualDiscountPerUnit: item.manualDiscountPerUnit?.amount || null,
-  };
-  showEditItemModal.value = true;
+    listPrice: item.listUnitPrice?.amount || null,
+    unitPrice: item.unitPrice?.amount || null,
+    discountPercent: item.discountPercent ?? null,
+    effectiveUnitPrice: item.unitPrice?.amount || 0,
+  }));
+  isEditingHeader.value = true;
+  loadMesWorksForParty();
 }
 
-async function updateLineItem() {
+function cancelHeaderEdit() {
+  isEditingHeader.value = false;
+  showVariantSelector.value = false;
+  editLineItems.value = [];
+  previewResult.value = null;
+}
+
+async function loadMesWorksForParty() {
+  const partyId = order.value?.partyId;
+  if (!partyId) return;
+  isLoadingMesWorks.value = true;
   try {
-    const updates = {
-      quantity: lineItemForm.value.quantity,
+    mesWorks.value = await mesApi.listWorkDefinitions({ party_id: partyId });
+  } catch (err) {
+    console.error('Error loading MES works for party:', err);
+    mesWorks.value = [];
+  } finally {
+    isLoadingMesWorks.value = false;
+  }
+}
+
+function isEditMesWorkSelected(workId) {
+  return headerEditForm.value.mesWorkRefs.some(r => r.mesWorkId === workId);
+}
+
+function toggleEditMesWork(workId) {
+  const idx = headerEditForm.value.mesWorkRefs.findIndex(r => r.mesWorkId === workId);
+  if (idx >= 0) {
+    headerEditForm.value.mesWorkRefs.splice(idx, 1);
+  } else {
+    headerEditForm.value.mesWorkRefs.push({ mesWorkId: workId, observations: '' });
+  }
+}
+
+function getEditMesWorkObservations(workId) {
+  return headerEditForm.value.mesWorkRefs.find(r => r.mesWorkId === workId)?.observations || '';
+}
+
+function setEditMesWorkObservations(workId, value) {
+  const ref = headerEditForm.value.mesWorkRefs.find(r => r.mesWorkId === workId);
+  if (ref) ref.observations = value;
+}
+
+async function saveOrderHeader() {
+  if (editLineItems.value.length === 0) {
+    alert('Debe haber al menos una línea en el pedido');
+    return;
+  }
+
+  isSavingHeader.value = true;
+
+  try {
+    // 1. Update header (deliveryDate, notes, mesWorkRefs)
+    const updateData = {
+      notes: headerEditForm.value.notes || undefined,
+      mesWorkRefs: headerEditForm.value.mesWorkRefs,
     };
 
-    if (lineItemForm.value.manualUnitPrice) {
-      updates.manualUnitPrice = {
-        amount: lineItemForm.value.manualUnitPrice,
-        currency: 'EUR',
-      };
+    if (headerEditForm.value.deliveryDate) {
+      updateData.deliveryDate = salesApi.formatDateForAPI(new Date(headerEditForm.value.deliveryDate));
     }
 
-    if (lineItemForm.value.manualDiscountPerUnit) {
-      updates.manualDiscountPerUnit = {
-        amount: lineItemForm.value.manualDiscountPerUnit,
-        currency: 'EUR',
-      };
+    await salesApi.updateOrder(order.value.id, updateData);
+
+    // 2. Sync line items: remove deleted, update existing, add new
+    const originalIds = new Set((order.value.lineItems || []).map(i => i.id));
+    const editIds = new Set(editLineItems.value.filter(i => i.id).map(i => i.id));
+
+    // Remove lines that were deleted in edit mode
+    for (const origId of originalIds) {
+      if (!editIds.has(origId)) {
+        await salesApi.removeOrderLineItem(order.value.id, origId);
+      }
     }
 
-    await salesApi.updateOrderLineItem(order.value.id, editingItemId.value, updates);
+    // Update existing lines and add new ones
+    for (const item of editLineItems.value) {
+      const lineData = {
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+      };
+
+      if (item.unitPrice != null && item.unitPrice > 0) {
+        lineData.unitPrice = {
+          amount: item.unitPrice,
+          currency: 'EUR',
+        };
+      }
+
+      if (item.discountPercent != null) {
+        lineData.discountPercent = item.discountPercent;
+      }
+
+      if (item.id) {
+        // Update existing line
+        await salesApi.updateOrderLineItem(order.value.id, item.id, lineData);
+      } else {
+        // Add new line
+        await salesApi.addOrderLineItem(order.value.id, lineData);
+      }
+    }
+
+    isEditingHeader.value = false;
+    editLineItems.value = [];
     await fetchOrder();
-    closeModals();
   } catch (err) {
-    alert(err?.message || 'No se pudo actualizar la línea');
+    alert(err?.message || 'No se pudo actualizar el pedido');
+  } finally {
+    isSavingHeader.value = false;
   }
-}
-
-async function removeLineItem(itemId) {
-  if (!confirm('¿Eliminar esta línea del pedido?')) return;
-
-  try {
-    await salesApi.removeOrderLineItem(order.value.id, itemId);
-    await fetchOrder();
-  } catch (err) {
-    alert(err?.message || 'No se pudo eliminar la línea');
-  }
-}
-
-function closeModals() {
-  showAddItemModal.value = false;
-  showEditItemModal.value = false;
-  editingItemId.value = null;
-  lineItemForm.value = {
-    productVariantId: '',
-    quantity: 1,
-    manualUnitPrice: null,
-    manualDiscountPerUnit: null,
-  };
 }
 
 function goBack() {
@@ -733,6 +1054,14 @@ function formatPartyId(partyId) {
 function formatVariantId(variantId) {
   if (!variantId) return '—';
   return variantId.substring(0, 8) + '...';
+}
+
+function buildDisplayName(item) {
+  const name = item.productName || '';
+  const config = item.optionConfiguration;
+  if (!name) return '—';
+  if (!config || Object.keys(config).length === 0) return name;
+  return name + ' - ' + Object.values(config).join(', ');
 }
 
 function formatMesWorkId(mesWorkId) {
@@ -1028,25 +1357,18 @@ function goToMesWork(mesWorkId) {
 }
 
 .variant-id {
-  font-family: 'Courier New', monospace;
+  color: #374151;
+}
+
+.variant-sku {
   color: #6b7280;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
 }
 
 .amount {
   font-weight: 600;
   text-align: right;
-}
-
-.manual-badge {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 0.125rem 0.375rem;
-  background: #e0e7ff;
-  color: #3730a3;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
 }
 
 .mes-link {
@@ -1063,9 +1385,135 @@ function goToMesWork(mesWorkId) {
   color: #1d4ed8;
 }
 
+.mes-ref-view {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.mes-observations-text {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.mes-ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mes-ref-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mes-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mes-checkbox-label:hover {
+  background: #f0f7ff;
+  border-color: #93c5fd;
+}
+
+.mes-checkbox-label input[type="checkbox"] {
+  accent-color: #2563eb;
+}
+
+.mes-observations {
+  margin-left: 1.75rem;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.mes-loading,
+.mes-empty {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
 .actions-cell {
   display: flex;
   gap: 0.5rem;
+}
+
+.col-subtotal {
+  text-align: right;
+}
+
+.subtotal-value {
+  font-size: 0.875rem;
+  color: #1f2937;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.totals-section {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.totals-section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem;
+}
+
+.totals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.total-row.total-final {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 2px solid #d1d5db;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.total-label {
+  color: #6b7280;
+}
+
+.total-row.total-final .total-label {
+  color: #1f2937;
+}
+
+.total-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.total-row.total-final .total-value {
+  color: #E6B800;
 }
 
 .btn-icon {
@@ -1233,11 +1681,16 @@ function goToMesWork(mesWorkId) {
   cursor: pointer;
 }
 
-.item-variant {
+.item-sku {
   font-family: 'Courier New', monospace;
   font-size: 0.875rem;
   color: #1f2937;
   font-weight: 500;
+}
+
+.item-name {
+  font-size: 0.8rem;
+  color: #374151;
 }
 
 .item-available {
@@ -1311,7 +1764,7 @@ function goToMesWork(mesWorkId) {
 }
 
 .modal-wide {
-  max-width: 700px;
+  max-width: 900px;
 }
 
 .modal-header {
@@ -1394,99 +1847,28 @@ function goToMesWork(mesWorkId) {
   border-top: 1px solid #f3f4f6;
 }
 
-.print-doc-header,
-.print-doc-footer {
-  display: none;
-}
+/* Print styles: see @/assets/sales-print.css */
 
-.print-brand {
-  margin: 0;
+.form-input-inline {
+  max-width: 180px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
   font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #374151;
 }
 
-.print-doc-header h2 {
-  margin: 0.35rem 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #111827;
+.form-input-inline:focus {
+  outline: none;
+  border-color: #E6B800;
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
 }
 
-.print-issuer-line {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #4b5563;
-}
-
-.print-doc-meta {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: #4b5563;
-}
-
-@media print {
-  :deep(.navbar),
-  :deep(nav),
-  .page-header,
-  .btn-back,
-  .header-actions,
-  .modal-overlay,
-  .btn,
-  .btn-icon,
-  .actions-cell {
-    display: none !important;
-  }
-
-  .order-detail-container {
-    padding: 0;
-    max-width: none;
-  }
-
-  .print-doc-header,
-  .print-doc-footer {
-    display: block;
-    border: 1px solid #d1d5db;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: white;
-  }
-
-  .print-doc-footer {
-    margin-top: 0.75rem;
-    margin-bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: #4b5563;
-  }
-
-  .info-card,
-  .notes-card,
-  .line-items-section,
-  .table-container,
-  .delivery-notes-section {
-    box-shadow: none !important;
-    border: 1px solid #d1d5db;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-
-  .status-badge {
-    border: 1px solid #9ca3af;
-    color: #111827 !important;
-    background: transparent !important;
-  }
-
-  .data-table {
-    font-size: 0.75rem;
-  }
+.tax-notice {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fffbea;
+  border-left: 3px solid #E6B800;
+  border-radius: 4px;
+  color: #92710c;
 }
 </style>

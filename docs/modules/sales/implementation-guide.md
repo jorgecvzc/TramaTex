@@ -56,7 +56,8 @@ calculatedPrice, err := pricingService.CalculatePrice(ctx, PriceCalculationParam
 })
 
 // 4. Crear el line item con el precio calculado
-lineItem.CalculatedUnitPrice = calculatedPrice
+lineItem.ListUnitPrice = calculatedPrice  // precio de tarifa
+lineItem.UnitPrice = calculatedPrice      // precio de venta (puede ser override)
 ```
 
 #### Consideraciones Importantes

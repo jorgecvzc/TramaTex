@@ -34,10 +34,10 @@ core_contexts:
     depended_on_by: [All Modules]
   party:
     title: "Gestión de Terceros (Party)"
-    description: Unifica la administración de clientes, proveedores y otros contactos.
+    description: "Unifica la administración de clientes, proveedores y otros contactos."
     criticality: CRITICAL
     implementation_phase: ✅ Completado
-    key_entities: [Party, PersonProfile, OrganizationProfile, Relationship, Address]
+    key_entities: [Party, PersonProfile, OrganizationProfile, ContactDetails]
     dependencies_on: [IAM]
     depended_on_by: [Product, Pricing, Sales, MES]
   product:
@@ -45,7 +45,7 @@ core_contexts:
     description: Fuente de verdad para bienes y servicios, incluyendo variantes JIT y atributos.
     criticality: CRITICAL
     implementation_phase: ✅ Completado
-    key_entities: [Product, ProductVariant, Attribute, Brand, ProductGroup]
+    key_entities: [Product, ProductVariant, Attribute, AttributeValue, Brand, ProductGroup]
     dependencies_on: [Party]
     depended_on_by: [Pricing, Sales, MES]
   pricing:
@@ -53,7 +53,7 @@ core_contexts:
     description: Cálculo automático de precios basado en reglas, márgenes y descuentos.
     criticality: CRITICAL
     implementation_phase: ✅ Completado
-    key_entities: [PricingRule, PriceCalculation, BrandProfitMargin, SalesDiscountRule]
+    key_entities: [PricingRule, PriceCalculation, BrandProfitMargin, SalesDiscountRule, Money, Percentage]
     dependencies_on: [Product, Party]
     depended_on_by: [Sales]
   sales:

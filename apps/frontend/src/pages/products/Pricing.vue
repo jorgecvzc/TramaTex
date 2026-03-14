@@ -41,44 +41,14 @@
           </div>
 
           <!-- Client Search -->
-          <div class="form-group">
-            <label for="filter-client">Cliente</label>
-            <div class="client-search-container" @click.stop>
-              <input
-                v-model="clientSearchQuery"
-                type="text"
-                class="form-control"
-                placeholder="Buscar cliente por nombre o NIF..."
-                @input="searchClients"
-              />
-              <button
-                v-if="selectedClientName"
-                type="button"
-                class="clear-btn"
-                @click="clearClientSelection"
-                title="Limpiar selección"
-              >
-                ✕
-              </button>
-            </div>
-            <div v-if="showClientDropdown && filteredClients.length > 0" class="dropdown-list">
-              <div
-                v-for="client in filteredClients"
-                :key="client.id"
-                class="dropdown-option"
-                @click="selectClient(client)"
-              >
-                <div class="option-name">{{ client.legalName || client.id }}</div>
-                <div class="option-meta">
-                  <span class="meta-role">{{ formatRole(client.role) }}</span>
-                  <span v-if="client.taxId" class="meta-taxid">{{ client.taxId }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="selectedClientName" class="selected-info">
-              <CheckCircle :size="14" />
-              <span>{{ selectedClientName }}</span>
-            </div>
+          <div class="form-group form-group-client">
+            <PartySelector
+              v-model="selectedClientId"
+              label="Cliente"
+              placeholder="Buscar cliente por nombre o NIF..."
+              role-filter="CLIENT"
+              help-text="Seleccione el cliente para calcular el precio final"
+            />
           </div>
 
           <!-- Quantity & Date -->
@@ -122,26 +92,26 @@
           <div class="section-actions">
             <button
               v-if="selectedProductId && variants.length > 0"
-              class="btn btn-secondary"
-              :disabled="isCalculatingBase"
-              @click="calculateBasePrices"
-            >
-              {{ isCalculatingBase ? 'Calculando...' : 'Calcular Base' }}
-            </button>
-            <button
-              v-if="selectedProductId && variants.length > 0 && selectedClientId"
               class="btn btn-primary"
-              :disabled="isCalculatingFinal"
-              @click="calculateFinalPrices"
+              :disabled="isCalculatingBase"
+              @click="calculateAllPrices"
             >
-              {{ isCalculatingFinal ? 'Calculando...' : 'Calcular Precio Final' }}
+              {{ isCalculatingBase ? 'Calculando...' : 'Calcular Precios' }}
             </button>
           </div>
         </div>
 
+        <!-- Info: client bonification -->
+        <div v-if="selectedClientId && clientDiscount > 0" class="info-banner bonification-banner">
+          🌟 Cliente con <strong>bonificación del {{ clientDiscount }}%</strong>. Este descuento se aplica como bonificación global en los documentos de venta.
+        </div>
+        <div v-else-if="selectedClientId && clientDiscount === 0" class="info-banner">
+          Este cliente <strong>no tiene bonificación</strong> asignada.
+        </div>
+
         <!-- Info: no client -->
         <div v-if="selectedProductId && variants.length > 0 && !selectedClientId" class="info-banner">
-          Selecciona un <strong>cliente</strong> para poder calcular el precio final de venta.
+          Selecciona un <strong>cliente</strong> para ver su bonificación comercial.
         </div>
 
         <!-- No product selected -->
@@ -170,10 +140,15 @@
                 <th>SKU</th>
                 <th>Atributos</th>
                 <th class="align-right">Coste Base</th>
-                <th class="align-right">Precio Base Venta</th>
-                <th class="align-right">Precio Final</th>
-                <th class="align-right">IVA (%)</th>
-                <th class="align-right">Precio Final + IVA</th>
+                <th class="align-right">Precio Ud.</th>
+                <th class="align-right">Cant.</th>
+                <th class="align-right">Subtotal</th>
+                <th v-if="clientDiscount > 0" class="align-right">Dto. %</th>
+                <th v-if="clientDiscount > 0" class="align-right">Dto.</th>
+                <th class="align-right">Base Imponible</th>
+                <th class="align-right">IVA %</th>
+                <th class="align-right">IVA</th>
+                <th class="align-right">Total Línea</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -204,7 +179,7 @@
                   <span v-else class="text-muted">—</span>
                 </td>
                 <td class="align-right">
-                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value highlight">
                     {{ formatMoney(variantPrices[variant.id].baseSalesPrice) }}
                   </span>
                   <span v-else-if="variantPrices[variant.id]?.baseError" class="text-error" :title="variantPrices[variant.id].baseError">
@@ -213,26 +188,62 @@
                   <span v-else-if="loadingPrices[variant.id]" class="text-muted">Calculando...</span>
                   <span v-else class="text-muted">—</span>
                 </td>
+                <!-- Cantidad -->
                 <td class="align-right">
-                  <span v-if="variantPrices[variant.id]?.finalPrice" class="price-value highlight">
-                    {{ formatMoney(variantPrices[variant.id].finalPrice) }}
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="qty-value">
+                    {{ quantity || 1 }}
                   </span>
-                  <span v-else-if="variantPrices[variant.id]?.finalError" class="text-error" :title="variantPrices[variant.id].finalError">
-                    Error
-                  </span>
-                  <span v-else-if="loadingPrices[variant.id]" class="text-muted">Calculando...</span>
-                  <span v-else-if="!selectedClientId" class="text-muted">Sin cliente</span>
                   <span v-else class="text-muted">—</span>
                 </td>
+                <!-- Subtotal = precio × cantidad -->
                 <td class="align-right">
-                  <span v-if="variantPrices[variant.id]?.taxRate != null && variantPrices[variant.id]?.finalPrice" class="price-value muted">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value">
+                    {{ calcSubtotal(variant.id) }}
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <!-- Dto. % (solo si hay descuento) -->
+                <td v-if="clientDiscount > 0" class="align-right">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value discount">
+                    {{ clientDiscount }}%
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <!-- Dto. importe -->
+                <td v-if="clientDiscount > 0" class="align-right">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value discount">
+                    -{{ calcDiscountAmount(variant.id) }}
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <!-- Base Imponible = subtotal - descuento -->
+                <td class="align-right">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value">
+                    {{ calcTaxBase(variant.id) }}
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <!-- IVA % -->
+                <td class="align-right">
+                  <span v-if="variantPrices[variant.id]?.taxRate != null && variantPrices[variant.id]?.baseSalesPrice" class="price-value muted">
                     {{ variantPrices[variant.id].taxRate }}%
                   </span>
                   <span v-else class="text-muted">—</span>
                 </td>
+                <!-- IVA importe -->
                 <td class="align-right">
-                  <span v-if="variantPrices[variant.id]?.finalPriceWithTax" class="price-value highlight-tax">
-                    {{ formatMoney(variantPrices[variant.id].finalPriceWithTax) }}
+                  <span v-if="variantPrices[variant.id]?.taxRate != null && variantPrices[variant.id]?.baseSalesPrice" class="price-value muted">
+                    {{ calcTaxAmount(variant.id) }}
+                  </span>
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <!-- Total Línea = base imponible + IVA -->
+                <td class="align-right">
+                  <span v-if="variantPrices[variant.id]?.baseSalesPrice && variantPrices[variant.id]?.taxRate != null" class="price-value highlight-total">
+                    {{ calcLineTotal(variant.id) }}
+                  </span>
+                  <span v-else-if="variantPrices[variant.id]?.baseSalesPrice" class="price-value highlight">
+                    {{ calcTaxBase(variant.id) }}
                   </span>
                   <span v-else-if="loadingPrices[variant.id]" class="text-muted">Calculando...</span>
                   <span v-else class="text-muted">—</span>
@@ -246,17 +257,7 @@
             </tbody>
           </table>
 
-          <!-- Totals summary -->
-          <div v-if="saleTotal" class="totals-summary">
-            <div class="total-row">
-              <span class="total-label">Total (sin IVA):</span>
-              <span class="total-value">{{ formatMoney(saleTotal) }}</span>
-            </div>
-            <div v-if="saleTotalWithTax" class="total-row total-row-highlight">
-              <span class="total-label">Total (con IVA):</span>
-              <span class="total-value highlight-tax">{{ formatMoney(saleTotalWithTax) }}</span>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
@@ -264,13 +265,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
+import PartySelector from '@/components/party/PartySelector.vue'
 import { productApi } from '@/services/productApi'
 import { pricingApi } from '@/services/pricingApi'
 import { partyApi } from '@/services/partyApi'
-import { Package, Filter, BarChart3, CheckCircle } from 'lucide-vue-next'
+import { Package, Filter, BarChart3 } from 'lucide-vue-next'
 
 // State - Products
 const products = ref([])
@@ -287,35 +289,34 @@ const loadingPrices = ref({})
 const isCalculatingBase = ref(false)
 const isCalculatingFinal = ref(false)
 const calculationError = ref('')
-const saleTotal = ref(null)
-const saleTotalWithTax = ref(null)
+const clientDiscount = ref(0)
+
 
 // State - Filters
 const quantity = ref(100)
 const saleDate = ref(new Date().toISOString().split('T')[0])
 
-// State - Client search
-const clientSearchQuery = ref('')
-const filteredClients = ref([])
-const showClientDropdown = ref(false)
+// State - Client
 const selectedClientId = ref('')
-const selectedClientName = ref('')
-let searchTimeout = null
+
+// Watch client changes to fetch discount
+watch(selectedClientId, async (newId) => {
+  if (newId) {
+    try {
+      const client = await partyApi.getParty(newId)
+      clientDiscount.value = client?.default_discount_percentage ?? 0
+    } catch {
+      clientDiscount.value = 0
+    }
+  } else {
+    clientDiscount.value = 0
+  }
+})
 
 // Lifecycle
 onMounted(async () => {
   await loadProducts()
-  document.addEventListener('click', handleOutsideClick)
 })
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick)
-  if (searchTimeout) clearTimeout(searchTimeout)
-})
-
-function handleOutsideClick() {
-  showClientDropdown.value = false
-}
 
 // Methods
 async function loadProducts() {
@@ -350,6 +351,13 @@ async function onProductChange() {
     variants.value = []
   } finally {
     isLoadingVariants.value = false
+  }
+}
+
+async function calculateAllPrices() {
+  await calculateBasePrices()
+  if (selectedClientId.value) {
+    await calculateFinalPrices()
   }
 }
 
@@ -424,9 +432,7 @@ async function calculateFinalPrices() {
           finalError: null,
         }
       }
-      // Store totals
-      saleTotal.value = result.saleTotal || null
-      saleTotalWithTax.value = result.saleTotalWithTax || null
+
     }
   } catch (err) {
     console.error('Error calculating final prices:', err)
@@ -441,53 +447,13 @@ async function calculateFinalPrices() {
         finalError: err?.message || 'Error de cálculo',
       }
     }
-    saleTotal.value = null
-    saleTotalWithTax.value = null
+
   } finally {
     isCalculatingFinal.value = false
   }
 }
 
-// Client search
-async function searchClients() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  const query = clientSearchQuery.value.trim()
-  if (query.length < 2) {
-    filteredClients.value = []
-    showClientDropdown.value = false
-    return
-  }
-  searchTimeout = setTimeout(async () => {
-    try {
-      const response = await partyApi.listParties({ name: query, role: 'client', pageSize: 10 })
-      filteredClients.value = response.data || []
-      showClientDropdown.value = true
-    } catch {
-      filteredClients.value = []
-    }
-  }, 300)
-}
 
-function selectClient(client) {
-  selectedClientId.value = client.id
-  selectedClientName.value = client.legalName || client.id
-  clientSearchQuery.value = ''
-  showClientDropdown.value = false
-  filteredClients.value = []
-}
-
-function clearClientSelection() {
-  selectedClientId.value = ''
-  selectedClientName.value = ''
-  clientSearchQuery.value = ''
-  filteredClients.value = []
-  showClientDropdown.value = false
-}
-
-function formatRole(role) {
-  const names = { client: 'Cliente', supplier: 'Proveedor', employee: 'Empleado', partner: 'Socio' }
-  return names[role] || role
-}
 
 function formatEUR(value) {
   if (value === null || value === undefined) return '—'
@@ -508,6 +474,84 @@ function formatMoney(moneyDTO) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(parseFloat(moneyDTO.amount))
+}
+
+function formatLineTotal(variantId) {
+  const priceData = variantPrices.value[variantId]
+  if (!priceData?.baseSalesPrice?.amount) return '—'
+  const total = parseFloat(priceData.baseSalesPrice.amount) * (quantity.value || 1)
+  const currency = priceData.baseSalesPrice.currency || 'EUR'
+  return formatCurrency(total, currency)
+}
+
+function formatCurrency(value, currency = 'EUR') {
+  return new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function getSubtotal(variantId) {
+  const priceData = variantPrices.value[variantId]
+  if (!priceData?.baseSalesPrice?.amount) return 0
+  return parseFloat(priceData.baseSalesPrice.amount) * (quantity.value || 1)
+}
+
+function getDiscountAmount(variantId) {
+  const priceData = variantPrices.value[variantId]
+  if (!priceData?.finalPrice?.amount || !priceData?.baseSalesPrice?.amount) return 0
+  const qty = quantity.value || 1
+  return (parseFloat(priceData.baseSalesPrice.amount) - parseFloat(priceData.finalPrice.amount)) * qty
+}
+
+function getTaxBase(variantId) {
+  const priceData = variantPrices.value[variantId]
+  if (priceData?.finalPrice?.amount) {
+    return parseFloat(priceData.finalPrice.amount) * (quantity.value || 1)
+  }
+  return getSubtotal(variantId)
+}
+
+function getTaxAmount(variantId) {
+  const priceData = variantPrices.value[variantId]
+  if (!priceData?.finalPriceWithTax?.amount || !priceData?.finalPrice?.amount) return 0
+  const qty = quantity.value || 1
+  return (parseFloat(priceData.finalPriceWithTax.amount) - parseFloat(priceData.finalPrice.amount)) * qty
+}
+
+function calcSubtotal(variantId) {
+  const priceData = variantPrices.value[variantId]
+  const currency = priceData?.baseSalesPrice?.currency || 'EUR'
+  return formatCurrency(getSubtotal(variantId), currency)
+}
+
+function calcDiscountAmount(variantId) {
+  const priceData = variantPrices.value[variantId]
+  const currency = priceData?.baseSalesPrice?.currency || 'EUR'
+  return formatCurrency(getDiscountAmount(variantId), currency)
+}
+
+function calcTaxBase(variantId) {
+  const priceData = variantPrices.value[variantId]
+  const currency = priceData?.baseSalesPrice?.currency || 'EUR'
+  return formatCurrency(getTaxBase(variantId), currency)
+}
+
+function calcTaxAmount(variantId) {
+  const priceData = variantPrices.value[variantId]
+  const currency = priceData?.baseSalesPrice?.currency || 'EUR'
+  return formatCurrency(getTaxAmount(variantId), currency)
+}
+
+function calcLineTotal(variantId) {
+  const priceData = variantPrices.value[variantId]
+  const currency = priceData?.baseSalesPrice?.currency || 'EUR'
+  if (priceData?.finalPriceWithTax?.amount) {
+    return formatCurrency(parseFloat(priceData.finalPriceWithTax.amount) * (quantity.value || 1), currency)
+  }
+  return formatCurrency(getTaxBase(variantId), currency)
 }
 </script>
 
@@ -612,71 +656,13 @@ function formatMoney(moneyDTO) {
   box-shadow: 0 0 0 3px rgba(27, 58, 107, 0.1);
 }
 
-/* Client search */
-.client-search-container {
-  position: relative;
+/* Client selector — span full row */
+.form-group-client {
+  grid-column: 1 / -1;
 }
 
-.clear-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #94a3b8;
-  font-size: 1rem;
-  padding: 0.2rem 0.4rem;
-}
-
-.clear-btn:hover {
-  color: #475569;
-}
-
-.dropdown-list {
-  position: absolute;
-  z-index: 50;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  margin-top: 0.25rem;
-  max-height: 200px;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  width: 100%;
-}
-
-.dropdown-option {
-  padding: 0.6rem 0.8rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.dropdown-option:hover {
-  background: #f1f5f9;
-}
-
-.option-name {
-  font-weight: 500;
-  color: #1e293b;
-}
-
-.option-meta {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 0.15rem;
-}
-
-.selected-info {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: #059669;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
+.form-group-client :deep(.party-selector) {
+  max-width: 480px;
 }
 
 /* Section header */
@@ -735,6 +721,12 @@ function formatMoney(moneyDTO) {
   color: #1e40af;
   font-size: 0.85rem;
   margin-bottom: 1rem;
+}
+
+.info-banner.bonification-banner {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
 }
 
 .text-error {
@@ -832,37 +824,20 @@ function formatMoney(moneyDTO) {
   font-size: 1rem;
 }
 
-.totals-summary {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1.5rem;
-  padding: 1rem 1.5rem;
-  background: #f8fafc;
-  border-top: 2px solid #e2e8f0;
-  border-radius: 0 0 8px 8px;
-}
-
-.total-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.total-label {
-  font-size: 0.875rem;
-  color: #64748b;
-  font-weight: 500;
-}
-
-.total-value {
-  font-size: 1rem;
-  font-weight: 700;
+.highlight-total {
   color: #1b3a6b;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
-.total-row-highlight {
-  padding-left: 1rem;
-  border-left: 2px solid #166534;
+.discount {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.qty-value {
+  font-weight: 600;
+  color: #334155;
 }
 
 .text-muted {

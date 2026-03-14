@@ -9,24 +9,29 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 	orderItems := make([]OrderLineItem, len(q.LineItems))
 	for i, item := range q.LineItems {
 		orderItems[i] = OrderLineItem{
-			ID:                        item.ID,
-			MESWorkID:                 item.MESWorkID,
-			ProductVariantID:          item.ProductVariantID,
-			Quantity:                  item.Quantity,
-			CalculatedUnitPrice:       item.CalculatedUnitPrice,
-			ManualUnitPrice:           item.ManualUnitPrice,
-			FinalUnitPrice:            item.FinalUnitPrice,
-			CalculatedDiscountPerUnit: item.CalculatedDiscountPerUnit,
-			ManualDiscountPerUnit:     item.ManualDiscountPerUnit,
-			FinalDiscountPerUnit:      item.FinalDiscountPerUnit,
-			Subtotal:                  item.Subtotal,
+			ID:               item.ID,
+			ProductVariantID: item.ProductVariantID,
+			Quantity:         item.Quantity,
+			ListUnitPrice:    item.ListUnitPrice,
+			UnitPrice:        item.UnitPrice,
+			TaxRate:          item.TaxRate,
+			DiscountPercent:  item.DiscountPercent,
+			DiscountPerUnit:  item.DiscountPerUnit,
+			Subtotal:         item.Subtotal,
+			TaxAmount:        item.TaxAmount,
 		}
 	}
-	order, err := NewSalesOrder(orderNumber, q.PartyID, time.Now(), deliveryDate, orderItems, q.TaxAmount, q.Notes)
+	now := time.Now()
+	// Truncate to date-only (start of day UTC) so the comparison is date-level,
+	// avoiding timezone mismatches between frontend date-picker and server clock.
+	orderDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	deliveryDay := time.Date(deliveryDate.Year(), deliveryDate.Month(), deliveryDate.Day(), 0, 0, 0, 0, time.UTC)
+	order, err := NewSalesOrder(orderNumber, q.PartyID, orderDay, deliveryDay, orderItems, q.TaxAmount, q.Notes)
 	if err != nil {
 		return nil, err
 	}
 	order.QuoteID = &q.ID
+	order.MESWorkRefs = q.MESWorkRefs // Carry document-level MES references
 	if err := q.ChangeStatus(QuoteStatusConverted); err != nil {
 		return nil, err
 	}

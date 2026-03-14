@@ -224,6 +224,11 @@ func (s *PricingEngineService) CalculateBaseSalesPrice(ctx context.Context, req 
 		return nil, err
 	}
 
+	baseCost, err := domain.NewMoney(info.BaseCost, info.Currency)
+	if err != nil {
+		return nil, err
+	}
+
 	if s.basePriceCache != nil {
 		_ = s.basePriceCache.SetBasePrice(ctx, info.ProductID, req.VariantID, baseSalesPrice)
 		s.primeCacheForProduct(ctx, info.ProductID)
@@ -231,7 +236,9 @@ func (s *PricingEngineService) CalculateBaseSalesPrice(ctx context.Context, req 
 
 	return &CalculatedBaseSalesPriceResponse{
 		VariantID:      req.VariantID,
+		BaseCost:       NewMoneyDTO(baseCost),
 		BaseSalesPrice: NewMoneyDTO(baseSalesPrice),
+		TaxRate:        info.TaxRate,
 	}, nil
 }
 
@@ -312,6 +319,10 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 	for index, item := range req.SaleItems {
 		basePrice := basePrices[index]
 		productInfo := productInfos[index]
+		baseCost, err := domain.NewMoney(productInfo.BaseCost, productInfo.Currency)
+		if err != nil {
+			return nil, err
+		}
 		productGroupID := firstGroupID(productInfo.GroupIDs)
 		rules, err := s.saleRuleRepo.ListApplicable(ctx, req.ClientID, productGroupID, orderTotal, saleDate)
 		if err != nil {
@@ -340,7 +351,38 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			finalPrice = discounted
 		}
 
-		finalPriceWithTax, err := finalPrice.Multiply(1 + productInfo.TaxRate/100)
+		// Calculate discount (baseSalesPrice - finalPrice)
+		discountAmount, err := basePrice.Subtract(finalPrice)
+		if err != nil {
+			// finalPrice > basePrice means a markup was applied, no discount
+			discountAmount, _ = domain.NewMoney(0, basePrice.Currency())
+		}
+		var discountPercent float64
+		if basePrice.Amount() > 0 && discountAmount.Amount() > 0 {
+			discountPercent = discountAmount.Amount() / basePrice.Amount() * 100
+		}
+
+		// Tax per unit
+		taxAmountPerUnit, err := finalPrice.Multiply(productInfo.TaxRate / 100)
+		if err != nil {
+			return nil, err
+		}
+
+		finalPriceWithTax, err := finalPrice.Add(taxAmountPerUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		// Line-level totals
+		lineSubtotal, err := finalPrice.Multiply(float64(item.Quantity))
+		if err != nil {
+			return nil, err
+		}
+		lineTaxAmount, err := taxAmountPerUnit.Multiply(float64(item.Quantity))
+		if err != nil {
+			return nil, err
+		}
+		lineTotal, err := lineSubtotal.Add(lineTaxAmount)
 		if err != nil {
 			return nil, err
 		}
@@ -348,17 +390,20 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		items = append(items, CalculatedSaleItemResponse{
 			ProductVariantID:  item.ProductVariantID,
 			Quantity:          item.Quantity,
+			BaseCost:          NewMoneyDTO(baseCost),
 			BaseSalesPrice:    NewMoneyDTO(basePrice),
 			FinalPrice:        NewMoneyDTO(finalPrice),
+			DiscountPercent:   discountPercent,
+			DiscountAmount:    NewMoneyDTO(discountAmount),
 			TaxRate:           productInfo.TaxRate,
+			TaxAmountPerUnit:  NewMoneyDTO(taxAmountPerUnit),
 			FinalPriceWithTax: NewMoneyDTO(finalPriceWithTax),
+			LineSubtotal:      NewMoneyDTO(lineSubtotal),
+			LineTaxAmount:     NewMoneyDTO(lineTaxAmount),
+			LineTotal:         NewMoneyDTO(lineTotal),
 		})
 
-		lineTotal, err := finalPrice.Multiply(float64(item.Quantity))
-		if err != nil {
-			return nil, err
-		}
-		saleTotal, err = saleTotal.Add(lineTotal)
+		saleTotal, err = saleTotal.Add(lineSubtotal)
 		if err != nil {
 			return nil, err
 		}
@@ -369,7 +414,7 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		return nil, err
 	}
 	for _, calcItem := range items {
-		lineTotalWithTax, err := domain.NewMoney(calcItem.FinalPriceWithTax.Amount*float64(calcItem.Quantity), calcItem.FinalPriceWithTax.Currency)
+		lineTotalWithTax, err := domain.NewMoney(calcItem.LineTotal.Amount, calcItem.LineTotal.Currency)
 		if err != nil {
 			return nil, err
 		}

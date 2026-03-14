@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS brands (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE UNIQUE INDEX idx_brands_name ON brands(name);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_brands_name ON brands(name);
 
 COMMENT ON TABLE brands IS 'Product brands catalog';
 COMMENT ON COLUMN brands.default_markup_percentage IS 'Default markup percentage applied to product variants (e.g., 30.0 = 30%)';
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS product_groups (
     CONSTRAINT fk_parent_group FOREIGN KEY (parent_group_id) REFERENCES product_groups(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_product_groups_parent_group_id ON product_groups(parent_group_id);
-CREATE INDEX idx_product_groups_group_type ON product_groups(group_type);
+CREATE INDEX IF NOT EXISTS idx_product_groups_parent_group_id ON product_groups(parent_group_id);
+CREATE INDEX IF NOT EXISTS idx_product_groups_group_type ON product_groups(group_type);
 
 COMMENT ON TABLE product_groups IS 'Hierarchical product groups';
 COMMENT ON COLUMN product_groups.group_type IS 'Classification: TANGIBLE for physical products, SERVICE for service-based products';
@@ -94,8 +94,8 @@ CREATE TABLE IF NOT EXISTS attributes (
     CONSTRAINT fk_scope_product_group FOREIGN KEY (scope_group_id) REFERENCES product_groups(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX idx_attributes_code ON attributes(code);
-CREATE INDEX idx_attributes_scope ON attributes(scope_brand_id, scope_group_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attributes_code ON attributes(code);
+CREATE INDEX IF NOT EXISTS idx_attributes_scope ON attributes(scope_brand_id, scope_group_id);
 
 COMMENT ON TABLE attributes IS 'Product attributes (Size, Color, Material, etc.)';
 COMMENT ON COLUMN attributes.scope_brand_id IS 'Optional: restrict attribute to specific brand';
@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS attribute_values (
     )
 );
 
-CREATE UNIQUE INDEX idx_attribute_values_attribute_id_code ON attribute_values(attribute_id, code);
-CREATE INDEX idx_attribute_values_price_modifier ON attribute_values(has_price_modifier) WHERE has_price_modifier = TRUE;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_attribute_values_attribute_id_code ON attribute_values(attribute_id, code);
+CREATE INDEX IF NOT EXISTS idx_attribute_values_price_modifier ON attribute_values(has_price_modifier) WHERE has_price_modifier = TRUE;
 
 COMMENT ON TABLE attribute_values IS 'Values for product attributes with optional price modifiers';
 COMMENT ON COLUMN attribute_values.has_price_modifier IS 'Whether this value affects product variant price';
@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS products (
     CONSTRAINT fk_products_brand FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_products_brand_id ON products(brand_id);
+CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id);
 
 COMMENT ON TABLE products IS 'Products catalog (templates for variants)';
 COMMENT ON COLUMN products.base_price IS 'Base cost/price - source of truth for variant pricing';
@@ -185,8 +185,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
     CONSTRAINT fk_product_variants_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX idx_product_variants_sku ON product_variants(sku);
-CREATE UNIQUE INDEX idx_product_variants_barcode ON product_variants(barcode) WHERE barcode IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_sku ON product_variants(sku);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_barcode ON product_variants(barcode) WHERE barcode IS NOT NULL;
 
 COMMENT ON TABLE product_variants IS 'Product variants - concrete products with specific attributes';
 COMMENT ON COLUMN product_variants.attribute_values IS 'Array of attribute_value IDs that define this variant';

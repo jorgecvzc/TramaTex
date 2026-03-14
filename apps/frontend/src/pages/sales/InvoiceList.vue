@@ -53,6 +53,16 @@
         </div>
       </div>
       <div class="filter-actions">
+        <div class="limit-group">
+          <label>Mostrar</label>
+          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="0">Todos</option>
+          </select>
+          <span class="limit-label">registros</span>
+        </div>
         <button class="btn btn-secondary" @click="clearFilters">Limpiar</button>
         <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">Buscar</button>
       </div>
@@ -89,8 +99,8 @@
               <th>Fecha</th>
               <th>Vencimiento</th>
               <th>Tipo</th>
+              <th>Estado</th>
               <th>Total</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -109,16 +119,12 @@
                   {{ getTypeLabel(invoice.type) }}
                 </span>
               </td>
-              <td class="amount">{{ salesApi.formatMoney(invoice.total) }}</td>
-              <td class="actions-cell" @click.stop>
-                <button
-                  class="btn-icon"
-                  @click="navigateToDetail(invoice.id)"
-                  title="Ver detalle"
-                >
-                  👁️
-                </button>
+              <td>
+                <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
+                  {{ salesApi.getStatusLabel(invoice.status) }}
+                </span>
               </td>
+              <td class="amount">{{ salesApi.formatMoney(invoice.total) }}</td>
             </tr>
           </tbody>
         </table>
@@ -198,7 +204,7 @@ import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 
 const router = useRouter();
 
@@ -213,6 +219,7 @@ const filters = ref({
   type: '',
   fromDate: '',
   toDate: '',
+  limit: 50,
 });
 
 const filteredInvoices = computed(() => {
@@ -300,16 +307,7 @@ const isInvoiceFormValid = computed(() => {
 });
 
 onMounted(() => {
-  // Set default date range (last 90 days)
-  const today = new Date();
-  const fromDate = new Date(today);
-  fromDate.setDate(today.getDate() - 90);
-
-  filters.value.fromDate = fromDate.toISOString().split('T')[0];
-  filters.value.toDate = today.toISOString().split('T')[0];
-
   autoFetchEnabled = true;
-
   fetchInvoices();
 });
 
@@ -334,6 +332,9 @@ async function fetchInvoices() {
     }
     if (filters.value.toDate) {
       params.toDate = filters.value.toDate;
+    }
+    if (filters.value.limit) {
+      params.limit = filters.value.limit;
     }
 
     const response = await salesApi.listInvoices(params);
@@ -419,6 +420,7 @@ function clearFilters() {
     type: '',
     fromDate: '',
     toDate: '',
+    limit: 50,
   };
   fetchInvoices();
 }
@@ -495,21 +497,29 @@ function getTypeLabel(type) {
 .filters-card {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: contents;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .filter-group label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #4a5568;
   margin-bottom: 0.25rem;
@@ -518,10 +528,10 @@ function getTypeLabel(type) {
 .filter-input,
 .filter-select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .filter-input:focus,
@@ -532,9 +542,29 @@ function getTypeLabel(type) {
 }
 
 .filter-actions {
+  display: contents;
+}
+
+.limit-group {
   display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.limit-group label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.limit-select {
+  width: 70px;
+}
+
+.limit-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .btn {

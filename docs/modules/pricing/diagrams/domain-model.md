@@ -6,133 +6,84 @@
 classDiagram
     direction TB
     
-    class PricingRule {
+    class BaseSalesPriceRule {
         +ID: UUID
-        +Nombre: string
-        +Descripción: string
-        +Tipo: Enum (margen, descuento, fijo)
-        +Condiciones: string (producto, categoría, fecha)
-        +Valor: Percentage | Money
-        +Prioridad: int
-        +Evaluar(contextoDeCalculo): bool
-    }
-
-    class ClientPricing {
-        +ID: UUID
-        +ID_Cliente: PartyID
-        +ID_PricingRule: PricingRuleID
-        +ValorEspecífico: Money (opcional)
-        +ObtenerReglasAplicables(cliente): List<PricingRule>
+        +Name: string
+        +Precedence: int
+        +Scope: Enum (Global, Brand, Product, Client)
+        +Value: Money | Percentage
+        +Condition: string
+        +Apply(context): Money
     }
 
     class BrandProfitMargin {
         +ID: UUID
-        +ID_Marca: BrandID
-        +PorcentajeBeneficio: Percentage
-        +CantidadFijaBeneficio: Money
-        +FechaInicio: DateTime
-        +FechaFin: DateTime
-        +ObtenerMargen(marca, fecha): Percentage | Money
+        +BrandID: UUID
+        +MarkupPercentage: Percentage
+        +IsDefault: bool
     }
 
     class SalesDiscountRule {
         +ID: UUID
-        +Nombre: string
-        +Descripción: string
-        +Tipo: Enum (porcentaje, cantidad fija)
-        +Condiciones: string (mínimo de compra, ID_Cliente, ID_Producto)
-        +Valor: Percentage | Money
-        +Prioridad: int
-        +Aplicar(contextoDeVenta): Money | Percentage
+        +Name: string
+        +ClientSpecific: bool
+        +ProductSpecific: bool
+        +DiscountValue: Percentage
+        +Priority: int
     }
 
     class PriceCalculation {
-        +ID: UUID
-        +ID_Producto_Variante: ProductVariantID
-        +ID_Cliente: PartyID
-        +PrecioBase: Money
-        +ModificadoresAplicados: List<string>
-        +MargenBeneficioAplicado: Percentage | Money
-        +PrecioVentaCalculado: Money
-        +DescuentosAplicados: List<SalesDiscount>
-        +PrecioFinal: Money
-        +FechaCalculo: DateTime
-        +ID_Usuario: UserID
-        +Guardar(): void
+        <<Service>>
+        +CalculateBaseCost(Product, List~AttributeValue~): Money
+        +CalculateBSP(BaseCost, Brand): Money
+        +CalculateFSP(BSP, Client, Context): Money
+    }
+
+    class PriceResult {
+        +BaseCost: Money
+        +BSP: Money
+        +FSP: Money
+        +AppliedRules: List~string~
+        +TaxRate: Percentage
+        +FinalPriceWithTax: Money
     }
 
     class Money {
-        +Cantidad: decimal
-        +Moneda: string
-        +Sumar(Money): Money
-        +Restar(Money): Money
-        +Multiplicar(decimal): Money
-        +Dividir(decimal): Money
+        +Amount: float64
+        +Currency: string ("EUR")
     }
 
     class Percentage {
-        +Valor: float
-        +AplicarA(cantidad): decimal
+        +Value: float64
     }
 
-    class Brand {
-        +ID_Marca: BrandID
-        +Nombre: string
-    }
-
-    class ProductCode {
-        +Código: string
-    }
-
-    class VariantCode {
-        +Código: string
-    }
-
-    class SellingPriceCalculatorService {
-        +CalcularPrecioVenta(producto, variante, marca, contexto): Money
-    }
-
-    class SalesDiscountCalculatorService {
-        +AplicarDescuentos(precioVenta, cliente, cantidadTotalVenta, productosEnVenta, contexto): Money
-    }
-
-    PricingRule --o Money
-    PricingRule --o Percentage
-    ClientPricing --o PricingRuleID
-    ClientPricing --o PartyID
-    ClientPricing --o Money
-    BrandProfitMargin --o BrandID
-    BrandProfitMargin --o Percentage
-    BrandProfitMargin --o Money
-    SalesDiscountRule --o PartyID
-    SalesDiscountRule --o ProductID
-    SalesDiscountRule --o Percentage
-    SalesDiscountRule --o Money
-    PriceCalculation --o ProductVariantID
-    PriceCalculation --o PartyID
-    PriceCalculation --o Money
-    PriceCalculation --o UserID
+    BaseSalesPriceRule "1" --o "1" Money : defines
+    BaseSalesPriceRule "1" --o "1" Percentage : defines
+    BrandProfitMargin "1" --o "1" Percentage : defines
+    SalesDiscountRule "1" --o "1" Percentage : defines
     
-    SellingPriceCalculatorService ..> PricingRule : uses
-    SellingPriceCalculatorService ..> BrandProfitMargin : uses
-    SellingPriceCalculatorService ..> ProductCode : uses
-    SellingPriceCalculatorService ..> VariantCode : uses
-    SellingPriceCalculatorService ..> Money : returns
-    SellingPriceCalculatorService ..> Percentage : uses
-    
-    SalesDiscountCalculatorService ..> SalesDiscountRule : uses
-    SalesDiscountCalculatorService ..> ClientPricing : uses
-    SalesDiscountCalculatorService ..> Money : returns
-    SalesDiscountCalculatorService ..> Percentage : uses
+    PriceCalculation ..> BaseSalesPriceRule : uses
+    PriceCalculation ..> BrandProfitMargin : uses
+    PriceCalculation ..> SalesDiscountRule : uses
+    PriceCalculation ..> PriceResult : produces
 
-    PricingRule : ID_Cliente (referencia Party)
-    ClientPricing : ID_Cliente (referencia Party)
-    BrandProfitMargin : ID_Marca (referencia Product)
-    SalesDiscountRule : ID_Cliente (referencia Party), ID_Producto (referencia Product)
-    PriceCalculation : ID_Producto/Variante (referencia Product), ID_Cliente (referencia Party), ID_Usuario (referencia IAM)
-
+    note for BaseSalesPriceRule "Precedencia: Override > Client > Product > Brand > Global"
+    note for PriceCalculation "JIT: BaseCost = Product.BasePrice + Σ(AttributeValue.PriceAdjustment)"
 ```
 
-## 2. Descripción
+## 2. Descripción y Jerarquía de Reglas
 
-Este diagrama visualiza las entidades, Value Objects y Servicios de Dominio que componen el módulo de Precios, así como sus relaciones clave. Refleja la información detallada en `pricing-domain.md` y las decisiones arquitectónicas de `ADR-016`.
+Este diagrama visualiza las entidades y el flujo de cálculo del motor de precios de TramaTex.
+
+### Jerarquía de Precedencia
+El motor de Pricing aplica las reglas en el siguiente orden de especificidad, donde la primera regla que coincide detiene la búsqueda para ese nivel:
+1.  **Override (Manual):** Precio fijado explícitamente para una operación.
+2.  **Cliente Específico:** Acuerdo de precios con una `Party` concreta.
+3.  **Producto Específico:** Precio base definido para un `Product` o `ProductVariant`.
+4.  **Marca:** Margen de beneficio por defecto de la `Brand`.
+5.  **Global:** Regla por defecto del sistema.
+
+### Conceptos de Cálculo
+*   **BaseCost (JIT):** Calculado dinámicamente sumando el `BasePrice` del producto y los modificadores de los atributos seleccionados.
+*   **BSP (Base Selling Price):** `BaseCost` aplicado el margen comercial (`BrandProfitMargin`).
+*   **FSP (Final Selling Price):** `BSP` tras aplicar descuentos de cliente o promociones (`SalesDiscountRule`).

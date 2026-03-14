@@ -1,12 +1,23 @@
 package domain
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 const DefaultCurrency = "EUR"
 
 type Money struct {
 	amount   float64
 	currency string
+}
+
+// roundTo2Decimals rounds a float64 to 2 decimal places using round-half-up
+// (commercial rounding). This avoids banker's rounding where .5 rounds to even,
+// which caused subtle discrepancies in discount calculations (e.g. 5.025 → 5.02
+// instead of the expected 5.03).
+func roundTo2Decimals(amount float64) float64 {
+	return math.Floor(amount*100+0.5) / 100
 }
 
 func NewMoney(amount float64, currency string) (Money, error) {
@@ -19,7 +30,7 @@ func NewMoney(amount float64, currency string) (Money, error) {
 	if amount < 0 {
 		return Money{}, NewValidationError("amount cannot be negative")
 	}
-	return Money{amount: amount, currency: currency}, nil
+	return Money{amount: roundTo2Decimals(amount), currency: currency}, nil
 }
 
 func (m Money) Amount() float64 {

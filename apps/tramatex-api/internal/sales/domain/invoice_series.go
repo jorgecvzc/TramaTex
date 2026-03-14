@@ -67,9 +67,9 @@ func (s InvoiceSeries) Prefix() string {
 }
 
 // FormatNumber generates the formatted invoice number with series
-// Example: series "TKT", number 123, year 2026 → "TKT/00123/2026"
+// Example: series "FV", number 3, year 2026 → "FV-2026-0003"
 func (s InvoiceSeries) FormatNumber(number int) string {
-	return fmt.Sprintf("%s/%05d/%d", s.prefix, number, s.year)
+	return fmt.Sprintf("%s-%d-%04d", s.prefix, s.year, number)
 }
 
 // String returns the series identifier (code/year)

@@ -28,5 +28,18 @@ Consulte los siguientes documentos para una descripción más profunda del módu
 *   **Modelo de Dominio:** [domain-model.md](./domain-model.md)
 *   **Casos de Uso:** [use-cases.md](./use-cases.md)
 *   **Contratos de API:** [api-contracts.md](./api-contracts.md)
-*   **Diagramas Detallados del Dominio:** [diagrams/detailed-domain-models.md](./diagrams/detailed-domain-models.md)
 *   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
+*   **Diagramas Detallados:** [diagrams/detailed-domain-models.md](./diagrams/detailed-domain-models.md)
+
+---
+
+## Interfaz de Usuario (Frontend)
+
+El módulo Product se materializa en los siguientes componentes clave en `apps/frontend/`:
+
+- **`ProductList.vue`**: Catálogo general de productos con búsqueda inteligente.
+- **`VariantSelector.vue`**: Selector dinámico de atributos para configurar variantes.
+- **`VariantGenerator.vue`**: Herramienta administrativa para la creación masiva de variantes.
+- **`AttributesPanel.vue`**: Gestión de los atributos heredables y directos de un producto.
+- **`ProductFormBasic.vue`**: Definición de los parámetros económicos base (Precio, IVA) y clasificación.
+

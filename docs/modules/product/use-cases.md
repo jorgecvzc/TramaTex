@@ -1,9 +1,9 @@
 # Product Module: Use Cases
 
-- **Version:** 1.1.0
-- **Status:** En Revisión
+- **Version:** 1.2.0
+- **Status:** Implementado
 
-Este documento describe los casos de uso para el módulo de `product`, alineado con el modelo de dominio v1.1.
+Este documento describe los casos de uso para el módulo de `product`, alineado con la implementación final.
 
 ---
 
@@ -53,6 +53,8 @@ Este documento describe los casos de uso para el módulo de `product`, alineado 
      - `Barcode` (opcional)
      - `ProductType` (`TANGIBLE`/`SERVICE`)
      - `BrandID` y `GroupIDs`.
+     - `BasePrice` (Precio de coste base para cálculo de variantes).
+     - `TaxRate` (Tipo de IVA aplicable, ej: 21.0).
   2. El sistema crea la entidad `Product`.
 - **Postcondiciones:** El producto hereda automáticamente todos los `Attribute`s que coincidan con su marca y grupos, además de los genéricos.
 

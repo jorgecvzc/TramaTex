@@ -119,22 +119,24 @@ func (a *Attribute) RemoveValue(id uuid.UUID) error {
 
 // CalculateBaseCost calculates the base cost by applying attribute value price modifiers to a base price.
 // This is used to dynamically calculate variant costs without storing them.
+// Percentage modifiers are applied first (over the original base price), then fixed modifiers.
 func CalculateBaseCost(basePrice float64, attributeValues []AttributeValue) float64 {
 	baseCost := basePrice
 
+	// First pass: apply percentage modifiers over the original base price
 	for _, attrValue := range attributeValues {
-		if !attrValue.HasPriceModifier {
+		if !attrValue.HasPriceModifier || attrValue.ModifierType != ModifierTypePercentage {
 			continue
 		}
+		baseCost += basePrice * (attrValue.ModifierAmount / 100.0)
+	}
 
-		switch attrValue.ModifierType {
-		case ModifierTypeFixed:
-			// Fixed amount: simply add or subtract the modifier
-			baseCost += attrValue.ModifierAmount
-		case ModifierTypePercentage:
-			// Percentage: apply as percentage of current base cost
-			baseCost += baseCost * (attrValue.ModifierAmount / 100.0)
+	// Second pass: apply fixed modifiers
+	for _, attrValue := range attributeValues {
+		if !attrValue.HasPriceModifier || attrValue.ModifierType != ModifierTypeFixed {
+			continue
 		}
+		baseCost += attrValue.ModifierAmount
 	}
 
 	// Ensure the result is not negative

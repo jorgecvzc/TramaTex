@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_tasks_is_active ON tasks(is_active);
+CREATE INDEX IF NOT EXISTS idx_tasks_is_active ON tasks(is_active);
 
 COMMENT ON TABLE tasks IS 'Master data for manufacturing tasks/operations';
 
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS positions (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_positions_code ON positions(code);
-CREATE INDEX idx_positions_is_active ON positions(is_active);
+CREATE INDEX IF NOT EXISTS idx_positions_code ON positions(code);
+CREATE INDEX IF NOT EXISTS idx_positions_is_active ON positions(is_active);
 
 COMMENT ON TABLE positions IS 'Work positions/stations in production floor';
 
@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS service_groups (
     CONSTRAINT fk_service_groups_product_group FOREIGN KEY (product_group_id) REFERENCES product_groups(id) ON DELETE SET NULL
 );
 
-CREATE INDEX idx_service_groups_is_active ON service_groups(is_active);
-CREATE INDEX idx_service_groups_product_group_id ON service_groups(product_group_id);
+CREATE INDEX IF NOT EXISTS idx_service_groups_is_active ON service_groups(is_active);
+CREATE INDEX IF NOT EXISTS idx_service_groups_product_group_id ON service_groups(product_group_id);
 
 COMMENT ON TABLE service_groups IS 'Templates for service workflows (e.g., "Embroidery Process")';
 
@@ -74,8 +74,8 @@ CREATE TABLE IF NOT EXISTS service_group_tasks (
     CONSTRAINT chk_service_group_tasks_sequence_positive CHECK (sequence > 0)
 );
 
-CREATE INDEX idx_service_group_tasks_service_group_id ON service_group_tasks(service_group_id);
-CREATE INDEX idx_service_group_tasks_sequence ON service_group_tasks(service_group_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_service_group_tasks_service_group_id ON service_group_tasks(service_group_id);
+CREATE INDEX IF NOT EXISTS idx_service_group_tasks_sequence ON service_group_tasks(service_group_id, sequence);
 
 COMMENT ON TABLE service_group_tasks IS 'Ordered tasks within a service group workflow';
 
@@ -105,11 +105,11 @@ CREATE TABLE IF NOT EXISTS mes_works (
     CONSTRAINT chk_mes_works_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT'))
 );
 
-CREATE INDEX idx_mes_works_work_number ON mes_works(work_number);
-CREATE INDEX idx_mes_works_party_id ON mes_works(party_id);
-CREATE INDEX idx_mes_works_status ON mes_works(status);
-CREATE INDEX idx_mes_works_priority ON mes_works(priority);
-CREATE INDEX idx_mes_works_due_date ON mes_works(due_date);
+CREATE INDEX IF NOT EXISTS idx_mes_works_work_number ON mes_works(work_number);
+CREATE INDEX IF NOT EXISTS idx_mes_works_party_id ON mes_works(party_id);
+CREATE INDEX IF NOT EXISTS idx_mes_works_status ON mes_works(status);
+CREATE INDEX IF NOT EXISTS idx_mes_works_priority ON mes_works(priority);
+CREATE INDEX IF NOT EXISTS idx_mes_works_due_date ON mes_works(due_date);
 
 COMMENT ON TABLE mes_works IS 'Manufacturing work orders (e.g., embroider 50 t-shirts)';
 
@@ -132,8 +132,8 @@ CREATE TABLE IF NOT EXISTS mes_work_service_groups (
     CONSTRAINT chk_mes_work_service_groups_sequence_positive CHECK (sequence > 0)
 );
 
-CREATE INDEX idx_mes_work_service_groups_work ON mes_work_service_groups(mes_work_id);
-CREATE INDEX idx_mes_work_service_groups_sequence ON mes_work_service_groups(mes_work_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_mes_work_service_groups_work ON mes_work_service_groups(mes_work_id);
+CREATE INDEX IF NOT EXISTS idx_mes_work_service_groups_sequence ON mes_work_service_groups(mes_work_id, sequence);
 
 COMMENT ON TABLE mes_work_service_groups IS 'Service workflows applied to a specific work order';
 
@@ -159,9 +159,9 @@ CREATE TABLE IF NOT EXISTS mes_work_tasks (
     CONSTRAINT chk_mes_work_tasks_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'SKIPPED'))
 );
 
-CREATE INDEX idx_mes_work_tasks_group ON mes_work_tasks(mes_work_service_group_id);
-CREATE INDEX idx_mes_work_tasks_status ON mes_work_tasks(status);
-CREATE INDEX idx_mes_work_tasks_assigned_to ON mes_work_tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_group ON mes_work_tasks(mes_work_service_group_id);
+CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_status ON mes_work_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_assigned_to ON mes_work_tasks(assigned_to);
 
 COMMENT ON TABLE mes_work_tasks IS 'Individual task instances with execution tracking';
 

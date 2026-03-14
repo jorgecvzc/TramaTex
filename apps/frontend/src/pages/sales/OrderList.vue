@@ -38,10 +38,12 @@
           <select v-model="filters.status" class="filter-select">
             <option value="">Todos</option>
             <option value="PENDING">Pendiente</option>
-            <option value="CONFIRMED">Confirmado</option>
-            <option value="IN_PROGRESS">En Progreso</option>
-            <option value="COMPLETED">Completado</option>
+            <option value="CONFIRMED">En Preparación</option>
+            <option value="PARTIALLY_DELIVERED">Entregado Parcialmente</option>
+            <option value="DELIVERED">Entregado</option>
             <option value="CANCELLED">Cancelado</option>
+            <option value="PARTIALLY_INVOICED">Facturado Parcialmente</option>
+            <option value="INVOICED">Facturado</option>
           </select>
         </div>
 
@@ -65,6 +67,16 @@
       </div>
 
       <div class="filters-actions">
+        <div class="limit-group">
+          <label>Mostrar</label>
+          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="0">Todos</option>
+          </select>
+          <span class="limit-label">registros</span>
+        </div>
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
@@ -106,7 +118,6 @@
             <th>Estado</th>
             <th>Total</th>
             <th>MES</th>
-            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -121,31 +132,16 @@
               </span>
             </td>
             <td class="amount">{{ salesApi.formatMoney(order.total) }}</td>
-            <td>{{ getMesSummary(order.lineItems) }}</td>
-            <td class="actions-cell" @click.stop>
-              <button 
-                class="btn-icon" 
-                @click="navigateToDetail(order.id)"
-                title="Ver detalle"
+            <td class="mes-cell" @click.stop>
+              <router-link
+                v-if="getMesWorkIds(order.lineItems).length > 0"
+                :to="`/sales/orders/${order.id}`"
+                class="mes-link"
+                :title="getMesWorkIds(order.lineItems).length + ' definición(es) MES'"
               >
-                👁️
-              </button>
-              <button 
-                v-if="order.status === 'PENDING'"
-                class="btn-icon" 
-                @click="confirmOrder(order.id)"
-                title="Confirmar pedido"
-              >
-                ✓
-              </button>
-              <button 
-                v-if="canCancel(order.status)"
-                class="btn-icon danger" 
-                @click="cancelOrder(order.id)"
-                title="Cancelar pedido"
-              >
-                ✕
-              </button>
+                {{ getMesSummary(order.lineItems) }}
+              </router-link>
+              <span v-else>—</span>
             </td>
           </tr>
         </tbody>
@@ -165,7 +161,7 @@ import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
@@ -182,6 +178,7 @@ const filters = ref({
   status: '',
   fromDate: '',
   toDate: '',
+  limit: 50,
 });
 
 const hasFilters = computed(() => {
@@ -285,6 +282,7 @@ async function fetchOrders() {
     if (filters.value.status) apiFilters.status = filters.value.status;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
     if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
+    if (filters.value.limit) apiFilters.limit = filters.value.limit;
 
     const response = await salesApi.listOrders(apiFilters);
     orders.value = Array.isArray(response) ? response : (response.data || []);
@@ -361,6 +359,7 @@ function clearFilters() {
   filters.value.status = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';
+  filters.value.limit = 50;
   fetchOrders();
 }
 
@@ -437,6 +436,15 @@ function getMesSummary(lineItems) {
   const firstLabel = firstMesWork?.work_number || 'MES';
   return `${firstLabel} +${uniqueMesWorkIds.length - 1}`;
 }
+
+function getMesWorkIds(lineItems) {
+  if (!Array.isArray(lineItems)) return [];
+  return [...new Set(
+    lineItems
+      .map((item) => item?.mesWorkId)
+      .filter((id) => typeof id === 'string' && id.length > 0),
+  )];
+}
 </script>
 
 <style scoped>
@@ -463,21 +471,29 @@ function getMesSummary(lineItems) {
 .filters-card {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   margin-bottom: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: contents;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .filter-group label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #4a5568;
   margin-bottom: 0.25rem;
@@ -486,10 +502,10 @@ function getMesSummary(lineItems) {
 .filter-input,
 .filter-select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .filter-input:focus,
@@ -500,9 +516,29 @@ function getMesSummary(lineItems) {
 }
 
 .filters-actions {
+  display: contents;
+}
+
+.limit-group {
   display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.limit-group label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.limit-select {
+  width: 70px;
+}
+
+.limit-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .btn {
@@ -662,27 +698,16 @@ function getMesSummary(lineItems) {
   color: #4b5563;
 }
 
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
+.mes-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.8125rem;
 }
 
-.btn-icon {
-  background: transparent;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 1.25rem;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.btn-icon:hover {
-  opacity: 1;
-}
-
-.btn-icon.danger:hover {
-  color: #dc2626;
+.mes-link:hover {
+  text-decoration: underline;
+  color: #1e40af;
 }
 
 .table-summary {

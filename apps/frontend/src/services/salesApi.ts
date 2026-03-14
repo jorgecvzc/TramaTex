@@ -25,8 +25,68 @@ import type {
   ListInvoicesFilters,
   QuoteStatus,
   OrderStatus,
+  DeliveryNoteStatus,
+  InvoiceStatus,
   UpdateOrderLineItemRequest,
 } from '../types/sales'
+
+// ============================================================================
+// STATUS MAPPING: Backend (Spanish) ↔ Frontend (English)
+// ============================================================================
+
+const backendToFrontendStatus: Record<string, string> = {
+  // Quote statuses
+  'BORRADOR': 'DRAFT',
+  'EMITIDA': 'ISSUED',
+  'APROBADA': 'ACCEPTED',
+  'RECHAZADA': 'REJECTED',
+  'EXPIRADA': 'EXPIRED',
+  'CONVERTIDA_A_PEDIDO': 'CONVERTED',
+  // Order statuses
+  'PENDIENTE': 'PENDING',
+  'EN_PREPARACION': 'CONFIRMED',
+  'ENTREGADO_PARCIALMENTE': 'PARTIALLY_DELIVERED',
+  'ENTREGADO': 'DELIVERED',
+  'CANCELADO': 'CANCELLED',
+  'FACTURADO_PARCIALMENTE': 'PARTIALLY_INVOICED',
+  'FACTURADO_COMPLETAMENTE': 'INVOICED',
+  // Delivery note statuses
+  // (PENDIENTE already mapped above)
+  // (ENTREGADO already mapped above)
+  // (CANCELADO already mapped above)
+  // Invoice statuses
+  // (BORRADOR already mapped above)
+  'EMITIDA': 'ISSUED',
+  'PAGADA': 'PAID',
+  'VENCIDA': 'OVERDUE',
+  'ANULADA': 'VOID',
+}
+
+const frontendToBackendStatus: Record<string, string> = Object.fromEntries(
+  Object.entries(backendToFrontendStatus).map(([k, v]) => [v, k])
+)
+
+function normalizeStatus(status: string): string {
+  return backendToFrontendStatus[status] || status
+}
+
+function toBackendStatus(status: string): string {
+  return frontendToBackendStatus[status] || status
+}
+
+function normalizeEntity<T extends Record<string, any>>(obj: T): T {
+  if (obj && typeof obj.status === 'string') {
+    obj.status = normalizeStatus(obj.status)
+  }
+  // Normalize invoice-specific field names from backend camelCase
+  if (obj && 'invoiceType' in obj) {
+    obj.type = obj.invoiceType
+    obj.issueDate = obj.invoiceDate
+    obj.salesOrderIds = obj.relatedOrderIds || []
+    obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || []
+  }
+  return obj
+}
 
 interface SalesApiError extends Error {
   cause?: Error
@@ -94,7 +154,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo crear la cotización')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -110,7 +170,7 @@ class SalesApi {
       await this.handleError(response, 'Cotización no encontrada')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -121,9 +181,10 @@ class SalesApi {
     
     if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
-    if (filters.status) params.append('status', filters.status)
+    if (filters.status) params.append('status', toBackendStatus(filters.status))
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
     if (filters.toDate) params.append('toDate', filters.toDate)
+    if (filters.limit) params.append('limit', String(filters.limit))
 
     const url = params.toString() ? `${this.baseUrl}/quotes?${params}` : `${this.baseUrl}/quotes`
     
@@ -136,7 +197,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudieron cargar las cotizaciones')
     }
 
-    return await response.json()
+    return (await response.json()).map(normalizeEntity)
   }
 
   /**
@@ -153,7 +214,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo actualizar la cotización')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -163,11 +224,51 @@ class SalesApi {
     const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}/status`, {
       method: 'PATCH',
       headers: this.getHeaders(),
-      body: JSON.stringify({ newStatus }),
+      body: JSON.stringify({ newStatus: toBackendStatus(newStatus) }),
     })
 
     if (!response.ok) {
       await this.handleError(response, 'No se pudo cambiar el estado de la cotización')
+    }
+
+    return normalizeEntity(await response.json())
+  }
+
+  /**
+   * Preview quote calculation — returns backend-computed line subtotals and totals
+   * without persisting anything.
+   */
+  async previewQuoteCalculation(partyId: string, items: Array<{
+    productVariantId: string
+    quantity: number
+    unitPrice?: { amount: number; currency: string }
+    discountPercent?: number
+  }>): Promise<{
+    lineItems: Array<{
+      productVariantId: string
+      productName: string
+      variantSku: string
+      quantity: number
+      listUnitPrice: MoneyAmount
+      unitPrice: MoneyAmount
+      taxRate: number
+      discountPercent: number
+      discountPerUnit: MoneyAmount
+      subtotal: MoneyAmount
+      taxAmount: MoneyAmount
+    }>
+    subtotal: MoneyAmount
+    taxAmount: MoneyAmount
+    total: MoneyAmount
+  }> {
+    const response = await this.safeFetch(`${this.baseUrl}/quotes/preview`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ partyId, items }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo calcular la previsualización')
     }
 
     return await response.json()
@@ -187,12 +288,83 @@ class SalesApi {
       await this.handleError(response, 'No se pudo convertir la cotización a pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
+  }
+
+  /**
+   * Accept quote and convert to order in a single operation
+   */
+  async acceptAndConvertQuote(id: string, deliveryDate: string): Promise<Order> {
+    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}/accept-and-convert`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ deliveryDate }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo aceptar y convertir la cotización a pedido')
+    }
+
+    return normalizeEntity(await response.json())
+  }
+
+  /**
+   * Delete a draft quote
+   */
+  async deleteQuote(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar el presupuesto')
+    }
   }
 
   // ============================================================================
   // ORDERS ENDPOINTS
   // ============================================================================
+
+  /**
+   * Preview order calculation — returns backend-computed line subtotals and totals
+   * without persisting anything.
+   */
+  async previewOrderCalculation(partyId: string, items: Array<{
+    productVariantId: string
+    quantity: number
+    unitPrice?: { amount: number; currency: string }
+    discountPercent?: number
+  }>): Promise<{
+    lineItems: Array<{
+      productVariantId: string
+      productName: string
+      variantSku: string
+      quantity: number
+      listUnitPrice: MoneyAmount
+      unitPrice: MoneyAmount
+      taxRate: number
+      discountPercent: number
+      discountPerUnit: MoneyAmount
+      subtotal: MoneyAmount
+      taxAmount: MoneyAmount
+    }>
+    subtotal: MoneyAmount
+    taxAmount: MoneyAmount
+    total: MoneyAmount
+  }> {
+    const response = await this.safeFetch(`${this.baseUrl}/orders/preview`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ partyId, items }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo calcular la previsualización del pedido')
+    }
+
+    return await response.json()
+  }
 
   /**
    * Create a new sales order
@@ -208,7 +380,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo crear el pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -224,7 +396,7 @@ class SalesApi {
       await this.handleError(response, 'Pedido no encontrado')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -235,9 +407,10 @@ class SalesApi {
     
     if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
-    if (filters.status) params.append('status', filters.status)
+    if (filters.status) params.append('status', toBackendStatus(filters.status))
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
     if (filters.toDate) params.append('toDate', filters.toDate)
+    if (filters.limit) params.append('limit', String(filters.limit))
 
     const url = params.toString() ? `${this.baseUrl}/orders?${params}` : `${this.baseUrl}/orders`
     
@@ -250,7 +423,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudieron cargar los pedidos')
     }
 
-    return await response.json()
+    return (await response.json()).map(normalizeEntity)
   }
 
   /**
@@ -267,7 +440,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo actualizar el pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -277,14 +450,14 @@ class SalesApi {
     const response = await this.safeFetch(`${this.baseUrl}/orders/${id}/status`, {
       method: 'PATCH',
       headers: this.getHeaders(),
-      body: JSON.stringify({ newStatus }),
+      body: JSON.stringify({ newStatus: toBackendStatus(newStatus) }),
     })
 
     if (!response.ok) {
       await this.handleError(response, 'No se pudo cambiar el estado del pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -301,7 +474,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo agregar la línea al pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -318,7 +491,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo actualizar la línea del pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -334,7 +507,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo eliminar la línea del pedido')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   // ============================================================================
@@ -355,7 +528,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo crear el albarán')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -371,7 +544,7 @@ class SalesApi {
       await this.handleError(response, 'Albarán no encontrado')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -383,9 +556,10 @@ class SalesApi {
     if (filters.searchText) params.append('search', filters.searchText)
     if (filters.orderId) params.append('salesOrderId', filters.orderId)
     if (filters.partyId) params.append('partyId', filters.partyId)
-    if (filters.status) params.append('status', filters.status)
+    if (filters.status) params.append('status', toBackendStatus(filters.status))
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
     if (filters.toDate) params.append('toDate', filters.toDate)
+    if (filters.limit) params.append('limit', String(filters.limit))
 
     const url = params.toString() 
       ? `${this.baseUrl}/delivery-notes?${params}` 
@@ -400,7 +574,41 @@ class SalesApi {
       await this.handleError(response, 'No se pudieron cargar los albaranes')
     }
 
-    return await response.json()
+    return (await response.json()).map(normalizeEntity)
+  }
+
+  /**
+   * Change delivery note status
+   */
+  async changeDeliveryNoteStatus(id: string, newStatus: DeliveryNoteStatus): Promise<DeliveryNote> {
+    const response = await this.safeFetch(`${this.baseUrl}/delivery-notes/${id}/status`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ newStatus: toBackendStatus(newStatus) }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cambiar el estado del albarán')
+    }
+
+    return normalizeEntity(await response.json())
+  }
+
+  /**
+   * Change invoice status
+   */
+  async changeInvoiceStatus(id: string, newStatus: InvoiceStatus): Promise<Invoice> {
+    const response = await this.safeFetch(`${this.baseUrl}/invoices/${id}/status`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ newStatus: toBackendStatus(newStatus) }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cambiar el estado de la factura')
+    }
+
+    return normalizeEntity(await response.json())
   }
 
   // ============================================================================
@@ -421,7 +629,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo crear la factura')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -438,7 +646,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudo crear el ticket')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -454,7 +662,7 @@ class SalesApi {
       await this.handleError(response, 'Factura no encontrada')
     }
 
-    return await response.json()
+    return normalizeEntity(await response.json())
   }
 
   /**
@@ -466,10 +674,12 @@ class SalesApi {
     if (filters.searchText) params.append('search', filters.searchText)
     if (filters.partyId) params.append('partyId', filters.partyId)
     if (filters.orderId) params.append('orderId', filters.orderId)
+    if (filters.deliveryNoteId) params.append('deliveryNoteId', filters.deliveryNoteId)
     if (filters.invoiceType) params.append('type', filters.invoiceType)
-    if (filters.status) params.append('status', filters.status)
+    if (filters.status) params.append('status', toBackendStatus(filters.status))
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
     if (filters.toDate) params.append('toDate', filters.toDate)
+    if (filters.limit) params.append('limit', String(filters.limit))
 
     const url = params.toString() ? `${this.baseUrl}/invoices?${params}` : `${this.baseUrl}/invoices`
     
@@ -482,7 +692,7 @@ class SalesApi {
       await this.handleError(response, 'No se pudieron cargar las facturas')
     }
 
-    return await response.json()
+    return (await response.json()).map(normalizeEntity)
   }
 
   // ============================================================================
@@ -499,6 +709,20 @@ class SalesApi {
       currency: money.currency || 'EUR',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
+    })
+    return formatter.format(money.amount)
+  }
+
+  /**
+   * Format unit price (up to 3 decimals) — for line item prices and discounts per unit
+   */
+  formatUnitPrice(money: MoneyAmount | null | undefined): string {
+    if (!money || typeof money.amount === 'undefined') return '—'
+    const formatter = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: money.currency || 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
     })
     return formatter.format(money.amount)
   }
@@ -525,15 +749,22 @@ class SalesApi {
    */
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
+      'DRAFT': 'secondary',
+      'ISSUED': 'info',
+      'ACCEPTED': 'success',
+      'REJECTED': 'danger',
+      'EXPIRED': 'secondary',
+      'CONVERTED': 'primary',
       'PENDING': 'warning',
       'CONFIRMED': 'info',
-      'IN_PROGRESS': 'primary',
-      'COMPLETED': 'success',
+      'PARTIALLY_DELIVERED': 'primary',
+      'DELIVERED': 'success',
       'CANCELLED': 'danger',
-      'DRAFT': 'secondary',
-      'SENT': 'info',
+      'PARTIALLY_INVOICED': 'info',
+      'INVOICED': 'success',
       'PAID': 'success',
       'OVERDUE': 'danger',
+      'VOID': 'secondary',
     }
     return statusMap[status] || 'secondary'
   }
@@ -543,15 +774,22 @@ class SalesApi {
    */
   getStatusLabel(status: string): string {
     const statusLabels: Record<string, string> = {
-      'PENDING': 'Pendiente',
-      'CONFIRMED': 'Confirmado',
-      'IN_PROGRESS': 'En Progreso',
-      'COMPLETED': 'Completado',
-      'CANCELLED': 'Cancelado',
       'DRAFT': 'Borrador',
-      'SENT': 'Enviado',
-      'PAID': 'Pagado',
-      'OVERDUE': 'Vencido',
+      'ISSUED': 'Emitido',
+      'ACCEPTED': 'Aceptado',
+      'REJECTED': 'Rechazado',
+      'EXPIRED': 'Expirado',
+      'CONVERTED': 'Convertido a Pedido',
+      'PENDING': 'Pendiente',
+      'CONFIRMED': 'En Preparación',
+      'PARTIALLY_DELIVERED': 'Entregado Parcialmente',
+      'DELIVERED': 'Entregado',
+      'CANCELLED': 'Cancelado',
+      'PARTIALLY_INVOICED': 'Facturado Parcialmente',
+      'INVOICED': 'Facturado Completamente',
+      'PAID': 'Pagada',
+      'OVERDUE': 'Vencida',
+      'VOID': 'Anulada',
     }
     return statusLabels[status] || status
   }

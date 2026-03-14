@@ -173,9 +173,21 @@
               <span v-if="errors.email" class="error">{{ errors.email }}</span>
             </div>
           </div>
-        </fieldset>
 
-        <!-- Additional Information -->
+          <div v-if="form.role === 'CLIENT' || form.role === 'BOTH'" class="form-group">
+            <label for="defaultDiscount">Bonificación por defecto (%)</label>
+            <input
+              id="defaultDiscount"
+              v-model.number="form.defaultDiscountPercentage"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              placeholder="0.00"
+            />
+            <small class="help-text">Porcentaje de descuento que se aplicará por defecto en las ventas a este cliente (0-100)</small>
+          </div>
+        </fieldset>
         <fieldset v-if="isEditing">
           <legend>Información adicional</legend>
           
@@ -254,6 +266,7 @@ const form = reactive({
   phone: '',
   email: '',
   notes: '',
+  defaultDiscountPercentage: 0,
 });
 
 const errors = reactive({});
@@ -271,6 +284,7 @@ if (props.initialData) {
     role: initial.role || form.role,
     taxId: initial.taxId ?? initial.tax_id ?? form.taxId,
     taxIdType: initial.taxIdType ?? initial.tax_id_type ?? form.taxIdType,
+    defaultDiscountPercentage: initial.defaultDiscountPercentage ?? initial.default_discount_percentage ?? 0,
   });
 
   if (isEditing.value && !form.role) {
@@ -479,7 +493,7 @@ async function submitForm() {
     let result;
     
     if (isEditing.value) {
-      result = await partyApi.updateParty(props.partyId, {
+      const updatePayload = {
         name: form.entityType === 'PERSON' 
           ? `${form.firstName} ${form.lastName}` 
           : form.name,
@@ -490,7 +504,11 @@ async function submitForm() {
         phone: form.phone,
         email: form.email,
         notes: form.notes,
-      });
+      };
+      if (form.role === 'CLIENT' || form.role === 'BOTH') {
+        updatePayload.default_discount_percentage = form.defaultDiscountPercentage || 0;
+      }
+      result = await partyApi.updateParty(props.partyId, updatePayload);
       successMessage.value = 'Entidad actualizada correctamente';
       emit('update', result);
     } else {
@@ -504,6 +522,10 @@ async function submitForm() {
         email: form.email,
         entityType: form.entityType,
       };
+
+      if ((form.role === 'CLIENT' || form.role === 'BOTH') && form.defaultDiscountPercentage) {
+        requestData.default_discount_percentage = form.defaultDiscountPercentage;
+      }
 
       if (form.entityType === 'PERSON') {
         requestData.firstName = form.firstName;
@@ -538,6 +560,7 @@ function resetForm() {
   form.phone = '';
   form.email = '';
   form.notes = '';
+  form.defaultDiscountPercentage = 0;
   Object.keys(errors).forEach((key) => {
     errors[key] = '';
   });

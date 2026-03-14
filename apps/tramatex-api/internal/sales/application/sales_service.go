@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -20,11 +19,21 @@ type PartyLookup interface {
 	HasPartyRole(ctx context.Context, partyID uuid.UUID, role string) (bool, error)
 }
 
+type VariantInfo struct {
+	ProductName         string
+	VariantSKU          string
+	OptionConfiguration map[string]string
+}
+
+type ProductVariantLookup interface {
+	GetVariantInfo(ctx context.Context, variantID uuid.UUID) (*VariantInfo, error)
+}
+
 type DocumentNumberGenerator interface {
 	NextQuoteNumber(ctx context.Context) (domain.QuoteNumber, error)
 	NextOrderNumber(ctx context.Context) (domain.OrderNumber, error)
 	NextDeliveryNoteNumber(ctx context.Context) (domain.DeliveryNoteNumber, error)
-	NextInvoiceNumber(ctx context.Context) (domain.InvoiceNumber, error)
+	NextInvoiceNumber(ctx context.Context, series domain.InvoiceSeries) (domain.InvoiceNumber, error)
 }
 
 type SalesService struct {
@@ -35,6 +44,8 @@ type SalesService struct {
 	numberGen     DocumentNumberGenerator
 	pricingEngine PricingEngine
 	partyLookup   PartyLookup
+	productLookup ProductVariantLookup
+	txManager     TransactionManager
 }
 
 func NewSalesService(
@@ -45,6 +56,7 @@ func NewSalesService(
 	numberGen DocumentNumberGenerator,
 	pricingEngine PricingEngine,
 	partyLookup PartyLookup,
+	productLookup ProductVariantLookup,
 ) *SalesService {
 	return &SalesService{
 		quoteRepo:     quoteRepo,
@@ -54,7 +66,22 @@ func NewSalesService(
 		numberGen:     numberGen,
 		pricingEngine: pricingEngine,
 		partyLookup:   partyLookup,
+		productLookup: productLookup,
 	}
+}
+
+// SetTransactionManager configures service-level transaction support.
+func (s *SalesService) SetTransactionManager(txManager TransactionManager) {
+	s.txManager = txManager
+}
+
+// runInTransaction wraps fn in a DB transaction if a TransactionManager is configured.
+// If no TransactionManager is set (e.g., in tests), fn runs directly.
+func (s *SalesService) runInTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	if s.txManager != nil {
+		return s.txManager.RunInTransaction(ctx, fn)
+	}
+	return fn(ctx)
 }
 
 func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) (*QuoteDTO, error) {
@@ -71,7 +98,7 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 		return nil, err
 	}
 	if s.numberGen == nil {
-		return nil, fmt.Errorf("quote number generator not configured")
+		return nil, domain.NewConfigurationError("quote number generator not configured")
 	}
 
 	quoteNumber, err := s.numberGen.NextQuoteNumber(ctx)
@@ -111,12 +138,15 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 	if err != nil {
 		return nil, err
 	}
+	quote.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
 
 	if err := s.quoteRepo.Save(ctx, quote); err != nil {
 		return nil, err
 	}
 
-	return NewQuoteDTO(quote), nil
+	dto := NewQuoteDTO(quote)
+	s.enrichQuoteLineItems(ctx, dto.LineItems)
+	return dto, nil
 }
 
 func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) (*QuoteDTO, error) {
@@ -127,8 +157,8 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 	if quote == nil {
 		return nil, domain.NewNotFoundError("quote not found")
 	}
-	if quote.Status != domain.QuoteStatusDraft {
-		return nil, domain.NewConflictError("only draft quotes can be updated")
+	if quote.Status != domain.QuoteStatusDraft && quote.Status != domain.QuoteStatusIssued {
+		return nil, domain.NewConflictError("only draft or issued quotes can be updated")
 	}
 
 	if cmd.ExpirationDate != nil {
@@ -139,6 +169,9 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 	}
 	if cmd.Notes != nil {
 		quote.Notes = *cmd.Notes
+	}
+	if cmd.MesWorkRefs != nil {
+		quote.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
 	}
 
 	if cmd.Items != nil {
@@ -166,6 +199,110 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 	return NewQuoteDTO(quote), nil
 }
 
+func (s *SalesService) PreviewQuoteCalculation(ctx context.Context, cmd PreviewQuoteCommand) (*QuotePreviewDTO, error) {
+	if cmd.PartyID == uuid.Nil {
+		return nil, domain.NewValidationError("partyId is required")
+	}
+	if len(cmd.Items) == 0 {
+		return nil, domain.NewValidationError("items cannot be empty")
+	}
+
+	lineItems, err := s.buildQuoteLineItems(ctx, cmd.PartyID, cmd.Items)
+	if err != nil {
+		return nil, err
+	}
+
+	taxAmount, err := zeroMoney()
+	if err != nil {
+		return nil, err
+	}
+	subtotal, err := zeroMoney()
+	if err != nil {
+		return nil, err
+	}
+	for _, li := range lineItems {
+		taxAmount, err = taxAmount.Add(li.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
+		subtotal, err = subtotal.Add(li.Subtotal)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	total, err := subtotal.Add(taxAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoItems := make([]QuoteLineItemDTO, 0, len(lineItems))
+	for _, li := range lineItems {
+		dto := NewQuoteLineItemDTO(li)
+		dto.ProductName, dto.VariantSKU, dto.OptionConfiguration = s.lookupVariant(ctx, li.ProductVariantID)
+		dtoItems = append(dtoItems, dto)
+	}
+
+	return &QuotePreviewDTO{
+		LineItems: dtoItems,
+		Subtotal:  NewMoneyDTO(subtotal),
+		TaxAmount: NewMoneyDTO(taxAmount),
+		Total:     NewMoneyDTO(total),
+	}, nil
+}
+
+func (s *SalesService) PreviewOrderCalculation(ctx context.Context, cmd PreviewOrderCommand) (*OrderPreviewDTO, error) {
+	if cmd.PartyID == uuid.Nil {
+		return nil, domain.NewValidationError("partyId is required")
+	}
+	if len(cmd.Items) == 0 {
+		return nil, domain.NewValidationError("items cannot be empty")
+	}
+
+	lineItems, err := s.buildOrderLineItems(ctx, cmd.PartyID, cmd.Items, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	taxAmount, err := zeroMoney()
+	if err != nil {
+		return nil, err
+	}
+	subtotal, err := zeroMoney()
+	if err != nil {
+		return nil, err
+	}
+	for _, li := range lineItems {
+		taxAmount, err = taxAmount.Add(li.TaxAmount)
+		if err != nil {
+			return nil, err
+		}
+		subtotal, err = subtotal.Add(li.Subtotal)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	total, err := subtotal.Add(taxAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoItems := make([]OrderLineItemDTO, 0, len(lineItems))
+	for _, li := range lineItems {
+		dto := NewOrderLineItemDTO(li)
+		dto.ProductName, dto.VariantSKU, dto.OptionConfiguration = s.lookupVariant(ctx, li.ProductVariantID)
+		dtoItems = append(dtoItems, dto)
+	}
+
+	return &OrderPreviewDTO{
+		LineItems: dtoItems,
+		Subtotal:  NewMoneyDTO(subtotal),
+		TaxAmount: NewMoneyDTO(taxAmount),
+		Total:     NewMoneyDTO(total),
+	}, nil
+}
+
 func (s *SalesService) ChangeQuoteStatus(ctx context.Context, cmd ChangeQuoteStatusCommand) (*QuoteDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
 	if err != nil {
@@ -190,6 +327,21 @@ func (s *SalesService) ChangeQuoteStatus(ctx context.Context, cmd ChangeQuoteSta
 	return NewQuoteDTO(quote), nil
 }
 
+func (s *SalesService) DeleteQuote(ctx context.Context, cmd DeleteQuoteCommand) error {
+	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
+	if err != nil {
+		return err
+	}
+	if quote == nil {
+		return domain.NewNotFoundError("quote not found")
+	}
+	if quote.Status != domain.QuoteStatusDraft {
+		return domain.NewConflictError("only draft quotes can be deleted")
+	}
+
+	return s.quoteRepo.Delete(ctx, cmd.QuoteID)
+}
+
 func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuoteToOrderCommand) (*SalesOrderDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
 	if err != nil {
@@ -199,7 +351,7 @@ func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuote
 		return nil, domain.NewNotFoundError("quote not found")
 	}
 	if s.numberGen == nil {
-		return nil, fmt.Errorf("order number generator not configured")
+		return nil, domain.NewConfigurationError("order number generator not configured")
 	}
 
 	orderNumber, err := s.numberGen.NextOrderNumber(ctx)
@@ -207,6 +359,43 @@ func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuote
 		return nil, err
 	}
 
+	order, err := quote.ConvertToOrder(orderNumber, cmd.DeliveryDate)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.orderRepo.Save(ctx, order); err != nil {
+		return nil, err
+	}
+	if err := s.quoteRepo.Save(ctx, quote); err != nil {
+		return nil, err
+	}
+
+	return NewSalesOrderDTO(order), nil
+}
+
+func (s *SalesService) AcceptAndConvertQuote(ctx context.Context, cmd AcceptAndConvertQuoteCommand) (*SalesOrderDTO, error) {
+	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
+	if err != nil {
+		return nil, err
+	}
+	if quote == nil {
+		return nil, domain.NewNotFoundError("quote not found")
+	}
+
+	// Step 1: Accept the quote (EMITIDA → APROBADA)
+	if err := quote.ChangeStatus(domain.QuoteStatusApproved); err != nil {
+		return nil, err
+	}
+
+	// Step 2: Convert to order (APROBADA → CONVERTIDA_A_PEDIDO + new order)
+	if s.numberGen == nil {
+		return nil, domain.NewConfigurationError("order number generator not configured")
+	}
+	orderNumber, err := s.numberGen.NextOrderNumber(ctx)
+	if err != nil {
+		return nil, err
+	}
 	order, err := quote.ConvertToOrder(orderNumber, cmd.DeliveryDate)
 	if err != nil {
 		return nil, err
@@ -236,7 +425,7 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 		return nil, err
 	}
 	if s.numberGen == nil {
-		return nil, fmt.Errorf("order number generator not configured")
+		return nil, domain.NewConfigurationError("order number generator not configured")
 	}
 
 	orderNumber, err := s.numberGen.NextOrderNumber(ctx)
@@ -288,11 +477,15 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 		notes = *cmd.Notes
 	}
 
+	now := time.Now()
+	orderDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	deliveryDay := time.Date(cmd.DeliveryDate.Year(), cmd.DeliveryDate.Month(), cmd.DeliveryDate.Day(), 0, 0, 0, 0, time.UTC)
+
 	order, err := domain.NewSalesOrder(
 		orderNumber,
 		cmd.PartyID,
-		time.Now(),
-		cmd.DeliveryDate,
+		orderDay,
+		deliveryDay,
 		lineItems,
 		taxAmount,
 		notes,
@@ -300,6 +493,7 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 	if err != nil {
 		return nil, err
 	}
+	order.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return nil, err
@@ -334,6 +528,9 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 	}
 	if cmd.Notes != nil {
 		order.Notes = *cmd.Notes
+	}
+	if cmd.MesWorkRefs != nil {
+		order.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
 	}
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {
@@ -381,10 +578,10 @@ func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineIte
 
 	seeds := orderLineItemSeedsFromOrder(order.LineItems)
 	seeds = append(seeds, orderLineItemSeed{
-		ProductVariantID:      cmd.Item.ProductVariantID,
-		Quantity:              cmd.Item.Quantity,
-		ManualUnitPrice:       cmd.Item.ManualUnitPrice,
-		ManualDiscountPerUnit: cmd.Item.ManualDiscountPerUnit,
+		ProductVariantID: cmd.Item.ProductVariantID,
+		Quantity:         cmd.Item.Quantity,
+		UnitPrice:        cmd.Item.UnitPrice,
+		DiscountPercent:  cmd.Item.DiscountPercent,
 	})
 
 	lineItems, err := s.buildOrderLineItemsFromSeeds(ctx, order.PartyID, seeds)
@@ -435,11 +632,11 @@ func (s *SalesService) UpdateOrderLineItem(ctx context.Context, cmd UpdateOrderL
 			if cmd.Quantity != nil {
 				seeds[i].Quantity = *cmd.Quantity
 			}
-			if cmd.ManualUnitPrice != nil {
-				seeds[i].ManualUnitPrice = cmd.ManualUnitPrice
+			if cmd.UnitPrice != nil {
+				seeds[i].UnitPrice = cmd.UnitPrice
 			}
-			if cmd.ManualDiscountPerUnit != nil {
-				seeds[i].ManualDiscountPerUnit = cmd.ManualDiscountPerUnit
+			if cmd.DiscountPercent != nil {
+				seeds[i].DiscountPercent = cmd.DiscountPercent
 			}
 			break
 		}
@@ -530,98 +727,107 @@ func (s *SalesService) CreateDeliveryNote(ctx context.Context, cmd CreateDeliver
 		return nil, domain.NewValidationError("items cannot be empty")
 	}
 	if s.numberGen == nil {
-		return nil, fmt.Errorf("delivery note number generator not configured")
+		return nil, domain.NewConfigurationError("delivery note number generator not configured")
 	}
 
-	order, err := s.orderRepo.FindByID(ctx, cmd.SalesOrderID)
-	if err != nil {
-		return nil, err
-	}
-	if order == nil {
-		return nil, domain.NewNotFoundError("order not found")
-	}
-	if order.Status == domain.SalesOrderStatusCanceled {
-		return nil, domain.NewConflictError("cannot create delivery note for canceled order")
-	}
-	if order.Status == domain.SalesOrderStatusInvoiced || order.Status == domain.SalesOrderStatusPartiallyInvoiced {
-		return nil, domain.NewConflictError("cannot create delivery note for invoiced order")
-	}
-
-	alreadyDelivered, err := s.deliveredQuantities(ctx, order.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	lineItems := make([]domain.DeliveryNoteLineItem, 0, len(cmd.Items))
-	for _, item := range cmd.Items {
-		orderLine := findOrderLineItem(order.LineItems, item.SalesOrderLineItemID)
-		if orderLine == nil {
-			return nil, domain.NewValidationError("sales order line item not found")
-		}
-		previous := alreadyDelivered[item.SalesOrderLineItemID]
-		if previous+item.DeliveredQuantity > orderLine.Quantity {
-			return nil, domain.NewValidationError("delivered quantity exceeds ordered quantity")
-		}
-		created, err := domain.NewDeliveryNoteLineItem(item.SalesOrderLineItemID, orderLine.ProductVariantID, item.DeliveredQuantity)
+	var result *DeliveryNoteDTO
+	err := s.runInTransaction(ctx, func(txCtx context.Context) error {
+		// Lock the order row to prevent concurrent delivery note creation
+		order, err := s.orderRepo.FindByIDForUpdate(txCtx, cmd.SalesOrderID)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		lineItems = append(lineItems, created)
-	}
+		if order == nil {
+			return domain.NewNotFoundError("order not found")
+		}
+		if order.Status == domain.SalesOrderStatusCanceled {
+			return domain.NewConflictError("cannot create delivery note for canceled order")
+		}
+		if order.Status == domain.SalesOrderStatusInvoiced || order.Status == domain.SalesOrderStatusPartiallyInvoiced {
+			return domain.NewConflictError("cannot create delivery note for invoiced order")
+		}
 
-	noteNumber, err := s.numberGen.NextDeliveryNoteNumber(ctx)
+		alreadyDelivered, err := s.deliveredQuantities(txCtx, order.ID)
+		if err != nil {
+			return err
+		}
+
+		lineItems := make([]domain.DeliveryNoteLineItem, 0, len(cmd.Items))
+		for _, item := range cmd.Items {
+			orderLine := findOrderLineItem(order.LineItems, item.SalesOrderLineItemID)
+			if orderLine == nil {
+				return domain.NewValidationError("sales order line item not found")
+			}
+			previous := alreadyDelivered[item.SalesOrderLineItemID]
+			if previous+item.DeliveredQuantity > orderLine.Quantity {
+				return domain.NewValidationError("delivered quantity exceeds ordered quantity")
+			}
+			created, err := domain.NewDeliveryNoteLineItem(item.SalesOrderLineItemID, orderLine.ProductVariantID, item.DeliveredQuantity)
+			if err != nil {
+				return err
+			}
+			lineItems = append(lineItems, created)
+		}
+
+		noteNumber, err := s.numberGen.NextDeliveryNoteNumber(txCtx)
+		if err != nil {
+			return err
+		}
+
+		notes := ""
+		if cmd.Notes != nil {
+			notes = *cmd.Notes
+		}
+
+		note, err := domain.NewDeliveryNote(
+			noteNumber,
+			order.ID,
+			order.PartyID,
+			cmd.DeliveryDate,
+			lineItems,
+			notes,
+		)
+		if err != nil {
+			return err
+		}
+
+		deliveredAll := isOrderFullyDelivered(order.LineItems, alreadyDelivered, lineItems)
+		if order.Status == domain.SalesOrderStatusPending {
+			if err := order.ChangeStatus(domain.SalesOrderStatusInPreparation); err != nil {
+				return err
+			}
+		}
+		if deliveredAll {
+			if order.Status != domain.SalesOrderStatusDelivered {
+				if err := order.ChangeStatus(domain.SalesOrderStatusDelivered); err != nil {
+					return err
+				}
+			}
+			if err := note.ChangeStatus(domain.DeliveryNoteStatusDelivered); err != nil {
+				return err
+			}
+		} else {
+			if order.Status != domain.SalesOrderStatusPartiallyDelivered {
+				if err := order.ChangeStatus(domain.SalesOrderStatusPartiallyDelivered); err != nil {
+					return err
+				}
+			}
+		}
+
+		if err := s.deliveryRepo.Save(txCtx, note); err != nil {
+			return err
+		}
+		if err := s.orderRepo.Save(txCtx, order); err != nil {
+			return err
+		}
+
+		result = NewDeliveryNoteDTO(note)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	notes := ""
-	if cmd.Notes != nil {
-		notes = *cmd.Notes
-	}
-
-	note, err := domain.NewDeliveryNote(
-		noteNumber,
-		order.ID,
-		order.PartyID,
-		cmd.DeliveryDate,
-		lineItems,
-		notes,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	deliveredAll := isOrderFullyDelivered(order.LineItems, alreadyDelivered, lineItems)
-	if order.Status == domain.SalesOrderStatusPending {
-		if err := order.ChangeStatus(domain.SalesOrderStatusInPreparation); err != nil {
-			return nil, err
-		}
-	}
-	if deliveredAll {
-		if order.Status != domain.SalesOrderStatusDelivered {
-			if err := order.ChangeStatus(domain.SalesOrderStatusDelivered); err != nil {
-				return nil, err
-			}
-		}
-		if err := note.ChangeStatus(domain.DeliveryNoteStatusDelivered); err != nil {
-			return nil, err
-		}
-	} else {
-		if order.Status != domain.SalesOrderStatusPartiallyDelivered {
-			if err := order.ChangeStatus(domain.SalesOrderStatusPartiallyDelivered); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := s.deliveryRepo.Save(ctx, note); err != nil {
-		return nil, err
-	}
-	if err := s.orderRepo.Save(ctx, order); err != nil {
-		return nil, err
-	}
-
-	return NewDeliveryNoteDTO(note), nil
+	return result, nil
 }
 
 func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceCommand) (*InvoiceDTO, error) {
@@ -641,105 +847,125 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 		return nil, domain.NewValidationError("provide either salesOrderIds or deliveryNoteIds, not both")
 	}
 	if s.numberGen == nil {
-		return nil, fmt.Errorf("invoice number generator not configured")
+		return nil, domain.NewConfigurationError("invoice number generator not configured")
 	}
 
-	lineItems := make([]domain.InvoiceLineItem, 0)
-	relatedOrders := make(map[uuid.UUID]struct{})
+	var result *InvoiceDTO
+	err := s.runInTransaction(ctx, func(txCtx context.Context) error {
+		lineItems := make([]domain.InvoiceLineItem, 0)
+		relatedOrders := make(map[uuid.UUID]struct{})
+		dnToInvoiceLinks := make(map[uuid.UUID]uuid.UUID)
 
-	orders, err := s.fetchOrdersForInvoice(ctx, cmd.PartyID, cmd.SalesOrderIDs)
-	if err != nil {
-		return nil, err
-	}
-	for _, order := range orders {
-		for _, item := range order.LineItems {
-			lineItem, err := buildInvoiceLineItemFromOrder(item, item.Quantity)
-			if err != nil {
-				return nil, err
+		orders, err := s.fetchOrdersForInvoice(txCtx, cmd.PartyID, cmd.SalesOrderIDs)
+		if err != nil {
+			return err
+		}
+		for _, order := range orders {
+			for _, item := range order.LineItems {
+				lineItem, err := buildInvoiceLineItemFromOrder(item, item.Quantity)
+				if err != nil {
+					return err
+				}
+				lineItems = append(lineItems, lineItem)
 			}
-			lineItems = append(lineItems, lineItem)
+			relatedOrders[order.ID] = struct{}{}
 		}
-		relatedOrders[order.ID] = struct{}{}
-	}
 
-	if len(cmd.DeliveryNoteIDs) > 0 {
-		noteItems, noteOrders, err := s.buildInvoiceItemsFromDeliveryNotes(ctx, cmd.PartyID, cmd.DeliveryNoteIDs)
+		if len(cmd.DeliveryNoteIDs) > 0 {
+			noteItems, noteOrders, noteLinks, err := s.buildInvoiceItemsFromDeliveryNotes(txCtx, cmd.PartyID, cmd.DeliveryNoteIDs)
+			if err != nil {
+				return err
+			}
+			lineItems = append(lineItems, noteItems...)
+			for _, orderID := range noteOrders {
+				relatedOrders[orderID] = struct{}{}
+			}
+			for k, v := range noteLinks {
+				dnToInvoiceLinks[k] = v
+			}
+		}
+		if len(lineItems) == 0 {
+			return domain.NewValidationError("invoice must have at least one line item")
+		}
+
+		taxAmount, err := zeroMoney()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		lineItems = append(lineItems, noteItems...)
-		for _, orderID := range noteOrders {
-			relatedOrders[orderID] = struct{}{}
+		paymentTerms := ""
+		if cmd.PaymentTerms != nil {
+			paymentTerms = *cmd.PaymentTerms
 		}
-	}
-	if len(lineItems) == 0 {
-		return nil, domain.NewValidationError("invoice must have at least one line item")
-	}
 
-	taxAmount, err := zeroMoney()
-	if err != nil {
-		return nil, err
-	}
-	paymentTerms := ""
-	if cmd.PaymentTerms != nil {
-		paymentTerms = *cmd.PaymentTerms
-	}
-
-	invoiceNumber, err := s.numberGen.NextInvoiceNumber(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Default for invoices from orders: COMPLETA type with series "A"
-	invoiceType := domain.InvoiceTypeComplete
-	currentYear := time.Now().Year()
-	series, err := domain.NewInvoiceSeries("A", currentYear)
-	if err != nil {
-		return nil, err
-	}
-
-	invoice, err := domain.NewInvoice(
-		invoiceNumber,
-		invoiceType,
-		series,
-		cmd.PartyID,
-		cmd.InvoiceDate,
-		cmd.DueDate,
-		lineItems,
-		taxAmount,
-		paymentTerms,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	for orderID := range relatedOrders {
-		order, err := s.orderRepo.FindByID(ctx, orderID)
+		// Invoices from orders: COMPLETA type with series "FV" (Factura de Venta)
+		invoiceType := domain.InvoiceTypeComplete
+		currentYear := time.Now().Year()
+		series, err := domain.NewInvoiceSeries("FV", currentYear)
 		if err != nil {
-			return nil, err
-		}
-		if order == nil {
-			return nil, domain.NewNotFoundError("order not found")
+			return err
 		}
 
-		if err := s.updateOrderInvoiceStatus(ctx, order, lineItems); err != nil {
-			return nil, err
+		invoiceNumber, err := s.numberGen.NextInvoiceNumber(txCtx, series)
+		if err != nil {
+			return err
 		}
-		if err := s.orderRepo.Save(ctx, order); err != nil {
-			return nil, err
-		}
-	}
 
-	if err := s.invoiceRepo.Save(ctx, invoice); err != nil {
+		invoice, err := domain.NewInvoice(
+			invoiceNumber,
+			invoiceType,
+			series,
+			cmd.PartyID,
+			cmd.InvoiceDate,
+			cmd.DueDate,
+			lineItems,
+			taxAmount,
+			paymentTerms,
+		)
+		if err != nil {
+			return err
+		}
+
+		// Save invoice first, then link DN lines and update order statuses — all within the same transaction
+		if err := s.invoiceRepo.Save(txCtx, invoice); err != nil {
+			return err
+		}
+
+		// Link delivery note line items to their corresponding invoice line items
+		if len(dnToInvoiceLinks) > 0 {
+			if err := s.deliveryRepo.LinkLineItemsToInvoice(txCtx, dnToInvoiceLinks); err != nil {
+				return err
+			}
+		}
+
+		for orderID := range relatedOrders {
+			order, err := s.orderRepo.FindByIDForUpdate(txCtx, orderID)
+			if err != nil {
+				return err
+			}
+			if order == nil {
+				return domain.NewNotFoundError("order not found")
+			}
+
+			if err := s.updateOrderInvoiceStatus(txCtx, order, lineItems); err != nil {
+				return err
+			}
+			if err := s.orderRepo.Save(txCtx, order); err != nil {
+				return err
+			}
+		}
+
+		relatedIDs := make([]uuid.UUID, 0, len(relatedOrders))
+		for id := range relatedOrders {
+			relatedIDs = append(relatedIDs, id)
+		}
+
+		result = NewInvoiceDTO(invoice, relatedIDs, cmd.DeliveryNoteIDs)
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
-
-	relatedIDs := make([]uuid.UUID, 0, len(relatedOrders))
-	for id := range relatedOrders {
-		relatedIDs = append(relatedIDs, id)
-	}
-
-	return NewInvoiceDTO(invoice, relatedIDs), nil
+	return result, nil
 }
 
 func (s *SalesService) GetQuote(ctx context.Context, query GetQuoteByIDQuery) (*QuoteDTO, error) {
@@ -750,11 +976,23 @@ func (s *SalesService) GetQuote(ctx context.Context, query GetQuoteByIDQuery) (*
 	if quote == nil {
 		return nil, domain.NewNotFoundError("quote not found")
 	}
-	return NewQuoteDTO(quote), nil
+	dto := NewQuoteDTO(quote)
+	s.enrichQuoteLineItems(ctx, dto.LineItems)
+	s.enrichQuoteWithOrderInfo(ctx, dto)
+	return dto, nil
+}
+
+func (s *SalesService) enrichQuoteWithOrderInfo(ctx context.Context, dto *QuoteDTO) {
+	order, err := s.orderRepo.FindByQuoteID(ctx, dto.ID)
+	if err != nil || order == nil {
+		return
+	}
+	dto.GeneratedOrderID = &order.ID
+	dto.GeneratedOrderNumber = order.OrderNumber.String()
 }
 
 func (s *SalesService) ListQuotes(ctx context.Context, query ListQuotesQuery) ([]*QuoteDTO, error) {
-	filter := domain.QuoteFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
+	filter := domain.QuoteFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search, Limit: query.PageSize}
 	if query.Status != nil {
 		status, err := parseQuoteStatus(*query.Status)
 		if err != nil {
@@ -768,7 +1006,9 @@ func (s *SalesService) ListQuotes(ctx context.Context, query ListQuotesQuery) ([
 	}
 	result := make([]*QuoteDTO, 0, len(quotes))
 	for _, quote := range quotes {
-		result = append(result, NewQuoteDTO(quote))
+		dto := NewQuoteDTO(quote)
+		s.enrichQuoteLineItems(ctx, dto.LineItems)
+		result = append(result, dto)
 	}
 	return result, nil
 }
@@ -781,11 +1021,13 @@ func (s *SalesService) GetOrder(ctx context.Context, query GetOrderByIDQuery) (*
 	if order == nil {
 		return nil, domain.NewNotFoundError("order not found")
 	}
-	return NewSalesOrderDTO(order), nil
+	dto := NewSalesOrderDTO(order)
+	s.enrichOrderLineItems(ctx, dto.LineItems)
+	return dto, nil
 }
 
 func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([]*SalesOrderDTO, error) {
-	filter := domain.SalesOrderFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
+	filter := domain.SalesOrderFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search, Limit: query.PageSize}
 	if query.Status != nil {
 		status, err := parseOrderStatus(*query.Status)
 		if err != nil {
@@ -799,7 +1041,9 @@ func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([
 	}
 	result := make([]*SalesOrderDTO, 0, len(orders))
 	for _, order := range orders {
-		result = append(result, NewSalesOrderDTO(order))
+		dto := NewSalesOrderDTO(order)
+		s.enrichOrderLineItems(ctx, dto.LineItems)
+		result = append(result, dto)
 	}
 	return result, nil
 }
@@ -812,7 +1056,19 @@ func (s *SalesService) GetDeliveryNote(ctx context.Context, query GetDeliveryNot
 	if note == nil {
 		return nil, domain.NewNotFoundError("delivery note not found")
 	}
-	return NewDeliveryNoteDTO(note), nil
+	dto := NewDeliveryNoteDTO(note)
+	s.enrichDeliveryNoteLineItems(ctx, dto.LineItems)
+	// Derive invoiceId from line items (in MVP all lines point to the same invoice)
+	for _, li := range note.LineItems {
+		if li.InvoiceLineItemID != nil {
+			inv, findErr := s.invoiceRepo.FindByDeliveryNoteID(ctx, note.ID)
+			if findErr == nil && inv != nil {
+				dto.InvoiceID = &inv.ID
+			}
+			break
+		}
+	}
+	return dto, nil
 }
 
 func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDeliveryNotesQuery) ([]*DeliveryNoteDTO, error) {
@@ -822,6 +1078,7 @@ func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDelivery
 		FromDate:     query.FromDate,
 		ToDate:       query.ToDate,
 		Search:       query.Search,
+		Limit:        query.PageSize,
 	}
 	if query.Status != nil {
 		status, err := parseDeliveryNoteStatus(*query.Status)
@@ -836,9 +1093,36 @@ func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDelivery
 	}
 	result := make([]*DeliveryNoteDTO, 0, len(notes))
 	for _, note := range notes {
-		result = append(result, NewDeliveryNoteDTO(note))
+		dto := NewDeliveryNoteDTO(note)
+		s.enrichDeliveryNoteLineItems(ctx, dto.LineItems)
+		result = append(result, dto)
 	}
 	return result, nil
+}
+
+func (s *SalesService) ChangeDeliveryNoteStatus(ctx context.Context, cmd ChangeDeliveryNoteStatusCommand) (*DeliveryNoteDTO, error) {
+	note, err := s.deliveryRepo.FindByID(ctx, cmd.DeliveryNoteID)
+	if err != nil {
+		return nil, err
+	}
+	if note == nil {
+		return nil, domain.NewNotFoundError("delivery note not found")
+	}
+
+	status, err := parseDeliveryNoteStatus(cmd.NewStatus)
+	if err != nil {
+		return nil, err
+	}
+	if err := note.ChangeStatus(status); err != nil {
+		return nil, err
+	}
+
+	if err := s.deliveryRepo.Save(ctx, note); err != nil {
+		return nil, err
+	}
+
+	dto := NewDeliveryNoteDTO(note)
+	return dto, nil
 }
 
 func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery) (*InvoiceDTO, error) {
@@ -849,25 +1133,69 @@ func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery
 	if invoice == nil {
 		return nil, domain.NewNotFoundError("invoice not found")
 	}
-	return NewInvoiceDTO(invoice, nil), nil
+	dnIDs, _ := s.invoiceRepo.ListDeliveryNoteIDsByInvoiceID(ctx, invoice.ID)
+	dto := NewInvoiceDTO(invoice, nil, dnIDs)
+	s.enrichInvoiceLineItems(ctx, dto.LineItems)
+	return dto, nil
+}
+
+func (s *SalesService) ChangeInvoiceStatus(ctx context.Context, cmd ChangeInvoiceStatusCommand) (*InvoiceDTO, error) {
+	invoice, err := s.invoiceRepo.FindByID(ctx, cmd.InvoiceID)
+	if err != nil {
+		return nil, err
+	}
+	if invoice == nil {
+		return nil, domain.NewNotFoundError("invoice not found")
+	}
+
+	status, err := parseInvoiceStatus(cmd.NewStatus)
+	if err != nil {
+		return nil, err
+	}
+	if err := invoice.ChangeStatus(status); err != nil {
+		return nil, err
+	}
+
+	if err := s.invoiceRepo.Save(ctx, invoice); err != nil {
+		return nil, err
+	}
+
+	return NewInvoiceDTO(invoice, nil, nil), nil
 }
 
 func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery) ([]*InvoiceDTO, error) {
-	filter := domain.InvoiceFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search}
-	if query.Status != nil {
-		status, err := parseInvoiceStatus(*query.Status)
-		if err != nil {
-			return nil, err
+	var invoices []*domain.Invoice
+	var err error
+
+	if query.DeliveryNoteID != nil {
+		inv, findErr := s.invoiceRepo.FindByDeliveryNoteID(ctx, *query.DeliveryNoteID)
+		if findErr != nil {
+			return nil, findErr
 		}
-		filter.Status = &status
+		if inv != nil {
+			invoices = []*domain.Invoice{inv}
+		}
+	} else if query.SalesOrderID != nil {
+		invoices, err = s.invoiceRepo.ListBySalesOrderID(ctx, *query.SalesOrderID)
+	} else {
+		filter := domain.InvoiceFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search, Limit: query.PageSize}
+		if query.Status != nil {
+			status, err := parseInvoiceStatus(*query.Status)
+			if err != nil {
+				return nil, err
+			}
+			filter.Status = &status
+		}
+		invoices, err = s.invoiceRepo.List(ctx, filter)
 	}
-	invoices, err := s.invoiceRepo.List(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 	result := make([]*InvoiceDTO, 0, len(invoices))
 	for _, invoice := range invoices {
-		result = append(result, NewInvoiceDTO(invoice, nil))
+		dto := NewInvoiceDTO(invoice, nil, nil)
+		s.enrichInvoiceLineItems(ctx, dto.LineItems)
+		result = append(result, dto)
 	}
 	return result, nil
 }
@@ -894,25 +1222,29 @@ func (s *SalesService) ensurePartyExists(ctx context.Context, partyID uuid.UUID)
 }
 
 type orderLineItemSeed struct {
-	ID                    *uuid.UUID
-	MesWorkID             *uuid.UUID
-	ProductVariantID      uuid.UUID
-	Quantity              int
-	ManualUnitPrice       *MoneyDTO
-	ManualDiscountPerUnit *MoneyDTO
+	ID               *uuid.UUID
+	ProductVariantID uuid.UUID
+	Quantity         int
+	UnitPrice        *MoneyDTO
+	DiscountPercent  *float64
 }
 
 func orderLineItemSeedsFromOrder(items []domain.OrderLineItem) []orderLineItemSeed {
 	seeds := make([]orderLineItemSeed, 0, len(items))
 	for _, item := range items {
 		id := item.ID
+		var unitPriceDTO *MoneyDTO
+		if item.UnitPrice.Amount() != item.ListUnitPrice.Amount() {
+			dto := NewMoneyDTO(item.UnitPrice)
+			unitPriceDTO = &dto
+		}
+		discountPct := &item.DiscountPercent
 		seeds = append(seeds, orderLineItemSeed{
-			ID:                    &id,
-			MesWorkID:             item.MESWorkID,
-			ProductVariantID:      item.ProductVariantID,
-			Quantity:              item.Quantity,
-			ManualUnitPrice:       toMoneyDTOPtr(item.ManualUnitPrice),
-			ManualDiscountPerUnit: toMoneyDTOPtr(item.ManualDiscountPerUnit),
+			ID:               &id,
+			ProductVariantID: item.ProductVariantID,
+			Quantity:         item.Quantity,
+			UnitPrice:        unitPriceDTO,
+			DiscountPercent:  discountPct,
 		})
 	}
 	return seeds
@@ -920,7 +1252,7 @@ func orderLineItemSeedsFromOrder(items []domain.OrderLineItem) []orderLineItemSe
 
 func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUID, items []QuoteLineItemInput) ([]domain.QuoteLineItem, error) {
 	if s.pricingEngine == nil {
-		return nil, fmt.Errorf("pricing engine not configured")
+		return nil, domain.NewConfigurationError("pricing engine not configured")
 	}
 	request := pricing_app.CalculateFinalSalePriceRequest{
 		ClientID:  partyID.String(),
@@ -944,37 +1276,79 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 		return nil, err
 	}
 	if len(pricing.CalculatedItems) != len(items) {
-		return nil, fmt.Errorf("pricing response mismatch")
+		return nil, domain.NewValidationError("pricing response mismatch")
 	}
 
 	lineItems := make([]domain.QuoteLineItem, 0, len(items))
 	for i, item := range items {
-		calculatedUnit, calculatedDiscount, err := deriveCalculatedPrices(pricing.CalculatedItems[i])
+		calcItem := pricing.CalculatedItems[i]
+
+		listUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
 		if err != nil {
 			return nil, err
 		}
-		manualUnit, err := toDomainMoneyPtr(item.ManualUnitPrice)
-		if err != nil {
-			return nil, err
+
+		// Effective unit price: user override or pricing engine's baseSalesPrice
+		effectiveUnitPrice := listUnitPrice
+		if item.UnitPrice != nil {
+			effectiveUnitPrice, err = domain.NewMoney(item.UnitPrice.Amount, item.UnitPrice.Currency)
+			if err != nil {
+				return nil, err
+			}
 		}
-		manualDiscount, err := toDomainMoneyPtr(item.ManualDiscountPerUnit)
-		if err != nil {
-			return nil, err
+
+		// Discount: user-specified takes precedence, then pricing engine
+		discountPercent := calcItem.DiscountPercent
+		if item.DiscountPercent != nil {
+			discountPercent = *item.DiscountPercent
 		}
-		lineItem, err := domain.NewQuoteLineItem(
-			item.ProductVariantID,
-			item.Quantity,
-			calculatedUnit,
-			manualUnit,
-			calculatedDiscount,
-			manualDiscount,
-			pricing.CalculatedItems[i].TaxRate,
-		)
-		if err != nil {
-			return nil, err
+
+		// When user overrides price or discount, recalculate line values from the override.
+		// Otherwise, use Pricing engine's pre-calculated values (single source of truth).
+		if item.UnitPrice != nil || item.DiscountPercent != nil {
+			lineItem, err := domain.NewQuoteLineItem(
+				item.ProductVariantID,
+				item.Quantity,
+				listUnitPrice,
+				&effectiveUnitPrice,
+				discountPercent,
+				calcItem.TaxRate,
+			)
+			if err != nil {
+				return nil, err
+			}
+			lineItems = append(lineItems, lineItem)
+		} else {
+			// Use pre-calculated values from Pricing — single source of truth
+			discountPerUnit, err := toDomainMoney(calcItem.DiscountAmount)
+			if err != nil {
+				return nil, err
+			}
+			subtotal, err := toDomainMoney(calcItem.LineSubtotal)
+			if err != nil {
+				return nil, err
+			}
+			taxAmount, err := toDomainMoney(calcItem.LineTaxAmount)
+			if err != nil {
+				return nil, err
+			}
+
+			lineItem, err := domain.NewQuoteLineItemFromCalculated(
+				item.ProductVariantID,
+				item.Quantity,
+				listUnitPrice,
+				effectiveUnitPrice,
+				discountPercent,
+				discountPerUnit,
+				subtotal,
+				calcItem.TaxRate,
+				taxAmount,
+			)
+			if err != nil {
+				return nil, err
+			}
+			lineItems = append(lineItems, lineItem)
 		}
-		lineItem.MESWorkID = item.MesWorkID
-		lineItems = append(lineItems, lineItem)
 	}
 	return lineItems, nil
 }
@@ -988,12 +1362,11 @@ func (s *SalesService) buildOrderLineItems(ctx context.Context, partyID uuid.UUI
 			id = &value
 		}
 		seeds = append(seeds, orderLineItemSeed{
-			ID:                    id,
-			MesWorkID:             item.MesWorkID,
-			ProductVariantID:      item.ProductVariantID,
-			Quantity:              item.Quantity,
-			ManualUnitPrice:       item.ManualUnitPrice,
-			ManualDiscountPerUnit: item.ManualDiscountPerUnit,
+			ID:               id,
+			ProductVariantID: item.ProductVariantID,
+			Quantity:         item.Quantity,
+			UnitPrice:        item.UnitPrice,
+			DiscountPercent:  item.DiscountPercent,
 		})
 	}
 	return s.buildOrderLineItemsFromSeeds(ctx, partyID, seeds)
@@ -1001,7 +1374,7 @@ func (s *SalesService) buildOrderLineItems(ctx context.Context, partyID uuid.UUI
 
 func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID uuid.UUID, seeds []orderLineItemSeed) ([]domain.OrderLineItem, error) {
 	if s.pricingEngine == nil {
-		return nil, fmt.Errorf("pricing engine not configured")
+		return nil, domain.NewConfigurationError("pricing engine not configured")
 	}
 	request := pricing_app.CalculateFinalSalePriceRequest{
 		ClientID:  partyID.String(),
@@ -1025,77 +1398,90 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 		return nil, err
 	}
 	if len(pricing.CalculatedItems) != len(seeds) {
-		return nil, fmt.Errorf("pricing response mismatch")
+		return nil, domain.NewValidationError("pricing response mismatch")
 	}
 
 	lineItems := make([]domain.OrderLineItem, 0, len(seeds))
 	for i, seed := range seeds {
-		calculatedUnit, calculatedDiscount, err := deriveCalculatedPrices(pricing.CalculatedItems[i])
-		if err != nil {
-			return nil, err
-		}
-		manualUnit, err := toDomainMoneyPtr(seed.ManualUnitPrice)
-		if err != nil {
-			return nil, err
-		}
-		manualDiscount, err := toDomainMoneyPtr(seed.ManualDiscountPerUnit)
+		calcItem := pricing.CalculatedItems[i]
+
+		listUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
 		if err != nil {
 			return nil, err
 		}
 
-		lineItem, err := domain.NewOrderLineItem(
-			seed.ProductVariantID,
-			seed.Quantity,
-			calculatedUnit,
-			manualUnit,
-			calculatedDiscount,
-			manualDiscount,
-			pricing.CalculatedItems[i].TaxRate,
-		)
-		if err != nil {
-			return nil, err
+		// Effective unit price: user override or pricing engine's baseSalesPrice
+		effectiveUnitPrice := listUnitPrice
+		if seed.UnitPrice != nil {
+			effectiveUnitPrice, err = domain.NewMoney(seed.UnitPrice.Amount, seed.UnitPrice.Currency)
+			if err != nil {
+				return nil, err
+			}
 		}
+
+		// Discount: user-specified takes precedence, then pricing engine
+		discountPercent := calcItem.DiscountPercent
+		if seed.DiscountPercent != nil {
+			discountPercent = *seed.DiscountPercent
+		}
+
+		var lineItem domain.OrderLineItem
+		// When user overrides price or discount, recalculate line values from the override.
+		// Otherwise, use Pricing engine's pre-calculated values (single source of truth).
+		if seed.UnitPrice != nil || seed.DiscountPercent != nil {
+			lineItem, err = domain.NewOrderLineItem(
+				seed.ProductVariantID,
+				seed.Quantity,
+				listUnitPrice,
+				&effectiveUnitPrice,
+				discountPercent,
+				calcItem.TaxRate,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Use pre-calculated values from Pricing — single source of truth
+			discountPerUnit, err := toDomainMoney(calcItem.DiscountAmount)
+			if err != nil {
+				return nil, err
+			}
+			subtotal, err := toDomainMoney(calcItem.LineSubtotal)
+			if err != nil {
+				return nil, err
+			}
+			taxAmount, err := toDomainMoney(calcItem.LineTaxAmount)
+			if err != nil {
+				return nil, err
+			}
+
+			lineItem, err = domain.NewOrderLineItemFromCalculated(
+				seed.ProductVariantID,
+				seed.Quantity,
+				listUnitPrice,
+				effectiveUnitPrice,
+				discountPercent,
+				discountPerUnit,
+				subtotal,
+				calcItem.TaxRate,
+				taxAmount,
+			)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		if seed.ID != nil {
 			lineItem.ID = *seed.ID
 		}
-		lineItem.MESWorkID = seed.MesWorkID
 		lineItems = append(lineItems, lineItem)
 	}
 
 	return lineItems, nil
 }
 
-func deriveCalculatedPrices(item pricing_app.CalculatedSaleItemResponse) (domain.Money, *domain.Money, error) {
-	base, err := domain.NewMoney(item.BaseSalesPrice.Amount, item.BaseSalesPrice.Currency)
-	if err != nil {
-		return domain.Money{}, nil, err
-	}
-	final, err := domain.NewMoney(item.FinalPrice.Amount, item.FinalPrice.Currency)
-	if err != nil {
-		return domain.Money{}, nil, err
-	}
-	if final.Amount() <= base.Amount() {
-		discount, err := base.Subtract(final)
-		if err != nil {
-			return domain.Money{}, nil, err
-		}
-		if discount.Amount() > 0 {
-			return base, &discount, nil
-		}
-		return base, nil, nil
-	}
-	return final, nil, nil
-}
-
-func toDomainMoneyPtr(dto *MoneyDTO) (*domain.Money, error) {
-	if dto == nil {
-		return nil, nil
-	}
-	money, err := domain.NewMoney(dto.Amount, dto.Currency)
-	if err != nil {
-		return nil, err
-	}
-	return &money, nil
+func toDomainMoney(dto pricing_app.MoneyDTO) (domain.Money, error) {
+	return domain.NewMoney(dto.Amount, dto.Currency)
 }
 
 func zeroMoney() (domain.Money, error) {
@@ -1177,7 +1563,12 @@ func canEditOrderDetails(status domain.SalesOrderStatus) bool {
 }
 
 func canEditOrderLineItems(status domain.SalesOrderStatus) bool {
-	return status == domain.SalesOrderStatusPending
+	switch status {
+	case domain.SalesOrderStatusPending, domain.SalesOrderStatusInPreparation:
+		return true
+	default:
+		return false
+	}
 }
 
 func findOrderLineItem(items []domain.OrderLineItem, lineItemID uuid.UUID) *domain.OrderLineItem {
@@ -1196,6 +1587,9 @@ func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUI
 		return nil, err
 	}
 	for _, note := range notes {
+		if note.Status == domain.DeliveryNoteStatusCanceled {
+			continue
+		}
 		for _, item := range note.LineItems {
 			results[item.SalesOrderLineItemID] += item.DeliveredQuantity
 		}
@@ -1221,14 +1615,14 @@ func isOrderFullyDelivered(items []domain.OrderLineItem, previous map[uuid.UUID]
 
 func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (domain.InvoiceLineItem, error) {
 	var discount *domain.Money
-	if item.FinalDiscountPerUnit.Amount() > 0 {
-		value := item.FinalDiscountPerUnit
+	if item.DiscountPerUnit.Amount() > 0 {
+		value := item.DiscountPerUnit
 		discount = &value
 	}
 	lineItem, err := domain.NewInvoiceLineItem(
 		item.ProductVariantID,
 		quantity,
-		item.FinalUnitPrice,
+		item.UnitPrice,
 		discount,
 		nil,
 		item.TaxRate,
@@ -1243,7 +1637,7 @@ func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (dom
 func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.UUID, orderIDs []uuid.UUID) ([]*domain.SalesOrder, error) {
 	orders := make([]*domain.SalesOrder, 0, len(orderIDs))
 	for _, orderID := range orderIDs {
-		order, err := s.orderRepo.FindByID(ctx, orderID)
+		order, err := s.orderRepo.FindByIDForUpdate(ctx, orderID)
 		if err != nil {
 			return nil, err
 		}
@@ -1256,7 +1650,7 @@ func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.U
 		if order.Status == domain.SalesOrderStatusCanceled {
 			return nil, domain.NewConflictError("cannot invoice canceled order")
 		}
-		if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {
+		if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {
 			return nil, domain.NewConflictError("order must be delivered before invoicing")
 		}
 		orders = append(orders, order)
@@ -1264,38 +1658,44 @@ func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.U
 	return orders, nil
 }
 
-func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, partyID uuid.UUID, noteIDs []uuid.UUID) ([]domain.InvoiceLineItem, []uuid.UUID, error) {
+func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, partyID uuid.UUID, noteIDs []uuid.UUID) ([]domain.InvoiceLineItem, []uuid.UUID, map[uuid.UUID]uuid.UUID, error) {
 	lineItems := make([]domain.InvoiceLineItem, 0)
 	orderIDs := make([]uuid.UUID, 0)
 	seen := make(map[uuid.UUID]struct{})
+	// dnLineItemID → invoiceLineItemID
+	dnToInvoiceLinks := make(map[uuid.UUID]uuid.UUID)
 
 	for _, noteID := range noteIDs {
 		note, err := s.deliveryRepo.FindByID(ctx, noteID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if note == nil {
-			return nil, nil, domain.NewNotFoundError("delivery note not found")
+			return nil, nil, nil, domain.NewNotFoundError("delivery note not found")
 		}
 		order, err := s.orderRepo.FindByID(ctx, note.SalesOrderID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if order == nil {
-			return nil, nil, domain.NewNotFoundError("order not found")
+			return nil, nil, nil, domain.NewNotFoundError("order not found")
 		}
 		if order.PartyID != partyID {
-			return nil, nil, domain.NewValidationError("delivery note party mismatch")
+			return nil, nil, nil, domain.NewValidationError("delivery note party mismatch")
 		}
 		for _, item := range note.LineItems {
+			if item.InvoiceLineItemID != nil {
+				return nil, nil, nil, domain.NewValidationError("delivery note line item already invoiced")
+			}
 			orderLine := findOrderLineItem(order.LineItems, item.SalesOrderLineItemID)
 			if orderLine == nil {
-				return nil, nil, domain.NewValidationError("sales order line item not found")
+				return nil, nil, nil, domain.NewValidationError("sales order line item not found")
 			}
 			lineItem, err := buildInvoiceLineItemFromOrder(*orderLine, item.DeliveredQuantity)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
+			dnToInvoiceLinks[item.ID] = lineItem.ID
 			lineItems = append(lineItems, lineItem)
 		}
 		if _, ok := seen[order.ID]; !ok {
@@ -1304,14 +1704,14 @@ func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, p
 		}
 	}
 
-	return lineItems, orderIDs, nil
+	return lineItems, orderIDs, dnToInvoiceLinks, nil
 }
 
 func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder, newInvoiceItems []domain.InvoiceLineItem) error {
 	if order.Status == domain.SalesOrderStatusCanceled {
 		return domain.NewConflictError("cannot update invoice status for canceled order")
 	}
-	if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {
+	if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {
 		return domain.NewConflictError("order must be delivered before invoicing")
 	}
 
@@ -1362,7 +1762,7 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 }
 
 // CreateSimplifiedInvoice (CU-S-019) creates a ticket (factura simplificada) for retail sales
-// Optimized for TPV/POS workflow: validates < 3,000 EUR limit, uses series "TKT", allows CONSUMIDOR_FINAL
+// Optimized for TPV/POS workflow: validates < 3,000 EUR limit, uses series "FT", allows any CLIENT party
 func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSimplifiedInvoiceCommand) (*InvoiceDTO, error) {
 	if err := s.ensurePartyExists(ctx, cmd.PartyID); err != nil {
 		return nil, err
@@ -1370,11 +1770,13 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 
 	// Build sale items for pricing calculation
 	saleItems := make([]pricing_app.SaleItemRequest, 0, len(cmd.Items))
+	discountByVariant := make(map[uuid.UUID]float64)
 	for _, itemInput := range cmd.Items {
 		saleItems = append(saleItems, pricing_app.SaleItemRequest{
 			ProductVariantID: itemInput.ProductVariantID,
 			Quantity:         itemInput.Quantity,
 		})
+		discountByVariant[itemInput.ProductVariantID] = itemInput.DiscountPercent
 	}
 
 	// Calculate prices using pricing engine
@@ -1385,23 +1787,44 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 	}
 	priceResp, err := s.pricingEngine.CalculateFinalSalePrice(ctx, priceReq)
 	if err != nil {
-		return nil, fmt.Errorf("pricing calculation failed: %w", err)
+		return nil, domain.NewConfigurationError("pricing calculation failed: " + err.Error())
 	}
 
 	// Build invoice line items from calculated prices
 	lineItems := make([]domain.InvoiceLineItem, 0, len(priceResp.CalculatedItems))
 	for _, calculatedItem := range priceResp.CalculatedItems {
-		unitPrice, err := domain.NewMoney(calculatedItem.FinalPrice.Amount, domain.DefaultCurrency)
+		// Use BaseSalesPrice (catalogue price before client-specific discounts)
+		// so the manual discountPercent from the frontend maps to the client discount
+		// shown in the UI, avoiding double-discount when the pricing engine also applies it.
+		unitPrice, err := domain.NewMoney(calculatedItem.BaseSalesPrice.Amount, domain.DefaultCurrency)
 		if err != nil {
 			return nil, err
 		}
 
-		// For tickets, we use direct pricing without manual overrides
+		// Apply manual discount if provided; otherwise use the pricing engine's discount
+		var discountAmount *domain.Money
+		if dp, ok := discountByVariant[calculatedItem.ProductVariantID]; ok && dp > 0 {
+			da := unitPrice.Amount() * dp / 100
+			dm, err := domain.NewMoney(da, domain.DefaultCurrency)
+			if err != nil {
+				return nil, err
+			}
+			discountAmount = &dm
+		} else if calculatedItem.DiscountPercent > 0 {
+			da := unitPrice.Amount() * calculatedItem.DiscountPercent / 100
+			dm, err := domain.NewMoney(da, domain.DefaultCurrency)
+			if err != nil {
+				return nil, err
+			}
+			discountAmount = &dm
+		}
+
+		// For tickets, we use direct pricing with optional manual discount
 		lineItem, err := domain.NewInvoiceLineItem(
 			calculatedItem.ProductVariantID,
 			calculatedItem.Quantity,
 			unitPrice,
-			nil, // No discount
+			discountAmount,
 			nil, // No tax breakdown per line
 			calculatedItem.TaxRate,
 		)
@@ -1413,15 +1836,15 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 	}
 
 	// Simplified invoice: immediate payment, no payment terms
-	invoiceNumber, err := s.numberGen.NextInvoiceNumber(ctx)
+	// Ticket series: "FT" (Factura de Ticket) for current year
+	invoiceType := domain.InvoiceTypeSimplified
+	currentYear := time.Now().Year()
+	series, err := domain.NewInvoiceSeries("FT", currentYear)
 	if err != nil {
 		return nil, err
 	}
 
-	// Ticket series: "TKT" for current year
-	invoiceType := domain.InvoiceTypeSimplified
-	currentYear := time.Now().Year()
-	series, err := domain.NewInvoiceSeries("TKT", currentYear)
+	invoiceNumber, err := s.numberGen.NextInvoiceNumber(ctx, series)
 	if err != nil {
 		return nil, err
 	}
@@ -1461,5 +1884,42 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 	}
 
 	// No related orders for simplified invoices (direct sale)
-	return NewInvoiceDTO(invoice, []uuid.UUID{}), nil
+	return NewInvoiceDTO(invoice, []uuid.UUID{}, nil), nil
+}
+
+// --- Product variant enrichment helpers ---
+
+func (s *SalesService) lookupVariant(ctx context.Context, variantID uuid.UUID) (string, string, map[string]string) {
+	if s.productLookup == nil {
+		return "", "", nil
+	}
+	info, err := s.productLookup.GetVariantInfo(ctx, variantID)
+	if err != nil || info == nil {
+		return "", "", nil
+	}
+	return info.ProductName, info.VariantSKU, info.OptionConfiguration
+}
+
+func (s *SalesService) enrichQuoteLineItems(ctx context.Context, items []QuoteLineItemDTO) {
+	for i := range items {
+		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
+	}
+}
+
+func (s *SalesService) enrichOrderLineItems(ctx context.Context, items []OrderLineItemDTO) {
+	for i := range items {
+		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
+	}
+}
+
+func (s *SalesService) enrichDeliveryNoteLineItems(ctx context.Context, items []DeliveryNoteLineItemDTO) {
+	for i := range items {
+		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
+	}
+}
+
+func (s *SalesService) enrichInvoiceLineItems(ctx context.Context, items []InvoiceLineItemDTO) {
+	for i := range items {
+		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
+	}
 }

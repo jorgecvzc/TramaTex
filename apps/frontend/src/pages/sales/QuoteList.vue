@@ -38,7 +38,7 @@
           <select v-model="filters.status" class="filter-select">
             <option value="">Todos</option>
             <option value="DRAFT">Borrador</option>
-            <option value="SENT">Enviado</option>
+            <option value="ISSUED">Emitido</option>
             <option value="ACCEPTED">Aceptado</option>
             <option value="REJECTED">Rechazado</option>
             <option value="EXPIRED">Expirado</option>
@@ -65,6 +65,16 @@
       </div>
 
       <div class="filters-actions">
+        <div class="limit-group">
+          <label>Mostrar</label>
+          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="0">Todos</option>
+          </select>
+          <span class="limit-label">registros</span>
+        </div>
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
@@ -106,7 +116,6 @@
             <th>Estado</th>
             <th>Total</th>
             <th>MES</th>
-            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -120,24 +129,17 @@
                 {{ getStatusLabel(quote.status) }}
               </span>
             </td>
-            <td class="amount">{{ salesApi.formatMoney(quote.total) }}</td>
-            <td>{{ getMesSummary(quote.lineItems) }}</td>
-            <td class="actions-cell" @click.stop>
-              <button 
-                class="btn-icon" 
-                @click="navigateToDetail(quote.id)"
-                title="Ver detalle"
+            <td>{{ salesApi.formatMoney(quote.total) }}</td>
+            <td class="mes-cell" @click.stop>
+              <router-link
+                v-if="getMesWorkIds(quote.lineItems).length > 0"
+                :to="`/sales/quotes/${quote.id}`"
+                class="mes-link"
+                :title="getMesWorkIds(quote.lineItems).length + ' definición(es) MES'"
               >
-                👁️
-              </button>
-              <button 
-                v-if="canConvertToOrder(quote.status)"
-                class="btn-icon" 
-                @click="convertToOrder(quote.id)"
-                title="Convertir a pedido"
-              >
-                ✓
-              </button>
+                {{ getMesSummary(quote.lineItems) }}
+              </router-link>
+              <span v-else>—</span>
             </td>
           </tr>
         </tbody>
@@ -152,7 +154,7 @@ import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
 
 const router = useRouter();
@@ -169,6 +171,7 @@ const filters = ref({
   status: '',
   fromDate: '',
   toDate: '',
+  limit: 50,
 });
 
 const hasFilters = computed(() => {
@@ -247,14 +250,6 @@ onBeforeUnmount(() => {
 });
 
 onMounted(() => {
-  // Set default date range (last 90 days)
-  const today = new Date();
-  const ninetyDaysAgo = new Date(today);
-  ninetyDaysAgo.setDate(today.getDate() - 90);
-  
-  filters.value.fromDate = ninetyDaysAgo.toISOString().split('T')[0];
-  filters.value.toDate = today.toISOString().split('T')[0];
-
   autoFetchEnabled = true;
   
   fetchQuotes();
@@ -272,6 +267,7 @@ async function fetchQuotes() {
     if (filters.value.status) apiFilters.status = filters.value.status;
     if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
     if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
+    if (filters.value.limit) apiFilters.limit = filters.value.limit;
 
     const response = await salesApi.listQuotes(apiFilters);
     quotes.value = Array.isArray(response) ? response : (response.data || []);
@@ -348,6 +344,7 @@ function clearFilters() {
   filters.value.status = '';
   filters.value.fromDate = '';
   filters.value.toDate = '';
+  filters.value.limit = 50;
   fetchQuotes();
 }
 
@@ -418,13 +415,23 @@ function getMesSummary(lineItems) {
   return `${firstLabel} +${uniqueMesWorkIds.length - 1}`;
 }
 
+function getMesWorkIds(lineItems) {
+  if (!Array.isArray(lineItems)) return [];
+  return [...new Set(
+    lineItems
+      .map((item) => item?.mesWorkId)
+      .filter((id) => typeof id === 'string' && id.length > 0),
+  )];
+}
+
 function getStatusClass(status) {
   const classes = {
     DRAFT: 'warning',
-    SENT: 'info',
+    ISSUED: 'info',
     ACCEPTED: 'success',
     REJECTED: 'danger',
     EXPIRED: 'secondary',
+    CONVERTED: 'primary',
   };
   return classes[status] || 'secondary';
 }
@@ -432,10 +439,11 @@ function getStatusClass(status) {
 function getStatusLabel(status) {
   const labels = {
     DRAFT: 'Borrador',
-    SENT: 'Enviado',
+    ISSUED: 'Emitido',
     ACCEPTED: 'Aceptado',
     REJECTED: 'Rechazado',
     EXPIRED: 'Expirado',
+    CONVERTED: 'Convertido a Pedido',
   };
   return labels[status] || status;
 }
@@ -470,42 +478,65 @@ function getStatusLabel(status) {
 .filters-card {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 .filters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: contents;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .filter-group label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .filter-input,
 .filter-select {
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .filters-actions {
+  display: contents;
+}
+
+.limit-group {
   display: flex;
-  gap: 0.75rem;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.limit-group label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.limit-select {
+  width: 70px;
+}
+
+.limit-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
 .loading-state,
@@ -616,23 +647,16 @@ function getStatusLabel(status) {
   text-align: right;
 }
 
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
+.mes-link {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.8125rem;
 }
 
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.btn-icon:hover {
-  background: #f3f4f6;
+.mes-link:hover {
+  text-decoration: underline;
+  color: #1e40af;
 }
 
 .btn {

@@ -13,6 +13,7 @@ type QuoteFilter struct {
 	FromDate *time.Time
 	ToDate   *time.Time
 	Search   *string
+	Limit    int
 }
 
 type SalesOrderFilter struct {
@@ -21,6 +22,7 @@ type SalesOrderFilter struct {
 	FromDate *time.Time
 	ToDate   *time.Time
 	Search   *string
+	Limit    int
 }
 
 type DeliveryNoteFilter struct {
@@ -30,6 +32,7 @@ type DeliveryNoteFilter struct {
 	FromDate     *time.Time
 	ToDate       *time.Time
 	Search       *string
+	Limit        int
 }
 
 type InvoiceFilter struct {
@@ -39,17 +42,21 @@ type InvoiceFilter struct {
 	FromDate *time.Time
 	ToDate   *time.Time
 	Search   *string
+	Limit    int
 }
 
 type QuoteRepository interface {
 	Save(ctx context.Context, quote *Quote) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Quote, error)
 	List(ctx context.Context, filter QuoteFilter) ([]*Quote, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type SalesOrderRepository interface {
 	Save(ctx context.Context, order *SalesOrder) error
 	FindByID(ctx context.Context, id uuid.UUID) (*SalesOrder, error)
+	FindByIDForUpdate(ctx context.Context, id uuid.UUID) (*SalesOrder, error)
+	FindByQuoteID(ctx context.Context, quoteID uuid.UUID) (*SalesOrder, error)
 	List(ctx context.Context, filter SalesOrderFilter) ([]*SalesOrder, error)
 }
 
@@ -58,6 +65,7 @@ type DeliveryNoteRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*DeliveryNote, error)
 	List(ctx context.Context, filter DeliveryNoteFilter) ([]*DeliveryNote, error)
 	ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*DeliveryNote, error)
+	LinkLineItemsToInvoice(ctx context.Context, links map[uuid.UUID]uuid.UUID) error
 }
 
 type InvoiceRepository interface {
@@ -65,4 +73,6 @@ type InvoiceRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*Invoice, error)
 	List(ctx context.Context, filter InvoiceFilter) ([]*Invoice, error)
 	ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*Invoice, error)
+	FindByDeliveryNoteID(ctx context.Context, deliveryNoteID uuid.UUID) (*Invoice, error)
+	ListDeliveryNoteIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error)
 }

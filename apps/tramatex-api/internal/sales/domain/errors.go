@@ -1,9 +1,10 @@
 package domain
 
 const (
-	ErrCodeValidation = "VALIDATION_ERROR"
-	ErrCodeNotFound   = "NOT_FOUND"
-	ErrCodeConflict   = "CONFLICT"
+	ErrCodeValidation    = "VALIDATION_ERROR"
+	ErrCodeNotFound      = "NOT_FOUND"
+	ErrCodeConflict      = "CONFLICT"
+	ErrCodeConfiguration = "CONFIGURATION_ERROR"
 )
 
 type DomainError struct {
@@ -25,4 +26,8 @@ func NewNotFoundError(message string) error {
 
 func NewConflictError(message string) error {
 	return DomainError{Code: ErrCodeConflict, Message: message}
+}
+
+func NewConfigurationError(message string) error {
+	return DomainError{Code: ErrCodeConfiguration, Message: message}
 }

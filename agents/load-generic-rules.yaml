@@ -372,6 +372,7 @@ code_quality_standards:
   general_principles:
     - "Code without tests in critical domain: REJECTED"
     - "Business logic outside domain layer: REJECTED"
+    - "Business calculations in the frontend: REJECTED — All monetary, tax, discount, pricing, and any domain-derived calculations MUST be performed exclusively by the backend. The frontend is a display and input layer only; it MUST consume pre-calculated values from the API and NEVER replicate or approximate business formulas."
     - "Hardcoded configuration values: REJECTED"
     - "Mega-functions without documentation: REJECTED"
     - "Error handling as strings: REJECTED"

@@ -8,9 +8,10 @@ Este documento proporciona una visión de alto nivel de la arquitectura de Trama
 
 ## 🔑 Principios Arquitectónicos
 
-*   **Diseño Dirigido por el Dominio (DDD)**: La estructura del software refleja el dominio del negocio.
-*   **Clean Architecture**: Separación estricta de capas (Dominio, Aplicación, Infraestructura, Interfaces).
-*   **Comunicación por Eventos**: Para la comunicación entre Bounded Contexts desacoplados.
+*   **Diseño Dirigido por el Dominio (DDD)**: La estructura del software refleja el dominio del negocio mediante Bounded Contexts bien definidos.
+*   **Clean Architecture**: Separación estricta de capas (Dominio, Aplicación, Infraestructura, Interfaces) para asegurar la testabilidad y la independencia tecnológica.
+*   **Monolito Modular**: Distribución física unificada pero con una separación lógica y funcional rigurosa entre módulos para facilitar una futura extracción a microservicios.
+*   **Comunicación Inter-Módulo Síncrona (MVP)**: Para simplificar el desarrollo inicial, los módulos se comunican mediante interfaces de servicio síncronas (ver ADR-019), evitando la complejidad de un bus de eventos distribuido en esta fase.
 
 ---
 
@@ -38,18 +39,23 @@ Este overview es el punto de partida. Para profundizar, consulta los siguientes 
     *   [ADR-015: Arquitectura del Módulo de Product](./adrs/adr-015-product-module-architecture.md)
     *   [ADR-016: Arquitectura del Módulo de Pricing](./adrs/adr-016-pricing-module-architecture.md)
     *   [ADR-017: Arquitectura del Módulo de Sales](./adrs/adr-017-sales-module-architecture.md)
+    *   [ADR-018: Arquitectura del Módulo de MES](./adrs/adr-018-mes-module-architecture.md)
+    *   [ADR-019: Comunicación Inter-Módulo Síncrona](./adrs/adr-019-synchronous-inter-module-communication-mvp.md)
+    *   [ADR-020: Facturas Simplificadas y Series de Facturación](./adrs/adr-020-tickets-and-invoice-series.md)
+    *   [ADR-021: Estrategia de Control de Versiones](./adrs/adr-021-version-control-and-branching-strategy.md)
 *   **[Diagramas Visuales](./diagrams/README.md)**
 
 ---
 
-## 🧩 Estructura de Módulos
+## 🧩 Estructura de Módulos (Bounded Contexts)
 
-El sistema está dividido en los siguientes módulos principales (Bounded Contexts):
+El sistema está dividido en los siguientes contextos delimitados, cada uno con su propio modelo de dominio, lógica de aplicación e infraestructura:
 
-*   **IAM (Identity and Access Management)**: Gestiona usuarios, roles y permisos.
-*   **Party**: Gestiona la información de clientes y proveedores.
-*   **Product**: Catálogo de productos y sus propiedades.
-*   **Sales**: Gestiona el proceso de ventas.
-*   **Pricing**: Calcula los precios de los productos.
+*   **IAM (Identity and Access Management)**: Autenticación, gestión de usuarios, roles y permisos.
+*   **Party**: Gestión unificada de terceros (Clientes, Proveedores, Empleados), direcciones y contactos.
+*   **Product**: Catálogo de productos tangibles y servicios, gestión de atributos/variantes y marcas.
+*   **Pricing**: Motor dinámico de precios que aplica márgenes comerciales y descuentos específicos.
+*   **Sales**: Ciclo de vida completo de la venta (Presupuestos, Pedidos, Albaranes, Facturación).
+*   **MES (Manufacturing Execution System)**: Control del taller, gestión de plantillas de procesos y seguimiento en tiempo real de la producción.
 
 Para más detalles sobre cada módulo, consulta la documentación específica en `../modules/README.md`.

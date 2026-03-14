@@ -30,15 +30,15 @@
         </div>
 
         <div v-if="formMode === 'existing'" class="form-group">
-          <label for="existingContact">Seleccionar contacto existente *</label>
+          <label for="existingContact">Seleccionar persona física existente *</label>
           <select id="existingContact" v-model="selectedContactId" required>
-            <option value="">-- Selecciona un contacto --</option>
+            <option value="">-- Selecciona una persona física --</option>
             <option v-for="contact in availableContacts" :key="contact.id" :value="contact.id">
               {{ contact.first_name }} {{ contact.last_name }} {{ contact.email ? `(${contact.email})` : '' }}
             </option>
           </select>
           <small v-if="availableContacts.length === 0" class="hint">
-            No hay contactos disponibles para vincular.
+            No hay personas físicas disponibles para vincular.
           </small>
         </div>
 

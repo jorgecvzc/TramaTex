@@ -682,7 +682,8 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 	}
 
 	if len(domainAttributes) == 0 {
-		return nil
+		// No attributes → create or update a single default variant
+		return s.ensureDefaultVariant(ctx, product)
 	}
 
 	sort.Slice(domainAttributes, func(i, j int) bool {
@@ -744,6 +745,47 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 		if saveErr := s.variantRepo.Save(ctx, newVariant); saveErr != nil {
 			return domain.WrapPersistence("failed to save generated variant", saveErr)
 		}
+	}
+
+	return nil
+}
+
+// ensureDefaultVariant creates or reactivates a default variant for a product with no attributes.
+func (s *ProductService) ensureDefaultVariant(ctx context.Context, product *domain.Product) error {
+	existing, err := s.variantRepo.FindByProductIDAndAttributeValues(ctx, product.ID, []uuid.UUID{})
+	if err != nil {
+		return domain.WrapPersistence("failed to check existing default variant", err)
+	}
+
+	if existing != nil {
+		shouldSave := false
+		if existing.SKU != product.SKU {
+			existing.SKU = product.SKU
+			shouldSave = true
+		}
+		if existing.Status != domain.StatusConfirmed {
+			existing.Status = domain.StatusConfirmed
+			shouldSave = true
+		}
+		if !existing.IsActive {
+			existing.IsActive = true
+			shouldSave = true
+		}
+		if shouldSave {
+			if saveErr := s.variantRepo.Save(ctx, existing); saveErr != nil {
+				return domain.WrapPersistencef(saveErr, "failed to update default variant %s", existing.ID)
+			}
+		}
+		return nil
+	}
+
+	newVariant, createErr := domain.NewDefaultProductVariant(product.ID, product.SKU)
+	if createErr != nil {
+		return domain.WrapValidation("failed to create default variant", createErr)
+	}
+
+	if saveErr := s.variantRepo.Save(ctx, newVariant); saveErr != nil {
+		return domain.WrapPersistence("failed to save default variant", saveErr)
 	}
 
 	return nil
@@ -847,7 +889,15 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	}
 
 	if len(cmd.OptionConfiguration) == 0 {
-		return nil, domain.NewValidationError("optionConfiguration must include at least one selected attribute")
+		// No attributes selected → find or create default variant
+		if err := s.ensureDefaultVariant(ctx, product); err != nil {
+			return nil, err
+		}
+		variant, findErr := s.variantRepo.FindByProductIDAndAttributeValues(ctx, product.ID, []uuid.UUID{})
+		if findErr != nil || variant == nil {
+			return nil, domain.NewNotFoundErrorf("could not find or create default variant for product %s", product.ID)
+		}
+		return NewProductVariantDTOFromDomain(variant, product, nil), nil
 	}
 
 	// Get applicable attributes for validation and SKU construction
@@ -1455,4 +1505,234 @@ func (s *ProductService) DeleteAttribute(ctx context.Context, cmd DeleteAttribut
 	}
 
 	return nil
+}
+
+// SmartSearch performs an intelligent search for products/variants by SKU, barcode, or partial reference.
+// Search priority:
+// 1. Exact variant SKU match
+// 2. Exact variant barcode match
+// 3. Exact product SKU match (returns product + option sets)
+// 4. Exact product barcode match
+// 5. Prefix match on variant SKU (parses pre-selected attributes from SKU suffix)
+// 6. Prefix match on product SKU
+// 7. Text search on product name/SKU/longName
+func (s *ProductService) SmartSearch(ctx context.Context, query SmartSearchQuery) (*SmartSearchResultDTO, error) {
+	q := strings.TrimSpace(query.Query)
+	if q == "" {
+		return &SmartSearchResultDTO{Type: "no_match"}, nil
+	}
+
+	// 1. Exact variant SKU match
+	variant, err := s.variantRepo.FindBySKU(ctx, q)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: variant SKU lookup failed", err)
+	}
+	if variant != nil {
+		product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+		if err != nil {
+			return nil, domain.WrapPersistence("smart search: product lookup failed", err)
+		}
+		if product != nil {
+			allAttributes, _ := s.attributeRepo.FindByScope(ctx, nil, nil)
+			variantDTO := NewProductVariantDTOFromDomain(variant, product, allAttributes)
+			variantDTO.ProductName = product.Name
+			return &SmartSearchResultDTO{
+				Type:    "exact_variant",
+				Product: NewProductDTOFromDomain(product),
+				Variant: variantDTO,
+			}, nil
+		}
+	}
+
+	// 2. Exact variant barcode match
+	variant, err = s.variantRepo.FindByBarcode(ctx, q)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: variant barcode lookup failed", err)
+	}
+	if variant != nil {
+		product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+		if err != nil {
+			return nil, domain.WrapPersistence("smart search: product lookup failed", err)
+		}
+		if product != nil {
+			allAttributes, _ := s.attributeRepo.FindByScope(ctx, nil, nil)
+			variantDTO := NewProductVariantDTOFromDomain(variant, product, allAttributes)
+			variantDTO.ProductName = product.Name
+			return &SmartSearchResultDTO{
+				Type:    "exact_variant",
+				Product: NewProductDTOFromDomain(product),
+				Variant: variantDTO,
+			}, nil
+		}
+	}
+
+	// 3. Exact product SKU match → return product + its option sets
+	product, err := s.productRepo.FindBySKU(ctx, q)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: product SKU lookup failed", err)
+	}
+	if product != nil {
+		return s.buildExactProductResult(ctx, product)
+	}
+
+	// 4. Exact product barcode match
+	product, err = s.productRepo.FindByBarcode(ctx, q)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: product barcode lookup failed", err)
+	}
+	if product != nil {
+		return s.buildExactProductResult(ctx, product)
+	}
+
+	// 5. Prefix match on variant SKU → parse pre-selected attributes
+	if strings.Contains(q, "-") {
+		// Try to find variants with this prefix
+		variants, err := s.variantRepo.FindBySKUPrefix(ctx, q)
+		if err != nil {
+			return nil, domain.WrapPersistence("smart search: variant prefix lookup failed", err)
+		}
+		if len(variants) > 0 {
+			// All matching variants belong to the same product (they share the product SKU prefix)
+			product, err := s.productRepo.FindByID(ctx, variants[0].ProductID)
+			if err != nil {
+				return nil, domain.WrapPersistence("smart search: product lookup failed", err)
+			}
+			if product != nil {
+				return s.buildPartialMatchResult(ctx, product, q, variants)
+			}
+		}
+
+		// Try to extract the product SKU part (before the first "-ATTR." segment)
+		productSKUPart := s.extractProductSKUFromPartialRef(q)
+		if productSKUPart != "" && productSKUPart != q {
+			product, err := s.productRepo.FindBySKU(ctx, productSKUPart)
+			if err == nil && product != nil {
+				return s.buildPartialMatchResult(ctx, product, q, nil)
+			}
+		}
+	}
+
+	// 6. Prefix match on product SKU
+	products, err := s.productRepo.FindBySKUPrefix(ctx, q)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: product prefix lookup failed", err)
+	}
+	if len(products) == 1 {
+		// Single match → treat as exact product
+		return s.buildExactProductResult(ctx, products[0])
+	}
+	if len(products) > 1 {
+		dtos := make([]*ProductDTO, len(products))
+		for i, p := range products {
+			dtos[i] = NewProductDTOFromDomain(p)
+		}
+		return &SmartSearchResultDTO{
+			Type:     "product_list",
+			Products: dtos,
+		}, nil
+	}
+
+	// 7. Text search fallback (name, SKU, longName)
+	allProducts, err := s.productRepo.FindAll(ctx)
+	if err != nil {
+		return nil, domain.WrapPersistence("smart search: product list failed", err)
+	}
+	qLower := strings.ToLower(q)
+	var matchedProducts []*ProductDTO
+	for _, p := range allProducts {
+		if strings.Contains(strings.ToLower(p.Name), qLower) ||
+			strings.Contains(strings.ToLower(p.SKU), qLower) ||
+			strings.Contains(strings.ToLower(p.LongName), qLower) {
+			matchedProducts = append(matchedProducts, NewProductDTOFromDomain(p))
+		}
+		if len(matchedProducts) >= 20 {
+			break
+		}
+	}
+	if len(matchedProducts) > 0 {
+		return &SmartSearchResultDTO{
+			Type:     "product_list",
+			Products: matchedProducts,
+		}, nil
+	}
+
+	return &SmartSearchResultDTO{Type: "no_match"}, nil
+}
+
+// buildExactProductResult builds a result for an exact product match, including option sets.
+func (s *ProductService) buildExactProductResult(ctx context.Context, product *domain.Product) (*SmartSearchResultDTO, error) {
+	optionSets, err := s.GetApplicableAttributesForProduct(ctx, product.ID)
+	if err != nil {
+		optionSets = []*AttributeDTO{} // Non-fatal
+	}
+	return &SmartSearchResultDTO{
+		Type:       "exact_product",
+		Product:    NewProductDTOFromDomain(product),
+		OptionSets: optionSets,
+	}, nil
+}
+
+// buildPartialMatchResult builds a result for a partial SKU match, extracting pre-selected attributes.
+func (s *ProductService) buildPartialMatchResult(ctx context.Context, product *domain.Product, query string, matchingVariants []*domain.ProductVariant) (*SmartSearchResultDTO, error) {
+	optionSets, err := s.GetApplicableAttributesForProduct(ctx, product.ID)
+	if err != nil {
+		optionSets = []*AttributeDTO{} // Non-fatal
+	}
+
+	// Parse the query suffix to extract pre-selected attributes
+	// SKU format: PRODUCT_SKU-ATTR_CODE.VALUE_CODE-ATTR_CODE.VALUE_CODE
+	// Use case-insensitive prefix removal since the user may type in different case
+	selectedAttributes := make(map[string]string)
+	suffix := ""
+	if len(query) > len(product.SKU) && strings.EqualFold(query[:len(product.SKU)], product.SKU) {
+		suffix = query[len(product.SKU):]
+	}
+	if strings.HasPrefix(suffix, "-") {
+		suffix = suffix[1:]
+	}
+	if suffix != "" {
+		parts := strings.Split(suffix, "-")
+		for _, part := range parts {
+			dotIdx := strings.Index(part, ".")
+			if dotIdx > 0 && dotIdx < len(part)-1 {
+				attrCode := strings.ToUpper(part[:dotIdx])
+				valueCode := strings.ToUpper(part[dotIdx+1:])
+				selectedAttributes[attrCode] = valueCode
+			}
+		}
+	}
+
+	// Build variant DTOs if provided
+	var variantDTOs []*ProductVariantDTO
+	if len(matchingVariants) > 0 {
+		allAttributes, _ := s.attributeRepo.FindByScope(ctx, nil, nil)
+		for _, v := range matchingVariants {
+			dto := NewProductVariantDTOFromDomain(v, product, allAttributes)
+			dto.ProductName = product.Name
+			variantDTOs = append(variantDTOs, dto)
+		}
+	}
+
+	return &SmartSearchResultDTO{
+		Type:               "partial_match",
+		Product:            NewProductDTOFromDomain(product),
+		OptionSets:         optionSets,
+		SelectedAttributes: selectedAttributes,
+		MatchingVariants:   variantDTOs,
+	}, nil
+}
+
+// extractProductSKUFromPartialRef tries to extract the product SKU from a partial variant reference.
+// For example, "FY5678-SIZE.M" → "FY5678"
+func (s *ProductService) extractProductSKUFromPartialRef(ref string) string {
+	// Find the first segment that looks like ATTR_CODE.VALUE_CODE
+	parts := strings.Split(ref, "-")
+	var productSKUParts []string
+	for _, part := range parts {
+		if strings.Contains(part, ".") {
+			break
+		}
+		productSKUParts = append(productSKUParts, part)
+	}
+	return strings.Join(productSKUParts, "-")
 }

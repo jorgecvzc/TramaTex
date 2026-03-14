@@ -36,7 +36,7 @@ func TestSalesDataModelConversions(t *testing.T) {
 	unitPrice, _ := domain.NewMoney(10, domain.DefaultCurrency)
 	tax, _ := domain.NewMoney(0, domain.DefaultCurrency)
 
-	quoteItem, _ := domain.NewQuoteLineItem(variantID, 2, unitPrice, nil, nil, nil)
+	quoteItem, _ := domain.NewQuoteLineItem(variantID, 2, unitPrice, nil, 0)
 	quote, err := domain.NewQuote(quoteNumber, partyID, now, now.Add(24*time.Hour), []domain.QuoteLineItem{quoteItem}, tax, "notes")
 	assert.NoError(t, err)
 
@@ -49,7 +49,7 @@ func TestSalesDataModelConversions(t *testing.T) {
 	assert.Equal(t, quote.ID, mappedQuote.ID)
 
 	orderNumber, _ := domain.NewOrderNumber("SO-200")
-	orderItem, _ := domain.NewOrderLineItem(variantID, 1, unitPrice, nil, nil, nil)
+	orderItem, _ := domain.NewOrderLineItem(variantID, 1, unitPrice, nil, 0)
 	order, err := domain.NewSalesOrder(orderNumber, partyID, now, now.Add(48*time.Hour), []domain.OrderLineItem{orderItem}, tax, "order")
 	assert.NoError(t, err)
 
@@ -111,7 +111,7 @@ func TestGORMRepositories_Sales(t *testing.T) {
 	tax, _ := domain.NewMoney(0, domain.DefaultCurrency)
 
 	quoteNumber, _ := domain.NewQuoteNumber("Q-500")
-	quoteItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, nil, nil)
+	quoteItem, _ := domain.NewQuoteLineItem(variantID, 2, money, nil, 0)
 	quote, err := domain.NewQuote(quoteNumber, partyID, now, now.Add(24*time.Hour), []domain.QuoteLineItem{quoteItem}, tax, "quote")
 	assert.NoError(t, err)
 	assert.NoError(t, quoteRepo.Save(ctx, quote))
@@ -125,7 +125,7 @@ func TestGORMRepositories_Sales(t *testing.T) {
 	assert.Len(t, quotes, 1)
 
 	orderNumber, _ := domain.NewOrderNumber("SO-600")
-	orderItem, _ := domain.NewOrderLineItem(variantID, 1, money, nil, nil, nil)
+	orderItem, _ := domain.NewOrderLineItem(variantID, 1, money, nil, 0)
 	order, err := domain.NewSalesOrder(orderNumber, partyID, now, now.Add(48*time.Hour), []domain.OrderLineItem{orderItem}, tax, "order")
 	assert.NoError(t, err)
 	assert.NoError(t, orderRepo.Save(ctx, order))
@@ -154,7 +154,7 @@ func TestGORMRepositories_Sales(t *testing.T) {
 	invoiceNumber, _ := domain.NewInvoiceNumber("INV-800")
 	invoiceType := domain.InvoiceTypeComplete
 	series, _ := domain.NewInvoiceSeries("A", 2026)
-	invoiceItem, _ := domain.NewInvoiceLineItem(variantID, 1, order.LineItems[0].FinalUnitPrice, nil, nil)
+	invoiceItem, _ := domain.NewInvoiceLineItem(variantID, 1, order.LineItems[0].UnitPrice, nil, nil)
 	invoiceItem.SalesOrderLineItemID = &orderLineID
 	invoice, err := domain.NewInvoice(invoiceNumber, invoiceType, series, partyID, now, now.Add(96*time.Hour), []domain.InvoiceLineItem{invoiceItem}, tax, "NET30")
 	assert.NoError(t, err)

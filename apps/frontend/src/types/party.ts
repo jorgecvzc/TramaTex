@@ -39,6 +39,7 @@ export interface Party {
   id: string
   status: PartyStatus
   roles: string[]  // Array of roles like ['CLIENT'], ['SUPPLIER'], or ['CLIENT', 'SUPPLIER']
+  default_discount_percentage?: number
   organization_profile?: OrganizationProfile
   person_profile?: PersonProfile
   created_at: string
@@ -58,6 +59,7 @@ export interface PartyUI {
   website: string | null
   phone: string | null
   email: string | null
+  default_discount_percentage: number
   created_at: string
   modified_at: string
   has_organization: boolean
