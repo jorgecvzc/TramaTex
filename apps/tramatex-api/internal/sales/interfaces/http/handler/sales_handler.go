@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -73,6 +74,11 @@ func (h *SalesHandler) ListQuotes(c *gin.Context) {
 	} else {
 		return
 	}
+	if limit := strings.TrimSpace(c.Query("limit")); limit != "" {
+		if n, err := strconv.Atoi(limit); err == nil && n > 0 {
+			query.PageSize = n
+		}
+	}
 
 	result, err := h.service.ListQuotes(c.Request.Context(), query)
 	if err != nil {
@@ -127,6 +133,53 @@ func (h *SalesHandler) ChangeQuoteStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *SalesHandler) DeleteQuote(c *gin.Context) {
+	id, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	cmd := application.DeleteQuoteCommand{QuoteID: id}
+	if err := h.service.DeleteQuote(c.Request.Context(), cmd); err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *SalesHandler) PreviewQuoteCalculation(c *gin.Context) {
+	var cmd application.PreviewQuoteCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	result, err := h.service.PreviewQuoteCalculation(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *SalesHandler) PreviewOrderCalculation(c *gin.Context) {
+	var cmd application.PreviewOrderCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	result, err := h.service.PreviewOrderCalculation(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *SalesHandler) ConvertQuoteToOrder(c *gin.Context) {
 	id, ok := parseUUIDParam(c, "id")
 	if !ok {
@@ -141,6 +194,28 @@ func (h *SalesHandler) ConvertQuoteToOrder(c *gin.Context) {
 	cmd.QuoteID = id
 
 	result, err := h.service.ConvertQuoteToOrder(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, result)
+}
+
+func (h *SalesHandler) AcceptAndConvertQuote(c *gin.Context) {
+	id, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.AcceptAndConvertQuoteCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	cmd.QuoteID = id
+
+	result, err := h.service.AcceptAndConvertQuote(c.Request.Context(), cmd)
 	if err != nil {
 		handleSalesError(c, err)
 		return
@@ -200,6 +275,11 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 		query.ToDate = toDate
 	} else {
 		return
+	}
+	if limit := strings.TrimSpace(c.Query("limit")); limit != "" {
+		if n, err := strconv.Atoi(limit); err == nil && n > 0 {
+			query.PageSize = n
+		}
 	}
 
 	result, err := h.service.ListOrders(c.Request.Context(), query)
@@ -383,6 +463,11 @@ func (h *SalesHandler) ListDeliveryNotes(c *gin.Context) {
 	} else {
 		return
 	}
+	if limit := strings.TrimSpace(c.Query("limit")); limit != "" {
+		if n, err := strconv.Atoi(limit); err == nil && n > 0 {
+			query.PageSize = n
+		}
+	}
 
 	result, err := h.service.ListDeliveryNotes(c.Request.Context(), query)
 	if err != nil {
@@ -427,6 +512,28 @@ func (h *SalesHandler) CreateSimplifiedInvoice(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+func (h *SalesHandler) ChangeDeliveryNoteStatus(c *gin.Context) {
+	id, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.ChangeDeliveryNoteStatusCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	cmd.DeliveryNoteID = id
+
+	result, err := h.service.ChangeDeliveryNoteStatus(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *SalesHandler) GetInvoice(c *gin.Context) {
 	id, ok := parseUUIDParam(c, "id")
 	if !ok {
@@ -442,10 +549,38 @@ func (h *SalesHandler) GetInvoice(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *SalesHandler) ChangeInvoiceStatus(c *gin.Context) {
+	id, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.ChangeInvoiceStatusCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	cmd.InvoiceID = id
+
+	result, err := h.service.ChangeInvoiceStatus(c.Request.Context(), cmd)
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *SalesHandler) ListInvoices(c *gin.Context) {
 	query := application.ListInvoicesQuery{}
 	if partyID, ok := parseUUIDQuery(c, "partyId"); ok {
 		query.PartyID = partyID
+	}
+	if orderID, ok := parseUUIDQuery(c, "orderId"); ok {
+		query.SalesOrderID = orderID
+	}
+	if deliveryNoteID, ok := parseUUIDQuery(c, "deliveryNoteId"); ok {
+		query.DeliveryNoteID = deliveryNoteID
 	}
 	if search := strings.TrimSpace(c.Query("search")); search != "" {
 		query.Search = &search
@@ -462,6 +597,11 @@ func (h *SalesHandler) ListInvoices(c *gin.Context) {
 		query.ToDate = toDate
 	} else {
 		return
+	}
+	if limit := strings.TrimSpace(c.Query("limit")); limit != "" {
+		if n, err := strconv.Atoi(limit); err == nil && n > 0 {
+			query.PageSize = n
+		}
 	}
 
 	result, err := h.service.ListInvoices(c.Request.Context(), query)
@@ -485,6 +625,9 @@ func handleSalesError(c *gin.Context, err error) {
 			return
 		case domain.ErrCodeConflict:
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		case domain.ErrCodeConfiguration:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

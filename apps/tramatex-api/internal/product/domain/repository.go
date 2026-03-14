@@ -39,9 +39,10 @@ type ProductRepository interface {
 	Save(ctx context.Context, product *Product) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Product, error)
 	FindBySKU(ctx context.Context, sku string) (*Product, error)
+	FindByBarcode(ctx context.Context, barcode string) (*Product, error)
+	FindBySKUPrefix(ctx context.Context, prefix string) ([]*Product, error)
 	FindAll(ctx context.Context) ([]*Product, error)
 	UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error // For the SKU cascade
-	// Add other necessary methods for Product (e.g., Delete, List)
 }
 
 // ProductVariantRepository defines the interface for interacting with ProductVariant data.
@@ -49,9 +50,10 @@ type ProductVariantRepository interface {
 	Save(ctx context.Context, variant *ProductVariant) error
 	FindByID(ctx context.Context, id uuid.UUID) (*ProductVariant, error)
 	FindBySKU(ctx context.Context, sku string) (*ProductVariant, error)
+	FindByBarcode(ctx context.Context, barcode string) (*ProductVariant, error)
+	FindBySKUPrefix(ctx context.Context, prefix string) ([]*ProductVariant, error)
 	FindByProductID(ctx context.Context, productID uuid.UUID) ([]*ProductVariant, error)
 	FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*ProductVariant, error)
-	// Add other necessary methods for ProductVariant (e.g., List, UpdateStatus)
 }
 
 // PartyServiceConfigurationRepository defines the interface for interacting with PartyServiceConfiguration data.

@@ -44,7 +44,9 @@ type CalculateBaseSalesPriceRequest struct {
 
 type CalculatedBaseSalesPriceResponse struct {
 	VariantID      uuid.UUID `json:"variantId"`
+	BaseCost       MoneyDTO  `json:"baseCost"`
 	BaseSalesPrice MoneyDTO  `json:"baseSalesPrice"`
+	TaxRate        float64   `json:"taxRate"`
 }
 
 type SaleItemRequest struct {
@@ -61,10 +63,17 @@ type CalculateFinalSalePriceRequest struct {
 type CalculatedSaleItemResponse struct {
 	ProductVariantID  uuid.UUID `json:"productVariantId"`
 	Quantity          int       `json:"quantity"`
+	BaseCost          MoneyDTO  `json:"baseCost"`
 	BaseSalesPrice    MoneyDTO  `json:"baseSalesPrice"`
 	FinalPrice        MoneyDTO  `json:"finalPrice"`
+	DiscountPercent   float64   `json:"discountPercent"`
+	DiscountAmount    MoneyDTO  `json:"discountAmount"`
 	TaxRate           float64   `json:"taxRate"`
+	TaxAmountPerUnit  MoneyDTO  `json:"taxAmountPerUnit"`
 	FinalPriceWithTax MoneyDTO  `json:"finalPriceWithTax"`
+	LineSubtotal      MoneyDTO  `json:"lineSubtotal"`
+	LineTaxAmount     MoneyDTO  `json:"lineTaxAmount"`
+	LineTotal         MoneyDTO  `json:"lineTotal"`
 }
 
 type CalculateFinalSalePriceResponse struct {

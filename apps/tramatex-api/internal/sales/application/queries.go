@@ -54,11 +54,13 @@ type GetInvoiceByIDQuery struct {
 }
 
 type ListInvoicesQuery struct {
-	PartyID    *uuid.UUID
-	Status     *string
-	FromDate   *time.Time
-	ToDate     *time.Time
-	Search     *string
-	PageSize   int
-	PageNumber int
+	PartyID        *uuid.UUID
+	SalesOrderID   *uuid.UUID
+	DeliveryNoteID *uuid.UUID
+	Status         *string
+	FromDate       *time.Time
+	ToDate         *time.Time
+	Search         *string
+	PageSize       int
+	PageNumber     int
 }

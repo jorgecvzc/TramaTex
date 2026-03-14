@@ -9,15 +9,16 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
 *   **CU-S-001: CreateQuote**
     *   **Propósito:** Crear un nuevo presupuesto para un cliente.
     *   **Actores:** Vendedor.
-    *   **Entradas:** `PartyID` del cliente, lista de `{ ProductVariantID, Quantity, ManualUnitPrice (opcional), ManualDiscountPerUnit (opcional) }` para los ítems, `ExpirationDate`, `Notes`.
+    *   **Entradas:** `PartyID` del cliente, lista de `{ ProductVariantID, Quantity, UnitPrice (opcional), DiscountPerUnit (opcional) }` para los ítems, `ExpirationDate`, `Notes`.
     *   **Flujo:**
         1.  Validar entradas.
         2.  Para cada ítem:
-            a.  Obtener `BaseSalesPrice` del `Pricing` module (`CalculateBaseSalesPriceForProductVariantUseCase`).
-            b.  Calcular `CalculatedUnitPrice` y `CalculatedDiscountPerUnit` usando el `CalculateFinalSalePriceUseCase` del `Pricing` module si no hay overrides manuales.
-            c.  Aplicar overrides manuales si se proporcionan (`ManualUnitPrice`, `ManualDiscountPerUnit`).
-            d.  Crear `QuoteLineItem` con los precios finales.
-        3.  Calcular `Subtotal`, `TaxAmount` (lógica interna de Sales), `Total` para la `Quote`.
+            a.  Obtener `BaseSalesPrice` y `TaxRate` actual del producto/variante.
+            b.  Calcular `ListUnitPrice` (precio de tarifa) usando el `CalculateFinalSalePriceUseCase` del `Pricing` module.
+            c.  Determinar `UnitPrice` (precio de venta): usar el override proporcionado o el `ListUnitPrice` por defecto.
+            d.  Aplicar `DiscountPerUnit` si se proporciona.
+            e.  Crear `QuoteLineItem` persistiendo `ListUnitPrice`, `UnitPrice`, `DiscountPerUnit` y el `TaxRate` obtenido (Soberanía Fiscal).
+        3.  Calcular `Subtotal`, `TaxAmount` (usando el `TaxRate` de la línea), `Total` para la `Quote`.
         4.  Generar `QuoteNumber`.
         5.  Persistir `Quote` y `QuoteLineItem`s.
     *   **Salida:** `Quote` (con todos sus detalles).
@@ -40,11 +41,15 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
     *   **Entradas:** `QuoteID`, datos a actualizar (ítems, fechas, notas, etc.).
     *   **Salida:** `Quote` actualizada.
 
-*   **CU-S-005: ChangeQuoteStatus**
+*   **CU-S-005: ChangeQuoteStatus (Emitir)**
     *   **Propósito:** Actualizar el estado de un presupuesto.
     *   **Actores:** Vendedor.
     *   **Entradas:** `QuoteID`, `NewStatus`.
     *   **Salida:** `Quote` con estado actualizado.
+    *   **Reglas de UX (emisión):**
+        -   Al emitir un presupuesto (`BORRADOR → EMITIDA`), el sistema muestra un diálogo post-emisión con las opciones: **Imprimir**, **Enviar por correo**, **Imprimir y enviar**, o **Cerrar sin acción**.
+        -   La impresión de un presupuesto solo está disponible a partir del estado `EMITIDA`. Los presupuestos en `BORRADOR` no son imprimibles.
+    *   **Decisión de diseño (ADR implícita):** Se optó por un diálogo post-emisión (en lugar de pre-emisión) para garantizar que el estado se persista antes de cualquier acción secundaria. Esto evita inconsistencias si el usuario imprime pero luego cancela la emisión.
 
 *   **CU-S-006: ConvertQuoteToOrder**
     *   **Propósito:** Convertir un presupuesto `APROBADO` en un pedido de venta.
@@ -64,7 +69,7 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
 *   **CU-S-007: CreateOrder**
     *   **Propósito:** Crear un nuevo pedido de venta directamente (sin cotización previa).
     *   **Actores:** Vendedor.
-    *   **Entradas:** `PartyID` del cliente, lista de `{ ProductVariantID, Quantity, ManualUnitPrice (opcional), ManualDiscountPerUnit (opcional) }` para los ítems, `DeliveryDate`, `Notes`.
+    *   **Entradas:** `PartyID` del cliente, lista de `{ ProductVariantID, Quantity, UnitPrice (opcional), DiscountPerUnit (opcional) }` para los ítems, `DeliveryDate`, `Notes`.
     *   **Flujo:** Similar a `CreateQuote`, pero establece `SalesOrder.Status` a `PENDIENTE` y genera `OrderNumber`.
     *   **Salida:** `SalesOrder`.
 
@@ -96,7 +101,7 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
 *   **CU-S-012: AddLineItemToOrder**
     *   **Propósito:** Añadir un ítem de línea a un pedido (solo si el estado lo permite, ej. `PENDIENTE`).
     *   **Actores:** Vendedor.
-    *   **Entradas:** `SalesOrderID`, `{ ProductVariantID, Quantity, ManualUnitPrice (opcional), ManualDiscountPerUnit (opcional) }`.
+    *   **Entradas:** `SalesOrderID`, `{ ProductVariantID, Quantity, UnitPrice (opcional), DiscountPerUnit (opcional) }`.
     *   **Flujo:** Calcula precios, añade ítem, recalcula totales de `SalesOrder`.
     *   **Salida:** `SalesOrder` actualizado.
 
@@ -139,48 +144,58 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
 
 #### **4. Casos de Uso de `Invoice` (Factura / Ticket)**
 
-*   **CU-S-018: CreateInvoiceFromOrder** (Factura Completa)
-    *   **Propósito:** Generar una factura completa (tipo B2B) a partir de un `SalesOrder` (o un conjunto de `SalesOrder`s completados).
+*   **CU-S-018: CreateInvoiceFromDeliveryNote** (Factura Completa desde Albarán)
+    *   **Propósito:** Generar una factura completa (tipo B2B) a partir de un albarán entregado. En el MVP se genera una factura por albarán (1:1).
     *   **Actores:** Vendedor, Personal de Contabilidad.
-    *   **Entradas:** `SalesOrderID` (o lista de `SalesOrderID`s), `InvoiceDate`, `DueDate`, `Series` (opcional, default: serie "A").
-    *   **Flujo:**
-        1.  Recuperar `SalesOrder`(s) y sus `OrderLineItem`s.
-        2.  Validar que `Party` tiene datos fiscales completos (NIF, dirección fiscal).
-        3.  Crear `InvoiceLineItem`s a partir de los `OrderLineItem`s, utilizando sus `FinalUnitPrice` y `FinalDiscountPerUnit`.
-        4.  Calcular `Subtotal`, `TaxAmount`, `Total` de la factura.
-        5.  Obtener siguiente número de la serie especificada.
-        6.  Crear `Invoice` con `Type = COMPLETA` y `Series` especificada.
-        7.  Persistir `Invoice` y sus `InvoiceLineItem`s.
-        8.  Actualizar `SalesOrder.Status` a `FACTURADO_PARCIALMENTE` o `FACTURADO_COMPLETAMENTE`.
-    *   **Salida:** `Invoice` (tipo COMPLETA).
-
-*   **CU-S-019: CreateSimplifiedInvoice** (Ticket / Factura Simplificada) **(NUEVO - ADR-020)**
-    *   **Propósito:** Generar una factura simplificada (ticket) a partir de un `SalesOrder` para ventas retail.
-    *   **Actores:** Vendedor, Cajero TPV.
-    *   **Entradas:** `SalesOrderID`, `InvoiceDate`, `DueDate` (opcional), `Series` (opcional, default: serie "TKT").
+    *   **Entradas:** `DeliveryNoteID` (o lista de `DeliveryNoteID`s), `InvoiceDate`, `DueDate`, `Series` (opcional, default: serie "FV").
     *   **Precondiciones:**
-        -   `SalesOrder.Total` < 3.000 EUR (límite legal español)
-        -   `PartyID` puede ser "CONSUMIDOR_FINAL" (Party genérico)
+        -   El albarán debe estar en estado `DELIVERED`.
+        -   Ninguna línea del albarán puede estar ya facturada (`invoice_line_item_id IS NULL`).
+        -   El `Party` asociado debe tener datos fiscales completos.
     *   **Flujo:**
-        1.  Recuperar `SalesOrder` y validar que `Total < 3.000 EUR`.
-        2.  Si `Total >= 3.000 EUR`, retornar error: "Debe emitirse factura completa para importes >= 3.000 EUR".
-        3.  Crear `InvoiceLineItem`s a partir de los `OrderLineItem`s.
-        4.  Calcular `Subtotal`, `TaxAmount`, `Total`.
-        5.  Obtener siguiente número de la serie "TKT" (o serie especificada).
-        6.  Crear `Invoice` con:
-            -   `Type = SIMPLIFICADA`
-            -   `Series = "TKT"` (o especificada)
-            -   `PartyID` = del `SalesOrder` (puede ser "CONSUMIDOR_FINAL")
-            -   `DueDate` = `InvoiceDate` (pago inmediato en retail)
+        1.  Recuperar `DeliveryNote`(s) y sus `DeliveryNoteLineItem`s.
+        2.  Para cada línea de albarán, obtener la `OrderLineItem` original para extraer precios congelados.
+        3.  Crear `InvoiceLineItem`s a partir de las líneas de albarán, utilizando `UnitPrice`, `DiscountAmount` y `TaxRate` del pedido original y la `DeliveredQuantity` del albarán.
+        4.  Calcular `Subtotal`, `TaxAmount`, `Total` de la factura.
+        5.  Obtener siguiente número de la serie "FV".
+        6.  Crear `Invoice` con `Type = COMPLETA`.
         7.  Persistir `Invoice` y sus `InvoiceLineItem`s.
-        8.  Actualizar `SalesOrder.Status` a `FACTURADO_COMPLETAMENTE`.
-    *   **Salida:** `Invoice` (tipo SIMPLIFICADA).
-    *   **Postcondiciones:** Ticket listo para impresión/envío al cliente.
+        8.  **Vincular trazabilidad:** Actualizar cada `DeliveryNoteLineItem.InvoiceLineItemID` con el ID de la línea de factura generada.
+        9.  Actualizar `SalesOrder.Status` a `FACTURADO_PARCIALMENTE` o `FACTURADO_COMPLETAMENTE` según cantidades facturadas vs. totales del pedido.
+    *   **Salida:** `Invoice` (tipo COMPLETA).
+    *   **Decisiones MVP:**
+        -   Se genera **una factura por albarán** (no se agrupan albaranes).
+        -   No se permite crear facturas directamente desde pedidos.
+        -   La relación DN-line → Invoice-line es 1:1.
+    *   **Post-MVP:** Ver CU-S-025 (facturación consolidada multi-albarán).
 
-*   **CU-S-020: GetInvoice**
-        5.  Persistir `Invoice` y `InvoiceLineItem`s.
-        6.  Actualizar el `SalesOrder.Status` a `FACTURADO_PARCIALMENTE` o `FACTURADO_COMPLETAMENTE`.
-    *   **Salida:** `Invoice`.
+*   **CU-S-019: CreateSimplifiedInvoice** (Ticket / Factura Simplificada) **(ADR-020)**
+    *   **Propósito:** Generar una factura simplificada (ticket) directamente desde el TPV/POS para ventas retail, sin requerir un pedido previo.
+    *   **Actores:** Vendedor, Cajero TPV.
+    *   **Entradas:** `PartyID` del cliente (por defecto "CONSUMIDOR_FINAL", pero admite cualquier Party con rol CLIENT), `InvoiceDate`, lista de `{ ProductVariantID, Quantity, DiscountPercent (opcional) }` para los ítems.
+    *   **Precondiciones:**
+        -   El total calculado de la factura debe ser < 3.000 EUR (límite legal español).
+        -   `PartyID` debe existir y tener rol `CLIENT`.
+    *   **Flujo:**
+        1.  Validar que el `Party` existe y tiene rol `CLIENT`.
+        2.  Enviar los ítems al motor de precios (`CalculateFinalSalePrice`) con el `PartyID` y la fecha para obtener `BaseSalesPrice`, `DiscountPercent` y `TaxRate` por línea.
+        3.  Para cada ítem calculado:
+            a.  Usar `BaseSalesPrice` (precio de catálogo antes de descuentos de cliente) como `UnitPrice`.
+            b.  Aplicar descuento manual si se proporcionó (`DiscountPercent` del frontend); en caso contrario, aplicar el descuento del motor de precios como fallback.
+            c.  Crear `InvoiceLineItem` con `UnitPrice`, `DiscountAmount`, `TaxRate` y `Quantity`.
+        4.  Calcular `Subtotal`, `TaxAmount`, `Total`.
+        5.  Validar que `Total < 3.000 EUR`. Si no, retornar error.
+        6.  Obtener siguiente número de la serie "FT" (Factura de Ticket) para el año actual.
+        7.  Crear `Invoice` con:
+            -   `Type = SIMPLIFICADA`
+            -   `Series = "FT"`
+            -   `PartyID` = el proporcionado (puede ser "CONSUMIDOR_FINAL" u otro cliente)
+            -   `DueDate` = `InvoiceDate` (pago inmediato en retail)
+            -   `PaymentTerms` = "Immediate Payment"
+        8.  Persistir `Invoice` y sus `InvoiceLineItem`s.
+    *   **Salida:** `Invoice` (tipo SIMPLIFICADA).
+    *   **Postcondiciones:** Ticket listo para impresión en formato 80mm desde la interfaz TPV.
+    *   **Nota:** No genera ni requiere `SalesOrder`, `DeliveryNote` ni albarán previo. Es una venta directa.
 
 *   **CU-S-020: GetInvoice**
     *   **Propósito:** Recuperar los detalles de una factura específica.
@@ -189,10 +204,11 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
     *   **Salida:** `Invoice`.
 
 *   **CU-S-021: ListInvoices**
-    *   **Propósito:** Listar facturas con opciones de filtrado (ej. por `PartyID`, `Status`, `InvoiceDateRange`, `DueDateRange`, `Type`).
+    *   **Propósito:** Listar facturas con opciones de filtrado.
     *   **Actores:** Vendedor, Personal de Contabilidad.
-    *   **Entradas:** Filtros (incluye filtro por `InvoiceType`), paginación.
+    *   **Entradas:** Filtros (`PartyID`, `SalesOrderID`, `DeliveryNoteID`, `Status`, `InvoiceDateRange`, `Search`), paginación.
     *   **Salida:** Lista paginada de `Invoice`s.
+    *   **Nota:** El filtro por `DeliveryNoteID` permite encontrar la factura asociada a un albarán concreto, resolviendo la trazabilidad directa DN→Factura.
 
 *   **CU-S-022: ConfigureInvoiceSeries** **(NUEVO - ADR-020)**
     *   **Propósito:** Configurar o actualizar series de numeración de facturas por tipo y año.
@@ -205,13 +221,35 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
         4.  Persistir configuración.
     *   **Salida:** Configuración de serie actualizada.
     *   **Ejemplos:**
-        -   Serie "A" para facturas completas B2B
-        -   Serie "TKT" para tickets/facturas simplificadas
-        -   Serie "B" para facturas rectificativas
+        -   Serie "FV" para facturas de venta (desde albaranes)
+        -   Serie "FT" para tickets/facturas simplificadas
+        -   Serie "FR" para facturas rectificativas (futuro)
 
 ---
 
-#### **5. Casos de Uso Transversales**
+#### **5. Casos de Uso Post-MVP**
+
+*   **CU-S-025: CreateConsolidatedInvoice** (Facturación Consolidada Multi-Albarán) **(POST-MVP)**
+    *   **Propósito:** Generar una sola factura agrupando múltiples albaranes de un mismo cliente (ej: facturación mensual). Las líneas con mismo producto, precio y descuento se consolidan sumando cantidades.
+    *   **Actores:** Personal de Contabilidad.
+    *   **Entradas:** `PartyID`, lista de `DeliveryNoteID`s, `InvoiceDate`, `DueDate`.
+    *   **Precondiciones:**
+        -   Todos los albaranes deben pertenecer al mismo `Party`.
+        -   Todos los albaranes deben estar en estado `DELIVERED`.
+        -   Ninguna línea de los albaranes puede estar ya facturada.
+    *   **Flujo:**
+        1.  Recuperar todos los `DeliveryNote`s y sus líneas.
+        2.  Agrupar líneas por clave `(ProductVariantID, UnitPrice, DiscountAmount, TaxRate)`.
+        3.  Por cada grupo: crear **una sola** `InvoiceLineItem` con `Quantity = SUM(DeliveredQuantity)`.
+        4.  Vincular todas las `DeliveryNoteLineItem`s del grupo al mismo `InvoiceLineItemID` (relación N:1).
+        5.  Calcular totales, generar número, persistir.
+        6.  Actualizar estados de los pedidos relacionados.
+    *   **Salida:** `Invoice` (tipo COMPLETA) con líneas consolidadas.
+    *   **Infraestructura requerida:** Campo `invoice_line_item_id` en `delivery_note_line_items` (ya implementado en Fase 5 MVP). La relación N:1 está preparada desde la infraestructura.
+
+---
+
+#### **6. Casos de Uso Transversales**
 
 *   **CU-S-023: SeleccionarVarianteDeProducto** (Componente Reutilizable)
     *   **Propósito:** Permitir la selección de una Variante de Producto (`ProductVariant`) para añadir a una línea de venta (Quote o SalesOrder), soportando dos modalidades: selección interactiva por atributos o búsqueda directa por SKU.

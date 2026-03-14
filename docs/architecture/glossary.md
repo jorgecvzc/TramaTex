@@ -1,7 +1,7 @@
 # TramaTex – Glosario Unificado
 
-**Versión:** 2.0
-**Fecha:** 25/01/2026
+**Versión:** 2.1
+**Fecha:** 07/03/2026
 **Propósito:** Definición centralizada de todos los términos y conceptos clave del proyecto, tanto técnicos como de proceso.
 
 ---
@@ -11,88 +11,106 @@
 ### A
 
 **Adapter / Adaptador**
-Componente en Clean Architecture que traduce entre el dominio y sistemas externos (BD, API, UI). Son intercambiables sin afectar la lógica de negocio.
+Componente en la capa de **Infraestructura** de Clean Architecture que traduce entre el dominio y sistemas externos (BD, API, UI). Implementa las interfaces (puertos) definidas en el dominio.
+
+**Address (Dirección - Entidad)**
+Entidad de dominio vinculada a una `Party` que representa una ubicación física (calle, ciudad, provincia, código postal, país). Una Party puede tener múltiples direcciones, identificando una como `IsPrimary`.
+
+**Application Layer / Capa de Aplicación**
+Capa que orquesta los casos de uso del sistema. No contiene lógica de negocio (esta reside en el Dominio), sino que coordina la interacción entre entidades, servicios de dominio y repositorios.
 
 **Auditoría**
-Registro de cambios significativos en el sistema (quién, qué, cuándo). El MVP audita mínimamente cambios en tarificación y MES.
+Registro de cambios en el sistema (quién, qué, cuándo). Por mandato arquitectónico, los campos de auditoría (`CreatedAt`, `UpdatedAt`, etc.) se gestionan exclusivamente en la capa de persistencia/infraestructura, quedando excluidos de las entidades de dominio para mantener la pureza del modelo.
 
 **Attribute (Atributo)**
 Entidad de dominio para una característica configurable de producto (ej. "Talla", "Color") y sus valores. Define su alcance y hereda valores a productos.
 
 **AttributeValue (Valor de Atributo)**
-Entidad de dominio que representa un valor específico de un `Attribute` (ej. "Large" para "Talla", "Rojo" para "Color").
+Entidad de dominio que representa un valor específico de un `Attribute` (ej. "Large" para "Talla", "Rojo" para "Color"). Puede contener modificadores de precio (`FIXED` o `PERCENTAGE`).
 
 ---
 
 ### B
 
-**BaseSalesPriceCache**
-Caché NoSQL (Redis) que almacena los precios base de venta (BaseSalesPrice) precalculados para todos los ProductVariants de un producto base. Optimizado para lectura rápida.
+**BaseCost (Coste Base de Variante)**
+Valor calculado dinámicamente para una `ProductVariant`: `Product.BasePrice` + modificadores de los `AttributeValues` seleccionados. No se persiste en BD para mantener la flexibilidad JIT.
+
+**BSP (Base Selling Price - Precio de Venta Base)**
+Precio de una variante tras aplicar el margen comercial de la marca al `BaseCost`. Fórmula: `BaseCost * (1 + Brand.DefaultMarkupPercentage / 100)`.
 
 **BaseSalesPriceRule**
-Entidad de dominio que define el precio base de venta de un ProductVariant (coste/tarifa + incrementos) antes de modificaciones. Se aplica en cálculo de caché, con estricta precedencia por especificidad.
+Entidad de dominio que define el precio base de venta de un ProductVariant (coste/tarifa + incrementos). Es parte del motor de Pricing y sigue una jerarquía de precedencia por especificidad.
 
 **Brand (Marca)**
-Entidad de dominio que agrupa productos bajo una marca común. Es clave para el pricing y el alcance de los atributos.
+Entidad de dominio que agrupa productos bajo una marca común. Es clave para el pricing (vía `DefaultMarkupPercentage`) y el alcance de los atributos.
 
 **Bounded Context**
-Límite explícito donde un modelo de dominio es válido. En TramaTex, módulos como Party, Producto, Tarificación, Ventas, MES son Bounded Contexts separados pero conectados.
+Límite explícito donde un modelo de dominio es válido. En TramaTex, módulos como Party, Product, Pricing, Sales y MES son Bounded Contexts separados pero conectados mediante interfaces de aplicación.
+
+**Borrado Inteligente (Smart Deletion)**
+Lógica de integridad referencial que impide eliminar una `Party` (contacto u operario) si existen documentos vinculados (ventas, trabajos MES) o relaciones activas en el sistema.
 
 ---
 
 ### C
 
 **Clean Architecture**
-Arquitectura por capas concéntricas que coloca el dominio de negocio en el centro, protegido de dependencias externas (frameworks, BD, interfaz).
+Arquitectura por capas concéntricas (Domain, Application, Infrastructure, Interfaces) que coloca el dominio de negocio en el centro, protegido de dependencias externas.
 
-**CRU (Customer Relationship Management)**
-Gestión de relaciones con clientes. En TramaTex, implementado parcialmente vía el módulo Party.
+**ContactDetails (Detalles de Contacto)**
+Entidad de dominio vinculada a una organización (`OrganizationProfile`) que representa a una persona física de contacto, con su email, teléfono y cargo.
 
 ---
 
 ### D
 
 **DDD (Domain-Driven Design)**
-Metodología de diseño que prioriza la lógica de negocio (dominio) como estructura central del software.
+Metodología de diseño que prioriza el dominio de negocio. En TramaTex se aplica con **Rigor Asimétrico**: estricto en motores críticos (Pricing, Sales) y pragmático en CRUDs simples.
 
 **DeliveryNote (Albarán)**
-Documento de dominio que registra la entrega física de mercancía al cliente, derivado de Pedidos de Venta.
+Documento de dominio que registra la entrega física de mercancía al cliente, derivado de un Pedido de Venta.
 
 **DeliveryNoteNumber (Value Object)**
 Objeto de Valor inmutable que representa el número único de un Albarán, encapsulando su formato y lógica de generación.
 
 **Descuento**
-Reducción de precio aplicada a un pedido. Tipos: base (cliente), heredado (jerarquía), específico (override).
+Reducción de precio aplicada a un pedido. El motor de Pricing aplica una jerarquía: Override (manual) > Cliente (específico) > Global (campaña).
 
-**Diseño (en MES)**
-Etapa MES donde se crea/aprueba el diseño del producto personalizado.
+**Domain Layer / Capa de Dominio**
+El núcleo del sistema. Contiene entidades, objetos de valor y servicios de dominio. Es "Pure Go", sin dependencias de frameworks o bases de datos.
 
 ---
 
 ### E
 
 **Entidad (en DDD)**
-Objeto del dominio con identidad única, que puede cambiar de estado a lo largo del tiempo. Ejemplo: Pedido, Party.
+Objeto del dominio con identidad única (ID), cuyo estado puede evolucionar. Ejemplo: `Product`, `Quote`.
 
 **Especificación**
-Documento que describe requisitos funcionales, reglas de negocio y contratos de un módulo.
+Documento que describe requisitos funcionales y reglas de negocio. En la fase final, se transforman en "Guías de Comportamiento" simplificadas.
 
 ---
 
-### H
+### F
 
-**Hardware objetivo**
-Equipo físico para TramaTex: i3 8GB RAM (clientes), i3 16GB + SSD (servidor), tablets (taller).
+**FSP (Final Selling Price - Precio de Venta Final)**
+Precio final ofrecido al cliente tras aplicar descuentos al `BSP`. Fórmula: `BSP * (1 - DescuentoAplicable / 100)`.
 
 ---
 
 ### I
 
 **i18n (Internacionalización)**
-Soporte multi-idioma. MVP: frontend en español/catalán. Post-MVP: tramatex-api completo.
+Soporte multi-idioma. MVP: interfaz en español/catalán; estados técnicos en inglés en la API para estandarización.
+
+**Infrastructure Layer / Capa de Infraestructura**
+Capa que contiene las implementaciones técnicas: persistencia (GORM), clientes de APIs externas y adaptadores.
+
+**Interfaces Layer / Capa de Interfaces**
+Punto de entrada al sistema (Handlers HTTP, Controllers). Traduce peticiones externas a llamadas de la Capa de Aplicación.
 
 **Invoice (Factura)**
-Documento de dominio que representa la solicitud legal de pago al cliente, consolidando ventas.
+Documento de dominio que representa la solicitud legal de pago al cliente, consolidando líneas de venta.
 
 **InvoiceNumber (Value Object)**
 Objeto de Valor inmutable que representa el número único de una Factura, encapsulando su formato y lógica de generación.
@@ -101,51 +119,40 @@ Objeto de Valor inmutable que representa el número único de una Factura, encap
 
 ### J
 
+**JIT (Just-In-Time) Variants**
+Estrategia donde las variantes de producto no se pre-generan, sino que se crean dinámicamente según la combinación de atributos seleccionada en el momento de la venta.
+
 **JWT (JSON Web Token)**
-Estándar de autenticación stateless para validar usuarios. En TramaTex: tokens firmados con JWT_SECRET.
-
----
-
-### L
-
-**Local-first**
-Arquitectura donde el sistema opera 100% local, sin dependencias cloud obligatorias. Principio de TramaTex.
+Estándar de autenticación stateless para validar usuarios en las peticiones a la API.
 
 ---
 
 ### M
 
-**Margen**
-Porcentaje añadido al coste base para calcular precio de venta. Regla de tarificación.
-
 **MES (Manufacturing Execution System)**
-Sistema de ejecución de manufactura (MES). En TramaTex: gestión de producción personalizada con estados (Diseño, Aprobación, Marcaje, Taller, Control QA).
+Sistema de ejecución de manufactura que gestiona la producción en taller de artículos personalizados.
+
+**MESWorkDefinition (Receta / Definición de Trabajo)**
+Plantilla reutilizable que define las fases y tareas necesarias para fabricar un artículo. Es el "plano" de producción.
+
+**MESWorkExecution (Orden de Trabajo / Ejecución)**
+Instancia operativa de un trabajo de fabricación. Realiza el seguimiento de estados, tiempos y operarios en tiempo real.
 
 **Modificador de precio**
-Valor (porcentaje o cantidad) asociado a una variante que afecta el cálculo del precio final.
+Valor (`FIXED` o `PERCENTAGE`) asociado a un `AttributeValue` que afecta el cálculo del `BaseCost` de una variante.
 
 **Moneda (Money - Value Object)**
-Objeto de Valor que representa una cantidad monetaria con divisa. Para MVP, la divisa es siempre EUR.
+Objeto de Valor que representa una cantidad monetaria. En el MVP, la divisa está fijada a Euro (€). Redondeo: utiliza round-half-up (redondeo comercial, `math.Floor(amount*100+0.5)/100`) para garantizar precisión en cálculos financieros, evitando banker's rounding que causaba discrepancias en descuentos.
 
 **Monolito modular**
-Aplicación única (no distribuida) con módulos internos separados y reutilizables.
-
-**MVP (Minimum Viable Product)**
-Conjunto mínimo de funcionalidades para que el producto sea usable por primeros usuarios y obtenga feedback.
-
----
-
-### N
-
-**NAS (Network Attached Storage)**
-Almacenamiento conectado a red. En TramaTex, almacena diseños de pedidos personalizados.
+Estilo arquitectónico donde el sistema es un único binario pero está dividido internamente en módulos independientes (Bounded Contexts) con comunicación controlada.
 
 ---
 
 ### O
 
-**Organización**
-Estructura empresarial representada como "Party". Puede tener roles de Cliente y/o Proveedor.
+**OrganizationProfile**
+Perfil de una `Party` que contiene datos corporativos (NIF, nombre fiscal). Una Party puede actuar simultáneamente como Cliente y Proveedor (Perfil Dual).
 
 **OrderNumber (Value Object)**
 Objeto de Valor inmutable que representa el número único de un Pedido de Venta, encapsulando su formato y lógica de generación.
@@ -154,135 +161,49 @@ Objeto de Valor inmutable que representa el número único de un Pedido de Venta
 
 ### P
 
-**Party / Organización**
-Patrón que representa cualquier persona u organización. Evita duplicación Cliente/Proveedor.
+**Party (Tercero)**
+Entidad base que representa a cualquier persona u organización que interactúa con el sistema. Se especializa mediante perfiles (`Person`, `Organization`) y roles.
 
 **PartyServiceConfiguration**
-Entidad de dominio que guarda configuraciones de servicios específicas de un `Party` para un producto de tipo `SERVICE`.
+Configuración específica de un `Party` para la prestación de servicios, permitiendo personalización por cliente/proveedor.
 
 **Pedido (SalesOrder)**
-Entidad de dominio que representa un compromiso de venta firme. Es base para la ejecución de la venta, la generación de Albaranes y Facturas.
+Entidad de dominio que representa un compromiso de venta firme. Orquesta el flujo hacia Albarán y Factura.
+
+**PersonProfile**
+Perfil de una `Party` que contiene datos de personas físicas (nombre, apellidos, contacto directo).
 
 **Porcentaje (Percentage - Value Object)**
-Objeto de Valor inmutable que representa un porcentaje (ej. 0.10 para 10%).
+Objeto de Valor inmutable que representa una proporción (ej. 0.21 para el 21% de IVA).
 
-**Persistencia**
-Capa de almacenamiento de datos. En TramaTex, usa PostgreSQL + GORM (solo en capa de infraestructura).
+**Pricing Engine (Motor de Precios)**
+Componente que calcula el `FSP` dinámicamente aplicando la jerarquía de reglas y modificadores de atributos.
 
 **Product (Producto)**
-Entidad de dominio que representa la plantilla o concepto general de un artículo o servicio vendible.
+Plantilla general de un artículo. Define el `BasePrice` y el `TaxRate` (IVA) aplicable.
 
-**ProductGroup (Grupo de Producto)**
-Entidad de dominio que representa una categoría jerárquica para productos.
-
-**ProductType (Tipo de Producto)**
-Enumeración que clasifica un `Product` como `TANGIBLE` (bien físico) o `SERVICE` (servicio).
-
-**Proveed**
-Entidad externa que proporciona productos/materiales. Representada como Party con rol Proveedor.
+**ProductVariant (Variante de Producto)**
+Instancia final y vendible de un `Product`, resultante de una combinación específica de atributos.
 
 ---
 
 ### Q
 
-**Quote (Cotización / Presupuesto)**
-Entidad de dominio que representa una oferta de precios a un cliente que aún no ha sido confirmada. Puede convertirse en un Pedido de Venta.
-
-**QuoteNumber (Value Object)**
-Objeto de Valor inmutable que representa el número único de una Cotización, encapsulando su formato y lógica de generación.
-
----
-
-### R
-
-**RBAC (Role-Based Access Control)**
-Control de acceso basado en roles (RBAC). MVP: Admin, Comercial, Diseño, Taller.
-
-**Requisito Funcional (RF)**
-Capacidad observable del sistema (p.e., "crear pedido", "calcular precio").
-
-**Requisito No Funcional (RNF)**
-Atributo de calidad (p.e., "operar con <150MB RAM", "ACID en BD").
-
-**Rigor asimétrico**
-Disciplina arquitectónica proporcional al valor estratégico. En TramaTex: rigor máximo en Tarificación, flexibilidad controlada en CRUDs simples.
-
-**RuleValue (Value Object)**
-Objeto de Valor que encapsula el tipo y valor del efecto de una regla de pricing (ej. porcentaje de incremento, cantidad monetaria fija). Define implícitamente si la operación es modificativa o anulativa.
-
----
-
-### S
-
-**SaleModificationRule**
-Entidad de dominio que define cómo se modifica el precio base de venta (ya calculado) en una venta específica (cliente, monto mínimo, grupo de productos o fechas de campaña). Se aplica en el momento de la venta.
-
-**SalesOrder (Pedido)**
-Ver **Pedido**.
-
-**Supplier (Proveedor)**
-Especialización de Party con rol Proveedor. Provee costes base para productos.
+**Quote (Presupuesto / Cotización)**
+Oferta comercial inicial. No tiene impacto contable ni de producción hasta que se confirma y convierte en `SalesOrder`.
 
 ---
 
 ### T
 
-**Tarif de tarificación**
-Conjunto de reglas para calcular precio de venta (coste base, margen y descuentos).
+**TaxID (Identificación Fiscal)**
+Objeto de valor que encapsula y valida el identificador fiscal (NIF/CIF/NIE).
+
+**TaxRate (Tipo impositivo)**
+Porcentaje de IVA aplicable. Se almacena en el `Product` para asegurar la soberanía del catálogo sobre el precio.
 
 **Terminal de taller**
-Interfaz simplificada para tablets en el taller. Gestiona pedidos personalizados en MES.
-
-**TDD (Test-Driven Development)**
-Desarrollo guiado por pruebas. Obligatorio en dominio crítico de TramaTex.
-
----
-
-### V
-
-**ProductVariant (Variante de Producto)**
-Entidad de dominio que representa la instancia final y vendible de un `Product`, compuesta por una combinación única de `AttributeValue`s.
-
-**ProductVariantStatus (Estado de Variante de Producto)**
-Enumeración que indica el estado de una `ProductVariant`: `PROVISIONAL` (creada JIT) o `CONFIRMED` (validada/manual).
-
-**Value Object (Objeto de Valor)**
-Objeto del dominio sin identidad única, inmutable. Ej: Email, Password (en Auth).
-
----
-
-### W
-
-**Web-to-Print**
-Generación de documentos (PDF, impresión) desde HTML/CSS en el navegador. En TramaTex, delegado al frontend para presupuestos, albaranes, facturas.
-
----
-
-## 📋 Términos de Planificación y Proceso
-
-### Jerarquía de Planificación
-
-La planificación del proyecto se estructura en tres niveles jerárquicos:
-
-#### 1. Fase (Phase)
-
-- **Descripción:** Una fase es un período de tiempo largo (varios meses) que agrupa un conjunto de épicas relacionadas que contribuyen a un objetivo estratégico general del MVP.
-- **Ejemplo:** `Fase 1: Dominio Base para Tarificación`
-
-#### 2. Épica (Epic)
-
-- **Descripción:** Una épica representa una funcionalidad o capacidad de negocio completa y autocontenida. Es un bloque de trabajo grande que se puede entregar de forma independiente y que aporta valor al usuario. Cada épica se desglosa en varios sprints de implementación.
-- **Ejemplo:** `Épica 1: Party (Gestión de Clientes y Proveedores)`
-
-#### 3. Sprint de Implementación (Implementation Sprint)
-
-- **Descripción:** Un sprint de implementación es un paquete de trabajo técnico, centrado en la implementación de una capa específica de la arquitectura (p. ej., Dominio, Persistencia, API, UI) para una épica determinada. No tiene una duración fija, sino que se completa cuando los objetivos técnicos de esa capa están terminados y probados.
-- **Ejemplo:** `Sprint 1: Domain Layer (para la Épica de Party)`
-
-### Otros Términos de Proceso
-
-- **Bitácora (Journal):** Un documento que registra el trabajo realizado, las decisiones tomadas y los problemas encontrados durante un período de desarrollo. Reemplaza el concepto de "sesión de desarrollo".
-- **ADR (Architecture Decision Record):** Un documento que captura una decisión arquitectónica importante junto con su contexto y consecuencias.
+Interfaz táctil para operarios que permite gestionar el avance de las `MESWorkExecution` (inicio, pausa, fin de tareas).
 
 ---
 
@@ -290,17 +211,11 @@ La planificación del proyecto se estructura en tres niveles jerárquicos:
 
 | Abreviatura | Significado |
 |---|---|
-| ACID | Atomicity, Consistency, Isolation, Durability |
-| ADR | Architecture Decision Record |
-| DDD | Domain-Driven Design |
-| i18n | Internacionalización |
-| JWT | JSON Web Token |
+| BSP | Base Selling Price (Precio Venta Base) |
+| FSP | Final Selling Price (Precio Venta Final) |
+| IAM | Identity and Access Management |
+| JIT | Just-In-Time (Variantes bajo demanda) |
 | MES | Manufacturing Execution System |
-| MVP | Minimum Viable Product |
-| NAS | Network Attached Storage |
-| RBAC | Role-Based Access Control |
-| RF | Requisito Funcional |
-| RNF | Requisito No Funcional |
-| TDD | Test-Driven Development |
+| VAT | Value Added Tax (IVA - Impuesto sobre el Valor Añadido) |
 
----
+... (resto de abreviaturas iguales)

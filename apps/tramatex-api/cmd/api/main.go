@@ -244,8 +244,9 @@ func main() {
 	orderRepo := sales_repo.NewGORMSalesOrderRepository(db)
 	deliveryRepo := sales_repo.NewGORMDeliveryNoteRepository(db)
 	invoiceRepo := sales_repo.NewGORMInvoiceRepository(db)
-	numberGenerator := sales_repo.NewTimeBasedNumberGenerator()
+	numberGenerator := sales_repo.NewSequentialNumberGenerator(db)
 	partyLookup := sales_repo.NewPartyLookupAdapter(partyRepo)
+	productVariantLookup := sales_repo.NewProductVariantLookupAdapter(productVariantRepository, productRepository, attributeRepository)
 	salesService := sales_uc.NewSalesService(
 		quoteRepo,
 		orderRepo,
@@ -254,7 +255,9 @@ func main() {
 		numberGenerator,
 		pricingEngineService,
 		partyLookup,
+		productVariantLookup,
 	)
+	salesService.SetTransactionManager(sales_repo.NewGORMTransactionManager(db))
 	salesHandler := sales_handler.NewSalesHandler(salesService)
 
 	// --- MES Module Dependencies ---
@@ -342,6 +345,7 @@ func main() {
 
 			products := protected.Group("/products")
 			{
+				products.GET("/smart-search", productHandler.SmartSearch) // Smart search - must be before /:id
 				products.POST("", infra_middleware.RequireRole("admin", "commercial"), productHandler.CreateProduct)
 				products.GET("", productHandler.ListProducts)       // New
 				products.GET("/:id", productHandler.GetProductByID) // New
@@ -426,16 +430,20 @@ func main() {
 				quotes := sales.Group("/quotes")
 				{
 					quotes.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateQuote)
+					quotes.POST("/preview", infra_middleware.RequireRole("admin", "commercial"), salesHandler.PreviewQuoteCalculation)
 					quotes.GET("", salesHandler.ListQuotes)
 					quotes.GET("/:id", salesHandler.GetQuote)
 					quotes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateQuote)
 					quotes.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeQuoteStatus)
 					quotes.POST("/:id/convert", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ConvertQuoteToOrder)
+					quotes.POST("/:id/accept-and-convert", infra_middleware.RequireRole("admin", "commercial"), salesHandler.AcceptAndConvertQuote)
+					quotes.DELETE("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.DeleteQuote)
 				}
 
 				orders := sales.Group("/orders")
 				{
 					orders.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateOrder)
+					orders.POST("/preview", infra_middleware.RequireRole("admin", "commercial"), salesHandler.PreviewOrderCalculation)
 					orders.GET("", salesHandler.ListOrders)
 					orders.GET("/:id", salesHandler.GetOrder)
 					orders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateOrderDetails)
@@ -450,6 +458,7 @@ func main() {
 					deliveryNotes.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateDeliveryNote)
 					deliveryNotes.GET("", salesHandler.ListDeliveryNotes)
 					deliveryNotes.GET("/:id", salesHandler.GetDeliveryNote)
+					deliveryNotes.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeDeliveryNoteStatus)
 				}
 
 				invoices := sales.Group("/invoices")
@@ -458,6 +467,7 @@ func main() {
 					invoices.POST("/simplified", infra_middleware.RequireRole("admin", "commercial", "cashier"), salesHandler.CreateSimplifiedInvoice)
 					invoices.GET("", salesHandler.ListInvoices)
 					invoices.GET("/:id", salesHandler.GetInvoice)
+					invoices.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeInvoiceStatus)
 				}
 			}
 

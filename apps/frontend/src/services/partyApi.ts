@@ -154,6 +154,7 @@ class PartyApiService {
       tax_id,
       tax_id_type,
       website,
+      default_discount_percentage: party.default_discount_percentage ?? 0,
       created_at: party.created_at,
       modified_at: party.modified_at,
       has_organization: !!party.organization_profile,
@@ -598,14 +599,14 @@ class PartyApiService {
   }
 
   async listAvailableContactsForParty(partyId: string): Promise<Contact[]> {
-    // Get all entities without role filter to ensure we get all contacts
+    // Get all entities without role filter to ensure we get all physical persons
     const listResponse = await this.listParties({ pageNumber: 1, pageSize: 500 })
     
-    // Filter for entities that are contacts (role 'CONTACT') and have person profile
+    // Any physical person (persona física) can be a contact, regardless of role
     const candidateParties = (listResponse.data || []).filter((party) => {
-      const isContact = party.role === 'CONTACT'
       const hasPerson = party.has_person
-      return isContact && hasPerson
+      const isNotSelf = party.id !== partyId
+      return hasPerson && isNotSelf
     })
 
     // Get current party's contacts to exclude them

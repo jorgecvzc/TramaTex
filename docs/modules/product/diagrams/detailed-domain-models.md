@@ -25,6 +25,8 @@ classDiagram
         +BrandID: UUID
         +GroupIDs: List~UUID~
         +DirectAttributeIDs: List~UUID~
+        +BasePrice: float64
+        +TaxRate: float64
     }
 
     class Attribute {
@@ -41,6 +43,8 @@ classDiagram
         +AttributeID: UUID
         +Value: string
         +Code: string
+        +PriceAdjustment: float64
+        +AdjustmentType: Enum (FIXED, PERCENTAGE)
     }
 
     class ProductVariant {
@@ -54,11 +58,13 @@ classDiagram
     class Brand {
         +BrandID: UUID
         +Name: string
+        +DefaultMarkupPercentage: float64
     }
 
     class ProductGroup {
         +GroupID: UUID
         +Name: string
+        +Type: Enum
         +ParentGroupID: UUID
     }
 

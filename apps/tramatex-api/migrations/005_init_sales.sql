@@ -13,7 +13,7 @@ BEGIN;
 DO $$ BEGIN
     CREATE TYPE quote_status AS ENUM (
         'BORRADOR',
-        'ENVIADA',
+        'EMITIDA',
         'APROBADA',
         'RECHAZADA',
         'EXPIRADA',
@@ -90,10 +90,10 @@ CREATE TABLE IF NOT EXISTS quotes (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE UNIQUE INDEX idx_quotes_number ON quotes(quote_number);
-CREATE INDEX idx_quotes_party_id ON quotes(party_id);
-CREATE INDEX idx_quotes_status ON quotes(status);
-CREATE INDEX idx_quotes_quote_date ON quotes(quote_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_quotes_number ON quotes(quote_number);
+CREATE INDEX IF NOT EXISTS idx_quotes_party_id ON quotes(party_id);
+CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status);
+CREATE INDEX IF NOT EXISTS idx_quotes_quote_date ON quotes(quote_date);
 
 COMMENT ON TABLE quotes IS 'Sales quotes (presupuestos)';
 
@@ -129,8 +129,8 @@ CREATE TABLE IF NOT EXISTS quote_line_items (
     CONSTRAINT chk_quote_line_items_tax_rate CHECK (tax_rate >= 0 AND tax_rate <= 100)
 );
 
-CREATE INDEX idx_quote_line_items_quote_id ON quote_line_items(quote_id);
-CREATE INDEX idx_quote_line_items_tax_rate ON quote_line_items(tax_rate);
+CREATE INDEX IF NOT EXISTS idx_quote_line_items_quote_id ON quote_line_items(quote_id);
+CREATE INDEX IF NOT EXISTS idx_quote_line_items_tax_rate ON quote_line_items(tax_rate);
 
 COMMENT ON TABLE quote_line_items IS 'Line items in sales quotes';
 COMMENT ON COLUMN quote_line_items.mes_work_id IS 'Optional reference to MES work (for service products)';
@@ -160,10 +160,10 @@ CREATE TABLE IF NOT EXISTS sales_orders (
     CONSTRAINT fk_sales_orders_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE SET NULL
 );
 
-CREATE UNIQUE INDEX idx_sales_orders_number ON sales_orders(order_number);
-CREATE INDEX idx_sales_orders_party_id ON sales_orders(party_id);
-CREATE INDEX idx_sales_orders_status ON sales_orders(status);
-CREATE INDEX idx_sales_orders_order_date ON sales_orders(order_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_orders_number ON sales_orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_sales_orders_party_id ON sales_orders(party_id);
+CREATE INDEX IF NOT EXISTS idx_sales_orders_status ON sales_orders(status);
+CREATE INDEX IF NOT EXISTS idx_sales_orders_order_date ON sales_orders(order_date);
 
 COMMENT ON TABLE sales_orders IS 'Sales orders (pedidos)';
 
@@ -199,8 +199,8 @@ CREATE TABLE IF NOT EXISTS order_line_items (
     CONSTRAINT chk_order_line_items_tax_rate CHECK (tax_rate >= 0 AND tax_rate <= 100)
 );
 
-CREATE INDEX idx_order_line_items_order_id ON order_line_items(sales_order_id);
-CREATE INDEX idx_order_line_items_tax_rate ON order_line_items(tax_rate);
+CREATE INDEX IF NOT EXISTS idx_order_line_items_order_id ON order_line_items(sales_order_id);
+CREATE INDEX IF NOT EXISTS idx_order_line_items_tax_rate ON order_line_items(tax_rate);
 
 COMMENT ON TABLE order_line_items IS 'Line items in sales orders';
 COMMENT ON COLUMN order_line_items.mes_work_id IS 'Optional reference to MES work (for service products)';
@@ -223,9 +223,9 @@ CREATE TABLE IF NOT EXISTS delivery_notes (
     CONSTRAINT fk_delivery_notes_order FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX idx_delivery_notes_number ON delivery_notes(delivery_note_number);
-CREATE INDEX idx_delivery_notes_sales_order ON delivery_notes(sales_order_id);
-CREATE INDEX idx_delivery_notes_party_id ON delivery_notes(party_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_delivery_notes_number ON delivery_notes(delivery_note_number);
+CREATE INDEX IF NOT EXISTS idx_delivery_notes_sales_order ON delivery_notes(sales_order_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_notes_party_id ON delivery_notes(party_id);
 
 COMMENT ON TABLE delivery_notes IS 'Delivery notes (albaranes)';
 
@@ -248,8 +248,8 @@ CREATE TABLE IF NOT EXISTS delivery_note_line_items (
     CONSTRAINT chk_delivery_note_line_items_tax_rate CHECK (tax_rate >= 0 AND tax_rate <= 100)
 );
 
-CREATE INDEX idx_delivery_note_line_items_note_id ON delivery_note_line_items(delivery_note_id);
-CREATE INDEX idx_delivery_note_line_items_tax_rate ON delivery_note_line_items(tax_rate);
+CREATE INDEX IF NOT EXISTS idx_delivery_note_line_items_note_id ON delivery_note_line_items(delivery_note_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_note_line_items_tax_rate ON delivery_note_line_items(tax_rate);
 
 COMMENT ON TABLE delivery_note_line_items IS 'Line items in delivery notes';
 
@@ -279,12 +279,12 @@ CREATE TABLE IF NOT EXISTS invoices (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE UNIQUE INDEX idx_invoices_number ON invoices(invoice_number);
-CREATE INDEX idx_invoices_party_id ON invoices(party_id);
-CREATE INDEX idx_invoices_status ON invoices(status);
-CREATE INDEX idx_invoices_type ON invoices(type);
-CREATE INDEX idx_invoices_series ON invoices(series_code, series_year);
-CREATE INDEX idx_invoices_invoice_date ON invoices(invoice_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
+CREATE INDEX IF NOT EXISTS idx_invoices_party_id ON invoices(party_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_invoices_type ON invoices(type);
+CREATE INDEX IF NOT EXISTS idx_invoices_series ON invoices(series_code, series_year);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 
 COMMENT ON TABLE invoices IS 'Sales invoices (facturas)';
 COMMENT ON COLUMN invoices.type IS 'COMPLETA (full B2B invoice) or SIMPLIFICADA (ticket < 3,000 EUR)';
@@ -303,6 +303,7 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     discount_currency VARCHAR(3),
     tax_rate NUMERIC(5,2) NOT NULL DEFAULT 21.00,
     tax_amount NUMERIC(10,2),
+    tax_currency VARCHAR(3),
     subtotal_amount NUMERIC(12,2) NOT NULL,
     subtotal_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
     total_amount NUMERIC(12,2) NOT NULL,
@@ -317,8 +318,8 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     CONSTRAINT chk_invoice_line_items_tax_rate CHECK (tax_rate >= 0 AND tax_rate <= 100)
 );
 
-CREATE INDEX idx_invoice_line_items_invoice_id ON invoice_line_items(invoice_id);
-CREATE INDEX idx_invoice_line_items_tax_rate ON invoice_line_items(tax_rate);
+CREATE INDEX IF NOT EXISTS idx_invoice_line_items_invoice_id ON invoice_line_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_invoice_line_items_tax_rate ON invoice_line_items(tax_rate);
 
 COMMENT ON TABLE invoice_line_items IS 'Line items in invoices';
 

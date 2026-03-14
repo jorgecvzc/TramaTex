@@ -1,67 +1,52 @@
-# Modelo de Dominio - Módulo Party
+# Lógica de Identidad y Dominio: Módulo Party
 
-Este documento describe el modelo de dominio vigente para el módulo `Party`, alineado con ADR-012 y la implementación actual. El agregado principal es `Party`, que puede representar una persona, una organización o ambas (perfiles compuestos).
-
-## 1. Agregado: Party
-
-`Party` es la raíz del agregado. Centraliza el estado, los perfiles y las relaciones, y garantiza la consistencia transaccional.
-
-### Atributos principales
-- **ID**: `PartyID`
-- **Status**: `PartyStatus` (enum: `ACTIVE`, `INACTIVE`)
-- **DefaultDiscountPercentage**: `float64` (0-100, descuento por defecto cuando actúa como cliente, usado por el módulo Pricing como fallback)
-- **PersonProfile**: `*PersonProfile` (opcional)
-- **OrganizationProfile**: `*OrganizationProfile` (opcional)
-- **Roles**: `[]PartyRole`
-- **Relationships**: `[]PartyRelationship`
-- **CreatedBy / CreatedAt / ModifiedBy / ModifiedAt**
-
-### Reglas clave
-- Un `Party` debe tener **al menos un perfil** (persona u organización).
-- Puede tener múltiples roles (cliente, proveedor, empleado).
-- Puede relacionarse con otros `Party` mediante relaciones tipadas.
-
-## 2. Perfil de Persona (`PersonProfile`)
-
-Representa los datos personales de un `Party`.
-
-- **FirstName**: `string`
-- **LastName**: `string`
-
-## 3. Perfil de Organización (`OrganizationProfile`)
-
-Representa los datos corporativos de un `Party`.
-
-- **Name**: `string`
-- **TaxID**: `*TaxID`
-- **Website**: `string`
-- **Contacts**: `[]ContactDetails`
-
-## 4. ContactDetails
-
-Detalle de contacto asociado a una organización.
-
-- **ID**: `ContactDetailsID`
-- **TypeDescription**: `string` (ej. “Ventas”, “Soporte”)
-- **Phone**: `*Phone`
-- **Email**: `*Email`
-- **RelatedPartyID**: `*PartyID` (opcional, para enlazar a otra Party)
-
-## 5. Roles y Relaciones
-
-### PartyRole
-- **Type**: `PartyRoleType` (`CLIENT`, `SUPPLIER`, `EMPLOYEE`)
-
-### PartyRelationship
-- **FromID**: `PartyID`
-- **ToID**: `PartyID`
-- **Type**: `RelationshipType` (`IS_EMPLOYEE_OF`, `IS_SUBSIDIARY_OF`)
-
-## 6. Value Objects y Enumeraciones
-
-**Value Objects:** `PartyID`, `ContactDetailsID`, `Email`, `Phone`, `TaxID`.
-
-**Enumeraciones:** `PartyStatus`, `PartyRoleType`, `RelationshipType`.
+Este documento describe la estrategia de gestión de identidades en TramaTex, centrada en la flexibilidad de roles y la integridad operativa de los terceros.
 
 ---
-**Última Actualización:** 2026-03-01
+
+## 1. El Concepto de Identidad Unificada (Party)
+
+En TramaTex, una **Identidad (Party)** es un contenedor de información biográfica y legal que trasciende su función comercial momentánea. 
+
+### Perfiles Duales
+A diferencia de un modelo rígido, una identidad puede desplegar simultáneamente o de forma evolutiva dos perfiles:
+- **Perfil Individual:** Datos de persona física, críticos para operarios y contactos directos.
+- **Perfil Corporativo:** Datos de persona jurídica, necesarios para la fiscalidad B2B.
+
+**Regla de Negocio:** Una identidad es válida siempre que posea al menos uno de estos perfiles. El sistema permite la coexistencia para casos donde el dueño de una microempresa opera tanto a título personal como societario.
+
+---
+
+## 2. Dinámica de Roles y Relaciones
+
+### El Rol como Capa Operativa
+Los roles (Cliente, Proveedor, Empleado) son etiquetas que habilitan a la identidad en diferentes motores del sistema. 
+- La presencia del rol `CLIENT` habilita el cálculo de precios específicos en el motor de **Pricing**.
+- La eliminación de un rol no destruye la identidad, solo revoca su permiso para participar en nuevos flujos de ese tipo.
+
+### Jerarquías de Mercado
+Las relaciones permiten mapear la complejidad del mundo real. TramaTex no ve a los clientes como islas, sino como nodos que pueden estar conectados (ej. Filiales reportando a una Matriz), permitiendo una futura agregación de riesgos y beneficios a nivel de grupo.
+
+---
+
+## 3. Estrategia de Integridad (Borrado Inteligente)
+
+La eliminación física de una identidad es una operación excepcional y protegida. El dominio impone una restricción de "Actividad Viva":
+
+- **Protección Comercial:** Si existen documentos en **Sales** (desde presupuestos hasta facturas), la identidad queda bloqueada para borrado.
+- **Protección Productiva:** Si hay tareas en **MES** vinculadas, se preserva la identidad para garantizar la trazabilidad de quién fabricó cada prenda.
+
+**Directiva:** En caso de cese de relación, el sistema promueve el estado `INACTIVE` o `BLOCKED`, preservando el histórico pero impidiendo nuevas operaciones.
+
+---
+
+## 4. Gestión de Localización y Contacto
+
+### Puntos de Comunicación
+Las organizaciones gestionan sus contactos de forma interna. Un contacto puede ser una simple referencia o un vínculo a otra Identidad Individual, permitiendo navegar desde la empresa hacia la ficha personal del contacto si esta existe.
+
+### Centralización de Direcciones
+Se gestiona un catálogo de ubicaciones por identidad, donde la **Dirección Primaria** actúa como el punto de anclaje para la logística y la facturación automática, reduciendo la carga administrativa en la emisión de documentos.
+
+---
+**Última Versión:** 2026-03-07

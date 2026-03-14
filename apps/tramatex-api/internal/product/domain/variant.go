@@ -40,10 +40,6 @@ func NewProductVariant(
 	if err := status.IsValid(); err != nil {
 		return nil, err
 	}
-	// A variant must be defined by at least one attribute value to distinguish it
-	if len(attributeValueIDs) == 0 {
-		return nil, NewValidationError("product variant must have at least one attribute value")
-	}
 
 	// Sort attributeValueIDs for deterministic comparison and consistency
 	// This helps in uniquely identifying a variant by its attributes, useful for lookups.
@@ -60,6 +56,18 @@ func NewProductVariant(
 		AttributeValues: attributeValueIDs,
 		IsActive:        true,
 	}, nil
+}
+
+// NewDefaultProductVariant creates a default variant for products with no attributes.
+// The SKU matches the product's base SKU. This enables products without attributes
+// to be referenced in sales documents.
+func NewDefaultProductVariant(productID uuid.UUID, productSKU string) (*ProductVariant, error) {
+	return NewProductVariant(productID, productSKU, nil, StatusConfirmed, []uuid.UUID{})
+}
+
+// IsDefault returns true if this variant has no attribute values (default/implicit variant).
+func (v *ProductVariant) IsDefault() bool {
+	return len(v.AttributeValues) == 0
 }
 
 // GenerateVariantSKU composes a deterministic SKU for a ProductVariant.

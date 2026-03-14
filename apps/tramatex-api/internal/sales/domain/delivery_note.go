@@ -22,6 +22,7 @@ type DeliveryNoteLineItem struct {
 	SalesOrderLineItemID uuid.UUID
 	ProductVariantID     uuid.UUID
 	DeliveredQuantity    int
+	InvoiceLineItemID    *uuid.UUID
 }
 
 func NewDeliveryNote(

@@ -12,50 +12,72 @@ type MoneyDTO struct {
 	Currency string  `json:"currency"`
 }
 
+type MesWorkRefDTO struct {
+	MesWorkID    uuid.UUID `json:"mesWorkId"`
+	Observations string    `json:"observations"`
+}
+
 type QuoteLineItemDTO struct {
-	ID                        uuid.UUID  `json:"id"`
-	MesWorkID                 *uuid.UUID `json:"mesWorkId,omitempty"`
-	ProductVariantID          uuid.UUID  `json:"productVariantId"`
-	Quantity                  int        `json:"quantity"`
-	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
-	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
-	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
-	TaxRate                   float64    `json:"taxRate"`
-	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
-	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
-	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
-	Subtotal                  MoneyDTO   `json:"subtotal"`
-	TaxAmount                 MoneyDTO   `json:"taxAmount"`
+	ID                  uuid.UUID         `json:"id"`
+	ProductVariantID    uuid.UUID         `json:"productVariantId"`
+	ProductName         string            `json:"productName,omitempty"`
+	VariantSKU          string            `json:"variantSku,omitempty"`
+	OptionConfiguration map[string]string `json:"optionConfiguration,omitempty"`
+	Quantity            int               `json:"quantity"`
+	ListUnitPrice       MoneyDTO          `json:"listUnitPrice"`
+	UnitPrice           MoneyDTO          `json:"unitPrice"`
+	TaxRate             float64           `json:"taxRate"`
+	DiscountPercent     float64           `json:"discountPercent"`
+	DiscountPerUnit     MoneyDTO          `json:"discountPerUnit"`
+	Subtotal            MoneyDTO          `json:"subtotal"`
+	TaxAmount           MoneyDTO          `json:"taxAmount"`
 }
 
 type QuoteDTO struct {
-	ID             uuid.UUID          `json:"id"`
-	QuoteNumber    string             `json:"quoteNumber"`
-	PartyID        uuid.UUID          `json:"partyId"`
-	QuoteDate      time.Time          `json:"quoteDate"`
-	ExpirationDate time.Time          `json:"expirationDate"`
-	Status         string             `json:"status"`
-	LineItems      []QuoteLineItemDTO `json:"lineItems"`
-	Subtotal       MoneyDTO           `json:"subtotal"`
-	TaxAmount      MoneyDTO           `json:"taxAmount"`
-	Total          MoneyDTO           `json:"total"`
-	Notes          string             `json:"notes"`
+	ID                   uuid.UUID          `json:"id"`
+	QuoteNumber          string             `json:"quoteNumber"`
+	PartyID              uuid.UUID          `json:"partyId"`
+	QuoteDate            time.Time          `json:"quoteDate"`
+	ExpirationDate       time.Time          `json:"expirationDate"`
+	Status               string             `json:"status"`
+	MesWorkRefs          []MesWorkRefDTO    `json:"mesWorkRefs,omitempty"`
+	LineItems            []QuoteLineItemDTO `json:"lineItems"`
+	Subtotal             MoneyDTO           `json:"subtotal"`
+	TaxAmount            MoneyDTO           `json:"taxAmount"`
+	Total                MoneyDTO           `json:"total"`
+	Notes                string             `json:"notes"`
+	GeneratedOrderID     *uuid.UUID         `json:"generatedOrderId,omitempty"`
+	GeneratedOrderNumber string             `json:"generatedOrderNumber,omitempty"`
+}
+
+type QuotePreviewDTO struct {
+	LineItems []QuoteLineItemDTO `json:"lineItems"`
+	Subtotal  MoneyDTO           `json:"subtotal"`
+	TaxAmount MoneyDTO           `json:"taxAmount"`
+	Total     MoneyDTO           `json:"total"`
+}
+
+type OrderPreviewDTO struct {
+	LineItems []OrderLineItemDTO `json:"lineItems"`
+	Subtotal  MoneyDTO           `json:"subtotal"`
+	TaxAmount MoneyDTO           `json:"taxAmount"`
+	Total     MoneyDTO           `json:"total"`
 }
 
 type OrderLineItemDTO struct {
-	ID                        uuid.UUID  `json:"id"`
-	MesWorkID                 *uuid.UUID `json:"mesWorkId,omitempty"`
-	ProductVariantID          uuid.UUID  `json:"productVariantId"`
-	Quantity                  int        `json:"quantity"`
-	CalculatedUnitPrice       MoneyDTO   `json:"calculatedUnitPrice"`
-	ManualUnitPrice           *MoneyDTO  `json:"manualUnitPrice,omitempty"`
-	FinalUnitPrice            MoneyDTO   `json:"finalUnitPrice"`
-	TaxRate                   float64    `json:"taxRate"`
-	CalculatedDiscountPerUnit *MoneyDTO  `json:"calculatedDiscountPerUnit,omitempty"`
-	ManualDiscountPerUnit     *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
-	FinalDiscountPerUnit      MoneyDTO   `json:"finalDiscountPerUnit"`
-	Subtotal                  MoneyDTO   `json:"subtotal"`
-	TaxAmount                 MoneyDTO   `json:"taxAmount"`
+	ID                  uuid.UUID         `json:"id"`
+	ProductVariantID    uuid.UUID         `json:"productVariantId"`
+	ProductName         string            `json:"productName,omitempty"`
+	VariantSKU          string            `json:"variantSku,omitempty"`
+	OptionConfiguration map[string]string `json:"optionConfiguration,omitempty"`
+	Quantity            int               `json:"quantity"`
+	ListUnitPrice       MoneyDTO          `json:"listUnitPrice"`
+	UnitPrice           MoneyDTO          `json:"unitPrice"`
+	TaxRate             float64           `json:"taxRate"`
+	DiscountPercent     float64           `json:"discountPercent"`
+	DiscountPerUnit     MoneyDTO          `json:"discountPerUnit"`
+	Subtotal            MoneyDTO          `json:"subtotal"`
+	TaxAmount           MoneyDTO          `json:"taxAmount"`
 }
 
 type SalesOrderDTO struct {
@@ -66,6 +88,7 @@ type SalesOrderDTO struct {
 	OrderDate    time.Time          `json:"orderDate"`
 	DeliveryDate time.Time          `json:"deliveryDate"`
 	Status       string             `json:"status"`
+	MesWorkRefs  []MesWorkRefDTO    `json:"mesWorkRefs,omitempty"`
 	LineItems    []OrderLineItemDTO `json:"lineItems"`
 	Subtotal     MoneyDTO           `json:"subtotal"`
 	TaxAmount    MoneyDTO           `json:"taxAmount"`
@@ -74,10 +97,14 @@ type SalesOrderDTO struct {
 }
 
 type DeliveryNoteLineItemDTO struct {
-	ID                   uuid.UUID `json:"id"`
-	SalesOrderLineItemID uuid.UUID `json:"salesOrderLineItemId"`
-	ProductVariantID     uuid.UUID `json:"productVariantId"`
-	DeliveredQuantity    int       `json:"deliveredQuantity"`
+	ID                   uuid.UUID         `json:"id"`
+	SalesOrderLineItemID uuid.UUID         `json:"salesOrderLineItemId"`
+	ProductVariantID     uuid.UUID         `json:"productVariantId"`
+	ProductName          string            `json:"productName,omitempty"`
+	VariantSKU           string            `json:"variantSku,omitempty"`
+	OptionConfiguration  map[string]string `json:"optionConfiguration,omitempty"`
+	DeliveredQuantity    int               `json:"deliveredQuantity"`
+	InvoiceLineItemID    *uuid.UUID        `json:"invoiceLineItemId,omitempty"`
 }
 
 type DeliveryNoteDTO struct {
@@ -89,34 +116,41 @@ type DeliveryNoteDTO struct {
 	Status             string                    `json:"status"`
 	LineItems          []DeliveryNoteLineItemDTO `json:"lineItems"`
 	Notes              string                    `json:"notes"`
+	InvoiceID          *uuid.UUID                `json:"invoiceId,omitempty"`
 }
 
 type InvoiceLineItemDTO struct {
-	ID                   uuid.UUID  `json:"id"`
-	SalesOrderLineItemID *uuid.UUID `json:"salesOrderLineItemId,omitempty"`
-	ProductVariantID     uuid.UUID  `json:"productVariantId"`
-	Quantity             int        `json:"quantity"`
-	UnitPrice            MoneyDTO   `json:"unitPrice"`
-	TaxRate              float64    `json:"taxRate"`
-	DiscountAmount       *MoneyDTO  `json:"discountAmount,omitempty"`
-	Subtotal             MoneyDTO   `json:"subtotal"`
-	TaxAmount            *MoneyDTO  `json:"taxAmount,omitempty"`
-	Total                MoneyDTO   `json:"total"`
+	ID                   uuid.UUID         `json:"id"`
+	SalesOrderLineItemID *uuid.UUID        `json:"salesOrderLineItemId,omitempty"`
+	ProductVariantID     uuid.UUID         `json:"productVariantId"`
+	ProductName          string            `json:"productName,omitempty"`
+	VariantSKU           string            `json:"variantSku,omitempty"`
+	OptionConfiguration  map[string]string `json:"optionConfiguration,omitempty"`
+	Quantity             int               `json:"quantity"`
+	UnitPrice            MoneyDTO          `json:"unitPrice"`
+	TaxRate              float64           `json:"taxRate"`
+	DiscountAmount       *MoneyDTO         `json:"discountAmount,omitempty"`
+	Subtotal             MoneyDTO          `json:"subtotal"`
+	TaxAmount            *MoneyDTO         `json:"taxAmount,omitempty"`
+	Total                MoneyDTO          `json:"total"`
 }
 
 type InvoiceDTO struct {
-	ID              uuid.UUID            `json:"id"`
-	InvoiceNumber   string               `json:"invoiceNumber"`
-	PartyID         uuid.UUID            `json:"partyId"`
-	InvoiceDate     time.Time            `json:"invoiceDate"`
-	DueDate         time.Time            `json:"dueDate"`
-	Status          string               `json:"status"`
-	LineItems       []InvoiceLineItemDTO `json:"lineItems"`
-	RelatedOrderIDs []uuid.UUID          `json:"relatedOrderIds,omitempty"`
-	Subtotal        MoneyDTO             `json:"subtotal"`
-	TaxAmount       MoneyDTO             `json:"taxAmount"`
-	Total           MoneyDTO             `json:"total"`
-	PaymentTerms    string               `json:"paymentTerms"`
+	ID                     uuid.UUID            `json:"id"`
+	InvoiceNumber          string               `json:"invoiceNumber"`
+	InvoiceType            string               `json:"invoiceType"`
+	SeriesCode             string               `json:"seriesCode"`
+	PartyID                uuid.UUID            `json:"partyId"`
+	InvoiceDate            time.Time            `json:"invoiceDate"`
+	DueDate                time.Time            `json:"dueDate"`
+	Status                 string               `json:"status"`
+	LineItems              []InvoiceLineItemDTO `json:"lineItems"`
+	RelatedOrderIDs        []uuid.UUID          `json:"relatedOrderIds,omitempty"`
+	RelatedDeliveryNoteIDs []uuid.UUID          `json:"relatedDeliveryNoteIds,omitempty"`
+	Subtotal               MoneyDTO             `json:"subtotal"`
+	TaxAmount              MoneyDTO             `json:"taxAmount"`
+	Total                  MoneyDTO             `json:"total"`
+	PaymentTerms           string               `json:"paymentTerms"`
 }
 
 func NewMoneyDTO(m domain.Money) MoneyDTO {
@@ -135,6 +169,7 @@ func NewQuoteDTO(q *domain.Quote) *QuoteDTO {
 		QuoteDate:      q.QuoteDate,
 		ExpirationDate: q.ExpirationDate,
 		Status:         string(q.Status),
+		MesWorkRefs:    mesWorkRefDTOsFromDomain(q.MESWorkRefs),
 		LineItems:      items,
 		Subtotal:       NewMoneyDTO(q.Subtotal),
 		TaxAmount:      NewMoneyDTO(q.TaxAmount),
@@ -145,19 +180,16 @@ func NewQuoteDTO(q *domain.Quote) *QuoteDTO {
 
 func NewQuoteLineItemDTO(item domain.QuoteLineItem) QuoteLineItemDTO {
 	return QuoteLineItemDTO{
-		ID:                        item.ID,
-		MesWorkID:                 item.MESWorkID,
-		ProductVariantID:          item.ProductVariantID,
-		Quantity:                  item.Quantity,
-		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
-		ManualUnitPrice:           toMoneyDTOPtr(item.ManualUnitPrice),
-		FinalUnitPrice:            NewMoneyDTO(item.FinalUnitPrice),
-		TaxRate:                   item.TaxRate,
-		CalculatedDiscountPerUnit: toMoneyDTOPtr(item.CalculatedDiscountPerUnit),
-		ManualDiscountPerUnit:     toMoneyDTOPtr(item.ManualDiscountPerUnit),
-		FinalDiscountPerUnit:      NewMoneyDTO(item.FinalDiscountPerUnit),
-		Subtotal:                  NewMoneyDTO(item.Subtotal),
-		TaxAmount:                 NewMoneyDTO(item.TaxAmount),
+		ID:               item.ID,
+		ProductVariantID: item.ProductVariantID,
+		Quantity:         item.Quantity,
+		ListUnitPrice:    NewMoneyDTO(item.ListUnitPrice),
+		UnitPrice:        NewMoneyDTO(item.UnitPrice),
+		TaxRate:          item.TaxRate,
+		DiscountPercent:  item.DiscountPercent,
+		DiscountPerUnit:  NewMoneyDTO(item.DiscountPerUnit),
+		Subtotal:         NewMoneyDTO(item.Subtotal),
+		TaxAmount:        NewMoneyDTO(item.TaxAmount),
 	}
 }
 
@@ -174,6 +206,7 @@ func NewSalesOrderDTO(order *domain.SalesOrder) *SalesOrderDTO {
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       string(order.Status),
+		MesWorkRefs:  mesWorkRefDTOsFromDomain(order.MESWorkRefs),
 		LineItems:    items,
 		Subtotal:     NewMoneyDTO(order.Subtotal),
 		TaxAmount:    NewMoneyDTO(order.TaxAmount),
@@ -184,20 +217,39 @@ func NewSalesOrderDTO(order *domain.SalesOrder) *SalesOrderDTO {
 
 func NewOrderLineItemDTO(item domain.OrderLineItem) OrderLineItemDTO {
 	return OrderLineItemDTO{
-		ID:                        item.ID,
-		MesWorkID:                 item.MESWorkID,
-		ProductVariantID:          item.ProductVariantID,
-		Quantity:                  item.Quantity,
-		CalculatedUnitPrice:       NewMoneyDTO(item.CalculatedUnitPrice),
-		ManualUnitPrice:           toMoneyDTOPtr(item.ManualUnitPrice),
-		FinalUnitPrice:            NewMoneyDTO(item.FinalUnitPrice),
-		TaxRate:                   item.TaxRate,
-		CalculatedDiscountPerUnit: toMoneyDTOPtr(item.CalculatedDiscountPerUnit),
-		ManualDiscountPerUnit:     toMoneyDTOPtr(item.ManualDiscountPerUnit),
-		FinalDiscountPerUnit:      NewMoneyDTO(item.FinalDiscountPerUnit),
-		Subtotal:                  NewMoneyDTO(item.Subtotal),
-		TaxAmount:                 NewMoneyDTO(item.TaxAmount),
+		ID:               item.ID,
+		ProductVariantID: item.ProductVariantID,
+		Quantity:         item.Quantity,
+		ListUnitPrice:    NewMoneyDTO(item.ListUnitPrice),
+		UnitPrice:        NewMoneyDTO(item.UnitPrice),
+		TaxRate:          item.TaxRate,
+		DiscountPercent:  item.DiscountPercent,
+		DiscountPerUnit:  NewMoneyDTO(item.DiscountPerUnit),
+		Subtotal:         NewMoneyDTO(item.Subtotal),
+		TaxAmount:        NewMoneyDTO(item.TaxAmount),
 	}
+}
+
+func mesWorkRefDTOsFromDomain(refs []domain.MESWorkRef) []MesWorkRefDTO {
+	if len(refs) == 0 {
+		return nil
+	}
+	dtos := make([]MesWorkRefDTO, len(refs))
+	for i, r := range refs {
+		dtos[i] = MesWorkRefDTO{MesWorkID: r.MESWorkID, Observations: r.Observations}
+	}
+	return dtos
+}
+
+func mesWorkRefsToDomain(dtos []MesWorkRefInput) []domain.MESWorkRef {
+	if len(dtos) == 0 {
+		return nil
+	}
+	refs := make([]domain.MESWorkRef, len(dtos))
+	for i, d := range dtos {
+		refs[i] = domain.MESWorkRef{MESWorkID: d.MesWorkID, Observations: d.Observations}
+	}
+	return refs
 }
 
 func NewDeliveryNoteDTO(note *domain.DeliveryNote) *DeliveryNoteDTO {
@@ -208,6 +260,7 @@ func NewDeliveryNoteDTO(note *domain.DeliveryNote) *DeliveryNoteDTO {
 			SalesOrderLineItemID: item.SalesOrderLineItemID,
 			ProductVariantID:     item.ProductVariantID,
 			DeliveredQuantity:    item.DeliveredQuantity,
+			InvoiceLineItemID:    item.InvoiceLineItemID,
 		})
 	}
 	return &DeliveryNoteDTO{
@@ -222,24 +275,27 @@ func NewDeliveryNoteDTO(note *domain.DeliveryNote) *DeliveryNoteDTO {
 	}
 }
 
-func NewInvoiceDTO(invoice *domain.Invoice, relatedOrderIDs []uuid.UUID) *InvoiceDTO {
+func NewInvoiceDTO(invoice *domain.Invoice, relatedOrderIDs []uuid.UUID, relatedDeliveryNoteIDs []uuid.UUID) *InvoiceDTO {
 	items := make([]InvoiceLineItemDTO, 0, len(invoice.LineItems))
 	for _, item := range invoice.LineItems {
 		items = append(items, NewInvoiceLineItemDTO(item))
 	}
 	return &InvoiceDTO{
-		ID:              invoice.ID,
-		InvoiceNumber:   invoice.InvoiceNumber.String(),
-		PartyID:         invoice.PartyID,
-		InvoiceDate:     invoice.InvoiceDate,
-		DueDate:         invoice.DueDate,
-		Status:          string(invoice.Status),
-		LineItems:       items,
-		RelatedOrderIDs: relatedOrderIDs,
-		Subtotal:        NewMoneyDTO(invoice.Subtotal),
-		TaxAmount:       NewMoneyDTO(invoice.TaxAmount),
-		Total:           NewMoneyDTO(invoice.Total),
-		PaymentTerms:    invoice.PaymentTerms,
+		ID:                     invoice.ID,
+		InvoiceNumber:          invoice.InvoiceNumber.String(),
+		InvoiceType:            string(invoice.Type),
+		SeriesCode:             invoice.Series.Code(),
+		PartyID:                invoice.PartyID,
+		InvoiceDate:            invoice.InvoiceDate,
+		DueDate:                invoice.DueDate,
+		Status:                 string(invoice.Status),
+		LineItems:              items,
+		RelatedOrderIDs:        relatedOrderIDs,
+		RelatedDeliveryNoteIDs: relatedDeliveryNoteIDs,
+		Subtotal:               NewMoneyDTO(invoice.Subtotal),
+		TaxAmount:              NewMoneyDTO(invoice.TaxAmount),
+		Total:                  NewMoneyDTO(invoice.Total),
+		PaymentTerms:           invoice.PaymentTerms,
 	}
 }
 

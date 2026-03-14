@@ -63,14 +63,13 @@ func TestNewProductVariant(t *testing.T) {
 			expectedErrorMsg:  "invalid VariantStatus: INVALID_STATUS",
 		},
 		{
-			name:              "No Attribute Value IDs",
+			name:              "No Attribute Value IDs (default variant)",
 			productID:         productID,
 			sku:               "PROD-RED-L",
 			barcode:           &barcode,
 			status:            domain.StatusProvisional,
 			attributeValueIDs: []uuid.UUID{},
-			expectError:       true,
-			expectedErrorMsg:  "product variant must have at least one attribute value",
+			expectError:       false,
 		},
 		{
 			name:              "ProductVariant without barcode",
@@ -109,6 +108,33 @@ func TestNewProductVariant(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNewDefaultProductVariant(t *testing.T) {
+	productID := uuid.New()
+	productSKU := "SERV-001"
+
+	variant, err := domain.NewDefaultProductVariant(productID, productSKU)
+	assert.NoError(t, err)
+	assert.NotNil(t, variant)
+	assert.Equal(t, productID, variant.ProductID)
+	assert.Equal(t, productSKU, variant.SKU)
+	assert.Equal(t, domain.StatusConfirmed, variant.Status)
+	assert.Empty(t, variant.AttributeValues)
+	assert.True(t, variant.IsActive)
+	assert.True(t, variant.IsDefault())
+}
+
+func TestIsDefault(t *testing.T) {
+	// Variant with attributes → not default
+	variant, err := domain.NewProductVariant(uuid.New(), "PROD-A.1", nil, domain.StatusConfirmed, []uuid.UUID{uuid.New()})
+	assert.NoError(t, err)
+	assert.False(t, variant.IsDefault())
+
+	// Default variant (no attributes)
+	defaultVariant, err := domain.NewDefaultProductVariant(uuid.New(), "PROD")
+	assert.NoError(t, err)
+	assert.True(t, defaultVariant.IsDefault())
 }
 
 func TestGenerateVariantSKU(t *testing.T) {

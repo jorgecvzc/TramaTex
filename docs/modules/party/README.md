@@ -1,41 +1,32 @@
-# Módulo de Party (Gestión de Terceros)
+# Módulo Party: El Núcleo de Identidad
 
-Este módulo es fundamental para TramaTex, ya que gestiona la información de todos los terceros (clientes, proveedores, empleados) que interactúan con el sistema. Proporciona una visión unificada de las Party, sus roles, perfiles (persona/organización), contactos y relaciones.
+El módulo Party es el sistema de gestión de terceros de TramaTex. No es simplemente una base de datos de clientes; es el motor que unifica la identidad legal, comercial y operativa de cualquier entidad que interactúa con el ERP.
 
-## Diseño Arquitectónico
+---
 
-Para una descripción detallada de las decisiones arquitectónicas, entidades de dominio, objetos de valor, casos de uso y estrategia de gestión de Party de este módulo, consulte el siguiente Architectural Decision Record (ADR):
+## 🎯 Propósito Estratégico
 
-*   [ADR-012: Arquitectura del Módulo Party](../../architecture/adrs/adr-012-party-module-architecture.md)
+La misión de este módulo es eliminar la fragmentación del conocimiento. Al centralizar a clientes, proveedores y operarios en una estructura única (**Party**), el sistema garantiza que la información fiscal y de contacto sea consistente en todo el ciclo de vida del producto, desde la compra de materia prima hasta la entrega al cliente final.
 
-## Componentes Clave
+---
 
-*   **Entidades de Dominio:**
-    *   `Party`: La raíz del agregado, representando una persona, una organización, o ambas.
-    *   `PersonProfile`: Datos específicos de una persona.
-    *   `OrganizationProfile`: Datos específicos de una organización.
-    *   `ContactDetails`: Detalles de contacto asociados a una organización.
-    *   `PartyRole`: Roles que una Party puede asumir (Cliente, Proveedor, Empleado).
-    *   `PartyRelationship`: Relaciones tipadas entre Party (ej. "es empleado de", "es filial de").
+## 🧩 Guías de Referencia
 
-*   **Objetos de Valor:**
-    *   `PartyID`, `ContactDetailsID`, `Email`, `Phone`, `TaxID`.
-    *   Enumeraciones: `PartyStatus`, `PartyRoleType`, `RelationshipType`.
+Para comprender el funcionamiento y la integración de este módulo, consulta las siguientes guías conceptuales:
 
-*   **Casos de Uso (Capa de Aplicación):**
-    *   Gestión completa de `Party` (Crear, Listar, Obtener, Actualizar, Cambiar Estado).
-    *   Gestión de `PartyRole` (Añadir, Eliminar).
-    *   Gestión de `PartyRelationship` (Crear, Listar, Eliminar).
-    *   Gestión de `ContactDetails` (Añadir, Listar, Actualizar, Eliminar).
+1. **[Lógica de Identidad y Dominio](./domain-model.md):** Explica cómo conviven los perfiles de personas y organizaciones, y cómo fluyen los roles comerciales.
+2. **[Estrategia de Interacción (API)](./api-contracts.md):** Describe los puntos de integración y la intención detrás de las operaciones de identidad.
+3. **[Procesos Operativos](./use-cases.md):** Guía sobre el ciclo de vida de un tercero, desde el alta hasta el bloqueo preventivo.
+4. **[Estándares de Integración](./implementation-guide.md):** Directrices para que otros módulos consuman la información de Party respetando la soberanía del dato.
 
-## Documentación Detallada
+---
 
-Consulte los siguientes documentos para una descripción más profunda del módulo de Party:
+## 🏗️ Relación con el Ecosistema TramaTex
 
-*   **Especificación del Módulo:** [module-spec.md](./module-spec.md)
-*   **Modelo de Dominio:** [domain-model.md](./domain-model.md)
-*   **Casos de Uso:** [use-cases.md](./use-cases.md)
-*   **Contratos de API:** [api-contracts.md](./api-contracts.md)
-*   **Diagramas Detallados del Dominio:** [diagrams/domain-model.md](./diagrams/domain-model.md)
-*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
-*   **Resumen de Implementación (histórico):** [party-module-implementation-summary.md](../../archive/log/party-module-implementation-summary.md)
+Party es un **Servicio de Contexto**. Su valor reside en alimentar a los demás módulos:
+- **A Sales:** Le entrega la "Cara" del cliente y sus condiciones fiscales.
+- **A Pricing:** Le proporciona los segmentos de cliente para aplicar tarifas dinámicas.
+- **A MES:** Le identifica a los actores físicos que operan las máquinas del taller.
+
+---
+**Última Versión:** 2026-03-07

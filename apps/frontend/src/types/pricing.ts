@@ -41,39 +41,32 @@ export interface PriceCalculationResult {
   calculated_at: string
 }
 
+export interface MoneyResult {
+  amount: number
+  currency: string
+}
+
 export interface BaseSalesPriceResult {
-  productId: string
   variantId: string
-  basePrice: number
-  cost: number
-  margin: number
-  calculatedAt: string
+  baseCost: MoneyResult
+  baseSalesPrice: MoneyResult
+  taxRate: number
+}
+
+export interface CalculatedSaleItem {
+  productVariantId: string
+  quantity: number
+  baseCost: MoneyResult
+  baseSalesPrice: MoneyResult
+  finalPrice: MoneyResult
+  taxRate: number
+  finalPriceWithTax: MoneyResult
 }
 
 export interface FinalSalePriceResult {
-  subtotal: number
-  discounts: DiscountItem[]
-  total_discount: number
-  final_total: number
-  items: FinalSalePriceItem[]
-  client_id: string
-  sale_date: string
-}
-
-export interface FinalSalePriceItem {
-  productVariantId: string
-  quantity: number
-  unit_price: number
-  subtotal: number
-  discount: number
-  total: number
-}
-
-export interface DiscountItem {
-  rule_id: string
-  rule_name: string
-  discount_percentage: number
-  discount_amount: number
+  calculatedItems: CalculatedSaleItem[]
+  saleTotal: MoneyResult
+  saleTotalWithTax: MoneyResult
 }
 
 // ============================================================================

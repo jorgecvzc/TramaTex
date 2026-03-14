@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// MESWorkRef represents a document-level reference to a MES work definition with observations.
+type MESWorkRef struct {
+	MESWorkID    uuid.UUID
+	Observations string
+}
+
 type Quote struct {
 	ID             uuid.UUID
 	QuoteNumber    QuoteNumber
@@ -13,6 +19,7 @@ type Quote struct {
 	QuoteDate      time.Time
 	ExpirationDate time.Time
 	Status         QuoteStatus
+	MESWorkRefs    []MESWorkRef // Document-level MES work references with observations
 	LineItems      []QuoteLineItem
 	Subtotal       Money
 	TaxAmount      Money
@@ -21,19 +28,16 @@ type Quote struct {
 }
 
 type QuoteLineItem struct {
-	ID                        uuid.UUID
-	MESWorkID                 *uuid.UUID
-	ProductVariantID          uuid.UUID
-	Quantity                  int
-	CalculatedUnitPrice       Money
-	ManualUnitPrice           *Money
-	FinalUnitPrice            Money
-	TaxRate                   float64 // Tax rate as percentage (e.g., 21.0 = 21%)
-	CalculatedDiscountPerUnit *Money
-	ManualDiscountPerUnit     *Money
-	FinalDiscountPerUnit      Money
-	Subtotal                  Money
-	TaxAmount                 Money // Tax calculated from Subtotal * TaxRate
+	ID               uuid.UUID
+	ProductVariantID uuid.UUID
+	Quantity         int
+	ListUnitPrice    Money   // Precio de tarifa (from pricing engine)
+	UnitPrice        Money   // Precio de venta (defaults to list, user can override)
+	TaxRate          float64 // Tax rate as percentage (e.g., 21.0 = 21%)
+	DiscountPercent  float64 // Discount percentage entered by user (source of truth)
+	DiscountPerUnit  Money   // Discount amount per unit (derived from percent)
+	Subtotal         Money
+	TaxAmount        Money // Tax calculated from Subtotal * TaxRate
 }
 
 func NewQuote(
@@ -81,10 +85,9 @@ func NewQuote(
 func NewQuoteLineItem(
 	productVariantID uuid.UUID,
 	quantity int,
-	calculatedUnitPrice Money,
-	manualUnitPrice *Money,
-	calculatedDiscountPerUnit *Money,
-	manualDiscountPerUnit *Money,
+	listUnitPrice Money,
+	unitPrice *Money,
+	discountPercent float64,
 	taxRateOptional ...float64,
 ) (QuoteLineItem, error) {
 	if productVariantID == uuid.Nil {
@@ -101,44 +104,44 @@ func NewQuoteLineItem(
 	if taxRate < 0 || taxRate > 100 {
 		return QuoteLineItem{}, NewValidationError("tax rate must be between 0 and 100")
 	}
+	if discountPercent < 0 || discountPercent > 100 {
+		return QuoteLineItem{}, NewValidationError("discount percent must be between 0 and 100")
+	}
 
-	finalUnitPrice := calculatedUnitPrice
-	if manualUnitPrice != nil {
-		if manualUnitPrice.Currency() != calculatedUnitPrice.Currency() {
+	finalUnitPrice := listUnitPrice
+	if unitPrice != nil {
+		if unitPrice.Currency() != listUnitPrice.Currency() {
 			return QuoteLineItem{}, NewValidationError("unit price currency mismatch")
 		}
-		finalUnitPrice = *manualUnitPrice
+		finalUnitPrice = *unitPrice
 	}
 
-	finalDiscount, err := resolveDiscount(calculatedDiscountPerUnit, manualDiscountPerUnit, calculatedUnitPrice.Currency())
+	discount, err := resolveDiscountFromPercent(discountPercent, finalUnitPrice)
 	if err != nil {
 		return QuoteLineItem{}, err
 	}
 
-	subtotal, err := calculateLineSubtotal(finalUnitPrice, finalDiscount, quantity)
+	subtotal, err := calculateLineSubtotal(finalUnitPrice, discount, quantity)
 	if err != nil {
 		return QuoteLineItem{}, err
 	}
 
-	// Calculate tax amount: subtotal * (taxRate / 100)
 	taxAmount, err := calculateTaxAmount(subtotal, taxRate)
 	if err != nil {
 		return QuoteLineItem{}, err
 	}
 
 	return QuoteLineItem{
-		ID:                        uuid.New(),
-		ProductVariantID:          productVariantID,
-		Quantity:                  quantity,
-		CalculatedUnitPrice:       calculatedUnitPrice,
-		ManualUnitPrice:           manualUnitPrice,
-		FinalUnitPrice:            finalUnitPrice,
-		TaxRate:                   taxRate,
-		CalculatedDiscountPerUnit: calculatedDiscountPerUnit,
-		ManualDiscountPerUnit:     manualDiscountPerUnit,
-		FinalDiscountPerUnit:      finalDiscount,
-		Subtotal:                  subtotal,
-		TaxAmount:                 taxAmount,
+		ID:               uuid.New(),
+		ProductVariantID: productVariantID,
+		Quantity:         quantity,
+		ListUnitPrice:    listUnitPrice,
+		UnitPrice:        finalUnitPrice,
+		TaxRate:          taxRate,
+		DiscountPercent:  discountPercent,
+		DiscountPerUnit:  discount,
+		Subtotal:         subtotal,
+		TaxAmount:        taxAmount,
 	}, nil
 }
 
@@ -151,6 +154,46 @@ func (q *Quote) ChangeStatus(newStatus QuoteStatus) error {
 	}
 	q.Status = newStatus
 	return nil
+}
+
+// NewQuoteLineItemFromCalculated creates a line item from pre-calculated values
+// provided by the Pricing engine. This ensures a single source of truth for all
+// monetary calculations (discount, subtotal, tax).
+func NewQuoteLineItemFromCalculated(
+	productVariantID uuid.UUID,
+	quantity int,
+	listUnitPrice Money,
+	unitPrice Money,
+	discountPercent float64,
+	discountPerUnit Money,
+	subtotal Money,
+	taxRate float64,
+	taxAmount Money,
+) (QuoteLineItem, error) {
+	if productVariantID == uuid.Nil {
+		return QuoteLineItem{}, NewValidationError("product variant ID cannot be empty")
+	}
+	if quantity <= 0 {
+		return QuoteLineItem{}, NewValidationError("quantity must be greater than zero")
+	}
+	if taxRate < 0 || taxRate > 100 {
+		return QuoteLineItem{}, NewValidationError("tax rate must be between 0 and 100")
+	}
+	if discountPercent < 0 || discountPercent > 100 {
+		return QuoteLineItem{}, NewValidationError("discount percent must be between 0 and 100")
+	}
+	return QuoteLineItem{
+		ID:               uuid.New(),
+		ProductVariantID: productVariantID,
+		Quantity:         quantity,
+		ListUnitPrice:    listUnitPrice,
+		UnitPrice:        unitPrice,
+		TaxRate:          taxRate,
+		DiscountPercent:  discountPercent,
+		DiscountPerUnit:  discountPerUnit,
+		Subtotal:         subtotal,
+		TaxAmount:        taxAmount,
+	}, nil
 }
 
 func (q *Quote) RecalculateTotals() error {
@@ -178,20 +221,12 @@ func (q *Quote) RecalculateTotals() error {
 	return nil
 }
 
-func resolveDiscount(calculated *Money, manual *Money, currency string) (Money, error) {
-	if manual != nil {
-		if manual.Currency() != currency {
-			return Money{}, NewValidationError("discount currency mismatch")
-		}
-		return *manual, nil
+func resolveDiscountFromPercent(percent float64, unitPrice Money) (Money, error) {
+	if percent <= 0 {
+		return NewMoney(0, unitPrice.Currency())
 	}
-	if calculated != nil {
-		if calculated.Currency() != currency {
-			return Money{}, NewValidationError("discount currency mismatch")
-		}
-		return *calculated, nil
-	}
-	return NewMoney(0, currency)
+	discountAmount := unitPrice.Amount() * percent / 100
+	return NewMoney(discountAmount, unitPrice.Currency())
 }
 
 func calculateLineSubtotal(unitPrice Money, discount Money, quantity int) (Money, error) {

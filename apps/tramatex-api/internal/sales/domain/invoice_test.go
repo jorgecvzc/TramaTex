@@ -226,10 +226,10 @@ func TestInvoice_RecalculateTotals(t *testing.T) {
 	partyID := uuid.New()
 	invoiceDate := time.Now()
 	dueDate := invoiceDate.AddDate(0, 0, 30)
-	taxAmount, _ := NewMoney(100, DefaultCurrency)
+	taxAmount, _ := NewMoney(0, DefaultCurrency)
 	unitPrice, _ := NewMoney(50, DefaultCurrency)
 
-	lineItem, _ := NewInvoiceLineItem(uuid.New(), 10, unitPrice, nil, nil) // 500 EUR
+	lineItem, _ := NewInvoiceLineItem(uuid.New(), 10, unitPrice, nil, nil, 20.0) // 500 EUR + 20% = 100 tax
 
 	invoice, _ := NewInvoice(
 		number,
@@ -246,7 +246,7 @@ func TestInvoice_RecalculateTotals(t *testing.T) {
 	originalTotal := invoice.Total.Amount()
 
 	// Modify line items
-	newLineItem, _ := NewInvoiceLineItem(uuid.New(), 5, unitPrice, nil, nil) // 250 EUR
+	newLineItem, _ := NewInvoiceLineItem(uuid.New(), 5, unitPrice, nil, nil, 20.0) // 250 EUR + 20% = 50 tax
 	invoice.LineItems = append(invoice.LineItems, newLineItem)
 
 	err := invoice.RecalculateTotals()
@@ -254,8 +254,8 @@ func TestInvoice_RecalculateTotals(t *testing.T) {
 		t.Fatalf("RecalculateTotals() error = %v", err)
 	}
 
-	// New total should be (500 + 250) + 100 = 850 EUR
-	expectedTotal := 850.0
+	// New total should be (500 + 250) subtotal + (100 + 50) tax = 900 EUR
+	expectedTotal := 900.0
 	if invoice.Total.Amount() != expectedTotal {
 		t.Errorf("RecalculateTotals() Total = %.2f, want %.2f", invoice.Total.Amount(), expectedTotal)
 	}
@@ -270,10 +270,10 @@ func TestInvoice_RecalculateTotals_SimplifiedOverLimit(t *testing.T) {
 	partyID := uuid.New()
 	invoiceDate := time.Now()
 	dueDate := invoiceDate
-	taxAmount, _ := NewMoney(200, DefaultCurrency)
+	taxAmount, _ := NewMoney(0, DefaultCurrency)
 	unitPrice, _ := NewMoney(100, DefaultCurrency)
 
-	lineItem, _ := NewInvoiceLineItem(uuid.New(), 20, unitPrice, nil, nil) // 2,000 EUR
+	lineItem, _ := NewInvoiceLineItem(uuid.New(), 20, unitPrice, nil, nil, 10.0) // 2,000 EUR + 10% = 200 tax
 
 	invoice, _ := NewInvoice(
 		number,
@@ -288,14 +288,14 @@ func TestInvoice_RecalculateTotals_SimplifiedOverLimit(t *testing.T) {
 	)
 
 	// Add more items to exceed limit
-	newLineItem, _ := NewInvoiceLineItem(uuid.New(), 15, unitPrice, nil, nil) // +1,500 EUR
+	newLineItem, _ := NewInvoiceLineItem(uuid.New(), 15, unitPrice, nil, nil, 10.0) // +1,500 EUR + 10% = 150 tax
 	invoice.LineItems = append(invoice.LineItems, newLineItem)
 
 	err := invoice.RecalculateTotals()
 	if err == nil {
 		t.Error("RecalculateTotals() should fail when simplified invoice exceeds 3,000 EUR after recalculation")
 	}
-	// Total would be (2,000 + 1,500) + 200 = 3,700 EUR (over limit)
+	// Total would be (2,000 + 1,500) subtotal + (200 + 150) tax = 3,850 EUR (over limit)
 }
 
 func TestNewInvoiceLineItem_Success(t *testing.T) {

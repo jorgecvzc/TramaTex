@@ -1,53 +1,65 @@
-# Estándares de Documentación del Proyecto
+# Plan Maestro de Gestión del Conocimiento y Documentación
 
-Este documento detalla los estándares y reglas a seguir para la creación y mantenimiento de la documentación en el proyecto TramaTex.
+Este documento constituye la directiva superior para la estructura, contenido y mantenimiento de la información en TramaTex. Su cumplimiento es obligatorio para todos los agentes y desarrolladores.
 
-## 1. Regla de Oro: Nombres y Contenido
+---
 
-- **Nombres de Archivos/Carpetas:** ✅ **Inglés** (`kebab-case`).
-- **Contenido de la Documentación:** ✅ **Castellano**.
+## 1. Principios de Contenido (Filosofía "Behavior-First")
 
-**Ejemplo:**
-- `docs/architecture/adrs/adr-001-technology-stack-selection.md` (Correcto)
-- `docs/arquitectura/adrs/001-stack-tecnologico.md` (Incorrecto)
+Para evitar la redundancia técnica y maximizar el valor estratégico, se aplican los siguientes mandatos:
 
-Esta regla es fundamental para mantener la consistencia del proyecto.
+1.  **Narrativa de Negocio:** La documentación debe explicar la "personalidad" y el "propósito" de los componentes. El *qué* y el *porqué* prima sobre el *cómo* técnico.
+2.  **Anti-Redundancia:** Queda prohibido listar campos, tipos de datos o estructuras que sean autoexplicativos en el código fuente. La documentación termina donde empieza la legibilidad del código.
+3.  **Soberanía del Dominio:** El conocimiento se organiza por Bounded Contexts. Cada módulo es responsable de su propia verdad conceptual.
 
-## 2. Estructura de carpetas
+---
 
-```text
-/docs
-  ├─ README.md              # Este estándar + índice general
-  ├─ architecture/          # Arquitectura del sistema
-  ├─ guides/                # Guías de uso (usuarios y devs)
-  ├─ modules/               # Documentación detallada por Bounded Context (specs, diagramas)
-  └─ log/                   # Registro de trabajo (sprints, estado)
-```
+## 2. Política de Ámbito y Raíz Limpio (Mandato D)
 
-### 2.1 Convenciones de nomenclatura de archivos
+**RESTRICCIÓN CRÍTICA:** Solo se permite la modificación de documentos dentro de `/docs/` y los archivos expresamente exceptuados en la raíz. El resto del repositorio (código, configuración funcional, agentes) está fuera del ámbito de las tareas de refinamiento documental.
 
-- **Prefijos de ordenación:** Se permiten prefijos numéricos (`01-`, `02-`) o de fecha (`YYYY-MM-DD-`) para establecer orden y flujos de información.
-  - Ejemplo: `01-setup-guide.md`, `2026-01-24-final-audit-report.md`
-- **Sufijo `-obsolete`:** Excepción permitida para marcar archivos inactivos. Facilita identificar documentación obsoleta y su posterior limpieza.
-  - Ejemplo: `adr-pricing-domain-definition-obsolete.md`
-- **Sufijos de versionado:** No permitidos (`-v1`, `-v2`, `-final`). El historial de versiones lo gestiona Git.
+### 2.1. Excepciones Permitidas en el Raíz
+Siguiendo los estándares de la industria (GitHub Community Profile) y las necesidades operativas de TramaTex, solo estos archivos pueden residir en el directorio raíz:
 
-## 3. Reglas de estilo
+**A. Documentación de Comunidad y Onboarding (Markdown):**
+- `README.md`: Portal de entrada para humanos.
+- `AGENTS.md`: Portal de entrada para IAs (instrucciones maestras).
+- `LICENSE` / `LICENSE.md`: Términos legales y propiedad intelectual.
+- `CONTRIBUTING.md`: Guía de colaboración y estándares de desarrollo.
+- `CHANGELOG.md`: Historial de versiones y cambios significativos.
+- `SECURITY.md`: Políticas de seguridad y reporte de vulnerabilidades.
+- `CODE_OF_CONDUCT.md`: Normas de comportamiento de la comunidad.
+- `SUPPORT.md`: Canales de soporte y ayuda.
 
-- **Formato de Archivos:** Markdown (`.md`) para toda la documentación.
-- **Diagramas:** Se utilizará **Mermaid** para la creación de diagramas. El código de Mermaid se incrustará directamente en los archivos `.md`.
-- **Atomicidad:** Un documento por tema para evitar documentos "monstruo".
-- **Enlaces:** Enlaces relativos siempre que sea posible (ej.: `../architecture/architecture-vision.md`).
-- **Idioma:** Castellano para el contenido, salvo APIs o términos técnicos.
-- **Formato de fechas:**
-  - En contenido: `DD-MM-YYYY` (ej.: 24-01-2026)
-  - En nombres de archivo: `YYYY-MM-DD` (ej.: `2026-01-24-audit-report.md`)
+**B. Manifiestos y Configuración de Ingeniería (No Markdown):**
+- Construcción y Orquestación: `Makefile`, `Dockerfile`, `docker-compose.yml`.
+- Dependencias: `go.mod`, `go.sum`, `package.json`, `package-lock.json`.
+- Entorno: `.gitignore`, `.gitattributes`, `.editorconfig`, `.env.example`.
+- Automatización: Scripts de utilidad (`.sh`, `.ps1`) debidamente documentados.
 
-## 4. Flujo de mantenimiento
+**Acción Correctiva:** Cualquier otro archivo `.md` detectado en el raíz debe ser movido a la subcarpeta correspondiente en `/docs/` durante las fases de refinamiento.
 
-- Toda feature relevante debe ir acompañada de actualización de documentación.
-- La documentación se revisa en las PR igual que el código.
-- Al final de cada release se revisa /docs/ para:
-    - Marcar como obsoleto lo que ya no aplique.
-    - Dividir documentos demasiado grandes.
-    - Ajustar la estructura si crecen nuevos módulos.
+---
+
+## 3. Taxonomía del Portal de Documentación (`/docs/`)
+
+| Carpeta | Contenido Exclusivo |
+| :--- | :--- |
+| `architecture/` | Visiones globales, ADRs, Glosario Ubicuo y Diagramas C4. |
+| `modules/` | Guías de comportamiento, lógica de dominio y contratos de API por módulo. |
+| `guides/` | Manuales de usuario, guías de ingeniería y estándares (este documento). |
+| `log/` | Trazabilidad: Sprints, tareas finalizadas y bitácoras de sesión. |
+
+---
+
+## 4. Protocolo de Refinamiento (Poda y Síntesis)
+
+Toda pasada de refinamiento debe seguir estos pasos:
+1.  **Estudio:** Analizar la desalineación entre el documento y la realidad del sistema.
+2.  **Poda:** Eliminar listas de campos técnicos y detalles de implementación de bajo nivel.
+3.  **Síntesis:** Redactar la lógica de comportamiento y reglas de negocio de forma narrativa.
+4.  **Validación:** Comprobar la integridad de los enlaces y la ausencia de archivos huérfanos.
+
+---
+**Versión del Plan:** 2.0 (Consolidada)
+**Última Actualización:** 2026-03-07

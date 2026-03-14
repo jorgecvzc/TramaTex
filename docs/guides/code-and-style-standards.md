@@ -161,6 +161,12 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 - **Tests de Interfaces:** Prueban contratos HTTP (request/response), traducción de errores y middleware.
 - **Tests de UI:** Prueban mutaciones de store, lógica de composables y componentes complejos. El comportamiento de UI **NO** se testea en tests de backend.
 
+### Cálculos de Negocio: Solo en Backend
+- **Principio:** Toda lógica de cálculo de negocio (monetaria, fiscal, descuentos, precios, márgenes, subtotales, totales) se ejecuta **exclusivamente en el backend**.
+- **El frontend NO debe:** Replicar fórmulas de negocio, redondear valores monetarios, calcular descuentos/impuestos, aplicar porcentajes de tipo impositivo, ni derivar cantidades a partir de reglas de negocio.
+- **El frontend SÍ puede:** Mostrar valores pre-calculados por la API, formatear para presentación (`toFixed`, `Intl.NumberFormat`) sin alterar el valor subyacente, y llamar a endpoints de previsualización (`/preview`) para obtener cálculos en tiempo real durante la edición.
+- **Justificación:** La duplicación de lógica de cálculo entre frontend y backend genera discrepancias de redondeo, rompe el principio de fuente única de verdad, y dificulta el mantenimiento. El backend es la autoridad para cualquier valor derivado de reglas de negocio.
+
 ### Manejo de Errores
 - **Principio:** Los errores fluyen hacia arriba, tipados en todas las capas.
 - **Dominio:** Define tipos de error personalizados, con código y mensaje.

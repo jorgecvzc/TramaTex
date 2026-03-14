@@ -101,4 +101,3 @@ Aplica al diseño y desarrollo del Bounded Context de `Party`. Incluye el modela
 ## 9. Referencias
 
 - [docs/modules/party/implementation-guide.md](../../modules/party/implementation-guide.md)
-- [docs/archive/log/party-improvements.md](../../archive/log/party-improvements.md)

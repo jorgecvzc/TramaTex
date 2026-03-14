@@ -16,11 +16,13 @@ import (
 )
 
 type stubProductRepo struct {
-	saveFn     func(context.Context, *domain.Product) error
-	findByIDFn func(context.Context, uuid.UUID) (*domain.Product, error)
-	findBySKFn func(context.Context, string) (*domain.Product, error)
-	findAllFn  func(context.Context) ([]*domain.Product, error)
-	updateSKFn func(context.Context, uuid.UUID, string) error
+	saveFn            func(context.Context, *domain.Product) error
+	findByIDFn        func(context.Context, uuid.UUID) (*domain.Product, error)
+	findBySKFn        func(context.Context, string) (*domain.Product, error)
+	findByBarcodeFn   func(context.Context, string) (*domain.Product, error)
+	findBySKUPrefixFn func(context.Context, string) ([]*domain.Product, error)
+	findAllFn         func(context.Context) ([]*domain.Product, error)
+	updateSKFn        func(context.Context, uuid.UUID, string) error
 }
 
 func (s *stubProductRepo) Save(ctx context.Context, product *domain.Product) error {
@@ -56,6 +58,20 @@ func (s *stubProductRepo) UpdateSKUs(ctx context.Context, productID uuid.UUID, n
 		return s.updateSKFn(ctx, productID, newSKU)
 	}
 	return nil
+}
+
+func (s *stubProductRepo) FindByBarcode(ctx context.Context, barcode string) (*domain.Product, error) {
+	if s.findByBarcodeFn != nil {
+		return s.findByBarcodeFn(ctx, barcode)
+	}
+	return nil, nil
+}
+
+func (s *stubProductRepo) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.Product, error) {
+	if s.findBySKUPrefixFn != nil {
+		return s.findBySKUPrefixFn(ctx, prefix)
+	}
+	return nil, nil
 }
 
 type stubBrandRepo struct {
@@ -141,6 +157,8 @@ type stubVariantRepo struct {
 	saveFn                     func(context.Context, *domain.ProductVariant) error
 	findByIDFn                 func(context.Context, uuid.UUID) (*domain.ProductVariant, error)
 	findBySKFn                 func(context.Context, string) (*domain.ProductVariant, error)
+	findByBarcodeFn            func(context.Context, string) (*domain.ProductVariant, error)
+	findBySKUPrefixFn          func(context.Context, string) ([]*domain.ProductVariant, error)
 	findByProductIDFn          func(context.Context, uuid.UUID) ([]*domain.ProductVariant, error)
 	findByProductIDAndValuesFn func(context.Context, uuid.UUID, []uuid.UUID) (*domain.ProductVariant, error)
 }
@@ -229,6 +247,20 @@ func (s *stubVariantRepo) FindByProductIDAndAttributeValues(ctx context.Context,
 	return nil, nil
 }
 
+func (s *stubVariantRepo) FindByBarcode(ctx context.Context, barcode string) (*domain.ProductVariant, error) {
+	if s.findByBarcodeFn != nil {
+		return s.findByBarcodeFn(ctx, barcode)
+	}
+	return nil, nil
+}
+
+func (s *stubVariantRepo) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.ProductVariant, error) {
+	if s.findBySKUPrefixFn != nil {
+		return s.findBySKUPrefixFn(ctx, prefix)
+	}
+	return nil, nil
+}
+
 func (s *stubPartyServiceConfigRepo) Save(ctx context.Context, config *domain.PartyServiceConfiguration) error {
 	if s.saveFn != nil {
 		return s.saveFn(ctx, config)
@@ -262,6 +294,7 @@ func registerProductRoutes(router *gin.Engine, handler *ProductHandler) {
 	router.POST("/products/:id/groups", handler.AddGroupToProduct)
 	router.POST("/products/:id/direct-attributes", handler.AddDirectAttributeToProduct)
 	router.GET("/products", handler.ListProducts)
+	router.GET("/products/smart-search", handler.SmartSearch)
 	router.GET("/products/:id", handler.GetProductByID)
 	router.PUT("/products/:id/sku", handler.UpdateProductSKU)
 	router.GET("/products/:id/options", handler.GetCalculatedOptionSetsForProduct)
@@ -1391,7 +1424,7 @@ func TestProductHandler_AddGroupToProduct_ServiceError(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestProductHandler_AddDirectAttributeToProduct_ServiceError(t *testing.T) {
@@ -1422,7 +1455,7 @@ func TestProductHandler_AddDirectAttributeToProduct_ServiceError(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestProductHandler_CreateAttribute_ServiceError(t *testing.T) {
@@ -1477,7 +1510,7 @@ func TestProductHandler_UpdateAttribute_ServiceError(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestProductHandler_GetProductVariantBySKU_NotFound(t *testing.T) {

@@ -101,6 +101,7 @@ type ProductVariantDTO struct {
 	Status              domain.VariantStatus `json:"status"`
 	OptionConfiguration map[string]string    `json:"optionConfiguration"` // AttributeName -> Value
 	IsActive            bool                 `json:"isActive"`
+	ProductName         string               `json:"productName,omitempty"` // Enriched field for smart search results
 }
 
 // NewProductVariantDTOFromDomain creates a ProductVariantDTO from a domain.ProductVariant entity.
@@ -168,4 +169,16 @@ type PartyServiceConfigurationDTO struct {
 	ServiceID            string          `json:"serviceId"`
 	Name                 string          `json:"name"`
 	ConfigurationDetails json.RawMessage `json:"configurationDetails"` // Flexible JSON object
+}
+
+// SmartSearchResultDTO represents the result of a smart search for products/variants.
+// Type values: "exact_variant", "exact_product", "partial_match", "product_list", "no_match"
+type SmartSearchResultDTO struct {
+	Type               string               `json:"type"`
+	Product            *ProductDTO          `json:"product,omitempty"`
+	Variant            *ProductVariantDTO   `json:"variant,omitempty"`
+	Products           []*ProductDTO        `json:"products,omitempty"`
+	OptionSets         []*AttributeDTO      `json:"optionSets,omitempty"`
+	SelectedAttributes map[string]string    `json:"selectedAttributes,omitempty"`
+	MatchingVariants   []*ProductVariantDTO `json:"matchingVariants,omitempty"`
 }

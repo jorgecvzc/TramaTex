@@ -165,3 +165,27 @@ Los siguientes DTOs (Data Transfer Objects) definen los contratos para la intera
     *   `calculatedItems`: List of `CalculatedSaleItemResponse`
     *   `saleTotal`: `MoneyDTO` (total sin IVA)
     *   `saleTotalWithTax`: `MoneyDTO` (total con IVA incluido)
+
+---
+
+## Documentación Detallada
+
+*   **Modelo de Dominio:** [domain-model.md](./domain-model.md)
+*   **Casos de Uso:** [use-cases.md](./use-cases.md)
+*   **Integración Inter-modular:** [integration.md](./integration.md)
+*   **Contratos de API:** [api-contracts.md](./api-contracts.md)
+*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
+*   **Diagramas Detallados:** [diagrams/domain-model.md](./diagrams/domain-model.md)
+
+---
+
+## Interfaz de Usuario (Frontend)
+
+El módulo Pricing se materializa en los siguientes componentes clave en `apps/frontend/`:
+
+- **`PricingPanel.vue`**: Componente crítico que muestra el desglose del precio calculado (Base, Margen, Descuentos) en tiempo real.
+- **`MasterData/Brands`**: Gestión administrativa de los márgenes de beneficio por marca.
+- **`MasterData/Attributes`**: Configuración de los modificadores de precio por valor de atributo.
+- **Integración con Sales**: El motor de precios se consume de forma asíncrona desde los formularios de Presupuesto y Pedido para actualizar los totales.
+
+

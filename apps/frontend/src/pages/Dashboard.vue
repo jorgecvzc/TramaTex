@@ -65,6 +65,12 @@
               </span>
               <span>Categorías</span>
             </RouterLink>
+            <RouterLink to="/products/pricing" class="link-secondary">
+              <span class="link-icon">
+                <Calculator :size="24" />
+              </span>
+              <span>Calculadora de Precios</span>
+            </RouterLink>
           </div>
         </div>
 
@@ -206,7 +212,7 @@ import { RouterLink } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { useAuth } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
-import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, CheckCircle, LineChart, FileText, User } from 'lucide-vue-next';
+import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, CheckCircle, LineChart, FileText, User, Calculator } from 'lucide-vue-next';
 
 const { usuario } = useAuth()
 const authStore = useAuthStore()

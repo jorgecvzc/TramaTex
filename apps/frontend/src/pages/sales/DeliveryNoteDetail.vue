@@ -20,7 +20,9 @@
       <div class="page-header">
         <div>
           <button class="btn-back" @click="goBack">← Volver</button>
-          <h1>Albarán {{ deliveryNote.deliveryNoteNumber }}</h1>
+          <h1>Albarán {{ deliveryNote.deliveryNoteNumber }}
+            <span :class="['status-badge', 'status-' + salesApi.getStatusClass(deliveryNote.status)]">{{ salesApi.getStatusLabel(deliveryNote.status) }}</span>
+          </h1>
           <span class="subtitle">
             Pedido: 
             <a 
@@ -33,6 +35,30 @@
           </span>
         </div>
         <div class="header-actions">
+          <button
+            v-if="deliveryNote.status === 'PENDING'"
+            class="btn btn-success"
+            @click="markAsDelivered"
+            :disabled="isChangingStatus"
+          >
+            ✅ Marcar como Entregado
+          </button>
+          <button
+            v-if="deliveryNote.status === 'PENDING'"
+            class="btn btn-danger"
+            @click="cancelDeliveryNote"
+            :disabled="isChangingStatus"
+          >
+            ❌ Cancelar
+          </button>
+          <button
+            v-if="deliveryNote.status === 'DELIVERED' && !relatedInvoice"
+            class="btn btn-primary"
+            @click="createInvoiceFromDeliveryNote"
+            :disabled="isCreatingInvoice"
+          >
+            {{ isCreatingInvoice ? 'Creando...' : '📄 Crear Factura' }}
+          </button>
           <button 
             class="btn btn-secondary" 
             @click="printDeliveryNote"
@@ -134,16 +160,20 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Variante de Producto</th>
+                <th>Producto</th>
                 <th>Cantidad Entregada</th>
                 <th>Observaciones</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in deliveryNote.lineItems" :key="item.id">
-                <td class="variant-id">{{ formatVariantId(item.productVariantID) }}</td>
-                <td class="quantity">{{ item.quantityDelivered || item.quantity }}</td>
-                <td class="observations">{{ item.observations || '—' }}</td>
+                <td class="variant-id">
+                  <span v-if="item.productName">{{ item.productName }}</span>
+                  <small v-if="item.variantSku" class="variant-sku"> ({{ item.variantSku }})</small>
+                  <span v-if="!item.productName && !item.variantSku">{{ formatVariantId(item.productVariantId) }}</span>
+                </td>
+                <td class="quantity">{{ item.deliveredQuantity }}</td>
+                <td class="observations">{{ '—' }}</td>
               </tr>
             </tbody>
           </table>
@@ -235,14 +265,17 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
 import salesApi from '@/services/salesApi';
-import partyApi from '@/services/partyApi';
+import { partyApi } from '@/services/partyApi';
 import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 
 const deliveryNote = ref(null);
 const isLoading = ref(false);
+const isChangingStatus = ref(false);
+const isCreatingInvoice = ref(false);
 const error = ref('');
 const partyName = ref('Cargando...');
 const orderNumber = ref(null);
@@ -314,14 +347,14 @@ async function loadOrderNumber() {
 }
 
 async function loadRelatedInvoice() {
-  if (!deliveryNote.value?.salesOrderId) {
+  if (!deliveryNote.value?.id) {
     return;
   }
   
   try {
-    // Try to find invoice related to this order
+    // Find invoice linked to this specific delivery note
     const invoices = await salesApi.listInvoices({ 
-      orderId: deliveryNote.value.salesOrderId 
+      deliveryNoteId: deliveryNote.value.id 
     });
     
     if (invoices && invoices.length > 0) {
@@ -330,6 +363,53 @@ async function loadRelatedInvoice() {
   } catch (err) {
     console.error('Error loading related invoice:', err);
     // Non-critical, don't show error to user
+  }
+}
+
+async function markAsDelivered() {
+  if (!confirm('¿Marcar este albarán como entregado?')) return;
+  isChangingStatus.value = true;
+  try {
+    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'DELIVERED');
+  } catch (err) {
+    alert(err?.message || 'No se pudo cambiar el estado');
+  } finally {
+    isChangingStatus.value = false;
+  }
+}
+
+async function cancelDeliveryNote() {
+  if (!confirm('¿Cancelar este albarán? Esta acción no se puede deshacer.')) return;
+  isChangingStatus.value = true;
+  try {
+    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'CANCELLED');
+  } catch (err) {
+    alert(err?.message || 'No se pudo cancelar el albarán');
+  } finally {
+    isChangingStatus.value = false;
+  }
+}
+
+async function createInvoiceFromDeliveryNote() {
+  if (!confirm('¿Crear factura para este albarán?')) return;
+  isCreatingInvoice.value = true;
+  try {
+    const now = new Date();
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 30);
+    const data = {
+      partyId: deliveryNote.value.partyId,
+      deliveryNoteIds: [deliveryNote.value.id],
+      invoiceDate: now.toISOString(),
+      dueDate: dueDate.toISOString(),
+    };
+    const newInvoice = await salesApi.createInvoice(data);
+    router.push(`/sales/invoices/${newInvoice.id}`);
+  } catch (err) {
+    alert(err?.message || 'No se pudo crear la factura');
+    console.error('Error creating invoice:', err);
+  } finally {
+    isCreatingInvoice.value = false;
   }
 }
 
@@ -585,6 +665,20 @@ function formatVariantId(variantId) {
   transition: all 0.2s;
 }
 
+.btn-primary {
+  background: #E6B800;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #d4a700;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-secondary {
   background: #f3f4f6;
   color: #4a5568;
@@ -592,6 +686,24 @@ function formatVariantId(variantId) {
 
 .btn-secondary:hover {
   background: #e5e7eb;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
 }
 
 .table-container {
@@ -625,8 +737,13 @@ function formatVariantId(variantId) {
 }
 
 .variant-id {
-  font-family: 'Courier New', monospace;
+  color: #374151;
+}
+
+.variant-sku {
   color: #6b7280;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
 }
 
 .quantity {
@@ -780,96 +897,36 @@ function formatVariantId(variantId) {
   font-size: 0.875rem;
 }
 
-.print-doc-header,
-.print-doc-footer {
-  display: none;
-}
+/* Print styles: see @/assets/sales-print.css */
 
-.print-brand {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #374151;
-}
-
-.print-doc-header h2 {
-  margin: 0.35rem 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.print-issuer-line {
-  margin: 0;
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  color: #4b5563;
+  font-weight: 600;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 0.75rem;
 }
 
-.print-doc-meta {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: #4b5563;
+.status-warning {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-@media print {
-  :deep(.navbar),
-  :deep(nav),
-  .page-header,
-  .btn-back,
-  .header-actions,
-  .btn,
-  .document-link,
-  .order-link,
-  .value-link {
-    display: none !important;
-  }
+.status-success {
+  background: #d1fae5;
+  color: #065f46;
+}
 
-  .delivery-note-detail-container {
-    padding: 0;
-    max-width: none;
-  }
+.status-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
-  .print-doc-header,
-  .print-doc-footer {
-    display: block;
-    border: 1px solid #d1d5db;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: white;
-  }
-
-  .print-doc-footer {
-    margin-top: 0.75rem;
-    margin-bottom: 0;
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.75rem;
-    color: #4b5563;
-  }
-
-  .info-card,
-  .notes-card,
-  .line-items-section,
-  .signatures-section,
-  .related-documents-section,
-  .table-container,
-  .signature-box,
-  .document-item {
-    box-shadow: none !important;
-    border: 1px solid #d1d5db;
-  }
-
-  .data-table {
-    font-size: 0.75rem;
-  }
-
-  .signatures-section,
-  .related-documents-section {
-    break-inside: avoid;
-  }
+.status-primary {
+  background: #dbeafe;
+  color: #1e40af;
 }
 </style>

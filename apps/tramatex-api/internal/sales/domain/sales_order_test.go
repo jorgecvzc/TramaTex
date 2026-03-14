@@ -24,8 +24,7 @@ func TestNewSalesOrder_Success(t *testing.T) {
 		2,
 		money,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 	require.NoError(t, err)
 
@@ -106,8 +105,8 @@ func TestNewSalesOrder_MultipleLineItems(t *testing.T) {
 	price1, _ := NewMoney(60.0, "EUR")
 	price2, _ := NewMoney(40.0, "EUR")
 
-	lineItem1, _ := NewOrderLineItem(uuid.New(), 2, price1, nil, nil, nil)
-	lineItem2, _ := NewOrderLineItem(uuid.New(), 3, price2, nil, nil, nil)
+	lineItem1, _ := NewOrderLineItem(uuid.New(), 2, price1, nil, 0)
+	lineItem2, _ := NewOrderLineItem(uuid.New(), 3, price2, nil, 0)
 
 	order, err := NewSalesOrder(
 		number,
@@ -138,57 +137,53 @@ func TestNewOrderLineItem_Success(t *testing.T) {
 		4,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, lineItem.ID)
 	assert.Equal(t, variantID, lineItem.ProductVariantID)
 	assert.Equal(t, 4, lineItem.Quantity)
-	assert.Equal(t, 75.0, lineItem.CalculatedUnitPrice.Amount())
-	assert.Equal(t, 75.0, lineItem.FinalUnitPrice.Amount())
-	assert.Equal(t, 0.0, lineItem.FinalDiscountPerUnit.Amount())
+	assert.Equal(t, 75.0, lineItem.ListUnitPrice.Amount())
+	assert.Equal(t, 75.0, lineItem.UnitPrice.Amount())
+	assert.Equal(t, 0.0, lineItem.DiscountPerUnit.Amount())
 	assert.Equal(t, 300.0, lineItem.Subtotal.Amount()) // 75 * 4
 }
 
-func TestNewOrderLineItem_WithManualPrice(t *testing.T) {
+func TestNewOrderLineItem_WithOverridePrice(t *testing.T) {
 	variantID := uuid.New()
-	calculatedPrice, _ := NewMoney(100.0, "EUR")
-	manualPrice, _ := NewMoney(85.0, "EUR")
+	listPrice, _ := NewMoney(100.0, "EUR")
+	overridePrice, _ := NewMoney(85.0, "EUR")
 
 	lineItem, err := NewOrderLineItem(
 		variantID,
 		3,
-		calculatedPrice,
-		&manualPrice,
-		nil,
-		nil,
+		listPrice,
+		&overridePrice,
+		0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 100.0, lineItem.CalculatedUnitPrice.Amount())
-	assert.Equal(t, 85.0, lineItem.FinalUnitPrice.Amount()) // Manual overrides calculated
-	assert.Equal(t, 255.0, lineItem.Subtotal.Amount())      // 85 * 3
+	assert.Equal(t, 100.0, lineItem.ListUnitPrice.Amount())
+	assert.Equal(t, 85.0, lineItem.UnitPrice.Amount()) // Override applied
+	assert.Equal(t, 255.0, lineItem.Subtotal.Amount()) // 85 * 3
 }
 
 func TestNewOrderLineItem_WithDiscount(t *testing.T) {
 	variantID := uuid.New()
 	price, _ := NewMoney(100.0, "EUR")
-	discount, _ := NewMoney(15.0, "EUR")
 
 	lineItem, err := NewOrderLineItem(
 		variantID,
 		2,
 		price,
 		nil,
-		nil,
-		&discount,
+		15.0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 100.0, lineItem.FinalUnitPrice.Amount())
-	assert.Equal(t, 15.0, lineItem.FinalDiscountPerUnit.Amount())
+	assert.Equal(t, 100.0, lineItem.UnitPrice.Amount())
+	assert.Equal(t, 15.0, lineItem.DiscountPerUnit.Amount())
 	// Subtotal = (100 - 15) * 2 = 85 * 2 = 170
 	assert.Equal(t, 170.0, lineItem.Subtotal.Amount())
 }
@@ -201,8 +196,7 @@ func TestNewOrderLineItem_EmptyVariantID(t *testing.T) {
 		1,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -217,8 +211,7 @@ func TestNewOrderLineItem_ZeroQuantity(t *testing.T) {
 		0,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -227,16 +220,15 @@ func TestNewOrderLineItem_ZeroQuantity(t *testing.T) {
 
 func TestNewOrderLineItem_CurrencyMismatch(t *testing.T) {
 	variantID := uuid.New()
-	calculatedPrice, _ := NewMoney(100.0, "EUR")
-	manualPrice, _ := NewMoney(90.0, "USD") // Different currency
+	listPrice, _ := NewMoney(100.0, "EUR")
+	overridePrice, _ := NewMoney(90.0, "USD") // Different currency
 
 	_, err := NewOrderLineItem(
 		variantID,
 		1,
-		calculatedPrice,
-		&manualPrice,
-		nil,
-		nil,
+		listPrice,
+		&overridePrice,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -389,8 +381,8 @@ func TestSalesOrder_RecalculateTotals_MultipleItems(t *testing.T) {
 	price1, _ := NewMoney(50.0, "EUR")
 	price2, _ := NewMoney(30.0, "EUR")
 
-	lineItem1, _ := NewOrderLineItem(uuid.New(), 3, price1, nil, nil, nil)
-	lineItem2, _ := NewOrderLineItem(uuid.New(), 2, price2, nil, nil, nil)
+	lineItem1, _ := NewOrderLineItem(uuid.New(), 3, price1, nil, 0)
+	lineItem2, _ := NewOrderLineItem(uuid.New(), 2, price2, nil, 0)
 
 	order, _ := NewSalesOrder(
 		number,
@@ -432,8 +424,7 @@ func createValidOrder(t *testing.T) *SalesOrder {
 		1,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	order, err := NewSalesOrder(

@@ -24,8 +24,7 @@ func TestNewQuote_Success(t *testing.T) {
 		2,
 		money,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 	require.NoError(t, err)
 
@@ -106,8 +105,8 @@ func TestNewQuote_MultipleLineItems(t *testing.T) {
 	price1, _ := NewMoney(50.0, "EUR")
 	price2, _ := NewMoney(30.0, "EUR")
 
-	lineItem1, _ := NewQuoteLineItem(uuid.New(), 2, price1, nil, nil, nil)
-	lineItem2, _ := NewQuoteLineItem(uuid.New(), 3, price2, nil, nil, nil)
+	lineItem1, _ := NewQuoteLineItem(uuid.New(), 2, price1, nil, 0)
+	lineItem2, _ := NewQuoteLineItem(uuid.New(), 3, price2, nil, 0)
 
 	quote, err := NewQuote(
 		number,
@@ -138,100 +137,94 @@ func TestNewQuoteLineItem_Success(t *testing.T) {
 		5,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	require.NoError(t, err)
 	assert.NotEqual(t, uuid.Nil, lineItem.ID)
 	assert.Equal(t, variantID, lineItem.ProductVariantID)
 	assert.Equal(t, 5, lineItem.Quantity)
-	assert.Equal(t, 100.0, lineItem.CalculatedUnitPrice.Amount())
-	assert.Equal(t, 100.0, lineItem.FinalUnitPrice.Amount())
-	assert.Equal(t, 0.0, lineItem.FinalDiscountPerUnit.Amount())
+	assert.Equal(t, 100.0, lineItem.ListUnitPrice.Amount())
+	assert.Equal(t, 100.0, lineItem.UnitPrice.Amount())
+	assert.Equal(t, 0.0, lineItem.DiscountPerUnit.Amount())
 	assert.Equal(t, 500.0, lineItem.Subtotal.Amount()) // 100 * 5
 }
 
-func TestNewQuoteLineItem_WithManualPrice(t *testing.T) {
+func TestNewQuoteLineItem_WithOverridePrice(t *testing.T) {
 	variantID := uuid.New()
-	calculatedPrice, _ := NewMoney(100.0, "EUR")
-	manualPrice, _ := NewMoney(90.0, "EUR")
+	listPrice, _ := NewMoney(100.0, "EUR")
+	overridePrice, _ := NewMoney(90.0, "EUR")
 
 	lineItem, err := NewQuoteLineItem(
 		variantID,
 		2,
-		calculatedPrice,
-		&manualPrice,
-		nil,
-		nil,
+		listPrice,
+		&overridePrice,
+		0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 100.0, lineItem.CalculatedUnitPrice.Amount())
-	assert.Equal(t, 90.0, lineItem.FinalUnitPrice.Amount()) // Manual overrides calculated
-	assert.Equal(t, 180.0, lineItem.Subtotal.Amount())      // 90 * 2
+	assert.Equal(t, 100.0, lineItem.ListUnitPrice.Amount())
+	assert.Equal(t, 90.0, lineItem.UnitPrice.Amount()) // Override applied
+	assert.Equal(t, 180.0, lineItem.Subtotal.Amount()) // 90 * 2
 }
 
-func TestNewQuoteLineItem_WithManualDiscount(t *testing.T) {
+func TestNewQuoteLineItem_WithDiscount(t *testing.T) {
 	variantID := uuid.New()
 	price, _ := NewMoney(100.0, "EUR")
-	discount, _ := NewMoney(10.0, "EUR")
 
 	lineItem, err := NewQuoteLineItem(
 		variantID,
 		3,
 		price,
 		nil,
-		nil,
-		&discount,
+		10.0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 100.0, lineItem.FinalUnitPrice.Amount())
-	assert.Equal(t, 10.0, lineItem.FinalDiscountPerUnit.Amount())
+	assert.Equal(t, 100.0, lineItem.UnitPrice.Amount())
+	assert.Equal(t, 10.0, lineItem.DiscountPerUnit.Amount())
 	// Subtotal = (100 - 10) * 3 = 90 * 3 = 270
 	assert.Equal(t, 270.0, lineItem.Subtotal.Amount())
 }
 
-func TestNewQuoteLineItem_WithCalculatedDiscount(t *testing.T) {
+func TestNewQuoteLineItem_WithDiscountOnly(t *testing.T) {
 	variantID := uuid.New()
 	price, _ := NewMoney(100.0, "EUR")
-	calculatedDiscount, _ := NewMoney(5.0, "EUR")
 
 	lineItem, err := NewQuoteLineItem(
 		variantID,
 		4,
 		price,
 		nil,
-		&calculatedDiscount,
-		nil,
+		5.0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 5.0, lineItem.FinalDiscountPerUnit.Amount())
+	assert.Equal(t, 5.0, lineItem.DiscountPerUnit.Amount())
 	// Subtotal = (100 - 5) * 4 = 95 * 4 = 380
 	assert.Equal(t, 380.0, lineItem.Subtotal.Amount())
 }
 
-func TestNewQuoteLineItem_ManualOverridesCalculatedDiscount(t *testing.T) {
+func TestNewQuoteLineItem_WithPriceAndDiscount(t *testing.T) {
 	variantID := uuid.New()
-	price, _ := NewMoney(100.0, "EUR")
-	calculatedDiscount, _ := NewMoney(5.0, "EUR")
-	manualDiscount, _ := NewMoney(15.0, "EUR")
+	listPrice, _ := NewMoney(100.0, "EUR")
+	overridePrice, _ := NewMoney(90.0, "EUR")
 
 	lineItem, err := NewQuoteLineItem(
 		variantID,
 		2,
-		price,
-		nil,
-		&calculatedDiscount,
-		&manualDiscount,
+		listPrice,
+		&overridePrice,
+		10.0,
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, 15.0, lineItem.FinalDiscountPerUnit.Amount()) // Manual overrides calculated
-	// Subtotal = (100 - 15) * 2 = 85 * 2 = 170
-	assert.Equal(t, 170.0, lineItem.Subtotal.Amount())
+	assert.Equal(t, 100.0, lineItem.ListUnitPrice.Amount())
+	assert.Equal(t, 90.0, lineItem.UnitPrice.Amount())
+	assert.Equal(t, 9.0, lineItem.DiscountPerUnit.Amount())
+	// Subtotal = (90 - 9) * 2 = 81 * 2 = 162
+	assert.Equal(t, 162.0, lineItem.Subtotal.Amount())
 }
 
 func TestNewQuoteLineItem_EmptyVariantID(t *testing.T) {
@@ -242,8 +235,7 @@ func TestNewQuoteLineItem_EmptyVariantID(t *testing.T) {
 		1,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -259,8 +251,7 @@ func TestNewQuoteLineItem_ZeroQuantity(t *testing.T) {
 		0,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -275,44 +266,24 @@ func TestNewQuoteLineItem_NegativeQuantity(t *testing.T) {
 		-5,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "quantity must be greater than zero")
 }
 
-func TestNewQuoteLineItem_CurrencyMismatch_ManualPrice(t *testing.T) {
+func TestNewQuoteLineItem_CurrencyMismatch_OverridePrice(t *testing.T) {
 	variantID := uuid.New()
-	calculatedPrice, _ := NewMoney(100.0, "EUR")
-	manualPrice, _ := NewMoney(90.0, "USD") // Different currency
+	listPrice, _ := NewMoney(100.0, "EUR")
+	overridePrice, _ := NewMoney(90.0, "USD") // Different currency
 
 	_, err := NewQuoteLineItem(
 		variantID,
 		1,
-		calculatedPrice,
-		&manualPrice,
-		nil,
-		nil,
-	)
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "currency mismatch")
-}
-
-func TestNewQuoteLineItem_CurrencyMismatch_ManualDiscount(t *testing.T) {
-	variantID := uuid.New()
-	price, _ := NewMoney(100.0, "EUR")
-	discount, _ := NewMoney(10.0, "GBP") // Different currency
-
-	_, err := NewQuoteLineItem(
-		variantID,
-		1,
-		price,
-		nil,
-		nil,
-		&discount,
+		listPrice,
+		&overridePrice,
+		0,
 	)
 
 	assert.Error(t, err)
@@ -324,15 +295,15 @@ func TestNewQuoteLineItem_CurrencyMismatch_ManualDiscount(t *testing.T) {
 func TestQuote_ChangeStatus_DraftToSent(t *testing.T) {
 	quote := createValidQuote(t)
 
-	err := quote.ChangeStatus(QuoteStatusSent)
+	err := quote.ChangeStatus(QuoteStatusIssued)
 
 	assert.NoError(t, err)
-	assert.Equal(t, QuoteStatusSent, quote.Status)
+	assert.Equal(t, QuoteStatusIssued, quote.Status)
 }
 
 func TestQuote_ChangeStatus_SentToApproved(t *testing.T) {
 	quote := createValidQuote(t)
-	quote.Status = QuoteStatusSent
+	quote.Status = QuoteStatusIssued
 
 	err := quote.ChangeStatus(QuoteStatusApproved)
 
@@ -342,7 +313,7 @@ func TestQuote_ChangeStatus_SentToApproved(t *testing.T) {
 
 func TestQuote_ChangeStatus_SentToRejected(t *testing.T) {
 	quote := createValidQuote(t)
-	quote.Status = QuoteStatusSent
+	quote.Status = QuoteStatusIssued
 
 	err := quote.ChangeStatus(QuoteStatusRejected)
 
@@ -352,7 +323,7 @@ func TestQuote_ChangeStatus_SentToRejected(t *testing.T) {
 
 func TestQuote_ChangeStatus_SentToExpired(t *testing.T) {
 	quote := createValidQuote(t)
-	quote.Status = QuoteStatusSent
+	quote.Status = QuoteStatusIssued
 
 	err := quote.ChangeStatus(QuoteStatusExpired)
 
@@ -389,21 +360,21 @@ func TestQuote_ChangeStatus_InvalidTransition_DraftToConverted(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid quote status transition")
 }
 
-func TestQuote_ChangeStatus_InvalidTransition_SentToDraft(t *testing.T) {
+func TestQuote_ChangeStatus_ValidTransition_IssuedToDraft(t *testing.T) {
 	quote := createValidQuote(t)
-	quote.Status = QuoteStatusSent
+	quote.Status = QuoteStatusIssued
 
 	err := quote.ChangeStatus(QuoteStatusDraft)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid quote status transition")
+	assert.NoError(t, err)
+	assert.Equal(t, QuoteStatusDraft, quote.Status)
 }
 
 func TestQuote_ChangeStatus_InvalidTransition_RejectedToAnything(t *testing.T) {
 	quote := createValidQuote(t)
 	quote.Status = QuoteStatusRejected
 
-	err := quote.ChangeStatus(QuoteStatusSent)
+	err := quote.ChangeStatus(QuoteStatusIssued)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid quote status transition")
@@ -445,8 +416,8 @@ func TestQuote_RecalculateTotals_MultipleItems(t *testing.T) {
 	price1, _ := NewMoney(50.0, "EUR")
 	price2, _ := NewMoney(30.0, "EUR")
 
-	lineItem1, _ := NewQuoteLineItem(uuid.New(), 2, price1, nil, nil, nil)
-	lineItem2, _ := NewQuoteLineItem(uuid.New(), 3, price2, nil, nil, nil)
+	lineItem1, _ := NewQuoteLineItem(uuid.New(), 2, price1, nil, 0)
+	lineItem2, _ := NewQuoteLineItem(uuid.New(), 3, price2, nil, 0)
 
 	quote, _ := NewQuote(
 		number,
@@ -504,8 +475,7 @@ func createValidQuote(t *testing.T) *Quote {
 		1,
 		price,
 		nil,
-		nil,
-		nil,
+		0,
 	)
 
 	quote, err := NewQuote(

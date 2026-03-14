@@ -6,29 +6,85 @@
       <p v-if="description" class="description">{{ description }}</p>
     </div>
 
-    <!-- Mode Selector -->
-    <div class="mode-tabs">
-      <button
-        :class="['tab-btn', { active: mode === 'attributes' }]"
-        @click="switchMode('attributes')"
-      >
-        📋 Por Atributos
-      </button>
-      <button
-        :class="['tab-btn', { active: mode === 'sku' }]"
-        @click="switchMode('sku')"
-      >
-        🔍 Por SKU
-      </button>
-    </div>
-
     <!-- Error Display -->
     <div v-if="error" class="error-banner">
       ⚠️ {{ error }}
     </div>
 
-    <!-- Mode A: Attribute Selection (Interactive with JIT) -->
-    <div v-if="mode === 'attributes'" class="mode-content">
+    <!-- Search Section -->
+    <div class="search-section">
+      <div class="form-group">
+        <label for="quick-search-input">
+          SKU, código de barras o referencia
+        </label>
+        <div class="search-input-group">
+          <input
+            id="quick-search-input"
+            ref="quickSearchInput"
+            v-model="quickSearchQuery"
+            type="text"
+            class="form-control"
+            placeholder="Ej: TST001, TST001-SIZE.M, código de barras..."
+            @keyup.enter="performSmartSearch"
+          />
+          <button
+            @click="performSmartSearch"
+            class="btn btn-search"
+            :disabled="isProcessing || !quickSearchQuery"
+          >
+            🔍
+          </button>
+        </div>
+        <small class="form-text">
+          Introduce un SKU (parcial o completo), código de barras o referencia y pulsa Enter
+        </small>
+      </div>
+
+      <!-- Smart Search: product list result -->
+      <div v-if="smartSearchProducts.length > 0 && !selectedProductId" class="product-list-result">
+        <h4>Productos encontrados</h4>
+        <div
+          v-for="prod in smartSearchProducts"
+          :key="prod.id"
+          class="product-item"
+          @click="selectProductFromSearch(prod)"
+        >
+          <span class="product-item-sku">{{ prod.sku }}</span>
+          <span class="product-item-name">{{ prod.name }}</span>
+        </div>
+      </div>
+
+      <!-- Smart Search: exact variant found (no product context) -->
+      <div v-if="selectedVariant && !selectedProductId" class="selected-variant">
+        <div class="variant-card">
+          <div class="card-header">
+            <span class="badge">{{ formatStatus(selectedVariant.status) }}</span>
+            <span v-if="!selectedVariant.is_active" class="badge inactive">Inactivo</span>
+          </div>
+          <div class="card-body">
+            <p v-if="selectedVariant.product_name"><strong>Producto:</strong> {{ selectedVariant.product_name }}</p>
+            <p><strong>SKU:</strong> <code>{{ selectedVariant.sku }}</code></p>
+            <p v-if="selectedVariant.barcode">
+              <strong>Código de barras:</strong> {{ selectedVariant.barcode }}
+            </p>
+            <div class="card-footer">
+              <button @click="confirmSelection" class="btn btn-success btn-add">
+                ✓ Agregar
+              </button>
+              <button @click="clearSelection" class="btn btn-link">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <hr class="section-divider" />
+
+    <!-- Product + Attribute Selection -->
+    <div class="attribute-selection-section">
       <!-- Product Selection -->
       <div class="form-group">
         <label for="product-select">
@@ -86,20 +142,20 @@
         <strong>SKU:</strong> <code>{{ previewSku }}</code>
       </div>
 
-      <!-- JIT Creation Button -->
-      <div v-if="canCreateVariant" class="jit-section">
+      <!-- JIT + Add (single button) -->
+      <div v-if="canCreateVariant && !selectedVariant" class="jit-section">
         <button
-          @click="findOrCreateSelectedVariant"
-          class="btn btn-primary"
+          @click="findOrCreateAndAdd"
+          class="btn btn-success btn-add"
           :disabled="isProcessing"
         >
           <span v-if="isProcessing">Cargando...</span>
-          <span v-else>Cargar</span>
+          <span v-else>✓ Agregar</span>
         </button>
       </div>
 
       <!-- Selected Variant Display -->
-      <div v-if="selectedVariant" class="selected-variant">
+      <div v-if="selectedVariant && selectedProductId" class="selected-variant">
         <div class="variant-card">
           <div class="card-header">
             <span class="badge">{{ formatStatus(selectedVariant.status) }}</span>
@@ -111,8 +167,8 @@
               <strong>Código de barras:</strong> {{ selectedVariant.barcode }}
             </p>
             <div class="card-footer">
-              <button @click="confirmSelection" class="btn btn-success">
-                ✓ Confirmar Selección
+              <button @click="confirmSelection" class="btn btn-success btn-add">
+                ✓ Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -123,73 +179,11 @@
       </div>
     </div>
 
-    <!-- Mode B: SKU Search (Direct) -->
-    <div v-if="mode === 'sku'" class="mode-content">
-      <div class="form-group">
-        <label for="sku-input">
-          SKU de Variante <span class="required">*</span>
-        </label>
-        <div class="search-input-group">
-          <input
-            id="sku-input"
-            v-model="skuSearchQuery"
-            type="text"
-            class="form-control"
-            placeholder="Ej: TST001-SIZE.M-COLOR.BLUE"
-            @keyup.enter="searchBySku"
-          />
-          <button
-            @click="searchBySku"
-            class="btn btn-search"
-            :disabled="isProcessing || !skuSearchQuery"
-          >
-            🔍 Buscar
-          </button>
-        </div>
-        <small class="form-text">
-          Ingresa el SKU completo de la variante que deseas seleccionar
-        </small>
-      </div>
-
-      <!-- Search Result -->
-      <div v-if="selectedVariant" class="selected-variant">
-        <div class="variant-card">
-          <div class="card-header">
-            <span class="badge">{{ formatStatus(selectedVariant.status) }}</span>
-            <span v-if="!selectedVariant.is_active" class="badge inactive">Inactivo</span>
-          </div>
-          <div class="card-body">
-            <p><strong>Producto:</strong> {{ selectedVariant.product_name || 'N/A' }}</p>
-            <p><strong>SKU:</strong> <code>{{ selectedVariant.sku }}</code></p>
-            <p v-if="selectedVariant.barcode">
-              <strong>Código de barras:</strong> {{ selectedVariant.barcode }}
-            </p>
-            <div class="attribute-values">
-              <span
-                v-for="(value, key) in selectedVariant.attribute_values"
-                :key="key"
-                class="attr-tag"
-              >
-                {{ key }}: {{ value }}
-              </span>
-            </div>
-            <div class="card-footer">
-              <button @click="confirmSelection" class="btn btn-success">
-                ✓ Confirmar Selección
-              </button>
-              <button @click="clearSelection" class="btn btn-link">
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({
@@ -209,23 +203,26 @@ const props = defineProps({
     type: Boolean,
     default: true, // Enable/disable JIT creation
   },
-  initialMode: {
+  initialQuery: {
     type: String,
-    default: 'attributes', // 'attributes' or 'sku'
-    validator: (value) => ['attributes', 'sku'].includes(value),
+    default: '', // If provided, auto-trigger smart search on mount
   },
 })
 
 const emit = defineEmits(['variant-selected', 'error'])
 
+// Refs
+const quickSearchInput = ref(null)
+
 // State
-const mode = ref(props.initialMode)
 const selectedProductId = ref(props.productId || '')
+const selectedProductName = ref('')
 const availableProducts = ref([])
 const productAttributes = ref([])
 const selectedAttributes = ref({})
 const selectedVariant = ref(null)
-const skuSearchQuery = ref('')
+const quickSearchQuery = ref('')
+const smartSearchProducts = ref([])
 const isProcessing = ref(false)
 const error = ref('')
 
@@ -233,6 +230,8 @@ const error = ref('')
 const canCreateVariant = computed(() => {
   if (!props.allowJitCreation) return false
   if (!selectedProductId.value) return false
+  
+  // Products with no attributes: variant creation is handled via auto-trigger
   if (productAttributes.value.length === 0) return false
   
   // Check all attributes are selected
@@ -264,11 +263,21 @@ const previewSku = computed(() => {
 
 // Lifecycle
 onMounted(() => {
+  loadAvailableProducts()
   if (props.productId) {
     selectedProductId.value = props.productId
     loadProductAttributes(props.productId)
+  }
+  // Auto-search if initialQuery is provided
+  if (props.initialQuery) {
+    quickSearchQuery.value = props.initialQuery
+    nextTick(() => {
+      performSmartSearch()
+    })
   } else {
-    loadAvailableProducts()
+    nextTick(() => {
+      quickSearchInput.value?.focus()
+    })
   }
 })
 
@@ -300,6 +309,12 @@ async function loadProductAttributes(productId) {
       values: opt.values || [],
     }))
     
+    // Product with no attributes → auto-trigger default variant
+    if (productAttributes.value.length === 0 && props.allowJitCreation) {
+      await autoSelectDefaultVariant(productId)
+      return
+    }
+    
     // Initialize selectedAttributes keys for reactivity
     const newSelectedAttributes = {}
     productAttributes.value.forEach(attr => {
@@ -327,6 +342,42 @@ function handleProductChange() {
 function handleAttributeChange() {
   selectedVariant.value = null
   error.value = ''
+}
+
+/**
+ * Auto-select default variant for products with no attributes.
+ * Calls JIT endpoint with empty optionConfiguration.
+ */
+async function autoSelectDefaultVariant(productId) {
+  isProcessing.value = true
+  error.value = ''
+
+  try {
+    const result = await productApi.findOrCreateVariant(productId, {})
+
+    if (result.variant) {
+      const product = availableProducts.value.find(p => p.id === productId)
+      selectedVariant.value = {
+        ...result.variant,
+        product_name: product?.name || '',
+        product_description: product?.description || '',
+        product_base_price: product?.base_price ?? null,
+        product_tax_rate: product?.tax_rate ?? null,
+      }
+      // Immediately emit selection
+      emit('variant-selected', {
+        variantId: result.variant.id,
+        variant: selectedVariant.value,
+      })
+    } else {
+      setError('No se pudo cargar la variante por defecto')
+    }
+  } catch (err) {
+    console.error('[VariantSelector] Default variant error:', err)
+    setError(err.message || 'Error al cargar la variante por defecto')
+  } finally {
+    isProcessing.value = false
+  }
 }
 
 async function findOrCreateSelectedVariant() {
@@ -357,7 +408,12 @@ async function findOrCreateSelectedVariant() {
     )
     
     if (result.variant) {
-      selectedVariant.value = result.variant
+      const product = availableProducts.value.find(p => p.id === selectedProductId.value)
+      selectedVariant.value = {
+        ...result.variant,
+        product_base_price: product?.base_price ?? null,
+        product_tax_rate: product?.tax_rate ?? null,
+      }
     } else {
       setError('No se pudo cargar la variante')
     }
@@ -369,29 +425,217 @@ async function findOrCreateSelectedVariant() {
   }
 }
 
-async function searchBySku() {
-  if (!skuSearchQuery.value) return
+/**
+ * Find or create variant AND immediately emit (single "Agregar" in attributes mode)
+ */
+async function findOrCreateAndAdd() {
+  if (!canCreateVariant.value) return
   
   isProcessing.value = true
   error.value = ''
-  selectedVariant.value = null
   
   try {
-    const variant = await productApi.getVariantBySku(skuSearchQuery.value.trim())
+    const optionConfiguration = {}
+    for (const attr of productAttributes.value) {
+      const valueId = selectedAttributes.value[attr.id]
+      if (valueId) {
+        const selectedValue = attr.values.find(v => v.id === valueId)
+        if (selectedValue) {
+          optionConfiguration[attr.code] = selectedValue.value
+        }
+      }
+    }
     
-    if (variant) {
-      selectedVariant.value = variant
+    const result = await productApi.findOrCreateVariant(
+      selectedProductId.value,
+      optionConfiguration
+    )
+    
+    if (result.variant) {
+      const product = availableProducts.value.find(p => p.id === selectedProductId.value)
+      selectedVariant.value = {
+        ...result.variant,
+        product_name: product?.name || '',
+        product_description: product?.description || '',
+        product_base_price: product?.base_price ?? null,
+        product_tax_rate: product?.tax_rate ?? null,
+      }
+      // Immediately emit selection
+      emit('variant-selected', {
+        variantId: result.variant.id,
+        variant: selectedVariant.value,
+      })
+    } else {
+      setError('No se pudo cargar la variante')
     }
   } catch (err) {
-    console.error('[VariantSelector] SKU search error:', err)
-    setError(err.message || 'No se encontró ninguna variante con ese SKU')
+    console.error('[VariantSelector] JIT + Add error:', err)
+    setError(err.message || 'Error al cargar la variante')
   } finally {
     isProcessing.value = false
   }
 }
 
+/**
+ * Perform smart search via backend endpoint
+ */
+async function performSmartSearch() {
+  const query = quickSearchQuery.value?.trim()
+  if (!query) return
+  
+  isProcessing.value = true
+  error.value = ''
+  selectedVariant.value = null
+  selectedProductId.value = ''
+  selectedProductName.value = ''
+  productAttributes.value = []
+  selectedAttributes.value = {}
+  smartSearchProducts.value = []
+  
+  try {
+    const result = await productApi.smartSearch(query)
+    
+    switch (result.type) {
+      case 'exact_variant':
+        // Variant found directly → show card with "Agregar"
+        if (result.variant) {
+          selectedVariant.value = {
+            ...result.variant,
+            product_name: result.product?.name || '',
+            product_description: result.product?.description || '',
+            product_base_price: result.product?.base_price ?? null,
+            product_tax_rate: result.product?.tax_rate ?? null,
+          }
+        }
+        break
+        
+      case 'exact_product':
+        // Product found → load its attribute selectors
+        if (result.product) {
+          selectedProductId.value = result.product.id
+          selectedProductName.value = `${result.product.name} (${result.product.sku})`
+          if (!availableProducts.value.find(p => p.id === result.product.id)) {
+            availableProducts.value.push(result.product)
+          }
+          if (result.optionSets) {
+            loadOptionSetsIntoAttributes(result.optionSets)
+          } else {
+            await loadProductAttributes(result.product.id)
+          }
+        }
+        break
+        
+      case 'partial_match':
+        // Partial SKU match → load product with pre-selected attributes
+        if (result.product) {
+          selectedProductId.value = result.product.id
+          selectedProductName.value = `${result.product.name} (${result.product.sku})`
+          if (!availableProducts.value.find(p => p.id === result.product.id)) {
+            availableProducts.value.push(result.product)
+          }
+          if (result.optionSets) {
+            loadOptionSetsIntoAttributes(result.optionSets, result.selectedAttributes)
+          } else {
+            await loadProductAttributes(result.product.id)
+          }
+        }
+        break
+        
+      case 'product_list':
+        // Multiple products found → show list to pick from
+        if (result.products && result.products.length > 0) {
+          smartSearchProducts.value = result.products
+        } else {
+          setError('No se encontraron productos')
+        }
+        break
+        
+      case 'no_match':
+        setError('No se encontró ningún producto o variante con esa referencia')
+        break
+    }
+  } catch (err) {
+    console.error('[VariantSelector] Smart search error:', err)
+    setError(err.message || 'Error en la búsqueda')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+/**
+ * Load option sets from smart search response into attribute selectors
+ */
+function loadOptionSetsIntoAttributes(optionSets, preselected = null) {
+  productAttributes.value = optionSets.map(os => ({
+    id: os.attributeId,
+    name: os.attributeName,
+    code: os.attributeCode,
+    values: os.values || [],
+  }))
+  
+  // Product with no attributes → auto-trigger default variant
+  if (productAttributes.value.length === 0 && props.allowJitCreation && selectedProductId.value) {
+    autoSelectDefaultVariant(selectedProductId.value)
+    return
+  }
+  
+  // Initialize selectedAttributes
+  const newSelectedAttributes = {}
+  for (const attr of productAttributes.value) {
+    newSelectedAttributes[attr.id] = ''
+    
+    // Pre-select attribute if we have a match from partial reference (case-insensitive)
+    if (preselected) {
+      const attrCodeUpper = (attr.code || '').toUpperCase()
+      const preselectedCode = Object.keys(preselected).find(k => k.toUpperCase() === attrCodeUpper)
+      if (preselectedCode) {
+        const valueCode = preselected[preselectedCode]
+        const matchingValue = attr.values.find(v => (v.code || '').toUpperCase() === (valueCode || '').toUpperCase())
+        if (matchingValue) {
+          newSelectedAttributes[attr.id] = matchingValue.id
+        }
+      }
+    }
+  }
+  selectedAttributes.value = newSelectedAttributes
+  
+  // If all attributes are pre-selected, auto-trigger JIT
+  if (preselected && canCreateVariant.value) {
+    findOrCreateAndAdd()
+  }
+}
+
+/**
+ * Select a product from smart search product list
+ */
+async function selectProductFromSearch(product) {
+  selectedProductId.value = product.id
+  selectedProductName.value = `${product.name} (${product.sku})`
+  smartSearchProducts.value = []
+  await loadProductAttributes(product.id)
+}
+
 function confirmSelection() {
   if (!selectedVariant.value) return
+  
+  // Enrich with product info if not already present
+  if (selectedProductId.value) {
+    const product = availableProducts.value.find(p => p.id === selectedProductId.value)
+    if (product) {
+      if (!selectedVariant.value.product_name) {
+        selectedVariant.value.product_name = product.name || ''
+      }
+      if (selectedVariant.value.product_base_price == null) {
+        selectedVariant.value.product_base_price = product.base_price ?? null
+      }
+      if (selectedVariant.value.product_tax_rate == null) {
+        selectedVariant.value.product_tax_rate = product.tax_rate ?? null
+      }
+      if (!selectedVariant.value.product_description) {
+        selectedVariant.value.product_description = product.description || ''
+      }
+    }
+  }
   
   emit('variant-selected', {
     variantId: selectedVariant.value.id,
@@ -402,13 +646,12 @@ function confirmSelection() {
 function clearSelection() {
   selectedVariant.value = null
   selectedAttributes.value = {}
-  skuSearchQuery.value = ''
+  quickSearchQuery.value = ''
+  smartSearchProducts.value = []
+  selectedProductName.value = ''
+  selectedProductId.value = props.productId || ''
+  productAttributes.value = []
   error.value = ''
-}
-
-function switchMode(newMode) {
-  mode.value = newMode
-  clearSelection()
 }
 
 function formatStatus(status) {
@@ -445,34 +688,10 @@ function setError(message) {
   margin: 0 0 1rem 0;
 }
 
-.mode-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.tab-btn {
-  background: none;
+.section-divider {
   border: none;
-  padding: 0.75rem 1.25rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s ease;
-  position: relative;
-  bottom: -2px;
-}
-
-.tab-btn:hover {
-  color: #1b3a6b;
-}
-
-.tab-btn.active {
-  color: #1b3a6b;
-  border-bottom-color: #f4d03f;
+  border-top: 1px solid #e2e8f0;
+  margin: 1.5rem 0;
 }
 
 .error-banner {
@@ -485,7 +704,8 @@ function setError(message) {
   font-size: 0.9rem;
 }
 
-.mode-content {
+.search-section,
+.attribute-selection-section {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -725,6 +945,17 @@ function setError(message) {
   box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
 }
 
+.btn-add {
+  min-width: 120px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+.btn-sm {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 .btn-link {
   background: none;
   color: #64748b;
@@ -747,5 +978,61 @@ function setError(message) {
   .btn {
     width: 100%;
   }
+}
+
+/* Quick search product list */
+.product-list-result h4 {
+  color: #475569;
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.product-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 0.4rem;
+}
+
+.product-item:hover {
+  background: #f0f9ff;
+  border-color: #1b3a6b;
+}
+
+.product-item-sku {
+  background: #1e293b;
+  color: #f4d03f;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.product-item-name {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.selected-product-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.selected-product-header strong {
+  color: #0c4a6e;
+  font-size: 0.9rem;
 }
 </style>

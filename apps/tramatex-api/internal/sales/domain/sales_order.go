@@ -14,6 +14,7 @@ type SalesOrder struct {
 	OrderDate    time.Time
 	DeliveryDate time.Time
 	Status       SalesOrderStatus
+	MESWorkRefs  []MESWorkRef // Document-level MES work references with observations
 	LineItems    []OrderLineItem
 	Subtotal     Money
 	TaxAmount    Money
@@ -22,19 +23,16 @@ type SalesOrder struct {
 }
 
 type OrderLineItem struct {
-	ID                        uuid.UUID
-	MESWorkID                 *uuid.UUID
-	ProductVariantID          uuid.UUID
-	Quantity                  int
-	CalculatedUnitPrice       Money
-	ManualUnitPrice           *Money
-	FinalUnitPrice            Money
-	TaxRate                   float64 // Tax rate as percentage (e.g., 21.0 = 21%)
-	CalculatedDiscountPerUnit *Money
-	ManualDiscountPerUnit     *Money
-	FinalDiscountPerUnit      Money
-	Subtotal                  Money
-	TaxAmount                 Money // Tax calculated from Subtotal * TaxRate
+	ID               uuid.UUID
+	ProductVariantID uuid.UUID
+	Quantity         int
+	ListUnitPrice    Money   // Precio de tarifa (from pricing engine)
+	UnitPrice        Money   // Precio de venta (defaults to list, user can override)
+	TaxRate          float64 // Tax rate as percentage (e.g., 21.0 = 21%)
+	DiscountPercent  float64 // Discount percentage entered by user (source of truth)
+	DiscountPerUnit  Money   // Discount amount per unit (derived from percent)
+	Subtotal         Money
+	TaxAmount        Money // Tax calculated from Subtotal * TaxRate
 }
 
 func NewSalesOrder(
@@ -82,10 +80,9 @@ func NewSalesOrder(
 func NewOrderLineItem(
 	productVariantID uuid.UUID,
 	quantity int,
-	calculatedUnitPrice Money,
-	manualUnitPrice *Money,
-	calculatedDiscountPerUnit *Money,
-	manualDiscountPerUnit *Money,
+	listUnitPrice Money,
+	unitPrice *Money,
+	discountPercent float64,
 	taxRateOptional ...float64,
 ) (OrderLineItem, error) {
 	if productVariantID == uuid.Nil {
@@ -102,44 +99,44 @@ func NewOrderLineItem(
 	if taxRate < 0 || taxRate > 100 {
 		return OrderLineItem{}, NewValidationError("tax rate must be between 0 and 100")
 	}
+	if discountPercent < 0 || discountPercent > 100 {
+		return OrderLineItem{}, NewValidationError("discount percent must be between 0 and 100")
+	}
 
-	finalUnitPrice := calculatedUnitPrice
-	if manualUnitPrice != nil {
-		if manualUnitPrice.Currency() != calculatedUnitPrice.Currency() {
+	finalUnitPrice := listUnitPrice
+	if unitPrice != nil {
+		if unitPrice.Currency() != listUnitPrice.Currency() {
 			return OrderLineItem{}, NewValidationError("unit price currency mismatch")
 		}
-		finalUnitPrice = *manualUnitPrice
+		finalUnitPrice = *unitPrice
 	}
 
-	finalDiscount, err := resolveDiscount(calculatedDiscountPerUnit, manualDiscountPerUnit, calculatedUnitPrice.Currency())
+	discount, err := resolveDiscountFromPercent(discountPercent, finalUnitPrice)
 	if err != nil {
 		return OrderLineItem{}, err
 	}
 
-	subtotal, err := calculateLineSubtotal(finalUnitPrice, finalDiscount, quantity)
+	subtotal, err := calculateLineSubtotal(finalUnitPrice, discount, quantity)
 	if err != nil {
 		return OrderLineItem{}, err
 	}
 
-	// Calculate tax amount: subtotal * (taxRate / 100)
 	taxAmount, err := calculateTaxAmount(subtotal, taxRate)
 	if err != nil {
 		return OrderLineItem{}, err
 	}
 
 	return OrderLineItem{
-		ID:                        uuid.New(),
-		ProductVariantID:          productVariantID,
-		Quantity:                  quantity,
-		CalculatedUnitPrice:       calculatedUnitPrice,
-		ManualUnitPrice:           manualUnitPrice,
-		FinalUnitPrice:            finalUnitPrice,
-		TaxRate:                   taxRate,
-		CalculatedDiscountPerUnit: calculatedDiscountPerUnit,
-		ManualDiscountPerUnit:     manualDiscountPerUnit,
-		FinalDiscountPerUnit:      finalDiscount,
-		Subtotal:                  subtotal,
-		TaxAmount:                 taxAmount,
+		ID:               uuid.New(),
+		ProductVariantID: productVariantID,
+		Quantity:         quantity,
+		ListUnitPrice:    listUnitPrice,
+		UnitPrice:        finalUnitPrice,
+		TaxRate:          taxRate,
+		DiscountPercent:  discountPercent,
+		DiscountPerUnit:  discount,
+		Subtotal:         subtotal,
+		TaxAmount:        taxAmount,
 	}, nil
 }
 
@@ -152,6 +149,46 @@ func (o *SalesOrder) ChangeStatus(newStatus SalesOrderStatus) error {
 	}
 	o.Status = newStatus
 	return nil
+}
+
+// NewOrderLineItemFromCalculated creates a line item from pre-calculated values
+// provided by the Pricing engine. This ensures a single source of truth for all
+// monetary calculations (discount, subtotal, tax).
+func NewOrderLineItemFromCalculated(
+	productVariantID uuid.UUID,
+	quantity int,
+	listUnitPrice Money,
+	unitPrice Money,
+	discountPercent float64,
+	discountPerUnit Money,
+	subtotal Money,
+	taxRate float64,
+	taxAmount Money,
+) (OrderLineItem, error) {
+	if productVariantID == uuid.Nil {
+		return OrderLineItem{}, NewValidationError("product variant ID cannot be empty")
+	}
+	if quantity <= 0 {
+		return OrderLineItem{}, NewValidationError("quantity must be greater than zero")
+	}
+	if taxRate < 0 || taxRate > 100 {
+		return OrderLineItem{}, NewValidationError("tax rate must be between 0 and 100")
+	}
+	if discountPercent < 0 || discountPercent > 100 {
+		return OrderLineItem{}, NewValidationError("discount percent must be between 0 and 100")
+	}
+	return OrderLineItem{
+		ID:               uuid.New(),
+		ProductVariantID: productVariantID,
+		Quantity:         quantity,
+		ListUnitPrice:    listUnitPrice,
+		UnitPrice:        unitPrice,
+		TaxRate:          taxRate,
+		DiscountPercent:  discountPercent,
+		DiscountPerUnit:  discountPerUnit,
+		Subtotal:         subtotal,
+		TaxAmount:        taxAmount,
+	}, nil
 }
 
 func (o *SalesOrder) RecalculateTotals() error {

@@ -1,186 +1,63 @@
-# Party Module API Contracts (ADR-012)
+# Contratos de API - Módulo Party
 
-This document specifies the API contracts for the Party module aligned with ADR-012: **Party + Profiles + Roles + Relationships + ContactDetails**.
-
----
-
-## 1. Parties
-
-### 1.1 Create Party
-- **Endpoint:** `POST /parties`
-- **Description:** Creates a new party (person, organization, or both profiles).
-- **Request Body:**
-  ```json
-  {
-    "status": "ACTIVE",
-    "roles": ["CLIENT", "SUPPLIER"],
-    "person_profile": {
-      "first_name": "Ana",
-      "last_name": "Pérez"
-    },
-    "organization_profile": {
-      "name": "Textiles Pérez S.L.",
-      "tax_id": "B12345678",
-      "website": "https://textilesperez.com",
-      "contacts": [
-        {
-          "type_description": "Ventas",
-          "phone": "+34 600 123 456",
-          "email": "ventas@textilesperez.com",
-          "related_party_id": null
-        }
-      ]
-    }
-  }
-  ```
-- **Success Response (201 Created):** `PartyDTO`
-
-### 1.2 List Parties
-- **Endpoint:** `GET /parties`
-- **Description:** Lists parties with filtering and pagination.
-- **Query Parameters:**
-  - `role` (string, optional): "CLIENT", "SUPPLIER", "EMPLOYEE", etc.
-  - `type` (string, optional): "PERSON", "ORGANIZATION", "BOTH"
-  - `status` (string, optional): "ACTIVE", "INACTIVE"
-  - `name` (string, optional): matches person/organization name
-  - `tax_id` (string, optional)
-  - `page` (int, optional): default 1
-  - `page_size` (int, optional): default 10
-- **Success Response (200 OK):** `ListResponse<PartyDTO>`
-
-### 1.3 Get Party
-- **Endpoint:** `GET /parties/{id}`
-- **Description:** Retrieves a single party by its ID.
-- **Success Response (200 OK):** `PartyDTO`
-
-### 1.4 Update Party
-- **Endpoint:** `PUT /parties/{id}`
-- **Description:** Updates party profiles and status.
-- **Request Body:**
-  ```json
-  {
-    "status": "ACTIVE",
-    "person_profile": {
-      "first_name": "Ana",
-      "last_name": "Pérez"
-    },
-    "organization_profile": {
-      "name": "Textiles Pérez S.L.",
-      "tax_id": "B12345678",
-      "website": "https://textilesperez.com"
-    }
-  }
-  ```
-- **Success Response (200 OK):** `PartyDTO`
-
-### 1.5 Change Party Status
-- **Endpoint:** `PATCH /parties/{id}/status`
-- **Description:** Changes the party status (e.g., ACTIVE → INACTIVE).
-- **Request Body:**
-  ```json
-  {
-    "status": "INACTIVE"
-  }
-  ```
-- **Success Response (200 OK):** `PartyDTO`
+Este documento especifica los puntos de entrada de la API para el módulo Party, enfocándose en el propósito operativo de cada endpoint y la estructura general de los datos.
 
 ---
 
-## 2. Party Roles
+## 1. Entidades Principales (`Parties`)
 
-### 2.1 Add Role
-- **Endpoint:** `POST /parties/{id}/roles`
-- **Description:** Adds a role to a party.
-- **Request Body:**
-  ```json
-  {
-    "role": "CLIENT"
-  }
-  ```
-- **Success Response (200 OK):** `PartyDTO`
+La gestión de `Parties` es el punto de entrada para cualquier tercero en el sistema. Los endpoints están diseñados para manejar la creación y actualización de perfiles duales (Persona/Organización) de forma atómica.
 
-### 2.2 Remove Role
-- **Endpoint:** `DELETE /parties/{id}/roles/{role}`
-- **Description:** Removes a role from a party.
-- **Success Response (200 OK):** `PartyDTO`
+- **Creación y Actualización (`POST /parties`, `PUT /parties/{id}`):** Permite definir la identidad base, los roles iniciales y los perfiles de datos. El sistema valida que exista al menos un perfil válido.
+- **Consulta y Listado (`GET /parties`, `GET /parties/{id}`):** Soporta filtrado por roles, tipo de entidad y estado. El listado está optimizado para la visualización en tablas de gestión.
+- **Consulta Masiva (`GET /parties/batch?ids=...`):** Endpoint de alto rendimiento diseñado para resolver nombres de entidades en listados comerciales (Ventas/MES), eliminando el problema de múltiples peticiones (N+1).
+- **Gestión de Estado (`PATCH /parties/{id}/status`):** Permite el bloqueo operativo de la entidad.
+- **Borrado Inteligente (`DELETE /parties/{id}`):** Ejecuta las validaciones de integridad referencial operativa antes de permitir la eliminación física (ver reglas en Modelo de Dominio).
 
 ---
 
-## 3. Party Relationships
+## 2. Roles y Relaciones
 
-### 3.1 Add Relationship
-- **Endpoint:** `POST /parties/{id}/relationships`
-- **Description:** Creates a relationship between parties.
-- **Request Body:**
-  ```json
-  {
-    "to_party_id": "party_456",
-    "type": "IS_EMPLOYEE_OF"
-  }
-  ```
-- **Success Response (201 Created):** `PartyRelationshipDTO`
+Define el "qué hace" y "con quién se vincula" una `Party`.
 
-### 3.2 List Relationships
-- **Endpoint:** `GET /parties/{id}/relationships`
-- **Description:** Lists all relationships for a party.
-- **Success Response (200 OK):** `ListResponse<PartyRelationshipDTO>`
-
-### 3.3 Remove Relationship
-- **Endpoint:** `DELETE /parties/{id}/relationships/{relationship_id}`
-- **Description:** Deletes a relationship.
-- **Success Response (204 No Content)**
+- **Roles (`POST /parties/{id}/roles`, `DELETE /parties/{id}/roles/{role}`):** Asignación dinámica de funciones de negocio (CLIENT, SUPPLIER, EMPLOYEE).
+- **Relaciones (`POST /parties/{id}/relationships`, `GET /parties/{id}/relationships`):** Gestión de vínculos estructurales como jerarquías de empresas o pertenencia de empleados a organizaciones.
 
 ---
 
-## 4. Contact Details (Organization Profile)
+## 3. Direcciones y Contactos
 
-### 4.1 Add Contact Detail
-- **Endpoint:** `POST /parties/{id}/contact-details`
-- **Description:** Adds a contact detail to the organization profile.
-- **Request Body:**
-  ```json
-  {
-    "type_description": "Ventas",
-    "phone": "+34 600 123 456",
-    "email": "ventas@textilesperez.com",
-    "related_party_id": null
-  }
-  ```
-- **Success Response (201 Created):** `ContactDetailsDTO`
+Endpoints especializados para la gestión de datos de localización y comunicación.
 
-### 4.2 List Contact Details
-- **Endpoint:** `GET /parties/{id}/contact-details`
-- **Description:** Lists contact details for the organization profile.
-- **Success Response (200 OK):** `ListResponse<ContactDetailsDTO>`
-
-### 4.3 Update Contact Detail
-- **Endpoint:** `PUT /parties/{id}/contact-details/{contact_id}`
-- **Success Response (200 OK):** `ContactDetailsDTO`
-
-### 4.4 Remove Contact Detail
-- **Endpoint:** `DELETE /parties/{id}/contact-details/{contact_id}`
-- **Success Response (204 No Content)**
+- **Direcciones (`POST /parties/{id}/addresses`, `GET /parties/{id}/addresses`):** Gestión del catálogo de ubicaciones físicas. Incluye la lógica para marcar direcciones como primarias de envío o facturación.
+- **Detalles de Contacto (`POST /parties/{id}/contact-details`):** Específico para perfiles de organización. Permite añadir puntos de contacto operativos, con la posibilidad de vincularlos a otras `Parties` de tipo Persona.
 
 ---
 
-## DTOs (Resumen)
+## 4. Configuraciones de Servicio
+
+- **Configuraciones (`POST /parties/{id}/service-configurations`, `GET /parties/{id}/service-configurations`):** Almacena parámetros específicos (precios especiales, reglas técnicas) vinculados a una `Party` para servicios del catálogo (ej. Pricing Engine). Utiliza una estructura JSON flexible para adaptarse a diferentes tipos de servicios.
+
+---
+
+## Estructura de Respuesta Estándar (`PartyDTO`)
+
+Las respuestas de la API devuelven un objeto consolidado que refleja la identidad actual de la entidad:
 
 ```json
-PartyDTO {
-  "id": "party_123",
+{
+  "id": "uuid",
   "status": "ACTIVE",
-  "roles": ["CLIENT"],
-  "person_profile": {
-    "first_name": "Ana",
-    "last_name": "Pérez"
+  "roles": ["CLIENT", "SUPPLIER"],
+  "person_profile": { /* Datos de identidad individual si existen */ },
+  "organization_profile": { 
+    /* Datos corporativos y fiscales si existen */,
+    "contacts": [ /* Lista de detalles de contacto */ ]
   },
-  "organization_profile": {
-    "name": "Textiles Pérez S.L.",
-    "tax_id": "B12345678",
-    "website": "https://textilesperez.com",
-    "contacts": [ContactDetailsDTO]
-  },
-  "created_at": "2026-02-02T00:00:00Z",
-  "modified_at": "2026-02-02T00:00:00Z"
+  "created_at": "ISO-8601",
+  "modified_at": "ISO-8601"
 }
 ```
+
+---
+**Última Actualización:** 2026-03-07

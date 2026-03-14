@@ -7,16 +7,21 @@ import (
 )
 
 type QuoteLineItemInput struct {
-	MesWorkID             *uuid.UUID `json:"mesWorkId,omitempty"`
-	ProductVariantID      uuid.UUID  `json:"productVariantId"`
-	Quantity              int        `json:"quantity"`
-	ManualUnitPrice       *MoneyDTO  `json:"manualUnitPrice,omitempty"`
-	ManualDiscountPerUnit *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
+	ProductVariantID uuid.UUID `json:"productVariantId"`
+	Quantity         int       `json:"quantity"`
+	UnitPrice        *MoneyDTO `json:"unitPrice,omitempty"`
+	DiscountPercent  *float64  `json:"discountPercent,omitempty"`
+}
+
+type MesWorkRefInput struct {
+	MesWorkID    uuid.UUID `json:"mesWorkId"`
+	Observations string    `json:"observations"`
 }
 
 type CreateQuoteCommand struct {
 	PartyID        uuid.UUID            `json:"partyId"`
 	ExpirationDate time.Time            `json:"expirationDate"`
+	MesWorkRefs    []MesWorkRefInput    `json:"mesWorkRefs,omitempty"`
 	Notes          *string              `json:"notes"`
 	Items          []QuoteLineItemInput `json:"items"`
 }
@@ -24,6 +29,7 @@ type CreateQuoteCommand struct {
 type UpdateQuoteCommand struct {
 	QuoteID        uuid.UUID            `json:"-"`
 	ExpirationDate *time.Time           `json:"expirationDate"`
+	MesWorkRefs    []MesWorkRefInput    `json:"mesWorkRefs,omitempty"`
 	Notes          *string              `json:"notes"`
 	Items          []QuoteLineItemInput `json:"items"`
 }
@@ -33,37 +39,67 @@ type ChangeQuoteStatusCommand struct {
 	NewStatus string    `json:"newStatus"`
 }
 
+type DeleteQuoteCommand struct {
+	QuoteID uuid.UUID `json:"-"`
+}
+
+type PreviewQuoteCommand struct {
+	PartyID uuid.UUID            `json:"partyId"`
+	Items   []QuoteLineItemInput `json:"items"`
+}
+
 type ConvertQuoteToOrderCommand struct {
 	QuoteID      uuid.UUID `json:"quoteId"`
 	DeliveryDate time.Time `json:"deliveryDate"`
 }
 
+type AcceptAndConvertQuoteCommand struct {
+	QuoteID      uuid.UUID `json:"-"`
+	DeliveryDate time.Time `json:"deliveryDate"`
+}
+
 type OrderLineItemInput struct {
-	MesWorkID             *uuid.UUID `json:"mesWorkId,omitempty"`
-	ProductVariantID      uuid.UUID  `json:"productVariantId"`
-	Quantity              int        `json:"quantity"`
-	ManualUnitPrice       *MoneyDTO  `json:"manualUnitPrice,omitempty"`
-	ManualDiscountPerUnit *MoneyDTO  `json:"manualDiscountPerUnit,omitempty"`
+	ProductVariantID uuid.UUID `json:"productVariantId"`
+	Quantity         int       `json:"quantity"`
+	UnitPrice        *MoneyDTO `json:"unitPrice,omitempty"`
+	DiscountPercent  *float64  `json:"discountPercent,omitempty"`
+}
+
+type PreviewOrderCommand struct {
+	PartyID uuid.UUID            `json:"partyId"`
+	Items   []OrderLineItemInput `json:"items"`
 }
 
 type CreateOrderCommand struct {
 	PartyID      uuid.UUID            `json:"partyId"`
 	QuoteID      *uuid.UUID           `json:"quoteId"`
 	DeliveryDate time.Time            `json:"deliveryDate"`
+	MesWorkRefs  []MesWorkRefInput    `json:"mesWorkRefs,omitempty"`
 	Notes        *string              `json:"notes"`
 	Items        []OrderLineItemInput `json:"items"`
 }
 
 type UpdateOrderDetailsCommand struct {
-	OrderID      uuid.UUID  `json:"-"`
-	PartyID      *uuid.UUID `json:"partyId"`
-	DeliveryDate *time.Time `json:"deliveryDate"`
-	Notes        *string    `json:"notes"`
+	OrderID      uuid.UUID         `json:"-"`
+	PartyID      *uuid.UUID        `json:"partyId"`
+	DeliveryDate *time.Time        `json:"deliveryDate"`
+	Notes        *string           `json:"notes"`
+	MesWorkRefs  []MesWorkRefInput `json:"mesWorkRefs,omitempty"`
 }
 
 type ChangeOrderStatusCommand struct {
 	OrderID   uuid.UUID `json:"-"`
 	NewStatus string    `json:"newStatus"`
+}
+
+type ChangeInvoiceStatusCommand struct {
+	InvoiceID uuid.UUID `json:"-"`
+	NewStatus string    `json:"newStatus"`
+}
+
+type ChangeDeliveryNoteStatusCommand struct {
+	DeliveryNoteID uuid.UUID `json:"-"`
+	NewStatus      string    `json:"newStatus"`
 }
 
 type AddOrderLineItemCommand struct {
@@ -72,11 +108,11 @@ type AddOrderLineItemCommand struct {
 }
 
 type UpdateOrderLineItemCommand struct {
-	OrderID               uuid.UUID `json:"-"`
-	LineItemID            uuid.UUID `json:"-"`
-	Quantity              *int      `json:"quantity"`
-	ManualUnitPrice       *MoneyDTO `json:"manualUnitPrice,omitempty"`
-	ManualDiscountPerUnit *MoneyDTO `json:"manualDiscountPerUnit,omitempty"`
+	OrderID         uuid.UUID `json:"-"`
+	LineItemID      uuid.UUID `json:"-"`
+	Quantity        *int      `json:"quantity"`
+	UnitPrice       *MoneyDTO `json:"unitPrice,omitempty"`
+	DiscountPercent *float64  `json:"discountPercent,omitempty"`
 }
 
 type RemoveOrderLineItemCommand struct {
@@ -109,6 +145,7 @@ type CreateInvoiceCommand struct {
 type OrderLineItemInputSimplified struct {
 	ProductVariantID uuid.UUID `json:"productVariantId"`
 	Quantity         int       `json:"quantity"`
+	DiscountPercent  float64   `json:"discountPercent"` // 0-100, manual discount for ticket lines
 }
 
 // CreateSimplifiedInvoiceCommand creates a ticket (factura simplificada) for retail sales < 3,000 EUR
@@ -117,5 +154,5 @@ type CreateSimplifiedInvoiceCommand struct {
 	PartyID     uuid.UUID                      `json:"partyId"` // Can be CONSUMIDOR_FINAL generic party
 	InvoiceDate time.Time                      `json:"invoiceDate"`
 	Items       []OrderLineItemInputSimplified `json:"items"` // Simple: just variant ID + quantity
-	// Series defaults to "TKT" for tickets
+	// Series defaults to "FT" (Factura de Ticket)
 }

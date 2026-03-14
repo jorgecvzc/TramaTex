@@ -44,6 +44,11 @@ type GetProductVariantBySKUQuery struct {
 	SKU string
 }
 
+// SmartSearchQuery defines the query for intelligent product/variant search by SKU, barcode, or partial reference.
+type SmartSearchQuery struct {
+	Query string
+}
+
 // GetPartyServiceConfigurationByIDQuery defines the query for fetching a single party service configuration by ID.
 type GetPartyServiceConfigurationByIDQuery struct {
 	PartyID uuid.UUID

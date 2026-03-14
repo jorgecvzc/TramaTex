@@ -102,7 +102,7 @@ describe('SalesApi Service', () => {
     it('should list quotes successfully', async () => {
       const mockQuotes = [
         { id: 'quote-001', quote_number: 'Q-001', status: 'DRAFT' },
-        { id: 'quote-002', quote_number: 'Q-002', status: 'SENT' },
+        { id: 'quote-002', quote_number: 'Q-002', status: 'ISSUED' },
       ]
 
       ;(globalThis.fetch as any).mockResolvedValueOnce({
@@ -190,7 +190,7 @@ describe('SalesApi Service', () => {
       const mockQuote = {
         id: 'quote-001',
         quoteNumber: 'Q-001',
-        status: 'SENT',
+        status: 'ISSUED',
       }
 
       ;(globalThis.fetch as any).mockResolvedValueOnce({
@@ -198,14 +198,14 @@ describe('SalesApi Service', () => {
         json: async () => mockQuote,
       })
 
-      const result = await salesApi.changeQuoteStatus('quote-001', 'SENT')
+      const result = await salesApi.changeQuoteStatus('quote-001', 'ISSUED')
 
-      expect(result.status).toBe('SENT')
+      expect(result.status).toBe('ISSUED')
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/sales/quotes/quote-001/status'),
         expect.objectContaining({
           method: 'PATCH',
-          body: JSON.stringify({ newStatus: 'SENT' }),
+          body: JSON.stringify({ newStatus: 'ISSUED' }),
         })
       )
     })
