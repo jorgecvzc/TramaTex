@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) (*SalesOrder, error) {
 	if q.Status != QuoteStatusApproved {
@@ -31,7 +35,21 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 		return nil, err
 	}
 	order.QuoteID = &q.ID
-	order.MESWorkRefs = q.MESWorkRefs // Carry document-level MES references
+
+	// Copy work setups from quote to order with new IDs, preserving status
+	orderWorkSetups := make([]SalesWorkSetup, len(q.SalesWorkSetups))
+	for i, ws := range q.SalesWorkSetups {
+		orderWorkSetups[i] = SalesWorkSetup{
+			ID:           uuid.New(),
+			WorkSetupID:  ws.WorkSetupID,
+			Name:         ws.Name,
+			Observations: ws.Observations,
+			Status:       ws.Status,
+			Sequence:     ws.Sequence,
+		}
+	}
+	order.SalesWorkSetups = orderWorkSetups
+
 	if err := q.ChangeStatus(QuoteStatusConverted); err != nil {
 		return nil, err
 	}

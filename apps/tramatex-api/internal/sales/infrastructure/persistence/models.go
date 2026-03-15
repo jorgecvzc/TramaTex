@@ -189,7 +189,7 @@ func quoteFromDomain(quote *domain.Quote) (*QuoteDataModel, error) {
 		QuoteDate:        quote.QuoteDate,
 		ExpirationDate:   quote.ExpirationDate,
 		Status:           string(quote.Status),
-		MESWorkRefs:      mesWorkRefsToJSON(quote.MESWorkRefs),
+		MESWorkRefs:      mesWorkRefsToJSON(quote.SalesWorkSetups),
 		SubtotalAmount:   quote.Subtotal.Amount(),
 		SubtotalCurrency: quote.Subtotal.Currency(),
 		TaxAmount:        quote.TaxAmount.Amount(),
@@ -242,7 +242,7 @@ func salesOrderFromDomain(order *domain.SalesOrder) (*SalesOrderDataModel, error
 		OrderDate:        order.OrderDate,
 		DeliveryDate:     order.DeliveryDate,
 		Status:           string(order.Status),
-		MESWorkRefs:      mesWorkRefsToJSON(order.MESWorkRefs),
+		MESWorkRefs:      mesWorkRefsToJSON(order.SalesWorkSetups),
 		SubtotalAmount:   order.Subtotal.Amount(),
 		SubtotalCurrency: order.Subtotal.Currency(),
 		TaxAmount:        order.TaxAmount.Amount(),
@@ -396,7 +396,7 @@ func quoteToDomain(quote *QuoteDataModel, items []QuoteLineItemDataModel) (*doma
 		QuoteDate:      quote.QuoteDate,
 		ExpirationDate: quote.ExpirationDate,
 		Status:         domain.QuoteStatus(quote.Status),
-		MESWorkRefs:    mesWorkRefsFromJSON(quote.MESWorkRefs),
+		SalesWorkSetups: mesWorkRefsFromJSON(quote.MESWorkRefs),
 		LineItems:      lineItems,
 		Subtotal:       subtotal,
 		TaxAmount:      tax,
@@ -477,7 +477,7 @@ func salesOrderToDomain(order *SalesOrderDataModel, items []OrderLineItemDataMod
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       domain.SalesOrderStatus(order.Status),
-		MESWorkRefs:  mesWorkRefsFromJSON(order.MESWorkRefs),
+		SalesWorkSetups: mesWorkRefsFromJSON(order.MESWorkRefs),
 		LineItems:    lineItems,
 		Subtotal:     subtotal,
 		TaxAmount:    tax,
@@ -705,29 +705,33 @@ func optionalCurrency(money *domain.Money) *string {
 	return &value
 }
 
-// Helper functions to convert between []domain.MESWorkRef and JSONB string for PostgreSQL
+// Helper functions to convert between []domain.SalesWorkSetup and JSONB string for PostgreSQL
 type mesWorkRefJSON struct {
 	MESWorkID    string `json:"mes_work_id"`
 	Observations string `json:"observations"`
 }
 
-func mesWorkRefsToJSON(refs []domain.MESWorkRef) *string {
-	if len(refs) == 0 {
+func mesWorkRefsToJSON(setups []domain.SalesWorkSetup) *string {
+	if len(setups) == 0 {
 		return nil
 	}
-	items := make([]mesWorkRefJSON, len(refs))
-	for i, r := range refs {
-		items[i] = mesWorkRefJSON{MESWorkID: r.MESWorkID.String(), Observations: r.Observations}
+	items := make([]mesWorkRefJSON, len(setups))
+	for i, s := range setups {
+		var wid string
+		if s.WorkOrderID != nil {
+			wid = s.WorkOrderID.String()
+		}
+		items[i] = mesWorkRefJSON{MESWorkID: wid, Observations: s.Observations}
 	}
 	data, err := json.Marshal(items)
 	if err != nil {
 		return nil
 	}
-	s := string(data)
-	return &s
+	str := string(data)
+	return &str
 }
 
-func mesWorkRefsFromJSON(data *string) []domain.MESWorkRef {
+func mesWorkRefsFromJSON(data *string) []domain.SalesWorkSetup {
 	if data == nil || *data == "" {
 		return nil
 	}
@@ -735,11 +739,16 @@ func mesWorkRefsFromJSON(data *string) []domain.MESWorkRef {
 	if err := json.Unmarshal([]byte(*data), &items); err != nil {
 		return nil
 	}
-	refs := make([]domain.MESWorkRef, 0, len(items))
-	for _, item := range items {
+	setups := make([]domain.SalesWorkSetup, 0, len(items))
+	for i, item := range items {
 		if u, err := uuid.Parse(item.MESWorkID); err == nil {
-			refs = append(refs, domain.MESWorkRef{MESWorkID: u, Observations: item.Observations})
+			setups = append(setups, domain.SalesWorkSetup{
+				ID:           uuid.New(),
+				WorkOrderID:  &u,
+				Observations: item.Observations,
+				Sequence:     i + 1,
+			})
 		}
 	}
-	return refs
+	return setups
 }

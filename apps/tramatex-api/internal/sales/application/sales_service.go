@@ -29,6 +29,35 @@ type ProductVariantLookup interface {
 	GetVariantInfo(ctx context.Context, variantID uuid.UUID) (*VariantInfo, error)
 }
 
+// WorkOrderProgress is a Sales-local DTO representing the execution state
+// of a MES WorkOrder. Sales does not know MES internals — it receives
+// a pre-computed progress snapshot.
+type WorkOrderProgress struct {
+	WorkOrderID    uuid.UUID
+	OrderNumber    string
+	OrderName      string
+	Status         string // MES production status (opaque to Sales)
+	TotalTasks     int
+	CompletedTasks int
+	Lines          []WorkOrderLineProgress
+}
+
+// WorkOrderLineProgress represents progress of one line (work type at a position)
+// within a WorkOrder. Sales treats this as read-only information from MES.
+type WorkOrderLineProgress struct {
+	WorkTypeID     uuid.UUID
+	PositionID     uuid.UUID
+	TotalTasks     int
+	CompletedTasks int
+}
+
+// MESWorkLookup provides read-only access to MES WorkOrder execution state.
+// Implementation lives in infrastructure as an adapter that calls MES service.
+type MESWorkLookup interface {
+	GetWorkOrderProgress(ctx context.Context, workOrderID uuid.UUID) (*WorkOrderProgress, error)
+	GetWorkOrdersProgress(ctx context.Context, workOrderIDs []uuid.UUID) ([]WorkOrderProgress, error)
+}
+
 type DocumentNumberGenerator interface {
 	NextQuoteNumber(ctx context.Context) (domain.QuoteNumber, error)
 	NextOrderNumber(ctx context.Context) (domain.OrderNumber, error)
@@ -45,6 +74,7 @@ type SalesService struct {
 	pricingEngine PricingEngine
 	partyLookup   PartyLookup
 	productLookup ProductVariantLookup
+	mesLookup     MESWorkLookup
 	txManager     TransactionManager
 }
 
@@ -57,6 +87,7 @@ func NewSalesService(
 	pricingEngine PricingEngine,
 	partyLookup PartyLookup,
 	productLookup ProductVariantLookup,
+	mesLookup MESWorkLookup,
 ) *SalesService {
 	return &SalesService{
 		quoteRepo:     quoteRepo,
@@ -67,6 +98,7 @@ func NewSalesService(
 		pricingEngine: pricingEngine,
 		partyLookup:   partyLookup,
 		productLookup: productLookup,
+		mesLookup:     mesLookup,
 	}
 }
 
@@ -138,7 +170,7 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 	if err != nil {
 		return nil, err
 	}
-	quote.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
+	quote.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
 
 	if err := s.quoteRepo.Save(ctx, quote); err != nil {
 		return nil, err
@@ -171,7 +203,7 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 		quote.Notes = *cmd.Notes
 	}
 	if cmd.MesWorkRefs != nil {
-		quote.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
+		quote.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
 	}
 
 	if cmd.Items != nil {
@@ -493,7 +525,7 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 	if err != nil {
 		return nil, err
 	}
-	order.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
+	order.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return nil, err
@@ -530,7 +562,7 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 		order.Notes = *cmd.Notes
 	}
 	if cmd.MesWorkRefs != nil {
-		order.MESWorkRefs = mesWorkRefsToDomain(cmd.MesWorkRefs)
+		order.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
 	}
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {

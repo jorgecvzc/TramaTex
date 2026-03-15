@@ -86,3 +86,44 @@ type MESWorkDashboardStatsDTO struct {
 	Overdue  int            `json:"overdue"`
 	DueToday int            `json:"due_today"`
 }
+
+// --- Work Order Progress (consumed by Sales and other modules) ---
+
+// WorkOrderTaskProgressDTO summarizes the execution state of one task within a line.
+type WorkOrderTaskProgressDTO struct {
+	TaskID      uuid.UUID  `json:"task_id"`
+	TaskName    string     `json:"task_name,omitempty"`
+	Sequence    int        `json:"sequence"`
+	Status      string     `json:"status"`
+	AssignedTo  *uuid.UUID `json:"assigned_to,omitempty"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
+// WorkOrderLineProgressDTO summarizes progress of one line (WorkType @ Position).
+type WorkOrderLineProgressDTO struct {
+	LineID         uuid.UUID                  `json:"line_id"`
+	WorkTypeID     uuid.UUID                  `json:"work_type_id"`
+	PositionID     uuid.UUID                  `json:"position_id"`
+	Sequence       int                        `json:"sequence"`
+	Tasks          []WorkOrderTaskProgressDTO `json:"tasks"`
+	TotalTasks     int                        `json:"total_tasks"`
+	CompletedTasks int                        `json:"completed_tasks"`
+}
+
+// WorkOrderProgressDTO is the cross-module read model that other modules (Sales)
+// can consume to understand the execution state of a WorkOrder without knowing
+// MES internals. All progress logic is computed by MES.
+type WorkOrderProgressDTO struct {
+	WorkOrderID    uuid.UUID                  `json:"work_order_id"`
+	OrderNumber    string                     `json:"order_number"`
+	OrderName      string                     `json:"order_name"`
+	Status         string                     `json:"status"`
+	Priority       string                     `json:"priority"`
+	StartDate      *time.Time                 `json:"start_date,omitempty"`
+	DueDate        *time.Time                 `json:"due_date,omitempty"`
+	CompletedDate  *time.Time                 `json:"completed_date,omitempty"`
+	Lines          []WorkOrderLineProgressDTO `json:"lines"`
+	TotalTasks     int                        `json:"total_tasks"`
+	CompletedTasks int                        `json:"completed_tasks"`
+}

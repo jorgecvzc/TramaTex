@@ -239,6 +239,15 @@ func main() {
 	)
 	pricingEngineHandler := pricing_handler.NewPricingEngineHandler(pricingEngineService)
 
+	// --- MES Module Dependencies ---
+	taskRepo := mes_repo.NewGORMTaskRepository(db)
+	positionRepo := mes_repo.NewGORMPositionRepository(db)
+	serviceGroupRepo := mes_repo.NewGORMServiceGroupRepository(db)
+	mesWorkRepo := mes_repo.NewGORMMESWorkRepository(db)
+	mesService := mes_uc.NewMESService(taskRepo, positionRepo, serviceGroupRepo, mesWorkRepo)
+	mesWorkOrderQueryService := mes_uc.NewWorkOrderQueryService(mesWorkRepo, taskRepo)
+	mesHandler := mes_handler.NewMESHandler(mesService)
+
 	// --- Sales Module Dependencies ---
 	quoteRepo := sales_repo.NewGORMQuoteRepository(db)
 	orderRepo := sales_repo.NewGORMSalesOrderRepository(db)
@@ -247,6 +256,7 @@ func main() {
 	numberGenerator := sales_repo.NewSequentialNumberGenerator(db)
 	partyLookup := sales_repo.NewPartyLookupAdapter(partyRepo)
 	productVariantLookup := sales_repo.NewProductVariantLookupAdapter(productVariantRepository, productRepository, attributeRepository)
+	mesWorkLookup := sales_repo.NewMESWorkLookupAdapter(mesWorkOrderQueryService)
 	salesService := sales_uc.NewSalesService(
 		quoteRepo,
 		orderRepo,
@@ -256,17 +266,10 @@ func main() {
 		pricingEngineService,
 		partyLookup,
 		productVariantLookup,
+		mesWorkLookup,
 	)
 	salesService.SetTransactionManager(sales_repo.NewGORMTransactionManager(db))
 	salesHandler := sales_handler.NewSalesHandler(salesService)
-
-	// --- MES Module Dependencies ---
-	taskRepo := mes_repo.NewGORMTaskRepository(db)
-	positionRepo := mes_repo.NewGORMPositionRepository(db)
-	serviceGroupRepo := mes_repo.NewGORMServiceGroupRepository(db)
-	mesWorkRepo := mes_repo.NewGORMMESWorkRepository(db)
-	mesService := mes_uc.NewMESService(taskRepo, positionRepo, serviceGroupRepo, mesWorkRepo)
-	mesHandler := mes_handler.NewMESHandler(mesService)
 
 	// --- Middleware ---
 	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)

@@ -229,13 +229,13 @@ func TestCreateMESWork_GeneratesTasksFromServiceGroupTemplate(t *testing.T) {
 	if workRepo.saved == nil {
 		t.Fatal("expected mes work persistence")
 	}
-	if len(workRepo.saved.ServiceGroups) != 1 {
-		t.Fatalf("expected 1 service group, got %d", len(workRepo.saved.ServiceGroups))
+	if len(workRepo.saved.Lines) != 1 {
+		t.Fatalf("expected 1 service group, got %d", len(workRepo.saved.Lines))
 	}
-	if len(workRepo.saved.ServiceGroups[0].Tasks) != 1 {
-		t.Fatalf("expected 1 generated task, got %d", len(workRepo.saved.ServiceGroups[0].Tasks))
+	if len(workRepo.saved.Lines[0].Tasks) != 1 {
+		t.Fatalf("expected 1 generated task, got %d", len(workRepo.saved.Lines[0].Tasks))
 	}
-	if workRepo.saved.ServiceGroups[0].Tasks[0].TaskID != taskID {
+	if workRepo.saved.Lines[0].Tasks[0].TaskID != taskID {
 		t.Fatal("expected generated task to match service group template task")
 	}
 }
@@ -337,8 +337,8 @@ func TestServiceGroupFlows_ListGetDelete(t *testing.T) {
 func TestMESWorkFlows_ListAndGet(t *testing.T) {
 	id := uuid.New()
 	workRepo := &fakeMESWorkRepo{
-		byID: &domain.MESWork{ID: id, WorkNumber: "MES-2026-001", WorkName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal},
-		all:  []*domain.MESWork{{ID: id, WorkNumber: "MES-2026-001", WorkName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal}},
+		byID: &domain.MESWork{ID: id, OrderNumber: "MES-2026-001", OrderName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal},
+		all:  []*domain.MESWork{{ID: id, OrderNumber: "MES-2026-001", OrderName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal}},
 	}
 	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeServiceGroupRepo{}, workRepo)
 
@@ -380,8 +380,8 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 
 	overdueWork := &domain.MESWork{
 		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-010",
-		WorkName:        "Trabajo vencido",
+		OrderNumber:     "MES-2026-010",
+		OrderName:       "Trabajo vencido",
 		PartyID:         "party-1",
 		TangibleGroupID: uuid.New(),
 		Status:          domain.ProductionStatusInProgress,
@@ -391,8 +391,8 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 
 	dueTodayWork := &domain.MESWork{
 		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-011",
-		WorkName:        "Trabajo hoy",
+		OrderNumber:     "MES-2026-011",
+		OrderName:       "Trabajo hoy",
 		PartyID:         "party-1",
 		TangibleGroupID: uuid.New(),
 		Status:          domain.ProductionStatusDraft,
@@ -402,8 +402,8 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 
 	notOverdueCompleted := &domain.MESWork{
 		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-012",
-		WorkName:        "Trabajo completado",
+		OrderNumber:     "MES-2026-012",
+		OrderName:       "Trabajo completado",
 		PartyID:         "party-1",
 		TangibleGroupID: uuid.New(),
 		Status:          domain.ProductionStatusCompleted,
@@ -413,8 +413,8 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 
 	futureWork := &domain.MESWork{
 		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-013",
-		WorkName:        "Trabajo futuro",
+		OrderNumber:     "MES-2026-013",
+		OrderName:       "Trabajo futuro",
 		PartyID:         "party-1",
 		TangibleGroupID: uuid.New(),
 		Status:          domain.ProductionStatusPending,
@@ -461,16 +461,16 @@ func TestUpdateMESWorkTaskStatus_StartAndCompleteFlow(t *testing.T) {
 	workRepo := &fakeMESWorkRepo{
 		byID: &domain.MESWork{
 			ID:              workID,
-			WorkNumber:      "MES-2026-020",
-			WorkName:        "Trabajo tablet",
+			OrderNumber:     "MES-2026-020",
+			OrderName:       "Trabajo tablet",
 			PartyID:         "party-1",
 			TangibleGroupID: uuid.New(),
 			Status:          domain.ProductionStatusPending,
 			Priority:        domain.WorkPriorityNormal,
-			ServiceGroups: []domain.MESWorkServiceGroup{
+			Lines: []domain.MESWorkServiceGroup{
 				{
 					ID:             serviceGroupID,
-					ServiceGroupID: uuid.New(),
+					WorkTypeID:     uuid.New(),
 					PositionID:     uuid.New(),
 					Sequence:       1,
 					Tasks: []domain.MESWorkTask{

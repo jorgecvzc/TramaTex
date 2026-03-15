@@ -300,9 +300,8 @@ func (s *MESService) UpdateServiceGroup(ctx context.Context, cmd UpdateServiceGr
 	if cmd.Description != nil {
 		serviceGroup.Description = *cmd.Description
 	}
-	if cmd.ProductGroupID != nil {
-		serviceGroup.ProductGroupID = cmd.ProductGroupID
-	}
+	// ProductGroupID was removed in the domain refactor (WorkType no longer has it).
+	// The command field is kept for API compatibility but is no longer stored.
 	if cmd.IsActive != nil {
 		serviceGroup.IsActive = *cmd.IsActive
 	}
@@ -395,7 +394,7 @@ func toServiceGroupDTO(serviceGroup *domain.ServiceGroup) *ServiceGroupDTO {
 		ID:             serviceGroup.ID,
 		Name:           serviceGroup.Name,
 		Description:    serviceGroup.Description,
-		ProductGroupID: serviceGroup.ProductGroupID,
+		ProductGroupID: nil, // Removed in domain refactor; kept in DTO for API compatibility.
 		IsActive:       serviceGroup.IsActive,
 		Tasks:          tasks,
 	}
@@ -459,7 +458,7 @@ func (s *MESService) CreateMESWork(ctx context.Context, cmd CreateMESWorkCommand
 
 		groups = append(groups, domain.MESWorkServiceGroup{
 			ID:             uuid.New(),
-			ServiceGroupID: assignment.ServiceGroupID,
+			WorkTypeID:     assignment.ServiceGroupID,
 			PositionID:     assignment.PositionID,
 			DesignFilePath: designFilePath,
 			Notes:          notes,
@@ -514,7 +513,7 @@ func (s *MESService) UpdateMESWork(ctx context.Context, cmd UpdateMESWorkCommand
 		if trimmed == "" {
 			return nil, fmt.Errorf("work name is required")
 		}
-		work.WorkName = trimmed
+		work.OrderName = trimmed
 	}
 
 	if cmd.PartyID != nil {
@@ -589,9 +588,9 @@ func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESW
 	assignedTo := parseActorUUID(cmd.ActorID)
 
 	found := false
-	for groupIndex := range work.ServiceGroups {
-		for taskIndex := range work.ServiceGroups[groupIndex].Tasks {
-			task := &work.ServiceGroups[groupIndex].Tasks[taskIndex]
+	for groupIndex := range work.Lines {
+		for taskIndex := range work.Lines[groupIndex].Tasks {
+			task := &work.Lines[groupIndex].Tasks[taskIndex]
 			if task.ID != cmd.TaskID {
 				continue
 			}
@@ -817,7 +816,7 @@ func recalculateWorkStatus(work *domain.MESWork, now time.Time) {
 	hasBlocked := false
 	hasPending := false
 
-	for _, group := range work.ServiceGroups {
+	for _, group := range work.Lines {
 		for _, task := range group.Tasks {
 			total++
 			switch task.Status {
@@ -887,8 +886,8 @@ func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
 		return nil
 	}
 
-	groups := make([]MESWorkServiceGroupDTO, 0, len(work.ServiceGroups))
-	for _, group := range work.ServiceGroups {
+	groups := make([]MESWorkServiceGroupDTO, 0, len(work.Lines))
+	for _, group := range work.Lines {
 		tasks := make([]MESWorkTaskDTO, 0, len(group.Tasks))
 		for _, task := range group.Tasks {
 			tasks = append(tasks, MESWorkTaskDTO{
@@ -905,7 +904,7 @@ func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
 
 		groups = append(groups, MESWorkServiceGroupDTO{
 			ID:             group.ID,
-			ServiceGroupID: group.ServiceGroupID,
+			ServiceGroupID: group.WorkTypeID,
 			PositionID:     group.PositionID,
 			DesignFilePath: group.DesignFilePath,
 			Notes:          group.Notes,
@@ -916,8 +915,8 @@ func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
 
 	return &MESWorkDTO{
 		ID:              work.ID,
-		WorkNumber:      work.WorkNumber,
-		WorkName:        work.WorkName,
+		WorkNumber:      work.OrderNumber,
+		WorkName:        work.OrderName,
 		PartyID:         work.PartyID,
 		TangibleGroupID: work.TangibleGroupID,
 		GarmentNotes:    work.GarmentNotes,

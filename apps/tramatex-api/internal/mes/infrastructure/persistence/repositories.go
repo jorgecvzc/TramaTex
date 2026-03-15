@@ -253,7 +253,7 @@ func (r *GORMServiceGroupRepository) Save(ctx context.Context, serviceGroup *dom
 			ID:             serviceGroup.ID,
 			Name:           serviceGroup.Name,
 			Description:    serviceGroup.Description,
-			ProductGroupID: serviceGroup.ProductGroupID,
+			ProductGroupID: nil, // ProductGroupID removed from domain; kept as nil for DB compat.
 			IsActive:       serviceGroup.IsActive,
 		}
 		if err := tx.Save(&data).Error; err != nil {
@@ -337,12 +337,11 @@ func mapServiceGroupToDomain(data ServiceGroupDataModel) *domain.ServiceGroup {
 	}
 
 	return &domain.ServiceGroup{
-		ID:             data.ID,
-		Name:           data.Name,
-		Description:    data.Description,
-		ProductGroupID: data.ProductGroupID,
-		IsActive:       data.IsActive,
-		Tasks:          tasks,
+		ID:          data.ID,
+		Name:        data.Name,
+		Description: data.Description,
+		IsActive:    data.IsActive,
+		Tasks:       tasks,
 	}
 }
 
@@ -358,8 +357,8 @@ func (r *GORMMESWorkRepository) Save(ctx context.Context, work *domain.MESWork) 
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		data := MESWorkDataModel{
 			ID:              work.ID,
-			WorkNumber:      work.WorkNumber,
-			WorkName:        work.WorkName,
+			WorkNumber:      work.OrderNumber,
+			WorkName:        work.OrderName,
 			PartyID:         work.PartyID,
 			TangibleGroupID: work.TangibleGroupID,
 			GarmentNotes:    work.GarmentNotes,
@@ -386,11 +385,11 @@ func (r *GORMMESWorkRepository) Save(ctx context.Context, work *domain.MESWork) 
 			return err
 		}
 
-		for _, group := range work.ServiceGroups {
+		for _, group := range work.Lines {
 			groupData := MESWorkServiceGroupDataModel{
 				ID:             group.ID,
 				MESWorkID:      work.ID,
-				ServiceGroupID: group.ServiceGroupID,
+				ServiceGroupID: group.WorkTypeID,
 				PositionID:     group.PositionID,
 				DesignFilePath: group.DesignFilePath,
 				Notes:          group.Notes,
@@ -499,8 +498,8 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 		priority := domain.WorkPriority(row.Priority)
 		result = append(result, &domain.MESWork{
 			ID:              row.ID,
-			WorkNumber:      row.WorkNumber,
-			WorkName:        row.WorkName,
+			OrderNumber:     row.WorkNumber,
+			OrderName:       row.WorkName,
 			PartyID:         row.PartyID,
 			TangibleGroupID: row.TangibleGroupID,
 			GarmentNotes:    row.GarmentNotes,
@@ -509,7 +508,7 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 			StartDate:       row.StartDate,
 			DueDate:         row.DueDate,
 			CompletedDate:   row.CompletedDate,
-			ServiceGroups:   []domain.MESWorkServiceGroup{},
+			Lines:           []domain.MESWorkServiceGroup{},
 		})
 	}
 	return result, nil
@@ -547,7 +546,7 @@ func mapMESWorkToDomain(data MESWorkDataModel) (*domain.MESWork, error) {
 
 		groups = append(groups, domain.MESWorkServiceGroup{
 			ID:             group.ID,
-			ServiceGroupID: group.ServiceGroupID,
+			WorkTypeID:     group.ServiceGroupID,
 			PositionID:     group.PositionID,
 			DesignFilePath: group.DesignFilePath,
 			Notes:          group.Notes,
@@ -558,8 +557,8 @@ func mapMESWorkToDomain(data MESWorkDataModel) (*domain.MESWork, error) {
 
 	return &domain.MESWork{
 		ID:              data.ID,
-		WorkNumber:      data.WorkNumber,
-		WorkName:        data.WorkName,
+		OrderNumber:     data.WorkNumber,
+		OrderName:       data.WorkName,
 		PartyID:         data.PartyID,
 		TangibleGroupID: data.TangibleGroupID,
 		GarmentNotes:    data.GarmentNotes,
@@ -568,6 +567,6 @@ func mapMESWorkToDomain(data MESWorkDataModel) (*domain.MESWork, error) {
 		StartDate:       data.StartDate,
 		DueDate:         data.DueDate,
 		CompletedDate:   data.CompletedDate,
-		ServiceGroups:   groups,
+		Lines:           groups,
 	}, nil
 }

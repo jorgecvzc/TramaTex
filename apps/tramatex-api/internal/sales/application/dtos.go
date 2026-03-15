@@ -169,7 +169,7 @@ func NewQuoteDTO(q *domain.Quote) *QuoteDTO {
 		QuoteDate:      q.QuoteDate,
 		ExpirationDate: q.ExpirationDate,
 		Status:         string(q.Status),
-		MesWorkRefs:    mesWorkRefDTOsFromDomain(q.MESWorkRefs),
+		MesWorkRefs:    mesWorkRefDTOsFromDomain(q.SalesWorkSetups),
 		LineItems:      items,
 		Subtotal:       NewMoneyDTO(q.Subtotal),
 		TaxAmount:      NewMoneyDTO(q.TaxAmount),
@@ -206,7 +206,7 @@ func NewSalesOrderDTO(order *domain.SalesOrder) *SalesOrderDTO {
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       string(order.Status),
-		MesWorkRefs:  mesWorkRefDTOsFromDomain(order.MESWorkRefs),
+		MesWorkRefs:  mesWorkRefDTOsFromDomain(order.SalesWorkSetups),
 		LineItems:    items,
 		Subtotal:     NewMoneyDTO(order.Subtotal),
 		TaxAmount:    NewMoneyDTO(order.TaxAmount),
@@ -230,26 +230,36 @@ func NewOrderLineItemDTO(item domain.OrderLineItem) OrderLineItemDTO {
 	}
 }
 
-func mesWorkRefDTOsFromDomain(refs []domain.MESWorkRef) []MesWorkRefDTO {
-	if len(refs) == 0 {
+func mesWorkRefDTOsFromDomain(setups []domain.SalesWorkSetup) []MesWorkRefDTO {
+	if len(setups) == 0 {
 		return nil
 	}
-	dtos := make([]MesWorkRefDTO, len(refs))
-	for i, r := range refs {
-		dtos[i] = MesWorkRefDTO{MesWorkID: r.MESWorkID, Observations: r.Observations}
+	dtos := make([]MesWorkRefDTO, len(setups))
+	for i, s := range setups {
+		var workID uuid.UUID
+		if s.WorkOrderID != nil {
+			workID = *s.WorkOrderID
+		}
+		dtos[i] = MesWorkRefDTO{MesWorkID: workID, Observations: s.Observations}
 	}
 	return dtos
 }
 
-func mesWorkRefsToDomain(dtos []MesWorkRefInput) []domain.MESWorkRef {
+func mesWorkRefsToDomain(dtos []MesWorkRefInput) []domain.SalesWorkSetup {
 	if len(dtos) == 0 {
 		return nil
 	}
-	refs := make([]domain.MESWorkRef, len(dtos))
+	setups := make([]domain.SalesWorkSetup, len(dtos))
 	for i, d := range dtos {
-		refs[i] = domain.MESWorkRef{MESWorkID: d.MesWorkID, Observations: d.Observations}
+		wid := d.MesWorkID
+		setups[i] = domain.SalesWorkSetup{
+			ID:           uuid.New(),
+			WorkOrderID:  &wid,
+			Observations: d.Observations,
+			Sequence:     i + 1,
+		}
 	}
-	return refs
+	return setups
 }
 
 func NewDeliveryNoteDTO(note *domain.DeliveryNote) *DeliveryNoteDTO {

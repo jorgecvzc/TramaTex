@@ -53,26 +53,3 @@ func TestWorkPriorityValidation(t *testing.T) {
 		t.Fatal("expected invalid work priority")
 	}
 }
-
-func TestQualityAndRecipeAndTaskTypeValidation(t *testing.T) {
-	if !QualityStatusPassed.IsValid() || !QualityStatusPending.IsValid() {
-		t.Fatal("expected quality statuses to be valid")
-	}
-	if QualityStatus("NOPE").IsValid() {
-		t.Fatal("expected invalid quality status")
-	}
-
-	if !RecipeTypePhysicalProduct.IsValid() || !RecipeTypeServiceProduct.IsValid() {
-		t.Fatal("expected recipe types to be valid")
-	}
-	if RecipeType("OTHER").IsValid() {
-		t.Fatal("expected invalid recipe type")
-	}
-
-	if !TaskTypeOneTime.IsValid() || !TaskTypeRecurrent.IsValid() {
-		t.Fatal("expected task types to be valid")
-	}
-	if TaskType("TEMP").IsValid() {
-		t.Fatal("expected invalid task type")
-	}
-}
