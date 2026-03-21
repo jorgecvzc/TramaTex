@@ -46,12 +46,14 @@ Análisis modular sistemático del backend para identificar oportunidades de mej
 - [x] **Deduplicación**: Identificación de lógica redundante en cálculos y handlers (Shared).
 - [x] **Integridad Doc-Code**: Validación de alineación entre ADRs y realidad técnica.
 - [x] **Módulo 6: MES (Producción)**: **COMPLETADO** (Propuestas añadidas a `tmp/mvp_refinement_proposals.md`; documentación MES actualizada el 2026-03-20).
+- [x] **P2 — Handlers Ligeros**: Activado middleware global de errores; eliminados 3 mappers locales (mes, sales, product). Rama `mvp-arch-refinement`.
+- [x] **P3 — Cálculos Duplicados**: Creado `calculations.go` con `SumAmounts`; 6 funciones sum consolidadas. Rama `mvp-arch-refinement`.
+- [x] **P1 — Fragmentar SalesService**: `sales_service.go` 2232→247 líneas; creados `quote_service.go`, `order_service.go`, `delivery_note_service.go`, `billing_service.go`. Rama `mvp-arch-refinement`.
 
 ### Próximos Pasos
 
-- [ ] **Refactor de MES (Usuario)**: Esperar a que el usuario complete la refactorización manual de MES.
-- [ ] **Análisis y Propuestas de MES**: Estudiar el nuevo código de MES y añadir sus propuestas a `tmp/mvp_refinement_proposals.md`.
-- [ ] **Priorización e Implementación**: Iniciar la ejecución de refinamientos en el resto de módulos (Sales, Product, IAM).
+- [ ] **P4 — IAM UUID**: Migrar `User.id` de `string` a `uuid.UUID` (sprint separado).
+- [ ] **PR y Merge**: Crear PR de `mvp-arch-refinement` → `develop` y mergear.
 
 ### Archivos de Contexto
 
