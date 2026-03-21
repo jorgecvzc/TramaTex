@@ -10,8 +10,6 @@ type DeliveryNoteStatus string
 
 type InvoiceStatus string
 
-type SalesWorkStatus string
-
 const (
 	QuoteStatusDraft     QuoteStatus = "BORRADOR"
 	QuoteStatusIssued    QuoteStatus = "EMITIDA"
@@ -37,12 +35,6 @@ const (
 	InvoiceStatusPaid    InvoiceStatus = "PAGADA"
 	InvoiceStatusOverdue InvoiceStatus = "VENCIDA"
 	InvoiceStatusVoid    InvoiceStatus = "ANULADA"
-
-	SalesWorkStatusDraft      SalesWorkStatus = "BORRADOR"
-	SalesWorkStatusPending    SalesWorkStatus = "PENDIENTE"
-	SalesWorkStatusInProgress SalesWorkStatus = "EN_PROCESO"
-	SalesWorkStatusCompleted  SalesWorkStatus = "COMPLETADO"
-	SalesWorkStatusCanceled   SalesWorkStatus = "CANCELADO"
 )
 
 func (s QuoteStatus) IsValid() error {
@@ -79,15 +71,6 @@ func (s InvoiceStatus) IsValid() error {
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid invoice status: %s", s))
-	}
-}
-
-func (s SalesWorkStatus) IsValid() error {
-	switch s {
-	case SalesWorkStatusDraft, SalesWorkStatusPending, SalesWorkStatusInProgress, SalesWorkStatusCompleted, SalesWorkStatusCanceled:
-		return nil
-	default:
-		return NewValidationError(fmt.Sprintf("invalid sales work status: %s", s))
 	}
 }
 
@@ -142,19 +125,6 @@ func canTransitionInvoice(from InvoiceStatus, to InvoiceStatus) bool {
 		return to == InvoiceStatusPaid || to == InvoiceStatusOverdue || to == InvoiceStatusVoid
 	case InvoiceStatusOverdue:
 		return to == InvoiceStatusPaid || to == InvoiceStatusVoid
-	default:
-		return false
-	}
-}
-
-func canTransitionSalesWork(from SalesWorkStatus, to SalesWorkStatus) bool {
-	switch from {
-	case SalesWorkStatusDraft:
-		return to == SalesWorkStatusPending || to == SalesWorkStatusCanceled
-	case SalesWorkStatusPending:
-		return to == SalesWorkStatusInProgress || to == SalesWorkStatusCanceled
-	case SalesWorkStatusInProgress:
-		return to == SalesWorkStatusCompleted || to == SalesWorkStatusCanceled
 	default:
 		return false
 	}

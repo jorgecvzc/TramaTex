@@ -249,23 +249,23 @@ func (h *MESHandler) DeletePosition(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// Service groups
-// MES Works
-func (h *MESHandler) CreateServiceGroup(c *gin.Context) {
+// Work Types
+// Work Orders
+func (h *MESHandler) CreateWorkType(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	var cmd application.CreateServiceGroupCommand
+	var cmd application.CreateWorkTypeCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ActorID = actorID
 
-	result, err := h.service.CreateServiceGroup(c.Request.Context(), cmd)
+	result, err := h.service.CreateWorkType(c.Request.Context(), cmd)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -273,25 +273,21 @@ func (h *MESHandler) CreateServiceGroup(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (h *MESHandler) CreateServiceTemplate(c *gin.Context) {
-	h.CreateServiceGroup(c)
-}
-
-func (h *MESHandler) CreateMESWork(c *gin.Context) {
+func (h *MESHandler) CreateWorkOrder(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
 		return
 	}
 
-	var cmd application.CreateMESWorkCommand
+	var cmd application.CreateWorkOrderCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	cmd.ActorID = actorID
 
-	result, err := h.service.CreateMESWork(c.Request.Context(), cmd)
+	result, err := h.service.CreateWorkOrder(c.Request.Context(), cmd)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -299,11 +295,7 @@ func (h *MESHandler) CreateMESWork(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func (h *MESHandler) CreateWorkDefinition(c *gin.Context) {
-	h.CreateMESWork(c)
-}
-
-func (h *MESHandler) UpdateMESWork(c *gin.Context) {
+func (h *MESHandler) UpdateWorkOrder(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
@@ -315,7 +307,7 @@ func (h *MESHandler) UpdateMESWork(c *gin.Context) {
 		return
 	}
 
-	var cmd application.UpdateMESWorkCommand
+	var cmd application.UpdateWorkOrderCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -324,7 +316,7 @@ func (h *MESHandler) UpdateMESWork(c *gin.Context) {
 	cmd.ID = id
 	cmd.ActorID = actorID
 
-	result, err := h.service.UpdateMESWork(c.Request.Context(), cmd)
+	result, err := h.service.UpdateWorkOrder(c.Request.Context(), cmd)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -333,17 +325,13 @@ func (h *MESHandler) UpdateMESWork(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) UpdateWorkDefinition(c *gin.Context) {
-	h.UpdateMESWork(c)
-}
-
-func (h *MESHandler) GetMESWork(c *gin.Context) {
+func (h *MESHandler) GetWorkOrder(c *gin.Context) {
 	id, ok := parseID(c, "id")
 	if !ok {
 		return
 	}
 
-	result, err := h.service.GetMESWorkByID(c.Request.Context(), application.GetMESWorkByIDQuery{ID: id})
+	result, err := h.service.GetWorkOrderByID(c.Request.Context(), application.GetWorkOrderByIDQuery{ID: id})
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -351,18 +339,14 @@ func (h *MESHandler) GetMESWork(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) GetWorkDefinition(c *gin.Context) {
-	h.GetMESWork(c)
-}
-
-func (h *MESHandler) ListMESWorks(c *gin.Context) {
-	var query application.ListMESWorksQuery
+func (h *MESHandler) ListWorkOrders(c *gin.Context) {
+	var query application.ListWorkOrdersQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	results, err := h.service.ListMESWorks(c.Request.Context(), query)
+	results, err := h.service.ListWorkOrders(c.Request.Context(), query)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -370,12 +354,8 @@ func (h *MESHandler) ListMESWorks(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
-func (h *MESHandler) ListWorkDefinitions(c *gin.Context) {
-	h.ListMESWorks(c)
-}
-
-func (h *MESHandler) GetMESWorkDashboardStats(c *gin.Context) {
-	result, err := h.service.GetMESWorkDashboardStats(c.Request.Context())
+func (h *MESHandler) GetWorkOrderDashboardStats(c *gin.Context) {
+	result, err := h.service.GetWorkOrderDashboardStats(c.Request.Context())
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -383,18 +363,14 @@ func (h *MESHandler) GetMESWorkDashboardStats(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) GetWorkDefinitionDashboardStats(c *gin.Context) {
-	h.GetMESWorkDashboardStats(c)
-}
-
-func (h *MESHandler) ListOverdueMESWorks(c *gin.Context) {
-	var query application.ListOverdueMESWorksQuery
+func (h *MESHandler) ListOverdueWorkOrders(c *gin.Context) {
+	var query application.ListOverdueWorkOrdersQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	results, err := h.service.ListOverdueMESWorks(c.Request.Context(), query)
+	results, err := h.service.ListOverdueWorkOrders(c.Request.Context(), query)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -402,11 +378,7 @@ func (h *MESHandler) ListOverdueMESWorks(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
-func (h *MESHandler) ListOverdueWorkDefinitions(c *gin.Context) {
-	h.ListOverdueMESWorks(c)
-}
-
-func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
+func (h *MESHandler) UpdateWorkOrderTaskStatus(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
@@ -423,7 +395,7 @@ func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
 		return
 	}
 
-	var cmd application.UpdateMESWorkTaskStatusCommand
+	var cmd application.UpdateWorkOrderTaskStatusCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -433,7 +405,7 @@ func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
 	cmd.WorkID = workID
 	cmd.TaskID = taskID
 
-	result, err := h.service.UpdateMESWorkTaskStatus(c.Request.Context(), cmd)
+	result, err := h.service.UpdateWorkOrderTaskStatus(c.Request.Context(), cmd)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -442,17 +414,13 @@ func (h *MESHandler) UpdateMESWorkTaskStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) UpdateWorkDefinitionTaskStatus(c *gin.Context) {
-	h.UpdateMESWorkTaskStatus(c)
-}
-
-func (h *MESHandler) GetServiceGroup(c *gin.Context) {
+func (h *MESHandler) GetWorkType(c *gin.Context) {
 	id, ok := parseID(c, "id")
 	if !ok {
 		return
 	}
 
-	result, err := h.service.GetServiceGroupByID(c.Request.Context(), application.GetServiceGroupByIDQuery{ID: id})
+	result, err := h.service.GetWorkTypeByID(c.Request.Context(), application.GetWorkTypeByIDQuery{ID: id})
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -460,18 +428,14 @@ func (h *MESHandler) GetServiceGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) GetServiceTemplate(c *gin.Context) {
-	h.GetServiceGroup(c)
-}
-
-func (h *MESHandler) ListServiceGroups(c *gin.Context) {
-	var query application.ListServiceGroupsQuery
+func (h *MESHandler) ListWorkTypes(c *gin.Context) {
+	var query application.ListWorkTypesQuery
 	if err := c.ShouldBindQuery(&query); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	results, err := h.service.ListServiceGroups(c.Request.Context(), query)
+	results, err := h.service.ListWorkTypes(c.Request.Context(), query)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -479,11 +443,7 @@ func (h *MESHandler) ListServiceGroups(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
-func (h *MESHandler) ListServiceTemplates(c *gin.Context) {
-	h.ListServiceGroups(c)
-}
-
-func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
+func (h *MESHandler) UpdateWorkType(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
@@ -495,7 +455,7 @@ func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
 		return
 	}
 
-	var cmd application.UpdateServiceGroupCommand
+	var cmd application.UpdateWorkTypeCommand
 	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -503,7 +463,7 @@ func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
 	cmd.ID = id
 	cmd.ActorID = actorID
 
-	result, err := h.service.UpdateServiceGroup(c.Request.Context(), cmd)
+	result, err := h.service.UpdateWorkType(c.Request.Context(), cmd)
 	if err != nil {
 		mapServiceError(c, err)
 		return
@@ -511,11 +471,7 @@ func (h *MESHandler) UpdateServiceGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *MESHandler) UpdateServiceTemplate(c *gin.Context) {
-	h.UpdateServiceGroup(c)
-}
-
-func (h *MESHandler) DeleteServiceGroup(c *gin.Context) {
+func (h *MESHandler) DeleteWorkType(c *gin.Context) {
 	actorID, ok := actorIDFromContext(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
@@ -527,13 +483,120 @@ func (h *MESHandler) DeleteServiceGroup(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteServiceGroup(c.Request.Context(), application.DeleteServiceGroupCommand{ActorID: actorID, ID: id}); err != nil {
+	if err := h.service.DeleteWorkType(c.Request.Context(), application.DeleteWorkTypeCommand{ActorID: actorID, ID: id}); err != nil {
 		mapServiceError(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
 }
 
-func (h *MESHandler) DeleteServiceTemplate(c *gin.Context) {
-	h.DeleteServiceGroup(c)
+// --- WorkSetup ---
+
+func (h *MESHandler) CreateWorkSetup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	var cmd application.CreateWorkSetupCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	cmd.ActorID = actorID
+
+	result, err := h.service.CreateWorkSetup(c.Request.Context(), cmd)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, result)
+}
+
+func (h *MESHandler) GetWorkSetup(c *gin.Context) {
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	result, err := h.service.GetWorkSetupByID(c.Request.Context(), application.GetWorkSetupByIDQuery{ID: id})
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) ListWorkSetups(c *gin.Context) {
+	var query application.ListWorkSetupsQuery
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	results, err := h.service.ListWorkSetups(c.Request.Context(), query)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, results)
+}
+
+func (h *MESHandler) UpdateWorkSetup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	var cmd application.UpdateWorkSetupCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	cmd.ID = id
+	cmd.ActorID = actorID
+
+	result, err := h.service.UpdateWorkSetup(c.Request.Context(), cmd)
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *MESHandler) DeleteWorkSetup(c *gin.Context) {
+	actorID, ok := actorIDFromContext(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user ID is required"})
+		return
+	}
+
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := h.service.DeleteWorkSetup(c.Request.Context(), application.DeleteWorkSetupCommand{ActorID: actorID, ID: id}); err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// ListPendingWorkSetups returns pending work setups from confirmed Sales orders
+// that have no MES WorkOrder yet. Delegates to a Sales adapter.
+func (h *MESHandler) ListPendingWorkSetups(c *gin.Context) {
+	result, err := h.service.ListPendingWorkSetups(c.Request.Context())
+	if err != nil {
+		mapServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }

@@ -14,6 +14,13 @@ export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'VOID'
 export type InvoiceType = 'STANDARD' | 'SIMPLIFIED'
 export type PaymentMethod = 'CASH' | 'TRANSFER' | 'CREDIT_CARD' | 'CHECK' | 'OTHER'
 
+export interface MesWorkRefItem {
+  id: string
+  workSetupId?: string | null
+  workOrderId?: string | null
+  description: string
+}
+
 // ============================================================================
 // LINE ITEM ENTITIES
 // ============================================================================
@@ -84,6 +91,7 @@ export interface Quote {
   tax_total: number
   total: number
   notes: string | null
+  mesWorkRefs?: MesWorkRefItem[]
   generated_order_id?: string | null
   generated_order_number?: string | null
   created_at: string
@@ -100,6 +108,7 @@ export interface Order {
   party_id: string
   party_name: string
   quote_id: string | null
+  sourceQuoteNumber?: string
   status: OrderStatus
   order_date: string
   delivery_date: string | null
@@ -109,6 +118,7 @@ export interface Order {
   tax_total: number
   total: number
   notes: string | null
+  mesWorkRefs?: MesWorkRefItem[]
   created_at: string
   updated_at: string
 }
@@ -169,7 +179,7 @@ export interface CreateQuoteRequest {
   partyId: string
   expirationDate: string
   items: CreateQuoteLineItemRequest[]
-  mesWorkIds?: string[]
+  mesWorkRefs?: { workSetupId: string | null; description: string }[]
   notes?: string
 }
 
@@ -182,7 +192,7 @@ export interface CreateQuoteLineItemRequest {
 
 export interface UpdateQuoteRequest {
   expirationDate?: string
-  mesWorkIds?: string[]
+  mesWorkRefs?: { workSetupId: string | null; description: string }[]
   notes?: string
   items?: CreateQuoteLineItemRequest[]
 }
@@ -196,7 +206,7 @@ export interface CreateOrderRequest {
   quoteId?: string
   deliveryDate?: string
   items: CreateOrderLineItemRequest[]
-  mesWorkIds?: string[]
+  mesWorkRefs?: { workSetupId: string | null; description: string }[]
   notes?: string
 }
 

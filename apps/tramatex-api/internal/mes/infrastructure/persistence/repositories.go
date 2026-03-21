@@ -14,6 +14,7 @@ import (
 type TaskDataModel struct {
 	ID          uuid.UUID `gorm:"column:id;type:uuid;primaryKey"`
 	Name        string    `gorm:"column:name"`
+	Reference   string    `gorm:"column:reference"`
 	Description string    `gorm:"column:description"`
 	IsActive    bool      `gorm:"column:is_active"`
 }
@@ -30,68 +31,68 @@ type PositionDataModel struct {
 
 func (PositionDataModel) TableName() string { return "positions" }
 
-type ServiceGroupDataModel struct {
-	ID             uuid.UUID                   `gorm:"column:id;type:uuid;primaryKey"`
-	Name           string                      `gorm:"column:name"`
-	Description    string                      `gorm:"column:description"`
-	ProductGroupID *uuid.UUID                  `gorm:"column:product_group_id;type:uuid"`
-	IsActive       bool                        `gorm:"column:is_active"`
-	Tasks          []ServiceGroupTaskDataModel `gorm:"foreignKey:ServiceGroupID;references:ID"`
+type WorkTypeDataModel struct {
+	ID          uuid.UUID               `gorm:"column:id;type:uuid;primaryKey"`
+	Name        string                  `gorm:"column:name"`
+	Reference   string                  `gorm:"column:reference"`
+	Description string                  `gorm:"column:description"`
+	IsActive    bool                    `gorm:"column:is_active"`
+	Tasks       []WorkTypeTaskDataModel `gorm:"foreignKey:WorkTypeID;references:ID"`
 }
 
-func (ServiceGroupDataModel) TableName() string { return "service_groups" }
+func (WorkTypeDataModel) TableName() string { return "work_types" }
 
-type ServiceGroupTaskDataModel struct {
-	ServiceGroupID uuid.UUID `gorm:"column:service_group_id;type:uuid;primaryKey"`
-	TaskID         uuid.UUID `gorm:"column:task_id;type:uuid;primaryKey"`
-	Sequence       int       `gorm:"column:sequence"`
+type WorkTypeTaskDataModel struct {
+	WorkTypeID uuid.UUID `gorm:"column:work_type_id;type:uuid;primaryKey"`
+	TaskID     uuid.UUID `gorm:"column:task_id;type:uuid;primaryKey"`
+	Sequence   int       `gorm:"column:sequence"`
 }
 
-func (ServiceGroupTaskDataModel) TableName() string { return "service_group_tasks" }
+func (WorkTypeTaskDataModel) TableName() string { return "work_type_tasks" }
 
-type MESWorkDataModel struct {
-	ID              uuid.UUID                      `gorm:"column:id;type:uuid;primaryKey"`
-	WorkNumber      string                         `gorm:"column:work_number"`
-	WorkName        string                         `gorm:"column:work_name"`
-	PartyID         string                         `gorm:"column:party_id"`
-	TangibleGroupID uuid.UUID                      `gorm:"column:tangible_group_id;type:uuid"`
-	GarmentNotes    string                         `gorm:"column:garment_notes"`
-	Status          string                         `gorm:"column:status"`
-	Priority        string                         `gorm:"column:priority"`
-	StartDate       *time.Time                     `gorm:"column:start_date"`
-	DueDate         *time.Time                     `gorm:"column:due_date"`
-	CompletedDate   *time.Time                     `gorm:"column:completed_date"`
-	ServiceGroups   []MESWorkServiceGroupDataModel `gorm:"foreignKey:MESWorkID;references:ID"`
+type WorkOrderDataModel struct {
+	ID            uuid.UUID                `gorm:"column:id;type:uuid;primaryKey"`
+	WorkNumber    string                   `gorm:"column:work_number"`
+	WorkName      string                   `gorm:"column:work_name"`
+	PartyID       string                   `gorm:"column:party_id"`
+	WorkSetupID   *uuid.UUID               `gorm:"column:work_setup_id;type:uuid"`
+	Notes         string                   `gorm:"column:notes"`
+	Status        string                   `gorm:"column:status"`
+	Priority      string                   `gorm:"column:priority"`
+	StartDate     *time.Time               `gorm:"column:start_date"`
+	DueDate       *time.Time               `gorm:"column:due_date"`
+	CompletedDate *time.Time               `gorm:"column:completed_date"`
+	Lines         []WorkOrderLineDataModel `gorm:"foreignKey:WorkOrderID;references:ID"`
 }
 
-func (MESWorkDataModel) TableName() string { return "mes_works" }
+func (WorkOrderDataModel) TableName() string { return "work_orders" }
 
-type MESWorkServiceGroupDataModel struct {
-	ID             uuid.UUID              `gorm:"column:id;type:uuid;primaryKey"`
-	MESWorkID      uuid.UUID              `gorm:"column:mes_work_id;type:uuid"`
-	ServiceGroupID uuid.UUID              `gorm:"column:service_group_id;type:uuid"`
-	PositionID     uuid.UUID              `gorm:"column:position_id;type:uuid"`
-	DesignFilePath string                 `gorm:"column:design_file_path"`
-	Notes          string                 `gorm:"column:notes"`
-	Sequence       int                    `gorm:"column:sequence"`
-	Tasks          []MESWorkTaskDataModel `gorm:"foreignKey:MESWorkServiceGroupID;references:ID"`
+type WorkOrderLineDataModel struct {
+	ID             uuid.UUID                `gorm:"column:id;type:uuid;primaryKey"`
+	WorkOrderID    uuid.UUID                `gorm:"column:work_order_id;type:uuid"`
+	WorkTypeID     uuid.UUID                `gorm:"column:work_type_id;type:uuid"`
+	PositionID     uuid.UUID                `gorm:"column:position_id;type:uuid"`
+	DesignFilePath string                   `gorm:"column:design_file_path"`
+	Notes          string                   `gorm:"column:notes"`
+	Sequence       int                      `gorm:"column:sequence"`
+	Tasks          []WorkOrderTaskDataModel `gorm:"foreignKey:WorkOrderLineID;references:ID"`
 }
 
-func (MESWorkServiceGroupDataModel) TableName() string { return "mes_work_service_groups" }
+func (WorkOrderLineDataModel) TableName() string { return "work_order_lines" }
 
-type MESWorkTaskDataModel struct {
-	ID                    uuid.UUID  `gorm:"column:id;type:uuid;primaryKey"`
-	MESWorkServiceGroupID uuid.UUID  `gorm:"column:mes_work_service_group_id;type:uuid"`
-	TaskID                uuid.UUID  `gorm:"column:task_id;type:uuid"`
-	Sequence              int        `gorm:"column:sequence"`
-	Status                string     `gorm:"column:status"`
-	AssignedTo            *uuid.UUID `gorm:"column:assigned_to;type:uuid"`
-	StartedAt             *time.Time `gorm:"column:started_at"`
-	CompletedAt           *time.Time `gorm:"column:completed_at"`
-	Notes                 string     `gorm:"column:notes"`
+type WorkOrderTaskDataModel struct {
+	ID              uuid.UUID  `gorm:"column:id;type:uuid;primaryKey"`
+	WorkOrderLineID uuid.UUID  `gorm:"column:work_order_line_id;type:uuid"`
+	TaskID          uuid.UUID  `gorm:"column:task_id;type:uuid"`
+	Sequence        int        `gorm:"column:sequence"`
+	Status          string     `gorm:"column:status"`
+	AssignedTo      *uuid.UUID `gorm:"column:assigned_to;type:uuid"`
+	StartedAt       *time.Time `gorm:"column:started_at"`
+	CompletedAt     *time.Time `gorm:"column:completed_at"`
+	Notes           string     `gorm:"column:notes"`
 }
 
-func (MESWorkTaskDataModel) TableName() string { return "mes_work_tasks" }
+func (WorkOrderTaskDataModel) TableName() string { return "work_order_tasks" }
 
 type GORMTaskRepository struct {
 	db *gorm.DB
@@ -105,6 +106,7 @@ func (r *GORMTaskRepository) Save(ctx context.Context, task *domain.Task) error 
 	data := TaskDataModel{
 		ID:          task.ID,
 		Name:        task.Name,
+		Reference:   task.Reference,
 		Description: task.Description,
 		IsActive:    task.IsActive,
 	}
@@ -123,6 +125,7 @@ func (r *GORMTaskRepository) FindByID(ctx context.Context, id uuid.UUID) (*domai
 	return &domain.Task{
 		ID:          data.ID,
 		Name:        data.Name,
+		Reference:   data.Reference,
 		Description: data.Description,
 		IsActive:    data.IsActive,
 	}, nil
@@ -149,6 +152,7 @@ func (r *GORMTaskRepository) FindAll(ctx context.Context, filters *domain.TaskFi
 		results = append(results, &domain.Task{
 			ID:          row.ID,
 			Name:        row.Name,
+			Reference:   row.Reference,
 			Description: row.Description,
 			IsActive:    row.IsActive,
 		})
@@ -239,38 +243,38 @@ func (r *GORMPositionRepository) Delete(ctx context.Context, id uuid.UUID) error
 	return r.db.WithContext(ctx).Delete(&PositionDataModel{}, "id = ?", id).Error
 }
 
-type GORMServiceGroupRepository struct {
+type GORMWorkTypeRepository struct {
 	db *gorm.DB
 }
 
-func NewGORMServiceGroupRepository(db *gorm.DB) *GORMServiceGroupRepository {
-	return &GORMServiceGroupRepository{db: db}
+func NewGORMWorkTypeRepository(db *gorm.DB) *GORMWorkTypeRepository {
+	return &GORMWorkTypeRepository{db: db}
 }
 
-func (r *GORMServiceGroupRepository) Save(ctx context.Context, serviceGroup *domain.ServiceGroup) error {
+func (r *GORMWorkTypeRepository) Save(ctx context.Context, workType *domain.WorkType) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		data := ServiceGroupDataModel{
-			ID:             serviceGroup.ID,
-			Name:           serviceGroup.Name,
-			Description:    serviceGroup.Description,
-			ProductGroupID: nil, // ProductGroupID removed from domain; kept as nil for DB compat.
-			IsActive:       serviceGroup.IsActive,
+		data := WorkTypeDataModel{
+			ID:          workType.ID,
+			Name:        workType.Name,
+			Reference:   workType.Reference,
+			Description: workType.Description,
+			IsActive:    workType.IsActive,
 		}
 		if err := tx.Save(&data).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("service_group_id = ?", serviceGroup.ID).Delete(&ServiceGroupTaskDataModel{}).Error; err != nil {
+		if err := tx.Where("work_type_id = ?", workType.ID).Delete(&WorkTypeTaskDataModel{}).Error; err != nil {
 			return err
 		}
 
-		if len(serviceGroup.Tasks) > 0 {
-			assignments := make([]ServiceGroupTaskDataModel, 0, len(serviceGroup.Tasks))
-			for _, assignment := range serviceGroup.Tasks {
-				assignments = append(assignments, ServiceGroupTaskDataModel{
-					ServiceGroupID: serviceGroup.ID,
-					TaskID:         assignment.TaskID,
-					Sequence:       assignment.Sequence,
+		if len(workType.Tasks) > 0 {
+			assignments := make([]WorkTypeTaskDataModel, 0, len(workType.Tasks))
+			for _, assignment := range workType.Tasks {
+				assignments = append(assignments, WorkTypeTaskDataModel{
+					WorkTypeID: workType.ID,
+					TaskID:     assignment.TaskID,
+					Sequence:   assignment.Sequence,
 				})
 			}
 			if err := tx.Create(&assignments).Error; err != nil {
@@ -282,8 +286,8 @@ func (r *GORMServiceGroupRepository) Save(ctx context.Context, serviceGroup *dom
 	})
 }
 
-func (r *GORMServiceGroupRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.ServiceGroup, error) {
-	var data ServiceGroupDataModel
+func (r *GORMWorkTypeRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.WorkType, error) {
+	var data WorkTypeDataModel
 	err := r.db.WithContext(ctx).
 		Preload("Tasks", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
 		First(&data, "id = ?", id).Error
@@ -293,12 +297,12 @@ func (r *GORMServiceGroupRepository) FindByID(ctx context.Context, id uuid.UUID)
 		}
 		return nil, err
 	}
-	return mapServiceGroupToDomain(data), nil
+	return mapWorkTypeToDomain(data), nil
 }
 
-func (r *GORMServiceGroupRepository) FindAll(ctx context.Context, filters *domain.ServiceGroupFilters) ([]*domain.ServiceGroup, error) {
+func (r *GORMWorkTypeRepository) FindAll(ctx context.Context, filters *domain.WorkTypeFilters) ([]*domain.WorkType, error) {
 	query := r.db.WithContext(ctx).
-		Model(&ServiceGroupDataModel{}).
+		Model(&WorkTypeDataModel{}).
 		Preload("Tasks", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
 		Order("name ASC")
 
@@ -311,107 +315,108 @@ func (r *GORMServiceGroupRepository) FindAll(ctx context.Context, filters *domai
 		}
 	}
 
-	var data []ServiceGroupDataModel
+	var data []WorkTypeDataModel
 	if err := query.Find(&data).Error; err != nil {
 		return nil, err
 	}
 
-	results := make([]*domain.ServiceGroup, 0, len(data))
+	results := make([]*domain.WorkType, 0, len(data))
 	for _, row := range data {
-		results = append(results, mapServiceGroupToDomain(row))
+		results = append(results, mapWorkTypeToDomain(row))
 	}
 	return results, nil
 }
 
-func (r *GORMServiceGroupRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.db.WithContext(ctx).Delete(&ServiceGroupDataModel{}, "id = ?", id).Error
+func (r *GORMWorkTypeRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&WorkTypeDataModel{}, "id = ?", id).Error
 }
 
-func mapServiceGroupToDomain(data ServiceGroupDataModel) *domain.ServiceGroup {
-	tasks := make([]domain.ServiceGroupTask, 0, len(data.Tasks))
+func mapWorkTypeToDomain(data WorkTypeDataModel) *domain.WorkType {
+	tasks := make([]domain.WorkTypeTask, 0, len(data.Tasks))
 	for _, assignment := range data.Tasks {
-		tasks = append(tasks, domain.ServiceGroupTask{
+		tasks = append(tasks, domain.WorkTypeTask{
 			TaskID:   assignment.TaskID,
 			Sequence: assignment.Sequence,
 		})
 	}
 
-	return &domain.ServiceGroup{
+	return &domain.WorkType{
 		ID:          data.ID,
 		Name:        data.Name,
+		Reference:   data.Reference,
 		Description: data.Description,
 		IsActive:    data.IsActive,
 		Tasks:       tasks,
 	}
 }
 
-type GORMMESWorkRepository struct {
+type GORMWorkOrderRepository struct {
 	db *gorm.DB
 }
 
-func NewGORMMESWorkRepository(db *gorm.DB) *GORMMESWorkRepository {
-	return &GORMMESWorkRepository{db: db}
+func NewGORMWorkOrderRepository(db *gorm.DB) *GORMWorkOrderRepository {
+	return &GORMWorkOrderRepository{db: db}
 }
 
-func (r *GORMMESWorkRepository) Save(ctx context.Context, work *domain.MESWork) error {
+func (r *GORMWorkOrderRepository) Save(ctx context.Context, work *domain.WorkOrder) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		data := MESWorkDataModel{
-			ID:              work.ID,
-			WorkNumber:      work.OrderNumber,
-			WorkName:        work.OrderName,
-			PartyID:         work.PartyID,
-			TangibleGroupID: work.TangibleGroupID,
-			GarmentNotes:    work.GarmentNotes,
-			Status:          string(work.Status),
-			Priority:        string(work.Priority),
-			StartDate:       work.StartDate,
-			DueDate:         work.DueDate,
-			CompletedDate:   work.CompletedDate,
+		data := WorkOrderDataModel{
+			ID:            work.ID,
+			WorkNumber:    work.OrderNumber,
+			WorkName:      work.OrderName,
+			PartyID:       work.PartyID,
+			WorkSetupID:   work.WorkSetupID,
+			Notes:         work.Notes,
+			Status:        string(work.Status),
+			Priority:      string(work.Priority),
+			StartDate:     work.StartDate,
+			DueDate:       work.DueDate,
+			CompletedDate: work.CompletedDate,
 		}
 		if err := tx.Save(&data).Error; err != nil {
 			return err
 		}
 
 		if err := tx.Exec(`
-			DELETE FROM mes_work_tasks
-			WHERE mes_work_service_group_id IN (
-				SELECT id FROM mes_work_service_groups WHERE mes_work_id = ?
+			DELETE FROM work_order_tasks
+			WHERE work_order_line_id IN (
+				SELECT id FROM work_order_lines WHERE work_order_id = ?
 			)
 		`, work.ID).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("mes_work_id = ?", work.ID).Delete(&MESWorkServiceGroupDataModel{}).Error; err != nil {
+		if err := tx.Where("work_order_id = ?", work.ID).Delete(&WorkOrderLineDataModel{}).Error; err != nil {
 			return err
 		}
 
-		for _, group := range work.Lines {
-			groupData := MESWorkServiceGroupDataModel{
-				ID:             group.ID,
-				MESWorkID:      work.ID,
-				ServiceGroupID: group.WorkTypeID,
-				PositionID:     group.PositionID,
-				DesignFilePath: group.DesignFilePath,
-				Notes:          group.Notes,
-				Sequence:       group.Sequence,
+		for _, line := range work.Lines {
+			lineData := WorkOrderLineDataModel{
+				ID:             line.ID,
+				WorkOrderID:    work.ID,
+				WorkTypeID:     line.WorkTypeID,
+				PositionID:     line.PositionID,
+				DesignFilePath: line.DesignFilePath,
+				Notes:          line.Notes,
+				Sequence:       line.Sequence,
 			}
-			if err := tx.Create(&groupData).Error; err != nil {
+			if err := tx.Create(&lineData).Error; err != nil {
 				return err
 			}
 
-			if len(group.Tasks) > 0 {
-				taskRows := make([]MESWorkTaskDataModel, 0, len(group.Tasks))
-				for _, task := range group.Tasks {
-					taskRows = append(taskRows, MESWorkTaskDataModel{
-						ID:                    task.ID,
-						MESWorkServiceGroupID: group.ID,
-						TaskID:                task.TaskID,
-						Sequence:              task.Sequence,
-						Status:                string(task.Status),
-						AssignedTo:            task.AssignedTo,
-						StartedAt:             task.StartedAt,
-						CompletedAt:           task.CompletedAt,
-						Notes:                 task.Notes,
+			if len(line.Tasks) > 0 {
+				taskRows := make([]WorkOrderTaskDataModel, 0, len(line.Tasks))
+				for _, task := range line.Tasks {
+					taskRows = append(taskRows, WorkOrderTaskDataModel{
+						ID:              task.ID,
+						WorkOrderLineID: line.ID,
+						TaskID:          task.TaskID,
+						Sequence:        task.Sequence,
+						Status:          string(task.Status),
+						AssignedTo:      task.AssignedTo,
+						StartedAt:       task.StartedAt,
+						CompletedAt:     task.CompletedAt,
+						Notes:           task.Notes,
 					})
 				}
 				if err := tx.Create(&taskRows).Error; err != nil {
@@ -424,11 +429,11 @@ func (r *GORMMESWorkRepository) Save(ctx context.Context, work *domain.MESWork) 
 	})
 }
 
-func (r *GORMMESWorkRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.MESWork, error) {
-	var data MESWorkDataModel
+func (r *GORMWorkOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.WorkOrder, error) {
+	var data WorkOrderDataModel
 	err := r.db.WithContext(ctx).
-		Preload("ServiceGroups", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
-		Preload("ServiceGroups.Tasks", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		Preload("Lines", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		Preload("Lines.Tasks", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
 		First(&data, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -436,11 +441,11 @@ func (r *GORMMESWorkRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 		}
 		return nil, err
 	}
-	return mapMESWorkToDomain(data)
+	return mapWorkOrderToDomain(data)
 }
 
-func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MESWorkFilters) ([]*domain.MESWork, error) {
-	query := r.db.WithContext(ctx).Model(&MESWorkDataModel{}).Order("created_at DESC")
+func (r *GORMWorkOrderRepository) FindAll(ctx context.Context, filters *domain.WorkOrderFilters) ([]*domain.WorkOrder, error) {
+	query := r.db.WithContext(ctx).Model(&WorkOrderDataModel{}).Order("created_at DESC")
 	if filters != nil {
 		if filters.Status != nil {
 			query = query.Where("status = ?", string(*filters.Status))
@@ -453,13 +458,13 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 				OR EXISTS (
 					SELECT 1
 					FROM organization_profiles op
-					WHERE op.party_id = mes_works.party_id
+					WHERE op.party_id = work_orders.party_id
 					  AND op.name ILIKE ?
 				)
 				OR EXISTS (
 					SELECT 1
 					FROM person_profiles pp
-					WHERE pp.party_id = mes_works.party_id
+					WHERE pp.party_id = work_orders.party_id
 					  AND (
 						pp.first_name ILIKE ?
 						OR pp.last_name ILIKE ?
@@ -469,7 +474,7 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 				OR EXISTS (
 					SELECT 1
 					FROM party_roles pr
-					WHERE pr.party_id = mes_works.party_id
+					WHERE pr.party_id = work_orders.party_id
 					  AND pr.creation_identifier ILIKE ?
 				)
 			`,
@@ -485,54 +490,49 @@ func (r *GORMMESWorkRepository) FindAll(ctx context.Context, filters *domain.MES
 		if filters.PartyID != "" {
 			query = query.Where("party_id = ?", filters.PartyID)
 		}
+		if filters.WorkSetupID != nil {
+			query = query.Where("work_setup_id = ?", *filters.WorkSetupID)
+		}
 	}
 
-	var rows []MESWorkDataModel
-	if err := query.Find(&rows).Error; err != nil {
+	var rows []WorkOrderDataModel
+	if err := query.
+		Preload("Lines", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		Preload("Lines.Tasks", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		Find(&rows).Error; err != nil {
 		return nil, err
 	}
 
-	result := make([]*domain.MESWork, 0, len(rows))
+	result := make([]*domain.WorkOrder, 0, len(rows))
 	for _, row := range rows {
-		status := domain.ProductionStatus(row.Status)
-		priority := domain.WorkPriority(row.Priority)
-		result = append(result, &domain.MESWork{
-			ID:              row.ID,
-			OrderNumber:     row.WorkNumber,
-			OrderName:       row.WorkName,
-			PartyID:         row.PartyID,
-			TangibleGroupID: row.TangibleGroupID,
-			GarmentNotes:    row.GarmentNotes,
-			Status:          status,
-			Priority:        priority,
-			StartDate:       row.StartDate,
-			DueDate:         row.DueDate,
-			CompletedDate:   row.CompletedDate,
-			Lines:           []domain.MESWorkServiceGroup{},
-		})
+		wo, err := mapWorkOrderToDomain(row)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, wo)
 	}
 	return result, nil
 }
 
-func (r *GORMMESWorkRepository) CountByYear(ctx context.Context, year int) (int64, error) {
+func (r *GORMWorkOrderRepository) CountByYear(ctx context.Context, year int) (int64, error) {
 	var count int64
 	prefix := fmt.Sprintf("MES-%d-", year)
-	err := r.db.WithContext(ctx).Model(&MESWorkDataModel{}).Where("work_number LIKE ?", prefix+"%").Count(&count).Error
+	err := r.db.WithContext(ctx).Model(&WorkOrderDataModel{}).Where("work_number LIKE ?", prefix+"%").Count(&count).Error
 	if err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
-func mapMESWorkToDomain(data MESWorkDataModel) (*domain.MESWork, error) {
+func mapWorkOrderToDomain(data WorkOrderDataModel) (*domain.WorkOrder, error) {
 	status := domain.ProductionStatus(data.Status)
 	priority := domain.WorkPriority(data.Priority)
-	groups := make([]domain.MESWorkServiceGroup, 0, len(data.ServiceGroups))
+	lines := make([]domain.WorkOrderLine, 0, len(data.Lines))
 
-	for _, group := range data.ServiceGroups {
-		tasks := make([]domain.MESWorkTask, 0, len(group.Tasks))
-		for _, task := range group.Tasks {
-			tasks = append(tasks, domain.MESWorkTask{
+	for _, line := range data.Lines {
+		tasks := make([]domain.WorkOrderTask, 0, len(line.Tasks))
+		for _, task := range line.Tasks {
+			tasks = append(tasks, domain.WorkOrderTask{
 				ID:          task.ID,
 				TaskID:      task.TaskID,
 				Sequence:    task.Sequence,
@@ -544,29 +544,179 @@ func mapMESWorkToDomain(data MESWorkDataModel) (*domain.MESWork, error) {
 			})
 		}
 
-		groups = append(groups, domain.MESWorkServiceGroup{
-			ID:             group.ID,
-			WorkTypeID:     group.ServiceGroupID,
-			PositionID:     group.PositionID,
-			DesignFilePath: group.DesignFilePath,
-			Notes:          group.Notes,
-			Sequence:       group.Sequence,
+		lines = append(lines, domain.WorkOrderLine{
+			ID:             line.ID,
+			WorkTypeID:     line.WorkTypeID,
+			PositionID:     line.PositionID,
+			DesignFilePath: line.DesignFilePath,
+			Notes:          line.Notes,
+			Sequence:       line.Sequence,
 			Tasks:          tasks,
 		})
 	}
 
-	return &domain.MESWork{
+	return &domain.WorkOrder{
+		ID:            data.ID,
+		OrderNumber:   data.WorkNumber,
+		OrderName:     data.WorkName,
+		PartyID:       data.PartyID,
+		WorkSetupID:   data.WorkSetupID,
+		Notes:         data.Notes,
+		Status:        status,
+		Priority:      priority,
+		StartDate:     data.StartDate,
+		DueDate:       data.DueDate,
+		CompletedDate: data.CompletedDate,
+		Lines:         lines,
+	}, nil
+}
+
+// --- WorkSetup Persistence ---
+
+type WorkSetupDataModel struct {
+	ID              uuid.UUID                `gorm:"column:id;type:uuid;primaryKey"`
+	Name            string                   `gorm:"column:name"`
+	PartyID         string                   `gorm:"column:party_id"`
+	TangibleGroupID *uuid.UUID               `gorm:"column:tangible_group_id;type:uuid"`
+	Description     string                   `gorm:"column:description"`
+	IsActive        bool                     `gorm:"column:is_active"`
+	Lines           []WorkSetupLineDataModel `gorm:"foreignKey:WorkSetupID;references:ID"`
+}
+
+func (WorkSetupDataModel) TableName() string { return "work_setups" }
+
+type WorkSetupLineDataModel struct {
+	ID             uuid.UUID `gorm:"column:id;type:uuid;primaryKey"`
+	WorkSetupID    uuid.UUID `gorm:"column:work_setup_id;type:uuid"`
+	WorkTypeID     uuid.UUID `gorm:"column:work_type_id;type:uuid"`
+	PositionID     uuid.UUID `gorm:"column:position_id;type:uuid"`
+	DesignFilePath string    `gorm:"column:design_file_path"`
+	Notes          string    `gorm:"column:notes"`
+	Sequence       int       `gorm:"column:sequence"`
+}
+
+func (WorkSetupLineDataModel) TableName() string { return "work_setup_lines" }
+
+type GORMWorkSetupRepository struct {
+	db *gorm.DB
+}
+
+func NewGORMWorkSetupRepository(db *gorm.DB) *GORMWorkSetupRepository {
+	return &GORMWorkSetupRepository{db: db}
+}
+
+func (r *GORMWorkSetupRepository) Save(ctx context.Context, ws *domain.WorkSetup) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		data := WorkSetupDataModel{
+			ID:              ws.ID,
+			Name:            ws.Name,
+			PartyID:         ws.PartyID,
+			TangibleGroupID: ws.TangibleGroupID,
+			Description:     ws.Description,
+			IsActive:        ws.IsActive,
+		}
+		if err := tx.Save(&data).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("work_setup_id = ?", ws.ID).Delete(&WorkSetupLineDataModel{}).Error; err != nil {
+			return err
+		}
+
+		if len(ws.Lines) > 0 {
+			lines := make([]WorkSetupLineDataModel, 0, len(ws.Lines))
+			for _, line := range ws.Lines {
+				lineID := line.ID
+				if lineID == uuid.Nil {
+					lineID = uuid.New()
+				}
+				lines = append(lines, WorkSetupLineDataModel{
+					ID:             lineID,
+					WorkSetupID:    ws.ID,
+					WorkTypeID:     line.WorkTypeID,
+					PositionID:     line.PositionID,
+					DesignFilePath: line.DesignFilePath,
+					Notes:          line.Notes,
+					Sequence:       line.Sequence,
+				})
+			}
+			if err := tx.Create(&lines).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func (r *GORMWorkSetupRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.WorkSetup, error) {
+	var data WorkSetupDataModel
+	err := r.db.WithContext(ctx).
+		Preload("Lines", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		First(&data, "id = ?", id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return mapWorkSetupToDomain(data), nil
+}
+
+func (r *GORMWorkSetupRepository) FindAll(ctx context.Context, filters *domain.WorkSetupFilters) ([]*domain.WorkSetup, error) {
+	query := r.db.WithContext(ctx).
+		Model(&WorkSetupDataModel{}).
+		Preload("Lines", func(db *gorm.DB) *gorm.DB { return db.Order("sequence ASC") }).
+		Order("name ASC")
+
+	if filters != nil {
+		if filters.IsActive != nil {
+			query = query.Where("is_active = ?", *filters.IsActive)
+		}
+		if filters.Search != "" {
+			query = query.Where("name ILIKE ?", "%"+filters.Search+"%")
+		}
+		if filters.PartyID != "" {
+			query = query.Where("party_id = ?", filters.PartyID)
+		}
+	}
+
+	var data []WorkSetupDataModel
+	if err := query.Find(&data).Error; err != nil {
+		return nil, err
+	}
+
+	results := make([]*domain.WorkSetup, 0, len(data))
+	for _, row := range data {
+		results = append(results, mapWorkSetupToDomain(row))
+	}
+	return results, nil
+}
+
+func (r *GORMWorkSetupRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&WorkSetupDataModel{}, "id = ?", id).Error
+}
+
+func mapWorkSetupToDomain(data WorkSetupDataModel) *domain.WorkSetup {
+	lines := make([]domain.WorkSetupLine, 0, len(data.Lines))
+	for _, l := range data.Lines {
+		lines = append(lines, domain.WorkSetupLine{
+			ID:             l.ID,
+			WorkTypeID:     l.WorkTypeID,
+			PositionID:     l.PositionID,
+			DesignFilePath: l.DesignFilePath,
+			Notes:          l.Notes,
+			Sequence:       l.Sequence,
+		})
+	}
+
+	return &domain.WorkSetup{
 		ID:              data.ID,
-		OrderNumber:     data.WorkNumber,
-		OrderName:       data.WorkName,
+		Name:            data.Name,
 		PartyID:         data.PartyID,
 		TangibleGroupID: data.TangibleGroupID,
-		GarmentNotes:    data.GarmentNotes,
-		Status:          status,
-		Priority:        priority,
-		StartDate:       data.StartDate,
-		DueDate:         data.DueDate,
-		CompletedDate:   data.CompletedDate,
-		Lines:           groups,
-	}, nil
+		Description:     data.Description,
+		IsActive:        data.IsActive,
+		Lines:           lines,
+	}
 }

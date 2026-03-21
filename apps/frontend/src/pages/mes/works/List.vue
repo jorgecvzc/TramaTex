@@ -4,23 +4,22 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Definiciones de trabajo</p>
-          <h1>Definiciones de trabajo MES</h1>
-          <p class="subtitle">Seguimiento de órdenes de manufactura.</p>
+          <p class="breadcrumb">MES / Órdenes de Trabajo</p>
+          <h1>Órdenes de trabajo</h1>
+          <p class="subtitle">Seguimiento y gestión de órdenes de producción.</p>
         </div>
-        <RouterLink to="/mes/work-definitions/new" class="btn btn-primary">Nueva definición</RouterLink>
+        <RouterLink to="/mes/work-orders/new" class="btn btn-primary">Nueva orden</RouterLink>
       </header>
 
       <section class="card filters">
         <input v-model="search" type="text" placeholder="Buscar por nombre, número o cliente (nombre/referencia)" class="input" />
         <select v-model="statusFilter" class="input">
           <option value="">Todos</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PENDING">Pending</option>
-          <option value="IN_PROGRESS">In progress</option>
-          <option value="ON_HOLD">On hold</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
+          <option value="PENDING">Pendiente</option>
+          <option value="IN_PROGRESS">En progreso</option>
+          <option value="ON_HOLD">En espera</option>
+          <option value="COMPLETED">Completado</option>
+          <option value="CANCELLED">Cancelado</option>
         </select>
         <button @click="loadWorks" class="btn btn-secondary">Filtrar</button>
       </section>
@@ -42,14 +41,14 @@
             <tr v-for="work in works" :key="work.id">
               <td><strong>{{ work.work_number }}</strong></td>
               <td>{{ work.work_name }}</td>
-              <td>{{ work.status }}</td>
-              <td>{{ work.priority }}</td>
+              <td>{{ mesApi.getWorkStatusLabel(work.status) }}</td>
+              <td>{{ mesApi.getPriorityLabel(work.priority) }}</td>
               <td>
-                <RouterLink :to="`/mes/work-definitions/${work.id}`" class="btn-link">Ver</RouterLink>
+                <RouterLink :to="`/mes/work-orders/${work.id}`" class="btn-link">Ver</RouterLink>
               </td>
             </tr>
             <tr v-if="works.length === 0">
-              <td colspan="5" class="empty-state">No hay definiciones MES registradas.</td>
+              <td colspan="5" class="empty-state">No hay órdenes de trabajo registradas.</td>
             </tr>
           </tbody>
         </table>
@@ -60,28 +59,29 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
-import type { MESWork } from '@/types/mes'
+import type { WorkOrder } from '@/types/mes'
 
-const works = ref<MESWork[]>([])
+const works = ref<WorkOrder[]>([])
 const isLoading = ref(false)
 const error = ref('')
+const route = useRoute()
 const search = ref('')
-const statusFilter = ref('')
+const statusFilter = ref((route.query.status as string) || '')
 
 async function loadWorks() {
   isLoading.value = true
   error.value = ''
 
   try {
-    works.value = await mesApi.listWorkDefinitions({
+    works.value = await mesApi.listWorkOrders({
       search: search.value.trim() || undefined,
       status: statusFilter.value || undefined,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las definiciones de trabajo MES'
+    error.value = err.message || 'No se pudieron cargar las órdenes de trabajo'
   } finally {
     isLoading.value = false
   }

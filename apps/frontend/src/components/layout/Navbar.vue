@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserMenu from './UserMenu.vue'
-import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Folder, Zap, User, Wrench, Tag, Plus } from 'lucide-vue-next'
+import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Folder, Zap, User, Wrench, Tag, Plus, Settings } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
@@ -142,27 +142,32 @@ onBeforeUnmount(() => {
           </button>
           <ul v-if="showMES" class="dropdown-menu">
             <li>
-              <RouterLink to="/mes/dashboard" class="dropdown-item" title="Dashboard MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/dashboard" class="dropdown-item" title="Panel de control" @click="closeAllDropdowns">
                 <Home :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/tasks" class="dropdown-item" title="Tareas MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/tasks" class="dropdown-item" title="Tareas" @click="closeAllDropdowns">
                 <Clipboard :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/positions" class="dropdown-item" title="Puestos MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/positions" class="dropdown-item" title="Posiciones" @click="closeAllDropdowns">
                 <Users :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/service-groups" class="dropdown-item" title="Plantillas de Proceso MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/work-types" class="dropdown-item" title="Tipos de trabajo" @click="closeAllDropdowns">
                 <Folder :size="20" />
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/work-definitions" class="dropdown-item" title="Definiciones de trabajo MES" @click="closeAllDropdowns">
+              <RouterLink to="/mes/work-setups" class="dropdown-item" title="Configuraciones" @click="closeAllDropdowns">
+                <Settings :size="20" />
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/mes/work-orders" class="dropdown-item" title="Órdenes de trabajo" @click="closeAllDropdowns">
                 <ShoppingCart :size="20" />
               </RouterLink>
             </li>

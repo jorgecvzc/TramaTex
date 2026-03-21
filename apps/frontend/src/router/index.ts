@@ -260,7 +260,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/Dashboard.vue"),
     meta: {
       requiresAuth: true,
-      title: "Dashboard MES - TramaTex",
+      title: "Monitoreo de Producción - TramaTex",
     },
   },
   {
@@ -269,7 +269,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/tasks/List.vue"),
     meta: {
       requiresAuth: true,
-      title: "Tareas MES - TramaTex",
+      title: "Tareas - TramaTex",
     },
   },
   {
@@ -278,7 +278,16 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/tasks/Create.vue"),
     meta: {
       requiresAuth: true,
-      title: "Nueva Tarea MES - TramaTex",
+      title: "Nueva Tarea - TramaTex",
+    },
+  },
+  {
+    path: "/mes/tasks/:id/edit",
+    name: "MESEditTask",
+    component: () => import("@/pages/mes/tasks/Edit.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Editar Tarea - TramaTex",
     },
   },
   {
@@ -287,7 +296,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/positions/List.vue"),
     meta: {
       requiresAuth: true,
-      title: "Puestos MES - TramaTex",
+      title: "Posiciones - TramaTex",
     },
   },
   {
@@ -296,65 +305,130 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/positions/Create.vue"),
     meta: {
       requiresAuth: true,
-      title: "Nuevo Puesto MES - TramaTex",
+      title: "Nueva Posición - TramaTex",
+    },
+  },
+  {
+    path: "/mes/positions/:id/edit",
+    name: "MESEditPosition",
+    component: () => import("@/pages/mes/positions/Edit.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Editar Posición - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-types",
+    name: "MESWorkTypesList",
+    component: () => import("@/pages/mes/service-groups/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Tipos de Trabajo - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-types/new",
+    name: "MESCreateWorkType",
+    component: () => import("@/pages/mes/service-groups/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nuevo Tipo de Trabajo - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-types/:id/edit",
+    name: "MESEditWorkType",
+    component: () => import("@/pages/mes/service-groups/Edit.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Editar Tipo de Trabajo - TramaTex",
     },
   },
   {
     path: "/mes/service-groups",
-    name: "MESServiceGroupsList",
-    component: () => import("@/pages/mes/service-groups/List.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Plantillas de Proceso MES - TramaTex",
-    },
+    redirect: "/mes/work-types",
   },
   {
     path: "/mes/service-groups/new",
-    name: "MESCreateServiceGroup",
-    component: () => import("@/pages/mes/service-groups/Create.vue"),
+    redirect: "/mes/work-types/new",
+  },
+  {
+    path: "/mes/work-orders",
+    name: "MESWorkOrdersList",
+    component: () => import("@/pages/mes/works/List.vue"),
     meta: {
       requiresAuth: true,
-      title: "Nueva Plantilla de Proceso MES - TramaTex",
+      title: "Órdenes de Trabajo - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-orders/new",
+    name: "MESCreateWorkOrder",
+    component: () => import("@/pages/mes/works/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nueva Orden de Trabajo - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-orders/:id",
+    name: "MESWorkOrderDetail",
+    component: () => import("@/pages/mes/works/Detail.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Detalle Orden de Trabajo - TramaTex",
     },
   },
   {
     path: "/mes/work-definitions",
-    name: "MESWorkDefinitionsList",
-    component: () => import("@/pages/mes/works/List.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Definiciones de Trabajo MES - TramaTex",
-    },
+    redirect: "/mes/work-orders",
   },
   {
     path: "/mes/work-definitions/new",
-    name: "MESCreateWorkDefinition",
-    component: () => import("@/pages/mes/works/Create.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Nueva Definición de Trabajo MES - TramaTex",
-    },
+    redirect: "/mes/work-orders/new",
   },
   {
     path: "/mes/work-definitions/:id",
-    name: "MESWorkDefinitionDetail",
-    component: () => import("@/pages/mes/works/Detail.vue"),
-    meta: {
-      requiresAuth: true,
-      title: "Detalle Definición de Trabajo MES - TramaTex",
-    },
+    redirect: to => `/mes/work-orders/${to.params.id}`,
   },
   {
     path: "/mes/works",
-    redirect: "/mes/work-definitions",
+    redirect: "/mes/work-orders",
   },
   {
     path: "/mes/works/new",
-    redirect: "/mes/work-definitions/new",
+    redirect: "/mes/work-orders/new",
   },
   {
     path: "/mes/works/:id",
-    redirect: to => `/mes/work-definitions/${to.params.id}`,
+    redirect: to => `/mes/work-orders/${to.params.id}`,
+  },
+  {
+    path: "/mes/work-setups",
+    name: "MESWorkSetupsList",
+    component: () => import("@/pages/mes/work-setups/List.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Configuraciones de Cliente - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-setups/new",
+    name: "MESCreateWorkSetup",
+    component: () => import("@/pages/mes/work-setups/Create.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Nueva Configuración - TramaTex",
+    },
+  },
+  {
+    path: "/mes/work-setups/:id/edit",
+    name: "MESEditWorkSetup",
+    component: () => import("@/pages/mes/work-setups/Edit.vue"),
+    meta: {
+      requiresAuth: true,
+      title: "Editar Configuración - TramaTex",
+    },
   },
   {
     path: "/mes/terminal",
@@ -362,7 +436,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/mes/terminal/Tablet.vue"),
     meta: {
       requiresAuth: true,
-      title: "Terminal MES Tablet - TramaTex",
+      title: "Terminal de Taller - TramaTex",
     },
   },
   {

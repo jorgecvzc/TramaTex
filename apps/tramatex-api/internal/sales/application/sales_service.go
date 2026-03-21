@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -58,6 +59,27 @@ type MESWorkLookup interface {
 	GetWorkOrdersProgress(ctx context.Context, workOrderIDs []uuid.UUID) ([]WorkOrderProgress, error)
 }
 
+// WorkOrderCreator creates a MES WorkOrder from Sales when an order is confirmed.
+// Implementation lives in infrastructure as an adapter that calls MES service.
+type WorkOrderCreator interface {
+	CreateWorkOrder(ctx context.Context, workName, partyID, notes string, workSetupID *uuid.UUID, orderWorkSetupID uuid.UUID) (uuid.UUID, error)
+}
+
+// WorkOrderSuspender manages MES WorkOrder lifecycle in response to
+// Sales order cancellation/reactivation. Implementation lives in
+// infrastructure as an adapter that calls MES service.
+type WorkOrderSuspender interface {
+	SuspendWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error
+	ReactivateWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error
+}
+
+// WorkOrderStatusProvider returns the current MES production status for a
+// batch of WorkOrder IDs. Implementation lives in infrastructure so Sales
+// never queries MES tables directly.
+type WorkOrderStatusProvider interface {
+	GetWorkOrderStatuses(ctx context.Context, workOrderIDs []uuid.UUID) (map[uuid.UUID]string, error)
+}
+
 type DocumentNumberGenerator interface {
 	NextQuoteNumber(ctx context.Context) (domain.QuoteNumber, error)
 	NextOrderNumber(ctx context.Context) (domain.OrderNumber, error)
@@ -66,16 +88,19 @@ type DocumentNumberGenerator interface {
 }
 
 type SalesService struct {
-	quoteRepo     domain.QuoteRepository
-	orderRepo     domain.SalesOrderRepository
-	deliveryRepo  domain.DeliveryNoteRepository
-	invoiceRepo   domain.InvoiceRepository
-	numberGen     DocumentNumberGenerator
-	pricingEngine PricingEngine
-	partyLookup   PartyLookup
-	productLookup ProductVariantLookup
-	mesLookup     MESWorkLookup
-	txManager     TransactionManager
+	quoteRepo               domain.QuoteRepository
+	orderRepo               domain.SalesOrderRepository
+	deliveryRepo            domain.DeliveryNoteRepository
+	invoiceRepo             domain.InvoiceRepository
+	numberGen               DocumentNumberGenerator
+	pricingEngine           PricingEngine
+	partyLookup             PartyLookup
+	productLookup           ProductVariantLookup
+	mesLookup               MESWorkLookup
+	workOrderCreator        WorkOrderCreator
+	workOrderSuspender      WorkOrderSuspender
+	workOrderStatusProvider WorkOrderStatusProvider
+	txManager               TransactionManager
 }
 
 func NewSalesService(
@@ -102,6 +127,21 @@ func NewSalesService(
 	}
 }
 
+// SetWorkOrderCreator configures the optional cross-module WorkOrder creator.
+func (s *SalesService) SetWorkOrderCreator(creator WorkOrderCreator) {
+	s.workOrderCreator = creator
+}
+
+// SetWorkOrderSuspender configures the optional cross-module WorkOrder suspender.
+func (s *SalesService) SetWorkOrderSuspender(suspender WorkOrderSuspender) {
+	s.workOrderSuspender = suspender
+}
+
+// SetWorkOrderStatusProvider configures the optional cross-module status checker.
+func (s *SalesService) SetWorkOrderStatusProvider(provider WorkOrderStatusProvider) {
+	s.workOrderStatusProvider = provider
+}
+
 // SetTransactionManager configures service-level transaction support.
 func (s *SalesService) SetTransactionManager(txManager TransactionManager) {
 	s.txManager = txManager
@@ -114,6 +154,38 @@ func (s *SalesService) runInTransaction(ctx context.Context, fn func(ctx context
 		return s.txManager.RunInTransaction(ctx, fn)
 	}
 	return fn(ctx)
+}
+
+// processMesWorkRefs converts MesWorkRefInputs to domain objects.
+// WorkSetupID is optional — if provided, it links the reference to an existing MES setup.
+// If ID is provided it is reused so existing WorkOrder links (WorkOrderID) are preserved.
+func (s *SalesService) processMesWorkRefs(_ context.Context, _ uuid.UUID, inputs []MesWorkRefInput) ([]domain.WorkReference, error) {
+	if len(inputs) == 0 {
+		return nil, nil
+	}
+	refs := make([]domain.WorkReference, len(inputs))
+	for i, d := range inputs {
+		var wsID *uuid.UUID
+		if d.WorkSetupID != nil && *d.WorkSetupID != uuid.Nil {
+			wsID = d.WorkSetupID
+		}
+		var woID *uuid.UUID
+		if d.WorkOrderID != nil && *d.WorkOrderID != uuid.Nil {
+			woID = d.WorkOrderID
+		}
+		id := uuid.New()
+		if d.ID != nil && *d.ID != uuid.Nil {
+			id = *d.ID
+		}
+		refs[i] = domain.WorkReference{
+			ID:          id,
+			WorkSetupID: wsID,
+			WorkOrderID: woID,
+			Description: d.Description,
+			Sequence:    i + 1,
+		}
+	}
+	return refs, nil
 }
 
 func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) (*QuoteDTO, error) {
@@ -170,7 +242,11 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 	if err != nil {
 		return nil, err
 	}
-	quote.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
+	workSetups, err := s.processMesWorkRefs(ctx, cmd.PartyID, cmd.MesWorkRefs)
+	if err != nil {
+		return nil, err
+	}
+	quote.WorkReferences = workSetups
 
 	if err := s.quoteRepo.Save(ctx, quote); err != nil {
 		return nil, err
@@ -203,7 +279,11 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 		quote.Notes = *cmd.Notes
 	}
 	if cmd.MesWorkRefs != nil {
-		quote.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
+		workSetups, err := s.processMesWorkRefs(ctx, quote.PartyID, cmd.MesWorkRefs)
+		if err != nil {
+			return nil, err
+		}
+		quote.WorkReferences = workSetups
 	}
 
 	if cmd.Items != nil {
@@ -473,8 +553,9 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 		if quote == nil {
 			return nil, domain.NewNotFoundError("quote not found")
 		}
+		// Full conversion path: quote is APPROVED → copy line items, change quote status
 		if quote.Status != domain.QuoteStatusApproved {
-			return nil, domain.NewConflictError("quote must be approved before creating an order")
+			return nil, domain.NewConflictError("quote must be approved before conversion")
 		}
 		order, err := quote.ConvertToOrder(orderNumber, cmd.DeliveryDate)
 		if err != nil {
@@ -525,7 +606,16 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 	if err != nil {
 		return nil, err
 	}
-	order.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
+	workSetups, err := s.processMesWorkRefs(ctx, cmd.PartyID, cmd.MesWorkRefs)
+	if err != nil {
+		return nil, err
+	}
+	order.WorkReferences = workSetups
+
+	// Preserve source quote reference when order is created from a non-approved quote
+	if cmd.QuoteID != nil {
+		order.QuoteID = cmd.QuoteID
+	}
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return nil, err
@@ -562,11 +652,27 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 		order.Notes = *cmd.Notes
 	}
 	if cmd.MesWorkRefs != nil {
-		order.SalesWorkSetups = mesWorkRefsToDomain(cmd.MesWorkRefs)
+		workSetups, err := s.processMesWorkRefs(ctx, order.PartyID, cmd.MesWorkRefs)
+		if err != nil {
+			return nil, err
+		}
+		order.WorkReferences = workSetups
 	}
 
 	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return nil, err
+	}
+
+	// For confirmed orders, create MES WorkOrders for any newly added WorkReferences
+	// that don't yet have a linked WorkOrder (e.g. refs added after initial confirmation).
+	if order.Status == domain.SalesOrderStatusInPreparation {
+		if err := s.createWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+		// Re-save to persist the WorkOrderIDs returned by MES.
+		if err := s.orderRepo.Save(ctx, order); err != nil {
+			return nil, err
+		}
 	}
 
 	return NewSalesOrderDTO(order), nil
@@ -581,6 +687,8 @@ func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderSta
 		return nil, domain.NewNotFoundError("order not found")
 	}
 
+	previousStatus := order.Status
+
 	status, err := parseOrderStatus(cmd.NewStatus)
 	if err != nil {
 		return nil, err
@@ -589,11 +697,104 @@ func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderSta
 		return nil, err
 	}
 
+	// On confirmation (PENDIENTE → EN_PREPARACION), create MES WorkOrders
+	// for every WorkReference that doesn't yet have a WorkOrderID.
+	if previousStatus == domain.SalesOrderStatusPending && status == domain.SalesOrderStatusInPreparation {
+		if err := s.createWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+	}
+
+	// On cancellation of a confirmed order, suspend its MES WorkOrders.
+	if status == domain.SalesOrderStatusCanceled {
+		if err := s.suspendWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+	}
+
+	// On reactivation (CANCELADO → PENDIENTE) followed by re-confirmation
+	// (PENDIENTE → EN_PREPARACION), reactivate the MES WorkOrders. We also
+	// handle CANCELADO → PENDIENTE directly so WorkOrders are ready even
+	// before the second status change.
+	if previousStatus == domain.SalesOrderStatusCanceled && status == domain.SalesOrderStatusPending {
+		if err := s.reactivateWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := s.orderRepo.Save(ctx, order); err != nil {
 		return nil, err
 	}
 
 	return NewSalesOrderDTO(order), nil
+}
+
+// createWorkOrdersForOrder calls MES to create a WorkOrder for each
+// WorkReference that has no WorkOrderID yet. Notes from the order are
+// copied to the WorkOrder.
+func (s *SalesService) createWorkOrdersForOrder(ctx context.Context, order *domain.SalesOrder) error {
+	if s.workOrderCreator == nil {
+		return nil
+	}
+	for i := range order.WorkReferences {
+		wr := &order.WorkReferences[i]
+		if wr.WorkOrderID != nil {
+			continue // already has a WorkOrder
+		}
+		wsID := wr.WorkSetupID // already *uuid.UUID, nil-safe
+		workName := wr.Description
+		if workName == "" {
+			workName = order.OrderNumber.String()
+		}
+		workOrderID, err := s.workOrderCreator.CreateWorkOrder(
+			ctx,
+			workName,               // workName (falls back to order number)
+			order.PartyID.String(), // partyID
+			order.Notes,            // notes (observaciones)
+			wsID,                   // workSetupID (optional)
+			wr.ID,                  // orderWorkSetupID for linking back
+		)
+		if err != nil {
+			return fmt.Errorf("create work order for work reference %s: %w", wr.ID, err)
+		}
+		wr.WorkOrderID = &workOrderID
+	}
+	return nil
+}
+
+// collectWorkOrderIDs returns the non-nil WorkOrderIDs from the order's WorkReferences.
+func collectWorkOrderIDs(order *domain.SalesOrder) []uuid.UUID {
+	var ids []uuid.UUID
+	for _, wr := range order.WorkReferences {
+		if wr.WorkOrderID != nil {
+			ids = append(ids, *wr.WorkOrderID)
+		}
+	}
+	return ids
+}
+
+// suspendWorkOrdersForOrder tells MES to suspend all linked WorkOrders.
+func (s *SalesService) suspendWorkOrdersForOrder(ctx context.Context, order *domain.SalesOrder) error {
+	if s.workOrderSuspender == nil {
+		return nil
+	}
+	ids := collectWorkOrderIDs(order)
+	if len(ids) == 0 {
+		return nil
+	}
+	return s.workOrderSuspender.SuspendWorkOrders(ctx, ids)
+}
+
+// reactivateWorkOrdersForOrder tells MES to reactivate all linked WorkOrders.
+func (s *SalesService) reactivateWorkOrdersForOrder(ctx context.Context, order *domain.SalesOrder) error {
+	if s.workOrderSuspender == nil {
+		return nil
+	}
+	ids := collectWorkOrderIDs(order)
+	if len(ids) == 0 {
+		return nil
+	}
+	return s.workOrderSuspender.ReactivateWorkOrders(ctx, ids)
 }
 
 func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineItemCommand) (*SalesOrderDTO, error) {
@@ -1055,7 +1256,58 @@ func (s *SalesService) GetOrder(ctx context.Context, query GetOrderByIDQuery) (*
 	}
 	dto := NewSalesOrderDTO(order)
 	s.enrichOrderLineItems(ctx, dto.LineItems)
+	s.enrichOrderWithQuoteInfo(ctx, dto)
+	s.enrichOrderMESStatus(ctx, dto)
 	return dto, nil
+}
+
+func (s *SalesService) enrichOrderWithQuoteInfo(ctx context.Context, dto *SalesOrderDTO) {
+	if dto.QuoteID == nil {
+		return
+	}
+	quote, err := s.quoteRepo.FindByID(ctx, *dto.QuoteID)
+	if err != nil || quote == nil {
+		return
+	}
+	dto.SourceQuoteNumber = quote.QuoteNumber.String()
+}
+
+func (s *SalesService) enrichOrderMESStatus(ctx context.Context, dto *SalesOrderDTO) {
+	if s.workOrderStatusProvider == nil || len(dto.MesWorkRefs) == 0 {
+		return
+	}
+	var ids []uuid.UUID
+	for _, ref := range dto.MesWorkRefs {
+		if ref.WorkOrderID != nil {
+			ids = append(ids, *ref.WorkOrderID)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	statuses, err := s.workOrderStatusProvider.GetWorkOrderStatuses(ctx, ids)
+	if err != nil {
+		return
+	}
+	allComplete := true
+	for i, ref := range dto.MesWorkRefs {
+		if ref.WorkOrderID == nil {
+			allComplete = false
+			continue
+		}
+		if st, ok := statuses[*ref.WorkOrderID]; ok {
+			s := st
+			dto.MesWorkRefs[i].WorkOrderStatus = &s
+			if st != "COMPLETED" {
+				allComplete = false
+			}
+		} else {
+			allComplete = false
+		}
+	}
+	if len(ids) == len(dto.MesWorkRefs) {
+		dto.ProductionReady = allComplete
+	}
 }
 
 func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([]*SalesOrderDTO, error) {
@@ -1076,6 +1328,33 @@ func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([
 		dto := NewSalesOrderDTO(order)
 		s.enrichOrderLineItems(ctx, dto.LineItems)
 		result = append(result, dto)
+	}
+	return result, nil
+}
+
+func (s *SalesService) ListPendingWorkSetups(ctx context.Context) ([]PendingWorkSetupDTO, error) {
+	status := domain.SalesOrderStatusInPreparation
+	filter := domain.SalesOrderFilter{Status: &status}
+	orders, err := s.orderRepo.List(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	var result []PendingWorkSetupDTO
+	for _, order := range orders {
+		for _, ws := range order.WorkReferences {
+			if ws.WorkOrderID != nil {
+				continue
+			}
+			result = append(result, PendingWorkSetupDTO{
+				ID:           ws.ID,
+				WorkSetupID:  ws.WorkSetupID,
+				Description:  ws.Description,
+				OrderID:      order.ID,
+				OrderNumber:  order.OrderNumber.String(),
+				DeliveryDate: order.DeliveryDate,
+				PartyID:      order.PartyID,
+			})
+		}
 	}
 	return result, nil
 }
@@ -1166,7 +1445,8 @@ func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery
 		return nil, domain.NewNotFoundError("invoice not found")
 	}
 	dnIDs, _ := s.invoiceRepo.ListDeliveryNoteIDsByInvoiceID(ctx, invoice.ID)
-	dto := NewInvoiceDTO(invoice, nil, dnIDs)
+	orderIDs, _ := s.invoiceRepo.ListOrderIDsByInvoiceID(ctx, invoice.ID)
+	dto := NewInvoiceDTO(invoice, orderIDs, dnIDs)
 	s.enrichInvoiceLineItems(ctx, dto.LineItems)
 	return dto, nil
 }
@@ -1595,12 +1875,7 @@ func canEditOrderDetails(status domain.SalesOrderStatus) bool {
 }
 
 func canEditOrderLineItems(status domain.SalesOrderStatus) bool {
-	switch status {
-	case domain.SalesOrderStatusPending, domain.SalesOrderStatusInPreparation:
-		return true
-	default:
-		return false
-	}
+	return status == domain.SalesOrderStatusPending
 }
 
 func findOrderLineItem(items []domain.OrderLineItem, lineItemID uuid.UUID) *domain.OrderLineItem {

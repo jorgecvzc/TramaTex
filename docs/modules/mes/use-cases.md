@@ -102,11 +102,10 @@ Este documento describe los casos de uso del módulo MES para la personalizació
 *   **Actores:** Jefe de Taller.
 *   **Flujo:**
     1.  Seleccionar un trabajo pendiente de la lista (CU-M-010).
-    2.  **Si tiene `WorkSetupID`:** crear la `WorkOrder` desde la plantilla (igual que CU-M-005), copiando líneas y tareas como snapshot.
+    2.  **Si tiene `WorkSetupID`:** crear la `WorkOrder` desde la plantilla (igual que CU-M-005), copiando líneas y tareas como snapshot. El frontend incluye el `order_work_setup_id` en el payload de creación.
     3.  **Si no tiene `WorkSetupID`:** el jefe de taller define manualmente las líneas y tareas guiándose por las observaciones del comercial. Opcionalmente puede crear primero un `WorkSetup` como plantilla.
-    4.  El sistema registra el `WorkOrderID` generado de vuelta en el `SalesWorkSetup` de Sales.
-    5.  El `SalesWorkSetup` cambia de `PENDIENTE` a `EN_PROCESO` (evento `WorkOrderStarted`).
-*   **Resultado:** `WorkOrder` creada y vinculada al trabajo de Sales.
+    4.  Al crear la `WorkOrder`, el backend invoca `SalesOrderLinker.LinkWorkOrder(ctx, orderWorkSetupID, workOrderID)` a través del adaptador `SalesOrderLinkerAdapter` (infraestructura de Sales), que actualiza el campo `work_order_id` en `order_work_setups`.
+*   **Resultado:** `WorkOrder` creada y vinculada al trabajo de Sales. La solicitud desaparece del panel de pendientes del Dashboard MES.
 
 ### **CU-M-012: Consultar Progreso de Órdenes de Trabajo**
 *   **Propósito:** Proporcionar a módulos externos (Sales) el estado de ejecución de una o varias `WorkOrder`s, incluyendo desglose por línea y tarea.
@@ -119,5 +118,20 @@ Este documento describe los casos de uso del módulo MES para la personalizació
     4.  Devolver un DTO de progreso pre-computado (`WorkOrderProgressDTO`).
 *   **Resultado:** Información de progreso lista para consumo. Sales lo recibe a través de la interfaz `MESWorkLookup`. Toda la lógica de cálculo permanece en MES.
 
+### **CU-M-013: Suspender / Reactivar Órdenes de Trabajo (desde Sales)**
+*   **Propósito:** Permitir al módulo Sales suspender temporalmente o reactivar las `WorkOrder`s asociadas a un pedido cuando su estado cambia (ej. cancelación o reactivación del pedido).
+*   **Actores:** Sistema (módulo Sales, vía `WorkOrderSuspenderAdapter`).
+*   **Entradas:** Lista de `WorkOrderID`s.
+*   **Flujo de Suspensión:**
+    1.  El servicio Sales llama a `WorkOrderSuspender.SuspendWorkOrders(ctx, []WorkOrderID)`.
+    2.  MES carga cada orden y transiciona: PENDING → SUSPENDED, IN_PROGRESS → SUSPENDED, ON_HOLD → SUSPENDED.
+    3.  Se ignoran las órdenes en estado COMPLETED o CANCELLED.
+*   **Flujo de Reactivación:**
+    1.  El servicio Sales llama a `WorkOrderSuspender.ReactivateWorkOrders(ctx, []WorkOrderID)`.
+    2.  MES carga cada orden y transiciona: SUSPENDED → PENDING, ON_HOLD → PENDING, CANCELLED → PENDING.
+    3.  Se ignoran las órdenes en estado COMPLETED o IN_PROGRESS.
+*   **Patrón arquitectónico:** Sales define la interfaz `WorkOrderSuspender`. El adaptador `WorkOrderSuspenderAdapter` (infraestructura de Sales) recibe `MESService` por setter injection y delega la llamada. MES no conoce el concepto de pedido de venta.
+*   **Resultado:** Las `WorkOrder`s afectadas quedan en estado SUSPENDED (o PENDING al reactivar). El Dashboard MES las muestra en la sección correspondiente.
+
 ---
-**Última Actualización:** 14 de marzo de 2026
+**Última Actualización:** 20 de marzo de 2026

@@ -287,21 +287,21 @@ func (r *GORMPartyRepository) HasContactDetailsReferences(ctx context.Context, p
 	return count > 0, nil
 }
 
-// HasMESWorkReferences checks if a party is referenced in mes_works.party_id
+// HasMESWorkReferences checks if a party is referenced in work_orders.party_id
 func (r *GORMPartyRepository) HasMESWorkReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
 	var count int64
-	// Check if mes_works table exists (it may not in all environments)
+	// Check if work_orders table exists (it may not in all environments)
 	var tableExists bool
-	err := r.db.WithContext(ctx).Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'mes_works')").Scan(&tableExists).Error
+	err := r.db.WithContext(ctx).Raw("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'work_orders')").Scan(&tableExists).Error
 	if err != nil {
-		return false, domain.WrapPersistence("failed to check mes_works table existence", err)
+		return false, domain.WrapPersistence("failed to check work_orders table existence", err)
 	}
 
 	if !tableExists {
 		return false, nil
 	}
 
-	if err := r.db.WithContext(ctx).Table("mes_works").
+	if err := r.db.WithContext(ctx).Table("work_orders").
 		Where("party_id = ?", partyID.Value()).
 		Count(&count).Error; err != nil {
 		return false, domain.WrapPersistence("failed to check MES work references", err)

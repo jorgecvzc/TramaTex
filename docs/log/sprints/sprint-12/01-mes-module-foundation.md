@@ -1,6 +1,13 @@
-﻿# Sprint 12 / Tarea 01 - MES Module Foundation & Architecture
+# Sprint 12 / Tarea 01 - MES Module Foundation & Architecture
 
-**Estado:** ðŸ”„ En Progreso  
+> **⚠️ AVISO DE NOMENCLATURA LEGACY:** Este documento es un registro histórico del sprint original.
+> Los nombres de entidades y tablas que aparecen aquí (`ServiceGroup`, `MESWork`, `MESWorkServiceGroup`,
+> `MESWorkTask`, `service_groups`, `mes_works`, etc.) fueron renombrados a nombres canónicos
+> (`WorkType`, `WorkOrder`, `WorkOrderLine`, `WorkOrderTask`, `work_types`, `work_orders`, etc.)
+> en la sesión **F5: Migración de Nombres Legacy MES** (2026-03-16).
+> Ver: `migrations/028_rename_legacy_mes_tables.sql` y `docs/modules/mes/module-spec.md` para la referencia actual.
+
+**Estado:** ✅ Completado (Nomenclatura migrada en F5)
 **Fecha de Inicio:** 2026-02-18  
 **Facilitador:** AI Assistant + Usuario  
 **Sprint:** 12  

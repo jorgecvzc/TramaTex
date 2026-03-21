@@ -22,35 +22,38 @@ type GetPositionByIDQuery struct {
 	ID uuid.UUID `uri:"id" binding:"required"`
 }
 
-type ListServiceGroupsQuery struct {
+type ListWorkTypesQuery struct {
 	IsActive *bool  `form:"is_active"`
 	Search   string `form:"search"`
 }
 
-type ListServiceTemplatesQuery = ListServiceGroupsQuery
-
-type GetServiceGroupByIDQuery struct {
+type GetWorkTypeByIDQuery struct {
 	ID uuid.UUID `uri:"id" binding:"required"`
 }
 
-type GetServiceTemplateByIDQuery = GetServiceGroupByIDQuery
-
-type ListMESWorksQuery struct {
-	Status  *string `form:"status"`
-	Search  string  `form:"search"`
-	PartyID string  `form:"party_id"`
+type ListWorkOrdersQuery struct {
+	Status      *string `form:"status"`
+	Search      string  `form:"search"`
+	PartyID     string  `form:"party_id"`
+	WorkSetupID string  `form:"work_setup_id"`
 }
 
-type ListWorkDefinitionsQuery = ListMESWorksQuery
-
-type GetMESWorkByIDQuery struct {
+type GetWorkOrderByIDQuery struct {
 	ID uuid.UUID `uri:"id" binding:"required"`
 }
 
-type GetWorkDefinitionByIDQuery = GetMESWorkByIDQuery
-
-type ListOverdueMESWorksQuery struct {
+type ListOverdueWorkOrdersQuery struct {
 	Limit int `form:"limit"`
 }
 
-type ListOverdueWorkDefinitionsQuery = ListOverdueMESWorksQuery
+// --- WorkSetup Queries ---
+
+type ListWorkSetupsQuery struct {
+	IsActive *bool  `form:"is_active"`
+	Search   string `form:"search"`
+	PartyID  string `form:"party_id"`
+}
+
+type GetWorkSetupByIDQuery struct {
+	ID uuid.UUID `uri:"id" binding:"required"`
+}

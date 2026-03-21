@@ -11,28 +11,76 @@ import (
 	"github.com/joran-cortez/tramatex/internal/mes/domain"
 )
 
+// SalesOrderLinker updates a Sales order_work_setup record to link it
+// with a newly created MES WorkOrder. MES calls this after creating a
+// work order so Sales can track production. Implementation lives in
+// the Sales infrastructure layer.
+type SalesOrderLinker interface {
+	LinkWorkOrder(ctx context.Context, orderWorkSetupID uuid.UUID, workOrderID uuid.UUID) error
+}
+
+// PendingWorkSetupProvider retrieves confirmed-order WorkSetup configs
+// that don't yet have a MES WorkOrder. Implementation lives in the
+// Sales infrastructure layer so MES never queries Sales tables directly.
+type PendingWorkSetupProvider interface {
+	ListPending(ctx context.Context) ([]PendingWorkSetupDTO, error)
+}
+
+// WorkOrderSalesInfo holds the Sales order reference for a given WorkOrder.
+type WorkOrderSalesInfo struct {
+	SalesOrderID     uuid.UUID
+	SalesOrderNumber string
+}
+
+// WorkOrderSalesInfoProvider returns Sales order info for a batch of
+// WorkOrder IDs. Implementation lives in Sales infrastructure.
+type WorkOrderSalesInfoProvider interface {
+	GetSalesInfoByWorkOrderIDs(ctx context.Context, workOrderIDs []uuid.UUID) (map[uuid.UUID]WorkOrderSalesInfo, error)
+}
+
 // MESService provides operations for Manufacturing Execution System
 // focused on foundation master data CRUD.
 type MESService struct {
-	taskRepo         domain.TaskRepository
-	positionRepo     domain.PositionRepository
-	serviceGroupRepo domain.ServiceGroupRepository
-	mesWorkRepo      domain.MESWorkRepository
+	taskRepo             domain.TaskRepository
+	positionRepo         domain.PositionRepository
+	workTypeRepo         domain.WorkTypeRepository
+	workOrderRepo        domain.WorkOrderRepository
+	workSetupRepo        domain.WorkSetupRepository
+	salesOrderLinker     SalesOrderLinker
+	pendingSetupProvider PendingWorkSetupProvider
+	salesInfoProvider    WorkOrderSalesInfoProvider
 }
 
 // NewMESService creates a new MES service.
 func NewMESService(
 	taskRepo domain.TaskRepository,
 	positionRepo domain.PositionRepository,
-	serviceGroupRepo domain.ServiceGroupRepository,
-	mesWorkRepo domain.MESWorkRepository,
+	workTypeRepo domain.WorkTypeRepository,
+	workOrderRepo domain.WorkOrderRepository,
+	workSetupRepo domain.WorkSetupRepository,
 ) *MESService {
 	return &MESService{
-		taskRepo:         taskRepo,
-		positionRepo:     positionRepo,
-		serviceGroupRepo: serviceGroupRepo,
-		mesWorkRepo:      mesWorkRepo,
+		taskRepo:      taskRepo,
+		positionRepo:  positionRepo,
+		workTypeRepo:  workTypeRepo,
+		workOrderRepo: workOrderRepo,
+		workSetupRepo: workSetupRepo,
 	}
+}
+
+// SetSalesOrderLinker configures the cross-module linker (optional, nil-safe).
+func (s *MESService) SetSalesOrderLinker(linker SalesOrderLinker) {
+	s.salesOrderLinker = linker
+}
+
+// SetPendingSetupProvider configures the provider for pending setups from Sales.
+func (s *MESService) SetPendingSetupProvider(provider PendingWorkSetupProvider) {
+	s.pendingSetupProvider = provider
+}
+
+// SetSalesInfoProvider configures the provider for Sales order info on WorkOrders.
+func (s *MESService) SetSalesInfoProvider(provider WorkOrderSalesInfoProvider) {
+	s.salesInfoProvider = provider
 }
 
 func (s *MESService) CreateTask(ctx context.Context, cmd CreateTaskCommand) (*TaskDTO, error) {
@@ -40,12 +88,16 @@ func (s *MESService) CreateTask(ctx context.Context, cmd CreateTaskCommand) (*Ta
 	if cmd.Description != nil {
 		description = *cmd.Description
 	}
+	reference := ""
+	if cmd.Reference != nil {
+		reference = *cmd.Reference
+	}
 	isActive := true
 	if cmd.IsActive != nil {
 		isActive = *cmd.IsActive
 	}
 
-	task, err := domain.NewTask(cmd.Name, description, isActive)
+	task, err := domain.NewTask(cmd.Name, reference, description, isActive)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +148,9 @@ func (s *MESService) UpdateTask(ctx context.Context, cmd UpdateTaskCommand) (*Ta
 
 	if cmd.Name != nil {
 		task.Name = *cmd.Name
+	}
+	if cmd.Reference != nil {
+		task.Reference = *cmd.Reference
 	}
 	if cmd.Description != nil {
 		task.Description = *cmd.Description
@@ -204,10 +259,14 @@ func (s *MESService) DeletePosition(ctx context.Context, cmd DeletePositionComma
 	return nil
 }
 
-func (s *MESService) CreateServiceGroup(ctx context.Context, cmd CreateServiceGroupCommand) (*ServiceGroupDTO, error) {
+func (s *MESService) CreateWorkType(ctx context.Context, cmd CreateWorkTypeCommand) (*WorkTypeDTO, error) {
 	description := ""
 	if cmd.Description != nil {
 		description = *cmd.Description
+	}
+	reference := ""
+	if cmd.Reference != nil {
+		reference = *cmd.Reference
 	}
 	isActive := true
 	if cmd.IsActive != nil {
@@ -215,134 +274,93 @@ func (s *MESService) CreateServiceGroup(ctx context.Context, cmd CreateServiceGr
 	}
 	assignments := mapTaskAssignments(cmd.TaskAssignments)
 
-	serviceGroup, err := domain.NewServiceGroup(cmd.Name, description, cmd.ProductGroupID, isActive, assignments)
+	workType, err := domain.NewWorkType(cmd.Name, reference, description, isActive, assignments)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.serviceGroupRepo.Save(ctx, serviceGroup); err != nil {
-		return nil, fmt.Errorf("save service group: %w", err)
+	if err := s.workTypeRepo.Save(ctx, workType); err != nil {
+		return nil, fmt.Errorf("save work type: %w", err)
 	}
 
-	return toServiceGroupDTO(serviceGroup), nil
+	return toWorkTypeDTO(workType), nil
 }
 
-func (s *MESService) CreateServiceTemplate(ctx context.Context, cmd CreateServiceTemplateCommand) (*ServiceTemplateDTO, error) {
-	result, err := s.CreateServiceGroup(ctx, CreateServiceGroupCommand(cmd))
+func (s *MESService) GetWorkTypeByID(ctx context.Context, query GetWorkTypeByIDQuery) (*WorkTypeDTO, error) {
+	workType, err := s.workTypeRepo.FindByID(ctx, query.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find work type by id: %w", err)
 	}
-	return (*ServiceTemplateDTO)(result), nil
+	if workType == nil {
+		return nil, fmt.Errorf("work type not found")
+	}
+
+	return toWorkTypeDTO(workType), nil
 }
 
-func (s *MESService) GetServiceGroupByID(ctx context.Context, query GetServiceGroupByIDQuery) (*ServiceGroupDTO, error) {
-	serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, query.ID)
-	if err != nil {
-		return nil, fmt.Errorf("find service group by id: %w", err)
-	}
-	if serviceGroup == nil {
-		return nil, fmt.Errorf("service group not found")
-	}
-
-	return toServiceGroupDTO(serviceGroup), nil
-}
-
-func (s *MESService) GetServiceTemplateByID(ctx context.Context, query GetServiceTemplateByIDQuery) (*ServiceTemplateDTO, error) {
-	result, err := s.GetServiceGroupByID(ctx, GetServiceGroupByIDQuery(query))
-	if err != nil {
-		return nil, err
-	}
-	return (*ServiceTemplateDTO)(result), nil
-}
-
-func (s *MESService) ListServiceGroups(ctx context.Context, query ListServiceGroupsQuery) ([]ServiceGroupDTO, error) {
-	serviceGroups, err := s.serviceGroupRepo.FindAll(ctx, &domain.ServiceGroupFilters{
+func (s *MESService) ListWorkTypes(ctx context.Context, query ListWorkTypesQuery) ([]WorkTypeDTO, error) {
+	workTypes, err := s.workTypeRepo.FindAll(ctx, &domain.WorkTypeFilters{
 		IsActive: query.IsActive,
 		Search:   query.Search,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("list service groups: %w", err)
+		return nil, fmt.Errorf("list work types: %w", err)
 	}
 
-	dtos := make([]ServiceGroupDTO, 0, len(serviceGroups))
-	for _, serviceGroup := range serviceGroups {
-		dtos = append(dtos, *toServiceGroupDTO(serviceGroup))
+	dtos := make([]WorkTypeDTO, 0, len(workTypes))
+	for _, wt := range workTypes {
+		dtos = append(dtos, *toWorkTypeDTO(wt))
 	}
 	return dtos, nil
 }
 
-func (s *MESService) ListServiceTemplates(ctx context.Context, query ListServiceTemplatesQuery) ([]ServiceTemplateDTO, error) {
-	results, err := s.ListServiceGroups(ctx, ListServiceGroupsQuery(query))
+func (s *MESService) UpdateWorkType(ctx context.Context, cmd UpdateWorkTypeCommand) (*WorkTypeDTO, error) {
+	workType, err := s.workTypeRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find work type for update: %w", err)
 	}
-
-	aliases := make([]ServiceTemplateDTO, 0, len(results))
-	for _, result := range results {
-		aliases = append(aliases, ServiceTemplateDTO(result))
-	}
-
-	return aliases, nil
-}
-
-func (s *MESService) UpdateServiceGroup(ctx context.Context, cmd UpdateServiceGroupCommand) (*ServiceGroupDTO, error) {
-	serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, cmd.ID)
-	if err != nil {
-		return nil, fmt.Errorf("find service group for update: %w", err)
-	}
-	if serviceGroup == nil {
-		return nil, fmt.Errorf("service group not found")
+	if workType == nil {
+		return nil, fmt.Errorf("work type not found")
 	}
 
 	if cmd.Name != nil {
-		serviceGroup.Name = *cmd.Name
+		workType.Name = *cmd.Name
+	}
+	if cmd.Reference != nil {
+		workType.Reference = *cmd.Reference
 	}
 	if cmd.Description != nil {
-		serviceGroup.Description = *cmd.Description
+		workType.Description = *cmd.Description
 	}
-	// ProductGroupID was removed in the domain refactor (WorkType no longer has it).
-	// The command field is kept for API compatibility but is no longer stored.
 	if cmd.IsActive != nil {
-		serviceGroup.IsActive = *cmd.IsActive
+		workType.IsActive = *cmd.IsActive
 	}
 	if cmd.TaskAssignments != nil {
-		serviceGroup.Tasks = mapTaskAssignments(cmd.TaskAssignments)
+		workType.Tasks = mapTaskAssignments(cmd.TaskAssignments)
 	}
 
-	if err := s.serviceGroupRepo.Save(ctx, serviceGroup); err != nil {
-		return nil, fmt.Errorf("save service group update: %w", err)
+	if err := s.workTypeRepo.Save(ctx, workType); err != nil {
+		return nil, fmt.Errorf("save work type update: %w", err)
 	}
 
-	return toServiceGroupDTO(serviceGroup), nil
+	return toWorkTypeDTO(workType), nil
 }
 
-func (s *MESService) UpdateServiceTemplate(ctx context.Context, cmd UpdateServiceTemplateCommand) (*ServiceTemplateDTO, error) {
-	result, err := s.UpdateServiceGroup(ctx, UpdateServiceGroupCommand(cmd))
-	if err != nil {
-		return nil, err
-	}
-	return (*ServiceTemplateDTO)(result), nil
-}
-
-func (s *MESService) DeleteServiceGroup(ctx context.Context, cmd DeleteServiceGroupCommand) error {
-	if err := s.serviceGroupRepo.Delete(ctx, cmd.ID); err != nil {
-		return fmt.Errorf("delete service group: %w", err)
+func (s *MESService) DeleteWorkType(ctx context.Context, cmd DeleteWorkTypeCommand) error {
+	if err := s.workTypeRepo.Delete(ctx, cmd.ID); err != nil {
+		return fmt.Errorf("delete work type: %w", err)
 	}
 	return nil
 }
 
-func (s *MESService) DeleteServiceTemplate(ctx context.Context, cmd DeleteServiceTemplateCommand) error {
-	return s.DeleteServiceGroup(ctx, DeleteServiceGroupCommand(cmd))
-}
-
-func mapTaskAssignments(inputs []ServiceGroupTaskInput) []domain.ServiceGroupTask {
+func mapTaskAssignments(inputs []WorkTypeTaskInput) []domain.WorkTypeTask {
 	if len(inputs) == 0 {
-		return []domain.ServiceGroupTask{}
+		return []domain.WorkTypeTask{}
 	}
 
-	assignments := make([]domain.ServiceGroupTask, 0, len(inputs))
+	assignments := make([]domain.WorkTypeTask, 0, len(inputs))
 	for _, input := range inputs {
-		assignments = append(assignments, domain.ServiceGroupTask{
+		assignments = append(assignments, domain.WorkTypeTask{
 			TaskID:   input.TaskID,
 			Sequence: input.Sequence,
 		})
@@ -358,6 +376,7 @@ func toTaskDTO(task *domain.Task) *TaskDTO {
 	return &TaskDTO{
 		ID:          task.ID,
 		Name:        task.Name,
+		Reference:   task.Reference,
 		Description: task.Description,
 		IsActive:    task.IsActive,
 	}
@@ -377,135 +396,137 @@ func toPositionDTO(position *domain.Position) *PositionDTO {
 	}
 }
 
-func toServiceGroupDTO(serviceGroup *domain.ServiceGroup) *ServiceGroupDTO {
-	if serviceGroup == nil {
+func toWorkTypeDTO(workType *domain.WorkType) *WorkTypeDTO {
+	if workType == nil {
 		return nil
 	}
 
-	tasks := make([]ServiceGroupTaskDTO, 0, len(serviceGroup.Tasks))
-	for _, task := range serviceGroup.Tasks {
-		tasks = append(tasks, ServiceGroupTaskDTO{
+	tasks := make([]WorkTypeTaskDTO, 0, len(workType.Tasks))
+	for _, task := range workType.Tasks {
+		tasks = append(tasks, WorkTypeTaskDTO{
 			TaskID:   task.TaskID,
 			Sequence: task.Sequence,
 		})
 	}
 
-	return &ServiceGroupDTO{
-		ID:             serviceGroup.ID,
-		Name:           serviceGroup.Name,
-		Description:    serviceGroup.Description,
-		ProductGroupID: nil, // Removed in domain refactor; kept in DTO for API compatibility.
-		IsActive:       serviceGroup.IsActive,
-		Tasks:          tasks,
+	return &WorkTypeDTO{
+		ID:          workType.ID,
+		Name:        workType.Name,
+		Reference:   workType.Reference,
+		Description: workType.Description,
+		IsActive:    workType.IsActive,
+		Tasks:       tasks,
 	}
 }
 
-func (s *MESService) CreateMESWork(ctx context.Context, cmd CreateMESWorkCommand) (*MESWorkDTO, error) {
-	if len(cmd.ServiceGroupAssignments) == 0 {
-		return nil, fmt.Errorf("at least one service group assignment is required")
-	}
-
-	status := domain.ProductionStatusDraft
-	if cmd.Status != nil && *cmd.Status != "" {
-		status = domain.ProductionStatus(strings.ToUpper(*cmd.Status))
-	}
-
+func (s *MESService) CreateWorkOrder(ctx context.Context, cmd CreateWorkOrderCommand) (*WorkOrderDTO, error) {
 	priority := domain.WorkPriorityNormal
 	if cmd.Priority != nil && *cmd.Priority != "" {
 		priority = domain.WorkPriority(strings.ToUpper(*cmd.Priority))
 	}
 
+	var dueDate *time.Time
+	if cmd.DueDate != nil {
+		parsed, parseErr := parseOptionalDate(*cmd.DueDate)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		dueDate = parsed
+	}
+
 	year := time.Now().UTC().Year()
-	count, err := s.mesWorkRepo.CountByYear(ctx, year)
+	count, err := s.workOrderRepo.CountByYear(ctx, year)
 	if err != nil {
 		return nil, fmt.Errorf("count works by year: %w", err)
 	}
 	workNumber := fmt.Sprintf("MES-%d-%03d", year, count+1)
 
-	garmentNotes := ""
-	if cmd.GarmentNotes != nil {
-		garmentNotes = *cmd.GarmentNotes
+	notes := ""
+	if cmd.Notes != nil {
+		notes = *cmd.Notes
 	}
 
-	groups := make([]domain.MESWorkServiceGroup, 0, len(cmd.ServiceGroupAssignments))
-	for _, assignment := range cmd.ServiceGroupAssignments {
-		serviceGroup, err := s.serviceGroupRepo.FindByID(ctx, assignment.ServiceGroupID)
-		if err != nil {
-			return nil, fmt.Errorf("find service group for mes work: %w", err)
+	// Build lines from WorkSetup if provided, otherwise create without lines.
+	var lines []domain.WorkOrderLine
+	if cmd.WorkSetupID != nil && *cmd.WorkSetupID != uuid.Nil {
+		workSetup, wsErr := s.workSetupRepo.FindByID(ctx, *cmd.WorkSetupID)
+		if wsErr != nil {
+			return nil, fmt.Errorf("find work setup: %w", wsErr)
 		}
-		if serviceGroup == nil {
-			return nil, fmt.Errorf("service group not found")
+		if workSetup == nil {
+			return nil, fmt.Errorf("work setup not found")
 		}
-
-		designFilePath := ""
-		if assignment.DesignFilePath != nil {
-			designFilePath = *assignment.DesignFilePath
-		}
-		notes := ""
-		if assignment.Notes != nil {
-			notes = *assignment.Notes
+		if len(workSetup.Lines) == 0 {
+			return nil, fmt.Errorf("work setup has no lines configured")
 		}
 
-		generatedTasks := make([]domain.MESWorkTask, 0, len(serviceGroup.Tasks))
-		for _, taskAssignment := range serviceGroup.Tasks {
-			generatedTasks = append(generatedTasks, domain.MESWorkTask{
-				ID:       uuid.New(),
-				TaskID:   taskAssignment.TaskID,
-				Sequence: taskAssignment.Sequence,
-				Status:   domain.TaskStatusPending,
+		lines = make([]domain.WorkOrderLine, 0, len(workSetup.Lines))
+		for _, setupLine := range workSetup.Lines {
+			workType, wtErr := s.workTypeRepo.FindByID(ctx, setupLine.WorkTypeID)
+			if wtErr != nil {
+				return nil, fmt.Errorf("find work type for line: %w", wtErr)
+			}
+			if workType == nil {
+				return nil, fmt.Errorf("work type %s not found", setupLine.WorkTypeID)
+			}
+
+			tasks := make([]domain.WorkOrderTask, 0, len(workType.Tasks))
+			for _, wtt := range workType.Tasks {
+				tasks = append(tasks, domain.WorkOrderTask{
+					ID:       uuid.New(),
+					TaskID:   wtt.TaskID,
+					Sequence: wtt.Sequence,
+					Status:   domain.TaskStatusPending,
+				})
+			}
+
+			lines = append(lines, domain.WorkOrderLine{
+				ID:             uuid.New(),
+				WorkTypeID:     setupLine.WorkTypeID,
+				PositionID:     setupLine.PositionID,
+				DesignFilePath: setupLine.DesignFilePath,
+				Notes:          setupLine.Notes,
+				Sequence:       setupLine.Sequence,
+				Tasks:          tasks,
 			})
 		}
-
-		groups = append(groups, domain.MESWorkServiceGroup{
-			ID:             uuid.New(),
-			WorkTypeID:     assignment.ServiceGroupID,
-			PositionID:     assignment.PositionID,
-			DesignFilePath: designFilePath,
-			Notes:          notes,
-			Sequence:       assignment.Sequence,
-			Tasks:          generatedTasks,
-		})
 	}
 
-	work, err := domain.NewMESWork(
+	work, err := domain.NewWorkOrder(
 		workNumber,
 		cmd.WorkName,
 		cmd.PartyID,
-		cmd.TangibleGroupID,
-		garmentNotes,
-		status,
+		cmd.WorkSetupID,
+		notes,
 		priority,
-		nil,
-		nil,
-		nil,
-		groups,
+		dueDate,
+		lines,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
-		return nil, fmt.Errorf("save mes work: %w", err)
+	if err := s.workOrderRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save work order: %w", err)
 	}
 
-	return toMESWorkDTO(work), nil
-}
-
-func (s *MESService) CreateWorkDefinition(ctx context.Context, cmd CreateWorkDefinitionCommand) (*MESWorkDefinitionDTO, error) {
-	result, err := s.CreateMESWork(ctx, CreateMESWorkCommand(cmd))
-	if err != nil {
-		return nil, err
+	// Link back to Sales order_work_setup if provided
+	if cmd.OrderWorkSetupID != nil && *cmd.OrderWorkSetupID != uuid.Nil && s.salesOrderLinker != nil {
+		if linkErr := s.salesOrderLinker.LinkWorkOrder(ctx, *cmd.OrderWorkSetupID, work.ID); linkErr != nil {
+			return nil, fmt.Errorf("link work order to sales: %w", linkErr)
+		}
 	}
-	return (*MESWorkDefinitionDTO)(result), nil
+
+	return toWorkOrderDTO(work), nil
 }
 
-func (s *MESService) UpdateMESWork(ctx context.Context, cmd UpdateMESWorkCommand) (*MESWorkDTO, error) {
-	work, err := s.mesWorkRepo.FindByID(ctx, cmd.ID)
+func (s *MESService) UpdateWorkOrder(ctx context.Context, cmd UpdateWorkOrderCommand) (*WorkOrderDTO, error) {
+	work, err := s.workOrderRepo.FindByID(ctx, cmd.ID)
 	if err != nil {
-		return nil, fmt.Errorf("find mes work for update: %w", err)
+		return nil, fmt.Errorf("find work order for update: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("mes work not found")
+		return nil, fmt.Errorf("work order not found")
 	}
 
 	if cmd.WorkName != nil {
@@ -516,29 +537,20 @@ func (s *MESService) UpdateMESWork(ctx context.Context, cmd UpdateMESWorkCommand
 		work.OrderName = trimmed
 	}
 
-	if cmd.PartyID != nil {
-		trimmed := strings.TrimSpace(*cmd.PartyID)
-		if trimmed == "" {
-			return nil, fmt.Errorf("party id is required")
-		}
-		work.PartyID = trimmed
-	}
-
-	if cmd.TangibleGroupID != nil {
-		if *cmd.TangibleGroupID == uuid.Nil {
-			return nil, fmt.Errorf("tangible group id is required")
-		}
-		work.TangibleGroupID = *cmd.TangibleGroupID
-	}
-
-	if cmd.GarmentNotes != nil {
-		work.GarmentNotes = strings.TrimSpace(*cmd.GarmentNotes)
+	if cmd.Notes != nil {
+		work.Notes = strings.TrimSpace(*cmd.Notes)
 	}
 
 	if cmd.Status != nil {
 		status := domain.ProductionStatus(strings.ToUpper(strings.TrimSpace(*cmd.Status)))
 		if !status.IsValid() {
 			return nil, fmt.Errorf("invalid production status")
+		}
+		if status == domain.ProductionStatusCancelled && work.Status != domain.ProductionStatusSuspended {
+			return nil, fmt.Errorf("only suspended work orders can be cancelled")
+		}
+		if status == domain.ProductionStatusPending && work.Status != domain.ProductionStatusSuspended && work.Status != domain.ProductionStatusCancelled {
+			return nil, fmt.Errorf("only suspended or cancelled work orders can be reactivated to pending")
 		}
 		work.Status = status
 	}
@@ -559,28 +571,68 @@ func (s *MESService) UpdateMESWork(ctx context.Context, cmd UpdateMESWorkCommand
 		work.DueDate = parsed
 	}
 
-	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
-		return nil, fmt.Errorf("save mes work update: %w", err)
+	// Assign WorkSetup and generate lines from it
+	if cmd.WorkSetupID != nil && *cmd.WorkSetupID != uuid.Nil {
+		workSetup, wsErr := s.workSetupRepo.FindByID(ctx, *cmd.WorkSetupID)
+		if wsErr != nil {
+			return nil, fmt.Errorf("find work setup: %w", wsErr)
+		}
+		if workSetup == nil {
+			return nil, fmt.Errorf("work setup not found")
+		}
+		if len(workSetup.Lines) == 0 {
+			return nil, fmt.Errorf("work setup has no lines configured")
+		}
+
+		lines := make([]domain.WorkOrderLine, 0, len(workSetup.Lines))
+		for _, setupLine := range workSetup.Lines {
+			workType, wtErr := s.workTypeRepo.FindByID(ctx, setupLine.WorkTypeID)
+			if wtErr != nil {
+				return nil, fmt.Errorf("find work type for line: %w", wtErr)
+			}
+			if workType == nil {
+				return nil, fmt.Errorf("work type %s not found", setupLine.WorkTypeID)
+			}
+
+			tasks := make([]domain.WorkOrderTask, 0, len(workType.Tasks))
+			for _, wtt := range workType.Tasks {
+				tasks = append(tasks, domain.WorkOrderTask{
+					ID:       uuid.New(),
+					TaskID:   wtt.TaskID,
+					Sequence: wtt.Sequence,
+					Status:   domain.TaskStatusPending,
+				})
+			}
+
+			lines = append(lines, domain.WorkOrderLine{
+				ID:             uuid.New(),
+				WorkTypeID:     setupLine.WorkTypeID,
+				PositionID:     setupLine.PositionID,
+				DesignFilePath: setupLine.DesignFilePath,
+				Notes:          setupLine.Notes,
+				Sequence:       setupLine.Sequence,
+				Tasks:          tasks,
+			})
+		}
+
+		work.WorkSetupID = cmd.WorkSetupID
+		work.Lines = lines
 	}
 
-	return toMESWorkDTO(work), nil
-}
-
-func (s *MESService) UpdateWorkDefinition(ctx context.Context, cmd UpdateWorkDefinitionCommand) (*MESWorkDefinitionDTO, error) {
-	result, err := s.UpdateMESWork(ctx, UpdateMESWorkCommand(cmd))
-	if err != nil {
-		return nil, err
+	if err := s.workOrderRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save work order update: %w", err)
 	}
-	return (*MESWorkDefinitionDTO)(result), nil
+
+	return toWorkOrderDTO(work), nil
 }
 
-func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESWorkTaskStatusCommand) (*MESWorkDTO, error) {
-	work, err := s.mesWorkRepo.FindByID(ctx, cmd.WorkID)
+func (s *MESService) UpdateWorkOrderTaskStatus(ctx context.Context, cmd UpdateWorkOrderTaskStatusCommand) (*WorkOrderDTO, error) {
+	work, err := s.workOrderRepo.FindByID(ctx, cmd.WorkID)
 	if err != nil {
-		return nil, fmt.Errorf("find mes work for task update: %w", err)
+		return nil, fmt.Errorf("find work order for task update: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("mes work not found")
+		return nil, fmt.Errorf("work order not found")
 	}
 
 	action := strings.ToUpper(strings.TrimSpace(cmd.Action))
@@ -633,93 +685,75 @@ func (s *MESService) UpdateMESWorkTaskStatus(ctx context.Context, cmd UpdateMESW
 	}
 
 	if !found {
-		return nil, fmt.Errorf("mes work task not found")
+		return nil, fmt.Errorf("work order task not found")
 	}
 
 	recalculateWorkStatus(work, now)
 
-	if err := s.mesWorkRepo.Save(ctx, work); err != nil {
-		return nil, fmt.Errorf("save mes work task update: %w", err)
+	if err := s.workOrderRepo.Save(ctx, work); err != nil {
+		return nil, fmt.Errorf("save work order task update: %w", err)
 	}
 
-	return toMESWorkDTO(work), nil
+	return toWorkOrderDTO(work), nil
 }
 
-func (s *MESService) UpdateWorkDefinitionTaskStatus(ctx context.Context, cmd UpdateWorkDefinitionTaskStatusCommand) (*MESWorkDefinitionDTO, error) {
-	result, err := s.UpdateMESWorkTaskStatus(ctx, UpdateMESWorkTaskStatusCommand(cmd))
-	if err != nil {
-		return nil, err
-	}
-	return (*MESWorkDefinitionDTO)(result), nil
-}
-
-func (s *MESService) ListMESWorks(ctx context.Context, query ListMESWorksQuery) ([]MESWorkDTO, error) {
+func (s *MESService) ListWorkOrders(ctx context.Context, query ListWorkOrdersQuery) ([]WorkOrderDTO, error) {
 	var status *domain.ProductionStatus
 	if query.Status != nil && *query.Status != "" {
 		s := domain.ProductionStatus(strings.ToUpper(*query.Status))
 		status = &s
 	}
 
-	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{
+	filters := &domain.WorkOrderFilters{
 		Status:  status,
 		Search:  query.Search,
 		PartyID: query.PartyID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list mes works: %w", err)
+	}
+	if query.WorkSetupID != "" {
+		parsed, err := uuid.Parse(query.WorkSetupID)
+		if err == nil {
+			filters.WorkSetupID = &parsed
+		}
 	}
 
-	result := make([]MESWorkDTO, 0, len(works))
-	for _, work := range works {
-		result = append(result, *toMESWorkDTO(work))
+	works, err := s.workOrderRepo.FindAll(ctx, filters)
+	if err != nil {
+		return nil, fmt.Errorf("list work orders: %w", err)
 	}
+
+	result := make([]WorkOrderDTO, 0, len(works))
+	for _, work := range works {
+		result = append(result, *toWorkOrderDTO(work))
+	}
+	s.enrichWorkOrderDTOs(ctx, result)
 	return result, nil
 }
 
-func (s *MESService) ListWorkDefinitions(ctx context.Context, query ListWorkDefinitionsQuery) ([]MESWorkDefinitionDTO, error) {
-	results, err := s.ListMESWorks(ctx, ListMESWorksQuery(query))
+func (s *MESService) GetWorkOrderByID(ctx context.Context, query GetWorkOrderByIDQuery) (*WorkOrderDTO, error) {
+	work, err := s.workOrderRepo.FindByID(ctx, query.ID)
 	if err != nil {
-		return nil, err
-	}
-
-	aliases := make([]MESWorkDefinitionDTO, 0, len(results))
-	for _, result := range results {
-		aliases = append(aliases, MESWorkDefinitionDTO(result))
-	}
-
-	return aliases, nil
-}
-
-func (s *MESService) GetMESWorkByID(ctx context.Context, query GetMESWorkByIDQuery) (*MESWorkDTO, error) {
-	work, err := s.mesWorkRepo.FindByID(ctx, query.ID)
-	if err != nil {
-		return nil, fmt.Errorf("find mes work by id: %w", err)
+		return nil, fmt.Errorf("find work order by id: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("mes work not found")
+		return nil, fmt.Errorf("work order not found")
 	}
-	return toMESWorkDTO(work), nil
+	dto := toWorkOrderDTO(work)
+	dtos := []WorkOrderDTO{*dto}
+	s.enrichWorkOrderDTOs(ctx, dtos)
+	return &dtos[0], nil
 }
 
-func (s *MESService) GetWorkDefinitionByID(ctx context.Context, query GetWorkDefinitionByIDQuery) (*MESWorkDefinitionDTO, error) {
-	result, err := s.GetMESWorkByID(ctx, GetMESWorkByIDQuery(query))
+func (s *MESService) GetWorkOrderDashboardStats(ctx context.Context) (*WorkOrderDashboardStatsDTO, error) {
+	works, err := s.workOrderRepo.FindAll(ctx, &domain.WorkOrderFilters{})
 	if err != nil {
-		return nil, err
-	}
-	return (*MESWorkDefinitionDTO)(result), nil
-}
-
-func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDashboardStatsDTO, error) {
-	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{})
-	if err != nil {
-		return nil, fmt.Errorf("get mes work dashboard stats: %w", err)
+		return nil, fmt.Errorf("get work order dashboard stats: %w", err)
 	}
 
 	now := time.Now().UTC()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	tomorrowStart := todayStart.Add(24 * time.Hour)
 
-	stats := &MESWorkDashboardStatsDTO{
+	stats := &WorkOrderDashboardStatsDTO{
 		Total:    len(works),
 		ByStatus: map[string]int{},
 	}
@@ -728,7 +762,7 @@ func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDash
 		stats.ByStatus[string(work.Status)]++
 
 		if work.DueDate != nil {
-			if work.DueDate.Before(todayStart) && isOpenMESWorkStatus(work.Status) {
+			if work.DueDate.Before(todayStart) && isOpenWorkOrderStatus(work.Status) {
 				stats.Overdue++
 			}
 			if (work.DueDate.Equal(todayStart) || work.DueDate.After(todayStart)) && work.DueDate.Before(tomorrowStart) {
@@ -740,20 +774,16 @@ func (s *MESService) GetMESWorkDashboardStats(ctx context.Context) (*MESWorkDash
 	return stats, nil
 }
 
-func (s *MESService) GetWorkDefinitionDashboardStats(ctx context.Context) (*MESWorkDashboardStatsDTO, error) {
-	return s.GetMESWorkDashboardStats(ctx)
-}
-
-func (s *MESService) ListOverdueMESWorks(ctx context.Context, query ListOverdueMESWorksQuery) ([]MESWorkDTO, error) {
-	works, err := s.mesWorkRepo.FindAll(ctx, &domain.MESWorkFilters{})
+func (s *MESService) ListOverdueWorkOrders(ctx context.Context, query ListOverdueWorkOrdersQuery) ([]WorkOrderDTO, error) {
+	works, err := s.workOrderRepo.FindAll(ctx, &domain.WorkOrderFilters{})
 	if err != nil {
-		return nil, fmt.Errorf("list overdue mes works: %w", err)
+		return nil, fmt.Errorf("list overdue work orders: %w", err)
 	}
 
 	todayStart := time.Date(time.Now().UTC().Year(), time.Now().UTC().Month(), time.Now().UTC().Day(), 0, 0, 0, 0, time.UTC)
-	overdue := make([]*domain.MESWork, 0)
+	overdue := make([]*domain.WorkOrder, 0)
 	for _, work := range works {
-		if work.DueDate != nil && work.DueDate.Before(todayStart) && isOpenMESWorkStatus(work.Status) {
+		if work.DueDate != nil && work.DueDate.Before(todayStart) && isOpenWorkOrderStatus(work.Status) {
 			overdue = append(overdue, work)
 		}
 	}
@@ -766,30 +796,79 @@ func (s *MESService) ListOverdueMESWorks(ctx context.Context, query ListOverdueM
 		overdue = overdue[:query.Limit]
 	}
 
-	result := make([]MESWorkDTO, 0, len(overdue))
+	result := make([]WorkOrderDTO, 0, len(overdue))
 	for _, work := range overdue {
-		result = append(result, *toMESWorkDTO(work))
+		result = append(result, *toWorkOrderDTO(work))
 	}
+	s.enrichWorkOrderDTOs(ctx, result)
 
 	return result, nil
 }
 
-func (s *MESService) ListOverdueWorkDefinitions(ctx context.Context, query ListOverdueWorkDefinitionsQuery) ([]MESWorkDefinitionDTO, error) {
-	results, err := s.ListOverdueMESWorks(ctx, ListOverdueMESWorksQuery(query))
-	if err != nil {
-		return nil, err
-	}
-
-	aliases := make([]MESWorkDefinitionDTO, 0, len(results))
-	for _, result := range results {
-		aliases = append(aliases, MESWorkDefinitionDTO(result))
-	}
-
-	return aliases, nil
+func isOpenWorkOrderStatus(status domain.ProductionStatus) bool {
+	return status != domain.ProductionStatusCompleted && status != domain.ProductionStatusCancelled
 }
 
-func isOpenMESWorkStatus(status domain.ProductionStatus) bool {
-	return status != domain.ProductionStatusCompleted && status != domain.ProductionStatusCancelled
+// ListPendingWorkSetups returns confirmed-order work setups without a WorkOrder,
+// delegating to the PendingSetupProvider adapter (Sales infrastructure).
+func (s *MESService) ListPendingWorkSetups(ctx context.Context) ([]PendingWorkSetupDTO, error) {
+	if s.pendingSetupProvider == nil {
+		return []PendingWorkSetupDTO{}, nil
+	}
+	return s.pendingSetupProvider.ListPending(ctx)
+}
+
+// SuspendWorkOrders puts the given WorkOrders into SUSPENDED state.
+// Only affects orders in PENDING, IN_PROGRESS or ON_HOLD — skips
+// COMPLETED and CANCELLED silently.
+func (s *MESService) SuspendWorkOrders(ctx context.Context, ids []uuid.UUID) error {
+	for _, id := range ids {
+		work, err := s.workOrderRepo.FindByID(ctx, id)
+		if err != nil {
+			return fmt.Errorf("find work order %s for suspend: %w", id, err)
+		}
+		if work == nil {
+			continue
+		}
+		switch work.Status {
+		case domain.ProductionStatusPending, domain.ProductionStatusInProgress, domain.ProductionStatusOnHold:
+			work.Status = domain.ProductionStatusSuspended
+			if err := s.workOrderRepo.Save(ctx, work); err != nil {
+				return fmt.Errorf("save suspended work order %s: %w", id, err)
+			}
+		default:
+			// COMPLETED, CANCELLED, already SUSPENDED → skip
+		}
+	}
+	return nil
+}
+
+// ReactivateWorkOrders moves WorkOrders back to PENDING so production
+// can resume.  Skips COMPLETED (finished) and IN_PROGRESS (MES already
+// decided to continue).
+func (s *MESService) ReactivateWorkOrders(ctx context.Context, ids []uuid.UUID) error {
+	for _, id := range ids {
+		work, err := s.workOrderRepo.FindByID(ctx, id)
+		if err != nil {
+			return fmt.Errorf("find work order %s for reactivate: %w", id, err)
+		}
+		if work == nil {
+			continue
+		}
+		switch work.Status {
+		case domain.ProductionStatusCompleted, domain.ProductionStatusInProgress:
+			// don't touch — finished or MES chose to keep working
+		case domain.ProductionStatusPending:
+			// already pending — no-op
+		default:
+			// SUSPENDED, ON_HOLD, CANCELLED → PENDING
+			work.Status = domain.ProductionStatusPending
+			if err := s.workOrderRepo.Save(ctx, work); err != nil {
+				return fmt.Errorf("save reactivated work order %s: %w", id, err)
+			}
+		}
+	}
+	return nil
 }
 
 func parseActorUUID(actorID string) *uuid.UUID {
@@ -805,8 +884,12 @@ func parseActorUUID(actorID string) *uuid.UUID {
 	return &parsed
 }
 
-func recalculateWorkStatus(work *domain.MESWork, now time.Time) {
+func recalculateWorkStatus(work *domain.WorkOrder, now time.Time) {
 	if work == nil {
+		return
+	}
+	// SUSPENDED is managed externally (e.g. order cancellation); do not overwrite.
+	if work.Status == domain.ProductionStatusSuspended {
 		return
 	}
 
@@ -881,16 +964,16 @@ func parseOptionalDate(raw string) (*time.Time, error) {
 	return nil, fmt.Errorf("invalid due date format, expected RFC3339 or YYYY-MM-DD")
 }
 
-func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
+func toWorkOrderDTO(work *domain.WorkOrder) *WorkOrderDTO {
 	if work == nil {
 		return nil
 	}
 
-	groups := make([]MESWorkServiceGroupDTO, 0, len(work.Lines))
-	for _, group := range work.Lines {
-		tasks := make([]MESWorkTaskDTO, 0, len(group.Tasks))
-		for _, task := range group.Tasks {
-			tasks = append(tasks, MESWorkTaskDTO{
+	lines := make([]WorkOrderLineDTO, 0, len(work.Lines))
+	for _, line := range work.Lines {
+		tasks := make([]WorkOrderTaskDTO, 0, len(line.Tasks))
+		for _, task := range line.Tasks {
+			tasks = append(tasks, WorkOrderTaskDTO{
 				ID:          task.ID,
 				TaskID:      task.TaskID,
 				Sequence:    task.Sequence,
@@ -902,29 +985,211 @@ func toMESWorkDTO(work *domain.MESWork) *MESWorkDTO {
 			})
 		}
 
-		groups = append(groups, MESWorkServiceGroupDTO{
-			ID:             group.ID,
-			ServiceGroupID: group.WorkTypeID,
-			PositionID:     group.PositionID,
-			DesignFilePath: group.DesignFilePath,
-			Notes:          group.Notes,
-			Sequence:       group.Sequence,
+		lines = append(lines, WorkOrderLineDTO{
+			ID:             line.ID,
+			WorkTypeID:     line.WorkTypeID,
+			PositionID:     line.PositionID,
+			DesignFilePath: line.DesignFilePath,
+			Notes:          line.Notes,
+			Sequence:       line.Sequence,
 			Tasks:          tasks,
 		})
 	}
 
-	return &MESWorkDTO{
-		ID:              work.ID,
-		WorkNumber:      work.OrderNumber,
-		WorkName:        work.OrderName,
-		PartyID:         work.PartyID,
-		TangibleGroupID: work.TangibleGroupID,
-		GarmentNotes:    work.GarmentNotes,
-		Status:          string(work.Status),
-		Priority:        string(work.Priority),
-		StartDate:       work.StartDate,
-		DueDate:         work.DueDate,
-		CompletedDate:   work.CompletedDate,
-		ServiceGroups:   groups,
+	return &WorkOrderDTO{
+		ID:            work.ID,
+		WorkNumber:    work.OrderNumber,
+		WorkName:      work.OrderName,
+		PartyID:       work.PartyID,
+		WorkSetupID:   work.WorkSetupID,
+		Notes:         work.Notes,
+		Status:        string(work.Status),
+		Priority:      string(work.Priority),
+		StartDate:     work.StartDate,
+		DueDate:       work.DueDate,
+		CompletedDate: work.CompletedDate,
+		Lines:         lines,
+	}
+}
+
+// enrichWorkOrderDTOs populates SalesOrderID/SalesOrderNumber on a slice of DTOs
+// using the optional salesInfoProvider. Nil-safe: no-op when provider is nil.
+func (s *MESService) enrichWorkOrderDTOs(ctx context.Context, dtos []WorkOrderDTO) {
+	if s.salesInfoProvider == nil || len(dtos) == 0 {
+		return
+	}
+	ids := make([]uuid.UUID, len(dtos))
+	for i := range dtos {
+		ids[i] = dtos[i].ID
+	}
+	infoMap, err := s.salesInfoProvider.GetSalesInfoByWorkOrderIDs(ctx, ids)
+	if err != nil {
+		return // best-effort: don't fail the whole list
+	}
+	for i := range dtos {
+		if info, ok := infoMap[dtos[i].ID]; ok {
+			dtos[i].SalesOrderID = &info.SalesOrderID
+			dtos[i].SalesOrderNumber = info.SalesOrderNumber
+		}
+	}
+}
+
+// --- WorkSetup ---
+
+func (s *MESService) CreateWorkSetup(ctx context.Context, cmd CreateWorkSetupCommand) (*WorkSetupDTO, error) {
+	description := ""
+	if cmd.Description != nil {
+		description = *cmd.Description
+	}
+	isActive := true
+	if cmd.IsActive != nil {
+		isActive = *cmd.IsActive
+	}
+
+	lines := make([]domain.WorkSetupLine, 0, len(cmd.Lines))
+	for _, l := range cmd.Lines {
+		designFilePath := ""
+		if l.DesignFilePath != nil {
+			designFilePath = *l.DesignFilePath
+		}
+		notes := ""
+		if l.Notes != nil {
+			notes = *l.Notes
+		}
+		lines = append(lines, domain.WorkSetupLine{
+			WorkTypeID:     l.WorkTypeID,
+			PositionID:     l.PositionID,
+			DesignFilePath: designFilePath,
+			Notes:          notes,
+			Sequence:       l.Sequence,
+		})
+	}
+
+	ws, err := domain.NewWorkSetup(cmd.Name, cmd.PartyID, cmd.TangibleGroupID, description, isActive, lines)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.workSetupRepo.Save(ctx, ws); err != nil {
+		return nil, fmt.Errorf("save work setup: %w", err)
+	}
+
+	return toWorkSetupDTO(ws), nil
+}
+
+func (s *MESService) GetWorkSetupByID(ctx context.Context, query GetWorkSetupByIDQuery) (*WorkSetupDTO, error) {
+	ws, err := s.workSetupRepo.FindByID(ctx, query.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find work setup by id: %w", err)
+	}
+	if ws == nil {
+		return nil, fmt.Errorf("work setup not found")
+	}
+
+	return toWorkSetupDTO(ws), nil
+}
+
+func (s *MESService) ListWorkSetups(ctx context.Context, query ListWorkSetupsQuery) ([]WorkSetupDTO, error) {
+	setups, err := s.workSetupRepo.FindAll(ctx, &domain.WorkSetupFilters{
+		IsActive: query.IsActive,
+		Search:   query.Search,
+		PartyID:  query.PartyID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list work setups: %w", err)
+	}
+
+	dtos := make([]WorkSetupDTO, 0, len(setups))
+	for _, ws := range setups {
+		dtos = append(dtos, *toWorkSetupDTO(ws))
+	}
+	return dtos, nil
+}
+
+func (s *MESService) UpdateWorkSetup(ctx context.Context, cmd UpdateWorkSetupCommand) (*WorkSetupDTO, error) {
+	ws, err := s.workSetupRepo.FindByID(ctx, cmd.ID)
+	if err != nil {
+		return nil, fmt.Errorf("find work setup for update: %w", err)
+	}
+	if ws == nil {
+		return nil, fmt.Errorf("work setup not found")
+	}
+
+	if cmd.Name != nil {
+		ws.Name = *cmd.Name
+	}
+	if cmd.PartyID != nil {
+		ws.PartyID = *cmd.PartyID
+	}
+	if cmd.TangibleGroupID != nil {
+		ws.TangibleGroupID = cmd.TangibleGroupID
+	}
+	if cmd.Description != nil {
+		ws.Description = *cmd.Description
+	}
+	if cmd.IsActive != nil {
+		ws.IsActive = *cmd.IsActive
+	}
+	if cmd.Lines != nil {
+		lines := make([]domain.WorkSetupLine, 0, len(cmd.Lines))
+		for _, l := range cmd.Lines {
+			designFilePath := ""
+			if l.DesignFilePath != nil {
+				designFilePath = *l.DesignFilePath
+			}
+			notes := ""
+			if l.Notes != nil {
+				notes = *l.Notes
+			}
+			lines = append(lines, domain.WorkSetupLine{
+				WorkTypeID:     l.WorkTypeID,
+				PositionID:     l.PositionID,
+				DesignFilePath: designFilePath,
+				Notes:          notes,
+				Sequence:       l.Sequence,
+			})
+		}
+		ws.Lines = lines
+	}
+
+	if err := s.workSetupRepo.Save(ctx, ws); err != nil {
+		return nil, fmt.Errorf("save work setup update: %w", err)
+	}
+
+	return toWorkSetupDTO(ws), nil
+}
+
+func (s *MESService) DeleteWorkSetup(ctx context.Context, cmd DeleteWorkSetupCommand) error {
+	if err := s.workSetupRepo.Delete(ctx, cmd.ID); err != nil {
+		return fmt.Errorf("delete work setup: %w", err)
+	}
+	return nil
+}
+
+func toWorkSetupDTO(ws *domain.WorkSetup) *WorkSetupDTO {
+	if ws == nil {
+		return nil
+	}
+
+	lines := make([]WorkSetupLineDTO, 0, len(ws.Lines))
+	for _, l := range ws.Lines {
+		lines = append(lines, WorkSetupLineDTO{
+			ID:             l.ID,
+			WorkTypeID:     l.WorkTypeID,
+			PositionID:     l.PositionID,
+			DesignFilePath: l.DesignFilePath,
+			Notes:          l.Notes,
+			Sequence:       l.Sequence,
+		})
+	}
+
+	return &WorkSetupDTO{
+		ID:              ws.ID,
+		Name:            ws.Name,
+		PartyID:         ws.PartyID,
+		TangibleGroupID: ws.TangibleGroupID,
+		Description:     ws.Description,
+		IsActive:        ws.IsActive,
+		Lines:           lines,
 	}
 }

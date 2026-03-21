@@ -6,32 +6,30 @@ import (
 	"github.com/google/uuid"
 )
 
-// SalesWorkSetup represents a work/personalization job associated with a sales document.
-// It bridges Sales and MES: the commercial team defines what work is needed,
-// and the workshop picks it up for execution.
-type SalesWorkSetup struct {
-	ID           uuid.UUID
-	WorkSetupID  *uuid.UUID      // Optional reference to an existing MES WorkSetup template
-	WorkOrderID  *uuid.UUID      // Populated when MES creates the WorkOrder for execution
-	Name         string          // Descriptive name (e.g. "Serigrafía camisetas Confecciones López")
-	Observations string          // Free-text: work characteristics, special instructions, notes
-	Status       SalesWorkStatus // Lifecycle within Sales (BORRADOR → PENDIENTE → EN_PROCESO → COMPLETADO)
-	Sequence     int             // Order within the document
+// WorkReference represents a work/personalization job associated with a sales document.
+// It bridges Sales and MES via an optional FK to the MES work_setups table.
+// Description is read-only, populated from the MES JOIN on read.
+type WorkReference struct {
+	ID          uuid.UUID
+	WorkSetupID *uuid.UUID // FK to MES work_setups (optional — nil for custom references without a setup)
+	WorkOrderID *uuid.UUID // Populated when MES creates the WorkOrder for execution
+	Sequence    int        // Order within the document
+	Description string
 }
 
 type Quote struct {
-	ID              uuid.UUID
-	QuoteNumber     QuoteNumber
-	PartyID         uuid.UUID
-	QuoteDate       time.Time
-	ExpirationDate  time.Time
-	Status          QuoteStatus
-	SalesWorkSetups []SalesWorkSetup // Document-level MES work references with observations
-	LineItems       []QuoteLineItem
-	Subtotal        Money
-	TaxAmount       Money
-	Total           Money
-	Notes           string
+	ID             uuid.UUID
+	QuoteNumber    QuoteNumber
+	PartyID        uuid.UUID
+	QuoteDate      time.Time
+	ExpirationDate time.Time
+	Status         QuoteStatus
+	WorkReferences []WorkReference // Document-level MES work references with observations
+	LineItems      []QuoteLineItem
+	Subtotal       Money
+	TaxAmount      Money
+	Total          Money
+	Notes          string
 }
 
 type QuoteLineItem struct {

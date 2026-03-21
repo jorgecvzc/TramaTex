@@ -5,6 +5,7 @@ import "github.com/google/uuid"
 type CreateTaskCommand struct {
 	ActorID     string  `json:"-"`
 	Name        string  `json:"name" binding:"required"`
+	Reference   *string `json:"reference"`
 	Description *string `json:"description"`
 	IsActive    *bool   `json:"is_active"`
 }
@@ -13,6 +14,7 @@ type UpdateTaskCommand struct {
 	ActorID     string `json:"-"`
 	ID          uuid.UUID
 	Name        *string `json:"name"`
+	Reference   *string `json:"reference"`
 	Description *string `json:"description"`
 	IsActive    *bool   `json:"is_active"`
 }
@@ -44,81 +46,58 @@ type DeletePositionCommand struct {
 	ID      uuid.UUID
 }
 
-type ServiceGroupTaskInput struct {
+type WorkTypeTaskInput struct {
 	TaskID   uuid.UUID `json:"task_id" binding:"required"`
 	Sequence int       `json:"sequence" binding:"required,min=1"`
 }
 
-type ServiceTemplateTaskInput = ServiceGroupTaskInput
-
-type CreateServiceGroupCommand struct {
-	ActorID         string                  `json:"-"`
-	Name            string                  `json:"name" binding:"required"`
-	Description     *string                 `json:"description"`
-	ProductGroupID  *uuid.UUID              `json:"product_group_id"`
-	IsActive        *bool                   `json:"is_active"`
-	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
+type CreateWorkTypeCommand struct {
+	ActorID         string              `json:"-"`
+	Name            string              `json:"name" binding:"required"`
+	Reference       *string             `json:"reference"`
+	Description     *string             `json:"description"`
+	IsActive        *bool               `json:"is_active"`
+	TaskAssignments []WorkTypeTaskInput `json:"task_assignments"`
 }
 
-type CreateServiceTemplateCommand = CreateServiceGroupCommand
-
-type UpdateServiceGroupCommand struct {
+type UpdateWorkTypeCommand struct {
 	ActorID         string `json:"-"`
 	ID              uuid.UUID
-	Name            *string                 `json:"name"`
-	Description     *string                 `json:"description"`
-	ProductGroupID  *uuid.UUID              `json:"product_group_id"`
-	IsActive        *bool                   `json:"is_active"`
-	TaskAssignments []ServiceGroupTaskInput `json:"task_assignments"`
+	Name            *string             `json:"name"`
+	Reference       *string             `json:"reference"`
+	Description     *string             `json:"description"`
+	IsActive        *bool               `json:"is_active"`
+	TaskAssignments []WorkTypeTaskInput `json:"task_assignments"`
 }
 
-type UpdateServiceTemplateCommand = UpdateServiceGroupCommand
-
-type DeleteServiceGroupCommand struct {
+type DeleteWorkTypeCommand struct {
 	ActorID string
 	ID      uuid.UUID
 }
 
-type DeleteServiceTemplateCommand = DeleteServiceGroupCommand
-
-type CreateMESWorkServiceGroupInput struct {
-	ServiceGroupID uuid.UUID `json:"service_group_id" binding:"required"`
-	PositionID     uuid.UUID `json:"position_id" binding:"required"`
-	DesignFilePath *string   `json:"design_file_path"`
-	Notes          *string   `json:"notes"`
-	Sequence       int       `json:"sequence" binding:"required,min=1"`
+type CreateWorkOrderCommand struct {
+	ActorID          string     `json:"-"`
+	WorkName         string     `json:"work_name" binding:"required"`
+	PartyID          string     `json:"party_id" binding:"required"`
+	WorkSetupID      *uuid.UUID `json:"work_setup_id"`
+	Notes            *string    `json:"notes"`
+	Priority         *string    `json:"priority"`
+	DueDate          *string    `json:"due_date"`
+	OrderWorkSetupID *uuid.UUID `json:"order_work_setup_id,omitempty"`
 }
 
-type CreateMESWorkServiceTemplateInput = CreateMESWorkServiceGroupInput
-
-type CreateMESWorkCommand struct {
-	ActorID                 string                           `json:"-"`
-	WorkName                string                           `json:"work_name" binding:"required"`
-	PartyID                 string                           `json:"party_id" binding:"required"`
-	TangibleGroupID         uuid.UUID                        `json:"tangible_group_id" binding:"required"`
-	GarmentNotes            *string                          `json:"garment_notes"`
-	Status                  *string                          `json:"status"`
-	Priority                *string                          `json:"priority"`
-	ServiceGroupAssignments []CreateMESWorkServiceGroupInput `json:"service_group_assignments" binding:"required,min=1"`
+type UpdateWorkOrderCommand struct {
+	ActorID     string `json:"-"`
+	ID          uuid.UUID
+	WorkName    *string    `json:"work_name"`
+	Notes       *string    `json:"notes"`
+	Status      *string    `json:"status"`
+	Priority    *string    `json:"priority"`
+	DueDate     *string    `json:"due_date"`
+	WorkSetupID *uuid.UUID `json:"work_setup_id"`
 }
 
-type CreateWorkDefinitionCommand = CreateMESWorkCommand
-
-type UpdateMESWorkCommand struct {
-	ActorID         string `json:"-"`
-	ID              uuid.UUID
-	WorkName        *string    `json:"work_name"`
-	PartyID         *string    `json:"party_id"`
-	TangibleGroupID *uuid.UUID `json:"tangible_group_id"`
-	GarmentNotes    *string    `json:"garment_notes"`
-	Status          *string    `json:"status"`
-	Priority        *string    `json:"priority"`
-	DueDate         *string    `json:"due_date"`
-}
-
-type UpdateWorkDefinitionCommand = UpdateMESWorkCommand
-
-type UpdateMESWorkTaskStatusCommand struct {
+type UpdateWorkOrderTaskStatusCommand struct {
 	ActorID string `json:"-"`
 	WorkID  uuid.UUID
 	TaskID  uuid.UUID
@@ -126,4 +105,38 @@ type UpdateMESWorkTaskStatusCommand struct {
 	Notes   *string `json:"notes"`
 }
 
-type UpdateWorkDefinitionTaskStatusCommand = UpdateMESWorkTaskStatusCommand
+// --- WorkSetup Commands ---
+
+type WorkSetupLineInput struct {
+	WorkTypeID     uuid.UUID `json:"work_type_id" binding:"required"`
+	PositionID     uuid.UUID `json:"position_id" binding:"required"`
+	DesignFilePath *string   `json:"design_file_path"`
+	Notes          *string   `json:"notes"`
+	Sequence       int       `json:"sequence" binding:"required,min=1"`
+}
+
+type CreateWorkSetupCommand struct {
+	ActorID         string               `json:"-"`
+	Name            string               `json:"name" binding:"required"`
+	PartyID         string               `json:"party_id" binding:"required"`
+	TangibleGroupID *uuid.UUID           `json:"tangible_group_id"`
+	Description     *string              `json:"description"`
+	IsActive        *bool                `json:"is_active"`
+	Lines           []WorkSetupLineInput `json:"lines"`
+}
+
+type UpdateWorkSetupCommand struct {
+	ActorID         string `json:"-"`
+	ID              uuid.UUID
+	Name            *string              `json:"name"`
+	PartyID         *string              `json:"party_id"`
+	TangibleGroupID *uuid.UUID           `json:"tangible_group_id"`
+	Description     *string              `json:"description"`
+	IsActive        *bool                `json:"is_active"`
+	Lines           []WorkSetupLineInput `json:"lines"`
+}
+
+type DeleteWorkSetupCommand struct {
+	ActorID string
+	ID      uuid.UUID
+}

@@ -2,8 +2,6 @@ package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) (*SalesOrder, error) {
@@ -36,19 +34,17 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 	}
 	order.QuoteID = &q.ID
 
-	// Copy work setups from quote to order with new IDs, preserving status
-	orderWorkSetups := make([]SalesWorkSetup, len(q.SalesWorkSetups))
-	for i, ws := range q.SalesWorkSetups {
-		orderWorkSetups[i] = SalesWorkSetup{
-			ID:           uuid.New(),
-			WorkSetupID:  ws.WorkSetupID,
-			Name:         ws.Name,
-			Observations: ws.Observations,
-			Status:       ws.Status,
-			Sequence:     ws.Sequence,
+	// Copy work references from quote to order with new IDs
+	orderWorkRefs := make([]WorkReference, len(q.WorkReferences))
+	for i, ws := range q.WorkReferences {
+		orderWorkRefs[i] = WorkReference{
+			ID:          ws.ID,
+			WorkSetupID: ws.WorkSetupID,
+			Sequence:    ws.Sequence,
+			Description: ws.Description,
 		}
 	}
-	order.SalesWorkSetups = orderWorkSetups
+	order.WorkReferences = orderWorkRefs
 
 	if err := q.ChangeStatus(QuoteStatusConverted); err != nil {
 		return nil, err

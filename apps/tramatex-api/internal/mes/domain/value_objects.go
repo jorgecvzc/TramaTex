@@ -4,17 +4,17 @@ package domain
 type ProductionStatus string
 
 const (
-	ProductionStatusDraft      ProductionStatus = "DRAFT"
 	ProductionStatusPending    ProductionStatus = "PENDING"
 	ProductionStatusInProgress ProductionStatus = "IN_PROGRESS"
 	ProductionStatusCompleted  ProductionStatus = "COMPLETED"
 	ProductionStatusOnHold     ProductionStatus = "ON_HOLD"
+	ProductionStatusSuspended  ProductionStatus = "SUSPENDED"
 	ProductionStatusCancelled  ProductionStatus = "CANCELLED"
 )
 
 func (ps ProductionStatus) IsValid() bool {
 	switch ps {
-	case ProductionStatusDraft, ProductionStatusPending, ProductionStatusInProgress, ProductionStatusCompleted, ProductionStatusOnHold, ProductionStatusCancelled:
+	case ProductionStatusPending, ProductionStatusInProgress, ProductionStatusCompleted, ProductionStatusOnHold, ProductionStatusSuspended, ProductionStatusCancelled:
 		return true
 	}
 	return false

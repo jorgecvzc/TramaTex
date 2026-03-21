@@ -75,4 +75,5 @@ type InvoiceRepository interface {
 	ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*Invoice, error)
 	FindByDeliveryNoteID(ctx context.Context, deliveryNoteID uuid.UUID) (*Invoice, error)
 	ListDeliveryNoteIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error)
+	ListOrderIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error)
 }

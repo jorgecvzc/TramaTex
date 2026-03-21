@@ -14,11 +14,12 @@ import (
 type Task struct {
 	ID          uuid.UUID
 	Name        string
+	Reference   string
 	Description string
 	IsActive    bool
 }
 
-func NewTask(name, description string, isActive bool) (*Task, error) {
+func NewTask(name, reference, description string, isActive bool) (*Task, error) {
 	if name == "" {
 		return nil, fmt.Errorf("task name is required")
 	}
@@ -26,6 +27,7 @@ func NewTask(name, description string, isActive bool) (*Task, error) {
 	return &Task{
 		ID:          uuid.New(),
 		Name:        name,
+		Reference:   reference,
 		Description: description,
 		IsActive:    isActive,
 	}, nil
@@ -69,12 +71,13 @@ type WorkTypeTask struct {
 type WorkType struct {
 	ID          uuid.UUID
 	Name        string
+	Reference   string
 	Description string
 	IsActive    bool
 	Tasks       []WorkTypeTask
 }
 
-func NewWorkType(name, description string, isActive bool, tasks []WorkTypeTask) (*WorkType, error) {
+func NewWorkType(name, reference, description string, isActive bool, tasks []WorkTypeTask) (*WorkType, error) {
 	if name == "" {
 		return nil, fmt.Errorf("work type name is required")
 	}
@@ -91,6 +94,7 @@ func NewWorkType(name, description string, isActive bool, tasks []WorkTypeTask) 
 	return &WorkType{
 		ID:          uuid.New(),
 		Name:        name,
+		Reference:   reference,
 		Description: description,
 		IsActive:    isActive,
 		Tasks:       tasks,
@@ -115,7 +119,7 @@ type WorkSetup struct {
 	ID              uuid.UUID
 	Name            string
 	PartyID         string
-	TangibleGroupID uuid.UUID
+	TangibleGroupID *uuid.UUID
 	Description     string
 	IsActive        bool
 	Lines           []WorkSetupLine
@@ -123,7 +127,7 @@ type WorkSetup struct {
 
 func NewWorkSetup(
 	name, partyID string,
-	tangibleGroupID uuid.UUID,
+	tangibleGroupID *uuid.UUID,
 	description string,
 	isActive bool,
 	lines []WorkSetupLine,
@@ -133,9 +137,6 @@ func NewWorkSetup(
 	}
 	if partyID == "" {
 		return nil, fmt.Errorf("party id is required")
-	}
-	if tangibleGroupID == uuid.Nil {
-		return nil, fmt.Errorf("tangible group id is required")
 	}
 
 	for _, line := range lines {
@@ -186,32 +187,31 @@ type WorkOrderLine struct {
 	Tasks          []WorkOrderTask
 }
 
-// WorkOrder is a real production order linked to a sales order, with physical garments,
-// execution times and operator assignments.
+// WorkOrder is a real production order derived from a WorkSetup configuration.
+// Its lines and tasks are auto-generated from the WorkSetup at creation time.
+// WorkSetupID is optional — when created from Sales on order confirmation,
+// the WorkOrder may not be backed by a WorkSetup.
 type WorkOrder struct {
-	ID              uuid.UUID
-	OrderNumber     string
-	OrderName       string
-	PartyID         string
-	TangibleGroupID uuid.UUID
-	WorkSetupID     *uuid.UUID
-	GarmentNotes    string
-	Status          ProductionStatus
-	Priority        WorkPriority
-	StartDate       *time.Time
-	DueDate         *time.Time
-	CompletedDate   *time.Time
-	Lines           []WorkOrderLine
+	ID            uuid.UUID
+	OrderNumber   string
+	OrderName     string
+	PartyID       string
+	WorkSetupID   *uuid.UUID
+	Notes         string
+	Status        ProductionStatus
+	Priority      WorkPriority
+	StartDate     *time.Time
+	DueDate       *time.Time
+	CompletedDate *time.Time
+	Lines         []WorkOrderLine
 }
 
 func NewWorkOrder(
 	orderNumber, orderName, partyID string,
-	tangibleGroupID uuid.UUID,
 	workSetupID *uuid.UUID,
-	garmentNotes string,
-	status ProductionStatus,
+	notes string,
 	priority WorkPriority,
-	startDate, dueDate, completedDate *time.Time,
+	dueDate *time.Time,
 	lines []WorkOrderLine,
 ) (*WorkOrder, error) {
 	if orderNumber == "" {
@@ -222,12 +222,6 @@ func NewWorkOrder(
 	}
 	if partyID == "" {
 		return nil, fmt.Errorf("party id is required")
-	}
-	if tangibleGroupID == uuid.Nil {
-		return nil, fmt.Errorf("tangible group id is required")
-	}
-	if !status.IsValid() {
-		return nil, fmt.Errorf("invalid production status")
 	}
 	if !priority.IsValid() {
 		return nil, fmt.Errorf("invalid work priority")
@@ -257,18 +251,15 @@ func NewWorkOrder(
 	}
 
 	return &WorkOrder{
-		ID:              uuid.New(),
-		OrderNumber:     orderNumber,
-		OrderName:       orderName,
-		PartyID:         partyID,
-		TangibleGroupID: tangibleGroupID,
-		WorkSetupID:     workSetupID,
-		GarmentNotes:    garmentNotes,
-		Status:          status,
-		Priority:        priority,
-		StartDate:       startDate,
-		DueDate:         dueDate,
-		CompletedDate:   completedDate,
-		Lines:           lines,
+		ID:          uuid.New(),
+		OrderNumber: orderNumber,
+		OrderName:   orderName,
+		PartyID:     partyID,
+		WorkSetupID: workSetupID,
+		Notes:       notes,
+		Status:      ProductionStatusPending,
+		Priority:    priority,
+		DueDate:     dueDate,
+		Lines:       lines,
 	}, nil
 }

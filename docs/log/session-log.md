@@ -27,7 +27,7 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Análisis de Refinamiento Arquitectónico del MVP
 
 - **Session ID:** `mvp-refinement-analysis-2026-03-12`
-- **Status:** En Pausa (Esperando refactor de MES por el usuario)
+- **Status:** En Progreso
 - **Sprint:** N/A
 - **Started:** 2026-03-12
 
@@ -45,7 +45,7 @@ Análisis modular sistemático del backend para identificar oportunidades de mej
 - [x] **Módulo 5: Sales (Ventas y Facturación)**: Finalizado (Alineación con ADR-020, tickets y fragmentación de Billing).
 - [x] **Deduplicación**: Identificación de lógica redundante en cálculos y handlers (Shared).
 - [x] **Integridad Doc-Code**: Validación de alineación entre ADRs y realidad técnica.
-- [ ] **Módulo 6: MES (Producción)**: **PENDIENTE** (Las propuestas se generarán tras el refactor del usuario).
+- [x] **Módulo 6: MES (Producción)**: **COMPLETADO** (Propuestas añadidas a `tmp/mvp_refinement_proposals.md`; documentación MES actualizada el 2026-03-20).
 
 ### Próximos Pasos
 
@@ -90,12 +90,10 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 ---
 
-## Refinamiento y Estabilización ERP Core
+---
+# REGISTRO DE SESIONES CERRADAS
+---
 
-- **Session ID:** `erp-core-refinement-2026-03-09`
-- **Status:** ✅ Cerrada (2026-03-14)
-- **Sprint:** N/A
-- **Started:** 2026-03-09
-
-### Contexto
-Estabilización operativa de los módulos centrales del ERP (Party, Product, Pricing, Sales) para asegurar su robustez ante la defensa final.
+- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 2026-03-20 | Finalizada: 2026-03-20 | Status: ✅ COMPLETADO
+- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 2026-03-19 | Finalizada: 2026-03-19
+- **Refinamiento y Estabilización ERP Core** | Iniciada: 2026-03-09 | Finalizada: 2026-03-14

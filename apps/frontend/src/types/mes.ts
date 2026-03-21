@@ -1,6 +1,7 @@
 export interface MESTask {
   id: string
   name: string
+  reference?: string
   description?: string
   is_active: boolean
 }
@@ -13,23 +14,19 @@ export interface MESPosition {
   is_active: boolean
 }
 
-export interface MESServiceGroupTask {
+export interface MESWorkTypeTask {
   task_id: string
   sequence: number
 }
 
-export type MESServiceTemplateTask = MESServiceGroupTask
-
-export interface MESServiceGroup {
+export interface MESWorkType {
   id: string
   name: string
+  reference?: string
   description?: string
-  product_group_id?: string
   is_active: boolean
-  tasks: MESServiceGroupTask[]
+  tasks: MESWorkTypeTask[]
 }
-
-export type MESServiceTemplate = MESServiceGroup
 
 export interface ListMESFilters {
   is_active?: boolean
@@ -38,6 +35,14 @@ export interface ListMESFilters {
 
 export interface CreateTaskRequest {
   name: string
+  reference?: string
+  description?: string
+  is_active?: boolean
+}
+
+export interface UpdateTaskRequest {
+  name?: string
+  reference?: string
   description?: string
   is_active?: boolean
 }
@@ -49,114 +54,172 @@ export interface CreatePositionRequest {
   is_active?: boolean
 }
 
-export interface ServiceGroupTaskInput {
+export interface UpdatePositionRequest {
+  name?: string
+  code?: string
+  description?: string
+  is_active?: boolean
+}
+
+export interface WorkTypeTaskInput {
   task_id: string
   sequence: number
 }
 
-export type ServiceTemplateTaskInput = ServiceGroupTaskInput
-
-export interface CreateServiceGroupRequest {
+export interface CreateWorkTypeRequest {
   name: string
+  reference?: string
   description?: string
-  product_group_id?: string
   is_active?: boolean
-  task_assignments: ServiceGroupTaskInput[]
+  task_assignments: WorkTypeTaskInput[]
 }
 
-export type CreateServiceTemplateRequest = CreateServiceGroupRequest
+export interface UpdateWorkTypeRequest {
+  name?: string
+  reference?: string
+  description?: string
+  is_active?: boolean
+  task_assignments?: WorkTypeTaskInput[]
+}
 
-export interface MESWorkTask {
+export interface WorkOrderTask {
   id: string
   task_id: string
   sequence: number
   status: string
-  assigned_to?: string
+  assigned_to?: string // Post-MVP: asignación de tareas a operarios
   started_at?: string
   completed_at?: string
   notes?: string
 }
 
-export interface MESWorkServiceGroup {
+export interface WorkOrderLine {
   id: string
-  service_group_id: string
+  work_type_id: string
   position_id: string
   design_file_path?: string
   notes?: string
   sequence: number
-  tasks: MESWorkTask[]
+  tasks: WorkOrderTask[]
 }
 
-export type MESWorkServiceTemplate = MESWorkServiceGroup
-
-export interface MESWork {
+export interface WorkOrder {
   id: string
   work_number: string
   work_name: string
   party_id: string
-  tangible_group_id: string
-  garment_notes?: string
+  work_setup_id: string
+  notes?: string
   status: string
   priority: string
   start_date?: string
   due_date?: string
   completed_date?: string
-  service_groups: MESWorkServiceGroup[]
+  lines: WorkOrderLine[]
+  sales_order_id?: string
+  sales_order_number?: string
 }
 
-export type MESWorkDefinition = MESWork
-export type MESWorkExecution = MESWork
-
-export interface CreateMESWorkServiceGroupInput {
-  service_group_id: string
-  position_id: string
-  design_file_path?: string
-  notes?: string
-  sequence: number
-}
-
-export type CreateMESWorkServiceTemplateInput = CreateMESWorkServiceGroupInput
-
-export interface CreateMESWorkRequest {
+export interface CreateWorkOrderRequest {
   work_name: string
   party_id: string
-  tangible_group_id: string
-  garment_notes?: string
-  status?: string
+  work_setup_id: string
+  notes?: string
   priority?: string
-  service_group_assignments: CreateMESWorkServiceGroupInput[]
+  due_date?: string
+  order_work_setup_id?: string
 }
 
-export type CreateMESWorkDefinitionRequest = CreateMESWorkRequest
-
-export interface UpdateMESWorkRequest {
+export interface UpdateWorkOrderRequest {
   work_name?: string
-  party_id?: string
-  tangible_group_id?: string
-  garment_notes?: string
+  notes?: string
   status?: string
   priority?: string
   due_date?: string
+  work_setup_id?: string
 }
 
-export type UpdateMESWorkDefinitionRequest = UpdateMESWorkRequest
-
-export interface ListMESWorkFilters {
+export interface ListWorkOrderFilters {
   status?: string
   search?: string
   party_id?: string
 }
 
-export interface MESWorkDashboardStats {
+export interface WorkOrderDashboardStats {
   total: number
   by_status: Record<string, number>
   overdue: number
   due_today: number
 }
 
-export type MESWorkTaskAction = 'START' | 'PAUSE' | 'COMPLETE' | 'BLOCK'
+export type WorkOrderTaskAction = 'START' | 'PAUSE' | 'COMPLETE' | 'BLOCK'
 
-export interface UpdateMESWorkTaskStatusRequest {
-  action: MESWorkTaskAction
+export interface UpdateWorkOrderTaskStatusRequest {
+  action: WorkOrderTaskAction
   notes?: string
+}
+
+// --- WorkSetup types ---
+
+export interface WorkSetupLine {
+  id: string
+  work_type_id: string
+  position_id: string
+  design_file_path?: string
+  notes?: string
+  sequence: number
+}
+
+export interface WorkSetup {
+  id: string
+  name: string
+  party_id: string
+  tangible_group_id: string
+  description?: string
+  is_active: boolean
+  lines: WorkSetupLine[]
+}
+
+export interface WorkSetupLineInput {
+  work_type_id: string
+  position_id: string
+  design_file_path?: string
+  notes?: string
+  sequence: number
+}
+
+export interface CreateWorkSetupRequest {
+  name: string
+  party_id: string
+  tangible_group_id: string
+  description?: string
+  is_active?: boolean
+  lines: WorkSetupLineInput[]
+}
+
+export interface UpdateWorkSetupRequest {
+  name?: string
+  party_id?: string
+  tangible_group_id?: string
+  description?: string
+  is_active?: boolean
+  lines?: WorkSetupLineInput[]
+}
+
+export interface ListWorkSetupFilters {
+  is_active?: boolean
+  search?: string
+  party_id?: string
+}
+
+// --- Pending WorkSetup (from confirmed Sales orders) ---
+
+export interface PendingWorkSetup {
+  id: string
+  workSetupId?: string | null
+  description: string
+  orderId: string
+  orderNumber: string
+  deliveryDate: string
+  partyId: string
 }

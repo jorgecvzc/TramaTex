@@ -13,7 +13,7 @@ El módulo MES se estructura en **5 entidades** organizadas en dos niveles: dato
 #### 1) Tarea (`Task`)
 Proceso atómico e indivisible dentro del flujo de personalización de una prenda. Cada tarea se ejecuta con las mismas herramientas y por una persona.
 - **Ejemplos:** Diseñar, Imprimir, Marcar, Plegar, Embolsar.
-- **Campos:** `ID`, `Name`, `Description`, `IsActive`.
+- **Campos:** `ID`, `Name`, `Reference` (código corto para identificación rápida), `Description`, `IsActive`.
 - **Regla:** Una tarea no define orden ni contexto — es un bloque funcional reutilizable.
 
 #### 2) Posición (`Position`)
@@ -25,7 +25,8 @@ Zona de la prenda donde se realiza un trabajo de personalización/modificación.
 #### 3) Tipo de Trabajo (`WorkType`)
 Secuencia ordenada de tareas que define un tipo de marcado/personalización concreto. Es la "receta" que indica todas las tareas necesarias para un proceso completo.
 - **Ejemplos:** "Marcado por vinilo" → Diseñar → Imprimir → Marcar → Plegar → Embolsar. "Bordado" → Diseñar → Bordar → Plegar → Embolsar.
-- **Campos:** `ID`, `Name`, `Description`, `IsActive`, `Tasks[]` (lista ordenada de `WorkTypeTask` con `TaskID` + `Sequence`).
+- **Campos:** `ID`, `Name`, `Reference` (código corto para identificación rápida), `Description`, `IsActive`, `Tasks[]` (lista ordenada de `WorkTypeTask` con `TaskID` + `Sequence`).
+- **Backend:** Tabla `work_types` / Entidad `WorkType`.
 - **Regla:** Cada `WorkType` define exactamente qué tareas se ejecutan y en qué orden. No tiene posición — la posición se asigna al usar el tipo de trabajo en un `WorkSetup` o `WorkOrder`.
 
 ### Configuración por Cliente
@@ -69,26 +70,33 @@ Position (Posición)                       ← zona de la prenda (transversal)
 ## 3. Estados de Producción
 
 ### Estados de la Orden de Trabajo (`WorkOrder.Status`)
-| Estado | Descripción |
-|---|---|
-| `DRAFT` | En preparación, editable libremente. |
-| `PENDING` | Lista para iniciar producción. |
-| `IN_PROGRESS` | Al menos una tarea ha comenzado. |
-| `COMPLETED` | Todas las tareas de todas las líneas finalizadas. |
-| `ON_HOLD` | Pausada por incidencia o decisión. |
-| `CANCELLED` | Descartada. |
+| Estado | Castellano (UI) | Descripción |
+|---|---|---|
+| `PENDING` | Pendiente | Lista para iniciar producción. |
+| `IN_PROGRESS` | En progreso | Al menos una tarea ha comenzado. |
+| `COMPLETED` | Completado | Todas las tareas de todas las líneas finalizadas. |
+| `ON_HOLD` | En espera | Pausada por incidencia o decisión. |
+| `SUSPENDED` | Suspendida | Suspendida temporalmente desde Sales (p.ej. al cancelar un pedido). Las transiciones PENDING/IN_PROGRESS/ON_HOLD → SUSPENDED son iniciadas por el módulo Sales. COMPLETED y CANCELLED no pueden suspenderse. |
+| `CANCELLED` | Cancelado | Descartada definitivamente. |
 
 ### Estados de Tarea (`WorkOrderTask.Status`)
-| Estado | Descripción |
-|---|---|
-| `PENDING` | No iniciada. |
-| `IN_PROGRESS` | En curso (operario trabajando). |
-| `COMPLETED` | Finalizada. |
-| `BLOCKED` | Incidencia o problema. |
-| `SKIPPED` | Omitida (decisión del jefe de taller). |
+| Estado | Castellano (UI) | Descripción |
+|---|---|---|
+| `PENDING` | Pendiente | No iniciada. |
+| `IN_PROGRESS` | En progreso | En curso (operario trabajando). |
+| `COMPLETED` | Completada | Finalizada. |
+| `BLOCKED` | Bloqueada | Incidencia o problema. |
+| `SKIPPED` | Omitida | Omitida (decisión del jefe de taller). |
 
 ### Prioridades (`WorkOrder.Priority`)
-`LOW` · `NORMAL` · `HIGH` · `URGENT`
+| Código | Castellano (UI) |
+|---|---|
+| `LOW` | Baja |
+| `NORMAL` | Normal |
+| `HIGH` | Alta |
+| `URGENT` | Urgente |
+
+> **Convención de UI:** Los estados y prioridades se almacenan en inglés en la API (estándar técnico), pero la interfaz de usuario **siempre los muestra en castellano** utilizando la columna "Castellano (UI)" de estas tablas.
 
 ---
 
@@ -110,20 +118,24 @@ Una vez que el `WorkOrder` entra en producción, el jefe de taller tiene soberan
 El módulo MES recibe solicitudes de trabajo desde el módulo **Sales** a través de la entidad `SalesWorkSetup` (definida en el dominio de Sales). Esta integración funciona así:
 
 ### Flujo de Entrada
-1. El comercial asocia trabajos a presupuestos/pedidos en Sales (con nombre, observaciones y opcionalmente un `WorkSetupID`).
-2. Al confirmar un pedido, los trabajos quedan en estado `PENDIENTE` en Sales.
-3. El jefe de taller consulta los trabajos pendientes de Sales (CU-M-010).
-4. Si el `SalesWorkSetup` tiene un `WorkSetupID`, el taller crea la `WorkOrder` directamente desde la plantilla asociada.
-5. Si solo tiene nombre y observaciones, el jefe de taller define manualmente el `WorkSetup` y/o `WorkOrder`.
+1. El comercial asocia trabajos a presupuestos/pedidos en Sales (con nombre, observaciones y opcionalmente un `WorkSetupID`). Si no selecciona un `WorkSetup` existente, el sistema **auto-crea** uno en MES (inactivo, sin líneas) usando el adaptador `WorkSetupCreatorAdapter`.
+2. Al convertir un presupuesto en pedido, los `SalesWorkSetup` se copian y el método `ensureWorkSetups` garantiza que todos tengan un `WorkSetupID` válido.
+3. El jefe de taller consulta los trabajos pendientes de Sales (CU-M-010): pedidos en estado `EN_PREPARACION` cuyos `SalesWorkSetup` aún no tienen `WorkOrderID`.
+4. Si el `SalesWorkSetup` tiene un `WorkSetupID` (siempre, tras la auto-creación), el taller crea la `WorkOrder` directamente desde la plantilla asociada.
+5. Al crear la `WorkOrder`, se debería actualizar el `WorkOrderID` en el `SalesWorkSetup` correspondiente (mecanismo pendiente de implementación — post-MVP).
 
-### Flujo de Retorno (Eventos de Dominio)
-- **`WorkOrderStarted`:** Al iniciar la primera tarea de un `WorkOrder` vinculado a Sales, se emite un evento que actualiza el `SalesWorkSetup` a `EN_PROCESO`.
-- **`WorkOrderCompleted`:** Al completar todas las tareas de un `WorkOrder`, se emite un evento que actualiza el `SalesWorkSetup` a `COMPLETADO`.
+### Estado Actual del Puente
+`SalesWorkSetup` es una entidad **sin estado propio** (no tiene campo `Status`). El seguimiento del progreso se realiza consultando:
+- **`WorkSetupID`**: siempre presente (auto-creado si no existía).
+- **`WorkOrderID`**: presente cuando el taller ha creado la orden de trabajo.
+- **Estado de la `WorkOrder`**: consultado a MES vía `WorkOrderQueryService`.
+
+> **Nota:** Los eventos de dominio `WorkOrderStarted` y `WorkOrderCompleted` están planificados para post-MVP. Actualmente, la visibilidad del estado MES en Sales se obtiene bajo demanda.
 
 ### Principio de Desacoplamiento
-MES no depende del dominio de Sales. La comunicación es mediante:
-- **Consulta:** MES lee los trabajos pendientes a través de una interfaz de consulta (puerto en el dominio MES).
-- **Notificación:** MES emite eventos de dominio que Sales consume para actualizar sus estados.
+MES no depende del dominio de Sales. La comunicación se realiza mediante:
+- **Anti-Corruption Layer:** Sales usa `WorkSetupCreatorAdapter` para crear WorkSetups en MES sin exponer el dominio interno.
+- **Consulta:** MES expone `WorkOrderQueryService` que devuelve DTOs de progreso sin revelar su modelo interno.
 
 ### Servicio de Consulta de Progreso (`WorkOrderQueryService`)
 MES expone un servicio de consulta que permite a otros módulos conocer el estado de ejecución de las órdenes de trabajo **sin acceder a los detalles internos del dominio MES**. El servicio:
@@ -138,5 +150,11 @@ MES expone un servicio de consulta que permite a otros módulos conocer el estad
 2. Selecciona una tarea → **START**.
 3. Al terminar → **COMPLETE**. Si hay incidencia → **BLOCK**.
 
+### Suspensión y Reactivación de Órdenes (Sales → MES)
+El módulo Sales puede suspender o reactivar órdenes de trabajo cuando el estado de un pedido cambia:
+- **Suspender (`SuspendWorkOrders`):** Transiciona PENDING/IN_PROGRESS/ON_HOLD → SUSPENDED. Las órdenes COMPLETED y CANCELLED se ignoran.
+- **Reactivar (`ReactivateWorkOrders`):** Transiciona SUSPENDED/ON_HOLD/CANCELLED → PENDING. Las órdenes COMPLETED e IN_PROGRESS se ignoran.
+- El adaptador `WorkOrderSuspenderAdapter` (infraestructura de Sales) implementa la interfaz `WorkOrderSuspender` definida en el dominio de Sales e invoca directamente `MESService` (setter injection).
+
 ---
-**Última Actualización:** 14 de marzo de 2026
+**Última Actualización:** 20 de marzo de 2026

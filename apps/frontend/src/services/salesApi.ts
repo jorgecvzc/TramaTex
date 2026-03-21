@@ -56,7 +56,7 @@ const backendToFrontendStatus: Record<string, string> = {
   // (CANCELADO already mapped above)
   // Invoice statuses
   // (BORRADOR already mapped above)
-  'EMITIDA': 'ISSUED',
+  // (EMITIDA already mapped above)
   'PAGADA': 'PAID',
   'VENCIDA': 'OVERDUE',
   'ANULADA': 'VOID',
@@ -792,6 +792,20 @@ class SalesApi {
       'VOID': 'Anulada',
     }
     return statusLabels[status] || status
+  }
+
+  /**
+   * List pending work setups from confirmed orders (for MES Dashboard)
+   */
+  async listPendingWorkSetups(): Promise<any[]> {
+    const response = await this.safeFetch(`${this.baseUrl}/orders/pending-work-setups`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron cargar las configuraciones pendientes')
+    }
+    return response.json()
   }
 }
 

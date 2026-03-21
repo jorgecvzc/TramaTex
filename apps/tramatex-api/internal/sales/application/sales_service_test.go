@@ -174,6 +174,14 @@ func (m *MockInvoiceRepository) ListDeliveryNoteIDsByInvoiceID(ctx context.Conte
 	return args.Get(0).([]uuid.UUID), args.Error(1)
 }
 
+func (m *MockInvoiceRepository) ListOrderIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, invoiceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}
+
 type MockPricingEngine struct {
 	mock.Mock
 }
@@ -229,6 +237,20 @@ func (m *MockNumberGenerator) NextDeliveryNoteNumber(ctx context.Context) (domai
 func (m *MockNumberGenerator) NextInvoiceNumber(ctx context.Context, series domain.InvoiceSeries) (domain.InvoiceNumber, error) {
 	args := m.Called(ctx, series)
 	return args.Get(0).(domain.InvoiceNumber), args.Error(1)
+}
+
+type MockWorkOrderSuspender struct {
+	mock.Mock
+}
+
+func (m *MockWorkOrderSuspender) SuspendWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error {
+	args := m.Called(ctx, workOrderIDs)
+	return args.Error(0)
+}
+
+func (m *MockWorkOrderSuspender) ReactivateWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error {
+	args := m.Called(ctx, workOrderIDs)
+	return args.Error(0)
 }
 
 func TestSalesService_CreateQuote_Success(t *testing.T) {
@@ -931,6 +953,191 @@ func TestSalesService_ChangeOrderStatus_Success(t *testing.T) {
 	orderRepo.AssertExpectations(t)
 }
 
+func TestSalesService_ChangeOrderStatus_CancelSuspendsWorkOrders(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-010")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	// Move to EN_PREPARACION so we can cancel.
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+	wsID1, wsID2 := uuid.New(), uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID1, WorkOrderID: &woID1, Sequence: 1},
+		{ID: uuid.New(), WorkSetupID: &wsID2, WorkOrderID: &woID2, Sequence: 2},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+	suspender.On("SuspendWorkOrders", mock.Anything, []uuid.UUID{woID1, woID2}).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	suspender.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_ReactivateReactivatesWorkOrders(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-011")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	// Simulate: confirmed → cancelled (now CANCELADO).
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusCanceled)
+
+	woID := uuid.New()
+	wsID3 := uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID3, WorkOrderID: &woID, Sequence: 1},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+	suspender.On("ReactivateWorkOrders", mock.Anything, []uuid.UUID{woID}).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusPending),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "PENDIENTE", string(result.Status))
+	suspender.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_CancelWithoutSuspenderOK(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-012")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+
+	woID := uuid.New()
+	wsID4 := uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID4, WorkOrderID: &woID, Sequence: 1},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	// No suspender set — nil-safe path.
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_CancelWithNoWorkOrdersSkipsSuspend(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-013")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	// No WorkReferences — nothing to suspend.
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	// SuspendWorkOrders must NOT have been called.
+	suspender.AssertNotCalled(t, "SuspendWorkOrders", mock.Anything, mock.Anything)
+	orderRepo.AssertExpectations(t)
+}
+
 // ===== GetDeliveryNote Tests =====
 
 func TestSalesService_GetDeliveryNote_Success(t *testing.T) {
@@ -1058,6 +1265,7 @@ func TestSalesService_GetInvoice_Success(t *testing.T) {
 
 	invoiceRepo.On("FindByID", mock.Anything, invoice.ID).Return(invoice, nil)
 	invoiceRepo.On("ListDeliveryNoteIDsByInvoiceID", mock.Anything, invoice.ID).Return([]uuid.UUID{}, nil)
+	invoiceRepo.On("ListOrderIDsByInvoiceID", mock.Anything, invoice.ID).Return([]uuid.UUID{}, nil)
 
 	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 

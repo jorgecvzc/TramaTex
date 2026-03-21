@@ -4,10 +4,10 @@ import "testing"
 
 func TestProductionStatusValidation(t *testing.T) {
 	valid := []ProductionStatus{
-		ProductionStatusDraft,
 		ProductionStatusPending,
 		ProductionStatusInProgress,
 		ProductionStatusOnHold,
+		ProductionStatusSuspended,
 		ProductionStatusCompleted,
 		ProductionStatusCancelled,
 	}

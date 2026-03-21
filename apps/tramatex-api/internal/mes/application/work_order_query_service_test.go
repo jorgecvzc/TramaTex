@@ -66,7 +66,7 @@ func TestGetWorkOrderProgress_FullyCompleted(t *testing.T) {
 		OrderNumber:     "WO-2026-001",
 		OrderName:       "Test Order",
 		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
+		WorkSetupID: uuidPtr(uuid.New()),
 		Status:          domain.ProductionStatusCompleted,
 		Priority:        domain.WorkPriorityNormal,
 		CompletedDate:   &now,
@@ -127,7 +127,7 @@ func TestGetWorkOrderProgress_PartiallyCompleted(t *testing.T) {
 		OrderNumber:     "WO-2026-002",
 		OrderName:       "Partial Order",
 		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
+		WorkSetupID: uuidPtr(uuid.New()),
 		Status:          domain.ProductionStatusInProgress,
 		Priority:        domain.WorkPriorityHigh,
 		Lines: []domain.WorkOrderLine{
@@ -183,7 +183,7 @@ func TestGetWorkOrderProgress_TaskNamesEnriched(t *testing.T) {
 		OrderNumber:     "WO-2026-003",
 		OrderName:       "Names Test",
 		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
+		WorkSetupID: uuidPtr(uuid.New()),
 		Status:          domain.ProductionStatusPending,
 		Priority:        domain.WorkPriorityNormal,
 		Lines: []domain.WorkOrderLine{
@@ -229,7 +229,7 @@ func TestGetWorkOrdersProgress_MultipleOrders(t *testing.T) {
 
 	wo1 := &domain.WorkOrder{
 		ID: uuid.New(), OrderNumber: "WO-001", OrderName: "Order 1",
-		PartyID: "p1", TangibleGroupID: uuid.New(),
+		PartyID: "p1", WorkSetupID: uuidPtr(uuid.New()),
 		Status: domain.ProductionStatusCompleted, Priority: domain.WorkPriorityNormal,
 		Lines: []domain.WorkOrderLine{{
 			ID: uuid.New(), WorkTypeID: uuid.New(), PositionID: uuid.New(), Sequence: 1,
@@ -240,7 +240,7 @@ func TestGetWorkOrdersProgress_MultipleOrders(t *testing.T) {
 	}
 	wo2 := &domain.WorkOrder{
 		ID: uuid.New(), OrderNumber: "WO-002", OrderName: "Order 2",
-		PartyID: "p1", TangibleGroupID: uuid.New(),
+		PartyID: "p1", WorkSetupID: uuidPtr(uuid.New()),
 		Status: domain.ProductionStatusInProgress, Priority: domain.WorkPriorityNormal,
 		Lines: []domain.WorkOrderLine{{
 			ID: uuid.New(), WorkTypeID: uuid.New(), PositionID: uuid.New(), Sequence: 1,
@@ -291,7 +291,7 @@ func TestGetWorkOrdersProgress_SkipsMissing(t *testing.T) {
 
 	wo := &domain.WorkOrder{
 		ID: uuid.New(), OrderNumber: "WO-001", OrderName: "Existing",
-		PartyID: "p1", TangibleGroupID: uuid.New(),
+		PartyID: "p1", WorkSetupID: uuidPtr(uuid.New()),
 		Status: domain.ProductionStatusPending, Priority: domain.WorkPriorityNormal,
 		Lines: []domain.WorkOrderLine{{
 			ID: uuid.New(), WorkTypeID: uuid.New(), PositionID: uuid.New(), Sequence: 1,

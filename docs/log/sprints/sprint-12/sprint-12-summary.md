@@ -74,7 +74,7 @@
 ├─────────────────────────────────┤
 │  Application (MES Service)      │ ← Completo
 ├─────────────────────────────────┤
-│  Domain (MESWork Aggregate)     │ ← Completo
+│  Domain (WorkOrder Aggregate)     │ ← Completo
 ├─────────────────────────────────┤
 │  Infrastructure (PostgreSQL)    │ ← Completo
 └─────────────────────────────────┘

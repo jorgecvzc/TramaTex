@@ -1,7 +1,7 @@
 # TramaTex – Glosario Unificado
 
-**Versión:** 2.1
-**Fecha:** 07/03/2026
+**Versión:** 2.2
+**Fecha:** 17/03/2026
 **Propósito:** Definición centralizada de todos los términos y conceptos clave del proyecto, tanto técnicos como de proceso.
 
 ---
@@ -101,7 +101,7 @@ Precio final ofrecido al cliente tras aplicar descuentos al `BSP`. Fórmula: `BS
 ### I
 
 **i18n (Internacionalización)**
-Soporte multi-idioma. MVP: interfaz en español/catalán; estados técnicos en inglés en la API para estandarización.
+Soporte multi-idioma. MVP: interfaz en español/catalán; estados y prioridades técnicos en inglés en la API para estandarización, pero **siempre mostrados en castellano** en la UI (ver `code-and-style-standards.md`, sección "Interfaz de Usuario").
 
 **Infrastructure Layer / Capa de Infraestructura**
 Capa que contiene las implementaciones técnicas: persistencia (GORM), clientes de APIs externas y adaptadores.
@@ -132,11 +132,20 @@ Estándar de autenticación stateless para validar usuarios en las peticiones a 
 **MES (Manufacturing Execution System)**
 Sistema de ejecución de manufactura que gestiona la producción en taller de artículos personalizados.
 
-**MESWorkDefinition (Receta / Definición de Trabajo)**
-Plantilla reutilizable que define las fases y tareas necesarias para fabricar un artículo. Es el "plano" de producción.
+**Task (Tarea)**
+Proceso atómico e indivisible del flujo MES (ej. Diseñar, Imprimir, Marcar). Dato maestro reutilizable.
 
-**MESWorkExecution (Orden de Trabajo / Ejecución)**
-Instancia operativa de un trabajo de fabricación. Realiza el seguimiento de estados, tiempos y operarios en tiempo real.
+**Position (Posición)**
+Zona de la prenda donde se realiza un trabajo (ej. Pecho izquierdo, Espalda). Dato maestro transversal.
+
+**WorkType (Tipo de Trabajo)**
+Secuencia ordenada de tareas que define un tipo de marcado/personalización. Es la "receta" del proceso. Backend: tabla `work_types`.
+
+**WorkSetup (Configuración de Trabajo)**
+Plantilla reutilizable que define la personalización de un tipo de prenda para un cliente. Combina WorkType + Position en líneas.
+
+**WorkOrder (Orden de Trabajo)**
+Instancia operativa de producción vinculada a un pedido. Realiza seguimiento de estados, tiempos y operarios en tiempo real. Backend: tabla `work_orders`.
 
 **Modificador de precio**
 Valor (`FIXED` o `PERCENTAGE`) asociado a un `AttributeValue` que afecta el cálculo del `BaseCost` de una variante.
@@ -203,7 +212,7 @@ Objeto de valor que encapsula y valida el identificador fiscal (NIF/CIF/NIE).
 Porcentaje de IVA aplicable. Se almacena en el `Product` para asegurar la soberanía del catálogo sobre el precio.
 
 **Terminal de taller**
-Interfaz táctil para operarios que permite gestionar el avance de las `MESWorkExecution` (inicio, pausa, fin de tareas).
+Interfaz táctil para operarios que permite gestionar el avance de las `WorkOrder` (inicio, pausa, fin de tareas).
 
 ---
 

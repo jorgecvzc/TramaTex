@@ -27,6 +27,7 @@ describe('PartyApi Service', () => {
         tax_id: 'B12345678',
         tax_id_type: 'CIF',
         website: 'https://acme.com',
+        default_discount_percentage: 0,
         created_at: '2026-02-17T10:00:00Z',
         modified_at: '2026-02-17T10:00:00Z',
         has_organization: true,

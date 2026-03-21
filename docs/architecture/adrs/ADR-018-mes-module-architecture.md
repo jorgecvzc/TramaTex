@@ -1,7 +1,7 @@
 # ADR-018 – MES Module Architecture - Independent Schema and Inter-module Communication
 
 **Fecha:** 07/02/2026
-**Estado:** Propuesto
+**Estado:** Aceptado
 **Autores:** Gemini CLI (acting as Lead Architect)
 
 ---

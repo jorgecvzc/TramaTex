@@ -4,8 +4,8 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Posiciones MES</h1>
+          <p class="breadcrumb">MES / Posiciones</p>
+          <h1>Posiciones</h1>
           <p class="subtitle">Administra posiciones físicas de aplicación en la prenda.</p>
         </div>
         <RouterLink to="/mes/positions/new" class="btn btn-primary">Nueva posición</RouterLink>
@@ -31,6 +31,7 @@
               <th>Código</th>
               <th>Descripción</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -43,9 +44,15 @@
                   {{ position.is_active ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
+              <td class="actions">
+                <RouterLink :to="`/mes/positions/${position.id}/edit`" class="btn btn-sm">Editar</RouterLink>
+                <button @click="toggleActive(position)" class="btn btn-sm" :class="position.is_active ? 'btn-off' : 'btn-on'">
+                  {{ position.is_active ? 'Desactivar' : 'Activar' }}
+                </button>
+              </td>
             </tr>
             <tr v-if="positions.length === 0">
-              <td colspan="4" class="empty-state">No hay posiciones registradas.</td>
+              <td colspan="5" class="empty-state">No hay posiciones registradas.</td>
             </tr>
           </tbody>
         </table>
@@ -78,9 +85,18 @@ async function loadPositions() {
       is_active: isActive,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las posiciones MES'
+    error.value = err.message || 'No se pudieron cargar las posiciones'
   } finally {
     isLoading.value = false
+  }
+}
+
+async function toggleActive(position: MESPosition) {
+  try {
+    await mesApi.updatePosition(position.id, { is_active: !position.is_active })
+    await loadPositions()
+  } catch (err: any) {
+    error.value = err.message || 'No se pudo cambiar el estado de la posición'
   }
 }
 
@@ -107,4 +123,8 @@ onMounted(loadPositions)
 .badge.off { background: #e2e8f0; color: #475569; }
 .empty-state { text-align: center; color: #64748b; padding: 1rem; }
 .alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
+.btn-off { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.btn-on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 </style>

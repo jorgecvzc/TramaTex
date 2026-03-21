@@ -242,10 +242,11 @@ func main() {
 	// --- MES Module Dependencies ---
 	taskRepo := mes_repo.NewGORMTaskRepository(db)
 	positionRepo := mes_repo.NewGORMPositionRepository(db)
-	serviceGroupRepo := mes_repo.NewGORMServiceGroupRepository(db)
-	mesWorkRepo := mes_repo.NewGORMMESWorkRepository(db)
-	mesService := mes_uc.NewMESService(taskRepo, positionRepo, serviceGroupRepo, mesWorkRepo)
-	mesWorkOrderQueryService := mes_uc.NewWorkOrderQueryService(mesWorkRepo, taskRepo)
+	workTypeRepo := mes_repo.NewGORMWorkTypeRepository(db)
+	workOrderRepo := mes_repo.NewGORMWorkOrderRepository(db)
+	workSetupRepo := mes_repo.NewGORMWorkSetupRepository(db)
+	mesService := mes_uc.NewMESService(taskRepo, positionRepo, workTypeRepo, workOrderRepo, workSetupRepo)
+	mesWorkOrderQueryService := mes_uc.NewWorkOrderQueryService(workOrderRepo, taskRepo)
 	mesHandler := mes_handler.NewMESHandler(mesService)
 
 	// --- Sales Module Dependencies ---
@@ -270,6 +271,18 @@ func main() {
 	)
 	salesService.SetTransactionManager(sales_repo.NewGORMTransactionManager(db))
 	salesHandler := sales_handler.NewSalesHandler(salesService)
+
+	// --- Cross-module adapters (MES ← Sales) ---
+	salesOrderLinker := sales_repo.NewSalesOrderLinkerAdapter(db)
+	pendingSetupProvider := sales_repo.NewPendingSetupProviderAdapter(orderRepo)
+	workOrderCreator := sales_repo.NewWorkOrderCreatorAdapter(mesService)
+	workOrderSuspender := sales_repo.NewWorkOrderSuspenderAdapter(mesService)
+	mesService.SetSalesOrderLinker(salesOrderLinker)
+	mesService.SetPendingSetupProvider(pendingSetupProvider)
+	mesService.SetSalesInfoProvider(sales_repo.NewWorkOrderSalesInfoAdapter(db))
+	salesService.SetWorkOrderCreator(workOrderCreator)
+	salesService.SetWorkOrderSuspender(workOrderSuspender)
+	salesService.SetWorkOrderStatusProvider(sales_repo.NewWorkOrderStatusCheckerAdapter(mesService))
 
 	// --- Middleware ---
 	authMiddleware := middleware.AuthMiddleware(jwtService, tokenBlacklist)
@@ -448,6 +461,7 @@ func main() {
 					orders.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateOrder)
 					orders.POST("/preview", infra_middleware.RequireRole("admin", "commercial"), salesHandler.PreviewOrderCalculation)
 					orders.GET("", salesHandler.ListOrders)
+					orders.GET("/pending-work-setups", salesHandler.ListPendingWorkSetups)
 					orders.GET("/:id", salesHandler.GetOrder)
 					orders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.UpdateOrderDetails)
 					orders.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeOrderStatus)
@@ -494,45 +508,36 @@ func main() {
 					positions.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeletePosition)
 				}
 
-				serviceGroups := mes.Group("/service-groups")
+				workTypes := mes.Group("/work-types")
 				{
-					serviceGroups.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateServiceGroup)
-					serviceGroups.GET("", mesHandler.ListServiceGroups)
-					serviceGroups.GET("/:id", mesHandler.GetServiceGroup)
-					serviceGroups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateServiceGroup)
-					serviceGroups.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteServiceGroup)
+					workTypes.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkType)
+					workTypes.GET("", mesHandler.ListWorkTypes)
+					workTypes.GET("/:id", mesHandler.GetWorkType)
+					workTypes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkType)
+					workTypes.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteWorkType)
 				}
 
-				serviceTemplates := mes.Group("/service-templates")
+				workOrders := mes.Group("/work-orders")
 				{
-					serviceTemplates.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateServiceTemplate)
-					serviceTemplates.GET("", mesHandler.ListServiceTemplates)
-					serviceTemplates.GET("/:id", mesHandler.GetServiceTemplate)
-					serviceTemplates.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateServiceTemplate)
-					serviceTemplates.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteServiceTemplate)
+					workOrders.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkOrder)
+					workOrders.GET("", mesHandler.ListWorkOrders)
+					workOrders.GET("/dashboard/stats", mesHandler.GetWorkOrderDashboardStats)
+					workOrders.GET("/overdue", mesHandler.ListOverdueWorkOrders)
+					workOrders.GET("/:id", mesHandler.GetWorkOrder)
+					workOrders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkOrder)
+					workOrders.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateWorkOrderTaskStatus)
 				}
 
-				works := mes.Group("/works")
+				workSetups := mes.Group("/work-setups")
 				{
-					works.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateMESWork)
-					works.GET("", mesHandler.ListMESWorks)
-					works.GET("/dashboard/stats", mesHandler.GetMESWorkDashboardStats)
-					works.GET("/overdue", mesHandler.ListOverdueMESWorks)
-					works.GET("/:id", mesHandler.GetMESWork)
-					works.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateMESWork)
-					works.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateMESWorkTaskStatus)
+					workSetups.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkSetup)
+					workSetups.GET("", mesHandler.ListWorkSetups)
+					workSetups.GET("/:id", mesHandler.GetWorkSetup)
+					workSetups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkSetup)
+					workSetups.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteWorkSetup)
 				}
 
-				workDefinitions := mes.Group("/work-definitions")
-				{
-					workDefinitions.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkDefinition)
-					workDefinitions.GET("", mesHandler.ListWorkDefinitions)
-					workDefinitions.GET("/dashboard/stats", mesHandler.GetWorkDefinitionDashboardStats)
-					workDefinitions.GET("/overdue", mesHandler.ListOverdueWorkDefinitions)
-					workDefinitions.GET("/:id", mesHandler.GetWorkDefinition)
-					workDefinitions.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkDefinition)
-					workDefinitions.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateWorkDefinitionTaskStatus)
-				}
+				mes.GET("/pending-work-setups", mesHandler.ListPendingWorkSetups)
 			}
 
 		}

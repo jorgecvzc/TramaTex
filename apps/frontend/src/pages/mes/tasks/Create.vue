@@ -4,9 +4,9 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Nueva tarea MES</h1>
-          <p class="subtitle">Crea una tarea para usar en plantillas de proceso.</p>
+          <p class="breadcrumb">MES / Tareas</p>
+          <h1>Nueva tarea</h1>
+          <p class="subtitle">Crea una tarea para usar en tipos de trabajo.</p>
         </div>
         <RouterLink to="/mes/tasks" class="btn btn-secondary">Volver</RouterLink>
       </header>
@@ -16,6 +16,9 @@
 
         <label class="label">Nombre *</label>
         <input v-model="form.name" type="text" class="input" placeholder="Ej: Diseñar" />
+
+        <label class="label">Referencia</label>
+        <input v-model="form.reference" type="text" class="input" placeholder="Código de referencia opcional" />
 
         <label class="label">Descripción</label>
         <textarea v-model="form.description" class="input" rows="4" placeholder="Descripción opcional" />
@@ -45,6 +48,7 @@ const error = ref('')
 
 const form = reactive({
   name: '',
+  reference: '',
   description: '',
   is_active: true,
 })
@@ -61,12 +65,13 @@ async function submit() {
   try {
     await mesApi.createTask({
       name: form.name.trim(),
+      reference: form.reference.trim() || undefined,
       description: form.description.trim() || undefined,
       is_active: form.is_active,
     })
     await router.push('/mes/tasks')
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear la tarea MES'
+    error.value = err.message || 'No se pudo crear la tarea'
   } finally {
     isSaving.value = false
   }

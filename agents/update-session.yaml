@@ -1,0 +1,206 @@
+# Universal Session Updater Agent
+# Version: 1.0
+# Purpose: Update the progress of an active development session.
+# Audience: Any AI assistant working on a development session.
+
+---
+
+metadata:
+  filename: "update-session.yaml"
+  location: "agents/update-session.yaml"
+  version: "1.0"
+  last_updated: "2026-03-19"
+  purpose: "Updates the 'Próximos Pasos' and 'Status' of an active session in docs/log/session-log.md."
+  applies_to: "Any project using modular agent system"
+  dependencies:
+    - "docs/log/session-log.md"
+
+workflow:
+  title: "🔄 Universal Session Updater Workflow"
+  description: "Updates tasks and status for a development session, with optional closure detection."
+
+  args:
+    session_id:
+      description: "Optional. The identifier of a specific session to update."
+      type: "string"
+
+  # Step 1: Detect and Identify Session (Similar to end-session.yaml)
+  step_1_identify_session:
+    action: "Analyze session log to identify the session to be updated."
+    python_script:
+      code: |
+        import json
+        import os
+        import re
+
+        session_log_path = "docs/log/session-log.md"
+        if not os.path.exists(session_log_path):
+            print(json.dumps({"status": "error", "message": "Session log file not found."}))
+            exit()
+
+        with open(session_log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        open_sessions_start_tag = "## SESIONES ABIERTAS"
+        closed_sessions_start_tag = "## REGISTRO DE SESIONES CERRADAS"
+
+        parts = re.split(f"({open_sessions_start_tag})", content, maxsplit=1)
+        if len(parts) > 2:
+            rest_after_open_tag = parts[2]
+            parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
+            open_sessions_section_content = parts_after_open[0]
+        else:
+            print(json.dumps({"status": "error", "message": "Could not find 'SESIONES ABIERTAS' section."}))
+            exit()
+        
+        session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
+        session_id_pattern = re.compile(r"- \*\*Session ID:\*\* `(.*?)`")
+        session_title_pattern = re.compile(r"^## (.*?)$", re.MULTILINE)
+        session_status_pattern = re.compile(r"- \*\*Status:\*\* (.*)")
+
+        open_sessions = []
+        active_sessions = []
+
+        for match in session_block_pattern.finditer(open_sessions_section_content):
+            block = match.group(0)
+            sid = session_id_pattern.search(block).group(1).strip() if session_id_pattern.search(block) else "N/A"
+            title = session_title_pattern.search(block).group(1).strip() if session_title_pattern.search(block) else "UNKNOWN"
+            status = session_status_pattern.search(block).group(1).strip() if session_status_pattern.search(block) else "N/A"
+            
+            session_info = {"id": sid, "title": title, "status": status}
+            open_sessions.append(session_info)
+            if "En Progreso" in status:
+                active_sessions.append(session_info)
+
+        target_id = "$args.session_id" if "$args.session_id" != "None" else None
+        
+        if target_id:
+            print(json.dumps({"status": "success", "session_id": target_id, "mode": "direct"}))
+        elif len(active_sessions) == 1:
+            print(json.dumps({
+                "status": "success", 
+                "session_id": active_sessions[0]["id"], 
+                "mode": "detected",
+                "message": f"He detectado la sesión activa: **{active_sessions[0]['title']}** (ID: `{active_sessions[0]['id']}`)."
+            }))
+        elif len(open_sessions) > 0:
+            options = "\n".join([f"{i+1}. {s['title']} (ID: `{s['id']}`, Status: {s['status']})" for i, s in enumerate(open_sessions)])
+            session_map = {str(i+1): s['id'] for i, s in enumerate(open_sessions)}
+            print(json.dumps({
+                "status": "ask", 
+                "options": options, 
+                "session_map": session_map,
+                "message": "No hay una única sesión 'En Progreso'. ¿Cuál deseas actualizar?"
+            }))
+        else:
+            print(json.dumps({"status": "error", "message": "No hay sesiones abiertas para actualizar."}))
+
+    output_variable: "DETECTION_RESULT"
+
+  # Step 2: Prompt for updates
+  step_2_get_updates:
+    action: "Ask the user for the current progress and next steps."
+    if: "DETECTION_RESULT.status == 'error'"
+      output: "$DETECTION_RESULT.message"
+      goto: "end"
+    else_if: "DETECTION_RESULT.status == 'ask'"
+      output: "$DETECTION_RESULT.message"
+      prompt: |
+        $DETECTION_RESULT.options
+        
+        Introduce el NÚMERO o el Session ID:
+      variable_name: "TARGET_SESSION_ID"
+    else: # detected or direct
+      python_script:
+        code: |
+          import json
+          target = "$args.session_id" if "$args.session_id" != "None" else "$DETECTION_RESULT.session_id"
+          print(json.dumps({"id": target}))
+      output_variable: "TARGET_INFO"
+      assign: "TARGET_SESSION_ID = TARGET_INFO.id"
+    
+    next_step: "prompt_tasks"
+
+  step_2_prompt_tasks:
+    action: "Gather task updates."
+    prompt: "¿Qué tareas has completado? (Enuméralas o describe los cambios)"
+    variable_name: "TASKS_DONE"
+    next_step: "prompt_pending"
+
+  step_2_prompt_pending:
+    action: "Gather pending tasks."
+    prompt: "¿Qué tareas quedan pendientes? (Escribe el nuevo checklist de 'Próximos Pasos')"
+    variable_name: "TASKS_PENDING"
+    next_step: "prompt_status"
+
+  step_2_prompt_status:
+    action: "Update session status."
+    prompt: "¿Cuál es el nuevo estado de la sesión? (En Progreso / En Pausa / Bloqueado)"
+    variable_name: "NEW_STATUS"
+    next_step: "step_3_update_file"
+
+  # Step 3: Update the Markdown file
+  step_3_update_file:
+    action: "Apply changes to docs/log/session-log.md."
+    python_script:
+      code: |
+        import json
+        import os
+        import re
+
+        session_log_path = "docs/log/session-log.md"
+        target_id = "$TARGET_SESSION_ID"
+        tasks_done = "$TASKS_DONE"
+        tasks_pending = "$TASKS_PENDING"
+        new_status = "$NEW_STATUS"
+
+        with open(session_log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Find the block
+        session_block_pattern = re.compile(r"(## .*?\n(?:- \*\*Session ID:\*\* `" + re.escape(target_id) + r"`.*?\n(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
+        
+        match = session_block_pattern.search(content)
+        if not match:
+            print(json.dumps({"status": "error", "message": f"No se pudo encontrar el bloque de la sesión `{target_id}` para actualizar."}))
+            exit()
+
+        old_block = match.group(1)
+        
+        # Update Status
+        new_block = re.sub(r"- \*\*Status:\*\* .*", f"- **Status:** {new_status}", old_block)
+        
+        # Update Próximos Pasos
+        pending_lines = "\n".join([f"  - [ ] {line.strip()}" for line in tasks_pending.split('\n') if line.strip()])
+        if not pending_lines:
+            pending_lines = "  - [x] Todas las tareas completadas."
+            all_done = True
+        else:
+            all_done = False
+
+        new_block = re.sub(r"- Próximos Pasos:.*?(?=- Archivos de Contexto:|$)", f"- Próximos Pasos:\n{pending_lines}\n", new_block, flags=re.DOTALL)
+
+        new_content = content.replace(old_block, new_block)
+        
+        with open(session_log_path, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+
+        print(json.dumps({"status": "success", "all_done": all_done, "message": f"✅ Sesión `{target_id}` actualizada."}))
+    output_variable: "UPDATE_RESULT"
+    next_step: "step_4_check_closure"
+
+  # Step 4: Detect closure
+  step_4_check_closure:
+    action: "Check if the session should be closed."
+    if: "UPDATE_RESULT.all_done == True"
+      output: "Parece que has completado todas las tareas de esta sesión."
+      prompt: "¿Deseas cerrar y archivar la sesión ahora? (sí/no)"
+      variable_name: "SHOULD_CLOSE"
+      if: "SHOULD_CLOSE == 'sí'"
+        load: "agents/end-session.yaml"
+        args:
+          session_id: "$TARGET_SESSION_ID"
+      else:
+        output: "Entendido. La sesión permanece abierta pero marcada como completada."
+    else:
+      output: "$UPDATE_RESULT.message"

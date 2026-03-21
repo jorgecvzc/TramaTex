@@ -131,21 +131,45 @@
           <div class="area-links">
             <RouterLink to="/mes/dashboard" class="link-primary">
               <span class="link-icon">
+                <Home :size="24" />
+              </span>
+              <span>Panel de control</span>
+            </RouterLink>
+            <RouterLink to="/mes/work-orders" class="link-secondary">
+              <span class="link-icon">
+                <ShoppingCart :size="24" />
+              </span>
+              <span>Órdenes de trabajo</span>
+            </RouterLink>
+            <RouterLink to="/mes/tasks" class="link-secondary">
+              <span class="link-icon">
+                <Clipboard :size="24" />
+              </span>
+              <span>Tareas</span>
+            </RouterLink>
+            <RouterLink to="/mes/positions" class="link-secondary">
+              <span class="link-icon">
+                <Users :size="24" />
+              </span>
+              <span>Posiciones</span>
+            </RouterLink>
+            <RouterLink to="/mes/work-types" class="link-secondary">
+              <span class="link-icon">
+                <Folder :size="24" />
+              </span>
+              <span>Tipos de trabajo</span>
+            </RouterLink>
+            <RouterLink to="/mes/work-setups" class="link-secondary">
+              <span class="link-icon">
                 <Settings :size="24" />
               </span>
-              <span>Dashboard MES</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-definitions" class="link-secondary">
-              <span class="link-icon">
-                <Wrench :size="24" />
-              </span>
-              <span>Definiciones de trabajo</span>
+              <span>Configuraciones</span>
             </RouterLink>
             <RouterLink to="/mes/terminal" class="link-secondary">
               <span class="link-icon">
-                <CheckCircle :size="24" />
+                <Wrench :size="24" />
               </span>
-              <span>Terminal Tablet</span>
+              <span>Terminal de taller</span>
             </RouterLink>
           </div>
         </div>
@@ -212,7 +236,7 @@ import { RouterLink } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { useAuth } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
-import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, CheckCircle, LineChart, FileText, User, Calculator } from 'lucide-vue-next';
+import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, Home, LineChart, FileText, User, Calculator } from 'lucide-vue-next';
 
 const { usuario } = useAuth()
 const authStore = useAuthStore()

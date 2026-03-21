@@ -18,6 +18,13 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 - **Incluye:** Nombres de archivos y directorios, nombres de variables, funciones, clases, comentarios de código explicando el "porqué" (no el "qué"), cadenas de documentación de API, mensajes de error, mensajes de commit (preferiblemente en inglés).
 - **Razón:** Alinea con los estándares de código y documentación técnica para accesibilidad global y compatibilidad con herramientas.
 
+### Interfaz de Usuario (UI)
+- **Idioma:** Castellano (Español)
+- **Alcance:** Toda la interfaz de usuario visible por el usuario final.
+- **Incluye:** Etiquetas, estados, prioridades, mensajes, tooltips, filtros de selección, títulos de páginas y secciones.
+- **Regla:** Los estados y prioridades se almacenan en inglés en la API y base de datos como estándar técnico, pero **siempre se muestran en castellano** en la UI. Cada módulo frontend mantiene un mapa de traducción centralizado (ej. `salesApi.getStatusLabel()`, `mesStatusLabel()`).
+- **Razón:** Interfaz nativa en español para usuarios finales; alineado con la documentación.
+
 ---
 
 ## 2. Convenciones de Nomenclatura de Archivos y Directorios

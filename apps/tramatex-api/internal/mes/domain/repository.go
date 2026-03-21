@@ -28,9 +28,10 @@ type WorkSetupFilters struct {
 }
 
 type WorkOrderFilters struct {
-	Status  *ProductionStatus
-	Search  string
-	PartyID string
+	Status      *ProductionStatus
+	Search      string
+	PartyID     string
+	WorkSetupID *uuid.UUID
 }
 
 type TaskRepository interface {

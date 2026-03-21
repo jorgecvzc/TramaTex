@@ -62,33 +62,32 @@
           </div>
         </div>
 
-        <!-- MES Work Definitions (Document-level) -->
+        <!-- MES Work Configurations (Document-level) -->
         <div v-if="formData.partyId" class="form-section">
-          <h2>Trabajos MES</h2>
-          <p class="help-text">Asocie trabajos MES a este pedido. Para cada trabajo puede añadir observaciones.</p>
-          <div class="mes-selector">
-            <div v-if="isLoadingMesWorks" class="mes-loading">Cargando trabajos MES...</div>
-            <div v-else-if="mesWorks.length === 0" class="mes-empty">No hay trabajos MES disponibles para este cliente.</div>
-            <div v-else class="mes-ref-list">
-              <div v-for="work in mesWorks" :key="work.id" class="mes-ref-item">
-                <label class="mes-checkbox-label">
-                  <input
-                    type="checkbox"
-                    :checked="isMesWorkSelected(work.id)"
-                    @change="toggleMesWork(work.id)"
-                  />
-                  <span>{{ work.work_number }} - {{ work.work_name }}</span>
-                </label>
-                <textarea
-                  v-if="isMesWorkSelected(work.id)"
-                  class="mes-observations"
-                  rows="2"
-                  placeholder="Observaciones para este trabajo MES..."
-                  :value="getMesWorkObservations(work.id)"
-                  @input="setMesWorkObservations(work.id, $event.target.value)"
-                ></textarea>
+          <h2>Configuraciones MES</h2>
+          <p class="help-text">Asocie configuraciones MES a este pedido. Puede seleccionar una existente o crear una personalizada con observaciones.</p>
+          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando configuraciones MES...</div>
+          <div v-else class="mes-ref-list">
+            <div v-for="(config, idx) in formData.mesWorkRefs" :key="idx" class="mes-config-entry">
+              <div class="form-row mes-config-row">
+                <div class="form-group">
+                  <label>Configuración base</label>
+                  <select class="form-input" :value="config.workSetupId || ''"
+                    @change="onSetupSelect(idx, $event.target.value)">
+                    <option value="">— Personalizada —</option>
+                    <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Descripción</label>
+                  <div class="input-with-action">
+                    <textarea class="form-textarea" rows="2" v-model="config.description" placeholder="Descripción de la configuración..."></textarea>
+                    <button type="button" class="btn-remove" @click="removeConfig(idx)" title="Eliminar configuración">✕</button>
+                  </div>
+                </div>
               </div>
             </div>
+            <button type="button" class="btn btn-secondary" @click="addConfig">+ Agregar configuración</button>
           </div>
         </div>
 
@@ -305,11 +304,12 @@ const formData = ref({
   notes: '',
   mesWorkRefs: [],
   lineItems: [],
+  sourceQuoteId: null,
 });
 
 const isSubmitting = ref(false);
 const submitError = ref('');
-const mesWorks = ref([]);
+const mesWorkSetups = ref([]);
 const isLoadingMesWorks = ref(false);
 const partyDefaultDiscount = ref(null);
 
@@ -353,6 +353,7 @@ onMounted(() => {
     sessionStorage.removeItem('orderFromQuote');
     try {
       const fromQuote = JSON.parse(fromQuoteRaw);
+      if (fromQuote.quoteId) formData.value.sourceQuoteId = fromQuote.quoteId;
       if (fromQuote.partyId) formData.value.partyId = fromQuote.partyId;
       if (fromQuote.notes) formData.value.notes = fromQuote.notes;
       if (fromQuote.mesWorkRefs?.length) formData.value.mesWorkRefs = fromQuote.mesWorkRefs;
@@ -412,42 +413,38 @@ function addLineItem() {
 
 async function loadMesWorksForParty(partyId) {
   if (!partyId) {
-    mesWorks.value = [];
+    mesWorkSetups.value = [];
     formData.value.mesWorkRefs = [];
     return;
   }
 
   isLoadingMesWorks.value = true;
   try {
-    mesWorks.value = await mesApi.listWorkDefinitions({ party_id: partyId });
+    mesWorkSetups.value = await mesApi.listWorkSetups({ party_id: partyId });
   } catch (error) {
-    console.error('Error loading MES work definitions for selected party:', error);
-    mesWorks.value = [];
+    console.error('Error loading MES work setups for selected party:', error);
+    mesWorkSetups.value = [];
   } finally {
     isLoadingMesWorks.value = false;
   }
 }
 
-function isMesWorkSelected(workId) {
-  return formData.value.mesWorkRefs.some(r => r.mesWorkId === workId);
-}
-
-function toggleMesWork(workId) {
-  const idx = formData.value.mesWorkRefs.findIndex(r => r.mesWorkId === workId);
-  if (idx >= 0) {
-    formData.value.mesWorkRefs.splice(idx, 1);
+function onSetupSelect(idx, setupId) {
+  const config = formData.value.mesWorkRefs[idx];
+  if (!config) return;
+  if (setupId) {
+    config.workSetupId = setupId;
   } else {
-    formData.value.mesWorkRefs.push({ mesWorkId: workId, observations: '' });
+    config.workSetupId = null;
   }
 }
 
-function getMesWorkObservations(workId) {
-  return formData.value.mesWorkRefs.find(r => r.mesWorkId === workId)?.observations || '';
+function addConfig() {
+  formData.value.mesWorkRefs.push({ workSetupId: null, description: '' });
 }
 
-function setMesWorkObservations(workId, value) {
-  const ref = formData.value.mesWorkRefs.find(r => r.mesWorkId === workId);
-  if (ref) ref.observations = value;
+function removeConfig(idx) {
+  formData.value.mesWorkRefs.splice(idx, 1);
 }
 
 function openVariantSelector(index) {
@@ -673,6 +670,10 @@ async function handleSubmit() {
       deliveryDate: salesApi.formatDateForAPI(new Date(formData.value.deliveryDate)),
       items: lineItems,
     };
+
+    if (formData.value.sourceQuoteId) {
+      orderData.quoteId = formData.value.sourceQuoteId
+    }
 
     if (formData.value.mesWorkRefs.length > 0) {
       orderData.mesWorkRefs = formData.value.mesWorkRefs;
@@ -1213,11 +1214,7 @@ function goBack() {
   }
 }
 
-/* MES selector styles */
-.mes-selector {
-  margin-top: 0.5rem;
-}
-
+/* MES config styles */
 .mes-loading,
 .mes-empty {
   color: #6b7280;
@@ -1226,51 +1223,33 @@ function goBack() {
   padding: 0.5rem 0;
 }
 
-.mes-checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .mes-ref-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.mes-ref-item {
+.mes-config-entry {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.mes-config-entry:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.mes-config-row {
+  margin-bottom: 0;
+}
+
+.input-with-action {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.mes-observations {
-  margin-left: 1.75rem;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  resize: vertical;
-}
-
-.mes-checkbox-label {
-  display: flex;
-  align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.15s, border-color 0.15s;
+  align-items: center;
 }
 
-.mes-checkbox-label:hover {
-  background: #f0f7ff;
-  border-color: #93c5fd;
-}
-
-.mes-checkbox-label input[type="checkbox"] {
-  accent-color: #2563eb;
+.input-with-action .form-input {
+  flex: 1;
 }
 </style>

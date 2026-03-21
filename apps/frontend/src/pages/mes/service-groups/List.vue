@@ -4,11 +4,11 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Plantillas de proceso MES</h1>
-          <p class="subtitle">Administra plantillas operativas y secuencias de tareas.</p>
+          <p class="breadcrumb">MES / Tipos de Trabajo</p>
+          <h1>Tipos de trabajo</h1>
+          <p class="subtitle">Administra las secuencias de tareas para producción.</p>
         </div>
-        <RouterLink to="/mes/service-groups/new" class="btn btn-primary">Nueva plantilla</RouterLink>
+        <RouterLink to="/mes/work-types/new" class="btn btn-primary">Nuevo tipo</RouterLink>
       </header>
 
       <section class="card filters">
@@ -18,24 +18,27 @@
           <option value="true">Activos</option>
           <option value="false">Inactivos</option>
         </select>
-        <button @click="loadServiceGroups" class="btn btn-secondary">Filtrar</button>
+        <button @click="loadWorkTypes" class="btn btn-secondary">Filtrar</button>
       </section>
 
       <section class="card">
-        <div v-if="isLoading" class="empty-state">Cargando plantillas de proceso...</div>
+        <div v-if="isLoading" class="empty-state">Cargando tipos de trabajo...</div>
         <div v-else-if="error" class="alert">{{ error }}</div>
         <table v-else class="data-table">
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Referencia</th>
               <th>Descripción</th>
               <th>Tasks</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="group in serviceGroups" :key="group.id">
+            <tr v-for="group in workTypes" :key="group.id">
               <td><strong>{{ group.name }}</strong></td>
+              <td>{{ group.reference || '—' }}</td>
               <td>{{ group.description || '—' }}</td>
               <td>{{ group.tasks?.length || 0 }}</td>
               <td>
@@ -43,9 +46,15 @@
                   {{ group.is_active ? 'Activo' : 'Inactivo' }}
                 </span>
               </td>
+              <td class="actions">
+                <RouterLink :to="`/mes/work-types/${group.id}/edit`" class="btn btn-sm">Editar</RouterLink>
+                <button @click="toggleActive(group)" class="btn btn-sm" :class="group.is_active ? 'btn-off' : 'btn-on'">
+                  {{ group.is_active ? 'Desactivar' : 'Activar' }}
+                </button>
+              </td>
             </tr>
-            <tr v-if="serviceGroups.length === 0">
-              <td colspan="4" class="empty-state">No hay plantillas de proceso registradas.</td>
+            <tr v-if="workTypes.length === 0">
+              <td colspan="6" class="empty-state">No hay tipos de trabajo registrados.</td>
             </tr>
           </tbody>
         </table>
@@ -59,32 +68,41 @@ import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
-import type { MESServiceGroup } from '@/types/mes'
+import type { MESWorkType } from '@/types/mes'
 
-const serviceGroups = ref<MESServiceGroup[]>([])
+const workTypes = ref<MESWorkType[]>([])
 const isLoading = ref(false)
 const error = ref('')
 const search = ref('')
 const statusFilter = ref('')
 
-async function loadServiceGroups() {
+async function loadWorkTypes() {
   isLoading.value = true
   error.value = ''
 
   try {
     const isActive = statusFilter.value === '' ? undefined : statusFilter.value === 'true'
-    serviceGroups.value = await mesApi.listServiceTemplates({
+    workTypes.value = await mesApi.listWorkTypes({
       search: search.value.trim() || undefined,
       is_active: isActive,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las plantillas de proceso MES'
+    error.value = err.message || 'No se pudieron cargar los tipos de trabajo'
   } finally {
     isLoading.value = false
   }
 }
 
-onMounted(loadServiceGroups)
+async function toggleActive(group: MESWorkType) {
+  try {
+    await mesApi.updateWorkType(group.id, { is_active: !group.is_active })
+    await loadWorkTypes()
+  } catch (err: any) {
+    error.value = err.message || 'No se pudo cambiar el estado del tipo de trabajo'
+  }
+}
+
+onMounted(loadWorkTypes)
 </script>
 
 <style scoped>
@@ -106,4 +124,8 @@ onMounted(loadServiceGroups)
 .badge.off { background: #e2e8f0; color: #475569; }
 .empty-state { text-align: center; color: #64748b; padding: 1rem; }
 .alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
+.btn-off { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.btn-on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 </style>
