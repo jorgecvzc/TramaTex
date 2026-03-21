@@ -225,31 +225,19 @@ func (i *Invoice) ValidateLegalLimits() error {
 }
 
 func sumInvoiceLineItemTaxAmounts(items []InvoiceLineItem) (Money, error) {
-	taxTotal, err := NewMoney(0, DefaultCurrency)
-	if err != nil {
-		return Money{}, err
-	}
+	var amounts []Money
 	for _, item := range items {
 		if item.TaxAmount != nil {
-			taxTotal, err = taxTotal.Add(*item.TaxAmount)
-			if err != nil {
-				return Money{}, err
-			}
+			amounts = append(amounts, *item.TaxAmount)
 		}
 	}
-	return taxTotal, nil
+	return SumAmounts(amounts)
 }
 
 func sumInvoiceLineItemSubtotals(items []InvoiceLineItem) (Money, error) {
-	subtotal, err := NewMoney(0, DefaultCurrency)
-	if err != nil {
-		return Money{}, err
+	amounts := make([]Money, len(items))
+	for i, item := range items {
+		amounts[i] = item.Subtotal
 	}
-	for _, item := range items {
-		subtotal, err = subtotal.Add(item.Subtotal)
-		if err != nil {
-			return Money{}, err
-		}
-	}
-	return subtotal, nil
+	return SumAmounts(amounts)
 }
