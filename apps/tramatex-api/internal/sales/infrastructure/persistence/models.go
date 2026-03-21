@@ -1,7 +1,6 @@
 package persistence
 
 import (
-	"encoding/json"
 	"strings"
 	"time"
 
@@ -19,7 +18,6 @@ type QuoteDataModel struct {
 	QuoteDate        time.Time `gorm:"column:quote_date;not null"`
 	ExpirationDate   time.Time `gorm:"column:expiration_date;not null"`
 	Status           string    `gorm:"type:quote_status;not null"`
-	MESWorkRefs      *string   `gorm:"column:mes_work_refs;type:jsonb"`
 	SubtotalAmount   float64   `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency string    `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 	TaxAmount        float64   `gorm:"column:tax_amount;type:numeric(12,2);not null"`
@@ -65,7 +63,6 @@ type SalesOrderDataModel struct {
 	OrderDate        time.Time  `gorm:"column:order_date;not null"`
 	DeliveryDate     time.Time  `gorm:"column:delivery_date;not null"`
 	Status           string     `gorm:"type:sales_order_status;not null"`
-	MESWorkRefs      *string    `gorm:"column:mes_work_refs;type:jsonb"`
 	SubtotalAmount   float64    `gorm:"column:subtotal_amount;type:numeric(12,2);not null"`
 	SubtotalCurrency string     `gorm:"column:subtotal_currency;type:varchar(3);not null"`
 	TaxAmount        float64    `gorm:"column:tax_amount;type:numeric(12,2);not null"`
@@ -189,7 +186,6 @@ func quoteFromDomain(quote *domain.Quote) (*QuoteDataModel, error) {
 		QuoteDate:        quote.QuoteDate,
 		ExpirationDate:   quote.ExpirationDate,
 		Status:           string(quote.Status),
-		MESWorkRefs:      mesWorkRefsToJSON(quote.MESWorkRefs),
 		SubtotalAmount:   quote.Subtotal.Amount(),
 		SubtotalCurrency: quote.Subtotal.Currency(),
 		TaxAmount:        quote.TaxAmount.Amount(),
@@ -242,7 +238,6 @@ func salesOrderFromDomain(order *domain.SalesOrder) (*SalesOrderDataModel, error
 		OrderDate:        order.OrderDate,
 		DeliveryDate:     order.DeliveryDate,
 		Status:           string(order.Status),
-		MESWorkRefs:      mesWorkRefsToJSON(order.MESWorkRefs),
 		SubtotalAmount:   order.Subtotal.Amount(),
 		SubtotalCurrency: order.Subtotal.Currency(),
 		TaxAmount:        order.TaxAmount.Amount(),
@@ -396,7 +391,6 @@ func quoteToDomain(quote *QuoteDataModel, items []QuoteLineItemDataModel) (*doma
 		QuoteDate:      quote.QuoteDate,
 		ExpirationDate: quote.ExpirationDate,
 		Status:         domain.QuoteStatus(quote.Status),
-		MESWorkRefs:    mesWorkRefsFromJSON(quote.MESWorkRefs),
 		LineItems:      lineItems,
 		Subtotal:       subtotal,
 		TaxAmount:      tax,
@@ -477,7 +471,6 @@ func salesOrderToDomain(order *SalesOrderDataModel, items []OrderLineItemDataMod
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       domain.SalesOrderStatus(order.Status),
-		MESWorkRefs:  mesWorkRefsFromJSON(order.MESWorkRefs),
 		LineItems:    lineItems,
 		Subtotal:     subtotal,
 		TaxAmount:    tax,
@@ -705,40 +698,101 @@ func optionalCurrency(money *domain.Money) *string {
 	return &value
 }
 
-// Helper functions to convert between []domain.MESWorkRef and JSONB string for PostgreSQL
-type mesWorkRefJSON struct {
-	MESWorkID    string `json:"mes_work_id"`
-	Observations string `json:"observations"`
+// --- Relational join table models ---
+
+type QuoteWorkRefModel struct {
+	gorm.Model
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key"`
+	QuoteID     uuid.UUID  `gorm:"column:quote_id;not null"`
+	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
+	Description string     `gorm:"column:description;not null;default:''"`
+	Sequence    int        `gorm:"column:sequence;not null;default:1"`
 }
 
-func mesWorkRefsToJSON(refs []domain.MESWorkRef) *string {
-	if len(refs) == 0 {
-		return nil
-	}
-	items := make([]mesWorkRefJSON, len(refs))
-	for i, r := range refs {
-		items[i] = mesWorkRefJSON{MESWorkID: r.MESWorkID.String(), Observations: r.Observations}
-	}
-	data, err := json.Marshal(items)
-	if err != nil {
-		return nil
-	}
-	s := string(data)
-	return &s
+func (QuoteWorkRefModel) TableName() string { return "quote_work_setups" }
+
+type OrderWorkRefModel struct {
+	gorm.Model
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key"`
+	OrderID     uuid.UUID  `gorm:"column:order_id;not null"`
+	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
+	WorkOrderID *uuid.UUID `gorm:"column:work_order_id"`
+	Description string     `gorm:"column:description;not null;default:''"`
+	Sequence    int        `gorm:"column:sequence;not null;default:1"`
 }
 
-func mesWorkRefsFromJSON(data *string) []domain.MESWorkRef {
-	if data == nil || *data == "" {
-		return nil
+func (OrderWorkRefModel) TableName() string { return "order_work_setups" }
+
+// quoteWorkRefsFromDomain converts domain work references to GORM models for persistence.
+func quoteWorkRefsFromDomain(quoteID uuid.UUID, refs []domain.WorkReference) []QuoteWorkRefModel {
+	models := make([]QuoteWorkRefModel, len(refs))
+	for i, ws := range refs {
+		models[i] = QuoteWorkRefModel{
+			ID:          ws.ID,
+			QuoteID:     quoteID,
+			WorkSetupID: ws.WorkSetupID,
+			Description: ws.Description,
+			Sequence:    ws.Sequence,
+		}
 	}
-	var items []mesWorkRefJSON
-	if err := json.Unmarshal([]byte(*data), &items); err != nil {
-		return nil
+	return models
+}
+
+// orderWorkRefsFromDomain converts domain work references to GORM models for persistence.
+func orderWorkRefsFromDomain(orderID uuid.UUID, refs []domain.WorkReference) []OrderWorkRefModel {
+	models := make([]OrderWorkRefModel, len(refs))
+	for i, ws := range refs {
+		models[i] = OrderWorkRefModel{
+			ID:          ws.ID,
+			OrderID:     orderID,
+			WorkSetupID: ws.WorkSetupID,
+			WorkOrderID: ws.WorkOrderID,
+			Description: ws.Description,
+			Sequence:    ws.Sequence,
+		}
 	}
-	refs := make([]domain.MESWorkRef, 0, len(items))
-	for _, item := range items {
-		if u, err := uuid.Parse(item.MESWorkID); err == nil {
-			refs = append(refs, domain.MESWorkRef{MESWorkID: u, Observations: item.Observations})
+	return models
+}
+
+// quoteWorkRefRow represents a row from the quote_work_setups table.
+type quoteWorkRefRow struct {
+	ID          uuid.UUID  `gorm:"column:id"`
+	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
+	Sequence    int        `gorm:"column:sequence"`
+	Description string     `gorm:"column:description"`
+}
+
+// orderWorkRefRow represents a row from the order_work_setups table.
+type orderWorkRefRow struct {
+	ID          uuid.UUID  `gorm:"column:id"`
+	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
+	WorkOrderID *uuid.UUID `gorm:"column:work_order_id"`
+	Sequence    int        `gorm:"column:sequence"`
+	Description string     `gorm:"column:description"`
+}
+
+func quoteWorkRefRowsToDomain(rows []quoteWorkRefRow) []domain.WorkReference {
+	refs := make([]domain.WorkReference, len(rows))
+	for i, r := range rows {
+		refs[i] = domain.WorkReference{
+			ID:          r.ID,
+			WorkSetupID: r.WorkSetupID, // *uuid.UUID — nil when no setup linked
+			Sequence:    r.Sequence,
+			Description: r.Description,
+		}
+	}
+	return refs
+}
+
+func orderWorkRefRowsToDomain(rows []orderWorkRefRow) []domain.WorkReference {
+	refs := make([]domain.WorkReference, len(rows))
+	for i, r := range rows {
+		refs[i] = domain.WorkReference{
+			ID:          r.ID,
+			WorkSetupID: r.WorkSetupID, // *uuid.UUID — nil when no setup linked
+			WorkOrderID: r.WorkOrderID,
+			Sequence:    r.Sequence,
+			Description: r.Description,
 		}
 	}
 	return refs

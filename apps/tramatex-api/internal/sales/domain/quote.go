@@ -6,10 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// MESWorkRef represents a document-level reference to a MES work definition with observations.
-type MESWorkRef struct {
-	MESWorkID    uuid.UUID
-	Observations string
+// WorkReference represents a work/personalization job associated with a sales document.
+// It bridges Sales and MES via an optional FK to the MES work_setups table.
+// Description is read-only, populated from the MES JOIN on read.
+type WorkReference struct {
+	ID          uuid.UUID
+	WorkSetupID *uuid.UUID // FK to MES work_setups (optional — nil for custom references without a setup)
+	WorkOrderID *uuid.UUID // Populated when MES creates the WorkOrder for execution
+	Sequence    int        // Order within the document
+	Description string
 }
 
 type Quote struct {
@@ -19,7 +24,7 @@ type Quote struct {
 	QuoteDate      time.Time
 	ExpirationDate time.Time
 	Status         QuoteStatus
-	MESWorkRefs    []MESWorkRef // Document-level MES work references with observations
+	WorkReferences []WorkReference // Document-level MES work references with observations
 	LineItems      []QuoteLineItem
 	Subtotal       Money
 	TaxAmount      Money

@@ -1,5 +1,5 @@
 # Universal Session Closer Agent
-# Version: 1.0
+# Version: 1.1
 # Purpose: Clean up and close a development session, preparing for the next one.
 # Audience: Any AI assistant finishing a development session on any project
 
@@ -7,9 +7,10 @@
 
 metadata:
   filename: "end-session.yaml"
-  version: "1.0"
-  last_updated: "2026-02-15" # Updated date
-  purpose: "Manages the closure of development sessions, including updating the session log, archiving completed sessions, and preparing for the next session."
+  location: "agents/end-session.yaml"
+  version: "1.1"
+  last_updated: "2026-03-19"
+  purpose: "Manages the closure of development sessions, including automatic detection of active sessions, updating the session log, and archiving completed sessions."
   applies_to: "Any project using modular agent system"
   dependencies:
     - "docs/log/session-log.md"
@@ -23,22 +24,141 @@ workflow:
       description: "Optional. The identifier of a specific session to close from docs/log/session-log.md."
       type: "string"
 
-  # Step 1: Identify session to close
+  # Step 1: Detect and Identify Session
   step_1_identify_session:
-    action: "Identify the session to be closed."
-    if: "args.session_id"
-      action: "Attempt to find and close the specified session_id."
-      goto: "step_2_close_session"
-    else:
-      action: "Prompt user to select a session to close."
-      prompt: |
-        No specific session ID provided. Please list the Session ID you wish to close from the 'SESIONES ABIERTAS' section in `docs/log/session-log.md`.
-      variable_name: "USER_SESSION_TO_CLOSE"
-      outcome: "User provides a Session ID to close."
-      goto: "step_2_close_session"
+    action: "Analyze session log to identify the session to be closed."
+    python_script:
+      code: |
+        import json
+        import os
+        import re
 
-  # Step 2: Close the identified session
-  step_2_close_session:
+        session_log_path = "docs/log/session-log.md"
+        if not os.path.exists(session_log_path):
+            print(json.dumps({"status": "error", "message": "Session log file not found."}))
+            exit()
+
+        with open(session_log_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Split content to get the 'SESIONES ABIERTAS' section
+        open_sessions_start_tag = "## SESIONES ABIERTAS"
+        closed_sessions_start_tag = "## REGISTRO DE SESIONES CERRADAS"
+
+        open_sessions_section_content = ""
+        parts = re.split(f"({open_sessions_start_tag})", content, maxsplit=1)
+        if len(parts) > 2:
+            rest_after_open_tag = parts[2]
+            parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
+            open_sessions_section_content = parts_after_open[0]
+        
+        # Pattern to find a full session block
+        session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
+        
+        # Specific patterns to extract info from the block
+        session_id_pattern = re.compile(r"- \*\*Session ID:\*\* `(.*?)`")
+        session_title_pattern = re.compile(r"^## (.*?)$", re.MULTILINE)
+        session_status_pattern = re.compile(r"- \*\*Status:\*\* (.*)")
+
+        open_sessions = []
+        active_sessions = [] # Sessions with "En Progreso"
+
+        for match in session_block_pattern.finditer(open_sessions_section_content):
+            block = match.group(0)
+            id_match = session_id_pattern.search(block)
+            title_match = session_title_pattern.search(block)
+            status_match = session_status_pattern.search(block)
+            
+            sid = id_match.group(1).strip() if id_match else "N/A"
+            title = title_match.group(1).strip() if title_match else "UNKNOWN"
+            status = status_match.group(1).strip() if status_match else "N/A"
+            
+            session_info = {"id": sid, "title": title, "status": status}
+            open_sessions.append(session_info)
+            if "En Progreso" in status:
+                active_sessions.append(session_info)
+
+        # Logic to decide which session to close
+        target_id = "$args.session_id" if "$args.session_id" != "None" else None
+        
+        if target_id:
+            # User provided a specific ID
+            print(json.dumps({"status": "success", "session_id": target_id, "mode": "direct"}))
+        elif len(active_sessions) == 1:
+            # Exactly one session is "En Progreso", suggest closing it
+            print(json.dumps({
+                "status": "success", 
+                "session_id": active_sessions[0]["id"], 
+                "mode": "detected",
+                "message": f"He detectado que estás trabajando en la sesión: **{active_sessions[0]['title']}** (ID: `{active_sessions[0]['id']}`)."
+            }))
+        elif len(open_sessions) > 0:
+            # No single "En Progreso" session, list all open sessions
+            options = "\n".join([f"{i+1}. {s['title']} (ID: `{s['id']}`, Status: {s['status']})" for i, s in enumerate(open_sessions)])
+            session_map = {str(i+1): s['id'] for i, s in enumerate(open_sessions)}
+            print(json.dumps({
+                "status": "ask", 
+                "options": options, 
+                "session_map": session_map,
+                "message": "No he podido detectar una única sesión activa 'En Progreso'.\n¿Cuál de estas sesiones deseas cerrar?"
+            }))
+        else:
+            print(json.dumps({"status": "error", "message": "No hay sesiones abiertas en `docs/log/session-log.md`."}))
+
+    output_variable: "DETECTION_RESULT"
+
+  # Step 2: Handle Detection Results
+  step_2_handle_detection:
+    action: "Decide whether to confirm, prompt, or fail based on detection."
+    if: "DETECTION_RESULT.status == 'error'"
+      output: "$DETECTION_RESULT.message"
+      goto: "end"
+    else_if: "DETECTION_RESULT.status == 'ask'"
+      output: "$DETECTION_RESULT.message"
+      prompt: |
+        $DETECTION_RESULT.options
+        
+        Introduce el NÚMERO o el Session ID:
+      variable_name: "USER_SELECTED_ID"
+      goto: "step_3_prepare_closure"
+    else: # Detection successful (detected or direct)
+      if: "DETECTION_RESULT.mode == 'detected'"
+        output: "$DETECTION_RESULT.message"
+        prompt: "¿Deseas cerrar esta sesión? (sí/no)"
+        variable_name: "CONFIRM_CLOSE"
+        if: "CONFIRM_CLOSE == 'sí'"
+          goto: "step_3_prepare_closure"
+        else:
+          output: "Cierre cancelado. Si deseas cerrar otra sesión, por favor especifica su ID."
+          goto: "end"
+      else: # direct
+        goto: "step_3_prepare_closure"
+
+  # Step 3: Prepare Closure (Mapping selection if numeric)
+  step_3_prepare_closure:
+    action: "Ensure we have the correct Session ID for closure."
+    python_script:
+      code: |
+        import json
+        
+        # Variables from previous steps
+        detected_id = "$DETECTION_RESULT.session_id" if "$DETECTION_RESULT.session_id" != "None" else None
+        user_input = "$USER_SELECTED_ID" if "$USER_SELECTED_ID" != "None" else None
+        session_map = json.loads('$DETECTION_RESULT.session_map') if '$DETECTION_RESULT.session_map' != 'None' else {}
+        
+        final_id = detected_id
+        if user_input:
+            if user_input in session_map:
+                final_id = session_map[user_input]
+            else:
+                final_id = user_input
+        
+        print(json.dumps({"final_id": final_id}))
+    output_variable: "CLOSURE_INFO"
+    next_step: "step_4_close_session"
+
+  # Step 4: Close the identified session (Actual modification of session-log.md)
+  step_4_close_session:
     action: "Process the closure of the selected session."
     python_script:
       code: |
@@ -48,14 +168,10 @@ workflow:
         from datetime import datetime
 
         session_log_path = "docs/log/session-log.md"
-        session_id_to_close = "$args.session_id" if "$args.session_id" != "None" else "$USER_SESSION_TO_CLOSE"
+        session_id_to_close = "$CLOSURE_INFO.final_id"
 
         if not session_id_to_close:
             print(json.dumps({"status": "error", "message": "No session ID provided for closure."}))
-            exit()
-
-        if not os.path.exists(session_log_path):
-            print(json.dumps({"status": "error", "message": f"Session log file not found: {session_log_path}"}))
             exit()
 
         with open(session_log_path, 'r', encoding='utf-8') as f:
@@ -65,43 +181,19 @@ workflow:
         open_sessions_start_tag = "## SESIONES ABIERTAS"
         closed_sessions_start_tag = "## REGISTRO DE SESIONES CERRADAS"
 
-        pre_open_sessions_content = ""
-        open_sessions_section_content = ""
-        closed_sessions_section_content = ""
-
-        # Split into three main parts: before open, open, closed
         parts = re.split(f"({open_sessions_start_tag})", content, maxsplit=1)
-        if len(parts) > 2:
-            pre_open_sessions_content = parts[0]
-            rest_after_open_tag = parts[2]
+        pre_open_sessions_content = parts[0]
+        rest_after_open_tag = parts[2]
 
-            parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
-            if len(parts_after_open) > 2:
-                open_sessions_section_content = parts_after_open[0]
-                closed_sessions_section_content = parts_after_open[2]
-            else: # Only open sessions, no closed sessions section yet
-                open_sessions_section_content = parts_after_open[0]
-        else:
-            print(json.dumps({"status": "error", "message": "Could not find 'SESIONES ABIERTAS' section in session log."}))
-            exit()
+        parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
+        open_sessions_section_content = parts_after_open[0]
+        closed_sessions_section_content = parts_after_open[2]
 
         # --- Find and remove session from open sessions ---
-        found_session_block = None
-        new_open_sessions_section_content = []
-
-        # Pattern to find a full session block, including its title and all metadata/content
-        # It looks for '## <Title>', then lines starting with '-', until the next '##' or end of section
-        session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
-        
-        # Specific patterns to extract info from the block
         session_id_pattern = re.compile(r"- \*\*Session ID:\*\* `(.*?)`")
         session_title_pattern = re.compile(r"^## (.*?)$", re.MULTILINE)
         session_started_pattern = re.compile(r"- \*\*Started:\*\* (.*?)$", re.MULTILINE)
 
-        # Split the open_sessions_section_content into individual session blocks
-        # This regex needs to be more careful to not capture the section title itself
-        
-        # A more robust way: process line by line, detecting session start/end
         current_session_block_lines = []
         in_session = False
         sessions_to_keep = []
@@ -109,64 +201,56 @@ workflow:
 
         for line in open_sessions_section_content.splitlines(keepends=True):
             if line.strip().startswith("## ") and not line.strip().startswith("## SESIONES ABIERTAS"):
-                if in_session: # End of previous session block
+                if in_session:
                     current_block_content = "".join(current_session_block_lines)
                     current_id_match = session_id_pattern.search(current_block_content)
                     if current_id_match and current_id_match.group(1) == session_id_to_close:
-                        session_to_close_details['block'] = current_block_content
                         session_to_close_details['title'] = session_title_pattern.search(current_block_content).group(1).strip()
-                        session_to_close_details['id'] = current_id_match.group(1)
-                        session_to_close_details['started'] = session_started_pattern.search(current_block_content).group(1).strip() if session_started_pattern.search(current_block_content) else "UNKNOWN DATE"
+                        session_to_close_details['started'] = session_started_pattern.search(current_block_content).group(1).strip() if session_started_pattern.search(current_block_content) else "UNKNOWN"
                     else:
                         sessions_to_keep.append(current_block_content)
                 
-                # Start of a new session block
                 current_session_block_lines = [line]
                 in_session = True
             elif in_session:
                 current_session_block_lines.append(line)
-            else: # Lines before the first session block or empty lines in the section header
-                new_open_sessions_section_content.append(line) # Keep non-session-block content
 
-        # Process the last session block after loop
+        # Last block
         if in_session:
             current_block_content = "".join(current_session_block_lines)
             current_id_match = session_id_pattern.search(current_block_content)
             if current_id_match and current_id_match.group(1) == session_id_to_close:
-                session_to_close_details['block'] = current_block_content
                 session_to_close_details['title'] = session_title_pattern.search(current_block_content).group(1).strip()
-                session_to_close_details['id'] = current_id_match.group(1)
-                session_to_close_details['started'] = session_started_pattern.search(current_block_content).group(1).strip() if session_started_pattern.search(current_block_content) else "UNKNOWN DATE"
+                session_to_close_details['started'] = session_started_pattern.search(current_block_content).group(1).strip() if session_started_pattern.search(current_block_content) else "UNKNOWN"
             else:
                 sessions_to_keep.append(current_block_content)
 
         if not session_to_close_details:
-            print(json.dumps({"status": "error", "message": f"Session with ID '{session_id_to_close}' not found in 'SESIONES ABIERTAS'."}))
+            print(json.dumps({"status": "error", "message": f"No se encontró la sesión con ID '{session_id_to_close}'."}))
             exit()
 
         # Reconstruct open sessions content
         final_open_sessions_content = "".join(sessions_to_keep).strip()
-        if not final_open_sessions_content:
+        if not final_open_sessions_content or final_open_sessions_content == "---":
             final_open_sessions_content = "\n_No hay sesiones abiertas actualmente._\n"
         else:
-            final_open_sessions_content = "\n" + final_open_sessions_content + "\n" # Ensure spacing
+            final_open_sessions_content = "\n" + final_open_sessions_content + "\n"
 
-        # Format for closed sessions (single line entry as per template)
-        closed_session_entry = f"- **{session_to_close_details['title']}** | Iniciada: {session_to_close_details['started']} | Finalizada: {datetime.now().strftime('%Y-%m-%d')} | Status: ✅ COMPLETADO - (Cerrada por agente)\n"
+        # Format for closed sessions
+        closed_session_entry = f"- **{session_to_close_details['title']}** | Iniciada: {session_to_close_details['started']} | Finalizada: {datetime.now().strftime('%Y-%m-%d')} | Status: ✅ COMPLETADO\n"
 
         # Reconstruct full content
         new_full_content = (
-            pre_open_sessions_content.strip() + "\n" +
+            pre_open_sessions_content.strip() + "\n\n" +
             open_sessions_start_tag + "\n" +
             final_open_sessions_content + "\n" +
             closed_sessions_start_tag + "\n" +
-            closed_sessions_section_content.strip() + "\n" + # Original content after closed_sessions_start_tag
-            closed_session_entry # Append new entry to the end of the closed sessions list
-        ).strip() + "\n" # Ensure one final newline
+            closed_sessions_section_content.strip() + "\n" +
+            closed_session_entry
+        ).strip() + "\n"
 
         with open(session_log_path, 'w', encoding='utf-8') as f:
             f.write(new_full_content)
 
-        print(json.dumps({"status": "success", "message": f"Session '{session_id_to_close}' closed and log updated."}))
-
-
+        print(json.dumps({"status": "success", "message": f"✅ Sesión '{session_id_to_close}' cerrada y archivada exitosamente."}))
+    output: "$DETECTION_RESULT.message" # Reuse detection message if success

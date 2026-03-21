@@ -4,8 +4,8 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Tareas MES</h1>
+          <p class="breadcrumb">MES / Tareas</p>
+          <h1>Tareas</h1>
           <p class="subtitle">Administra las tareas base de producción.</p>
         </div>
         <RouterLink to="/mes/tasks/new" class="btn btn-primary">Nueva tarea</RouterLink>
@@ -28,22 +28,31 @@
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Referencia</th>
               <th>Descripción</th>
               <th>Estado</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="task in tasks" :key="task.id">
               <td><strong>{{ task.name }}</strong></td>
+              <td>{{ task.reference || '—' }}</td>
               <td>{{ task.description || '—' }}</td>
               <td>
                 <span class="badge" :class="task.is_active ? 'ok' : 'off'">
                   {{ task.is_active ? 'Activa' : 'Inactiva' }}
                 </span>
               </td>
+              <td class="actions">
+                <RouterLink :to="`/mes/tasks/${task.id}/edit`" class="btn btn-sm">Editar</RouterLink>
+                <button @click="toggleActive(task)" class="btn btn-sm" :class="task.is_active ? 'btn-off' : 'btn-on'">
+                  {{ task.is_active ? 'Desactivar' : 'Activar' }}
+                </button>
+              </td>
             </tr>
             <tr v-if="tasks.length === 0">
-              <td colspan="3" class="empty-state">No hay tareas registradas.</td>
+              <td colspan="5" class="empty-state">No hay tareas registradas.</td>
             </tr>
           </tbody>
         </table>
@@ -76,9 +85,18 @@ async function loadTasks() {
       is_active: isActive,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las tareas MES'
+    error.value = err.message || 'No se pudieron cargar las tareas'
   } finally {
     isLoading.value = false
+  }
+}
+
+async function toggleActive(task: MESTask) {
+  try {
+    await mesApi.updateTask(task.id, { is_active: !task.is_active })
+    await loadTasks()
+  } catch (err: any) {
+    error.value = err.message || 'No se pudo cambiar el estado de la tarea'
   }
 }
 
@@ -104,4 +122,8 @@ onMounted(loadTasks)
 .badge.off { background: #e2e8f0; color: #475569; }
 .empty-state { text-align: center; color: #64748b; padding: 1rem; }
 .alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
+.actions { display: flex; gap: .5rem; align-items: center; }
+.btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
+.btn-off { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.btn-on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
 </style>

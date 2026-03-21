@@ -135,7 +135,7 @@
             <div class="document-info">
               <span class="document-label">Albarán</span>
               <a href="#" @click.prevent="$router.push(`/sales/delivery-notes/${dn.id}`)" class="document-link">
-                {{ dn.noteNumber || formatId(dn.id) }}
+                {{ dn.deliveryNoteNumber || formatId(dn.id) }}
               </a>
             </div>
           </div>
@@ -308,7 +308,7 @@ async function loadRelatedDeliveryNotes() {
   const ids = invoice.value?.deliveryNoteIds;
   if (!ids || ids.length === 0) { relatedDeliveryNotes.value = []; return; }
   const results = await Promise.all(
-    ids.map(id => salesApi.getDeliveryNote(id).catch(() => ({ id, noteNumber: null })))
+    ids.map(id => salesApi.getDeliveryNote(id).catch(() => ({ id, deliveryNoteNumber: null })))
   );
   relatedDeliveryNotes.value = results;
 }

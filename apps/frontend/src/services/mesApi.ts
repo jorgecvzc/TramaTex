@@ -1,23 +1,26 @@
 import { getApiBase } from './apiBase'
 import type {
-  CreateMESWorkRequest,
-  CreateMESWorkDefinitionRequest,
+  CreateWorkOrderRequest,
   CreatePositionRequest,
-  CreateServiceGroupRequest,
-  CreateServiceTemplateRequest,
+  CreateWorkTypeRequest,
   CreateTaskRequest,
-  ListMESWorkFilters,
+  CreateWorkSetupRequest,
+  ListWorkOrderFilters,
   ListMESFilters,
-  MESWorkDashboardStats,
-  MESWork,
-  MESWorkDefinition,
+  ListWorkSetupFilters,
+  WorkOrderDashboardStats,
+  WorkOrder,
   MESPosition,
-  MESServiceGroup,
-  MESServiceTemplate,
+  MESWorkType,
   MESTask,
-  UpdateMESWorkRequest,
-  UpdateMESWorkDefinitionRequest,
-  UpdateMESWorkTaskStatusRequest,
+  UpdateWorkOrderRequest,
+  UpdateWorkOrderTaskStatusRequest,
+  UpdatePositionRequest,
+  UpdateWorkTypeRequest,
+  UpdateTaskRequest,
+  UpdateWorkSetupRequest,
+  WorkSetup,
+  PendingWorkSetup,
 } from '@/types/mes'
 
 const API_BASE = getApiBase()
@@ -31,9 +34,9 @@ interface MESApiError extends Error {
 class MESApiService {
   private tasksUrl = `${API_BASE}/mes/tasks`
   private positionsUrl = `${API_BASE}/mes/positions`
-  private serviceGroupsUrl = `${API_BASE}/mes/service-groups`
-  private worksUrl = `${API_BASE}/mes/works`
-  private workDefinitionsUrl = `${API_BASE}/mes/work-definitions`
+  private workTypesUrl = `${API_BASE}/mes/work-types`
+  private workOrdersUrl = `${API_BASE}/mes/work-orders`
+  private workSetupsUrl = `${API_BASE}/mes/work-setups`
 
   private getHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
     const token = localStorage.getItem('tramatex_auth_token')
@@ -123,7 +126,7 @@ class MESApiService {
     return query ? `?${query}` : ''
   }
 
-  private buildWorkQuery(filters: ListMESWorkFilters = {}): string {
+  private buildWorkQuery(filters: ListWorkOrderFilters = {}): string {
     const params = new URLSearchParams()
 
     if (filters.search) {
@@ -161,10 +164,48 @@ class MESApiService {
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la tarea MES')
+      await this.handleError(response, 'No se pudo crear la tarea')
     }
 
     return response.json()
+  }
+
+  async getTask(id: string): Promise<MESTask> {
+    const response = await this.safeFetch(`${this.tasksUrl}/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cargar la tarea')
+    }
+
+    return response.json()
+  }
+
+  async updateTask(id: string, data: UpdateTaskRequest): Promise<MESTask> {
+    const response = await this.safeFetch(`${this.tasksUrl}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la tarea')
+    }
+
+    return response.json()
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.tasksUrl}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la tarea')
+    }
   }
 
   async listPositions(filters: ListMESFilters = {}): Promise<MESPosition[]> {
@@ -188,119 +229,171 @@ class MESApiService {
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la posición MES')
+      await this.handleError(response, 'No se pudo crear la posición')
     }
 
     return response.json()
   }
 
-  async listServiceGroups(filters: ListMESFilters = {}): Promise<MESServiceGroup[]> {
-    const response = await this.safeFetch(`${this.serviceGroupsUrl}${this.buildQuery(filters)}`, {
+  async getPosition(id: string): Promise<MESPosition> {
+    const response = await this.safeFetch(`${this.positionsUrl}/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar las plantillas de proceso MES')
+      await this.handleError(response, 'No se pudo cargar la posición')
     }
 
     return response.json()
   }
 
-  async createServiceGroup(data: CreateServiceGroupRequest): Promise<MESServiceGroup> {
-    const response = await this.safeFetch(this.serviceGroupsUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la plantilla de proceso MES')
-    }
-
-    return response.json()
-  }
-
-  async listServiceTemplates(filters: ListMESFilters = {}): Promise<MESServiceTemplate[]> {
-    return this.listServiceGroups(filters)
-  }
-
-  async createServiceTemplate(data: CreateServiceTemplateRequest): Promise<MESServiceTemplate> {
-    return this.createServiceGroup(data)
-  }
-
-  async listWorks(filters: ListMESWorkFilters = {}): Promise<MESWork[]> {
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}${this.buildWorkQuery(filters)}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar las definiciones de trabajo MES')
-    }
-
-    return response.json()
-  }
-
-  async getWork(id: string): Promise<MESWork> {
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo cargar la definición de trabajo MES')
-    }
-
-    return response.json()
-  }
-
-  async createWork(data: CreateMESWorkRequest): Promise<MESWork> {
-    const response = await this.safeFetch(this.workDefinitionsUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la definición de trabajo MES')
-    }
-
-    return response.json()
-  }
-
-  async updateWork(id: string, data: UpdateMESWorkRequest): Promise<MESWork> {
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${id}`, {
+  async updatePosition(id: string, data: UpdatePositionRequest): Promise<MESPosition> {
+    const response = await this.safeFetch(`${this.positionsUrl}/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
     })
 
     if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar la definición de trabajo MES')
+      await this.handleError(response, 'No se pudo actualizar la posición')
     }
 
     return response.json()
   }
 
-  async listWorkDefinitions(filters: ListMESWorkFilters = {}): Promise<MESWorkDefinition[]> {
-    return this.listWorks(filters)
+  async deletePosition(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.positionsUrl}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la posición')
+    }
   }
 
-  async getWorkDefinition(id: string): Promise<MESWorkDefinition> {
-    return this.getWork(id)
+  async listWorkTypes(filters: ListMESFilters = {}): Promise<MESWorkType[]> {
+    const response = await this.safeFetch(`${this.workTypesUrl}${this.buildQuery(filters)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron cargar los tipos de trabajo MES')
+    }
+
+    return response.json()
   }
 
-  async createWorkDefinition(data: CreateMESWorkDefinitionRequest): Promise<MESWorkDefinition> {
-    return this.createWork(data)
+  async createWorkType(data: CreateWorkTypeRequest): Promise<MESWorkType> {
+    const response = await this.safeFetch(this.workTypesUrl, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo crear el tipo de trabajo MES')
+    }
+
+    return response.json()
   }
 
-  async updateWorkDefinition(id: string, data: UpdateMESWorkDefinitionRequest): Promise<MESWorkDefinition> {
-    return this.updateWork(id, data)
+  async getWorkType(id: string): Promise<MESWorkType> {
+    const response = await this.safeFetch(`${this.workTypesUrl}/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cargar el tipo de trabajo')
+    }
+
+    return response.json()
   }
 
-  async getWorkDashboardStats(): Promise<MESWorkDashboardStats> {
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}/dashboard/stats`, {
+  async updateWorkType(id: string, data: UpdateWorkTypeRequest): Promise<MESWorkType> {
+    const response = await this.safeFetch(`${this.workTypesUrl}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar el tipo de trabajo')
+    }
+
+    return response.json()
+  }
+
+  async deleteWorkType(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.workTypesUrl}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar el tipo de trabajo')
+    }
+  }
+
+  async listWorkOrders(filters: ListWorkOrderFilters = {}): Promise<WorkOrder[]> {
+    const response = await this.safeFetch(`${this.workOrdersUrl}${this.buildWorkQuery(filters)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron cargar las órdenes de trabajo MES')
+    }
+
+    return response.json()
+  }
+
+  async getWorkOrder(id: string): Promise<WorkOrder> {
+    const response = await this.safeFetch(`${this.workOrdersUrl}/${id}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cargar la orden de trabajo MES')
+    }
+
+    return response.json()
+  }
+
+  async createWorkOrder(data: CreateWorkOrderRequest): Promise<WorkOrder> {
+    const response = await this.safeFetch(this.workOrdersUrl, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo crear la orden de trabajo MES')
+    }
+
+    return response.json()
+  }
+
+  async updateWorkOrder(id: string, data: UpdateWorkOrderRequest): Promise<WorkOrder> {
+    const response = await this.safeFetch(`${this.workOrdersUrl}/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la orden de trabajo MES')
+    }
+
+    return response.json()
+  }
+
+  async getWorkOrderDashboardStats(): Promise<WorkOrderDashboardStats> {
+    const response = await this.safeFetch(`${this.workOrdersUrl}/dashboard/stats`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
@@ -312,14 +405,14 @@ class MESApiService {
     return response.json()
   }
 
-  async listOverdueWorks(limit?: number): Promise<MESWork[]> {
+  async listOverdueWorkOrders(limit?: number): Promise<WorkOrder[]> {
     const params = new URLSearchParams()
     if (limit && limit > 0) {
       params.append('limit', String(limit))
     }
     const query = params.toString()
 
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}/overdue${query ? `?${query}` : ''}`, {
+    const response = await this.safeFetch(`${this.workOrdersUrl}/overdue${query ? `?${query}` : ''}`, {
       method: 'GET',
       headers: this.getHeaders(),
     })
@@ -331,8 +424,8 @@ class MESApiService {
     return response.json()
   }
 
-  async updateWorkTaskStatus(workId: string, taskId: string, data: UpdateMESWorkTaskStatusRequest): Promise<MESWork> {
-    const response = await this.safeFetch(`${this.workDefinitionsUrl}/${workId}/tasks/${taskId}/status`, {
+  async updateWorkOrderTaskStatus(workId: string, taskId: string, data: UpdateWorkOrderTaskStatusRequest): Promise<WorkOrder> {
+    const response = await this.safeFetch(`${this.workOrdersUrl}/${workId}/tasks/${taskId}/status`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
@@ -343,6 +436,121 @@ class MESApiService {
     }
 
     return response.json()
+  }
+
+  // --- WorkSetup methods ---
+
+  private buildWorkSetupQuery(filters: ListWorkSetupFilters = {}): string {
+    const params = new URLSearchParams()
+    if (filters.search) params.append('search', filters.search)
+    if (filters.is_active !== undefined) params.append('is_active', String(filters.is_active))
+    if (filters.party_id) params.append('party_id', filters.party_id)
+    const query = params.toString()
+    return query ? `?${query}` : ''
+  }
+
+  async listWorkSetups(filters: ListWorkSetupFilters = {}): Promise<WorkSetup[]> {
+    const response = await this.safeFetch(`${this.workSetupsUrl}${this.buildWorkSetupQuery(filters)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron cargar las configuraciones de cliente')
+    }
+    return response.json()
+  }
+
+  async getWorkSetup(id: string): Promise<WorkSetup> {
+    const response = await this.safeFetch(`${this.workSetupsUrl}/${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo cargar la configuración de cliente')
+    }
+    return response.json()
+  }
+
+  async createWorkSetup(data: CreateWorkSetupRequest): Promise<WorkSetup> {
+    const response = await this.safeFetch(this.workSetupsUrl, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo crear la configuración de cliente')
+    }
+    return response.json()
+  }
+
+  async updateWorkSetup(id: string, data: UpdateWorkSetupRequest): Promise<WorkSetup> {
+    const response = await this.safeFetch(`${this.workSetupsUrl}/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la configuración de cliente')
+    }
+    return response.json()
+  }
+
+  async deleteWorkSetup(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.workSetupsUrl}/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la configuración de cliente')
+    }
+  }
+
+  // --- Pending WorkSetups (from confirmed Sales orders) ---
+
+  async listPendingWorkSetups(): Promise<PendingWorkSetup[]> {
+    const response = await this.safeFetch(`${API_BASE}/mes/pending-work-setups`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudieron obtener las configuraciones pendientes')
+    }
+    return response.json()
+  }
+
+  // --- Status & priority label helpers ---
+
+  getWorkStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'PENDING': 'Pendiente',
+      'IN_PROGRESS': 'En progreso',
+      'ON_HOLD': 'En espera',
+      'SUSPENDED': 'Suspendida',
+      'COMPLETED': 'Completado',
+      'CANCELLED': 'Cancelado',
+    }
+    return labels[status] || status
+  }
+
+  getPriorityLabel(priority: string): string {
+    const labels: Record<string, string> = {
+      'LOW': 'Baja',
+      'NORMAL': 'Normal',
+      'HIGH': 'Alta',
+      'URGENT': 'Urgente',
+    }
+    return labels[priority] || priority
+  }
+
+  getTaskStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'PENDING': 'Pendiente',
+      'IN_PROGRESS': 'En progreso',
+      'PAUSED': 'Pausada',
+      'COMPLETED': 'Completada',
+      'BLOCKED': 'Bloqueada',
+    }
+    return labels[status] || status
   }
 }
 

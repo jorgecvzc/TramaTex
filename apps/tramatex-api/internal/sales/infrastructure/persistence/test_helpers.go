@@ -240,6 +240,7 @@ func (tdb *TestDB) SetUpSales() error {
 			"quote_date" TIMESTAMP WITH TIME ZONE NOT NULL,
 			"expiration_date" TIMESTAMP WITH TIME ZONE NOT NULL,
 			"status" quote_status NOT NULL,
+			"mes_work_refs" JSONB,
 			"subtotal_amount" NUMERIC(12,2) NOT NULL,
 			"subtotal_currency" VARCHAR(3) NOT NULL,
 			"tax_amount" NUMERIC(12,2) NOT NULL,
@@ -281,6 +282,7 @@ func (tdb *TestDB) SetUpSales() error {
 			"order_date" TIMESTAMP WITH TIME ZONE NOT NULL,
 			"delivery_date" TIMESTAMP WITH TIME ZONE NOT NULL,
 			"status" sales_order_status NOT NULL,
+			"mes_work_refs" JSONB,
 			"subtotal_amount" NUMERIC(12,2) NOT NULL,
 			"subtotal_currency" VARCHAR(3) NOT NULL,
 			"tax_amount" NUMERIC(12,2) NOT NULL,
@@ -333,6 +335,7 @@ func (tdb *TestDB) SetUpSales() error {
 			"sales_order_line_item_id" UUID NOT NULL REFERENCES "order_line_items" ("id") ON DELETE RESTRICT,
 			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
 			"delivered_quantity" INT NOT NULL,
+			"invoice_line_item_id" UUID,
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"deleted_at" TIMESTAMP WITH TIME ZONE

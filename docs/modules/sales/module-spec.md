@@ -88,7 +88,7 @@
             *   El `baseCost` de cada variante se calcula dinámicamente en el módulo Product.
             *   Sales obtiene el `baseCost` actual al momento de crear la línea para calcular el precio final sugerido.
     *   **Pricing**: El `PrecioUnitario` es sugerido por el motor de precios, pero puede ser sobreescrito manualmente (`Manual Override`).
-    *   **MES:** El estado `APROBADA` de un presupuesto (al convertirse a pedido) o la creación directa de un pedido disparan la integración con producción.
+    *   **MES:** El estado `APROBADA` de un presupuesto (al convertirse a pedido) o la creación directa de un pedido disparan la integración con producción. Los trabajos MES (`SalesWorkSetup`) se muestran en el pedido con su estado en castellano y, cuando existe una Orden de Trabajo, con botón de navegación al detalle de tareas.
 
 ---
 
@@ -97,6 +97,7 @@
 *   [x] **Fase 1 (MVP):** CRUD básico de pedidos y estados.
 *   [x] **Fase 2:** Gestión de presupuestos y conversión a pedidos.
 *   [x] **Fase 3:** Sistema de facturación completa y simplificada (Tickets).
-*   [x] **Fase 4:** Integración automática con producción (MES).
+*   [x] **Fase 4:** Integración con producción (MES) — asociación de Configuraciones MES a presupuestos/pedidos, visualización de estado de Órdenes de Trabajo en el pedido.
 *   [x] **Fase 5 (MVP):** Trazabilidad Factura↔Albarán (campo `invoice_line_item_id` en líneas de albarán, facturación exclusiva desde albaranes).
 *   [ ] **Fase 6 (Post-MVP):** Facturación consolidada — agrupar múltiples albaranes de un cliente en una sola factura, con consolidación de líneas iguales (N:1).
+*   [ ] **Fase 7 (Post-MVP):** Notificaciones y alertas de estado MES en pedidos — dashboard mejorado y eventos en tiempo real.

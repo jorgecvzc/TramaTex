@@ -16,15 +16,22 @@ type PositionFilters struct {
 	Search   string
 }
 
-type ServiceGroupFilters struct {
+type WorkTypeFilters struct {
 	IsActive *bool
 	Search   string
 }
 
-type MESWorkFilters struct {
-	Status  *ProductionStatus
-	Search  string
-	PartyID string
+type WorkSetupFilters struct {
+	IsActive *bool
+	Search   string
+	PartyID  string
+}
+
+type WorkOrderFilters struct {
+	Status      *ProductionStatus
+	Search      string
+	PartyID     string
+	WorkSetupID *uuid.UUID
 }
 
 type TaskRepository interface {
@@ -42,16 +49,23 @@ type PositionRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type ServiceGroupRepository interface {
-	Save(ctx context.Context, serviceGroup *ServiceGroup) error
-	FindByID(ctx context.Context, id uuid.UUID) (*ServiceGroup, error)
-	FindAll(ctx context.Context, filters *ServiceGroupFilters) ([]*ServiceGroup, error)
+type WorkTypeRepository interface {
+	Save(ctx context.Context, workType *WorkType) error
+	FindByID(ctx context.Context, id uuid.UUID) (*WorkType, error)
+	FindAll(ctx context.Context, filters *WorkTypeFilters) ([]*WorkType, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type MESWorkRepository interface {
-	Save(ctx context.Context, work *MESWork) error
-	FindByID(ctx context.Context, id uuid.UUID) (*MESWork, error)
-	FindAll(ctx context.Context, filters *MESWorkFilters) ([]*MESWork, error)
+type WorkSetupRepository interface {
+	Save(ctx context.Context, workSetup *WorkSetup) error
+	FindByID(ctx context.Context, id uuid.UUID) (*WorkSetup, error)
+	FindAll(ctx context.Context, filters *WorkSetupFilters) ([]*WorkSetup, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type WorkOrderRepository interface {
+	Save(ctx context.Context, workOrder *WorkOrder) error
+	FindByID(ctx context.Context, id uuid.UUID) (*WorkOrder, error)
+	FindAll(ctx context.Context, filters *WorkOrderFilters) ([]*WorkOrder, error)
 	CountByYear(ctx context.Context, year int) (int64, error)
 }

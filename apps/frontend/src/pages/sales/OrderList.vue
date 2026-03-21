@@ -341,7 +341,7 @@ async function loadMesWorksForOrders() {
   const uncachedIds = mesWorkIds.filter((id) => !mesWorksCache.value[id]);
   if (uncachedIds.length === 0) return;
 
-  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkDefinition(id)));
+  const results = await Promise.allSettled(uncachedIds.map((id) => mesApi.getWorkOrder(id)));
   results.forEach((result, index) => {
     const mesWorkId = uncachedIds[index];
     mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;

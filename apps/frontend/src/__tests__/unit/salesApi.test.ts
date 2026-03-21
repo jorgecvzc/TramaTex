@@ -133,7 +133,7 @@ describe('SalesApi Service', () => {
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
       expect(fetchUrl).toContain('search=acme')
       expect(fetchUrl).toContain('partyId=party-001')
-      expect(fetchUrl).toContain('status=DRAFT')
+      expect(fetchUrl).toContain('status=BORRADOR')
       expect(fetchUrl).toContain('fromDate=2026-01-01')
       expect(fetchUrl).toContain('toDate=2026-12-31')
     })
@@ -205,7 +205,7 @@ describe('SalesApi Service', () => {
         expect.stringContaining('/sales/quotes/quote-001/status'),
         expect.objectContaining({
           method: 'PATCH',
-          body: JSON.stringify({ newStatus: 'ISSUED' }),
+          body: JSON.stringify({ newStatus: 'EMITIDA' }),
         })
       )
     })
@@ -375,7 +375,7 @@ describe('SalesApi Service', () => {
       const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
       expect(fetchUrl).toContain('search=acme')
       expect(fetchUrl).toContain('partyId=party-001')
-      expect(fetchUrl).toContain('status=CONFIRMED')
+      expect(fetchUrl).toContain('status=EN_PREPARACION')
     })
 
     it('should handle error when listing orders', async () => {
@@ -445,7 +445,7 @@ describe('SalesApi Service', () => {
         expect.stringContaining('/sales/orders/order-001/status'),
         expect.objectContaining({
           method: 'PATCH',
-          body: JSON.stringify({ newStatus: 'CONFIRMED' }),
+          body: JSON.stringify({ newStatus: 'EN_PREPARACION' }),
         })
       )
     })

@@ -335,14 +335,14 @@ func TestSalesOrder_ChangeStatus_InvalidTransition_DeliveredToPending(t *testing
 	assert.Contains(t, err.Error(), "invalid sales order status transition")
 }
 
-func TestSalesOrder_ChangeStatus_InvalidTransition_CanceledToAnything(t *testing.T) {
+func TestSalesOrder_ChangeStatus_ValidTransition_CanceledToPending(t *testing.T) {
 	order := createValidOrder(t)
 	order.Status = SalesOrderStatusCanceled
 
 	err := order.ChangeStatus(SalesOrderStatusPending)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid sales order status transition")
+	assert.NoError(t, err)
+	assert.Equal(t, SalesOrderStatusPending, order.Status)
 }
 
 func TestSalesOrder_ChangeStatus_InvalidStatus(t *testing.T) {

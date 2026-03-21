@@ -379,12 +379,18 @@ INSERT INTO tasks (id, name, description, is_active) VALUES
     ('e1000000-0000-0000-0000-000000000007', 'Empaquetar',         'Doblar, etiquetar y empaquetar',            true)
 ON CONFLICT (id) DO NOTHING;
 
--- Positions (workstations)
+-- Positions (zonas de la prenda donde se aplica el marcado/arreglo)
 INSERT INTO positions (id, name, code, description, is_active) VALUES
-    ('e2000000-0000-0000-0000-000000000001', 'Mesa Serigrafía 1', 'SERI-01', 'Mesa pulpo 6 colores',          true),
-    ('e2000000-0000-0000-0000-000000000002', 'Mesa Serigrafía 2', 'SERI-02', 'Mesa pulpo 4 colores',          true),
-    ('e2000000-0000-0000-0000-000000000003', 'Bordadora 1',       'BORD-01', 'Bordadora industrial 12 cabezas', true),
-    ('e2000000-0000-0000-0000-000000000004', 'Zona Empaquetado',  'PACK-01', 'Estación de empaquetado',        true)
+    ('e2000000-0000-0000-0000-000000000001', 'Pecho Izquierdo',   'PI',   'Zona pecho lado izquierdo',               true),
+    ('e2000000-0000-0000-0000-000000000002', 'Pecho Derecho',     'PD',   'Zona pecho lado derecho',                 true),
+    ('e2000000-0000-0000-0000-000000000003', 'Espalda',           'E',    'Zona central de la espalda',              true),
+    ('e2000000-0000-0000-0000-000000000004', 'Manga Izquierda',   'MI',   'Manga lado izquierdo',                    true),
+    ('e2000000-0000-0000-0000-000000000005', 'Manga Derecha',     'MD',   'Manga lado derecho',                      true),
+    ('e2000000-0000-0000-0000-000000000006', 'Pernera Izquierda', 'PLI',  'Pernera lado izquierdo del pantalón',     true),
+    ('e2000000-0000-0000-0000-000000000007', 'Pernera Derecha',   'PLD',  'Pernera lado derecho del pantalón',       true),
+    ('e2000000-0000-0000-0000-000000000008', 'Bajos',             'BAJ',  'Bajos de pantalón o falda (dobladillo)',   true),
+    ('e2000000-0000-0000-0000-000000000009', 'Cuello',            'CU',   'Zona del cuello o solapa',                true),
+    ('e2000000-0000-0000-0000-000000000010', 'Cintura',           'CIN',  'Zona de cintura (ajustes, elásticos)',     true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Service Groups (workflow templates)

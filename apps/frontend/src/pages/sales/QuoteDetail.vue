@@ -199,31 +199,41 @@
 
       <!-- MES Work References (Document-level) -->
       <div v-if="(quote.mesWorkRefs && quote.mesWorkRefs.length > 0) || isEditing" class="notes-card">
-        <h3>Trabajos MES</h3>
+        <h3>Configuraciones MES</h3>
         <template v-if="!isEditing">
-          <div v-for="mesRef in quote.mesWorkRefs" :key="mesRef.mesWorkId" class="mes-ref-view">
-            <button class="mes-link" @click="goToMesWork(mesRef.mesWorkId)" type="button"
-              :title="getMesWorkTooltip(mesRef.mesWorkId)">
-              {{ formatMesWorkId(mesRef.mesWorkId) }}
-            </button>
-            <span v-if="mesRef.observations" class="mes-observations-text">— {{ mesRef.observations }}</span>
+          <div v-for="mesRef in quote.mesWorkRefs" :key="mesRef.id" class="mes-ref-view">
+            <div class="mes-ref-header">
+              <span v-if="mesRef.workOrderId" class="mes-status-badge status-en_proceso">Con orden</span>
+              <span v-else-if="mesRef.workSetupId" class="mes-status-badge status-pendiente">Configurado</span>
+              <span v-else class="mes-status-badge status-borrador">Sin configurar</span>
+            </div>
+            <p v-if="mesRef.description" class="mes-description">{{ mesRef.description }}</p>
           </div>
         </template>
         <template v-else>
-          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando trabajos MES...</div>
-          <div v-else-if="mesWorks.length === 0" class="mes-empty">No hay trabajos MES disponibles para este cliente.</div>
+          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando configuraciones MES...</div>
           <div v-else class="mes-ref-list">
-            <div v-for="work in mesWorks" :key="work.id" class="mes-ref-item">
-              <label class="mes-checkbox-label">
-                <input type="checkbox" :checked="isEditMesWorkSelected(work.id)" @change="toggleEditMesWork(work.id)" />
-                <span>{{ work.work_number }} - {{ work.work_name }}</span>
-              </label>
-              <textarea v-if="isEditMesWorkSelected(work.id)" class="mes-observations" rows="2"
-                placeholder="Observaciones para este trabajo MES..."
-                :value="getEditMesWorkObservations(work.id)"
-                @input="setEditMesWorkObservations(work.id, $event.target.value)"
-              ></textarea>
+            <div v-for="(config, idx) in editForm.mesWorkRefs" :key="idx" class="mes-config-entry">
+              <div class="form-row mes-config-row">
+                <div class="form-group">
+                  <label>Configuración base</label>
+                  <select class="form-input" :value="config.workSetupId || ''"
+                    @change="onSetupSelect(idx, $event.target.value)">
+                    <option value="">— Personalizada —</option>
+                    <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Descripción</label>
+                  <div class="input-with-action">
+                    <textarea class="form-textarea" rows="2" v-model="config.description"
+                      placeholder="Descripción de la configuración..."></textarea>
+                    <button type="button" class="btn-remove" @click="removeEditConfig(idx)" title="Eliminar configuración">✕</button>
+                  </div>
+                </div>
+              </div>
             </div>
+            <button type="button" class="btn btn-secondary" @click="addEditConfig">+ Agregar configuración</button>
           </div>
         </template>
       </div>
@@ -490,8 +500,7 @@ const isLoading = ref(false);
 const error = ref('');
 const partyName = ref('Cargando...');
 const partyDefaultDiscount = ref(null);
-const mesWorksCache = ref({});
-const mesWorks = ref([]);
+const mesWorkSetups = ref([]);
 const isLoadingMesWorks = ref(false);
 const issuerProfile = getPrintIssuerProfile();
 
@@ -562,7 +571,7 @@ async function fetchQuote() {
   try {
     quote.value = await salesApi.getQuote(quoteId);
     await loadPartyName();
-    await loadMesWorksForQuote();
+    // MES work refs are loaded inline from the order response
   } catch (err) {
     error.value = err?.message || 'No se pudo cargar el presupuesto';
     console.error('Error loading quote:', err);
@@ -585,21 +594,6 @@ async function loadPartyName() {
     console.error('Error loading party name:', err);
     partyName.value = 'Error al cargar';
   }
-}
-
-async function loadMesWorksForQuote() {
-  const refs = quote.value?.mesWorkRefs;
-  if (!Array.isArray(refs) || refs.length === 0) return;
-
-  const mesWorkIds = refs.map(r => r.mesWorkId).filter(Boolean);
-  const uncachedIds = mesWorkIds.filter(id => !mesWorksCache.value[id]);
-  if (uncachedIds.length === 0) return;
-
-  const results = await Promise.allSettled(uncachedIds.map(id => mesApi.getWorkDefinition(id)));
-  results.forEach((result, index) => {
-    const mesWorkId = uncachedIds[index];
-    mesWorksCache.value[mesWorkId] = result.status === 'fulfilled' ? result.value : null;
-  });
 }
 
 async function confirmIssueQuote() {
@@ -696,9 +690,10 @@ async function deleteQuote() {
 function createOrderFromQuote() {
   const q = quote.value;
   const fromQuote = {
+    quoteId: q.id,
     partyId: q.partyId,
     notes: q.notes || '',
-    mesWorkRefs: (q.mesWorkRefs || []).map(r => ({ mesWorkId: r.mesWorkId, observations: r.observations || '' })),
+    mesWorkRefs: (q.mesWorkRefs || []).map(r => ({ workSetupId: r.workSetupId || null, description: r.description || '' })),
     lineItems: (q.lineItems || []).map(item => ({
       productVariantId: item.productVariantId,
       selectedVariantName: item.variantSku || '',
@@ -755,8 +750,8 @@ function enterEditMode() {
   editForm.value.validUntil = quote.value.expirationDate ? new Date(quote.value.expirationDate).toISOString().split('T')[0] : '';
   editForm.value.notes = quote.value.notes || '';
   editForm.value.mesWorkRefs = (quote.value.mesWorkRefs || []).map(r => ({
-    mesWorkId: r.mesWorkId,
-    observations: r.observations || '',
+    workSetupId: r.workSetupId || null,
+    description: r.description || '',
   }));
   editForm.value.lineItems = (quote.value.lineItems || []).map(item => ({
     productVariantId: item.productVariantId,
@@ -783,35 +778,31 @@ async function loadMesWorksForParty() {
   if (!partyId) return;
   isLoadingMesWorks.value = true;
   try {
-    mesWorks.value = await mesApi.listWorkDefinitions({ party_id: partyId });
+    mesWorkSetups.value = await mesApi.listWorkSetups({ party_id: partyId });
   } catch (err) {
-    console.error('Error loading MES works for party:', err);
-    mesWorks.value = [];
+    console.error('Error loading MES work setups for party:', err);
+    mesWorkSetups.value = [];
   } finally {
     isLoadingMesWorks.value = false;
   }
 }
 
-function isEditMesWorkSelected(workId) {
-  return editForm.value.mesWorkRefs.some(r => r.mesWorkId === workId);
-}
-
-function toggleEditMesWork(workId) {
-  const idx = editForm.value.mesWorkRefs.findIndex(r => r.mesWorkId === workId);
-  if (idx >= 0) {
-    editForm.value.mesWorkRefs.splice(idx, 1);
+function onSetupSelect(idx, setupId) {
+  const config = editForm.value.mesWorkRefs[idx];
+  if (!config) return;
+  if (setupId) {
+    config.workSetupId = setupId;
   } else {
-    editForm.value.mesWorkRefs.push({ mesWorkId: workId, observations: '' });
+    config.workSetupId = null;
   }
 }
 
-function getEditMesWorkObservations(workId) {
-  return editForm.value.mesWorkRefs.find(r => r.mesWorkId === workId)?.observations || '';
+function addEditConfig() {
+  editForm.value.mesWorkRefs.push({ workSetupId: null, description: '' });
 }
 
-function setEditMesWorkObservations(workId, value) {
-  const ref = editForm.value.mesWorkRefs.find(r => r.mesWorkId === workId);
-  if (ref) ref.observations = value;
+function removeEditConfig(idx) {
+  editForm.value.mesWorkRefs.splice(idx, 1);
 }
 
 function addEditLineItem() {
@@ -1066,28 +1057,6 @@ function buildDisplayName(item) {
   if (!name) return '—';
   if (!config || Object.keys(config).length === 0) return name;
   return name + ' - ' + Object.values(config).join(', ');
-}
-
-function formatMesWorkId(mesWorkId) {
-  if (!mesWorkId) return '—';
-  const mesWork = mesWorksCache.value[mesWorkId];
-  if (mesWork?.work_number) return mesWork.work_number;
-  return mesWorkId.substring(0, 8) + '...';
-}
-
-function getMesWorkTooltip(mesWorkId) {
-  if (!mesWorkId) return 'Definición de trabajo MES';
-  const mesWork = mesWorksCache.value[mesWorkId];
-  if (mesWork?.work_number && mesWork?.work_name) {
-    return `${mesWork.work_number} · ${mesWork.work_name}`;
-  }
-  if (mesWork?.work_number) return mesWork.work_number;
-  return `Definición MES ${mesWorkId}`;
-}
-
-function goToMesWork(mesWorkId) {
-  if (!mesWorkId) return;
-  router.push(`/mes/work-definitions/${mesWorkId}`);
 }
 
 function getStatusLabel(status) {
@@ -1465,72 +1434,75 @@ function getStatusClass(status) {
   text-align: right;
 }
 
-.mes-link {
-  background: transparent;
-  border: none;
-  color: #2563eb;
-  cursor: pointer;
-  padding: 0;
+.mes-name {
+  font-weight: 600;
   font-size: 0.875rem;
-  text-decoration: underline;
 }
 
-.mes-link:hover {
-  color: #1d4ed8;
+.mes-status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
+
+.mes-status-badge.status-borrador { background: #f3f4f6; color: #6b7280; }
+.mes-status-badge.status-pendiente { background: #fef3c7; color: #92400e; }
+.mes-status-badge.status-en_proceso { background: #dbeafe; color: #1e40af; }
+.mes-status-badge.status-completado { background: #d1fae5; color: #065f46; }
+.mes-status-badge.status-cancelado { background: #fee2e2; color: #991b1b; }
 
 .mes-ref-view {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.mes-observations-text {
-  color: #6b7280;
+.mes-ref-view:last-child {
+  border-bottom: none;
+}
+
+.mes-ref-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mes-description {
   font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.25rem 0 0;
+  line-height: 1.5;
 }
 
 .mes-ref-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.mes-ref-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.mes-config-entry {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.mes-checkbox-label {
+.mes-config-entry:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.mes-config-row {
+  margin-bottom: 0;
+}
+
+.input-with-action {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background 0.15s, border-color 0.15s;
+  align-items: center;
 }
 
-.mes-checkbox-label:hover {
-  background: #f0f7ff;
-  border-color: #93c5fd;
-}
-
-.mes-checkbox-label input[type="checkbox"] {
-  accent-color: #2563eb;
-}
-
-.mes-observations {
-  margin-left: 1.75rem;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  resize: vertical;
+.input-with-action .form-input {
+  flex: 1;
 }
 
 .mes-loading,

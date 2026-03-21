@@ -16,7 +16,7 @@ Representa una intención comercial no vinculante.
 ### El Pedido (`SalesOrder`)
 Es el eje central de la operación.
 - **Compromiso de Entrega:** Requiere obligatoriamente una fecha de entrega (`DeliveryDate`).
-- **Disparador de Producción:** Un pedido confirmado puede disparar automáticamente órdenes de trabajo en el módulo **MES** si los productos son de fabricación propia.
+- **Disparador de Producción:** Un pedido confirmado puede disparar automáticamente órdenes de trabajo en el módulo **MES** si los productos son de fabricación propia (ver sección 3: Integración con MES).
 - **Inmutabilidad Parcial:** Una vez que un pedido tiene albaranes o facturas asociadas, sus líneas de producto quedan bloqueadas para edición.
 
 ### El Albarán (`DeliveryNote`)
@@ -70,4 +70,43 @@ Para facilitar la comunicación entre el backend (con estados técnicos en caste
 - **Hidratación Dinámica de Nombres:** El nombre del producto y su SKU se obtienen dinámicamente del módulo **Product** cada vez que se visualiza el documento. Esto asegura que cualquier refinamiento en la descripción del catálogo se refleje en los documentos vivos, priorizando la coherencia del catálogo sobre el histórico nominal.
 
 ---
-**Última Actualización:** 2026-03-14
+
+## 3. Integración con MES — Trabajos Asociados (`SalesWorkSetup`)
+
+Los presupuestos y pedidos pueden llevar asociados uno o varios **trabajos de personalización/modificación** que describen las operaciones a realizar sobre las prendas en el taller. Estos trabajos se modelan como `SalesWorkSetup`, una entidad propia del módulo Sales que actúa como puente hacia el módulo MES.
+
+### La Entidad `SalesWorkSetup`
+Cada trabajo asociado a un documento de venta contiene:
+- **`ID`:** Identificador único.
+- **`WorkSetupID`** (`*uuid.UUID`): Referencia a un `WorkSetup` en MES. Se auto-crea si el comercial no selecciona uno existente.
+- **`WorkOrderID`** (`*uuid.UUID`): Referencia a la `WorkOrder` generada en MES para la ejecución real. Se establece automáticamente cuando el taller crea la orden: `MESService.CreateWorkOrder()` invoca `SalesOrderLinker.LinkWorkOrder(ctx, orderWorkSetupID, workOrderID)` que actualiza el registro en `order_work_setups`.
+- **`Name`:** Nombre descriptivo del trabajo (ej. "Serigrafía camisetas Confecciones López").
+- **`Observations`:** Campo de texto libre donde el comercial describe las características del trabajo, indicaciones especiales, o puntualizaciones sobre trabajos ya definidos. Es el principal canal de comunicación entre el departamento comercial y el taller.
+- **`Sequence`:** Orden de los trabajos dentro del documento.
+
+> **Nota:** `SalesWorkSetup` es una entidad **sin estado propio** (no tiene campo `Status`). El progreso del trabajo se determina consultando la presencia de `WorkSetupID`, `WorkOrderID` y el estado de la `WorkOrder` en MES.
+
+### Ciclo de Vida
+
+1. **Creación en Presupuesto o Pedido:** El comercial añade trabajos con nombre + observaciones. Opcionalmente selecciona un `WorkSetup` existente en MES. Si no selecciona uno, el sistema **auto-crea** un `WorkSetup` inactivo en MES (sin líneas) vía `WorkSetupCreatorAdapter`.
+2. **Conversión Presupuesto → Pedido:** Al convertir, los `SalesWorkSetup` se copian. El método `ensureWorkSetups` garantiza que todos los trabajos copiados tengan un `WorkSetupID` válido (cierra la brecha de presupuestos antiguos sin `WorkSetupID`).
+3. **Visibilidad en MES:** El Dashboard de MES consulta los pedidos en estado `EN_PREPARACION` y muestra los `SalesWorkSetup` cuyo `WorkOrderID` es nulo (solicitudes pendientes del taller).
+4. **Creación de Orden:** El jefe de taller crea la `WorkOrder` desde el `WorkSetup` asociado. Al crearse, el backend vincula el `WorkOrderID` de vuelta al registro de `order_work_setups` vía `SalesOrderLinkerAdapter`.
+5. **Seguimiento:** El estado del trabajo se consulta bajo demanda vía `WorkOrderQueryService` de MES. (Post-MVP: eventos de dominio `WorkOrderStarted`/`WorkOrderCompleted` para notificaciones reactivas).
+6. **Suspensión / Reactivación:** Si un pedido es cancelado, `SalesService` llama a `WorkOrderSuspender.SuspendWorkOrders()` con los `WorkOrderID`s asociados. Si el pedido se reactiva (CANCELADO → PENDIENTE), llama a `ReactivateWorkOrders()`. Esta comunicación es unidireccional: Sales → MES.
+
+### Reglas
+- Un documento (`Quote` o `SalesOrder`) puede tener cero o más `SalesWorkSetup`.
+- Los trabajos se **copian** del presupuesto al pedido durante la conversión (igual que las líneas de producto).
+- El campo `Observations` no tiene restricción de longitud y se preserva en todas las operaciones.
+- Todo `SalesWorkSetup` tiene `WorkSetupID` garantizado tras la auto-creación; el comercial no necesita seleccionar una plantilla MES manualmente.
+
+### Consulta de Progreso de Trabajos
+Sales puede consultar el estado de ejecución de los `WorkOrder`s asociados a un pedido sin conocer la lógica interna de MES. Para ello:
+- La capa de aplicación de Sales define una interfaz `MESWorkLookup` con dos métodos: consultar progreso de una orden y consultar progreso de varias órdenes.
+- La interfaz devuelve un DTO propio de Sales (`WorkOrderProgress`) con: estado global, total de tareas, tareas completadas, y desglose por línea.
+- Toda la lógica de cálculo (qué tareas están hechas, cuáles faltan) reside en el módulo MES (`WorkOrderQueryService`). Sales es completamente transparente a esa lógica.
+- El adaptador en infraestructura (`MESWorkLookupAdapter`) traduce entre los DTOs de MES y los DTOs de Sales.
+
+---
+**Última Actualización:** 2026-03-20

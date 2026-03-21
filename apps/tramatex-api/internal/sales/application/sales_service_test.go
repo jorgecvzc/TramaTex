@@ -174,6 +174,14 @@ func (m *MockInvoiceRepository) ListDeliveryNoteIDsByInvoiceID(ctx context.Conte
 	return args.Get(0).([]uuid.UUID), args.Error(1)
 }
 
+func (m *MockInvoiceRepository) ListOrderIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	args := m.Called(ctx, invoiceID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]uuid.UUID), args.Error(1)
+}
+
 type MockPricingEngine struct {
 	mock.Mock
 }
@@ -231,6 +239,20 @@ func (m *MockNumberGenerator) NextInvoiceNumber(ctx context.Context, series doma
 	return args.Get(0).(domain.InvoiceNumber), args.Error(1)
 }
 
+type MockWorkOrderSuspender struct {
+	mock.Mock
+}
+
+func (m *MockWorkOrderSuspender) SuspendWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error {
+	args := m.Called(ctx, workOrderIDs)
+	return args.Error(0)
+}
+
+func (m *MockWorkOrderSuspender) ReactivateWorkOrders(ctx context.Context, workOrderIDs []uuid.UUID) error {
+	args := m.Called(ctx, workOrderIDs)
+	return args.Error(0)
+}
+
 func TestSalesService_CreateQuote_Success(t *testing.T) {
 	ctx := context.Background()
 	partyID := uuid.New()
@@ -264,7 +286,7 @@ func TestSalesService_CreateQuote_Success(t *testing.T) {
 
 	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil, nil)
 
 	cmd := application.CreateQuoteCommand{
 		PartyID:        partyID,
@@ -297,7 +319,7 @@ func TestSalesService_CreateQuote_PartyNotFound(t *testing.T) {
 
 	partyLookup.On("ExistsParty", mock.Anything, partyID).Return(false, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil, nil)
 	cmd := application.CreateQuoteCommand{
 		PartyID:        partyID,
 		ExpirationDate: time.Now().Add(24 * time.Hour),
@@ -334,7 +356,7 @@ func TestSalesService_CreateQuote_PartyNotClient(t *testing.T) {
 	}
 	numbers := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, partyLookup, nil, nil)
 	cmd := application.CreateQuoteCommand{
 		PartyID:        partyID,
 		ExpirationDate: time.Now().Add(24 * time.Hour),
@@ -369,7 +391,7 @@ func TestSalesService_CreateOrder_FromQuoteNotApproved(t *testing.T) {
 	orderNumber, _ := domain.NewOrderNumber("SO-1")
 	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, pricing, nil, nil, nil)
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
 		QuoteID:      &quote.ID,
@@ -412,7 +434,7 @@ func TestSalesService_CreateDeliveryNote_Partial(t *testing.T) {
 	}).Return(nil)
 	deliveryRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.DeliveryNote")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil, nil)
 	cmd := application.CreateDeliveryNoteCommand{
 		SalesOrderID: order.ID,
 		DeliveryDate: time.Now().Add(72 * time.Hour),
@@ -459,7 +481,7 @@ func TestSalesService_CreateInvoice_FromDeliveredOrder(t *testing.T) {
 	}).Return(nil)
 	invoiceRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Invoice")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:       partyID,
@@ -505,7 +527,7 @@ func TestSalesService_GetQuote_Success(t *testing.T) {
 	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
 	orderRepo.On("FindByQuoteID", mock.Anything, quote.ID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetQuoteByIDQuery{ID: quote.ID}
 	result, err := service.GetQuote(ctx, query)
@@ -528,7 +550,7 @@ func TestSalesService_GetQuote_NotFound(t *testing.T) {
 
 	quoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, domain.NewNotFoundError("quote not found"))
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetQuoteByIDQuery{ID: quoteID}
 	result, err := service.GetQuote(ctx, query)
@@ -562,7 +584,7 @@ func TestSalesService_ListQuotes_Success(t *testing.T) {
 
 	quoteRepo.On("List", mock.Anything, filter).Return(quotes, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListQuotesQuery{PartyID: &partyID}
 	results, err := service.ListQuotes(ctx, query)
@@ -601,7 +623,7 @@ func TestSalesService_GetOrder_Success(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetOrderByIDQuery{ID: order.ID}
 	result, err := service.GetOrder(ctx, query)
@@ -637,7 +659,7 @@ func TestSalesService_ListOrders_Success(t *testing.T) {
 
 	orderRepo.On("List", mock.Anything, filter).Return(orders, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListOrdersQuery{PartyID: &partyID}
 	results, err := service.ListOrders(ctx, query)
@@ -686,7 +708,7 @@ func TestSalesService_ConvertQuoteToOrder_Success(t *testing.T) {
 	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil, nil)
 
 	cmd := application.ConvertQuoteToOrderCommand{
 		QuoteID:      quote.ID,
@@ -738,7 +760,7 @@ func TestSalesService_ConvertQuoteToOrder_QuoteNotApproved(t *testing.T) {
 	orderNumber, _ := domain.NewOrderNumber("SO-999")
 	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, nil, nil, nil)
 
 	cmd := application.ConvertQuoteToOrderCommand{
 		QuoteID:      quote.ID,
@@ -782,7 +804,7 @@ func TestSalesService_UpdateQuote_Success(t *testing.T) {
 	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
 	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	newNotes := "Updated notes"
 	cmd := application.UpdateQuoteCommand{
@@ -828,7 +850,7 @@ func TestSalesService_ChangeQuoteStatus_DraftToSent_Success(t *testing.T) {
 	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
 	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.ChangeQuoteStatusCommand{
 		QuoteID:   quote.ID,
@@ -871,7 +893,7 @@ func TestSalesService_ChangeQuoteStatus_InvalidTransition_Fail(t *testing.T) {
 
 	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	// Try to change directly from DRAFT to APPROVED (invalid - must go through SENT first)
 	cmd := application.ChangeQuoteStatusCommand{
@@ -916,7 +938,7 @@ func TestSalesService_ChangeOrderStatus_Success(t *testing.T) {
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.ChangeOrderStatusCommand{
 		OrderID:   order.ID,
@@ -928,6 +950,191 @@ func TestSalesService_ChangeOrderStatus_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "EN_PREPARACION", string(result.Status))
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_CancelSuspendsWorkOrders(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-010")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	// Move to EN_PREPARACION so we can cancel.
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+	wsID1, wsID2 := uuid.New(), uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID1, WorkOrderID: &woID1, Sequence: 1},
+		{ID: uuid.New(), WorkSetupID: &wsID2, WorkOrderID: &woID2, Sequence: 2},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+	suspender.On("SuspendWorkOrders", mock.Anything, []uuid.UUID{woID1, woID2}).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	suspender.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_ReactivateReactivatesWorkOrders(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-011")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	// Simulate: confirmed → cancelled (now CANCELADO).
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusCanceled)
+
+	woID := uuid.New()
+	wsID3 := uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID3, WorkOrderID: &woID, Sequence: 1},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+	suspender.On("ReactivateWorkOrders", mock.Anything, []uuid.UUID{woID}).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusPending),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "PENDIENTE", string(result.Status))
+	suspender.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_CancelWithoutSuspenderOK(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-012")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+
+	woID := uuid.New()
+	wsID4 := uuid.New()
+	order.WorkReferences = []domain.WorkReference{
+		{ID: uuid.New(), WorkSetupID: &wsID4, WorkOrderID: &woID, Sequence: 1},
+	}
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	// No suspender set — nil-safe path.
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_ChangeOrderStatus_CancelWithNoWorkOrdersSkipsSuspend(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	suspender := new(MockWorkOrderSuspender)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-013")
+	lineItem, _ := domain.NewOrderLineItem(variantID, 5, money, nil, 0)
+	taxAmount, _ := domain.NewMoney(105, domain.DefaultCurrency)
+
+	order, _ := domain.NewSalesOrder(
+		orderNumber, partyID, time.Now(), time.Now().Add(7*24*time.Hour),
+		[]domain.OrderLineItem{lineItem}, taxAmount, "Test order",
+	)
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	// No WorkReferences — nothing to suspend.
+
+	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	service.SetWorkOrderSuspender(suspender)
+
+	result, err := service.ChangeOrderStatus(ctx, application.ChangeOrderStatusCommand{
+		OrderID:   order.ID,
+		NewStatus: string(domain.SalesOrderStatusCanceled),
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "CANCELADO", string(result.Status))
+	// SuspendWorkOrders must NOT have been called.
+	suspender.AssertNotCalled(t, "SuspendWorkOrders", mock.Anything, mock.Anything)
 	orderRepo.AssertExpectations(t)
 }
 
@@ -956,7 +1163,7 @@ func TestSalesService_GetDeliveryNote_Success(t *testing.T) {
 
 	deliveryRepo.On("FindByID", mock.Anything, note.ID).Return(note, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetDeliveryNoteByIDQuery{ID: note.ID}
 	result, err := service.GetDeliveryNote(ctx, query)
@@ -978,7 +1185,7 @@ func TestSalesService_GetDeliveryNote_NotFound(t *testing.T) {
 	noteID := uuid.New()
 	deliveryRepo.On("FindByID", mock.Anything, noteID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetDeliveryNoteByIDQuery{ID: noteID}
 	result, err := service.GetDeliveryNote(ctx, query)
@@ -1017,7 +1224,7 @@ func TestSalesService_ListDeliveryNotes_Success(t *testing.T) {
 
 	deliveryRepo.On("List", mock.Anything, mock.AnythingOfType("domain.DeliveryNoteFilter")).Return([]*domain.DeliveryNote{note}, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListDeliveryNotesQuery{PartyID: &partyID}
 	result, err := service.ListDeliveryNotes(ctx, query)
@@ -1058,8 +1265,9 @@ func TestSalesService_GetInvoice_Success(t *testing.T) {
 
 	invoiceRepo.On("FindByID", mock.Anything, invoice.ID).Return(invoice, nil)
 	invoiceRepo.On("ListDeliveryNoteIDsByInvoiceID", mock.Anything, invoice.ID).Return([]uuid.UUID{}, nil)
+	invoiceRepo.On("ListOrderIDsByInvoiceID", mock.Anything, invoice.ID).Return([]uuid.UUID{}, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetInvoiceByIDQuery{ID: invoice.ID}
 	result, err := service.GetInvoice(ctx, query)
@@ -1081,7 +1289,7 @@ func TestSalesService_GetInvoice_NotFound(t *testing.T) {
 	invoiceID := uuid.New()
 	invoiceRepo.On("FindByID", mock.Anything, invoiceID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetInvoiceByIDQuery{ID: invoiceID}
 	result, err := service.GetInvoice(ctx, query)
@@ -1124,7 +1332,7 @@ func TestSalesService_ListInvoices_Success(t *testing.T) {
 
 	invoiceRepo.On("List", mock.Anything, mock.AnythingOfType("domain.InvoiceFilter")).Return([]*domain.Invoice{invoice}, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListInvoicesQuery{PartyID: &partyID}
 	result, err := service.ListInvoices(ctx, query)
@@ -1168,7 +1376,7 @@ func TestSalesService_UpdateOrderDetails_Success(t *testing.T) {
 	partyLookup.On("ExistsParty", mock.Anything, newPartyID).Return(true, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil, nil)
 
 	newDate := time.Now().Add(14 * 24 * time.Hour)
 	newNotes := "Updated notes"
@@ -1200,7 +1408,7 @@ func TestSalesService_UpdateOrderDetails_OrderNotFound(t *testing.T) {
 	orderID := uuid.New()
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.UpdateOrderDetailsCommand{OrderID: orderID}
 	result, err := service.UpdateOrderDetails(ctx, cmd)
@@ -1226,7 +1434,7 @@ func TestSalesService_AddOrderLineItem_OrderNotFound(t *testing.T) {
 	orderID := uuid.New()
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.AddOrderLineItemCommand{
 		OrderID: orderID,
@@ -1276,7 +1484,7 @@ func TestSalesService_AddOrderLineItem_InvalidStatus(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.AddOrderLineItemCommand{
 		OrderID: order.ID,
@@ -1341,7 +1549,7 @@ func TestSalesService_AddOrderLineItem_Success(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	cmd := application.AddOrderLineItemCommand{
 		OrderID: order.ID,
@@ -1405,7 +1613,7 @@ func TestSalesService_AddOrderLineItem_SaveError(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(errors.New("database save error"))
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	cmd := application.AddOrderLineItemCommand{
 		OrderID: order.ID,
@@ -1433,7 +1641,7 @@ func TestSalesService_CreateOrder_PartyIDRequired(t *testing.T) {
 	deliveryRepo := new(MockDeliveryNoteRepository)
 	invoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		DeliveryDate: time.Now().Add(7 * 24 * time.Hour),
@@ -1459,7 +1667,7 @@ func TestSalesService_CreateOrder_DeliveryDateRequired(t *testing.T) {
 	deliveryRepo := new(MockDeliveryNoteRepository)
 	invoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID: uuid.New(),
@@ -1489,7 +1697,7 @@ func TestSalesService_CreateOrder_ItemsRequired(t *testing.T) {
 
 	partyLookup.On("ExistsParty", mock.Anything, partyID).Return(true, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1518,7 +1726,7 @@ func TestSalesService_CreateOrder_PartyNotExists(t *testing.T) {
 
 	partyLookup.On("ExistsParty", mock.Anything, partyID).Return(false, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1547,7 +1755,7 @@ func TestSalesService_CreateOrder_NumberGeneratorNotConfigured(t *testing.T) {
 
 	partyLookup.On("ExistsParty", mock.Anything, partyID).Return(true, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1581,7 +1789,7 @@ func TestSalesService_CreateOrder_FromQuote_QuoteNotFound(t *testing.T) {
 	numbers.On("NextOrderNumber", mock.Anything).Return(orderNumber, nil)
 	quoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1626,7 +1834,7 @@ func TestSalesService_CreateOrder_FromQuote_Success(t *testing.T) {
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1671,7 +1879,7 @@ func TestSalesService_CreateOrder_Direct_Success(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, mockPricingService, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, mockPricingService, partyLookup, nil, nil)
 
 	notes := "Direct order notes"
 	cmd := application.CreateOrderCommand{
@@ -1722,7 +1930,7 @@ func TestSalesService_CreateOrder_Direct_SaveError(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(errors.New("database connection error"))
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, mockPricingService, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numbers, mockPricingService, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -1748,7 +1956,7 @@ func TestSalesService_UpdateQuote_QuoteNotDraft(t *testing.T) {
 	mockOrderRepo := new(MockSalesOrderRepository)
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	quoteNumber, err := domain.NewQuoteNumber("QUO-2026-001")
@@ -1785,7 +1993,7 @@ func TestSalesService_UpdateQuote_InvalidExpirationDate(t *testing.T) {
 	mockOrderRepo := new(MockSalesOrderRepository)
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	quoteNumber, err := domain.NewQuoteNumber("QUO-2026-001")
@@ -1822,7 +2030,7 @@ func TestSalesService_UpdateQuote_EmptyItems(t *testing.T) {
 	mockOrderRepo := new(MockSalesOrderRepository)
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	quoteNumber, err := domain.NewQuoteNumber("QUO-2026-001")
@@ -1860,7 +2068,7 @@ func TestSalesService_ChangeQuoteStatus_QuoteNotFound(t *testing.T) {
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	quoteID := uuid.New()
 	mockQuoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, domain.NewNotFoundError("quote not found"))
@@ -1886,7 +2094,7 @@ func TestSalesService_ChangeOrderStatus_OrderNotFound(t *testing.T) {
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	mockOrderRepo.On("FindByID", mock.Anything, orderID).Return(nil, domain.NewNotFoundError("order not found"))
@@ -1912,7 +2120,7 @@ func TestSalesService_ListDeliveryNotes_ByOrderID(t *testing.T) {
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	mockDeliveryRepo.On("List", mock.Anything, mock.AnythingOfType("domain.DeliveryNoteFilter")).Return([]*domain.DeliveryNote{}, nil)
@@ -1935,7 +2143,7 @@ func TestSalesService_ConvertQuoteToOrder_QuoteNotFound(t *testing.T) {
 	mockDeliveryRepo := new(MockDeliveryNoteRepository)
 	mockInvoiceRepo := new(MockInvoiceRepository)
 
-	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(mockQuoteRepo, mockOrderRepo, mockDeliveryRepo, mockInvoiceRepo, nil, nil, nil, nil, nil)
 
 	quoteID := uuid.New()
 	mockQuoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, domain.NewNotFoundError("quote not found"))
@@ -1965,7 +2173,7 @@ func TestSalesService_UpdateOrderLineItem_OrderNotFound(t *testing.T) {
 	orderID := uuid.New()
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.UpdateOrderLineItemCommand{
 		OrderID:    orderID,
@@ -2011,7 +2219,7 @@ func TestSalesService_UpdateOrderLineItem_InvalidStatus(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	newQty := 10
 	cmd := application.UpdateOrderLineItemCommand{
@@ -2057,7 +2265,7 @@ func TestSalesService_UpdateOrderLineItem_LineItemNotFound(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	nonExistentLineItemID := uuid.New()
 	newQty := 10
@@ -2118,7 +2326,7 @@ func TestSalesService_UpdateOrderLineItem_UpdateQuantity_Success(t *testing.T) {
 
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	newQty := 10
 	cmd := application.UpdateOrderLineItemCommand{
@@ -2178,7 +2386,7 @@ func TestSalesService_UpdateOrderLineItem_UpdateUnitPrice_Success(t *testing.T) 
 
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	overridePrice := application.MoneyDTO{Amount: 150.0, Currency: "EUR"}
 	cmd := application.UpdateOrderLineItemCommand{
@@ -2235,7 +2443,7 @@ func TestSalesService_UpdateOrderLineItem_SaveError(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(errors.New("database error"))
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	newQty := 10
 	cmd := application.UpdateOrderLineItemCommand{
@@ -2265,7 +2473,7 @@ func TestSalesService_RemoveOrderLineItem_OrderNotFound(t *testing.T) {
 	orderID := uuid.New()
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.RemoveOrderLineItemCommand{
 		OrderID:    orderID,
@@ -2313,7 +2521,7 @@ func TestSalesService_RemoveOrderLineItem_InvalidStatus(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	cmd := application.RemoveOrderLineItemCommand{
 		OrderID:    order.ID,
@@ -2355,7 +2563,7 @@ func TestSalesService_RemoveOrderLineItem_LineItemNotFound(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	nonExistentLineItemID := uuid.New()
 	cmd := application.RemoveOrderLineItemCommand{
@@ -2399,7 +2607,7 @@ func TestSalesService_RemoveOrderLineItem_LastLineItem(t *testing.T) {
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	cmd := application.RemoveOrderLineItemCommand{
 		OrderID:    order.ID,
@@ -2457,7 +2665,7 @@ func TestSalesService_RemoveOrderLineItem_Success(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	cmd := application.RemoveOrderLineItemCommand{
 		OrderID:    order.ID,
@@ -2514,7 +2722,7 @@ func TestSalesService_RemoveOrderLineItem_SaveError(t *testing.T) {
 	}, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(errors.New("database connection lost"))
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 
 	cmd := application.RemoveOrderLineItemCommand{
 		OrderID:    order.ID,
@@ -2536,7 +2744,7 @@ func TestSalesService_RemoveOrderLineItem_SaveError(t *testing.T) {
 func TestSalesService_ListDeliveryNotes_parseDeliveryNoteStatus_Success(t *testing.T) {
 	// Test parseDeliveryNoteStatus through ListDeliveryNotes
 	deliveryRepo := &MockDeliveryNoteRepository{}
-	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil, nil)
 
 	validStatuses := []string{"PENDIENTE", "ENTREGADO", "CANCELADO"}
 	expectedStatuses := []domain.DeliveryNoteStatus{
@@ -2570,7 +2778,7 @@ func TestSalesService_ListDeliveryNotes_parseDeliveryNoteStatus_Success(t *testi
 func TestSalesService_ListDeliveryNotes_parseDeliveryNoteStatus_Error(t *testing.T) {
 	// Test parseDeliveryNoteStatus error handling through ListDeliveryNotes
 	deliveryRepo := &MockDeliveryNoteRepository{}
-	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil, nil)
 
 	invalidStatuses := []string{"INVALID_STATUS", "", "   "}
 
@@ -2592,7 +2800,7 @@ func TestSalesService_ListDeliveryNotes_parseDeliveryNoteStatus_Error(t *testing
 func TestSalesService_ListInvoices_parseInvoiceStatus_Success(t *testing.T) {
 	// Test parseInvoiceStatus through ListInvoices
 	invoiceRepo := &MockInvoiceRepository{}
-	service := application.NewSalesService(nil, nil, nil, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, nil, invoiceRepo, nil, nil, nil, nil, nil)
 
 	validStatuses := []string{"BORRADOR", "EMITIDA", "PAGADA", "VENCIDA", "ANULADA"}
 	expectedStatuses := []domain.InvoiceStatus{
@@ -2628,7 +2836,7 @@ func TestSalesService_ListInvoices_parseInvoiceStatus_Success(t *testing.T) {
 func TestSalesService_ListInvoices_parseInvoiceStatus_Error(t *testing.T) {
 	// Test parseInvoiceStatus error handling through ListInvoices
 	invoiceRepo := &MockInvoiceRepository{}
-	service := application.NewSalesService(nil, nil, nil, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, nil, invoiceRepo, nil, nil, nil, nil, nil)
 
 	invalidStatuses := []string{"INVALID_STATUS", "", "   "}
 
@@ -2655,7 +2863,7 @@ func TestSalesService_buildInvoiceItemsFromDeliveryNotes_Success(t *testing.T) {
 	invoiceRepo := &MockInvoiceRepository{}
 	numberGen := &Mocknerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	orderID := uuid.New()
@@ -2706,7 +2914,7 @@ func TestSalesService_buildInvoiceItemsFromDeliveryNotes_DeliveryNoteNotFound(t 
 	invoiceRepo := &MockInvoiceRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	noteID := uuid.New()
@@ -2735,7 +2943,7 @@ func TestSalesService_buildInvoiceItemsFromDeliveryNotes_OrderNotFound(t *testin
 	invoiceRepo := &MockInvoiceRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	orderID := uuid.New()
@@ -2771,7 +2979,7 @@ func TestSalesService_buildInvoiceItemsFromDeliveryNotes_PartyMismatch(t *testin
 	invoiceRepo := &MockInvoiceRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	partyID := uuid.New()
 	wrongPartyID := uuid.New()
@@ -2868,7 +3076,7 @@ func TestSalesService_CreateSimplifiedInvoice_Success(t *testing.T) {
 	partyLookup := &MockPartyLookup{}
 	pricingEngine := &MockPricingEngine{}
 
-	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	partyID := uuid.New()
 	variantID := uuid.New()
@@ -2923,7 +3131,7 @@ func TestSalesService_CreateSimplifiedInvoice_PartyNotFound(t *testing.T) {
 	numberGen := &MockNumberGenerator{}
 	partyLookup := &MockPartyLookup{}
 
-	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, nil, partyLookup, nil)
+	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, nil, partyLookup, nil, nil)
 
 	partyID := uuid.New()
 
@@ -2954,7 +3162,7 @@ func TestSalesService_CreateSimplifiedInvoice_PricingError(t *testing.T) {
 	partyLookup := &MockPartyLookup{}
 	pricingEngine := &MockPricingEngine{}
 
-	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(nil, nil, nil, invoiceRepo, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	partyID := uuid.New()
 
@@ -2983,7 +3191,7 @@ func TestSalesService_CreateSimplifiedInvoice_PricingError(t *testing.T) {
 
 func TestSalesService_UpdateQuote_ExpirationDateBeforeQuoteDate(t *testing.T) {
 	quoteRepo := &MockQuoteRepository{}
-	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	quoteID := uuid.New()
 	existingQuote := createTestQuote(quoteID)
@@ -3008,7 +3216,7 @@ func TestSalesService_UpdateQuote_ExpirationDateBeforeQuoteDate(t *testing.T) {
 
 func TestSalesService_UpdateQuote_EmptyItemsArray(t *testing.T) {
 	quoteRepo := &MockQuoteRepository{}
-	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	quoteID := uuid.New()
 	existingQuote := createTestQuote(quoteID)
@@ -3033,7 +3241,7 @@ func TestSalesService_UpdateQuote_EmptyItemsArray(t *testing.T) {
 
 func TestSalesService_UpdateQuote_NotDraftStatus(t *testing.T) {
 	quoteRepo := &MockQuoteRepository{}
-	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	quoteID := uuid.New()
 	existingQuote := createTestQuote(quoteID)
@@ -3093,7 +3301,7 @@ func TestSalesService_CreateDeliveryNote_CanceledOrder(t *testing.T) {
 	deliveryRepo := &MockDeliveryNoteRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	lineItemID := uuid.New()
@@ -3128,7 +3336,7 @@ func TestSalesService_CreateDeliveryNote_InvoicedOrder(t *testing.T) {
 	deliveryRepo := &MockDeliveryNoteRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	lineItemID := uuid.New()
@@ -3172,7 +3380,7 @@ func TestSalesService_CreateDeliveryNote_OrderNotFound(t *testing.T) {
 	orderRepo := &MockSalesOrderRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, numberGen, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 
@@ -3202,7 +3410,7 @@ func TestSalesService_CreateDeliveryNote_LineItemNotFound(t *testing.T) {
 	deliveryRepo := &MockDeliveryNoteRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	lineItemID := uuid.New()
@@ -3251,7 +3459,7 @@ func TestToMoneyDTOPtr_ValidMoney(t *testing.T) {
 func TestSalesService_ChangeOrderStatus_InvalidStatus(t *testing.T) {
 	orderRepo := &MockSalesOrderRepository{}
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 
@@ -3277,7 +3485,7 @@ func TestSalesService_ChangeOrderStatus_InvalidStatus(t *testing.T) {
 func TestSalesService_ListOrders_InvalidStatus(t *testing.T) {
 	orderRepo := &MockSalesOrderRepository{}
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil, nil)
 
 	invalidStatus := "COMPLETELY_INVALID_STATUS"
 
@@ -3323,7 +3531,7 @@ func TestSalesService_UpdateOrderDetails_InPreparationStatus(t *testing.T) {
 	partyLookup.On("ExistsParty", mock.Anything, newPartyID).Return(true, nil)
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Return(nil)
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, partyLookup, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, partyLookup, nil, nil)
 
 	newNotes := "Updated notes for InPreparation order"
 	cmd := application.UpdateOrderDetailsCommand{
@@ -3342,7 +3550,7 @@ func TestSalesService_UpdateOrderDetails_InPreparationStatus(t *testing.T) {
 }
 
 func TestSalesService_CreateDeliveryNote_ZeroDeliveryDate(t *testing.T) {
-	service := application.NewSalesService(nil, nil, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	cmd := application.CreateDeliveryNoteCommand{
 		SalesOrderID: uuid.New(),
@@ -3363,7 +3571,7 @@ func TestSalesService_CreateDeliveryNote_ZeroDeliveryDate(t *testing.T) {
 }
 
 func TestSalesService_CreateDeliveryNote_EmptyItems(t *testing.T) {
-	service := application.NewSalesService(nil, nil, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
 	cmd := application.CreateDeliveryNoteCommand{
 		SalesOrderID: uuid.New(),
@@ -3387,7 +3595,7 @@ func TestSalesService_CreateOrder_EmptyItems(t *testing.T) {
 	partyLookup := new(MockPartyLookup)
 	numbers := new(MockNumberGenerator)
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, numbers, nil, partyLookup, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, numbers, nil, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID:      partyID,
@@ -3407,7 +3615,7 @@ func TestSalesService_CreateOrder_EmptyItems(t *testing.T) {
 func TestSalesService_ListDeliveryNotes_MoreInvalidStatuses(t *testing.T) {
 	deliveryRepo := &MockDeliveryNoteRepository{}
 
-	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, nil, deliveryRepo, nil, nil, nil, nil, nil, nil)
 
 	// Test multiple invalid statuses to exercise parseDeliveryNoteStatus more thoroughly
 	invalidStatuses := []string{"INVALID", "WRONG_STATUS", "123", "null", "undefined"}
@@ -3435,7 +3643,7 @@ func TestSalesService_CreateOrder_ValidationPaths(t *testing.T) {
 	numberGen := &MockNumberGenerator{}
 	pricingEngine := &MockPricingEngine{}
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	// Test case 1: PartyID nil
 	cmd1 := application.CreateOrderCommand{
@@ -3470,7 +3678,7 @@ func TestSalesService_CreateDeliveryNote_DeliveredQuantitiesPath(t *testing.T) {
 	deliveryRepo := &MockDeliveryNoteRepository{}
 	numberGen := &MockNumberGenerator{}
 
-	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, numberGen, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	lineItemID := uuid.New()
@@ -3515,7 +3723,7 @@ func TestSalesService_UpdateQuote_AdditionalValidations(t *testing.T) {
 	quoteRepo := &MockQuoteRepository{}
 	pricingEngine := &MockPricingEngine{}
 
-	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, pricingEngine, nil, nil)
+	service := application.NewSalesService(quoteRepo, nil, nil, nil, nil, pricingEngine, nil, nil, nil)
 
 	quoteID := uuid.New()
 	variantID := uuid.New()
@@ -3551,7 +3759,7 @@ func TestSalesService_UpdateOrderDetails_NonEditableStatus(t *testing.T) {
 
 	orderRepo := new(MockSalesOrderRepository)
 
-	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil)
+	service := application.NewSalesService(nil, orderRepo, nil, nil, nil, nil, nil, nil, nil)
 
 	orderID := uuid.New()
 	lineItemID := uuid.New()
@@ -3582,7 +3790,7 @@ func TestSalesService_UpdateOrderDetails_NonEditableStatus(t *testing.T) {
 func TestSalesService_CreateOrder_NoNumberGenerator(t *testing.T) {
 	quotesRepo := &MockQuoteRepository{}
 	orderRepo := &MockSalesOrderRepository{}
-	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, nil, nil, nil, nil) // No number generator
+	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, nil, nil, nil, nil, nil) // No number generator
 
 	ctx := context.Background()
 	cmd := application.CreateOrderCommand{
@@ -3609,7 +3817,7 @@ func TestSalesService_CreateOrder_InvalidProductVariantID(t *testing.T) {
 	pricingEngine := &MockPricingEngine{}
 	partyLookup := &MockPartyLookup{}
 	numberGen := &MockNumberGenerator{}
-	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	ctx := context.Background()
 	partyID := uuid.New()
@@ -3642,7 +3850,7 @@ func TestSalesService_CreateOrder_InvalidQuantityZero(t *testing.T) {
 	pricingEngine := &MockPricingEngine{}
 	partyLookup := &MockPartyLookup{}
 	numberGen := &MockNumberGenerator{}
-	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	ctx := context.Background()
 	partyID := uuid.New()
@@ -3675,7 +3883,7 @@ func TestSalesService_CreateOrder_InvalidQuantityNegative(t *testing.T) {
 	pricingEngine := &MockPricingEngine{}
 	partyLookup := &MockPartyLookup{}
 	numberGen := &MockNumberGenerator{}
-	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(quotesRepo, orderRepo, nil, nil, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	ctx := context.Background()
 	partyID := uuid.New()
@@ -3717,7 +3925,7 @@ func TestSalesService_GetQuote_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	quoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetQuoteByIDQuery{ID: quoteID}
 	result, err := service.GetQuote(ctx, query)
@@ -3741,7 +3949,7 @@ func TestSalesService_GetDeliveryNote_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	deliveryRepo.On("FindByID", mock.Anything, noteID).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetDeliveryNoteByIDQuery{ID: noteID}
 	result, err := service.GetDeliveryNote(ctx, query)
@@ -3765,7 +3973,7 @@ func TestSalesService_GetInvoice_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	invoiceRepo.On("FindByID", mock.Anything, invoiceID).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetInvoiceByIDQuery{ID: invoiceID}
 	result, err := service.GetInvoice(ctx, query)
@@ -3794,7 +4002,7 @@ func TestSalesService_CreateOrder_PartyLookupError(t *testing.T) {
 	lookupErr := errors.New("party service unavailable")
 	partyLookup.On("ExistsParty", mock.Anything, partyID).Return(false, lookupErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, pricingEngine, partyLookup, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, pricingEngine, partyLookup, nil, nil)
 
 	cmd := application.CreateOrderCommand{
 		PartyID: partyID,
@@ -3828,7 +4036,7 @@ func TestSalesService_GetOrder_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetOrderByIDQuery{ID: orderID}
 	result, err := service.GetOrder(ctx, query)
@@ -3850,7 +4058,7 @@ func TestSalesService_GetOrder_NotFound(t *testing.T) {
 	orderID := uuid.New()
 	orderRepo.On("FindByID", mock.Anything, orderID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetOrderByIDQuery{ID: orderID}
 	result, err := service.GetOrder(ctx, query)
@@ -3877,7 +4085,7 @@ func TestSalesService_ListQuotes_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	quoteRepo.On("List", mock.Anything, filter).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListQuotesQuery{PartyID: &partyID}
 	results, err := service.ListQuotes(ctx, query)
@@ -3900,7 +4108,7 @@ func TestSalesService_GetQuote_NilResult(t *testing.T) {
 	// Repository returns (nil, nil) - no error but quote doesn't exist
 	quoteRepo.On("FindByID", mock.Anything, quoteID).Return(nil, nil)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.GetQuoteByIDQuery{ID: quoteID}
 	result, err := service.GetQuote(ctx, query)
@@ -3926,7 +4134,7 @@ func TestSalesService_ListOrders_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	orderRepo.On("List", mock.Anything, filter).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListOrdersQuery{PartyID: &partyID}
 	results, err := service.ListOrders(ctx, query)
@@ -3950,7 +4158,7 @@ func TestSalesService_ListInvoices_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	invoiceRepo.On("List", mock.Anything, filter).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListInvoicesQuery{PartyID: &partyID}
 	results, err := service.ListInvoices(ctx, query)
@@ -3974,7 +4182,7 @@ func TestSalesService_ListDeliveryNotes_RepositoryError(t *testing.T) {
 	repoErr := errors.New("database connection error")
 	deliveryRepo.On("List", mock.Anything, filter).Return(nil, repoErr)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
 
 	query := application.ListDeliveryNotesQuery{PartyID: &partyID}
 	results, err := service.ListDeliveryNotes(ctx, query)
@@ -3996,7 +4204,7 @@ func TestSalesService_CreateInvoice_MissingPartyID(t *testing.T) {
 	invoiceRepo := new(MockInvoiceRepository)
 	numberGen := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:       uuid.Nil, // Invalid: nil UUID
@@ -4021,7 +4229,7 @@ func TestSalesService_CreateInvoice_MissingInvoiceDate(t *testing.T) {
 	invoiceRepo := new(MockInvoiceRepository)
 	numberGen := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:       uuid.New(),
@@ -4046,7 +4254,7 @@ func TestSalesService_CreateInvoice_MissingDueDate(t *testing.T) {
 	invoiceRepo := new(MockInvoiceRepository)
 	numberGen := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:       uuid.New(),
@@ -4071,7 +4279,7 @@ func TestSalesService_CreateInvoice_NoOrdersOrDeliveryNotes(t *testing.T) {
 	invoiceRepo := new(MockInvoiceRepository)
 	numberGen := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:         uuid.New(),
@@ -4097,7 +4305,7 @@ func TestSalesService_CreateInvoice_BothOrdersAndDeliveryNotes(t *testing.T) {
 	invoiceRepo := new(MockInvoiceRepository)
 	numberGen := new(MockNumberGenerator)
 
-	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil)
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, numberGen, nil, nil, nil, nil)
 
 	cmd := application.CreateInvoiceCommand{
 		PartyID:         uuid.New(),

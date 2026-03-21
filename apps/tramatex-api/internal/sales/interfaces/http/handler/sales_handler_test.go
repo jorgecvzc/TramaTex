@@ -184,6 +184,10 @@ func (s *stubInvoiceRepo) ListDeliveryNoteIDsByInvoiceID(ctx context.Context, in
 	return nil, nil
 }
 
+func (s *stubInvoiceRepo) ListOrderIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	return nil, nil
+}
+
 type stubDocumentNumberGenerator struct {
 	nextQuoteNumberFn        func(context.Context) (domain.QuoteNumber, error)
 	nextOrderNumberFn        func(context.Context) (domain.OrderNumber, error)
@@ -301,7 +305,7 @@ func TestCreateQuote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		numberGen, pricingEngine, partyLookup, nil,
+		numberGen, pricingEngine, partyLookup, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -348,7 +352,7 @@ func TestGetQuote_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -367,7 +371,7 @@ func TestGetQuote_NotFound(t *testing.T) {
 func TestGetQuote_InvalidID(t *testing.T) {
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -416,7 +420,7 @@ func TestCreateOrder_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		numberGen, pricingEngine, partyLookup, nil,
+		numberGen, pricingEngine, partyLookup, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -463,7 +467,7 @@ func TestGetOrder_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -527,7 +531,7 @@ func TestCreateDeliveryNote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -612,7 +616,7 @@ func TestCreateInvoice_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
-		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -657,7 +661,7 @@ func TestGetInvoice_NotFound(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, invoiceRepo,
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -710,7 +714,7 @@ func TestListQuotes_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -776,7 +780,7 @@ func TestUpdateQuote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -835,7 +839,7 @@ func TestChangeQuoteStatus_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		quoteRepo, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -896,7 +900,7 @@ func TestListOrders_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -945,7 +949,7 @@ func TestUpdateOrderDetails_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1000,7 +1004,7 @@ func TestChangeOrderStatus_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1071,7 +1075,7 @@ func TestAddOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1157,7 +1161,7 @@ func TestUpdateOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1256,7 +1260,7 @@ func TestRemoveOrderLineItem_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, pricingEngine, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1301,7 +1305,7 @@ func TestGetDeliveryNote_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1355,7 +1359,7 @@ func TestListDeliveryNotes_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, noteRepo, &stubInvoiceRepo{},
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1423,7 +1427,7 @@ func TestCreateSimplifiedInvoice_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
-		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 
@@ -1497,7 +1501,7 @@ func TestListInvoices_Success(t *testing.T) {
 
 	service := application.NewSalesService(
 		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, invoiceRepo,
-		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil,
+		&stubDocumentNumberGenerator{}, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
 

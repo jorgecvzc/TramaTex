@@ -13,8 +13,11 @@ type MoneyDTO struct {
 }
 
 type MesWorkRefDTO struct {
-	MesWorkID    uuid.UUID `json:"mesWorkId"`
-	Observations string    `json:"observations"`
+	ID              uuid.UUID  `json:"id"`
+	WorkSetupID     *uuid.UUID `json:"workSetupId,omitempty"`
+	WorkOrderID     *uuid.UUID `json:"workOrderId,omitempty"`
+	WorkOrderStatus *string    `json:"workOrderStatus,omitempty"`
+	Description     string     `json:"description"`
 }
 
 type QuoteLineItemDTO struct {
@@ -81,19 +84,33 @@ type OrderLineItemDTO struct {
 }
 
 type SalesOrderDTO struct {
-	ID           uuid.UUID          `json:"id"`
-	OrderNumber  string             `json:"orderNumber"`
-	QuoteID      *uuid.UUID         `json:"quoteId,omitempty"`
-	PartyID      uuid.UUID          `json:"partyId"`
-	OrderDate    time.Time          `json:"orderDate"`
-	DeliveryDate time.Time          `json:"deliveryDate"`
-	Status       string             `json:"status"`
-	MesWorkRefs  []MesWorkRefDTO    `json:"mesWorkRefs,omitempty"`
-	LineItems    []OrderLineItemDTO `json:"lineItems"`
-	Subtotal     MoneyDTO           `json:"subtotal"`
-	TaxAmount    MoneyDTO           `json:"taxAmount"`
-	Total        MoneyDTO           `json:"total"`
-	Notes        string             `json:"notes"`
+	ID                uuid.UUID          `json:"id"`
+	OrderNumber       string             `json:"orderNumber"`
+	QuoteID           *uuid.UUID         `json:"quoteId,omitempty"`
+	SourceQuoteNumber string             `json:"sourceQuoteNumber,omitempty"`
+	PartyID           uuid.UUID          `json:"partyId"`
+	OrderDate         time.Time          `json:"orderDate"`
+	DeliveryDate      time.Time          `json:"deliveryDate"`
+	Status            string             `json:"status"`
+	MesWorkRefs       []MesWorkRefDTO    `json:"mesWorkRefs,omitempty"`
+	ProductionReady   bool               `json:"productionReady"`
+	LineItems         []OrderLineItemDTO `json:"lineItems"`
+	Subtotal          MoneyDTO           `json:"subtotal"`
+	TaxAmount         MoneyDTO           `json:"taxAmount"`
+	Total             MoneyDTO           `json:"total"`
+	Notes             string             `json:"notes"`
+}
+
+// PendingWorkSetupDTO represents a WorkReference from a confirmed order
+// that does not yet have a MES WorkOrder assigned. Used by MES Dashboard.
+type PendingWorkSetupDTO struct {
+	ID           uuid.UUID  `json:"id"`
+	WorkSetupID  *uuid.UUID `json:"workSetupId,omitempty"`
+	Description  string     `json:"description"`
+	OrderID      uuid.UUID  `json:"orderId"`
+	OrderNumber  string     `json:"orderNumber"`
+	DeliveryDate time.Time  `json:"deliveryDate"`
+	PartyID      uuid.UUID  `json:"partyId"`
 }
 
 type DeliveryNoteLineItemDTO struct {
@@ -169,7 +186,7 @@ func NewQuoteDTO(q *domain.Quote) *QuoteDTO {
 		QuoteDate:      q.QuoteDate,
 		ExpirationDate: q.ExpirationDate,
 		Status:         string(q.Status),
-		MesWorkRefs:    mesWorkRefDTOsFromDomain(q.MESWorkRefs),
+		MesWorkRefs:    mesWorkRefDTOsFromDomain(q.WorkReferences),
 		LineItems:      items,
 		Subtotal:       NewMoneyDTO(q.Subtotal),
 		TaxAmount:      NewMoneyDTO(q.TaxAmount),
@@ -206,7 +223,7 @@ func NewSalesOrderDTO(order *domain.SalesOrder) *SalesOrderDTO {
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
 		Status:       string(order.Status),
-		MesWorkRefs:  mesWorkRefDTOsFromDomain(order.MESWorkRefs),
+		MesWorkRefs:  mesWorkRefDTOsFromDomain(order.WorkReferences),
 		LineItems:    items,
 		Subtotal:     NewMoneyDTO(order.Subtotal),
 		TaxAmount:    NewMoneyDTO(order.TaxAmount),
@@ -230,24 +247,38 @@ func NewOrderLineItemDTO(item domain.OrderLineItem) OrderLineItemDTO {
 	}
 }
 
-func mesWorkRefDTOsFromDomain(refs []domain.MESWorkRef) []MesWorkRefDTO {
+func mesWorkRefDTOsFromDomain(refs []domain.WorkReference) []MesWorkRefDTO {
 	if len(refs) == 0 {
 		return nil
 	}
 	dtos := make([]MesWorkRefDTO, len(refs))
-	for i, r := range refs {
-		dtos[i] = MesWorkRefDTO{MesWorkID: r.MESWorkID, Observations: r.Observations}
+	for i, s := range refs {
+		dtos[i] = MesWorkRefDTO{
+			ID:          s.ID,
+			WorkSetupID: s.WorkSetupID,
+			WorkOrderID: s.WorkOrderID,
+			Description: s.Description,
+		}
 	}
 	return dtos
 }
 
-func mesWorkRefsToDomain(dtos []MesWorkRefInput) []domain.MESWorkRef {
+func mesWorkRefsToDomain(dtos []MesWorkRefInput) []domain.WorkReference {
 	if len(dtos) == 0 {
 		return nil
 	}
-	refs := make([]domain.MESWorkRef, len(dtos))
+	refs := make([]domain.WorkReference, len(dtos))
 	for i, d := range dtos {
-		refs[i] = domain.MESWorkRef{MESWorkID: d.MesWorkID, Observations: d.Observations}
+		var wsID *uuid.UUID
+		if d.WorkSetupID != nil && *d.WorkSetupID != uuid.Nil {
+			wsID = d.WorkSetupID
+		}
+		refs[i] = domain.WorkReference{
+			ID:          uuid.New(),
+			WorkSetupID: wsID,
+			Description: d.Description,
+			Sequence:    i + 1,
+		}
 	}
 	return refs
 }

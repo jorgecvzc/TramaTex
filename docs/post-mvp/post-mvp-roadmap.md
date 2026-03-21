@@ -207,4 +207,51 @@ La infraestructura base (campo `invoice_line_item_id` en `delivery_note_line_ite
 
 ---
 
-*Última actualización: 2026-06-05*
+## 14. Gestión Avanzada de Archivos de Diseño (MES)
+
+**Prioridad:** Media  
+**Contexto:**
+
+En el MVP, `design_file_path` almacena una ruta de texto libre en `WorkSetupLine`. El campo se muestra en el Panel Tablet y en el configurador de WorkSetup, pero la interacción es mínima (copiar ruta al portapapeles). Las limitaciones del navegador impiden acceder al sistema de archivos local más allá del nombre de archivo.
+
+**Objetivo Post-MVP:**
+
+- [ ] **Vista previa de archivos** en el Panel Tablet y en el diálogo de detalle de WorkOrder/tarea: mostrar thumbnail o preview embebido (imágenes: PNG/JPG/SVG; vectores: AI/PDF si el navegador lo soporta; para otros formatos, icono de tipo de archivo).
+- [ ] **Vista previa** también visible en las páginas de definición de WorkSetup (List / Edit / Create).
+- [ ] **Abrir con aplicación por defecto**: botón "Abrir" exclusivo del configurador de WorkSetup (`/mes/work-setups/`) que invoque el protocolo del SO para abrir el archivo con su aplicación nativa (requiere integración Electron/Tauri o un agente de escritorio local).
+- [ ] Soporte de rutas absolutas completas (implica abandonar el navegador puro — Electron/Tauri o extensión de escritorio).
+- [ ] Almacenamiento opcional del archivo en servidor (upload): guardar en storage y servir URL firmada para preview remoto sin depender del sistema de archivos local.
+- [ ] Validación de extensiones permitidas y tamaño máximo en el configurador.
+
+**Dependencias:**
+
+> La función "Abrir con app por defecto" y las rutas absolutas requieren un entorno de escritorio (Electron/Tauri). El resto de funcionalidades de preview son viables en web si se opta por upload a servidor.  
+> Esta sección está vinculada a la decisión arquitectónica de si TramaTex tendrá cliente de escritorio.
+
+---
+
+## 15. Asignación de Tareas MES a Operarios
+
+**Prioridad:** Media  
+**Contexto:**
+
+La columna `assigned_to` (FK a `users.id`) existe en `mes_work_tasks` desde el esquema inicial del MVP, y el campo está presente en el DTO del backend (`AssignedTo *uuid.UUID`) y en el tipo frontend (`WorkOrderTask.assigned_to`). Sin embargo, no se expone en ninguna pantalla del MVP porque la lógica de asignación de operarios pertenece a una fase posterior.
+
+**Objetivo Post-MVP:**
+
+- [ ] Selctor de operario (usuario) al crear o editar una tarea de WorkOrder en el Panel Tablet.
+- [ ] Filtro en el terminal de tablet por operario asignado (`assigned_to = yo`).
+- [ ] Visualizar el nombre del operario asignado en la tabla principal del terminal (columna “Asignado”).
+- [ ] Lógica de reasignación: solo supervisores pueden reasignar tareas ya iniciadas.
+- [ ] Notificación al operario cuando se le asigna una tarea (depende de sección 7 — Notificaciones).
+- [ ] Registrar `assigned_by` y timestamp de asignación para auditoría.
+
+**Estado actual (MVP):**
+
+> Infraestructura lista (BD + backend DTO + tipo frontend). La UI muestra `—` para todas las tareas.
+> La columna “Asignado” fue eliminada del Panel Tablet en MVP por no aportar valor todavía.
+> Restaurarla y activarla es el primer paso de esta sección.
+
+---
+
+*Última actualización: 2026-03-20*

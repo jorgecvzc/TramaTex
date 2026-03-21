@@ -4,11 +4,11 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Definiciones de trabajo</p>
-          <h1>Nueva definición de trabajo MES</h1>
-          <p class="subtitle">Crea una orden de manufactura y genera tareas automáticamente.</p>
+          <p class="breadcrumb">MES / Órdenes de Trabajo</p>
+          <h1>Nueva orden de trabajo</h1>
+          <p class="subtitle">Selecciona una configuración de trabajo y las tareas se generarán automáticamente.</p>
         </div>
-        <RouterLink to="/mes/work-definitions" class="btn btn-secondary">Volver</RouterLink>
+        <RouterLink to="/mes/work-orders" class="btn btn-secondary">Volver</RouterLink>
       </header>
 
       <section class="card form-card">
@@ -23,62 +23,44 @@
           placeholder="Buscar cliente por nombre..."
           role-filter="CLIENT"
           :required="true"
-          help-text="Selecciona el cliente sin necesidad de recordar UUID"
+          help-text="Selecciona el cliente para filtrar las configuraciones disponibles"
+          :disabled="isPrefilledFromOrder"
+          @update:modelValue="onPartyChanged"
         />
 
-        <label class="label">Categoría tangible *</label>
-        <select v-model="form.tangible_group_id" class="input">
-          <option value="">Seleccionar categoría tangible</option>
-          <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">
-            {{ group.name }}
-          </option>
-        </select>
-
-        <label class="label">Estado</label>
-        <select v-model="form.status" class="input">
-          <option value="DRAFT">DRAFT</option>
-          <option value="PENDING">PENDING</option>
-          <option value="IN_PROGRESS">IN_PROGRESS</option>
-          <option value="ON_HOLD">ON_HOLD</option>
-        </select>
+        <label class="label">Configuración de trabajo *</label>
+        <div v-if="isPrefilledFromOrder && prefilledSetupName" class="prefilled-config">
+          <span class="prefilled-value">{{ prefilledSetupName }}</span>
+          <span class="prefilled-badge">Pre-configurado</span>
+        </div>
+        <template v-else>
+          <select v-model="form.work_setup_id" class="input" :disabled="!form.party_id || isLoadingSetups">
+            <option value="">{{ form.party_id ? (isLoadingSetups ? 'Cargando...' : 'Seleccionar configuración') : 'Selecciona primero un cliente' }}</option>
+            <option v-for="ws in filteredWorkSetups" :key="ws.id" :value="ws.id">
+              {{ ws.name }}
+            </option>
+          </select>
+          <p v-if="form.party_id && filteredWorkSetups.length === 0 && !isLoadingSetups" class="help-text">
+            No hay configuraciones activas para este cliente.
+          </p>
+        </template>
 
         <label class="label">Prioridad</label>
         <select v-model="form.priority" class="input">
-          <option value="LOW">LOW</option>
-          <option value="NORMAL">NORMAL</option>
-          <option value="HIGH">HIGH</option>
-          <option value="URGENT">URGENT</option>
+          <option value="LOW">Baja</option>
+          <option value="NORMAL">Normal</option>
+          <option value="HIGH">Alta</option>
+          <option value="URGENT">Urgente</option>
         </select>
 
-        <label class="label">Observaciones</label>
-        <textarea v-model="form.garment_notes" class="input" rows="3" placeholder="Observaciones de prenda" />
+        <label class="label">Fecha de vencimiento</label>
+        <input v-model="form.due_date" type="date" class="input" />
 
-        <div class="tasks-block">
-          <div class="tasks-header">
-            <h3>Asignaciones de plantilla de proceso *</h3>
-            <button @click="addAssignment" type="button" class="btn btn-secondary btn-sm">+ Añadir</button>
-          </div>
-
-          <div v-for="(assignment, index) in form.service_group_assignments" :key="index" class="assignment-row">
-            <select v-model="assignment.service_group_id" class="input">
-              <option value="">Seleccionar plantilla de proceso</option>
-              <option v-for="template in serviceTemplates" :key="template.id" :value="template.id">
-                {{ template.name }}
-              </option>
-            </select>
-            <select v-model="assignment.position_id" class="input">
-              <option value="">Seleccionar posición</option>
-              <option v-for="position in positions" :key="position.id" :value="position.id">
-                {{ position.name }} ({{ position.code }})
-              </option>
-            </select>
-            <input v-model.number="assignment.sequence" type="number" min="1" class="input seq" placeholder="Seq" />
-            <button @click="removeAssignment(index)" type="button" class="btn btn-danger btn-sm">Quitar</button>
-          </div>
-        </div>
+        <label class="label">Notas</label>
+        <textarea v-model="form.notes" class="input" rows="3" placeholder="Observaciones adicionales" />
 
         <button @click="submit" :disabled="isSaving" class="btn btn-primary">
-          {{ isSaving ? 'Guardando...' : 'Crear definición' }}
+          {{ isSaving ? 'Guardando...' : 'Crear orden' }}
         </button>
       </section>
     </div>
@@ -87,50 +69,36 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
-import { productApi } from '@/services/productApi'
-import type { MESPosition, MESServiceTemplate } from '@/types/mes'
+import type { WorkSetup } from '@/types/mes'
 
-type ProductGroupOption = {
-  id: string
-  name: string
-  type: string
-}
-
+const route = useRoute()
 const router = useRouter()
 const isSaving = ref(false)
+const isLoadingSetups = ref(false)
 const error = ref('')
-const serviceTemplates = ref<MESServiceTemplate[]>([])
-const positions = ref<MESPosition[]>([])
-const productGroups = ref<ProductGroupOption[]>([])
-
-const tangibleGroups = computed(() => productGroups.value.filter((group) => group.type === 'TANGIBLE'))
+const workSetups = ref<WorkSetup[]>([])
+const filteredWorkSetups = ref<WorkSetup[]>([])
+const prefilledSetupName = ref('')
 
 const form = reactive({
-  work_name: '',
-  party_id: '',
-  tangible_group_id: '',
-  status: 'DRAFT',
+  work_name: (route.query.name as string) || '',
+  party_id: (route.query.partyId as string) || '',
+  work_setup_id: (route.query.workSetupId as string) || '',
   priority: 'NORMAL',
-  garment_notes: '',
-  service_group_assignments: [
-    { service_group_id: '', position_id: '', sequence: 1 },
-  ] as Array<{ service_group_id: string; position_id: string; sequence: number }>,
+  due_date: '',
+  notes: (route.query.notes as string) || '',
+  order_work_setup_id: (route.query.orderWorkSetupId as string) || '',
 })
 
-function addAssignment() {
-  form.service_group_assignments.push({
-    service_group_id: '',
-    position_id: '',
-    sequence: form.service_group_assignments.length + 1,
-  })
-}
+const isPrefilledFromOrder = computed(() => !!route.query.workSetupId && !!route.query.orderWorkSetupId)
 
-function removeAssignment(index: number) {
-  form.service_group_assignments.splice(index, 1)
+function onPartyChanged(partyId: string) {
+  form.work_setup_id = ''
+  filteredWorkSetups.value = workSetups.value.filter((ws) => ws.party_id === partyId)
 }
 
 function validate() {
@@ -139,40 +107,48 @@ function validate() {
     return false
   }
   if (!form.party_id.trim()) {
-    error.value = 'El party_id es obligatorio'
+    error.value = 'Debes seleccionar un cliente'
     return false
   }
-  if (!form.tangible_group_id.trim()) {
-    error.value = 'El tangible_group_id es obligatorio'
+  if (!form.work_setup_id.trim()) {
+    error.value = 'Debes seleccionar una configuración de trabajo'
     return false
   }
-  if (form.service_group_assignments.length === 0) {
-    error.value = 'Debes agregar al menos una asignación de plantilla de proceso'
-    return false
-  }
-
-  const invalid = form.service_group_assignments.find((item) => !item.service_group_id || !item.position_id || item.sequence < 1)
-  if (invalid) {
-    error.value = 'Todas las asignaciones deben tener plantilla de proceso, posición y secuencia válida'
-    return false
-  }
-
   return true
 }
 
-async function loadFormOptions() {
+async function loadWorkSetups() {
+  isLoadingSetups.value = true
   try {
-    const [templates, loadedPositions, groups] = await Promise.all([
-      mesApi.listServiceTemplates({ is_active: true }),
-      mesApi.listPositions({ is_active: true }),
-      productApi.listProductGroups({ isActive: true }),
-    ])
+    // If arriving with a pre-filled workSetupId, fetch it directly to guarantee it's available
+    if (form.work_setup_id) {
+      try {
+        const setup = await mesApi.getWorkSetup(form.work_setup_id)
+        if (setup) {
+          prefilledSetupName.value = setup.name
+          workSetups.value = [setup]
+          filteredWorkSetups.value = [setup]
+        }
+      } catch {
+        // Setup not found — fall through to load all
+      }
+    }
 
-    serviceTemplates.value = templates
-    positions.value = loadedPositions
-    productGroups.value = groups.data
+    // Load all active setups for the dropdown (in case user changes party)
+    const allSetups = await mesApi.listWorkSetups({ is_active: true })
+
+    // Merge: keep the pre-fetched setup even if not in the active list
+    const existingIds = new Set(allSetups.map(s => s.id))
+    const extras = workSetups.value.filter(s => !existingIds.has(s.id))
+    workSetups.value = [...allSetups, ...extras]
+
+    if (form.party_id) {
+      filteredWorkSetups.value = workSetups.value.filter((ws) => ws.party_id === form.party_id)
+    }
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las opciones del formulario MES'
+    error.value = err.message || 'No se pudieron cargar las configuraciones de trabajo'
+  } finally {
+    isLoadingSetups.value = false
   }
 }
 
@@ -182,29 +158,25 @@ async function submit() {
 
   isSaving.value = true
   try {
-    const created = await mesApi.createWorkDefinition({
+    const created = await mesApi.createWorkOrder({
       work_name: form.work_name.trim(),
       party_id: form.party_id.trim(),
-      tangible_group_id: form.tangible_group_id.trim(),
-      garment_notes: form.garment_notes.trim() || undefined,
-      status: form.status,
+      work_setup_id: form.work_setup_id.trim(),
+      notes: form.notes.trim() || undefined,
       priority: form.priority,
-      service_group_assignments: form.service_group_assignments.map((item) => ({
-        service_group_id: item.service_group_id.trim(),
-        position_id: item.position_id.trim(),
-        sequence: item.sequence,
-      })),
+      due_date: form.due_date || undefined,
+      order_work_setup_id: form.order_work_setup_id.trim() || undefined,
     })
 
-    await router.push(`/mes/work-definitions/${created.id}`)
+    await router.push(`/mes/work-orders/${created.id}`)
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear la definición de trabajo MES'
+    error.value = err.message || 'No se pudo crear la orden de trabajo'
   } finally {
     isSaving.value = false
   }
 }
 
-onMounted(loadFormOptions)
+onMounted(loadWorkSetups)
 </script>
 
 <style scoped>
@@ -217,15 +189,12 @@ onMounted(loadFormOptions)
 .form-card { display: flex; flex-direction: column; gap: .75rem; max-width: 760px; }
 .label { font-size: .85rem; color: #334155; font-weight: 600; }
 .input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .6rem .75rem; font: inherit; }
-.tasks-block { border: 1px solid #e2e8f0; border-radius: 10px; padding: .75rem; display: flex; flex-direction: column; gap: .6rem; }
-.tasks-header { display: flex; justify-content: space-between; align-items: center; }
-.tasks-header h3 { margin: 0; font-size: 1rem; color: #1e293b; }
-.assignment-row { display: grid; grid-template-columns: 1fr 1fr 120px auto; gap: .5rem; }
-.seq { width: 100%; }
+.help-text { font-size: .8rem; color: #94a3b8; margin: 0; }
 .btn { border: none; border-radius: 8px; padding: .6rem 1rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width: fit-content; }
-.btn-sm { padding: .4rem .75rem; font-size: .8rem; }
 .btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
 .btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
-.btn-danger { background: #ef4444; color: #fff; }
 .alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
+.prefilled-config { display: flex; align-items: center; gap: .5rem; padding: .6rem .75rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
+.prefilled-value { font-size: .875rem; font-weight: 500; color: #1e293b; }
+.prefilled-badge { font-size: .7rem; font-weight: 500; padding: .15rem .5rem; border-radius: 9999px; background: #dbeafe; color: #1e40af; }
 </style>

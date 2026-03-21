@@ -298,12 +298,16 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 	t.Run("should return nil when no applicable attributes", func(t *testing.T) {
 		mockProductRepo.ExpectedCalls = nil
 		mockAttributeRepo.ExpectedCalls = nil
+		mockVariantRepo.ExpectedCalls = nil
 
 		mockProductRepo.On("FindByID", ctx, productID).Return(product, nil).Once()
 		// GetApplicableAttributesForProduct → FindByID (for product) + FindByIDs (for direct attrs) + FindByScope
 		mockProductRepo.On("FindByID", ctx, productID).Return(product, nil).Once()
 		mockAttributeRepo.On("FindByIDs", ctx, mock.Anything).Return([]domain.Attribute{}, nil).Once()
 		mockAttributeRepo.On("FindByScope", ctx, mock.Anything, mock.Anything).Return([]*domain.Attribute{}, nil).Once()
+		// ensureDefaultVariant calls
+		mockVariantRepo.On("FindByProductIDAndAttributeValues", ctx, productID, []uuid.UUID{}).Return(nil, nil).Once()
+		mockVariantRepo.On("Save", ctx, mock.AnythingOfType("*domain.ProductVariant")).Return(nil).Once()
 
 		err := svc.GenerateProductVariants(ctx, application.GenerateProductVariantsCommand{
 			ActorID:   testActorID,
@@ -317,6 +321,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 		mockProductRepo.ExpectedCalls = nil
 		mockAttributeRepo.ExpectedCalls = nil
 		mockVariantRepo.ExpectedCalls = nil
+		mockVariantRepo.Calls = nil
 
 		sizeAttrID := uuid.New()
 		valS := domain.AttributeValue{ID: uuid.New(), Value: "S", Code: "S"}

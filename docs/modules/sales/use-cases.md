@@ -334,3 +334,53 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
     *   **Referencia Cruzada:**
         - Este caso de uso consume: **UC-P-005** (GetApplicableAttributesForProduct) y **UC-P-009** (FindOrCreateProductVariant) del módulo Product.
         - Ver documentación completa en: `docs/modules/product/use-cases.md`
+
+---
+
+#### **7. Casos de Uso de Integración con MES (`SalesWorkSetup`)**
+
+*   **CU-S-030: Gestionar Trabajos Asociados a un Documento**
+    *   **Propósito:** Añadir, editar o eliminar trabajos de personalización/MES asociados a un presupuesto o pedido.
+    *   **Actores:** Vendedor / Comercial.
+    *   **Entradas:** `DocumentID` (QuoteID o SalesOrderID), lista de `{ Name, Observations, WorkSetupID (opcional), Sequence }`.
+    *   **Precondiciones:** El documento debe estar en estado editable (`BORRADOR` para Quote, `PENDIENTE` para SalesOrder).
+    *   **Flujo:**
+        1.  El comercial añade uno o más trabajos al documento indicando nombre y observaciones.
+        2.  Opcionalmente, selecciona un `WorkSetup` existente del módulo MES para vincular el trabajo a una plantilla conocida.
+        3.  El sistema persiste los `SalesWorkSetup` con estado `BORRADOR`.
+    *   **Salida:** Documento actualizado con la lista de trabajos asociados.
+    *   **Reglas:**
+        -   El campo `Observations` es el canal principal para describir las características del trabajo o indicar puntualizaciones.
+        -   El `WorkSetupID` es opcional — se puede crear un trabajo nuevo solo con nombre y observaciones.
+
+*   **CU-S-031: Transición Automática de Trabajos al Confirmar Pedido**
+    *   **Propósito:** Al confirmar/aprobar un pedido, todos los `SalesWorkSetup` en estado `BORRADOR` pasan automáticamente a `PENDIENTE`, quedando visibles para el taller.
+    *   **Actores:** Sistema (automático al cambiar estado del pedido).
+    *   **Entradas:** `SalesOrderID`, `NewStatus` (confirmación del pedido).
+    *   **Flujo:**
+        1.  Se ejecuta como parte de `CU-S-011: ChangeOrderStatus`.
+        2.  Si el nuevo estado implica confirmación, el sistema recorre todos los `SalesWorkSetup` del pedido.
+        3.  Cada trabajo en `BORRADOR` cambia a `PENDIENTE`.
+    *   **Salida:** Trabajos del pedido en estado `PENDIENTE`, disponibles para consulta desde MES.
+
+*   **CU-S-032: Actualizar Estado de Trabajo desde MES**
+    *   **Propósito:** Recibir notificaciones del módulo MES sobre el progreso de los trabajos y actualizar el estado del `SalesWorkSetup` correspondiente.
+    *   **Actores:** Sistema (evento de dominio desde MES).
+    *   **Entradas:** `WorkOrderID`, nuevo estado (`EN_PROCESO` o `COMPLETADO`).
+    *   **Flujo:**
+        1.  El módulo MES emite un evento `WorkOrderStarted` o `WorkOrderCompleted`.
+        2.  Sales busca el `SalesWorkSetup` que tiene ese `WorkOrderID`.
+        3.  Actualiza el estado del trabajo (`EN_PROCESO` o `COMPLETADO` según el evento).
+    *   **Salida:** `SalesWorkSetup` con estado actualizado.
+
+*   **CU-S-033: Consultar Progreso de Trabajos MES de un Pedido**
+    *   **Propósito:** Permitir al comercial ver el estado de ejecución de los trabajos de personalización asociados a un pedido, consultando al módulo MES.
+    *   **Actores:** Vendedor / Comercial.
+    *   **Entradas:** `SalesOrderID`.
+    *   **Flujo:**
+        1.  Obtener todos los `SalesWorkSetup` del pedido que tengan `WorkOrderID` asignado.
+        2.  Invocar `MESWorkLookup.GetWorkOrdersProgress()` con los `WorkOrderID`s.
+        3.  MES devuelve un DTO pre-computado por cada orden: estado global, total de tareas, tareas completadas, desglose por línea.
+        4.  El comercial visualiza qué partes del trabajo están completadas y cuáles faltan.
+    *   **Salida:** Lista de progreso de cada `WorkOrder` asociado al pedido.
+    *   **Regla:** Sales no calcula ni interpreta el progreso — toda la lógica de cómputo reside en MES. Sales solo presenta la información recibida.

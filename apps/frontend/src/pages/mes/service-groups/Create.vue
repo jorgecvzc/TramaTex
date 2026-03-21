@@ -4,11 +4,11 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Nueva plantilla de proceso MES</h1>
-          <p class="subtitle">Define tareas y secuencia para una plantilla operativa.</p>
+          <p class="breadcrumb">MES / Tipos de Trabajo</p>
+          <h1>Nuevo tipo de trabajo</h1>
+          <p class="subtitle">Define tareas y secuencia para un tipo de trabajo.</p>
         </div>
-        <RouterLink to="/mes/service-groups" class="btn btn-secondary">Volver</RouterLink>
+        <RouterLink to="/mes/work-types" class="btn btn-secondary">Volver</RouterLink>
       </header>
 
       <section class="card form-card">
@@ -17,16 +17,11 @@
         <label class="label">Nombre *</label>
         <input v-model="form.name" type="text" class="input" placeholder="Ej: Serigrafía básica" />
 
+        <label class="label">Referencia</label>
+        <input v-model="form.reference" type="text" class="input" placeholder="Ej: SER-BAS" />
+
         <label class="label">Descripción</label>
         <textarea v-model="form.description" class="input" rows="3" placeholder="Descripción opcional" />
-
-        <label class="label">Categoría de producto (opcional)</label>
-        <select v-model="form.product_group_id" class="input">
-          <option value="">Sin categoría específica</option>
-          <option v-for="group in productGroups" :key="group.id" :value="group.id">
-            {{ group.name }} ({{ group.type }})
-          </option>
-        </select>
 
         <label class="check">
           <input v-model="form.is_active" type="checkbox" />
@@ -54,7 +49,7 @@
         </div>
 
         <button @click="submit" :disabled="isSaving" class="btn btn-primary">
-          {{ isSaving ? 'Guardando...' : 'Crear plantilla de proceso' }}
+          {{ isSaving ? 'Guardando...' : 'Crear tipo de trabajo' }}
         </button>
       </section>
     </div>
@@ -66,25 +61,17 @@ import { onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
-import { productApi } from '@/services/productApi'
 import type { MESTask } from '@/types/mes'
-
-type ProductGroupOption = {
-  id: string
-  name: string
-  type: string
-}
 
 const router = useRouter()
 const isSaving = ref(false)
 const error = ref('')
 const tasks = ref<MESTask[]>([])
-const productGroups = ref<ProductGroupOption[]>([])
 
 const form = reactive({
   name: '',
+  reference: '',
   description: '',
-  product_group_id: '',
   is_active: true,
   task_assignments: [] as Array<{ task_id: string; sequence: number }>,
 })
@@ -101,16 +88,7 @@ async function loadTasks() {
   try {
     tasks.value = await mesApi.listTasks({ is_active: true })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las tareas MES'
-  }
-}
-
-async function loadProductGroups() {
-  try {
-    const response = await productApi.listProductGroups({ isActive: true })
-    productGroups.value = response.data
-  } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las categorías de producto'
+    error.value = err.message || 'No se pudieron cargar las tareas'
   }
 }
 
@@ -138,25 +116,23 @@ async function submit() {
 
   isSaving.value = true
   try {
-    await mesApi.createServiceTemplate({
+    await mesApi.createWorkType({
       name: form.name.trim(),
+      reference: form.reference.trim() || undefined,
       description: form.description.trim() || undefined,
-      product_group_id: form.product_group_id.trim() || undefined,
       is_active: form.is_active,
       task_assignments: form.task_assignments,
     })
 
-    await router.push('/mes/service-groups')
+    await router.push('/mes/work-types')
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear la plantilla de proceso MES'
+    error.value = err.message || 'No se pudo crear el tipo de trabajo'
   } finally {
     isSaving.value = false
   }
 }
 
-onMounted(async () => {
-  await Promise.all([loadTasks(), loadProductGroups()])
-})
+onMounted(loadTasks)
 </script>
 
 <style scoped>

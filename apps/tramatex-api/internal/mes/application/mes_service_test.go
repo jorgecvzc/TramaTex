@@ -9,6 +9,8 @@ import (
 	"github.com/joran-cortez/tramatex/internal/mes/domain"
 )
 
+func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
+
 type fakeTaskRepo struct {
 	saved   *domain.Task
 	byID    *domain.Task
@@ -60,58 +62,81 @@ func (r *fakePositionRepo) Delete(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
-type fakeServiceGroupRepo struct {
-	saved   *domain.ServiceGroup
-	byID    *domain.ServiceGroup
-	all     []*domain.ServiceGroup
+type fakeWorkTypeRepo struct {
+	saved   *domain.WorkType
+	byID    *domain.WorkType
+	all     []*domain.WorkType
 	deleted uuid.UUID
 }
 
-func (r *fakeServiceGroupRepo) Save(_ context.Context, serviceGroup *domain.ServiceGroup) error {
-	r.saved = serviceGroup
+func (r *fakeWorkTypeRepo) Save(_ context.Context, workType *domain.WorkType) error {
+	r.saved = workType
 	return nil
 }
 
-func (r *fakeServiceGroupRepo) FindByID(_ context.Context, _ uuid.UUID) (*domain.ServiceGroup, error) {
+func (r *fakeWorkTypeRepo) FindByID(_ context.Context, _ uuid.UUID) (*domain.WorkType, error) {
 	return r.byID, nil
 }
 
-func (r *fakeServiceGroupRepo) FindAll(_ context.Context, _ *domain.ServiceGroupFilters) ([]*domain.ServiceGroup, error) {
+func (r *fakeWorkTypeRepo) FindAll(_ context.Context, _ *domain.WorkTypeFilters) ([]*domain.WorkType, error) {
 	return r.all, nil
 }
 
-func (r *fakeServiceGroupRepo) Delete(_ context.Context, id uuid.UUID) error {
+func (r *fakeWorkTypeRepo) Delete(_ context.Context, id uuid.UUID) error {
 	r.deleted = id
 	return nil
 }
 
-type fakeMESWorkRepo struct {
-	saved     *domain.MESWork
-	byID      *domain.MESWork
-	all       []*domain.MESWork
+type fakeWorkOrderRepo struct {
+	saved     *domain.WorkOrder
+	byID      *domain.WorkOrder
+	all       []*domain.WorkOrder
 	yearCount int64
 }
 
-func (r *fakeMESWorkRepo) Save(_ context.Context, work *domain.MESWork) error {
-	r.saved = work
+func (r *fakeWorkOrderRepo) Save(_ context.Context, workOrder *domain.WorkOrder) error {
+	r.saved = workOrder
 	return nil
 }
 
-func (r *fakeMESWorkRepo) FindByID(_ context.Context, _ uuid.UUID) (*domain.MESWork, error) {
+func (r *fakeWorkOrderRepo) FindByID(_ context.Context, _ uuid.UUID) (*domain.WorkOrder, error) {
 	return r.byID, nil
 }
 
-func (r *fakeMESWorkRepo) FindAll(_ context.Context, _ *domain.MESWorkFilters) ([]*domain.MESWork, error) {
+func (r *fakeWorkOrderRepo) FindAll(_ context.Context, _ *domain.WorkOrderFilters) ([]*domain.WorkOrder, error) {
 	return r.all, nil
 }
 
-func (r *fakeMESWorkRepo) CountByYear(_ context.Context, _ int) (int64, error) {
+func (r *fakeWorkOrderRepo) CountByYear(_ context.Context, _ int) (int64, error) {
 	return r.yearCount, nil
+}
+
+type fakeWorkSetupRepo struct {
+	saved *domain.WorkSetup
+	byID  *domain.WorkSetup
+	all   []*domain.WorkSetup
+}
+
+func (r *fakeWorkSetupRepo) Save(_ context.Context, ws *domain.WorkSetup) error {
+	r.saved = ws
+	return nil
+}
+
+func (r *fakeWorkSetupRepo) FindByID(_ context.Context, _ uuid.UUID) (*domain.WorkSetup, error) {
+	return r.byID, nil
+}
+
+func (r *fakeWorkSetupRepo) FindAll(_ context.Context, _ *domain.WorkSetupFilters) ([]*domain.WorkSetup, error) {
+	return r.all, nil
+}
+
+func (r *fakeWorkSetupRepo) Delete(_ context.Context, _ uuid.UUID) error {
+	return nil
 }
 
 func TestCreateTask_AppliesDefaultsAndPersists(t *testing.T) {
 	taskRepo := &fakeTaskRepo{}
-	service := NewMESService(taskRepo, &fakePositionRepo{}, &fakeServiceGroupRepo{}, &fakeMESWorkRepo{})
+	service := NewMESService(taskRepo, &fakePositionRepo{}, &fakeWorkTypeRepo{}, &fakeWorkOrderRepo{}, nil)
 
 	result, err := service.CreateTask(context.Background(), CreateTaskCommand{Name: "Diseñar"})
 	if err != nil {
@@ -134,14 +159,14 @@ func TestCreateTask_AppliesDefaultsAndPersists(t *testing.T) {
 	}
 }
 
-func TestCreateServiceGroup_MapsTaskAssignments(t *testing.T) {
-	repo := &fakeServiceGroupRepo{}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeMESWorkRepo{})
+func TestCreateWorkType_MapsTaskAssignments(t *testing.T) {
+	repo := &fakeWorkTypeRepo{}
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeWorkOrderRepo{}, nil)
 
 	taskID := uuid.New()
-	result, err := service.CreateServiceGroup(context.Background(), CreateServiceGroupCommand{
+	result, err := service.CreateWorkType(context.Background(), CreateWorkTypeCommand{
 		Name: "Serigrafía",
-		TaskAssignments: []ServiceGroupTaskInput{
+		TaskAssignments: []WorkTypeTaskInput{
 			{TaskID: taskID, Sequence: 1},
 		},
 	})
@@ -149,7 +174,7 @@ func TestCreateServiceGroup_MapsTaskAssignments(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected service group dto")
+		t.Fatal("expected work type dto")
 	}
 	if len(result.Tasks) != 1 {
 		t.Fatalf("expected 1 mapped task, got %d", len(result.Tasks))
@@ -162,22 +187,22 @@ func TestCreateServiceGroup_MapsTaskAssignments(t *testing.T) {
 	}
 }
 
-func TestUpdateServiceGroup_DoesNotOverrideTasksWhenNilAssignments(t *testing.T) {
+func TestUpdateWorkType_DoesNotOverrideTasksWhenNilAssignments(t *testing.T) {
 	existingTaskID := uuid.New()
-	repo := &fakeServiceGroupRepo{
-		byID: &domain.ServiceGroup{
+	repo := &fakeWorkTypeRepo{
+		byID: &domain.WorkType{
 			ID:       uuid.New(),
 			Name:     "Bordado",
 			IsActive: true,
-			Tasks: []domain.ServiceGroupTask{
+			Tasks: []domain.WorkTypeTask{
 				{TaskID: existingTaskID, Sequence: 1},
 			},
 		},
 	}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeMESWorkRepo{})
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeWorkOrderRepo{}, nil)
 
 	newName := "Bordado premium"
-	result, err := service.UpdateServiceGroup(context.Background(), UpdateServiceGroupCommand{
+	result, err := service.UpdateWorkType(context.Background(), UpdateWorkTypeCommand{
 		ID:   repo.byID.ID,
 		Name: &newName,
 	})
@@ -192,51 +217,59 @@ func TestUpdateServiceGroup_DoesNotOverrideTasksWhenNilAssignments(t *testing.T)
 	}
 }
 
-func TestCreateMESWork_GeneratesTasksFromServiceGroupTemplate(t *testing.T) {
+func TestCreateWorkOrder_GeneratesTasksFromWorkSetup(t *testing.T) {
 	taskID := uuid.New()
-	serviceGroupID := uuid.New()
+	workTypeID := uuid.New()
 	positionID := uuid.New()
-	workRepo := &fakeMESWorkRepo{yearCount: 2}
-	serviceGroupRepo := &fakeServiceGroupRepo{
-		byID: &domain.ServiceGroup{
-			ID:       serviceGroupID,
+	workSetupID := uuid.New()
+	workRepo := &fakeWorkOrderRepo{yearCount: 2}
+	workTypeRepo := &fakeWorkTypeRepo{
+		byID: &domain.WorkType{
+			ID:       workTypeID,
 			Name:     "Serigrafía",
 			IsActive: true,
-			Tasks: []domain.ServiceGroupTask{
+			Tasks: []domain.WorkTypeTask{
 				{TaskID: taskID, Sequence: 1},
 			},
 		},
 	}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, serviceGroupRepo, workRepo)
-
-	result, err := service.CreateMESWork(context.Background(), CreateMESWorkCommand{
-		WorkName:        "Trabajo Cliente A",
-		PartyID:         "party-001",
-		TangibleGroupID: uuid.New(),
-		ServiceGroupAssignments: []CreateMESWorkServiceGroupInput{
-			{ServiceGroupID: serviceGroupID, PositionID: positionID, Sequence: 1},
+	workSetupRepo := &fakeWorkSetupRepo{
+		byID: &domain.WorkSetup{
+			ID:      workSetupID,
+			Name:    "Conf. Cliente A",
+			PartyID: "party-001",
+			Lines: []domain.WorkSetupLine{
+				{WorkTypeID: workTypeID, PositionID: positionID, Sequence: 1},
+			},
 		},
+	}
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, workTypeRepo, workRepo, workSetupRepo)
+
+	result, err := service.CreateWorkOrder(context.Background(), CreateWorkOrderCommand{
+		WorkName:    "Trabajo Cliente A",
+		PartyID:     "party-001",
+		WorkSetupID: &workSetupID,
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if result == nil {
-		t.Fatal("expected mes work dto")
+		t.Fatal("expected work order dto")
 	}
 	if result.WorkNumber == "" {
 		t.Fatal("expected generated work number")
 	}
 	if workRepo.saved == nil {
-		t.Fatal("expected mes work persistence")
+		t.Fatal("expected work order persistence")
 	}
-	if len(workRepo.saved.ServiceGroups) != 1 {
-		t.Fatalf("expected 1 service group, got %d", len(workRepo.saved.ServiceGroups))
+	if len(workRepo.saved.Lines) != 1 {
+		t.Fatalf("expected 1 line, got %d", len(workRepo.saved.Lines))
 	}
-	if len(workRepo.saved.ServiceGroups[0].Tasks) != 1 {
-		t.Fatalf("expected 1 generated task, got %d", len(workRepo.saved.ServiceGroups[0].Tasks))
+	if len(workRepo.saved.Lines[0].Tasks) != 1 {
+		t.Fatalf("expected 1 generated task, got %d", len(workRepo.saved.Lines[0].Tasks))
 	}
-	if workRepo.saved.ServiceGroups[0].Tasks[0].TaskID != taskID {
-		t.Fatal("expected generated task to match service group template task")
+	if workRepo.saved.Lines[0].Tasks[0].TaskID != taskID {
+		t.Fatal("expected generated task to match work type template task")
 	}
 }
 
@@ -246,7 +279,7 @@ func TestTaskFlows_ListUpdateDelete(t *testing.T) {
 		byID: &domain.Task{ID: taskID, Name: "Diseñar", Description: "old", IsActive: true},
 		all:  []*domain.Task{{ID: taskID, Name: "Diseñar", IsActive: true}},
 	}
-	service := NewMESService(taskRepo, &fakePositionRepo{}, &fakeServiceGroupRepo{}, &fakeMESWorkRepo{})
+	service := NewMESService(taskRepo, &fakePositionRepo{}, &fakeWorkTypeRepo{}, &fakeWorkOrderRepo{}, nil)
 
 	list, err := service.ListTasks(context.Background(), ListTasksQuery{})
 	if err != nil || len(list) != 1 {
@@ -277,7 +310,7 @@ func TestPositionFlows_CreateGetListUpdateDelete(t *testing.T) {
 		byID: &domain.Position{ID: positionID, Name: "Espalda", Code: "BACK", IsActive: true},
 		all:  []*domain.Position{{ID: positionID, Name: "Espalda", Code: "BACK", IsActive: true}},
 	}
-	service := NewMESService(&fakeTaskRepo{}, positionRepo, &fakeServiceGroupRepo{}, &fakeMESWorkRepo{})
+	service := NewMESService(&fakeTaskRepo{}, positionRepo, &fakeWorkTypeRepo{}, &fakeWorkOrderRepo{}, nil)
 
 	created, err := service.CreatePosition(context.Background(), CreatePositionCommand{Name: "Pecho", Code: "CHEST"})
 	if err != nil || created == nil {
@@ -308,53 +341,53 @@ func TestPositionFlows_CreateGetListUpdateDelete(t *testing.T) {
 	}
 }
 
-func TestServiceGroupFlows_ListGetDelete(t *testing.T) {
+func TestWorkTypeFlows_ListGetDelete(t *testing.T) {
 	id := uuid.New()
-	repo := &fakeServiceGroupRepo{
-		byID: &domain.ServiceGroup{ID: id, Name: "Bordado", IsActive: true},
-		all:  []*domain.ServiceGroup{{ID: id, Name: "Bordado", IsActive: true}},
+	repo := &fakeWorkTypeRepo{
+		byID: &domain.WorkType{ID: id, Name: "Bordado", IsActive: true},
+		all:  []*domain.WorkType{{ID: id, Name: "Bordado", IsActive: true}},
 	}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeMESWorkRepo{})
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, repo, &fakeWorkOrderRepo{}, nil)
 
-	got, err := service.GetServiceGroupByID(context.Background(), GetServiceGroupByIDQuery{ID: id})
+	got, err := service.GetWorkTypeByID(context.Background(), GetWorkTypeByIDQuery{ID: id})
 	if err != nil || got == nil {
-		t.Fatalf("expected get service group success, err=%v", err)
+		t.Fatalf("expected get work type success, err=%v", err)
 	}
 
-	list, err := service.ListServiceGroups(context.Background(), ListServiceGroupsQuery{})
+	list, err := service.ListWorkTypes(context.Background(), ListWorkTypesQuery{})
 	if err != nil || len(list) != 1 {
-		t.Fatalf("expected list service groups success, err=%v len=%d", err, len(list))
+		t.Fatalf("expected list work types success, err=%v len=%d", err, len(list))
 	}
 
-	if err := service.DeleteServiceGroup(context.Background(), DeleteServiceGroupCommand{ID: id}); err != nil {
-		t.Fatalf("expected delete service group success, got %v", err)
+	if err := service.DeleteWorkType(context.Background(), DeleteWorkTypeCommand{ID: id}); err != nil {
+		t.Fatalf("expected delete work type success, got %v", err)
 	}
 	if repo.deleted != id {
-		t.Fatal("expected deleted service group id to match")
+		t.Fatal("expected deleted work type id to match")
 	}
 }
 
-func TestMESWorkFlows_ListAndGet(t *testing.T) {
+func TestWorkOrderFlows_ListAndGet(t *testing.T) {
 	id := uuid.New()
-	workRepo := &fakeMESWorkRepo{
-		byID: &domain.MESWork{ID: id, WorkNumber: "MES-2026-001", WorkName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal},
-		all:  []*domain.MESWork{{ID: id, WorkNumber: "MES-2026-001", WorkName: "Trabajo", PartyID: "party-1", TangibleGroupID: uuid.New(), Status: domain.ProductionStatusDraft, Priority: domain.WorkPriorityNormal}},
+	workRepo := &fakeWorkOrderRepo{
+		byID: &domain.WorkOrder{ID: id, OrderNumber: "MES-2026-001", OrderName: "Trabajo", PartyID: "party-1", WorkSetupID: uuidPtr(uuid.New()), Status: domain.ProductionStatusPending, Priority: domain.WorkPriorityNormal},
+		all:  []*domain.WorkOrder{{ID: id, OrderNumber: "MES-2026-001", OrderName: "Trabajo", PartyID: "party-1", WorkSetupID: uuidPtr(uuid.New()), Status: domain.ProductionStatusPending, Priority: domain.WorkPriorityNormal}},
 	}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeServiceGroupRepo{}, workRepo)
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, workRepo, nil)
 
-	list, err := service.ListMESWorks(context.Background(), ListMESWorksQuery{})
+	list, err := service.ListWorkOrders(context.Background(), ListWorkOrdersQuery{})
 	if err != nil || len(list) != 1 {
-		t.Fatalf("expected list mes works success, err=%v len=%d", err, len(list))
+		t.Fatalf("expected list work orders success, err=%v len=%d", err, len(list))
 	}
 
-	got, err := service.GetMESWorkByID(context.Background(), GetMESWorkByIDQuery{ID: id})
+	got, err := service.GetWorkOrderByID(context.Background(), GetWorkOrderByIDQuery{ID: id})
 	if err != nil || got == nil {
-		t.Fatalf("expected get mes work success, err=%v", err)
+		t.Fatalf("expected get work order success, err=%v", err)
 	}
 }
 
 func TestNotFoundBranches_ReturnError(t *testing.T) {
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeServiceGroupRepo{}, &fakeMESWorkRepo{})
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, &fakeWorkOrderRepo{}, nil)
 
 	if _, err := service.GetTaskByID(context.Background(), GetTaskByIDQuery{ID: uuid.New()}); err == nil {
 		t.Fatal("expected task not found error")
@@ -364,70 +397,70 @@ func TestNotFoundBranches_ReturnError(t *testing.T) {
 		t.Fatal("expected position not found error")
 	}
 
-	if _, err := service.GetServiceGroupByID(context.Background(), GetServiceGroupByIDQuery{ID: uuid.New()}); err == nil {
-		t.Fatal("expected service group not found error")
+	if _, err := service.GetWorkTypeByID(context.Background(), GetWorkTypeByIDQuery{ID: uuid.New()}); err == nil {
+		t.Fatal("expected work type not found error")
 	}
 
-	if _, err := service.GetMESWorkByID(context.Background(), GetMESWorkByIDQuery{ID: uuid.New()}); err == nil {
-		t.Fatal("expected mes work not found error")
+	if _, err := service.GetWorkOrderByID(context.Background(), GetWorkOrderByIDQuery{ID: uuid.New()}); err == nil {
+		t.Fatal("expected work order not found error")
 	}
 }
 
-func TestMESDashboardStatsAndOverdue(t *testing.T) {
+func TestWorkOrderDashboardStatsAndOverdue(t *testing.T) {
 	today := time.Now().UTC()
 	yesterday := today.Add(-24 * time.Hour)
 	tomorrow := today.Add(24 * time.Hour)
 
-	overdueWork := &domain.MESWork{
-		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-010",
-		WorkName:        "Trabajo vencido",
-		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
-		Status:          domain.ProductionStatusInProgress,
-		Priority:        domain.WorkPriorityHigh,
-		DueDate:         &yesterday,
+	overdueWork := &domain.WorkOrder{
+		ID:          uuid.New(),
+		OrderNumber: "MES-2026-010",
+		OrderName:   "Trabajo vencido",
+		PartyID:     "party-1",
+		WorkSetupID: uuidPtr(uuid.New()),
+		Status:      domain.ProductionStatusInProgress,
+		Priority:    domain.WorkPriorityHigh,
+		DueDate:     &yesterday,
 	}
 
-	dueTodayWork := &domain.MESWork{
-		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-011",
-		WorkName:        "Trabajo hoy",
-		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
-		Status:          domain.ProductionStatusDraft,
-		Priority:        domain.WorkPriorityNormal,
-		DueDate:         &today,
+	dueTodayWork := &domain.WorkOrder{
+		ID:          uuid.New(),
+		OrderNumber: "MES-2026-011",
+		OrderName:   "Trabajo hoy",
+		PartyID:     "party-1",
+		WorkSetupID: uuidPtr(uuid.New()),
+		Status:      domain.ProductionStatusPending,
+		Priority:    domain.WorkPriorityNormal,
+		DueDate:     &today,
 	}
 
-	notOverdueCompleted := &domain.MESWork{
-		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-012",
-		WorkName:        "Trabajo completado",
-		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
-		Status:          domain.ProductionStatusCompleted,
-		Priority:        domain.WorkPriorityLow,
-		DueDate:         &yesterday,
+	notOverdueCompleted := &domain.WorkOrder{
+		ID:          uuid.New(),
+		OrderNumber: "MES-2026-012",
+		OrderName:   "Trabajo completado",
+		PartyID:     "party-1",
+		WorkSetupID: uuidPtr(uuid.New()),
+		Status:      domain.ProductionStatusCompleted,
+		Priority:    domain.WorkPriorityLow,
+		DueDate:     &yesterday,
 	}
 
-	futureWork := &domain.MESWork{
-		ID:              uuid.New(),
-		WorkNumber:      "MES-2026-013",
-		WorkName:        "Trabajo futuro",
-		PartyID:         "party-1",
-		TangibleGroupID: uuid.New(),
-		Status:          domain.ProductionStatusPending,
-		Priority:        domain.WorkPriorityNormal,
-		DueDate:         &tomorrow,
+	futureWork := &domain.WorkOrder{
+		ID:          uuid.New(),
+		OrderNumber: "MES-2026-013",
+		OrderName:   "Trabajo futuro",
+		PartyID:     "party-1",
+		WorkSetupID: uuidPtr(uuid.New()),
+		Status:      domain.ProductionStatusPending,
+		Priority:    domain.WorkPriorityNormal,
+		DueDate:     &tomorrow,
 	}
 
-	workRepo := &fakeMESWorkRepo{
-		all: []*domain.MESWork{overdueWork, dueTodayWork, notOverdueCompleted, futureWork},
+	workRepo := &fakeWorkOrderRepo{
+		all: []*domain.WorkOrder{overdueWork, dueTodayWork, notOverdueCompleted, futureWork},
 	}
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeServiceGroupRepo{}, workRepo)
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, workRepo, nil)
 
-	stats, err := service.GetMESWorkDashboardStats(context.Background())
+	stats, err := service.GetWorkOrderDashboardStats(context.Background())
 	if err != nil {
 		t.Fatalf("expected dashboard stats success, got %v", err)
 	}
@@ -441,7 +474,7 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 		t.Fatal("expected IN_PROGRESS count 1")
 	}
 
-	overdue, err := service.ListOverdueMESWorks(context.Background(), ListOverdueMESWorksQuery{Limit: 5})
+	overdue, err := service.ListOverdueWorkOrders(context.Background(), ListOverdueWorkOrdersQuery{Limit: 5})
 	if err != nil {
 		t.Fatalf("expected overdue list success, got %v", err)
 	}
@@ -453,27 +486,27 @@ func TestMESDashboardStatsAndOverdue(t *testing.T) {
 	}
 }
 
-func TestUpdateMESWorkTaskStatus_StartAndCompleteFlow(t *testing.T) {
+func TestUpdateWorkOrderTaskStatus_StartAndCompleteFlow(t *testing.T) {
 	taskID := uuid.New()
 	workID := uuid.New()
-	serviceGroupID := uuid.New()
+	lineID := uuid.New()
 
-	workRepo := &fakeMESWorkRepo{
-		byID: &domain.MESWork{
-			ID:              workID,
-			WorkNumber:      "MES-2026-020",
-			WorkName:        "Trabajo tablet",
-			PartyID:         "party-1",
-			TangibleGroupID: uuid.New(),
-			Status:          domain.ProductionStatusPending,
-			Priority:        domain.WorkPriorityNormal,
-			ServiceGroups: []domain.MESWorkServiceGroup{
+	workRepo := &fakeWorkOrderRepo{
+		byID: &domain.WorkOrder{
+			ID:          workID,
+			OrderNumber: "MES-2026-020",
+			OrderName:   "Trabajo tablet",
+			PartyID:     "party-1",
+			WorkSetupID: uuidPtr(uuid.New()),
+			Status:      domain.ProductionStatusPending,
+			Priority:    domain.WorkPriorityNormal,
+			Lines: []domain.WorkOrderLine{
 				{
-					ID:             serviceGroupID,
-					ServiceGroupID: uuid.New(),
-					PositionID:     uuid.New(),
-					Sequence:       1,
-					Tasks: []domain.MESWorkTask{
+					ID:         lineID,
+					WorkTypeID: uuid.New(),
+					PositionID: uuid.New(),
+					Sequence:   1,
+					Tasks: []domain.WorkOrderTask{
 						{ID: taskID, TaskID: uuid.New(), Sequence: 1, Status: domain.TaskStatusPending},
 					},
 				},
@@ -481,9 +514,9 @@ func TestUpdateMESWorkTaskStatus_StartAndCompleteFlow(t *testing.T) {
 		},
 	}
 
-	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeServiceGroupRepo{}, workRepo)
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, workRepo, nil)
 
-	startResult, err := service.UpdateMESWorkTaskStatus(context.Background(), UpdateMESWorkTaskStatusCommand{
+	startResult, err := service.UpdateWorkOrderTaskStatus(context.Background(), UpdateWorkOrderTaskStatusCommand{
 		WorkID: workID,
 		TaskID: taskID,
 		Action: "START",
@@ -494,11 +527,11 @@ func TestUpdateMESWorkTaskStatus_StartAndCompleteFlow(t *testing.T) {
 	if startResult.Status != string(domain.ProductionStatusInProgress) {
 		t.Fatalf("expected work status IN_PROGRESS after start, got %s", startResult.Status)
 	}
-	if startResult.ServiceGroups[0].Tasks[0].StartedAt == nil {
+	if startResult.Lines[0].Tasks[0].StartedAt == nil {
 		t.Fatal("expected started_at to be set on START")
 	}
 
-	completeResult, err := service.UpdateMESWorkTaskStatus(context.Background(), UpdateMESWorkTaskStatusCommand{
+	completeResult, err := service.UpdateWorkOrderTaskStatus(context.Background(), UpdateWorkOrderTaskStatusCommand{
 		WorkID: workID,
 		TaskID: taskID,
 		Action: "COMPLETE",
@@ -513,6 +546,187 @@ func TestUpdateMESWorkTaskStatus_StartAndCompleteFlow(t *testing.T) {
 		t.Fatal("expected work completed_date after task completion")
 	}
 	if workRepo.saved == nil {
-		t.Fatal("expected mes work saved after status update")
+		t.Fatal("expected work order saved after status update")
 	}
+}
+
+// ===== SuspendWorkOrders Tests =====
+
+func TestSuspendWorkOrders_SuspendsPendingAndInProgress(t *testing.T) {
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+
+	wo1 := &domain.WorkOrder{ID: woID1, Status: domain.ProductionStatusPending, OrderNumber: "MES-1", OrderName: "A", PartyID: "p", Priority: domain.WorkPriorityNormal}
+	wo2 := &domain.WorkOrder{ID: woID2, Status: domain.ProductionStatusInProgress, OrderNumber: "MES-2", OrderName: "B", PartyID: "p", Priority: domain.WorkPriorityNormal}
+
+	var saved []*domain.WorkOrder
+	workRepo := &fakeWorkOrderRepo{}
+	origSave := workRepo.Save
+	_ = origSave
+	workRepo.byID = nil // will be overridden per call
+
+	// Use a custom repo to track multiple saves and lookups
+	repo := &multiWorkOrderRepo{
+		orders: map[uuid.UUID]*domain.WorkOrder{woID1: wo1, woID2: wo2},
+		saved:  &saved,
+	}
+
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, repo, nil)
+	err := service.SuspendWorkOrders(context.Background(), []uuid.UUID{woID1, woID2})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if wo1.Status != domain.ProductionStatusSuspended {
+		t.Fatalf("expected PENDING → SUSPENDED, got %s", wo1.Status)
+	}
+	if wo2.Status != domain.ProductionStatusSuspended {
+		t.Fatalf("expected IN_PROGRESS → SUSPENDED, got %s", wo2.Status)
+	}
+}
+
+func TestSuspendWorkOrders_SkipsCompletedAndCancelled(t *testing.T) {
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+
+	wo1 := &domain.WorkOrder{ID: woID1, Status: domain.ProductionStatusCompleted, OrderNumber: "MES-1", OrderName: "A", PartyID: "p", Priority: domain.WorkPriorityNormal}
+	wo2 := &domain.WorkOrder{ID: woID2, Status: domain.ProductionStatusCancelled, OrderNumber: "MES-2", OrderName: "B", PartyID: "p", Priority: domain.WorkPriorityNormal}
+
+	repo := &multiWorkOrderRepo{
+		orders: map[uuid.UUID]*domain.WorkOrder{woID1: wo1, woID2: wo2},
+		saved:  &[]*domain.WorkOrder{},
+	}
+
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, repo, nil)
+	err := service.SuspendWorkOrders(context.Background(), []uuid.UUID{woID1, woID2})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if wo1.Status != domain.ProductionStatusCompleted {
+		t.Fatalf("expected COMPLETED unchanged, got %s", wo1.Status)
+	}
+	if wo2.Status != domain.ProductionStatusCancelled {
+		t.Fatalf("expected CANCELLED unchanged, got %s", wo2.Status)
+	}
+}
+
+// ===== ReactivateWorkOrders Tests =====
+
+func TestReactivateWorkOrders_ReactivatesSuspendedAndCancelled(t *testing.T) {
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+
+	wo1 := &domain.WorkOrder{ID: woID1, Status: domain.ProductionStatusSuspended, OrderNumber: "MES-1", OrderName: "A", PartyID: "p", Priority: domain.WorkPriorityNormal}
+	wo2 := &domain.WorkOrder{ID: woID2, Status: domain.ProductionStatusCancelled, OrderNumber: "MES-2", OrderName: "B", PartyID: "p", Priority: domain.WorkPriorityNormal}
+
+	repo := &multiWorkOrderRepo{
+		orders: map[uuid.UUID]*domain.WorkOrder{woID1: wo1, woID2: wo2},
+		saved:  &[]*domain.WorkOrder{},
+	}
+
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, repo, nil)
+	err := service.ReactivateWorkOrders(context.Background(), []uuid.UUID{woID1, woID2})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if wo1.Status != domain.ProductionStatusPending {
+		t.Fatalf("expected SUSPENDED → PENDING, got %s", wo1.Status)
+	}
+	if wo2.Status != domain.ProductionStatusPending {
+		t.Fatalf("expected CANCELLED → PENDING, got %s", wo2.Status)
+	}
+}
+
+func TestReactivateWorkOrders_SkipsCompletedAndInProgress(t *testing.T) {
+	woID1 := uuid.New()
+	woID2 := uuid.New()
+
+	wo1 := &domain.WorkOrder{ID: woID1, Status: domain.ProductionStatusCompleted, OrderNumber: "MES-1", OrderName: "A", PartyID: "p", Priority: domain.WorkPriorityNormal}
+	wo2 := &domain.WorkOrder{ID: woID2, Status: domain.ProductionStatusInProgress, OrderNumber: "MES-2", OrderName: "B", PartyID: "p", Priority: domain.WorkPriorityNormal}
+
+	repo := &multiWorkOrderRepo{
+		orders: map[uuid.UUID]*domain.WorkOrder{woID1: wo1, woID2: wo2},
+		saved:  &[]*domain.WorkOrder{},
+	}
+
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, repo, nil)
+	err := service.ReactivateWorkOrders(context.Background(), []uuid.UUID{woID1, woID2})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if wo1.Status != domain.ProductionStatusCompleted {
+		t.Fatalf("expected COMPLETED unchanged, got %s", wo1.Status)
+	}
+	if wo2.Status != domain.ProductionStatusInProgress {
+		t.Fatalf("expected IN_PROGRESS unchanged, got %s", wo2.Status)
+	}
+}
+
+// ===== RecalculateWorkStatus guard for SUSPENDED =====
+
+func TestRecalculateWorkStatus_DoesNotOverrideSuspended(t *testing.T) {
+	taskID := uuid.New()
+	workID := uuid.New()
+
+	work := &domain.WorkOrder{
+		ID:          workID,
+		OrderNumber: "MES-2026-001",
+		OrderName:   "Test",
+		PartyID:     "party-1",
+		Status:      domain.ProductionStatusSuspended,
+		Priority:    domain.WorkPriorityNormal,
+		Lines: []domain.WorkOrderLine{
+			{
+				ID:         uuid.New(),
+				WorkTypeID: uuid.New(),
+				PositionID: uuid.New(),
+				Sequence:   1,
+				Tasks: []domain.WorkOrderTask{
+					{ID: uuid.New(), TaskID: taskID, Sequence: 1, Status: domain.TaskStatusPending},
+				},
+			},
+		},
+	}
+
+	workRepo := &multiWorkOrderRepo{
+		orders: map[uuid.UUID]*domain.WorkOrder{workID: work},
+		saved:  &[]*domain.WorkOrder{},
+	}
+
+	service := NewMESService(&fakeTaskRepo{}, &fakePositionRepo{}, &fakeWorkTypeRepo{}, workRepo, nil)
+
+	// Try to complete a task — recalculateWorkStatus should NOT override SUSPENDED
+	_, err := service.UpdateWorkOrderTaskStatus(context.Background(), UpdateWorkOrderTaskStatusCommand{
+		WorkID: workID,
+		TaskID: work.Lines[0].Tasks[0].ID,
+		Action: "COMPLETE",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if work.Status != domain.ProductionStatusSuspended {
+		t.Fatalf("expected SUSPENDED to be preserved, got %s", work.Status)
+	}
+}
+
+// multiWorkOrderRepo supports lookups by ID for multiple work orders.
+type multiWorkOrderRepo struct {
+	orders map[uuid.UUID]*domain.WorkOrder
+	saved  *[]*domain.WorkOrder
+}
+
+func (r *multiWorkOrderRepo) Save(_ context.Context, wo *domain.WorkOrder) error {
+	*r.saved = append(*r.saved, wo)
+	return nil
+}
+
+func (r *multiWorkOrderRepo) FindByID(_ context.Context, id uuid.UUID) (*domain.WorkOrder, error) {
+	return r.orders[id], nil
+}
+
+func (r *multiWorkOrderRepo) FindAll(_ context.Context, _ *domain.WorkOrderFilters) ([]*domain.WorkOrder, error) {
+	return nil, nil
+}
+
+func (r *multiWorkOrderRepo) CountByYear(_ context.Context, _ int) (int64, error) {
+	return 0, nil
 }

@@ -1,5 +1,5 @@
 # Load Session Agent
-# Version: 1.0
+# Version: 1.1
 # Purpose: Load project context, scan for open journals, and propose workflow
 # Audience: Any AI assistant starting a development session on any project
 
@@ -7,11 +7,11 @@
 
 metadata:
   filename: "load-session.yaml"
-  version: "1.0"
-  last_updated: "2026-02-15" # Updated date
-  purpose: "Loads and manages development sessions, including loading project context, scanning for active sessions, and proposing workflows. Typically dispatched by init.yaml."
+  version: "1.1"
+  last_updated: "2026-03-19"
+  purpose: "Loads and manages development sessions, including loading project context, scanning for active sessions, and updating status to 'En Progreso'."
   applies_to: "Any project using modular agent system"
-  dependencies: # Added dependency on init.yaml, as it's typically called by it
+  dependencies:
     - "init.yaml"
   note: "Generic version - each project loads its own project-context.yaml"
 
@@ -192,10 +192,8 @@ _No hay sesiones abiertas actualmente._
             content = f.read()
         
         # This function will attempt to extract context for the specified session.
-        # For full implementation, this would involve reading the session's block
-        # and extracting relevant 'Archivos de Contexto' and 'Contexto' sections.
         def get_session_context(session_id, log_content):
-            session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `(.*?)`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+            session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
             
             for match in session_block_pattern.finditer(log_content):
                 block = match.group(0)
@@ -213,7 +211,17 @@ _No hay sesiones abiertas actualmente._
         session_context = get_session_context(session_id_to_load, content)
 
         if session_context:
-            output_message = f"Cargando sesi�n con ID: '{session_id_to_load}'.\nT�tulo: {session_context['title']}\nContexto: {session_context['context']}\nArchivos de Contexto: {session_context['files']}\n"
+            # Update status to 'En Progreso' if it's not already
+            new_full_content = re.sub(
+                r'(## .*?\n- \*\*Session ID:\*\* `' + re.escape(session_id_to_load) + r'`\n- \*\*Status:\*\* )(.*)',
+                r'\1En Progreso',
+                content
+            )
+            if new_full_content != content:
+                with open(session_log_path, 'w', encoding='utf-8') as f:
+                    f.write(new_full_content)
+            
+            output_message = f"Cargando sesión con ID: '{session_id_to_load}'.\nTítulo: {session_context['title']}\nStatus actualizado a: En Progreso\n"
             print(json.dumps({"status": "success", "message": output_message, "session_id": session_id_to_load, "session_context": session_context}))
         else:
             print(json.dumps({"status": "error", "message": f"Session with ID '{session_id_to_load}' not found in session log."}))
@@ -252,7 +260,7 @@ _No hay sesiones abiertas actualmente._
 
           # This function will attempt to extract context for the specified session.
           def get_session_context(session_id, content):
-              session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `(.*?)`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+              session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
               
               for match in session_block_pattern.finditer(content):
                   block = match.group(0)
@@ -270,7 +278,17 @@ _No hay sesiones abiertas actualmente._
           session_context = get_session_context(session_id_to_resume, log_content)
 
           if session_context:
-              output_message = f"Reanudando sesi�n con ID: '{session_id_to_resume}'.\nT�tulo: {session_context['title']}\nContexto: {session_context['context']}\nArchivos de Contexto: {session_context['files']}\n"
+              # Update status to 'En Progreso' if it's not already
+              new_log_content = re.sub(
+                  r"(## .*?\n- \*\*Session ID:\*\* `" + re.escape(session_id_to_resume) + r"`\n- \*\*Status:\*\* )(.*)",
+                  r"\1En Progreso",
+                  log_content
+              )
+              if new_log_content != log_content:
+                  with open(session_log_path, 'w', encoding='utf-8') as f:
+                      f.write(new_log_content)
+              
+              output_message = f"Reanudando sesión con ID: '{session_id_to_resume}'.\nTítulo: {session_context['title']}\nStatus actualizado a: En Progreso\n"
               print(json.dumps({"status": "success", "message": output_message, "session_id": session_id_to_resume, "session_context": session_context}))
           else:
               print(json.dumps({"status": "error", "message": f"Session with ID '{session_id_to_resume}' not found in 'SESIONES ABIERTAS'."}))
@@ -393,4 +411,3 @@ _No hay sesiones abiertas actualmente._
       Para finalizar tu sesión de trabajo de forma adecuada y guardar todo el progreso, por favor, llama al agente `agents/end-session.yaml`.
       Esto asegurará que tu trabajo quede reflejado, actualizado y delimitado.
     goto: "end"
-

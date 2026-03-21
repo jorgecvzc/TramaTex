@@ -14,8 +14,10 @@ type QuoteLineItemInput struct {
 }
 
 type MesWorkRefInput struct {
-	MesWorkID    uuid.UUID `json:"mesWorkId"`
-	Observations string    `json:"observations"`
+	ID          *uuid.UUID `json:"id,omitempty"` // preserve existing WorkReference ID
+	WorkSetupID *uuid.UUID `json:"workSetupId,omitempty"`
+	WorkOrderID *uuid.UUID `json:"workOrderId,omitempty"` // preserve existing MES link
+	Description string     `json:"description"`
 }
 
 type CreateQuoteCommand struct {

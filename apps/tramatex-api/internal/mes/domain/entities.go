@@ -7,14 +7,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// --- Datos Maestros ---
+
+// Task represents an atomic, indivisible process within the garment customization flow.
+// Examples: Diseñar, Imprimir, Marcar, Plegar, Embolsar.
 type Task struct {
 	ID          uuid.UUID
 	Name        string
+	Reference   string
 	Description string
 	IsActive    bool
 }
 
-func NewTask(name, description string, isActive bool) (*Task, error) {
+func NewTask(name, reference, description string, isActive bool) (*Task, error) {
 	if name == "" {
 		return nil, fmt.Errorf("task name is required")
 	}
@@ -22,11 +27,14 @@ func NewTask(name, description string, isActive bool) (*Task, error) {
 	return &Task{
 		ID:          uuid.New(),
 		Name:        name,
+		Reference:   reference,
 		Description: description,
 		IsActive:    isActive,
 	}, nil
 }
 
+// Position represents a zone on the garment where customization is applied.
+// Examples: Pecho izquierdo, Espalda, Bajo pantalón.
 type Position struct {
 	ID          uuid.UUID
 	Name        string
@@ -52,23 +60,26 @@ func NewPosition(name, code, description string, isActive bool) (*Position, erro
 	}, nil
 }
 
-type ServiceGroupTask struct {
+// WorkTypeTask is a value object linking a Task to a WorkType with execution order.
+type WorkTypeTask struct {
 	TaskID   uuid.UUID
 	Sequence int
 }
 
-type ServiceGroup struct {
-	ID             uuid.UUID
-	Name           string
-	Description    string
-	ProductGroupID *uuid.UUID
-	IsActive       bool
-	Tasks          []ServiceGroupTask
+// WorkType defines an ordered sequence of tasks for a specific type of marking/customization.
+// Examples: "Marcado por vinilo" = Diseñar → Imprimir → Marcar → Plegar → Embolsar.
+type WorkType struct {
+	ID          uuid.UUID
+	Name        string
+	Reference   string
+	Description string
+	IsActive    bool
+	Tasks       []WorkTypeTask
 }
 
-func NewServiceGroup(name, description string, productGroupID *uuid.UUID, isActive bool, tasks []ServiceGroupTask) (*ServiceGroup, error) {
+func NewWorkType(name, reference, description string, isActive bool, tasks []WorkTypeTask) (*WorkType, error) {
 	if name == "" {
-		return nil, fmt.Errorf("service group name is required")
+		return nil, fmt.Errorf("work type name is required")
 	}
 
 	for _, task := range tasks {
@@ -80,17 +91,81 @@ func NewServiceGroup(name, description string, productGroupID *uuid.UUID, isActi
 		}
 	}
 
-	return &ServiceGroup{
-		ID:             uuid.New(),
-		Name:           name,
-		Description:    description,
-		ProductGroupID: productGroupID,
-		IsActive:       isActive,
-		Tasks:          tasks,
+	return &WorkType{
+		ID:          uuid.New(),
+		Name:        name,
+		Reference:   reference,
+		Description: description,
+		IsActive:    isActive,
+		Tasks:       tasks,
 	}, nil
 }
 
-type MESWorkTask struct {
+// --- Configuración por Cliente ---
+
+// WorkSetupLine defines one customization operation: a WorkType applied at a Position.
+type WorkSetupLine struct {
+	ID             uuid.UUID
+	WorkTypeID     uuid.UUID
+	PositionID     uuid.UUID
+	DesignFilePath string
+	Notes          string
+	Sequence       int
+}
+
+// WorkSetup is a reusable template defining the complete customization for a garment type
+// for a specific customer. Example: Confecciones López / Camisetas → Serigrafía en Pecho + Vinilo en Espalda.
+type WorkSetup struct {
+	ID              uuid.UUID
+	Name            string
+	PartyID         string
+	TangibleGroupID *uuid.UUID
+	Description     string
+	IsActive        bool
+	Lines           []WorkSetupLine
+}
+
+func NewWorkSetup(
+	name, partyID string,
+	tangibleGroupID *uuid.UUID,
+	description string,
+	isActive bool,
+	lines []WorkSetupLine,
+) (*WorkSetup, error) {
+	if name == "" {
+		return nil, fmt.Errorf("work setup name is required")
+	}
+	if partyID == "" {
+		return nil, fmt.Errorf("party id is required")
+	}
+
+	for _, line := range lines {
+		if line.WorkTypeID == uuid.Nil {
+			return nil, fmt.Errorf("work type id is required in setup line")
+		}
+		if line.PositionID == uuid.Nil {
+			return nil, fmt.Errorf("position id is required in setup line")
+		}
+		if line.Sequence <= 0 {
+			return nil, fmt.Errorf("setup line sequence must be greater than zero")
+		}
+	}
+
+	return &WorkSetup{
+		ID:              uuid.New(),
+		Name:            name,
+		PartyID:         partyID,
+		TangibleGroupID: tangibleGroupID,
+		Description:     description,
+		IsActive:        isActive,
+		Lines:           lines,
+	}, nil
+}
+
+// --- Ejecución ---
+
+// WorkOrderTask is an executable task instance with status tracking, operator assignment and timestamps.
+type WorkOrderTask struct {
 	ID          uuid.UUID
 	TaskID      uuid.UUID
 	Sequence    int
@@ -101,94 +176,90 @@ type MESWorkTask struct {
 	Notes       string
 }
 
-type MESWorkServiceGroup struct {
+// WorkOrderLine is an executable line (WorkType at a Position) within a WorkOrder.
+type WorkOrderLine struct {
 	ID             uuid.UUID
-	ServiceGroupID uuid.UUID
+	WorkTypeID     uuid.UUID
 	PositionID     uuid.UUID
 	DesignFilePath string
 	Notes          string
 	Sequence       int
-	Tasks          []MESWorkTask
+	Tasks          []WorkOrderTask
 }
 
-type MESWork struct {
-	ID              uuid.UUID
-	WorkNumber      string
-	WorkName        string
-	PartyID         string
-	TangibleGroupID uuid.UUID
-	GarmentNotes    string
-	Status          ProductionStatus
-	Priority        WorkPriority
-	StartDate       *time.Time
-	DueDate         *time.Time
-	CompletedDate   *time.Time
-	ServiceGroups   []MESWorkServiceGroup
+// WorkOrder is a real production order derived from a WorkSetup configuration.
+// Its lines and tasks are auto-generated from the WorkSetup at creation time.
+// WorkSetupID is optional — when created from Sales on order confirmation,
+// the WorkOrder may not be backed by a WorkSetup.
+type WorkOrder struct {
+	ID            uuid.UUID
+	OrderNumber   string
+	OrderName     string
+	PartyID       string
+	WorkSetupID   *uuid.UUID
+	Notes         string
+	Status        ProductionStatus
+	Priority      WorkPriority
+	StartDate     *time.Time
+	DueDate       *time.Time
+	CompletedDate *time.Time
+	Lines         []WorkOrderLine
 }
 
-func NewMESWork(
-	workNumber, workName, partyID string,
-	tangibleGroupID uuid.UUID,
-	garmentNotes string,
-	status ProductionStatus,
+func NewWorkOrder(
+	orderNumber, orderName, partyID string,
+	workSetupID *uuid.UUID,
+	notes string,
 	priority WorkPriority,
-	startDate, dueDate, completedDate *time.Time,
-	serviceGroups []MESWorkServiceGroup,
-) (*MESWork, error) {
-	if workNumber == "" {
-		return nil, fmt.Errorf("work number is required")
+	dueDate *time.Time,
+	lines []WorkOrderLine,
+) (*WorkOrder, error) {
+	if orderNumber == "" {
+		return nil, fmt.Errorf("order number is required")
 	}
-	if workName == "" {
-		return nil, fmt.Errorf("work name is required")
+	if orderName == "" {
+		return nil, fmt.Errorf("order name is required")
 	}
 	if partyID == "" {
 		return nil, fmt.Errorf("party id is required")
-	}
-	if tangibleGroupID == uuid.Nil {
-		return nil, fmt.Errorf("tangible group id is required")
-	}
-	if !status.IsValid() {
-		return nil, fmt.Errorf("invalid production status")
 	}
 	if !priority.IsValid() {
 		return nil, fmt.Errorf("invalid work priority")
 	}
 
-	for _, group := range serviceGroups {
-		if group.ServiceGroupID == uuid.Nil {
-			return nil, fmt.Errorf("service group id is required")
+	for _, line := range lines {
+		if line.WorkTypeID == uuid.Nil {
+			return nil, fmt.Errorf("work type id is required in order line")
 		}
-		if group.PositionID == uuid.Nil {
-			return nil, fmt.Errorf("position id is required")
+		if line.PositionID == uuid.Nil {
+			return nil, fmt.Errorf("position id is required in order line")
 		}
-		if group.Sequence <= 0 {
-			return nil, fmt.Errorf("service group sequence must be greater than zero")
+		if line.Sequence <= 0 {
+			return nil, fmt.Errorf("order line sequence must be greater than zero")
 		}
-		for _, task := range group.Tasks {
+		for _, task := range line.Tasks {
 			if task.TaskID == uuid.Nil {
-				return nil, fmt.Errorf("work task id is required")
+				return nil, fmt.Errorf("task id is required in order task")
 			}
 			if task.Sequence <= 0 {
-				return nil, fmt.Errorf("work task sequence must be greater than zero")
+				return nil, fmt.Errorf("order task sequence must be greater than zero")
 			}
 			if !task.Status.IsValid() {
-				return nil, fmt.Errorf("invalid work task status")
+				return nil, fmt.Errorf("invalid order task status")
 			}
 		}
 	}
 
-	return &MESWork{
-		ID:              uuid.New(),
-		WorkNumber:      workNumber,
-		WorkName:        workName,
-		PartyID:         partyID,
-		TangibleGroupID: tangibleGroupID,
-		GarmentNotes:    garmentNotes,
-		Status:          status,
-		Priority:        priority,
-		StartDate:       startDate,
-		DueDate:         dueDate,
-		CompletedDate:   completedDate,
-		ServiceGroups:   serviceGroups,
+	return &WorkOrder{
+		ID:          uuid.New(),
+		OrderNumber: orderNumber,
+		OrderName:   orderName,
+		PartyID:     partyID,
+		WorkSetupID: workSetupID,
+		Notes:       notes,
+		Status:      ProductionStatusPending,
+		Priority:    priority,
+		DueDate:     dueDate,
+		Lines:       lines,
 	}, nil
 }

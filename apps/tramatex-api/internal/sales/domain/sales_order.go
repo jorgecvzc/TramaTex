@@ -7,19 +7,19 @@ import (
 )
 
 type SalesOrder struct {
-	ID           uuid.UUID
-	OrderNumber  OrderNumber
-	QuoteID      *uuid.UUID
-	PartyID      uuid.UUID
-	OrderDate    time.Time
-	DeliveryDate time.Time
-	Status       SalesOrderStatus
-	MESWorkRefs  []MESWorkRef // Document-level MES work references with observations
-	LineItems    []OrderLineItem
-	Subtotal     Money
-	TaxAmount    Money
-	Total        Money
-	Notes        string
+	ID             uuid.UUID
+	OrderNumber    OrderNumber
+	QuoteID        *uuid.UUID
+	PartyID        uuid.UUID
+	OrderDate      time.Time
+	DeliveryDate   time.Time
+	Status         SalesOrderStatus
+	WorkReferences []WorkReference // Document-level MES work references with observations
+	LineItems      []OrderLineItem
+	Subtotal       Money
+	TaxAmount      Money
+	Total          Money
+	Notes          string
 }
 
 type OrderLineItem struct {

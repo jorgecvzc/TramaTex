@@ -1,5 +1,9 @@
 # Sprint 12 / Tarea 02 - MES Terminal Hardening Post-MVP
 
+> **⚠️ AVISO:** Las referencias a "grupo de servicio" en este documento corresponden al nombre legacy.
+> Desde la sesión F5 (2026-03-16), la nomenclatura canónica es: `WorkType` (Tipo de Trabajo),
+> `WorkOrder` (Orden de Trabajo), `WorkOrderLine` (Línea), `WorkOrderTask` (Tarea).
+
 **Estado:** 📌 Pendiente (Post-MVP)  
 **Fecha de Registro:** 2026-02-21  
 **Origen:** Decisión de alcance MVP (Sprint 12-01)  

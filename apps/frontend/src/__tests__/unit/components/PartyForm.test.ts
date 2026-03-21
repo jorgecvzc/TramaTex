@@ -21,12 +21,15 @@ describe('PartyForm Component', () => {
   })
 
   describe('Initial rendering', () => {
-    it('should render form with all fields in create mode', () => {
+    it('should render form with all fields in create mode', async () => {
       render(PartyForm)
 
       expect(screen.getByRole('heading', { name: /Crear entidad/i })).toBeInTheDocument()
-      expect(screen.getByLabelText(/Nombre de la entidad/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/Rol de la entidad/i)).toBeInTheDocument()
+
+      // Select entity type to reveal name field
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+      expect(screen.getByLabelText(/Nombre de la organización/i)).toBeInTheDocument()
       expect(screen.getByPlaceholderText('p. ej., 12345678A')).toBeInTheDocument()
       expect(screen.getByLabelText(/Tipo de NIF\/CIF/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/Sitio web/i)).toBeInTheDocument()
@@ -51,12 +54,13 @@ describe('PartyForm Component', () => {
       expect(screen.getByLabelText(/Notas/i)).toBeInTheDocument()
     })
 
-    it('should populate fields with initialData', () => {
+    it('should populate fields with initialData', async () => {
       render(PartyForm, {
         props: {
           initialData: {
             name: 'Test Company',
             role: 'SUPPLIER',
+            entityType: 'ORGANIZATION',
             taxId: 'A87654321',
             taxIdType: 'CIF',
             website: 'https://test.com',
@@ -64,8 +68,13 @@ describe('PartyForm Component', () => {
         }
       })
 
+      // Wait for entity type to be set so org name field appears
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Nombre de la organización/i)).toBeInTheDocument()
+      })
+
       // Check input values directly
-      const nameInput = screen.getByLabelText(/Nombre de la entidad/i) as HTMLInputElement
+      const nameInput = screen.getByLabelText(/Nombre de la organización/i) as HTMLInputElement
       const roleSelect = screen.getByLabelText(/Rol de la entidad/i) as HTMLSelectElement
       const taxIdInput = screen.getByPlaceholderText('p. ej., 12345678A') as HTMLInputElement
       const taxIdTypeSelect = screen.getByLabelText(/Tipo de NIF\/CIF/i) as HTMLSelectElement
@@ -96,7 +105,10 @@ describe('PartyForm Component', () => {
     it('should validate name field on blur', async () => {
       const { container } = render(PartyForm)
 
-      const nameInput = screen.getByLabelText(/Nombre de la entidad/i)
+      // Select entity type to reveal name field
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+
+      const nameInput = screen.getByLabelText(/Nombre de la organización/i)
       await fireEvent.update(nameInput, 'AB') // Too short
       await fireEvent.blur(nameInput)
 
@@ -112,7 +124,10 @@ describe('PartyForm Component', () => {
     it('should accept valid name', async () => {
       render(PartyForm)
 
-      const nameInput = screen.getByLabelText(/Nombre de la entidad/i)
+      // Select entity type to reveal name field
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+
+      const nameInput = screen.getByLabelText(/Nombre de la organización/i)
       await fireEvent.update(nameInput, 'Valid Company Name')
       await fireEvent.blur(nameInput)
 
@@ -123,13 +138,17 @@ describe('PartyForm Component', () => {
     it('should validate taxId length on blur', async () => {
       const { container } = render(PartyForm)
 
+      // Select entity type so the full form is visible
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+
       const taxIdInput = screen.getByPlaceholderText('p. ej., 12345678A')
       await fireEvent.update(taxIdInput, '123') // Too short
       await fireEvent.blur(taxIdInput)
 
       await new Promise(resolve => setTimeout(resolve, 50))
 
-      const hasError = container.textContent?.includes('5 y 20 caracteres')
+      const hasError = container.textContent?.includes('Formato de NIF inválido') ||
+                       container.textContent?.includes('Formato inválido')
       expect(hasError).toBe(true)
     })
 
@@ -178,10 +197,11 @@ describe('PartyForm Component', () => {
 
       const { emitted } = render(PartyForm)
 
-      // Fill form
-      await fireEvent.update(screen.getByLabelText(/Nombre de la entidad/i), 'New Company')
+      // Fill form - select entity type first to reveal name field
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
-      await fireEvent.update(screen.getByPlaceholderText('p. ej., 12345678A'), 'B12345678')
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+      await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'New Company')
+      await fireEvent.update(screen.getByPlaceholderText('p. ej., 12345678A'), '12345678Z')
       await fireEvent.update(screen.getByLabelText(/Sitio web/i), 'https://newcompany.com')
 
       // Submit
@@ -192,7 +212,7 @@ describe('PartyForm Component', () => {
           expect.objectContaining({
             name: 'New Company',
             role: 'CLIENT',
-            taxId: 'B12345678',
+            taxId: '12345678Z',
             taxIdType: 'NIF',
             website: 'https://newcompany.com',
           })
@@ -212,9 +232,10 @@ describe('PartyForm Component', () => {
 
       const { container } = render(PartyForm)
 
-      // Fill form
-      await fireEvent.update(screen.getByLabelText(/Nombre de la entidad/i), 'Duplicate Company')
+      // Fill form - select entity type first to reveal name field
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+      await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Duplicate Company')
 
       // Submit
       await fireEvent.click(screen.getByRole('button', { name: /Crear entidad/i }))
@@ -242,8 +263,9 @@ describe('PartyForm Component', () => {
 
       render(PartyForm)
 
-      await fireEvent.update(screen.getByLabelText(/Nombre de la entidad/i), 'Test Company')
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+      await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Test Company')
 
       const submitButton = screen.getByRole('button', { name: /Crear entidad/i })
       await fireEvent.click(submitButton)
@@ -273,13 +295,19 @@ describe('PartyForm Component', () => {
           initialData: {
             name: 'Original Company',
             role: 'CLIENT',
+            entityType: 'ORGANIZATION',
             website: 'https://original.com',
           }
         }
       })
 
+      // Wait for entity type to render the org name field
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Nombre de la organización/i)).toBeInTheDocument()
+      })
+
       // Update fields
-      await fireEvent.update(screen.getByLabelText(/Nombre de la entidad/i), 'Updated Company')
+      await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Updated Company')
       await fireEvent.update(screen.getByLabelText(/Sitio web/i), 'https://updated.com')
 
       // Submit
@@ -313,11 +341,17 @@ describe('PartyForm Component', () => {
           initialData: {
             name: 'Test Company',
             role: 'CLIENT',
+            entityType: 'ORGANIZATION',
           }
         }
       })
 
-      await fireEvent.update(screen.getByLabelText(/Nombre de la entidad/i), 'Updated Name')
+      // Wait for entity type to render the org name field
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Nombre de la organización/i)).toBeInTheDocument()
+      })
+
+      await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Updated Name')
       await fireEvent.click(screen.getByRole('button', { name: /Actualizar entidad/i }))
 
       await waitFor(() => {
@@ -336,21 +370,25 @@ describe('PartyForm Component', () => {
     it('should reset all fields when reset button is clicked', async () => {
       render(PartyForm)
 
+      // Select entity type first to reveal name field
+      await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+
       // Fill form
-      const nameInput = screen.getByLabelText(/Nombre de la entidad/i) as HTMLInputElement
+      const nameInput = screen.getByLabelText(/Nombre de la organización/i) as HTMLInputElement
       const roleSelect = screen.getByLabelText(/Rol de la entidad/i) as HTMLSelectElement
       const taxIdInput = screen.getByPlaceholderText('p. ej., 12345678A') as HTMLInputElement
 
       await fireEvent.update(nameInput, 'Test Company')
-      await fireEvent.update(roleSelect, 'CLIENT')
       await fireEvent.update(taxIdInput, 'B12345678')
 
       // Reset
       await fireEvent.click(screen.getByRole('button', { name: /Reiniciar/i }))
 
-      expect(nameInput.value).toBe('')
       expect(roleSelect.value).toBe('')
       expect(taxIdInput.value).toBe('')
+      // Name field is hidden after reset (entityType resets to '')
+      expect(screen.queryByLabelText(/Nombre de la organización/i)).not.toBeInTheDocument()
     })
   })
 
@@ -361,11 +399,12 @@ describe('PartyForm Component', () => {
       const roleSelect = screen.getByLabelText(/Rol de la entidad/i)
       const options = roleSelect.querySelectorAll('option')
 
-      expect(options).toHaveLength(4) // Including placeholder
+      expect(options).toHaveLength(5) // Including placeholder
       expect(options[0].textContent).toBe('-- Selecciona rol --')
       expect(options[1].textContent).toBe('Cliente')
       expect(options[2].textContent).toBe('Proveedor')
       expect(options[3].textContent).toBe('Cliente y proveedor')
+      expect(options[4].textContent).toBe('Contacto')
     })
   })
 

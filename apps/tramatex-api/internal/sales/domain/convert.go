@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) (*SalesOrder, error) {
 	if q.Status != QuoteStatusApproved {
@@ -31,7 +33,19 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 		return nil, err
 	}
 	order.QuoteID = &q.ID
-	order.MESWorkRefs = q.MESWorkRefs // Carry document-level MES references
+
+	// Copy work references from quote to order with new IDs
+	orderWorkRefs := make([]WorkReference, len(q.WorkReferences))
+	for i, ws := range q.WorkReferences {
+		orderWorkRefs[i] = WorkReference{
+			ID:          ws.ID,
+			WorkSetupID: ws.WorkSetupID,
+			Sequence:    ws.Sequence,
+			Description: ws.Description,
+		}
+	}
+	order.WorkReferences = orderWorkRefs
+
 	if err := q.ChangeStatus(QuoteStatusConverted); err != nil {
 		return nil, err
 	}

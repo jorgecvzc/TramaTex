@@ -4,8 +4,8 @@
     <div class="dashboard-content">
       <header class="page-header">
         <div>
-          <p class="breadcrumb">MES / Datos Maestros</p>
-          <h1>Nueva posición MES</h1>
+          <p class="breadcrumb">MES / Posiciones</p>
+          <h1>Nueva posición</h1>
           <p class="subtitle">Define la posición física de aplicación en prendas.</p>
         </div>
         <RouterLink to="/mes/positions" class="btn btn-secondary">Volver</RouterLink>
@@ -76,7 +76,7 @@ async function submit() {
     })
     await router.push('/mes/positions')
   } catch (err: any) {
-    error.value = err.message || 'No se pudo crear la posición MES'
+    error.value = err.message || 'No se pudo crear la posición'
   } finally {
     isSaving.value = false
   }

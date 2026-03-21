@@ -91,37 +91,27 @@ describe('MESApi Service', () => {
     })
   })
 
-  describe('service groups', () => {
-    it('should list service groups', async () => {
+  describe('work types', () => {
+    it('should list work types', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
-        json: async () => [{ id: 'sg-1', name: 'Bordado', is_active: true, tasks: [] }],
+        json: async () => [{ id: 'wt-1', name: 'Bordado', is_active: true, tasks: [] }],
       })
 
-      const result = await mesApi.listServiceGroups()
+      const result = await mesApi.listWorkTypes()
       expect(result).toHaveLength(1)
-      expect(result[0].id).toBe('sg-1')
-    })
-
-    it('should list service templates using alias method', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [{ id: 'sg-2', name: 'Plancha', is_active: true, tasks: [] }],
-      })
-
-      const result = await mesApi.listServiceTemplates()
-      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('wt-1')
       const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/service-groups')
+      expect(url).toContain('/mes/work-types')
     })
   })
 
-  describe('createServiceGroup', () => {
-    it('should create service group successfully', async () => {
+  describe('createWorkType', () => {
+    it('should create work type successfully', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          id: 'sg-1',
+          id: 'wt-1',
           name: 'Serigrafía',
           description: '1 color',
           is_active: true,
@@ -129,16 +119,16 @@ describe('MESApi Service', () => {
         }),
       })
 
-      const result = await mesApi.createServiceGroup({
+      const result = await mesApi.createWorkType({
         name: 'Serigrafía',
         description: '1 color',
         is_active: true,
         task_assignments: [{ task_id: 'task-1', sequence: 1 }],
       })
 
-      expect(result.id).toBe('sg-1')
+      expect(result.id).toBe('wt-1')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/service-groups'),
+        expect.stringContaining('/mes/work-types'),
         expect.objectContaining({ method: 'POST' })
       )
     })
@@ -151,39 +141,16 @@ describe('MESApi Service', () => {
       })
 
       await expect(
-        mesApi.createServiceGroup({
+        mesApi.createWorkType({
           name: 'Invalid',
           task_assignments: [{ task_id: 'task-1', sequence: 0 }],
         })
-      ).rejects.toThrow('No se pudo crear la plantilla de proceso MES')
-    })
-
-    it('should create service template using alias method', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'sg-3',
-          name: 'Vinilo',
-          is_active: true,
-          tasks: [{ task_id: 'task-2', sequence: 1 }],
-        }),
-      })
-
-      const result = await mesApi.createServiceTemplate({
-        name: 'Vinilo',
-        task_assignments: [{ task_id: 'task-2', sequence: 1 }],
-      })
-
-      expect(result.id).toBe('sg-3')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/service-groups'),
-        expect.objectContaining({ method: 'POST' })
-      )
+      ).rejects.toThrow('No se pudo crear el tipo de trabajo MES')
     })
   })
 
-  describe('works', () => {
-    it('should list mes work definitions with filters', async () => {
+  describe('work orders', () => {
+    it('should list work orders with filters', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => [
@@ -192,50 +159,25 @@ describe('MESApi Service', () => {
             work_number: 'MES-2026-001',
             work_name: 'Trabajo A',
             party_id: 'party-1',
-            tangible_group_id: 'group-1',
-            status: 'DRAFT',
+            work_setup_id: 'ws-1',
+            status: 'PENDING',
             priority: 'NORMAL',
-            service_groups: [],
+            lines: [],
           },
         ],
       })
 
-      const result = await mesApi.listWorks({ search: 'Trabajo', status: 'DRAFT' })
+      const result = await mesApi.listWorkOrders({ search: 'Trabajo', status: 'DRAFT' })
 
       expect(result).toHaveLength(1)
       expect(result[0].work_number).toBe('MES-2026-001')
       const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/work-definitions')
+      expect(url).toContain('/mes/work-orders')
       expect(url).toContain('search=Trabajo')
       expect(url).toContain('status=DRAFT')
     })
 
-    it('should list work definitions using alias method', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
-          {
-            id: 'work-11',
-            work_number: 'MES-2026-011',
-            work_name: 'Trabajo Definido A',
-            party_id: 'party-1',
-            tangible_group_id: 'group-1',
-            status: 'DRAFT',
-            priority: 'NORMAL',
-            service_groups: [],
-          },
-        ],
-      })
-
-      const result = await mesApi.listWorkDefinitions({ status: 'DRAFT' })
-
-      expect(result).toHaveLength(1)
-      const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/work-definitions')
-      expect(url).toContain('status=DRAFT')
-    })
-
-    it('should create mes work definition', async () => {
+    it('should create work order', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -243,34 +185,27 @@ describe('MESApi Service', () => {
           work_number: 'MES-2026-002',
           work_name: 'Trabajo B',
           party_id: 'party-1',
-          tangible_group_id: 'group-1',
-          status: 'DRAFT',
+          work_setup_id: 'ws-1',
+          status: 'PENDING',
           priority: 'NORMAL',
-          service_groups: [],
+          lines: [],
         }),
       })
 
-      const result = await mesApi.createWork({
+      const result = await mesApi.createWorkOrder({
         work_name: 'Trabajo B',
         party_id: 'party-1',
-        tangible_group_id: 'group-1',
-        service_group_assignments: [
-          {
-            service_group_id: 'sg-1',
-            position_id: 'pos-1',
-            sequence: 1,
-          },
-        ],
+        work_setup_id: 'ws-1',
       })
 
       expect(result.id).toBe('work-2')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/work-definitions'),
+        expect.stringContaining('/mes/work-orders'),
         expect.objectContaining({ method: 'POST' })
       )
     })
 
-    it('should get mes work definition by id', async () => {
+    it('should get work order by id', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -278,45 +213,22 @@ describe('MESApi Service', () => {
           work_number: 'MES-2026-001',
           work_name: 'Trabajo A',
           party_id: 'party-1',
-          tangible_group_id: 'group-1',
-          status: 'DRAFT',
+          work_setup_id: 'ws-1',
+          status: 'PENDING',
           priority: 'NORMAL',
-          service_groups: [],
+          lines: [],
         }),
       })
 
-      const result = await mesApi.getWork('work-1')
+      const result = await mesApi.getWorkOrder('work-1')
       expect(result.id).toBe('work-1')
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/work-definitions/work-1'),
+        expect.stringContaining('/mes/work-orders/work-1'),
         expect.objectContaining({ method: 'GET' })
       )
     })
 
-    it('should get work definition by id using alias method', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'work-12',
-          work_number: 'MES-2026-012',
-          work_name: 'Trabajo Definido B',
-          party_id: 'party-1',
-          tangible_group_id: 'group-1',
-          status: 'DRAFT',
-          priority: 'NORMAL',
-          service_groups: [],
-        }),
-      })
-
-      const result = await mesApi.getWorkDefinition('work-12')
-      expect(result.id).toBe('work-12')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/work-definitions/work-12'),
-        expect.objectContaining({ method: 'GET' })
-      )
-    })
-
-    it('should propagate create work validation error', async () => {
+    it('should propagate create work order validation error', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -324,48 +236,12 @@ describe('MESApi Service', () => {
       })
 
       await expect(
-        mesApi.createWork({
+        mesApi.createWorkOrder({
           work_name: '',
           party_id: 'party-1',
-          tangible_group_id: 'group-1',
-          service_group_assignments: [{ service_group_id: 'sg-1', position_id: 'pos-1', sequence: 1 }],
+          work_setup_id: 'ws-1',
         })
-      ).rejects.toThrow('No se pudo crear la definición de trabajo MES')
-    })
-
-    it('should create work definition using alias method', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'work-13',
-          work_number: 'MES-2026-013',
-          work_name: 'Trabajo Definido C',
-          party_id: 'party-1',
-          tangible_group_id: 'group-1',
-          status: 'DRAFT',
-          priority: 'NORMAL',
-          service_groups: [],
-        }),
-      })
-
-      const result = await mesApi.createWorkDefinition({
-        work_name: 'Trabajo Definido C',
-        party_id: 'party-1',
-        tangible_group_id: 'group-1',
-        service_group_assignments: [
-          {
-            service_group_id: 'sg-1',
-            position_id: 'pos-1',
-            sequence: 1,
-          },
-        ],
-      })
-
-      expect(result.id).toBe('work-13')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/work-definitions'),
-        expect.objectContaining({ method: 'POST' })
-      )
+      ).rejects.toThrow('No se pudo crear la orden de trabajo MES')
     })
 
     it('should get dashboard stats', async () => {
@@ -379,17 +255,17 @@ describe('MESApi Service', () => {
         }),
       })
 
-      const result = await mesApi.getWorkDashboardStats()
+      const result = await mesApi.getWorkOrderDashboardStats()
 
       expect(result.total).toBe(10)
       expect(result.by_status.IN_PROGRESS).toBe(3)
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/mes/work-definitions/dashboard/stats'),
+        expect.stringContaining('/mes/work-orders/dashboard/stats'),
         expect.objectContaining({ method: 'GET' })
       )
     })
 
-    it('should list overdue works with limit', async () => {
+    it('should list overdue work orders with limit', async () => {
       ;(globalThis.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => [
@@ -398,20 +274,20 @@ describe('MESApi Service', () => {
             work_number: 'MES-2026-009',
             work_name: 'Vencido 1',
             party_id: 'party-1',
-            tangible_group_id: 'group-1',
+            work_setup_id: 'ws-1',
             status: 'IN_PROGRESS',
             priority: 'HIGH',
             due_date: '2026-02-18T00:00:00Z',
-            service_groups: [],
+            lines: [],
           },
         ],
       })
 
-      const result = await mesApi.listOverdueWorks(20)
+      const result = await mesApi.listOverdueWorkOrders(20)
 
       expect(result).toHaveLength(1)
       const url = (globalThis.fetch as any).mock.calls[0][0] as string
-      expect(url).toContain('/mes/work-definitions/overdue')
+      expect(url).toContain('/mes/work-orders/overdue')
       expect(url).toContain('limit=20')
     })
   })

@@ -37,10 +37,21 @@ func (r *GORMQuoteRepository) Save(ctx context.Context, quote *domain.Quote) err
 		if err := tx.Unscoped().Where("quote_id = ?", quote.ID).Delete(&QuoteLineItemDataModel{}).Error; err != nil {
 			return err
 		}
-		if len(items) == 0 {
-			return nil
+		if err := tx.Unscoped().Where("quote_id = ?", quote.ID).Delete(&QuoteWorkRefModel{}).Error; err != nil {
+			return err
 		}
-		return tx.Create(&items).Error
+		if len(items) > 0 {
+			if err := tx.Create(&items).Error; err != nil {
+				return err
+			}
+		}
+		if len(quote.WorkReferences) > 0 {
+			wsModels := quoteWorkRefsFromDomain(quote.ID, quote.WorkReferences)
+			if err := tx.Create(&wsModels).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
@@ -58,11 +69,25 @@ func (r *GORMQuoteRepository) FindByID(ctx context.Context, id uuid.UUID) (*doma
 		return nil, err
 	}
 
-	return quoteToDomain(&data, items)
+	quote, qErr := quoteToDomain(&data, items)
+	if qErr != nil {
+		return nil, qErr
+	}
+
+	workSetups, err := r.loadQuoteWorkSetups(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	quote.WorkReferences = workSetups
+
+	return quote, nil
 }
 
 func (r *GORMQuoteRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Where("quote_id = ?", id).Delete(&QuoteWorkRefModel{}).Error; err != nil {
+			return err
+		}
 		if err := tx.Unscoped().Where("quote_id = ?", id).Delete(&QuoteLineItemDataModel{}).Error; err != nil {
 			return err
 		}
@@ -132,6 +157,11 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 		if err != nil {
 			return nil, err
 		}
+		workSetups, err := r.loadQuoteWorkSetups(ctx, data[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		mapped.WorkReferences = workSetups
 		result = append(result, mapped)
 	}
 	return result, nil
@@ -143,6 +173,20 @@ func (r *GORMQuoteRepository) loadQuoteLineItems(ctx context.Context, quoteID uu
 		return nil, err
 	}
 	return items, nil
+}
+
+func (r *GORMQuoteRepository) loadQuoteWorkSetups(ctx context.Context, quoteID uuid.UUID) ([]domain.WorkReference, error) {
+	var rows []quoteWorkRefRow
+	err := getDB(ctx, r.db).Raw(`
+		SELECT qs.id, qs.work_setup_id, qs.sequence, qs.description
+		FROM quote_work_setups qs
+		WHERE qs.quote_id = ? AND qs.deleted_at IS NULL
+		ORDER BY qs.sequence ASC
+	`, quoteID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return quoteWorkRefRowsToDomain(rows), nil
 }
 
 type GORMSalesOrderRepository struct {
@@ -200,6 +244,17 @@ func (r *GORMSalesOrderRepository) Save(ctx context.Context, order *domain.Sales
 				return err
 			}
 		}
+
+		// Replace work setups
+		if err := tx.Unscoped().Where("order_id = ?", order.ID).Delete(&OrderWorkRefModel{}).Error; err != nil {
+			return err
+		}
+		if len(order.WorkReferences) > 0 {
+			wsModels := orderWorkRefsFromDomain(order.ID, order.WorkReferences)
+			if err := tx.Create(&wsModels).Error; err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 }
@@ -218,7 +273,18 @@ func (r *GORMSalesOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (
 		return nil, err
 	}
 
-	return salesOrderToDomain(&data, items)
+	order, oErr := salesOrderToDomain(&data, items)
+	if oErr != nil {
+		return nil, oErr
+	}
+
+	workSetups, err := r.loadOrderWorkSetups(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	order.WorkReferences = workSetups
+
+	return order, nil
 }
 
 func (r *GORMSalesOrderRepository) FindByIDForUpdate(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
@@ -235,7 +301,18 @@ func (r *GORMSalesOrderRepository) FindByIDForUpdate(ctx context.Context, id uui
 		return nil, err
 	}
 
-	return salesOrderToDomain(&data, items)
+	order, oErr := salesOrderToDomain(&data, items)
+	if oErr != nil {
+		return nil, oErr
+	}
+
+	workSetups, err := r.loadOrderWorkSetups(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	order.WorkReferences = workSetups
+
+	return order, nil
 }
 
 func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.SalesOrderFilter) ([]*domain.SalesOrder, error) {
@@ -300,6 +377,11 @@ func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.Sales
 		if err != nil {
 			return nil, err
 		}
+		workSetups, err := r.loadOrderWorkSetups(ctx, data[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		mapped.WorkReferences = workSetups
 		result = append(result, mapped)
 	}
 	return result, nil
@@ -319,7 +401,18 @@ func (r *GORMSalesOrderRepository) FindByQuoteID(ctx context.Context, quoteID uu
 		return nil, err
 	}
 
-	return salesOrderToDomain(&data, items)
+	order, oErr := salesOrderToDomain(&data, items)
+	if oErr != nil {
+		return nil, oErr
+	}
+
+	workSetups, err := r.loadOrderWorkSetups(ctx, data.ID)
+	if err != nil {
+		return nil, err
+	}
+	order.WorkReferences = workSetups
+
+	return order, nil
 }
 
 func (r *GORMSalesOrderRepository) loadOrderLineItems(ctx context.Context, orderID uuid.UUID) ([]OrderLineItemDataModel, error) {
@@ -328,6 +421,20 @@ func (r *GORMSalesOrderRepository) loadOrderLineItems(ctx context.Context, order
 		return nil, err
 	}
 	return items, nil
+}
+
+func (r *GORMSalesOrderRepository) loadOrderWorkSetups(ctx context.Context, orderID uuid.UUID) ([]domain.WorkReference, error) {
+	var rows []orderWorkRefRow
+	err := getDB(ctx, r.db).Raw(`
+		SELECT os.id, os.work_setup_id, os.work_order_id, os.sequence, os.description
+		FROM order_work_setups os
+		WHERE os.order_id = ? AND os.deleted_at IS NULL
+		ORDER BY os.sequence ASC
+	`, orderID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	return orderWorkRefRowsToDomain(rows), nil
 }
 
 type GORMDeliveryNoteRepository struct {
@@ -713,6 +820,21 @@ func (r *GORMInvoiceRepository) ListDeliveryNoteIDsByInvoiceID(ctx context.Conte
 		Where("invoice_line_items.invoice_id = ?", invoiceID).
 		Distinct("delivery_note_line_items.delivery_note_id").
 		Pluck("delivery_note_line_items.delivery_note_id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+func (r *GORMInvoiceRepository) ListOrderIDsByInvoiceID(ctx context.Context, invoiceID uuid.UUID) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := getDB(ctx, r.db).
+		Model(&DeliveryNoteDataModel{}).
+		Select("DISTINCT delivery_notes.sales_order_id").
+		Joins("JOIN delivery_note_line_items ON delivery_note_line_items.delivery_note_id = delivery_notes.id").
+		Joins("JOIN invoice_line_items ON invoice_line_items.id = delivery_note_line_items.invoice_line_item_id").
+		Where("invoice_line_items.invoice_id = ?", invoiceID).
+		Pluck("delivery_notes.sales_order_id", &ids).Error
 	if err != nil {
 		return nil, err
 	}

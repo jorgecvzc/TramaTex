@@ -291,6 +291,15 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *SalesHandler) ListPendingWorkSetups(c *gin.Context) {
+	result, err := h.service.ListPendingWorkSetups(c.Request.Context())
+	if err != nil {
+		handleSalesError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *SalesHandler) UpdateOrderDetails(c *gin.Context) {
 	id, ok := parseUUIDParam(c, "id")
 	if !ok {
