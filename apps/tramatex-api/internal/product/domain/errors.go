@@ -28,6 +28,23 @@ func (e ProductError) Unwrap() error {
 	return e.Cause
 }
 
+// HTTPStatus returns the HTTP status code corresponding to this error.
+// Implements shared/domain.HTTPStatuser for global middleware handling.
+func (e ProductError) HTTPStatus() int {
+	switch e.Code {
+	case ErrCodeValidation:
+		return 400
+	case ErrCodeNotFound:
+		return 404
+	case ErrCodeConflict:
+		return 409
+	case ErrCodePersistence:
+		return 500
+	default:
+		return 500
+	}
+}
+
 func NewValidationError(message string) error {
 	return ProductError{Code: ErrCodeValidation, Message: message}
 }

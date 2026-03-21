@@ -115,7 +115,7 @@ func (s *MESService) GetTaskByID(ctx context.Context, query GetTaskByIDQuery) (*
 		return nil, fmt.Errorf("find task by id: %w", err)
 	}
 	if task == nil {
-		return nil, fmt.Errorf("task not found")
+		return nil, domain.NewNotFoundError("task not found")
 	}
 
 	return toTaskDTO(task), nil
@@ -143,7 +143,7 @@ func (s *MESService) UpdateTask(ctx context.Context, cmd UpdateTaskCommand) (*Ta
 		return nil, fmt.Errorf("find task for update: %w", err)
 	}
 	if task == nil {
-		return nil, fmt.Errorf("task not found")
+		return nil, domain.NewNotFoundError("task not found")
 	}
 
 	if cmd.Name != nil {
@@ -201,7 +201,7 @@ func (s *MESService) GetPositionByID(ctx context.Context, query GetPositionByIDQ
 		return nil, fmt.Errorf("find position by id: %w", err)
 	}
 	if position == nil {
-		return nil, fmt.Errorf("position not found")
+		return nil, domain.NewNotFoundError("position not found")
 	}
 
 	return toPositionDTO(position), nil
@@ -229,7 +229,7 @@ func (s *MESService) UpdatePosition(ctx context.Context, cmd UpdatePositionComma
 		return nil, fmt.Errorf("find position for update: %w", err)
 	}
 	if position == nil {
-		return nil, fmt.Errorf("position not found")
+		return nil, domain.NewNotFoundError("position not found")
 	}
 
 	if cmd.Name != nil {
@@ -292,7 +292,7 @@ func (s *MESService) GetWorkTypeByID(ctx context.Context, query GetWorkTypeByIDQ
 		return nil, fmt.Errorf("find work type by id: %w", err)
 	}
 	if workType == nil {
-		return nil, fmt.Errorf("work type not found")
+		return nil, domain.NewNotFoundError("work type not found")
 	}
 
 	return toWorkTypeDTO(workType), nil
@@ -320,7 +320,7 @@ func (s *MESService) UpdateWorkType(ctx context.Context, cmd UpdateWorkTypeComma
 		return nil, fmt.Errorf("find work type for update: %w", err)
 	}
 	if workType == nil {
-		return nil, fmt.Errorf("work type not found")
+		return nil, domain.NewNotFoundError("work type not found")
 	}
 
 	if cmd.Name != nil {
@@ -454,7 +454,7 @@ func (s *MESService) CreateWorkOrder(ctx context.Context, cmd CreateWorkOrderCom
 			return nil, fmt.Errorf("find work setup: %w", wsErr)
 		}
 		if workSetup == nil {
-			return nil, fmt.Errorf("work setup not found")
+			return nil, domain.NewNotFoundError("work setup not found")
 		}
 		if len(workSetup.Lines) == 0 {
 			return nil, fmt.Errorf("work setup has no lines configured")
@@ -526,7 +526,7 @@ func (s *MESService) UpdateWorkOrder(ctx context.Context, cmd UpdateWorkOrderCom
 		return nil, fmt.Errorf("find work order for update: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("work order not found")
+		return nil, domain.NewNotFoundError("work order not found")
 	}
 
 	if cmd.WorkName != nil {
@@ -578,7 +578,7 @@ func (s *MESService) UpdateWorkOrder(ctx context.Context, cmd UpdateWorkOrderCom
 			return nil, fmt.Errorf("find work setup: %w", wsErr)
 		}
 		if workSetup == nil {
-			return nil, fmt.Errorf("work setup not found")
+			return nil, domain.NewNotFoundError("work setup not found")
 		}
 		if len(workSetup.Lines) == 0 {
 			return nil, fmt.Errorf("work setup has no lines configured")
@@ -632,7 +632,7 @@ func (s *MESService) UpdateWorkOrderTaskStatus(ctx context.Context, cmd UpdateWo
 		return nil, fmt.Errorf("find work order for task update: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("work order not found")
+		return nil, domain.NewNotFoundError("work order not found")
 	}
 
 	action := strings.ToUpper(strings.TrimSpace(cmd.Action))
@@ -735,7 +735,7 @@ func (s *MESService) GetWorkOrderByID(ctx context.Context, query GetWorkOrderByI
 		return nil, fmt.Errorf("find work order by id: %w", err)
 	}
 	if work == nil {
-		return nil, fmt.Errorf("work order not found")
+		return nil, domain.NewNotFoundError("work order not found")
 	}
 	dto := toWorkOrderDTO(work)
 	dtos := []WorkOrderDTO{*dto}
@@ -1083,7 +1083,7 @@ func (s *MESService) GetWorkSetupByID(ctx context.Context, query GetWorkSetupByI
 		return nil, fmt.Errorf("find work setup by id: %w", err)
 	}
 	if ws == nil {
-		return nil, fmt.Errorf("work setup not found")
+		return nil, domain.NewNotFoundError("work setup not found")
 	}
 
 	return toWorkSetupDTO(ws), nil
@@ -1112,7 +1112,7 @@ func (s *MESService) UpdateWorkSetup(ctx context.Context, cmd UpdateWorkSetupCom
 		return nil, fmt.Errorf("find work setup for update: %w", err)
 	}
 	if ws == nil {
-		return nil, fmt.Errorf("work setup not found")
+		return nil, domain.NewNotFoundError("work setup not found")
 	}
 
 	if cmd.Name != nil {
@@ -1193,3 +1193,4 @@ func toWorkSetupDTO(ws *domain.WorkSetup) *WorkSetupDTO {
 		Lines:           lines,
 	}
 }
+

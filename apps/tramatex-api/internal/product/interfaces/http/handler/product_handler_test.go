@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/application"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
+	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -317,6 +318,7 @@ func registerProductRoutes(router *gin.Engine, handler *ProductHandler) {
 
 func newTestRouter(handler *ProductHandler) *gin.Engine {
 	router := gin.New()
+	router.Use(infra_middleware.ErrorHandlerMiddleware("development"))
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), "actorID", "test-actor")
 		c.Request = c.Request.WithContext(ctx)

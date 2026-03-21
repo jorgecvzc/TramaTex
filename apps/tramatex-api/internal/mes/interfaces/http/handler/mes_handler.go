@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -28,18 +27,6 @@ func actorIDFromContext(c *gin.Context) (string, bool) {
 		return "", false
 	}
 	return actorID, true
-}
-
-func mapServiceError(c *gin.Context, err error) {
-	if err == nil {
-		return
-	}
-	message := err.Error()
-	if strings.Contains(message, "not found") {
-		c.JSON(http.StatusNotFound, gin.H{"error": message})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"error": message})
 }
 
 func parseID(c *gin.Context, name string) (uuid.UUID, bool) {
@@ -68,7 +55,7 @@ func (h *MESHandler) CreateTask(c *gin.Context) {
 
 	result, err := h.service.CreateTask(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -82,7 +69,7 @@ func (h *MESHandler) GetTask(c *gin.Context) {
 
 	result, err := h.service.GetTaskByID(c.Request.Context(), application.GetTaskByIDQuery{ID: id})
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -97,7 +84,7 @@ func (h *MESHandler) ListTasks(c *gin.Context) {
 
 	results, err := h.service.ListTasks(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -125,7 +112,7 @@ func (h *MESHandler) UpdateTask(c *gin.Context) {
 
 	result, err := h.service.UpdateTask(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -144,7 +131,7 @@ func (h *MESHandler) DeleteTask(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteTask(c.Request.Context(), application.DeleteTaskCommand{ActorID: actorID, ID: id}); err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -167,7 +154,7 @@ func (h *MESHandler) CreatePosition(c *gin.Context) {
 
 	result, err := h.service.CreatePosition(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -181,7 +168,7 @@ func (h *MESHandler) GetPosition(c *gin.Context) {
 
 	result, err := h.service.GetPositionByID(c.Request.Context(), application.GetPositionByIDQuery{ID: id})
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -196,7 +183,7 @@ func (h *MESHandler) ListPositions(c *gin.Context) {
 
 	results, err := h.service.ListPositions(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -224,7 +211,7 @@ func (h *MESHandler) UpdatePosition(c *gin.Context) {
 
 	result, err := h.service.UpdatePosition(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -243,7 +230,7 @@ func (h *MESHandler) DeletePosition(c *gin.Context) {
 	}
 
 	if err := h.service.DeletePosition(c.Request.Context(), application.DeletePositionCommand{ActorID: actorID, ID: id}); err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -267,7 +254,7 @@ func (h *MESHandler) CreateWorkType(c *gin.Context) {
 
 	result, err := h.service.CreateWorkType(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -289,7 +276,7 @@ func (h *MESHandler) CreateWorkOrder(c *gin.Context) {
 
 	result, err := h.service.CreateWorkOrder(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -318,7 +305,7 @@ func (h *MESHandler) UpdateWorkOrder(c *gin.Context) {
 
 	result, err := h.service.UpdateWorkOrder(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -333,7 +320,7 @@ func (h *MESHandler) GetWorkOrder(c *gin.Context) {
 
 	result, err := h.service.GetWorkOrderByID(c.Request.Context(), application.GetWorkOrderByIDQuery{ID: id})
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -348,7 +335,7 @@ func (h *MESHandler) ListWorkOrders(c *gin.Context) {
 
 	results, err := h.service.ListWorkOrders(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -357,7 +344,7 @@ func (h *MESHandler) ListWorkOrders(c *gin.Context) {
 func (h *MESHandler) GetWorkOrderDashboardStats(c *gin.Context) {
 	result, err := h.service.GetWorkOrderDashboardStats(c.Request.Context())
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -372,7 +359,7 @@ func (h *MESHandler) ListOverdueWorkOrders(c *gin.Context) {
 
 	results, err := h.service.ListOverdueWorkOrders(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -407,7 +394,7 @@ func (h *MESHandler) UpdateWorkOrderTaskStatus(c *gin.Context) {
 
 	result, err := h.service.UpdateWorkOrderTaskStatus(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -422,7 +409,7 @@ func (h *MESHandler) GetWorkType(c *gin.Context) {
 
 	result, err := h.service.GetWorkTypeByID(c.Request.Context(), application.GetWorkTypeByIDQuery{ID: id})
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -437,7 +424,7 @@ func (h *MESHandler) ListWorkTypes(c *gin.Context) {
 
 	results, err := h.service.ListWorkTypes(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -465,7 +452,7 @@ func (h *MESHandler) UpdateWorkType(c *gin.Context) {
 
 	result, err := h.service.UpdateWorkType(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -484,7 +471,7 @@ func (h *MESHandler) DeleteWorkType(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteWorkType(c.Request.Context(), application.DeleteWorkTypeCommand{ActorID: actorID, ID: id}); err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -508,7 +495,7 @@ func (h *MESHandler) CreateWorkSetup(c *gin.Context) {
 
 	result, err := h.service.CreateWorkSetup(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusCreated, result)
@@ -522,7 +509,7 @@ func (h *MESHandler) GetWorkSetup(c *gin.Context) {
 
 	result, err := h.service.GetWorkSetupByID(c.Request.Context(), application.GetWorkSetupByIDQuery{ID: id})
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -537,7 +524,7 @@ func (h *MESHandler) ListWorkSetups(c *gin.Context) {
 
 	results, err := h.service.ListWorkSetups(c.Request.Context(), query)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, results)
@@ -565,7 +552,7 @@ func (h *MESHandler) UpdateWorkSetup(c *gin.Context) {
 
 	result, err := h.service.UpdateWorkSetup(c.Request.Context(), cmd)
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -584,7 +571,7 @@ func (h *MESHandler) DeleteWorkSetup(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteWorkSetup(c.Request.Context(), application.DeleteWorkSetupCommand{ActorID: actorID, ID: id}); err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -595,7 +582,7 @@ func (h *MESHandler) DeleteWorkSetup(c *gin.Context) {
 func (h *MESHandler) ListPendingWorkSetups(c *gin.Context) {
 	result, err := h.service.ListPendingWorkSetups(c.Request.Context())
 	if err != nil {
-		mapServiceError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)

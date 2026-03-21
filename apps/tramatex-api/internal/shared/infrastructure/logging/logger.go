@@ -9,6 +9,10 @@ import (
 // Logger is the application-wide structured logger
 var Logger *logrus.Logger
 
+func init() {
+	Logger = logrus.New()
+}
+
 // InitLogger initializes the global logger with configuration based on environment
 func InitLogger(env string) {
 	Logger = logrus.New()

@@ -35,7 +35,7 @@ func (s *WorkOrderQueryService) GetWorkOrderProgress(ctx context.Context, workOr
 		return nil, fmt.Errorf("find work order: %w", err)
 	}
 	if wo == nil {
-		return nil, fmt.Errorf("work order not found: %s", workOrderID)
+		return nil, domain.NewNotFoundError(fmt.Sprintf("work order not found: %s", workOrderID))
 	}
 
 	// Build task name lookup for enrichment
@@ -155,3 +155,4 @@ func (s *WorkOrderQueryService) toProgressDTO(wo *domain.WorkOrder, taskNames ma
 		CompletedTasks: completedTasks,
 	}
 }
+

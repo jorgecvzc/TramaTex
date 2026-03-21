@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/joran-cortez/tramatex/internal/sales/application"
-	"github.com/joran-cortez/tramatex/internal/sales/domain"
 )
 
 type SalesHandler struct {
@@ -31,7 +29,7 @@ func (h *SalesHandler) CreateQuote(c *gin.Context) {
 
 	result, err := h.service.CreateQuote(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -46,7 +44,7 @@ func (h *SalesHandler) GetQuote(c *gin.Context) {
 
 	result, err := h.service.GetQuote(c.Request.Context(), application.GetQuoteByIDQuery{ID: id})
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -82,7 +80,7 @@ func (h *SalesHandler) ListQuotes(c *gin.Context) {
 
 	result, err := h.service.ListQuotes(c.Request.Context(), query)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -104,7 +102,7 @@ func (h *SalesHandler) UpdateQuote(c *gin.Context) {
 
 	result, err := h.service.UpdateQuote(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -126,7 +124,7 @@ func (h *SalesHandler) ChangeQuoteStatus(c *gin.Context) {
 
 	result, err := h.service.ChangeQuoteStatus(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -141,7 +139,7 @@ func (h *SalesHandler) DeleteQuote(c *gin.Context) {
 
 	cmd := application.DeleteQuoteCommand{QuoteID: id}
 	if err := h.service.DeleteQuote(c.Request.Context(), cmd); err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -157,7 +155,7 @@ func (h *SalesHandler) PreviewQuoteCalculation(c *gin.Context) {
 
 	result, err := h.service.PreviewQuoteCalculation(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -173,7 +171,7 @@ func (h *SalesHandler) PreviewOrderCalculation(c *gin.Context) {
 
 	result, err := h.service.PreviewOrderCalculation(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -195,7 +193,7 @@ func (h *SalesHandler) ConvertQuoteToOrder(c *gin.Context) {
 
 	result, err := h.service.ConvertQuoteToOrder(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -217,7 +215,7 @@ func (h *SalesHandler) AcceptAndConvertQuote(c *gin.Context) {
 
 	result, err := h.service.AcceptAndConvertQuote(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -233,7 +231,7 @@ func (h *SalesHandler) CreateOrder(c *gin.Context) {
 
 	result, err := h.service.CreateOrder(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -248,7 +246,7 @@ func (h *SalesHandler) GetOrder(c *gin.Context) {
 
 	result, err := h.service.GetOrder(c.Request.Context(), application.GetOrderByIDQuery{ID: id})
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -284,7 +282,7 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 
 	result, err := h.service.ListOrders(c.Request.Context(), query)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -294,7 +292,7 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 func (h *SalesHandler) ListPendingWorkSetups(c *gin.Context) {
 	result, err := h.service.ListPendingWorkSetups(c.Request.Context())
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -315,7 +313,7 @@ func (h *SalesHandler) UpdateOrderDetails(c *gin.Context) {
 
 	result, err := h.service.UpdateOrderDetails(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -337,7 +335,7 @@ func (h *SalesHandler) ChangeOrderStatus(c *gin.Context) {
 
 	result, err := h.service.ChangeOrderStatus(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -359,7 +357,7 @@ func (h *SalesHandler) AddOrderLineItem(c *gin.Context) {
 
 	result, err := h.service.AddOrderLineItem(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -386,7 +384,7 @@ func (h *SalesHandler) UpdateOrderLineItem(c *gin.Context) {
 
 	result, err := h.service.UpdateOrderLineItem(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -410,7 +408,7 @@ func (h *SalesHandler) RemoveOrderLineItem(c *gin.Context) {
 
 	result, err := h.service.RemoveOrderLineItem(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -426,7 +424,7 @@ func (h *SalesHandler) CreateDeliveryNote(c *gin.Context) {
 
 	result, err := h.service.CreateDeliveryNote(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -441,7 +439,7 @@ func (h *SalesHandler) GetDeliveryNote(c *gin.Context) {
 
 	result, err := h.service.GetDeliveryNote(c.Request.Context(), application.GetDeliveryNoteByIDQuery{ID: id})
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -480,7 +478,7 @@ func (h *SalesHandler) ListDeliveryNotes(c *gin.Context) {
 
 	result, err := h.service.ListDeliveryNotes(c.Request.Context(), query)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -496,7 +494,7 @@ func (h *SalesHandler) CreateInvoice(c *gin.Context) {
 
 	result, err := h.service.CreateInvoice(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -514,7 +512,7 @@ func (h *SalesHandler) CreateSimplifiedInvoice(c *gin.Context) {
 
 	result, err := h.service.CreateSimplifiedInvoice(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -536,7 +534,7 @@ func (h *SalesHandler) ChangeDeliveryNoteStatus(c *gin.Context) {
 
 	result, err := h.service.ChangeDeliveryNoteStatus(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -551,7 +549,7 @@ func (h *SalesHandler) GetInvoice(c *gin.Context) {
 
 	result, err := h.service.GetInvoice(c.Request.Context(), application.GetInvoiceByIDQuery{ID: id})
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -573,7 +571,7 @@ func (h *SalesHandler) ChangeInvoiceStatus(c *gin.Context) {
 
 	result, err := h.service.ChangeInvoiceStatus(c.Request.Context(), cmd)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -615,36 +613,11 @@ func (h *SalesHandler) ListInvoices(c *gin.Context) {
 
 	result, err := h.service.ListInvoices(c.Request.Context(), query)
 	if err != nil {
-		handleSalesError(c, err)
+		_ = c.Error(err)
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
-}
-
-func handleSalesError(c *gin.Context, err error) {
-	var domainErr domain.DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case domain.ErrCodeValidation:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		case domain.ErrCodeNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		case domain.ErrCodeConflict:
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-			return
-		case domain.ErrCodeConfiguration:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
 func parseUUIDParam(c *gin.Context, name string) (uuid.UUID, bool) {
