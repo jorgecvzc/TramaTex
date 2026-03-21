@@ -122,7 +122,6 @@ func (s *SalesService) CreateDeliveryNote(ctx context.Context, cmd CreateDeliver
 	return result, nil
 }
 
-
 func (s *SalesService) GetDeliveryNote(ctx context.Context, query GetDeliveryNoteByIDQuery) (*DeliveryNoteDTO, error) {
 	note, err := s.deliveryRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -145,7 +144,6 @@ func (s *SalesService) GetDeliveryNote(ctx context.Context, query GetDeliveryNot
 	}
 	return dto, nil
 }
-
 
 func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDeliveryNotesQuery) ([]*DeliveryNoteDTO, error) {
 	filter := domain.DeliveryNoteFilter{
@@ -176,7 +174,6 @@ func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDelivery
 	return result, nil
 }
 
-
 func (s *SalesService) ChangeDeliveryNoteStatus(ctx context.Context, cmd ChangeDeliveryNoteStatusCommand) (*DeliveryNoteDTO, error) {
 	note, err := s.deliveryRepo.FindByID(ctx, cmd.DeliveryNoteID)
 	if err != nil {
@@ -202,12 +199,10 @@ func (s *SalesService) ChangeDeliveryNoteStatus(ctx context.Context, cmd ChangeD
 	return dto, nil
 }
 
-
 func parseDeliveryNoteStatus(input string) (domain.DeliveryNoteStatus, error) {
 	value := domain.DeliveryNoteStatus(strings.ToUpper(strings.TrimSpace(input)))
 	return value, value.IsValid()
 }
-
 
 func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUID) (map[uuid.UUID]int, error) {
 	results := make(map[uuid.UUID]int)
@@ -226,7 +221,6 @@ func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUI
 	return results, nil
 }
 
-
 func isOrderFullyDelivered(items []domain.OrderLineItem, previous map[uuid.UUID]int, newItems []domain.DeliveryNoteLineItem) bool {
 	current := make(map[uuid.UUID]int)
 	for id, qty := range previous {
@@ -243,11 +237,8 @@ func isOrderFullyDelivered(items []domain.OrderLineItem, previous map[uuid.UUID]
 	return true
 }
 
-
 func (s *SalesService) enrichDeliveryNoteLineItems(ctx context.Context, items []DeliveryNoteLineItemDTO) {
 	for i := range items {
 		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
 	}
 }
-
-

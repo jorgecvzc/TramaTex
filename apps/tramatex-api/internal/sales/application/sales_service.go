@@ -100,7 +100,6 @@ type SalesService struct {
 	txManager               TransactionManager
 }
 
-
 func NewSalesService(
 	quoteRepo domain.QuoteRepository,
 	orderRepo domain.SalesOrderRepository,
@@ -192,7 +191,6 @@ func (s *SalesService) processMesWorkRefs(_ context.Context, _ uuid.UUID, inputs
 	return refs, nil
 }
 
-
 func (s *SalesService) ensurePartyExists(ctx context.Context, partyID uuid.UUID) error {
 	if s.partyLookup == nil {
 		return nil
@@ -222,16 +220,13 @@ type orderLineItemSeed struct {
 	DiscountPercent  *float64
 }
 
-
 func toDomainMoney(dto pricing_app.MoneyDTO) (domain.Money, error) {
 	return domain.NewMoney(dto.Amount, dto.Currency)
 }
 
-
 func zeroMoney() (domain.Money, error) {
 	return domain.NewMoney(0, domain.DefaultCurrency)
 }
-
 
 func (s *SalesService) lookupVariant(ctx context.Context, variantID uuid.UUID) (string, string, map[string]string) {
 	if s.productLookup == nil {
@@ -243,5 +238,3 @@ func (s *SalesService) lookupVariant(ctx context.Context, variantID uuid.UUID) (
 	}
 	return info.ProductName, info.VariantSKU, info.OptionConfiguration
 }
-
-

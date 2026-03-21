@@ -79,7 +79,6 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 	return dto, nil
 }
 
-
 func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) (*QuoteDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
 	if err != nil {
@@ -134,7 +133,6 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 	return NewQuoteDTO(quote), nil
 }
 
-
 func (s *SalesService) PreviewQuoteCalculation(ctx context.Context, cmd PreviewQuoteCommand) (*QuotePreviewDTO, error) {
 	if cmd.PartyID == uuid.Nil {
 		return nil, domain.NewValidationError("partyId is required")
@@ -187,7 +185,6 @@ func (s *SalesService) PreviewQuoteCalculation(ctx context.Context, cmd PreviewQ
 	}, nil
 }
 
-
 func (s *SalesService) ChangeQuoteStatus(ctx context.Context, cmd ChangeQuoteStatusCommand) (*QuoteDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
 	if err != nil {
@@ -212,7 +209,6 @@ func (s *SalesService) ChangeQuoteStatus(ctx context.Context, cmd ChangeQuoteSta
 	return NewQuoteDTO(quote), nil
 }
 
-
 func (s *SalesService) DeleteQuote(ctx context.Context, cmd DeleteQuoteCommand) error {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
 	if err != nil {
@@ -227,7 +223,6 @@ func (s *SalesService) DeleteQuote(ctx context.Context, cmd DeleteQuoteCommand) 
 
 	return s.quoteRepo.Delete(ctx, cmd.QuoteID)
 }
-
 
 func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuoteToOrderCommand) (*SalesOrderDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
@@ -260,7 +255,6 @@ func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuote
 
 	return NewSalesOrderDTO(order), nil
 }
-
 
 func (s *SalesService) AcceptAndConvertQuote(ctx context.Context, cmd AcceptAndConvertQuoteCommand) (*SalesOrderDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, cmd.QuoteID)
@@ -299,7 +293,6 @@ func (s *SalesService) AcceptAndConvertQuote(ctx context.Context, cmd AcceptAndC
 	return NewSalesOrderDTO(order), nil
 }
 
-
 func (s *SalesService) GetQuote(ctx context.Context, query GetQuoteByIDQuery) (*QuoteDTO, error) {
 	quote, err := s.quoteRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -314,7 +307,6 @@ func (s *SalesService) GetQuote(ctx context.Context, query GetQuoteByIDQuery) (*
 	return dto, nil
 }
 
-
 func (s *SalesService) enrichQuoteWithOrderInfo(ctx context.Context, dto *QuoteDTO) {
 	order, err := s.orderRepo.FindByQuoteID(ctx, dto.ID)
 	if err != nil || order == nil {
@@ -323,7 +315,6 @@ func (s *SalesService) enrichQuoteWithOrderInfo(ctx context.Context, dto *QuoteD
 	dto.GeneratedOrderID = &order.ID
 	dto.GeneratedOrderNumber = order.OrderNumber.String()
 }
-
 
 func (s *SalesService) ListQuotes(ctx context.Context, query ListQuotesQuery) ([]*QuoteDTO, error) {
 	filter := domain.QuoteFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search, Limit: query.PageSize}
@@ -346,7 +337,6 @@ func (s *SalesService) ListQuotes(ctx context.Context, query ListQuotesQuery) ([
 	}
 	return result, nil
 }
-
 
 func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUID, items []QuoteLineItemInput) ([]domain.QuoteLineItem, error) {
 	if s.pricingEngine == nil {
@@ -451,7 +441,6 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 	return lineItems, nil
 }
 
-
 func sumQuoteLineItemTaxes(items []domain.QuoteLineItem) (domain.Money, error) {
 	total, err := zeroMoney()
 	if err != nil {
@@ -466,17 +455,13 @@ func sumQuoteLineItemTaxes(items []domain.QuoteLineItem) (domain.Money, error) {
 	return total, nil
 }
 
-
 func parseQuoteStatus(input string) (domain.QuoteStatus, error) {
 	value := domain.QuoteStatus(strings.ToUpper(strings.TrimSpace(input)))
 	return value, value.IsValid()
 }
-
 
 func (s *SalesService) enrichQuoteLineItems(ctx context.Context, items []QuoteLineItemDTO) {
 	for i := range items {
 		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
 	}
 }
-
-

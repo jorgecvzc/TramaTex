@@ -148,7 +148,6 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 	return result, nil
 }
 
-
 func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery) (*InvoiceDTO, error) {
 	invoice, err := s.invoiceRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -163,7 +162,6 @@ func (s *SalesService) GetInvoice(ctx context.Context, query GetInvoiceByIDQuery
 	s.enrichInvoiceLineItems(ctx, dto.LineItems)
 	return dto, nil
 }
-
 
 func (s *SalesService) ChangeInvoiceStatus(ctx context.Context, cmd ChangeInvoiceStatusCommand) (*InvoiceDTO, error) {
 	invoice, err := s.invoiceRepo.FindByID(ctx, cmd.InvoiceID)
@@ -188,7 +186,6 @@ func (s *SalesService) ChangeInvoiceStatus(ctx context.Context, cmd ChangeInvoic
 
 	return NewInvoiceDTO(invoice, nil, nil), nil
 }
-
 
 func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery) ([]*InvoiceDTO, error) {
 	var invoices []*domain.Invoice
@@ -227,7 +224,6 @@ func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery
 	return result, nil
 }
 
-
 func sumInvoiceLineItemTaxes(items []domain.InvoiceLineItem) (domain.Money, error) {
 	total, err := zeroMoney()
 	if err != nil {
@@ -245,12 +241,10 @@ func sumInvoiceLineItemTaxes(items []domain.InvoiceLineItem) (domain.Money, erro
 	return total, nil
 }
 
-
 func parseInvoiceStatus(input string) (domain.InvoiceStatus, error) {
 	value := domain.InvoiceStatus(strings.ToUpper(strings.TrimSpace(input)))
 	return value, value.IsValid()
 }
-
 
 func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (domain.InvoiceLineItem, error) {
 	var discount *domain.Money
@@ -272,7 +266,6 @@ func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (dom
 	lineItem.SalesOrderLineItemID = &item.ID
 	return lineItem, nil
 }
-
 
 func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.UUID, orderIDs []uuid.UUID) ([]*domain.SalesOrder, error) {
 	orders := make([]*domain.SalesOrder, 0, len(orderIDs))
@@ -297,7 +290,6 @@ func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.U
 	}
 	return orders, nil
 }
-
 
 func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, partyID uuid.UUID, noteIDs []uuid.UUID) ([]domain.InvoiceLineItem, []uuid.UUID, map[uuid.UUID]uuid.UUID, error) {
 	lineItems := make([]domain.InvoiceLineItem, 0)
@@ -347,7 +339,6 @@ func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, p
 
 	return lineItems, orderIDs, dnToInvoiceLinks, nil
 }
-
 
 func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder, newInvoiceItems []domain.InvoiceLineItem) error {
 	if order.Status == domain.SalesOrderStatusCanceled {
@@ -532,10 +523,8 @@ func (s *SalesService) CreateSimplifiedInvoice(ctx context.Context, cmd CreateSi
 
 // --- Product variant enrichment helpers ---
 
-
 func (s *SalesService) enrichInvoiceLineItems(ctx context.Context, items []InvoiceLineItemDTO) {
 	for i := range items {
 		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
 	}
 }
-
