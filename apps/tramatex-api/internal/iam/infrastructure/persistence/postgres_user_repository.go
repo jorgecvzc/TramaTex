@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/repository"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func NewPostgresUserRepository(db *gorm.DB) repository.Repository {
 
 // ByID retrieves a user by their unique identifier
 // Returns model.ErrUserNotFound if user does not exist or is deleted
-func (r *PostgresUserRepository) ByID(ctx context.Context, id string) (*model.User, error) {
+func (r *PostgresUserRepository) ByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	var dbModel UserModel
 
 	if err := r.db.WithContext(ctx).
@@ -62,7 +63,7 @@ func (r *PostgresUserRepository) Save(ctx context.Context, u *model.User) error 
 	}
 
 	dbModel := UserModel{
-		ID:           u.ID(),
+		ID:           u.ID().String(),
 		Email:        u.Email().Value(),
 		PasswordHash: u.Password().Hash(),
 		Role:         string(u.Role()),
@@ -79,8 +80,8 @@ func (r *PostgresUserRepository) Save(ctx context.Context, u *model.User) error 
 
 // Delete performs a soft delete of a user
 // Sets deleted_at timestamp instead of removing the record
-func (r *PostgresUserRepository) Delete(ctx context.Context, id string) error {
-	if id == "" {
+func (r *PostgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
 		return fmt.Errorf("user id cannot be empty")
 	}
 
@@ -134,5 +135,9 @@ func (r *PostgresUserRepository) modelToDomain(dbModel *UserModel) (*model.User,
 	password := model.NewPasswordFromHash(dbModel.PasswordHash)
 
 	// Crear user entity con los value objects
-	return model.NewUser(dbModel.ID, email, password, model.Role(dbModel.Role))
+	parsedID, err := uuid.Parse(dbModel.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id in database: %w", err)
+	}
+	return model.NewUser(parsedID, email, password, model.Role(dbModel.Role))
 }

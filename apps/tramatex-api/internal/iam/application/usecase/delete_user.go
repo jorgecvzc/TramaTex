@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	domain_repo "github.com/joran-cortez/tramatex/internal/iam/domain/repository"
 )
 
@@ -23,7 +24,12 @@ func (uc *DeleteUserUseCase) Execute(ctx context.Context, userID string) error {
 		return fmt.Errorf("user id is required")
 	}
 
-	if err := uc.userRepo.Delete(ctx, userID); err != nil {
+	parsedID, err := uuid.Parse(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user id: %w", err)
+	}
+
+	if err := uc.userRepo.Delete(ctx, parsedID); err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 

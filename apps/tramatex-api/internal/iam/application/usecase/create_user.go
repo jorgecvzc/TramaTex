@@ -56,7 +56,7 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 	}
 
 	return &CreateUserOutput{
-		ID:    user.ID(),
+		ID:    user.ID().String(),
 		Email: user.Email().Value(),
 		Role:  string(user.Role()),
 	}, nil

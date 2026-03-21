@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	domain_model "github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	domain_repo "github.com/joran-cortez/tramatex/internal/iam/domain/repository"
 )
@@ -28,7 +29,12 @@ func (uc *CheckAuthorizationUseCase) Execute(ctx context.Context, input CheckAut
 		return nil, fmt.Errorf("user_id is required")
 	}
 
-	user, err := uc.userRepo.ByID(ctx, input.UserID)
+	parsedUserID, err := uuid.Parse(input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user_id: %w", err)
+	}
+
+	user, err := uc.userRepo.ByID(ctx, parsedUserID)
 	if err != nil {
 		if errors.Is(err, domain_model.ErrUserNotFound) {
 			return nil, domain_model.ErrUserNotFound

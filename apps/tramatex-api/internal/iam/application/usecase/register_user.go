@@ -52,7 +52,7 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, input RegisterInput)
 	}
 
 	return &RegisterOutput{
-		ID:    user.ID(),
+		ID:    user.ID().String(),
 		Email: user.Email().Value(),
 		Role:  string(user.Role()),
 	}, nil

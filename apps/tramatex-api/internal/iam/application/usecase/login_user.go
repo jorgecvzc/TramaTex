@@ -64,7 +64,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*LoginOu
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute) // Access token expires in 15 minutes
 	claims, err := security.NewTokenClaims(
-		foundUser.ID(),
+		foundUser.ID().String(),
 		foundUser.Email().Value(),
 		string(foundUser.Role()),
 		now,       // issuedAt: current time
@@ -88,7 +88,7 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*LoginOu
 
 	// Map User to UserDTO
 	userDTO := UserDTO{
-		ID:    foundUser.ID(),
+		ID:    foundUser.ID().String(),
 		Email: foundUser.Email().Value(),
 		Role:  string(foundUser.Role()),
 	}

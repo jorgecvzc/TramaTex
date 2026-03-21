@@ -11,7 +11,7 @@ import (
 // User represents a user in the system as a Root Aggregate.
 // Immutable after creation (all fields private, only getters exposed).
 type User struct {
-	id        string
+	id        uuid.UUID
 	email     *Email
 	password  *Password
 	role      Role
@@ -22,9 +22,9 @@ type User struct {
 
 // NewUser creates a new User with validation of invariants.
 // Returns error if any invariant is violated.
-func NewUser(id string, email *Email, password *Password, role Role) (*User, error) {
+func NewUser(id uuid.UUID, email *Email, password *Password, role Role) (*User, error) {
 	// Validate ID
-	if id == "" {
+	if id == uuid.Nil {
 		return nil, fmt.Errorf("user ID cannot be empty")
 	}
 
@@ -57,7 +57,7 @@ func NewUser(id string, email *Email, password *Password, role Role) (*User, err
 }
 
 // ID returns the user's unique identifier.
-func (u *User) ID() string {
+func (u *User) ID() uuid.UUID {
 	return u.id
 }
 
@@ -126,10 +126,9 @@ func (u *User) ChangeRole(newRole Role) error {
 	return nil
 }
 
-// NewUserWithUUID generates a new user with a UUID as ID.
+// NewUserWithUUID generates a new user with a randomly generated UUID as ID.
 func NewUserWithUUID(email *Email, password *Password, role Role) (*User, error) {
-	id := uuid.New().String()
-	return NewUser(id, email, password, role)
+	return NewUser(uuid.New(), email, password, role)
 }
 
 // Error variables
