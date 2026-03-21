@@ -52,7 +52,7 @@ Análisis modular sistemático del backend para identificar oportunidades de mej
 
 ### Próximos Pasos
 
-- [ ] **P4 — IAM UUID**: Migrar `User.id` de `string` a `uuid.UUID` (sprint separado).
+- [x] **P4 — IAM UUID**: Migrar `User.id` de `string` a `uuid.UUID`. Commit `1104825` en `mvp-arch-refinement`. Archivos: `user.go` (dominio), `user_repository.go` (interfaz), `postgres_user_repository.go` (persistencia), 8 usecases actualizados. Tests todos verdes.
 - [ ] **PR y Merge**: Crear PR de `mvp-arch-refinement` → `develop` y mergear.
 
 ### Archivos de Contexto
