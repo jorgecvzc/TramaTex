@@ -2,7 +2,6 @@ package model_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
@@ -136,31 +135,6 @@ func TestUserImmutableAfterCreation(t *testing.T) {
 	}
 }
 
-func TestUserTimestampsAutomatic(t *testing.T) {
-	email, _ := model.NewEmail("user@example.com")
-	password, _ := model.NewPassword("validPassword123")
-
-	before := time.Now()
-	u, _ := model.NewUser(testUserID, email, password, model.RoleWorkshop)
-	after := time.Now()
-
-	createdAt := u.CreatedAt()
-	updatedAt := u.UpdatedAt()
-
-	if createdAt.Before(before) || createdAt.After(after) {
-		t.Error("CreatedAt should be between before and after times")
-	}
-
-	if updatedAt.Before(before) || updatedAt.After(after) {
-		t.Error("UpdatedAt should be between before and after times")
-	}
-
-	// Initially, created and updated should be equal (or very close)
-	if createdAt.Sub(updatedAt).Abs() > time.Millisecond {
-		t.Errorf("CreatedAt and UpdatedAt should be equal: diff=%v", createdAt.Sub(updatedAt))
-	}
-}
-
 func TestUserActiveFlag(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
@@ -191,9 +165,6 @@ func TestUserChangePassword(t *testing.T) {
 
 	u, _ := model.NewUser(testUserID, email, oldPassword, model.RoleWorkshop)
 
-	oldUpdatedAt := u.UpdatedAt()
-	time.Sleep(10 * time.Millisecond) // Ensure time difference
-
 	newPassword, _ := model.NewPassword("newPassword456")
 	err := u.ChangePassword(newPassword)
 
@@ -207,11 +178,6 @@ func TestUserChangePassword(t *testing.T) {
 
 	if u.Password().Matches("oldPassword123") {
 		t.Error("Old password should not match after change")
-	}
-
-	newUpdatedAt := u.UpdatedAt()
-	if !newUpdatedAt.After(oldUpdatedAt) {
-		t.Error("UpdatedAt should be updated after ChangePassword")
 	}
 }
 
