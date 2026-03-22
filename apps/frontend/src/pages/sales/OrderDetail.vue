@@ -332,7 +332,7 @@
                 </td>
                 <td class="col-subtotal">
                   <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
-                  <span v-else class="subtotal-value">{{ formatMoneyAmount(calculateEditLineSubtotal(item)) }}</span>
+                  <span v-else class="subtotal-value">{{ formatMoneyAmount(calculateEditLineSubtotal(idx)) }}</span>
                 </td>
                 <td class="actions-cell">
                   <button type="button" class="btn-icon danger" @click="removeEditLineItem(idx)" title="Eliminar">🗑️</button>
@@ -839,12 +839,15 @@ function removeEditLineItem(index) {
   editLineItems.value.splice(index, 1);
 }
 
-function calculateEditLineSubtotal(item) {
+function calculateEditLineSubtotal(index) {
   if (!previewResult.value) return 0;
-  const match = previewResult.value.lineItems.find(
-    li => li.productVariantId === item.productVariantId
-  );
-  return match?.subtotal?.amount ?? 0;
+  // Map form index to preview index (preview only contains items with productVariantId)
+  let previewIdx = 0;
+  for (let i = 0; i < index; i++) {
+    if (editLineItems.value[i].productVariantId) previewIdx++;
+  }
+  const previewItem = previewResult.value.lineItems[previewIdx];
+  return previewItem?.subtotal?.amount ?? 0;
 }
 
 const editCalculatedTotals = computed(() => {
