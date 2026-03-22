@@ -36,24 +36,37 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 
 Implementación técnica de la estrategia de despliegue multientorno definida en el estudio previo (`tmp/estudio_despliegue_tramatex.md`). El objetivo es configurar la jerarquía de ramas (develop -> staging -> master), la orquestación con Nginx y la automatización CI/CD hacia DigitalOcean.      
 
+### Progreso
+
+- [x] Crear rama `infra/multi-env-deployment`.
+- [x] Implementar `Dockerfile.frontend` (multi-stage build).
+- [x] Crear configuración `docker/nginx.conf` (Proxy inverso y SPA routing).
+- [x] Actualizar `docker/docker-compose.remote.yml` para incluir el servicio Nginx.
+- [x] Crear Workflows de GitHub Actions para despliegue automático en `staging` y `master`.
+- [x] Refinar `Makefile` para soportar perfiles de despliegue (`pcele`, `staging`, `prod`).
+- [x] Limpiar residuos del repositorio (archivos en `.gitignore` eliminados del tracking).
+- [x] Limpiar ramas obsoletas (eliminadas: `product-module-validation`, `scaffolding-refinement`, `scaffolding-system-enhancement`, `qa/full-verification`).
+- [x] Corregir Makefile — paths con prefijo `docker/`, migrar a `docker compose` v2.
+- [x] Crear `.env.example` por entorno: `docker/.env.example`, `.env.pcele.example`, `.env.production.example`.
+- [x] Crear `docker/nginx-ssl.conf` para producción con Let's Encrypt.
+- [x] Actualizar `start-dev.ps1` — soporte parámetro `-Full` para levantar frontend/Nginx.
+- [x] Actualizar `stop-dev.ps1` — migrar a `docker compose` v2, `--profile full`.
+- [x] Actualizar `docker-compose.remote.yml` — soporte SSL (volumes comentados).
+- [x] Crear guía de despliegue: `docs/guides/developer/deployment-guide.md`.
+
 ### Próximos Pasos
 
-- [ ] Crear rama `infra/multi-env-deployment`.
-- [ ] Implementar `Dockerfile.frontend` (multi-stage build).
-- [ ] Crear configuración `docker/nginx.conf` (Proxy inverso y SPA routing).
-- [ ] Actualizar `docker/docker-compose.remote.yml` para incluir el servicio Nginx.
-- [ ] Crear Workflows de GitHub Actions para despliegue automático en `staging` y `master`.
-- [ ] Refinar `Makefile` para soportar perfiles de despliegue (`pcele`, `staging`, `prod`).
-- [ ] Limpiar residuos del repositorio: verificar que archivos temporales previamente commiteados (ahora en `.gitignore`) se eliminen del tracking con `git rm --cached`.
-- [ ] Limpiar ramas obsoletas: eliminar `product-module-validation`, `scaffolding-refinement`, `scaffolding-system-enhancement` (local y remoto). **Antes de eliminar `scaffolding-refinement`, hacer copia de su contenido en `tmp/`.**
+- [ ] Verificar build Docker local (bloqueado temporalmente por conectividad Docker Hub).
+- [ ] Crear rama `staging` desde `develop` (después de merge).
+- [ ] Primer despliegue en pcele (requiere configurar Docker + SSH).
+- [ ] Crear Droplet en DigitalOcean y configurar GitHub Secrets.
+- [ ] Configurar DNS + SSL/Let's Encrypt en producción.
 
-### Archivos de Contexto
+### Commits
 
-- `.gitignore`
-- `tmp/estudio_despliegue_tramatex.md`
-- `docker/docker-compose.remote.yml`
-- `Dockerfile`
-- `Makefile`
+- `a557f41` — feat: infraestructura de despliegue multientorno (Dockerfile, Nginx, GitHub Actions, Makefile)
+- `4c04b65` — chore: eliminar archivos de tracking que están en .gitignore
+- *(pendiente)* — feat: completar sistema de despliegue (env examples, SSL, scripts, docs)
 
 ---
 

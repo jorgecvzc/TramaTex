@@ -58,7 +58,7 @@ services:
     labels:
       com.tramatex.environment: "remote"
 
-  # Nginx + Vue Frontend (single entry point: port 80)
+  # Nginx + Vue Frontend (single entry point: port 80, or 80+443 with SSL)
   frontend:
     build:
       context: ..
@@ -66,6 +66,13 @@ services:
     container_name: ${FRONTEND_CONTAINER:-tramatex_frontend}
     ports:
       - "${FRONTEND_PORT:-80}:80"
+      # Uncomment for SSL (DigitalOcean with Let's Encrypt):
+      # - "443:443"
+    # Uncomment for SSL — mount certificates and SSL nginx config:
+    # volumes:
+    #   - /etc/letsencrypt:/etc/letsencrypt:ro
+    #   - ./nginx-ssl.conf:/etc/nginx/conf.d/default.conf:ro
+    #   - certbot_webroot:/var/www/certbot:ro
     depends_on:
       - api
     networks:
@@ -77,6 +84,9 @@ services:
 volumes:
   postgres_data_remote:
     driver: local
+  # Uncomment for SSL:
+  # certbot_webroot:
+  #   driver: local
 
 networks:
   tramatex_network:

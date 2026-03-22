@@ -17,18 +17,18 @@ GO=go
 # Detect environment (default: local - PRIMARY)
 ENV ?= local
 ifeq ($(ENV),remote)
-    DOCKER_COMPOSE_FILE=docker-compose.remote.yml
-    ENV_FILE=.env.remote
+    DOCKER_COMPOSE_FILE=docker/docker-compose.remote.yml
+    ENV_FILE=docker/.env
     SSH_HOST=pcele
     SSH_USER=ele
     DOCKER_HOST_FLAG=-H ssh://$(SSH_USER)@$(SSH_HOST)
 else
-    DOCKER_COMPOSE_FILE=docker-compose.local.yml
-    ENV_FILE=.env.local
+    DOCKER_COMPOSE_FILE=docker/docker-compose.local.yml
+    ENV_FILE=docker/.env
     DOCKER_HOST_FLAG=
 endif
 
-DOCKER_COMPOSE=docker-compose -f $(DOCKER_COMPOSE_FILE) --env-file $(ENV_FILE)
+DOCKER_COMPOSE=docker compose -f $(DOCKER_COMPOSE_FILE) --env-file $(ENV_FILE)
 
 # ============================================================================
 # HELP & INITIALIZATION
@@ -64,18 +64,11 @@ help: ## Show this help message
 env-init: ## Initialize environment files and test connectivity
 	@echo "🔧 Initializing TramaTex environments..."
 	@echo ""
-	@echo "📍 Environment: LOCAL (Windows Docker Desktop)"
-	@if [ -f .env.local ]; then \
-		echo "✓ .env.local exists"; \
+	@echo "📍 Environment: docker/.env"
+	@if [ -f docker/.env ]; then \
+		echo "✓ docker/.env exists"; \
 	else \
-		echo "❌ .env.local missing"; \
-	fi
-	@echo ""
-	@echo "📍 Environment: REMOTE (pcele Linux Server)"
-	@if [ -f .env.remote ]; then \
-		echo "✓ .env.remote exists"; \
-	else \
-		echo "❌ .env.remote missing"; \
+		echo "❌ docker/.env missing — copy from docker/.env.example"; \
 	fi
 	@echo ""
 	@echo "✓ Configuration initialized"

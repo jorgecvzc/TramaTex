@@ -1,7 +1,14 @@
 # TramaTex - Script para levantar el ambiente de desarrollo
 # Ejecutar desde la raiz del proyecto: .\start-dev.ps1
+# Con frontend (Nginx): .\start-dev.ps1 -Full
+
+param(
+    [switch]$Full  # Incluir frontend/Nginx (profile: full)
+)
 
 Write-Host "Iniciando TramaTex Development Environment..." -ForegroundColor Cyan
+if ($Full) { Write-Host "  Modo: FULL (DB + API + Frontend/Nginx)" -ForegroundColor Magenta }
+else       { Write-Host "  Modo: DEV  (DB + API — frontend via npm run dev)" -ForegroundColor Magenta }
 Write-Host ""
 
 $previousErrorActionPreference = $ErrorActionPreference
@@ -24,10 +31,13 @@ catch {
     exit 1
 }
 
+$profileArgs = @()
+if ($Full) { $profileArgs = @("--profile", "full") }
+
 Write-Host ""
 Write-Host "Limpiando contenedores previos..." -ForegroundColor Yellow
 try {
-    docker-compose -f docker/docker-compose.local.yml --env-file docker/.env down -v *> $null
+    docker compose -f docker/docker-compose.local.yml --env-file docker/.env @profileArgs down -v *> $null
 }
 catch {
     # Ignorar errores en limpieza previa
@@ -35,12 +45,12 @@ catch {
 
 Write-Host ""
 Write-Host "Construyendo y levantando servicios..." -ForegroundColor Yellow
-docker-compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env @profileArgs up -d --build
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "Error al iniciar los servicios" -ForegroundColor Red
-    Write-Host "Verifica logs con: docker-compose -f docker/docker-compose.local.yml --env-file docker/.env logs" -ForegroundColor Gray
+    Write-Host "Verifica logs con: docker compose -f docker/docker-compose.local.yml --env-file docker/.env logs" -ForegroundColor Gray
     exit 1
 }
 
@@ -55,6 +65,11 @@ Write-Host ""
 Write-Host "URLs disponibles:" -ForegroundColor Cyan
 Write-Host "  API Health: http://localhost:8080/api/health" -ForegroundColor White
 Write-Host "  Database:   localhost:5432 (user: tramatex, db: tramatex)" -ForegroundColor White
+if ($Full) {
+    Write-Host "  Frontend:   http://localhost:3000 (Nginx)" -ForegroundColor White
+} else {
+    Write-Host "  Frontend:   Ejecuta 'cd apps/frontend && npm run dev' (puerto 5173)" -ForegroundColor White
+}
 
 Write-Host ""
 Write-Host "Esperando que la API este lista..." -ForegroundColor Yellow
