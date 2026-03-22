@@ -57,9 +57,8 @@ help: ## Show this help message
 	@echo "  make docker-up ENV=remote       # Start REMOTE stack (pcele) - Explicit"
 	@echo "  make docker-logs                # View logs from local (default)"
 	@echo "  make docker-logs ENV=remote     # View logs from remote (pcele)"
-	@echo "  make deploy ENV=pcele           # Deploy to local network server"
-	@echo "  make deploy ENV=staging         # Push to staging (auto-deploy)"
-	@echo "  make deploy ENV=prod            # Push to production (auto-deploy)"
+	@echo "  make deploy ENV=staging         # Deploy to pcele (staging LAN)"
+	@echo "  make deploy ENV=prod            # Push to production (DigitalOcean)"
 
 env-init: ## Initialize environment files and test connectivity
 	@echo "🔧 Initializing TramaTex environments..."
@@ -250,21 +249,18 @@ frontend-test: ## Run frontend tests
 # DEPLOYMENT
 # ============================================================================
 
-deploy: ## Deploy to remote server (ENV=pcele|staging|prod)
-ifeq ($(ENV),pcele)
-	@echo "🚀 Deploying to pcele (local network server)..."
-	ssh ele@pcele "cd /opt/tramatex && git pull origin develop && \
+deploy: ## Deploy to remote server (ENV=staging|prod)
+ifeq ($(ENV),staging)
+	@echo "🚀 Deploying to staging (pcele LAN — 192.168.0.20)..."
+	ssh ele@pcele "cd /opt/tramatex && git fetch origin staging && \
+		git checkout staging && git reset --hard origin/staging && \
 		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build && \
 		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d && \
 		docker image prune -f"
-	@echo "✓ Deployed to pcele"
-else ifeq ($(ENV),staging)
-	@echo "🚀 Deploying to staging (push to staging branch triggers GitHub Actions)..."
-	git push origin develop:staging
-	@echo "✓ Push to staging complete — GitHub Actions will deploy automatically"
+	@echo "✓ Deployed to pcele (staging)"
 else ifeq ($(ENV),prod)
 	@echo "🚀 Deploying to production (push to master triggers GitHub Actions)..."
-	@echo "⚠️  Are you sure? This deploys to PRODUCTION."
+	@echo "⚠️  Are you sure? This deploys to PRODUCTION (DigitalOcean)."
 	@read -p "Type 'yes' to confirm: " confirm; \
 	if [ "$$confirm" = "yes" ]; then \
 		git push origin staging:master; \
@@ -273,11 +269,10 @@ else ifeq ($(ENV),prod)
 		echo "❌ Deployment cancelled"; \
 	fi
 else
-	@echo "❌ Usage: make deploy ENV=pcele|staging|prod"
+	@echo "❌ Usage: make deploy ENV=staging|prod"
 	@echo ""
-	@echo "  pcele   - Deploy to local network server (SSH)"
-	@echo "  staging - Push develop → staging (triggers GitHub Actions)"
-	@echo "  prod    - Push staging → master (triggers GitHub Actions)"
+	@echo "  staging - Deploy to pcele LAN server (SSH directo)"
+	@echo "  prod    - Push staging → master (triggers GitHub Actions on DigitalOcean)"
 endif
 
 # ============================================================================

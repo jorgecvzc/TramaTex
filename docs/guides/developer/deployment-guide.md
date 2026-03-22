@@ -7,17 +7,16 @@
 ## Arquitectura de Entornos
 
 ```
-LOCAL (Windows)  →  PCELE (LAN)  →  STAGING (DigitalOcean)  →  PRODUCTION (DigitalOcean)
-Docker Desktop      SSH directo      GitHub Actions              GitHub Actions
-develop branch      develop branch   staging branch              master branch
+LOCAL (Windows)  →  STAGING / pcele (LAN)  →  PRODUCTION (DigitalOcean)
+Docker Desktop      SSH directo (manual)     GitHub Actions (auto)
+develop branch      staging branch           master branch
 ```
 
-| Entorno    | Servidor            | Acceso               | Puerto | Branch    |
-|------------|---------------------|----------------------|--------|-----------|
-| Local      | Docker Desktop (Win)| localhost             | 3000   | develop   |
-| pcele      | 192.168.0.20        | SSH (user: ele)       | 80     | develop   |
-| Staging    | DigitalOcean        | GitHub Actions + SSH  | 80/443 | staging   |
-| Producción | DigitalOcean        | GitHub Actions + SSH  | 80/443 | master    |
+| Entorno     | Servidor            | Acceso                | Puerto | Branch    |
+|-------------|---------------------|-----------------------|--------|-----------|
+| Local       | Docker Desktop (Win)| localhost              | 3000   | develop   |
+| Staging     | pcele (192.168.0.20)| SSH (user: ele, manual)| 80     | staging   |
+| Producción  | DigitalOcean        | GitHub Actions + SSH   | 80/443 | master    |
 
 ---
 
@@ -90,7 +89,7 @@ docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profi
 
 ---
 
-## 2. Entorno pcele (LAN Pre-Staging)
+## 2. Entorno Staging (pcele LAN)
 
 ### Configuración inicial del servidor
 
@@ -102,9 +101,10 @@ cd /opt/tramatex
 
 # Clonar el repositorio
 git clone <repo-url> .
+git checkout staging
 
 # Crear el archivo de entorno
-cp docker/.env.pcele.example docker/.env
+cp docker/.env.staging.example docker/.env
 # Editar docker/.env — cambiar contraseñas y JWT_SECRET
 nano docker/.env
 ```
@@ -118,13 +118,18 @@ nano docker/.env
 
 ```bash
 # Desde Windows (vía Makefile):
-make deploy ENV=pcele
+make deploy ENV=staging
 
 # O manualmente vía SSH:
-ssh ele@pcele "cd /opt/tramatex && git pull origin develop && \
+ssh ele@pcele "cd /opt/tramatex && git fetch origin staging && \
+  git checkout staging && git reset --hard origin/staging && \
   docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build && \
   docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d"
 ```
+
+> **Nota:** pcele está en la LAN (192.168.0.20), no es accesible desde internet.
+> GitHub Actions no puede desplegar ahí. El deploy es manual desde una máquina en la misma red.
+> Al hacer push a `staging`, GitHub Actions ejecuta CI (build + tests) para validar.
 
 ### Acceder
 - **Frontend**: http://192.168.0.20
@@ -138,7 +143,7 @@ ssh ele@pcele "cd /opt/tramatex && docker compose -f docker/docker-compose.remot
 
 ---
 
-## 3. Entorno Staging (DigitalOcean)
+## 3. Entorno Producción (DigitalOcean)
 
 ### Configuración inicial del Droplet
 
@@ -153,12 +158,12 @@ cd /opt/tramatex
 
 # Clonar el repo
 git clone <repo-url> .
-git checkout staging
+git checkout master
 
 # El archivo docker/.env será escrito por GitHub Actions
 # Para la primera vez, crear manualmente:
 cp docker/.env.production.example docker/.env
-nano docker/.env  # Configurar con valores de staging
+nano docker/.env  # Configurar con valores de producción
 ```
 
 ### GitHub Secrets necesarios
@@ -169,48 +174,13 @@ Configurar en **Settings → Secrets → Actions** del repositorio:
 |-------------------|------------------------------------------------------|----------------------------|
 | `SSH_PRIVATE_KEY` | Clave privada SSH para acceder al Droplet            | `-----BEGIN OPENSSH...`    |
 | `SSH_USER`        | Usuario SSH en el Droplet                            | `root` o `deploy`          |
-| `STAGING_IP`      | IP del Droplet de staging                            | `164.90.xxx.xxx`           |
-| `ENV_STAGING`     | Contenido completo del archivo docker/.env de staging| (ver docker/.env.production.example) |
+| `PROD_IP`         | IP del Droplet de producción                         | `164.90.xxx.xxx`           |
+| `ENV_PROD`        | Contenido completo del archivo docker/.env           | (ver docker/.env.production.example) |
 
 ### GitHub Environments
 
-Crear dos environments en **Settings → Environments**:
-1. **staging** — sin protección adicional
-2. **production** — con revisores requeridos (opcional)
-
-### Flujo de despliegue
-
-```bash
-# Desde local, push de develop a staging:
-make deploy ENV=staging
-# Equivale a: git push origin develop:staging
-
-# GitHub Actions detecta push a staging y:
-# 1. Conecta por SSH al Droplet
-# 2. Escribe docker/.env desde el secret ENV_STAGING
-# 3. docker compose build + up
-# 4. Verifica health check
-# 5. Limpia imágenes antiguas
-```
-
-### Crear la rama staging
-
-```bash
-# Primera vez — crear staging desde develop:
-git checkout develop
-git push origin develop:staging
-```
-
----
-
-## 4. Entorno Producción (DigitalOcean)
-
-Mismo proceso que staging, con sus propios secrets:
-
-| Secret        | Descripción                                |
-|---------------|--------------------------------------------|
-| `PROD_IP`     | IP del Droplet de producción               |
-| `ENV_PROD`    | Contenido del docker/.env de producción    |
+Crear en **Settings → Environments**:
+1. **production** — con revisores requeridos (opcional)
 
 ### Flujo de despliegue
 
@@ -219,11 +189,18 @@ Mismo proceso que staging, con sus propios secrets:
 make deploy ENV=prod
 # Equivale a: git push origin staging:master
 # (pide confirmación antes de ejecutar)
+
+# GitHub Actions detecta push a master y:
+# 1. Conecta por SSH al Droplet
+# 2. Escribe docker/.env desde el secret ENV_PROD
+# 3. docker compose build + up
+# 4. Verifica health check
+# 5. Limpia imágenes antiguas
 ```
 
 ---
 
-## 5. SSL/HTTPS (Producción)
+## 4. SSL/HTTPS (Producción)
 
 ### Opción A: Let's Encrypt con Certbot (recomendado)
 
@@ -281,11 +258,11 @@ TramaTex/
 │   ├── nginx-ssl.conf                  # Nginx HTTPS (Let's Encrypt)
 │   ├── .env                            # Variables actuales (NO committear)
 │   ├── .env.example                    # Template genérico
-│   ├── .env.pcele.example              # Template para pcele
-│   └── .env.production.example         # Template para DO staging/prod
+│   ├── .env.staging.example              # Template para staging (pcele)
+│   └── .env.production.example         # Template para DO producción
 └── .github/workflows/
-    ├── deploy-staging.yml              # Auto-deploy on push to staging
-    └── deploy-production.yml           # Auto-deploy on push to master
+    ├── deploy-staging.yml              # CI on push to staging (build + tests)
+    └── deploy-production.yml           # Auto-deploy on push to master (DO)
 ```
 
 ---

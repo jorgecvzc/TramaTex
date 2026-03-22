@@ -1,51 +1,44 @@
-# TramaTex - Deploy to Staging (DigitalOcean)
+# TramaTex - CI for Staging branch
 # Triggered on push/merge to staging branch
+# NOTE: Staging deploys to pcele (192.168.0.20, LAN) — not reachable from GitHub Actions.
+# Actual deployment is manual: make deploy ENV=staging (from local machine with LAN access)
+# This workflow only validates that the code builds correctly.
 
-name: Deploy to Staging
+name: Staging CI
 
 on:
   push:
     branches: [staging]
 
 jobs:
-  deploy:
-    name: Deploy to Staging Server
+  build-check:
+    name: Validate Build (Staging)
     runs-on: ubuntu-latest
-    environment: staging
 
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          host: ${{ secrets.STAGING_IP }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
+          go-version: '1.23'
 
-            cd /opt/tramatex
+      - name: Build API
+        working-directory: apps/tramatex-api
+        run: go build -o ../../bin/tramatex ./cmd/api
 
-            # Pull latest code
-            git fetch origin staging
-            git checkout staging
-            git reset --hard origin/staging
+      - name: Run tests
+        working-directory: apps/tramatex-api
+        run: go test ./... -count=1 -timeout 120s
 
-            # Write environment file
-            echo "${{ secrets.ENV_STAGING }}" > docker/.env
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-            # Build and restart services
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
-
-            # Wait for API health
-            echo "Waiting for API health check..."
-            for i in $(seq 1 30); do
-              if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
-                echo "API is healthy"
-                break
-              fi
-              sleep 2
-            done
-
-            # Cleanup old images
-            docker image prune -f
+      - name: Build Frontend
+        working-directory: apps/frontend
+        run: |
+          npm ci
+          npm run build
