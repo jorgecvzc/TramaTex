@@ -1,8 +1,8 @@
 -- ============================================================================
--- Migration: v2_004_init_pricing.sql
--- Description: Initialize Pricing module
--- Date: 2026-02-25
--- Modules: Pricing Rules, Client Overrides, Brand Margins, Sale Modifications
+-- Migration: 004_init_pricing.sql
+-- Description: Initialize Pricing module (consolidated)
+-- Absorbs: 004, 012 (pricing_rules + sales_discount_rules tables)
+-- Date: 2026-03-21
 -- ============================================================================
 
 BEGIN;
@@ -166,8 +166,65 @@ CREATE TRIGGER trg_client_pricing_overrides_updated_at BEFORE UPDATE ON client_p
 CREATE TRIGGER trg_brand_profit_margins_updated_at BEFORE UPDATE ON brand_profit_margins FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_price_calculations_updated_at BEFORE UPDATE ON price_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- ============================================================================
+-- PRICING RULES TABLE (from 012)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS pricing_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    product_variant_id UUID,
+    party_category VARCHAR(50),
+    markup_percentage NUMERIC(8,4) NOT NULL,
+    min_quantity INT NOT NULL DEFAULT 0,
+    max_quantity INT,
+    effective_from TIMESTAMP WITH TIME ZONE NOT NULL,
+    effective_to TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_variant ON pricing_rules(product_variant_id);
+CREATE INDEX IF NOT EXISTS idx_pricing_rules_effective ON pricing_rules(effective_from, effective_to);
+
+COMMENT ON TABLE pricing_rules IS 'Pricing markup rules for product variants (quantity-based)';
+
+-- ============================================================================
+-- SALES DISCOUNT RULES TABLE (from 012)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS sales_discount_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    client_id UUID,
+    product_variant_id UUID,
+    min_quantity INT,
+    discount_type VARCHAR(20) NOT NULL,
+    percentage_value NUMERIC(8,4),
+    fixed_amount NUMERIC(12,2),
+    currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    priority INT NOT NULL DEFAULT 0,
+    effective_from TIMESTAMP WITH TIME ZONE NOT NULL,
+    effective_to TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_client ON sales_discount_rules(client_id);
+CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_variant ON sales_discount_rules(product_variant_id);
+CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_priority ON sales_discount_rules(priority);
+CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_effective ON sales_discount_rules(effective_from, effective_to);
+
+COMMENT ON TABLE sales_discount_rules IS 'Sales discount rules for clients/variants';
+
+DROP TRIGGER IF EXISTS trg_pricing_rules_updated_at ON pricing_rules;
+DROP TRIGGER IF EXISTS trg_sales_discount_rules_updated_at ON sales_discount_rules;
+
+CREATE TRIGGER trg_pricing_rules_updated_at BEFORE UPDATE ON pricing_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_sales_discount_rules_updated_at BEFORE UPDATE ON sales_discount_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 COMMIT;
 
 -- ============================================================================
--- END OF MIGRATION: v2_004_init_pricing.sql
+-- END OF MIGRATION: 004_init_pricing.sql (consolidated, absorbs 004 + 012)
 -- ============================================================================

@@ -88,6 +88,11 @@
             </p>
           </div>
 
+          <div v-if="party.notes" class="info-item info-item-full">
+            <label>Notas</label>
+            <p>{{ party.notes }}</p>
+          </div>
+
           <div v-if="party.role === 'CLIENT' || party.role === 'BOTH'" class="info-item">
             <label>Bonificación por defecto</label>
             <p>{{ party.default_discount_percentage != null ? party.default_discount_percentage + '%' : '0%' }}</p>
@@ -807,6 +812,10 @@ function validateEditField(fieldName) {
   color: #1e293b;
   margin: 0;
   font-size: 1rem;
+}
+
+.info-item-full {
+  grid-column: 1 / -1;
 }
 
 .info-item a {

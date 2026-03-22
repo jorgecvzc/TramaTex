@@ -314,20 +314,23 @@ func TestProductService_UpdateBrand(t *testing.T) {
 }
 
 func TestProductService_DeleteBrand(t *testing.T) {
-	svc, _, mockBrandRepo, _, _, _, _ := newTestService()
+	svc, mockProductRepo, mockBrandRepo, _, _, _, _ := newTestService()
 	ctx := actorCtx()
 
 	t.Run("should delete brand successfully", func(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
 		brandID := uuid.New()
 		existing := &domain.Brand{ID: brandID, Name: "Brand", IsActive: true}
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockBrandRepo.On("Delete", ctx, brandID).Return(nil).Once()
 
 		err := svc.DeleteBrand(ctx, application.DeleteBrandCommand{ActorID: testActorID, ID: brandID})
 
 		assert.NoError(t, err)
 		mockBrandRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when brand not found", func(t *testing.T) {
@@ -343,14 +346,31 @@ func TestProductService_DeleteBrand(t *testing.T) {
 
 	t.Run("should return error on delete failure", func(t *testing.T) {
 		mockBrandRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
 		brandID := uuid.New()
 		existing := &domain.Brand{ID: brandID, Name: "Brand", IsActive: true}
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockBrandRepo.On("Delete", ctx, brandID).Return(errors.New("constraint violation")).Once()
 
 		err := svc.DeleteBrand(ctx, application.DeleteBrandCommand{ActorID: testActorID, ID: brandID})
 
 		assert.Error(t, err)
+	})
+
+	t.Run("should return error when brand is used by products", func(t *testing.T) {
+		mockBrandRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		brandID := uuid.New()
+		existing := &domain.Brand{ID: brandID, Name: "Brand", IsActive: true}
+		inUseProduct := &domain.Product{ID: uuid.New(), BrandID: brandID}
+		mockBrandRepo.On("FindByID", ctx, brandID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{inUseProduct}, nil).Once()
+
+		err := svc.DeleteBrand(ctx, application.DeleteBrandCommand{ActorID: testActorID, ID: brandID})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot delete brand")
 	})
 }
 
@@ -717,20 +737,24 @@ func TestProductService_UpdateProductGroup(t *testing.T) {
 }
 
 func TestProductService_DeleteProductGroup(t *testing.T) {
-	svc, _, _, mockGroupRepo, _, _, _ := newTestService()
+	svc, mockProductRepo, _, mockGroupRepo, _, _, _ := newTestService()
 	ctx := actorCtx()
 
 	t.Run("should delete product group successfully", func(t *testing.T) {
 		mockGroupRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
 		groupID := uuid.New()
 		existing := &domain.ProductGroup{ID: groupID, Name: "Group", Type: domain.ProductGroupTypeTangible, IsActive: true}
 		mockGroupRepo.On("FindByID", ctx, groupID).Return(existing, nil).Once()
+		mockGroupRepo.On("FindAll", ctx).Return([]*domain.ProductGroup{existing}, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockGroupRepo.On("Delete", ctx, groupID).Return(nil).Once()
 
 		err := svc.DeleteProductGroup(ctx, application.DeleteProductGroupCommand{ActorID: testActorID, ID: groupID})
 
 		assert.NoError(t, err)
 		mockGroupRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when group not found", func(t *testing.T) {
@@ -746,14 +770,33 @@ func TestProductService_DeleteProductGroup(t *testing.T) {
 
 	t.Run("should return error on delete failure", func(t *testing.T) {
 		mockGroupRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
 		groupID := uuid.New()
 		existing := &domain.ProductGroup{ID: groupID, Name: "Group", Type: domain.ProductGroupTypeTangible, IsActive: true}
 		mockGroupRepo.On("FindByID", ctx, groupID).Return(existing, nil).Once()
+		mockGroupRepo.On("FindAll", ctx).Return([]*domain.ProductGroup{existing}, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockGroupRepo.On("Delete", ctx, groupID).Return(errors.New("fk constraint")).Once()
 
 		err := svc.DeleteProductGroup(ctx, application.DeleteProductGroupCommand{ActorID: testActorID, ID: groupID})
 
 		assert.Error(t, err)
+	})
+
+	t.Run("should return error when group is parent of another group", func(t *testing.T) {
+		mockGroupRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		groupID := uuid.New()
+		childID := uuid.New()
+		existing := &domain.ProductGroup{ID: groupID, Name: "Parent", Type: domain.ProductGroupTypeTangible, IsActive: true}
+		child := &domain.ProductGroup{ID: childID, Name: "Child", Type: domain.ProductGroupTypeTangible, ParentGroupID: &groupID, IsActive: true}
+		mockGroupRepo.On("FindByID", ctx, groupID).Return(existing, nil).Once()
+		mockGroupRepo.On("FindAll", ctx).Return([]*domain.ProductGroup{existing, child}, nil).Once()
+
+		err := svc.DeleteProductGroup(ctx, application.DeleteProductGroupCommand{ActorID: testActorID, ID: groupID})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "parent of another group")
 	})
 }
 
@@ -762,20 +805,24 @@ func TestProductService_DeleteProductGroup(t *testing.T) {
 // ============================================================================
 
 func TestProductService_DeleteAttribute(t *testing.T) {
-	svc, _, _, _, mockAttributeRepo, _, _ := newTestService()
+	svc, mockProductRepo, _, _, mockAttributeRepo, mockVariantRepo, _ := newTestService()
 	ctx := actorCtx()
 
 	t.Run("should delete attribute successfully", func(t *testing.T) {
 		mockAttributeRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		mockVariantRepo.ExpectedCalls = nil
 		attrID := uuid.New()
 		existing := &domain.Attribute{ID: attrID, Name: "Color", Code: "COLOR"}
 		mockAttributeRepo.On("FindByID", ctx, attrID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockAttributeRepo.On("Delete", ctx, attrID).Return(nil).Once()
 
 		err := svc.DeleteAttribute(ctx, application.DeleteAttributeCommand{ActorID: testActorID, ID: attrID})
 
 		assert.NoError(t, err)
 		mockAttributeRepo.AssertExpectations(t)
+		mockProductRepo.AssertExpectations(t)
 	})
 
 	t.Run("should return error when attribute not found", func(t *testing.T) {
@@ -791,14 +838,62 @@ func TestProductService_DeleteAttribute(t *testing.T) {
 
 	t.Run("should return error on delete failure", func(t *testing.T) {
 		mockAttributeRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		mockVariantRepo.ExpectedCalls = nil
 		attrID := uuid.New()
 		existing := &domain.Attribute{ID: attrID, Name: "Color", Code: "COLOR"}
 		mockAttributeRepo.On("FindByID", ctx, attrID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{}, nil).Once()
 		mockAttributeRepo.On("Delete", ctx, attrID).Return(errors.New("constraint")).Once()
 
 		err := svc.DeleteAttribute(ctx, application.DeleteAttributeCommand{ActorID: testActorID, ID: attrID})
 
 		assert.Error(t, err)
+	})
+
+	t.Run("should return error when attribute is directly assigned to a product", func(t *testing.T) {
+		mockAttributeRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		mockVariantRepo.ExpectedCalls = nil
+		attrID := uuid.New()
+		existing := &domain.Attribute{ID: attrID, Name: "Color", Code: "COLOR"}
+		product := &domain.Product{ID: uuid.New(), DirectAttributeIDs: []uuid.UUID{attrID}}
+		mockAttributeRepo.On("FindByID", ctx, attrID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{product}, nil).Once()
+
+		err := svc.DeleteAttribute(ctx, application.DeleteAttributeCommand{ActorID: testActorID, ID: attrID})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot delete attribute")
+	})
+
+	t.Run("should return error when variants depend on attribute values", func(t *testing.T) {
+		mockAttributeRepo.ExpectedCalls = nil
+		mockProductRepo.ExpectedCalls = nil
+		mockVariantRepo.ExpectedCalls = nil
+
+		attrID := uuid.New()
+		valueID := uuid.New()
+		productID := uuid.New()
+		existing := &domain.Attribute{
+			ID:   attrID,
+			Name: "Color",
+			Code: "COLOR",
+			Values: []domain.AttributeValue{
+				{ID: valueID, Value: "Red", Code: "RED"},
+			},
+		}
+		product := &domain.Product{ID: productID}
+		variant := &domain.ProductVariant{ID: uuid.New(), ProductID: productID, AttributeValues: []uuid.UUID{valueID}}
+
+		mockAttributeRepo.On("FindByID", ctx, attrID).Return(existing, nil).Once()
+		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{product}, nil).Once()
+		mockVariantRepo.On("FindByProductID", ctx, productID).Return([]*domain.ProductVariant{variant}, nil).Once()
+
+		err := svc.DeleteAttribute(ctx, application.DeleteAttributeCommand{ActorID: testActorID, ID: attrID})
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "product variants depend")
 	})
 }
 

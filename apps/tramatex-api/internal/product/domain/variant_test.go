@@ -204,7 +204,7 @@ func TestGenerateVariantSKU(t *testing.T) {
 			productSKU: "BASE",
 			attributeCodeValuePairs: []struct{ AttributeCode, ValueCode string }{
 				{AttributeCode: "C", ValueCode: "B"},
-				{AttributeCode: "A", ValueCode: "Z"}, // This implies the caller needs to sort by Attribute.SortOrder
+				{AttributeCode: "A", ValueCode: "Z"}, // Order comes from product.DirectAttributeIDs
 			},
 			expectedSKU: "BASE-C.B-A.Z", // Assumes input is already sorted as per the note in GenerateVariantSKU
 			expectError: false,

@@ -31,6 +31,7 @@ type UpdateProductCommand struct {
 	Barcode            *string             `json:"barcode,omitempty"`
 	BasePrice          *float64            `json:"base_price,omitempty"`
 	TaxRate            *float64            `json:"tax_rate,omitempty"` // Tax rate as percentage
+	IsActive           *bool               `json:"is_active,omitempty"`
 	ProductType        *domain.ProductType `json:"product_type,omitempty"`
 	Description        *string             `json:"description,omitempty"`
 	BrandID            *uuid.UUID          `json:"brand_id,omitempty"`
@@ -71,11 +72,10 @@ type CreateAttributeValueCommand struct {
 // CreateAttributeCommand is the input DTO for the CreateAttribute use case.
 // Note: Scope fields removed for MVP simplicity.
 type CreateAttributeCommand struct {
-	ActorID   string
-	Name      string
-	Code      string
-	SortOrder int
-	Values    []CreateAttributeValueCommand
+	ActorID string
+	Name    string
+	Code    string
+	Values  []CreateAttributeValueCommand
 }
 
 // UpdateAttributeValueCommand is the input DTO for updating an attribute value.
@@ -91,12 +91,11 @@ type UpdateAttributeValueCommand struct {
 // UpdateAttributeCommand is the input DTO for the UpdateAttribute use case.
 // Note: Scope fields removed for MVP simplicity.
 type UpdateAttributeCommand struct {
-	ActorID   string
-	ID        uuid.UUID
-	Name      *string
-	Code      *string
-	SortOrder *int
-	Values    []UpdateAttributeValueCommand // Replaces existing values
+	ActorID string
+	ID      uuid.UUID
+	Name    *string
+	Code    *string
+	Values  []UpdateAttributeValueCommand // Replaces existing values
 }
 
 // PreGenerateProductVariantsCommand is the input DTO for the PreGenerateProductVariants use case.
@@ -109,9 +108,9 @@ type PreGenerateProductVariantsCommand struct {
 type UpdateProductVariantCommand struct {
 	ActorID  string
 	ID       uuid.UUID
-	Barcode  *string
-	IsActive *bool
-	Status   *domain.VariantStatus // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
+	Barcode  *string               `json:"barcode"`
+	IsActive *bool                 `json:"is_active"`
+	Status   *domain.VariantStatus `json:"status"` // Explicitly set status, otherwise implies CONFIRMED if other fields updated from PROVISIONAL
 }
 
 // GenerateProductVariantsCommand is the input DTO for the GenerateProductVariants use case.

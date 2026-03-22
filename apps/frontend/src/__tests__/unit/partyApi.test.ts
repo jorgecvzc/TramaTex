@@ -28,10 +28,12 @@ describe('PartyApi Service', () => {
         tax_id_type: 'CIF',
         website: 'https://acme.com',
         default_discount_percentage: 0,
+        notes: null,
         created_at: '2026-02-17T10:00:00Z',
         modified_at: '2026-02-17T10:00:00Z',
         has_organization: true,
         has_person: false,
+        can_delete: true,
       }
 
       const mockBackendResponse = {
@@ -43,6 +45,7 @@ describe('PartyApi Service', () => {
           tax_id: 'B12345678',
           tax_id_type: 'CIF',
           website: 'https://acme.com',
+          notes: null,
         },
         person_profile: null,
         created_at: '2026-02-17T10:00:00Z',

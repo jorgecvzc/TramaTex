@@ -221,9 +221,9 @@ describe('ProductApi Service', () => {
       await productApi.changeProductStatus('prod-001', false)
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/products/prod-001/status'),
+        expect.stringContaining('/products/prod-001'),
         expect.objectContaining({
-          method: 'PATCH',
+          method: 'PUT',
           body: JSON.stringify({ is_active: false }),
         })
       )

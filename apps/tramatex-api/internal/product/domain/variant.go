@@ -72,8 +72,8 @@ func (v *ProductVariant) IsDefault() bool {
 
 // GenerateVariantSKU composes a deterministic SKU for a ProductVariant.
 // It requires the base Product SKU and a list of AttributeCode-AttributeValueCode pairs.
-// The order of attributeCodeValuePairs is CRUCIAL and must be pre-sorted
-// by Attribute.SortOrder to ensure a deterministic SKU.
+// The order of attributeCodeValuePairs is CRUCIAL and must match the order
+// of product.DirectAttributeIDs to ensure a deterministic SKU.
 func GenerateVariantSKU(productSKU string, attributeCodeValuePairs []struct{ AttributeCode, ValueCode string }) (string, error) {
 	if productSKU == "" {
 		return "", NewValidationError("product SKU cannot be empty for variant SKU generation")
@@ -91,8 +91,8 @@ func GenerateVariantSKU(productSKU string, attributeCodeValuePairs []struct{ Att
 		parts = append(parts, fmt.Sprintf("%s.%s", pair.AttributeCode, pair.ValueCode))
 	}
 
-	// The input `attributeCodeValuePairs` slice *must already be sorted* by Attribute.SortOrder
-	// to ensure a deterministic SKU. This function assumes that pre-sorting has occurred
-	// in the calling layer (e.g., an application service).
+	// The input `attributeCodeValuePairs` slice *must already be ordered* by
+	// product.DirectAttributeIDs to ensure a deterministic SKU. This function assumes
+	// that pre-ordering has occurred in the calling layer (e.g., an application service).
 	return fmt.Sprintf("%s-%s", productSKU, strings.Join(parts, "-")), nil
 }

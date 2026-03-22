@@ -245,7 +245,6 @@ func (tdb *TestDB) SetUpProduct() error {
 			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			"name" VARCHAR(255) NOT NULL,
 			"code" VARCHAR(50) NOT NULL,
-			"sort_order" INT NOT NULL DEFAULT 0,
 			"scope_brand_id" UUID,
 			"scope_group_id" UUID,
 			"created_by" VARCHAR(255),

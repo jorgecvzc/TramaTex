@@ -117,7 +117,7 @@ func (s *SalesService) UpdateQuote(ctx context.Context, cmd UpdateQuoteCommand) 
 			return nil, err
 		}
 		quote.LineItems = lineItems
-		quote.TaxAmount, err = zeroMoney()
+		quote.TaxAmount, err = sumQuoteLineItemTaxes(lineItems)
 		if err != nil {
 			return nil, err
 		}

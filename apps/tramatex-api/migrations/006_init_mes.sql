@@ -1,21 +1,23 @@
 -- ============================================================================
--- Migration: v2_006_init_mes.sql
--- Description: Initialize MES (Manufacturing Execution System) module
--- Date: 2026-02-25
--- Modules: Tasks, Positions, Service Groups, MES Works
+-- Migration: 006_init_mes.sql
+-- Description: Initialize MES module (consolidated)
+-- Absorbs: 006, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
+-- Date: 2026-03-21
+-- Note: Also creates quote_work_setups and order_work_setups (Sales join tables
+--       that depend on MES work_setups and work_orders).
 -- ============================================================================
 
 BEGIN;
 
 -- ============================================================================
--- MASTER DATA TABLES
+-- TASKS (master data for manufacturing operations)
+-- Includes: reference column (from 020)
 -- ============================================================================
-
--- Tasks (master data for operations)
 CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    reference VARCHAR(255) NOT NULL DEFAULT '',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -26,7 +28,8 @@ CREATE INDEX IF NOT EXISTS idx_tasks_is_active ON tasks(is_active);
 COMMENT ON TABLE tasks IS 'Master data for manufacturing tasks/operations';
 
 -- ============================================================================
--- Positions (work stations)
+-- POSITIONS (work stations)
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS positions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
@@ -43,82 +46,117 @@ CREATE INDEX IF NOT EXISTS idx_positions_is_active ON positions(is_active);
 COMMENT ON TABLE positions IS 'Work positions/stations in production floor';
 
 -- ============================================================================
--- Service Groups (template for service workflows)
-CREATE TABLE IF NOT EXISTS service_groups (
+-- WORK TYPES (was service_groups; no product_group_id; includes reference)
+-- Absorbs: 022 (add reference), 023 (drop product_group_id)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    product_group_id UUID,
+    reference VARCHAR(255) NOT NULL DEFAULT '',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    CONSTRAINT fk_service_groups_product_group FOREIGN KEY (product_group_id) REFERENCES product_groups(id) ON DELETE SET NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_service_groups_is_active ON service_groups(is_active);
-CREATE INDEX IF NOT EXISTS idx_service_groups_product_group_id ON service_groups(product_group_id);
+CREATE INDEX IF NOT EXISTS idx_work_types_is_active ON work_types(is_active);
 
-COMMENT ON TABLE service_groups IS 'Templates for service workflows (e.g., "Embroidery Process")';
+COMMENT ON TABLE work_types IS 'Templates for service workflows (e.g., Embroidery Process)';
 
 -- ============================================================================
--- Service Group Tasks (many-to-many with sequence)
-CREATE TABLE IF NOT EXISTS service_group_tasks (
-    service_group_id UUID NOT NULL,
+-- WORK TYPE TASKS (was service_group_tasks; FK column: work_type_id)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_type_tasks (
+    work_type_id UUID NOT NULL,
     task_id UUID NOT NULL,
     sequence INT NOT NULL,
     
-    PRIMARY KEY (service_group_id, task_id),
-    CONSTRAINT fk_service_group_tasks_service_group FOREIGN KEY (service_group_id) REFERENCES service_groups(id) ON DELETE CASCADE,
-    CONSTRAINT fk_service_group_tasks_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-    CONSTRAINT chk_service_group_tasks_sequence_positive CHECK (sequence > 0)
+    PRIMARY KEY (work_type_id, task_id),
+    CONSTRAINT fk_work_type_tasks_work_type FOREIGN KEY (work_type_id) REFERENCES work_types(id) ON DELETE CASCADE,
+    CONSTRAINT fk_work_type_tasks_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    CONSTRAINT chk_work_type_tasks_sequence_positive CHECK (sequence > 0)
 );
 
-CREATE INDEX IF NOT EXISTS idx_service_group_tasks_service_group_id ON service_group_tasks(service_group_id);
-CREATE INDEX IF NOT EXISTS idx_service_group_tasks_sequence ON service_group_tasks(service_group_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_work_type_tasks_work_type_id ON work_type_tasks(work_type_id);
+CREATE INDEX IF NOT EXISTS idx_work_type_tasks_sequence ON work_type_tasks(work_type_id, sequence);
 
-COMMENT ON TABLE service_group_tasks IS 'Ordered tasks within a service group workflow';
+COMMENT ON TABLE work_type_tasks IS 'Ordered tasks within a work type workflow';
 
 -- ============================================================================
--- MES WORK ORDERS
+-- WORK SETUPS (was introduced in 021; tangible_group_id optional from 024)
 -- ============================================================================
+CREATE TABLE IF NOT EXISTS work_setups (
+    id              UUID PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    party_id        VARCHAR(255) NOT NULL,
+    tangible_group_id UUID,
+    description     TEXT NOT NULL DEFAULT '',
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE
+);
 
--- MES Works (work orders)
-CREATE TABLE IF NOT EXISTS mes_works (
+CREATE INDEX IF NOT EXISTS idx_work_setups_party ON work_setups(party_id);
+
+COMMENT ON TABLE work_setups IS 'Predefined work configurations (party + product group + lines)';
+
+-- ============================================================================
+-- WORK SETUP LINES (references work_types, not service_groups)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_setup_lines (
+    id              UUID PRIMARY KEY,
+    work_setup_id   UUID NOT NULL REFERENCES work_setups(id) ON DELETE CASCADE,
+    work_type_id    UUID NOT NULL REFERENCES work_types(id),
+    position_id     UUID NOT NULL REFERENCES positions(id),
+    design_file_path TEXT NOT NULL DEFAULT '',
+    notes           TEXT NOT NULL DEFAULT '',
+    sequence        INT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_setup_lines_setup ON work_setup_lines(work_setup_id);
+
+COMMENT ON TABLE work_setup_lines IS 'Lines in a work setup (work type + position pairs)';
+
+-- ============================================================================
+-- WORK ORDERS (was mes_works)
+-- Absorbs: 025 (no DRAFT status), 027 (work_setup_id + notes, drop tangible_group/garment_notes), 029 (work_setup_id nullable)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     work_number VARCHAR(50) NOT NULL UNIQUE,
     work_name VARCHAR(200) NOT NULL,
     party_id VARCHAR(36) NOT NULL,
-    tangible_group_id UUID NOT NULL,
-    garment_notes TEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    work_setup_id UUID,
+    notes TEXT DEFAULT '',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
     start_date TIMESTAMP WITH TIME ZONE,
     due_date TIMESTAMP WITH TIME ZONE,
     completed_date TIMESTAMP WITH TIME ZONE,
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    CONSTRAINT fk_mes_works_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_mes_works_tangible_group FOREIGN KEY (tangible_group_id) REFERENCES product_groups(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_mes_works_status CHECK (status IN ('DRAFT', 'PENDING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED')),
-    CONSTRAINT chk_mes_works_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT'))
+    CONSTRAINT fk_work_orders_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_work_orders_work_setup FOREIGN KEY (work_setup_id) REFERENCES work_setups(id) ON DELETE SET NULL,
+    CONSTRAINT chk_work_orders_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED')),
+    CONSTRAINT chk_work_orders_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_mes_works_work_number ON mes_works(work_number);
-CREATE INDEX IF NOT EXISTS idx_mes_works_party_id ON mes_works(party_id);
-CREATE INDEX IF NOT EXISTS idx_mes_works_status ON mes_works(status);
-CREATE INDEX IF NOT EXISTS idx_mes_works_priority ON mes_works(priority);
-CREATE INDEX IF NOT EXISTS idx_mes_works_due_date ON mes_works(due_date);
+CREATE INDEX IF NOT EXISTS idx_work_orders_work_number ON work_orders(work_number);
+CREATE INDEX IF NOT EXISTS idx_work_orders_party_id ON work_orders(party_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
+CREATE INDEX IF NOT EXISTS idx_work_orders_priority ON work_orders(priority);
+CREATE INDEX IF NOT EXISTS idx_work_orders_due_date ON work_orders(due_date);
+CREATE INDEX IF NOT EXISTS idx_work_orders_work_setup_id ON work_orders(work_setup_id);
 
-COMMENT ON TABLE mes_works IS 'Manufacturing work orders (e.g., embroider 50 t-shirts)';
+COMMENT ON TABLE work_orders IS 'Manufacturing work orders (e.g., embroider 50 t-shirts)';
 
 -- ============================================================================
--- MES Work Service Groups (service instances per work order)
-CREATE TABLE IF NOT EXISTS mes_work_service_groups (
+-- WORK ORDER LINES (was mes_work_service_groups)
+-- FK columns: work_order_id (was mes_work_id), work_type_id (was service_group_id)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_order_lines (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mes_work_id UUID NOT NULL,
-    service_group_id UUID NOT NULL,
+    work_order_id UUID NOT NULL,
+    work_type_id UUID NOT NULL,
     position_id UUID NOT NULL,
     design_file_path VARCHAR(500),
     notes TEXT,
@@ -126,22 +164,24 @@ CREATE TABLE IF NOT EXISTS mes_work_service_groups (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    CONSTRAINT fk_mes_work_service_groups_work FOREIGN KEY (mes_work_id) REFERENCES mes_works(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mes_work_service_groups_service_group FOREIGN KEY (service_group_id) REFERENCES service_groups(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_mes_work_service_groups_position FOREIGN KEY (position_id) REFERENCES positions(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_mes_work_service_groups_sequence_positive CHECK (sequence > 0)
+    CONSTRAINT fk_work_order_lines_work_order FOREIGN KEY (work_order_id) REFERENCES work_orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_work_order_lines_work_type FOREIGN KEY (work_type_id) REFERENCES work_types(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_work_order_lines_position FOREIGN KEY (position_id) REFERENCES positions(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_work_order_lines_sequence_positive CHECK (sequence > 0)
 );
 
-CREATE INDEX IF NOT EXISTS idx_mes_work_service_groups_work ON mes_work_service_groups(mes_work_id);
-CREATE INDEX IF NOT EXISTS idx_mes_work_service_groups_sequence ON mes_work_service_groups(mes_work_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_work_order_lines_work_order ON work_order_lines(work_order_id);
+CREATE INDEX IF NOT EXISTS idx_work_order_lines_sequence ON work_order_lines(work_order_id, sequence);
 
-COMMENT ON TABLE mes_work_service_groups IS 'Service workflows applied to a specific work order';
+COMMENT ON TABLE work_order_lines IS 'Service workflows applied to a specific work order';
 
 -- ============================================================================
--- MES Work Tasks (task instances with tracking)
-CREATE TABLE IF NOT EXISTS mes_work_tasks (
+-- WORK ORDER TASKS (was mes_work_tasks)
+-- FK column: work_order_line_id (was mes_work_service_group_id)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS work_order_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mes_work_service_group_id UUID NOT NULL,
+    work_order_line_id UUID NOT NULL,
     task_id UUID NOT NULL,
     sequence INT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
@@ -152,63 +192,78 @@ CREATE TABLE IF NOT EXISTS mes_work_tasks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    CONSTRAINT fk_mes_work_tasks_group FOREIGN KEY (mes_work_service_group_id) REFERENCES mes_work_service_groups(id) ON DELETE CASCADE,
-    CONSTRAINT fk_mes_work_tasks_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
-    CONSTRAINT fk_mes_work_tasks_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
-    CONSTRAINT chk_mes_work_tasks_sequence_positive CHECK (sequence > 0),
-    CONSTRAINT chk_mes_work_tasks_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'SKIPPED'))
+    CONSTRAINT fk_work_order_tasks_line FOREIGN KEY (work_order_line_id) REFERENCES work_order_lines(id) ON DELETE CASCADE,
+    CONSTRAINT fk_work_order_tasks_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_work_order_tasks_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_work_order_tasks_sequence_positive CHECK (sequence > 0),
+    CONSTRAINT chk_work_order_tasks_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED', 'SKIPPED'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_group ON mes_work_tasks(mes_work_service_group_id);
-CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_status ON mes_work_tasks(status);
-CREATE INDEX IF NOT EXISTS idx_mes_work_tasks_assigned_to ON mes_work_tasks(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_work_order_tasks_line ON work_order_tasks(work_order_line_id);
+CREATE INDEX IF NOT EXISTS idx_work_order_tasks_status ON work_order_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_work_order_tasks_assigned_to ON work_order_tasks(assigned_to);
 
-COMMENT ON TABLE mes_work_tasks IS 'Individual task instances with execution tracking';
+COMMENT ON TABLE work_order_tasks IS 'Individual task instances with execution tracking';
 
 -- ============================================================================
--- FOREIGN KEYS FROM SALES MODULE
+-- QUOTE WORK SETUPS (Sales join table — depends on work_setups above)
+-- Absorbs: 026 (create), 030 (work_setup_id nullable), 031 (add description)
 -- ============================================================================
--- Add foreign key constraints from Sales module to MES Works
--- (The columns were already defined in v2_005_init_sales.sql)
+CREATE TABLE IF NOT EXISTS quote_work_setups (
+    id            UUID PRIMARY KEY,
+    quote_id      UUID NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
+    work_setup_id UUID REFERENCES work_setups(id),
+    sequence      INT  NOT NULL DEFAULT 1,
+    description   TEXT NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
 
-DO $$ BEGIN
-    ALTER TABLE quote_line_items
-        ADD CONSTRAINT fk_quote_line_items_mes_work
-        FOREIGN KEY (mes_work_id) REFERENCES mes_works(id) ON DELETE SET NULL;
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+CREATE INDEX IF NOT EXISTS idx_quote_work_setups_quote ON quote_work_setups(quote_id);
 
-DO $$ BEGIN
-    ALTER TABLE order_line_items
-        ADD CONSTRAINT fk_order_line_items_mes_work
-        FOREIGN KEY (mes_work_id) REFERENCES mes_works(id) ON DELETE SET NULL;
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+COMMENT ON TABLE quote_work_setups IS 'MES work setup references linked to sales quotes';
 
-CREATE INDEX IF NOT EXISTS idx_quote_line_items_mes_work_id ON quote_line_items(mes_work_id);
-CREATE INDEX IF NOT EXISTS idx_order_line_items_mes_work_id ON order_line_items(mes_work_id);
+-- ============================================================================
+-- ORDER WORK SETUPS (Sales join table — depends on work_setups + work_orders above)
+-- Absorbs: 026 (create), 030 (work_setup_id nullable), 031 (add description)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS order_work_setups (
+    id            UUID PRIMARY KEY,
+    order_id      UUID NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+    work_setup_id UUID REFERENCES work_setups(id),
+    work_order_id UUID REFERENCES work_orders(id),
+    sequence      INT  NOT NULL DEFAULT 1,
+    description   TEXT NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_work_setups_order ON order_work_setups(order_id);
+
+COMMENT ON TABLE order_work_setups IS 'MES work setup references linked to sales orders';
 
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
 DROP TRIGGER IF EXISTS trg_tasks_updated_at ON tasks;
 DROP TRIGGER IF EXISTS trg_positions_updated_at ON positions;
-DROP TRIGGER IF EXISTS trg_service_groups_updated_at ON service_groups;
-DROP TRIGGER IF EXISTS trg_mes_works_updated_at ON mes_works;
-DROP TRIGGER IF EXISTS trg_mes_work_service_groups_updated_at ON mes_work_service_groups;
-DROP TRIGGER IF EXISTS trg_mes_work_tasks_updated_at ON mes_work_tasks;
+DROP TRIGGER IF EXISTS trg_work_types_updated_at ON work_types;
+DROP TRIGGER IF EXISTS trg_work_orders_updated_at ON work_orders;
+DROP TRIGGER IF EXISTS trg_work_order_lines_updated_at ON work_order_lines;
+DROP TRIGGER IF EXISTS trg_work_order_tasks_updated_at ON work_order_tasks;
 
 CREATE TRIGGER trg_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_positions_updated_at BEFORE UPDATE ON positions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_service_groups_updated_at BEFORE UPDATE ON service_groups FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_mes_works_updated_at BEFORE UPDATE ON mes_works FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_mes_work_service_groups_updated_at BEFORE UPDATE ON mes_work_service_groups FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_mes_work_tasks_updated_at BEFORE UPDATE ON mes_work_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_work_types_updated_at BEFORE UPDATE ON work_types FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_work_orders_updated_at BEFORE UPDATE ON work_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_work_order_lines_updated_at BEFORE UPDATE ON work_order_lines FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_work_order_tasks_updated_at BEFORE UPDATE ON work_order_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 COMMIT;
 
 -- ============================================================================
--- END OF MIGRATION: v2_006_init_mes.sql
+-- END OF MIGRATION: 006_init_mes.sql (consolidated)
+-- Absorbs: 006, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
 -- ============================================================================

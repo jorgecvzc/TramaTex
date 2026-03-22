@@ -86,7 +86,19 @@
             <p><strong>Posición:</strong> {{ positionNames[line.position_id] || line.position_id }}</p>
             <p><strong>Secuencia:</strong> {{ line.sequence }}</p>
             <p><strong>Notas:</strong> {{ line.notes || '—' }}</p>
-            <p><strong>Tareas generadas:</strong> {{ line.tasks.length }}</p>
+            <table v-if="line.tasks.length > 0" class="tasks-table">
+              <thead>
+                <tr><th>#</th><th>Tarea</th><th>Estado</th><th>Notas</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="task in line.tasks" :key="task.id">
+                  <td>{{ task.sequence }}</td>
+                  <td>{{ taskNames[task.task_id] || task.task_id }}</td>
+                  <td><span class="status-pill" :class="task.status.toLowerCase()">{{ taskStatusLabel(task.status) }}</span></td>
+                  <td class="task-notes">{{ task.notes || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
             <div v-if="line.design_file_path" class="file-ref">
               <span class="file-ref-label">Archivo:</span>
               <button class="file-ref-path" :title="'Copiar ruta: ' + line.design_file_path" @click="copyPath(line.design_file_path!)">{{ line.design_file_path }}</button>
@@ -114,6 +126,18 @@ const partyName = ref('')
 const workSetupName = ref('')
 const workTypeNames = ref<Record<string, string>>({})
 const positionNames = ref<Record<string, string>>({})
+const taskNames = ref<Record<string, string>>({})
+
+function taskStatusLabel(status: string) {
+  const map: Record<string, string> = {
+    PENDING: 'Pendiente',
+    IN_PROGRESS: 'En progreso',
+    BLOCKED: 'Bloqueada',
+    COMPLETED: 'Completada',
+    SKIPPED: 'Omitida',
+  }
+  return map[status] ?? status
+}
 const isEditing = ref(false)
 const isSaving = ref(false)
 const editForm = ref({
@@ -169,11 +193,12 @@ async function saveChanges() {
 }
 
 async function loadLookupData(currentWork: WorkOrder) {
-  const [partyResult, wsResult, templates, positions] = await Promise.all([
+  const [partyResult, wsResult, templates, positions, tasks] = await Promise.all([
     partyApi.getParty(currentWork.party_id),
     currentWork.work_setup_id ? mesApi.getWorkSetup(currentWork.work_setup_id) : Promise.resolve(null),
     mesApi.listWorkTypes({}),
     mesApi.listPositions({}),
+    mesApi.listTasks({}),
   ])
 
   partyName.value = partyResult?.name || ''
@@ -190,6 +215,12 @@ async function loadLookupData(currentWork: WorkOrder) {
     positionMap[position.id] = `${position.name} (${position.code})`
   }
   positionNames.value = positionMap
+
+  const taskMap: Record<string, string> = {}
+  for (const task of tasks as { id: string; name: string }[]) {
+    taskMap[task.id] = task.name
+  }
+  taskNames.value = taskMap
 }
 
 function formatDate(value?: string) {
@@ -239,6 +270,11 @@ function copyPath(path: string) {
 .edit-actions { margin-top: .75rem; display: flex; justify-content: flex-end; gap: .5rem; }
 .group-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: .75rem; margin-top: .75rem; }
 .group-box p { margin: .25rem 0; }
+.tasks-table { width: 100%; border-collapse: collapse; margin-top: .6rem; font-size: .875rem; }
+.tasks-table th { text-align: left; padding: .35rem .5rem; border-bottom: 2px solid #e2e8f0; color: #64748b; font-weight: 600; font-size: .8rem; }
+.tasks-table td { padding: .35rem .5rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.tasks-table tr:last-child td { border-bottom: none; }
+.task-notes { color: #475569; font-size: .82rem; max-width: 320px; }
 .file-ref { display: flex; align-items: center; gap: .4rem; margin-top: .4rem; flex-wrap: wrap; }
 .file-ref-label { font-size: .85rem; font-weight: 600; color: #334155; white-space: nowrap; }
 .file-ref-path { font-size: .8rem; font-family: monospace; color: #1d4ed8; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: .15rem .4rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: left; }

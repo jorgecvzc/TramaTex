@@ -44,12 +44,17 @@ type OrganizationProfile struct {
 	website  string
 	phone    *Phone
 	email    *Email
+	notes    string
 	contacts []*ContactDetails
 }
 
-func NewOrganizationProfile(name string, taxID *TaxID, website string, phone *Phone, email *Email) (*OrganizationProfile, error) {
+func NewOrganizationProfile(name string, taxID *TaxID, website string, phone *Phone, email *Email, notes ...string) (*OrganizationProfile, error) {
 	if name == "" {
 		return nil, NewValidationError("organization name is required")
+	}
+	organizationNotes := ""
+	if len(notes) > 0 {
+		organizationNotes = notes[0]
 	}
 	return &OrganizationProfile{
 		name:     name,
@@ -57,6 +62,7 @@ func NewOrganizationProfile(name string, taxID *TaxID, website string, phone *Ph
 		website:  website,
 		phone:    phone,
 		email:    email,
+		notes:    organizationNotes,
 		contacts: make([]*ContactDetails, 0),
 	}, nil
 }
@@ -79,6 +85,10 @@ func (o *OrganizationProfile) Phone() *Phone {
 
 func (o *OrganizationProfile) Email() *Email {
 	return o.email
+}
+
+func (o *OrganizationProfile) Notes() string {
+	return o.notes
 }
 
 func (o *OrganizationProfile) Contacts() []*ContactDetails {

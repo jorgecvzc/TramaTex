@@ -292,6 +292,9 @@
           <div v-if="setupDialogError" class="alert">{{ setupDialogError }}</div>
 
           <!-- WorkOrder notes as reference -->
+          <div v-if="setupDialogOrder?.work_name" class="info-banner">
+            <strong>Descripción del encargo:</strong> {{ setupDialogOrder.work_name }}
+          </div>
           <div v-if="setupDialogOrder?.notes" class="info-banner">
             <strong>Observaciones del pedido:</strong> {{ setupDialogOrder.notes }}
           </div>

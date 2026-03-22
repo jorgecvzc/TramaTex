@@ -64,14 +64,14 @@
             <td>
               <div class="attribute-values">
                 <span
-                  v-for="(value, attr) in variant.attribute_values"
+                  v-for="(value, attr) in variant.option_configuration"
                   :key="attr"
                   class="attribute-tag"
                 >
                   <span class="attr-name">{{ attr }}:</span>
                   <span class="attr-value">{{ value }}</span>
                 </span>
-                <span v-if="!variant.attribute_values || Object.keys(variant.attribute_values).length === 0" class="text-muted">
+                <span v-if="!variant.option_configuration || Object.keys(variant.option_configuration).length === 0" class="text-muted">
                   Sin atributos
                 </span>
               </div>

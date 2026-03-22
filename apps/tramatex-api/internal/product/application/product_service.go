@@ -270,6 +270,9 @@ func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCom
 		}
 		product.TaxRate = *cmd.TaxRate
 	}
+	if cmd.IsActive != nil {
+		product.IsActive = *cmd.IsActive
+	}
 	if cmd.ProductType != nil {
 		product.ProductType = *cmd.ProductType
 	}
@@ -323,7 +326,6 @@ func (s *ProductService) CreateAttribute(ctx context.Context, cmd CreateAttribut
 	attribute, err := domain.NewAttribute(
 		cmd.Name,
 		cmd.Code,
-		cmd.SortOrder,
 	)
 	if err != nil {
 		return nil, domain.WrapValidation("failed to create attribute domain entity", err)
@@ -373,9 +375,6 @@ func (s *ProductService) UpdateAttribute(ctx context.Context, cmd UpdateAttribut
 	}
 	if cmd.Code != nil {
 		attribute.Code = *cmd.Code
-	}
-	if cmd.SortOrder != nil {
-		attribute.SortOrder = *cmd.SortOrder
 	}
 
 	// 2. Handle AttributeValue updates (add, modify, delete)
@@ -458,15 +457,12 @@ func (s *ProductService) GetApplicableAttributesForProduct(ctx context.Context, 
 		return nil, domain.WrapPersistence("failed to fetch direct attributes", err)
 	}
 
-	// Convert to DTOs and sort by SortOrder
+	// Convert to DTOs - order is preserved from product.DirectAttributeIDs
+	// via FindByIDs which returns attributes in the same order as the input IDs
 	for i := range directAttrs {
 		attr := directAttrs[i]
 		result = append(result, NewAttributeDTOFromDomain(&attr))
 	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].SortOrder < result[j].SortOrder
-	})
 
 	return result, nil
 }
@@ -686,9 +682,8 @@ func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd Genera
 		return s.ensureDefaultVariant(ctx, product)
 	}
 
-	sort.Slice(domainAttributes, func(i, j int) bool {
-		return domainAttributes[i].SortOrder < domainAttributes[j].SortOrder
-	})
+	// Attribute order is already correct from GetApplicableAttributesForProduct
+	// which preserves the order of product.DirectAttributeIDs
 
 	for _, attr := range domainAttributes {
 		if len(attr.Values) == 0 {
@@ -909,12 +904,15 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 	// Map AttributeCode to domain.Attribute and AttributeValue
 	attrCodeToAttribute := make(map[string]*domain.Attribute)
 	attrValueToDomainValue := make(map[string]domain.AttributeValue) // Value (string) -> domain.AttributeValue
-	for _, attrDTO := range applicableAttributesDTOs {
+	// Preserve attribute order from DirectAttributeIDs (via applicableAttributesDTOs)
+	attrCodeOrder := make(map[string]int)
+	for i, attrDTO := range applicableAttributesDTOs {
 		fullDomainAttribute, err := s.attributeRepo.FindByID(ctx, attrDTO.ID)
 		if err != nil || fullDomainAttribute == nil {
 			return nil, domain.WrapPersistencef(err, "failed to retrieve full domain attribute %s", attrDTO.ID)
 		}
 		attrCodeToAttribute[fullDomainAttribute.Code] = fullDomainAttribute
+		attrCodeOrder[fullDomainAttribute.Code] = i
 		for _, val := range fullDomainAttribute.Values {
 			attrValueToDomainValue[val.Value] = val
 		}
@@ -944,11 +942,9 @@ func (s *ProductService) FindOrCreateProductVariant(ctx context.Context, cmd Fin
 		attrCodeToValueCode[attr.Code] = val.Code
 	}
 
-	// Sort attribute codes to ensure deterministic SKU construction
+	// Sort attribute codes by product.DirectAttributeIDs order for deterministic SKU construction
 	sort.Slice(sortedAttributeCodes, func(i, j int) bool {
-		attrI := attrCodeToAttribute[sortedAttributeCodes[i]]
-		attrJ := attrCodeToAttribute[sortedAttributeCodes[j]]
-		return attrI.SortOrder < attrJ.SortOrder
+		return attrCodeOrder[sortedAttributeCodes[i]] < attrCodeOrder[sortedAttributeCodes[j]]
 	})
 
 	// Construct the deterministic SKU
@@ -1357,6 +1353,16 @@ func (s *ProductService) DeleteBrand(ctx context.Context, cmd DeleteBrandCommand
 		return domain.NewNotFoundErrorf("brand with ID %s does not exist", cmd.ID)
 	}
 
+	products, err := s.productRepo.FindAll(ctx)
+	if err != nil {
+		return domain.WrapPersistence("failed to validate brand usage", err)
+	}
+	for _, product := range products {
+		if product.BrandID == cmd.ID {
+			return domain.NewValidationError("cannot delete brand because it is used by one or more products")
+		}
+	}
+
 	if err := s.brandRepo.Delete(ctx, cmd.ID); err != nil {
 		return domain.WrapPersistence("failed to delete brand", err)
 	}
@@ -1478,6 +1484,26 @@ func (s *ProductService) DeleteProductGroup(ctx context.Context, cmd DeleteProdu
 		return domain.NewNotFoundErrorf("product group with ID %s does not exist", cmd.ID)
 	}
 
+	allGroups, err := s.groupRepo.FindAll(ctx)
+	if err != nil {
+		return domain.WrapPersistence("failed to validate product group usage", err)
+	}
+	for _, g := range allGroups {
+		if g.ParentGroupID != nil && *g.ParentGroupID == cmd.ID {
+			return domain.NewValidationError("cannot delete product group because it is parent of another group")
+		}
+	}
+
+	products, err := s.productRepo.FindAll(ctx)
+	if err != nil {
+		return domain.WrapPersistence("failed to validate product group usage", err)
+	}
+	for _, product := range products {
+		if containsUUID(product.GroupIDs, cmd.ID) {
+			return domain.NewValidationError("cannot delete product group because it is used by one or more products")
+		}
+	}
+
 	if err := s.groupRepo.Delete(ctx, cmd.ID); err != nil {
 		return domain.WrapPersistence("failed to delete product group", err)
 	}
@@ -1500,11 +1526,50 @@ func (s *ProductService) DeleteAttribute(ctx context.Context, cmd DeleteAttribut
 		return domain.NewNotFoundErrorf("attribute with ID %s does not exist", cmd.ID)
 	}
 
+	products, err := s.productRepo.FindAll(ctx)
+	if err != nil {
+		return domain.WrapPersistence("failed to validate attribute usage", err)
+	}
+	for _, product := range products {
+		if containsUUID(product.DirectAttributeIDs, cmd.ID) {
+			return domain.NewValidationError("cannot delete attribute because it is assigned to one or more products")
+		}
+	}
+
+	attributeValueIDs := make(map[uuid.UUID]struct{}, len(attribute.Values))
+	for _, value := range attribute.Values {
+		attributeValueIDs[value.ID] = struct{}{}
+	}
+	if len(attributeValueIDs) > 0 {
+		for _, product := range products {
+			variants, err := s.variantRepo.FindByProductID(ctx, product.ID)
+			if err != nil {
+				return domain.WrapPersistence("failed to validate attribute usage", err)
+			}
+			for _, variant := range variants {
+				for _, variantValueID := range variant.AttributeValues {
+					if _, used := attributeValueIDs[variantValueID]; used {
+						return domain.NewValidationError("cannot delete attribute because one or more product variants depend on its values")
+					}
+				}
+			}
+		}
+	}
+
 	if err := s.attributeRepo.Delete(ctx, cmd.ID); err != nil {
 		return domain.WrapPersistence("failed to delete attribute", err)
 	}
 
 	return nil
+}
+
+func containsUUID(ids []uuid.UUID, target uuid.UUID) bool {
+	for _, id := range ids {
+		if id == target {
+			return true
+		}
+	}
+	return false
 }
 
 // SmartSearch performs an intelligent search for products/variants by SKU, barcode, or partial reference.

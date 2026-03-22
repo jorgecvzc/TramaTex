@@ -212,10 +212,8 @@ async function deleteAttribute() {
   error.value = ''
   
   try {
-    // Note: Delete endpoint not yet implemented in backend
-    // await productApi.deleteAttribute(attributeToDelete.value.id)
-    console.warn('Delete attribute not implemented in backend yet')
-    error.value = 'La funcionalidad de eliminación aún no está implementada en el backend'
+    await productApi.deleteAttribute(attributeToDelete.value.id)
+    await loadAttributes()
     showDeleteModal.value = false
   } catch (err) {
     error.value = err.message || 'No se pudo eliminar el atributo'

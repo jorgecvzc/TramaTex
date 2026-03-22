@@ -37,13 +37,7 @@ class PartyApiService {
   }
 
   private generateId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID()
-    }
-
-    const random = Math.random().toString(16).slice(2, 10)
-    const timestamp = Date.now().toString(16)
-    return `${timestamp}${random}`.slice(0, 36)
+    return crypto.randomUUID()
   }
 
   /**
@@ -136,12 +130,14 @@ class PartyApiService {
     let tax_id: string | null = null
     let tax_id_type = null
     let website: string | null = null
+    let notes: string | null = null
 
     if (party.organization_profile) {
       name = party.organization_profile.name
       tax_id = party.organization_profile.tax_id
       tax_id_type = party.organization_profile.tax_id_type
       website = party.organization_profile.website
+      notes = party.organization_profile.notes || null
     } else if (party.person_profile) {
       name = `${party.person_profile.first_name} ${party.person_profile.last_name}`
     }
@@ -151,6 +147,8 @@ class PartyApiService {
       name,
       role,
       status: party.status,
+      can_delete: party.can_delete ?? true,
+      notes,
       tax_id,
       tax_id_type,
       website,
@@ -265,6 +263,7 @@ class PartyApiService {
         tax_id: data.taxId,
         tax_id_type: data.taxIdType,
         website: data.website,
+        notes: data.notes,
       }
     }
 
@@ -403,11 +402,15 @@ class PartyApiService {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify({
+        default_discount_percentage: data.default_discount_percentage ?? 0,
         organization_profile: {
           name: data.name,
           tax_id: data.taxId,
           tax_id_type: data.taxIdType,
           website: data.website,
+          phone: data.phone || '',
+          email: data.email || '',
+          notes: data.notes || '',
         },
       }),
     })

@@ -47,7 +47,7 @@ func TestDataModelConversions(t *testing.T) {
 	assert.Equal(t, group.Name, groupModel.Name)
 	assert.Equal(t, group.ID, groupModel.ToDomain().ID)
 
-	attr, _ := domain.NewAttribute("Color", "C", 1)
+	attr, _ := domain.NewAttribute("Color", "C")
 	val, _ := attr.AddValue("Red", "R")
 	attrModel := AttributeFromDomain(attr)
 	assert.Equal(t, attr.ID, attrModel.ID)
@@ -98,7 +98,7 @@ func TestGORMRepositories(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, groupID, group.ID)
 
-	attr, _ := domain.NewAttribute("Color", "C", 1)
+	attr, _ := domain.NewAttribute("Color", "C")
 	_, _ = attr.AddValue("Red", "R")
 	attrRepo := NewGORMAttributeRepository(db)
 	assert.NoError(t, attrRepo.Save(ctx, attr))
@@ -181,10 +181,10 @@ func TestGORMAttributeRepository_FindByScope(t *testing.T) {
 
 	attrRepo := NewGORMAttributeRepository(db)
 
-	genericAttr, _ := domain.NewAttribute("Generic", "GEN", 0)
-	brandAttr, _ := domain.NewAttribute("Brand", "BR", 0)
-	groupAttr, _ := domain.NewAttribute("Group", "GR", 0)
-	brandGroupAttr, _ := domain.NewAttribute("BrandGroup", "BG", 0)
+	genericAttr, _ := domain.NewAttribute("Generic", "GEN")
+	brandAttr, _ := domain.NewAttribute("Brand", "BR")
+	groupAttr, _ := domain.NewAttribute("Group", "GR")
+	brandGroupAttr, _ := domain.NewAttribute("BrandGroup", "BG")
 
 	assert.NoError(t, attrRepo.Save(ctx, genericAttr))
 	assert.NoError(t, attrRepo.Save(ctx, brandAttr))
@@ -216,8 +216,8 @@ func TestGORMAttributeRepository_FindByIDs(t *testing.T) {
 	db := tdb.DB
 
 	attrRepo := NewGORMAttributeRepository(db)
-	attrOne, _ := domain.NewAttribute("Color", "C", 0)
-	attrTwo, _ := domain.NewAttribute("Size", "S", 1)
+	attrOne, _ := domain.NewAttribute("Color", "C")
+	attrTwo, _ := domain.NewAttribute("Size", "S")
 	assert.NoError(t, attrRepo.Save(ctx, attrOne))
 	assert.NoError(t, attrRepo.Save(ctx, attrTwo))
 

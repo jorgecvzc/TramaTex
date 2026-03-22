@@ -40,6 +40,7 @@ type OrganizationProfileDataModel struct {
 	Website   string  `gorm:"column:website"`
 	Phone     *string `gorm:"column:phone"`
 	Email     *string `gorm:"column:email"`
+	Notes     string  `gorm:"column:notes"`
 }
 
 func (OrganizationProfileDataModel) TableName() string {

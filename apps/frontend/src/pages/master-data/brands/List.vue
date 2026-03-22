@@ -38,6 +38,7 @@
               <th>ID</th>
               <th class="text-center">Beneficio (%)</th>
               <th class="text-center">Productos</th>
+              <th class="text-center">Estado</th>
               <th class="text-right">Acciones</th>
             </tr>
           </thead>
@@ -55,13 +56,18 @@
               <td class="text-center">
                 <span class="badge">-</span>
               </td>
+              <td class="text-center">
+                <span class="badge" :class="brand.is_active ? 'badge-active' : 'badge-inactive'">
+                  {{ brand.is_active ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
               <td class="text-right">
                 <button @click="editBrand(brand)" class="btn btn-sm btn-secondary mr-2">Editar</button>
                 <button @click="deleteBrand(brand)" class="btn btn-sm btn-danger">Eliminar</button>
               </td>
             </tr>
             <tr v-if="brands.length === 0">
-              <td colspan="5" class="text-center empty-state">
+              <td colspan="6" class="text-center empty-state">
                 No hay marcas registradas. Crea una nueva para comenzar.
               </td>
             </tr>
@@ -301,6 +307,16 @@ onMounted(() => {
 .btn-sm {
   padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
+}
+
+.badge-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-inactive {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .loading-container {

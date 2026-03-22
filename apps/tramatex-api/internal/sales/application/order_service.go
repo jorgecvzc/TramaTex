@@ -432,7 +432,7 @@ func (s *SalesService) UpdateOrderLineItem(ctx context.Context, cmd UpdateOrderL
 		return nil, err
 	}
 
-	taxAmount, err := zeroMoney()
+	taxAmount, err := sumOrderLineItemTaxes(lineItems)
 	if err != nil {
 		return nil, err
 	}
@@ -482,7 +482,7 @@ func (s *SalesService) RemoveOrderLineItem(ctx context.Context, cmd RemoveOrderL
 		return nil, err
 	}
 
-	taxAmount, err := zeroMoney()
+	taxAmount, err := sumOrderLineItemTaxes(lineItems)
 	if err != nil {
 		return nil, err
 	}

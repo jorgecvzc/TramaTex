@@ -151,6 +151,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		Barcode            *string             `json:"barcode"`
 		BasePrice          *float64            `json:"base_price"`
 		TaxRate            *float64            `json:"tax_rate"`
+		IsActive           *bool               `json:"is_active"`
 		ProductType        *domain.ProductType `json:"product_type"`
 		Description        *string             `json:"description"`
 		BrandID            *uuid.UUID          `json:"brand_id"`
@@ -178,6 +179,7 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		Barcode:            req.Barcode,
 		BasePrice:          req.BasePrice,
 		TaxRate:            req.TaxRate,
+		IsActive:           req.IsActive,
 		ProductType:        req.ProductType,
 		Description:        req.Description,
 		BrandID:            req.BrandID,

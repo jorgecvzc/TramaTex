@@ -162,7 +162,7 @@
                 </div>
                 <table class="tasks-table">
                   <thead>
-                    <tr><th>#</th><th>Tarea</th><th>Estado</th></tr>
+                    <tr><th>#</th><th>Tarea</th><th>Estado</th><th>Notas</th></tr>
                   </thead>
                   <tbody>
                     <tr
@@ -173,6 +173,7 @@
                       <td>{{ task.sequence }}</td>
                       <td>{{ taskNames[task.task_id] || task.task_id }}</td>
                       <td><span class="status-pill" :class="task.status.toLowerCase()">{{ taskStatusLabel(task.status) }}</span></td>
+                      <td class="task-notes">{{ task.notes || '—' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -562,6 +563,7 @@ function copyPath(path: string) {
 .tasks-table th, .tasks-table td { padding: .5rem .85rem; border-bottom: 1px solid #f1f5f9; text-align: left; }
 .tasks-table th { color: #64748b; font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; background: #fff; }
 .tasks-table tr:last-child td { border-bottom: none; }
+.task-notes { color: #475569; font-size: .82rem; max-width: 260px; }
 .task-selected { background: #eff6ff !important; }
 .task-selected td { font-weight: 600; }
 .dialog-footer { padding: .75rem 1.5rem; border-top: 1px solid #e2e8f0; background: #f8fafc; }

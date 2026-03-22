@@ -2319,6 +2319,7 @@ func TestSalesService_UpdateOrderLineItem_UpdateQuantity_Success(t *testing.T) {
 				ProductVariantID: variantID,
 				Quantity:         10,
 				BaseSalesPrice:   pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
+				TaxRate:          21.0,
 				FinalPrice:       pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
 			},
 		},
@@ -2341,7 +2342,75 @@ func TestSalesService_UpdateOrderLineItem_UpdateQuantity_Success(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, 1, len(result.LineItems))
 	assert.Equal(t, 10, result.LineItems[0].Quantity)
+	assert.InDelta(t, 1000.0, result.Subtotal.Amount, 0.001)
+	assert.InDelta(t, 210.0, result.TaxAmount.Amount, 0.001)
+	assert.InDelta(t, 1210.0, result.Total.Amount, 0.001)
 	orderRepo.AssertExpectations(t)
+	mockPricingService.AssertExpectations(t)
+}
+
+func TestSalesService_UpdateQuote_ItemsRecalculateTotals_Success(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+	mockPricingService := new(MockPricingEngine)
+
+	money, _ := domain.NewMoney(100, domain.DefaultCurrency)
+	quoteNumber, _ := domain.NewQuoteNumber("Q/2026/0100")
+	lineItem, _ := domain.NewQuoteLineItem(variantID, 1, money, nil, 0, 21)
+	initialTax, _ := domain.NewMoney(21, domain.DefaultCurrency)
+
+	quote, _ := domain.NewQuote(
+		quoteNumber,
+		partyID,
+		time.Now(),
+		time.Now().Add(30*24*time.Hour),
+		[]domain.QuoteLineItem{lineItem},
+		initialTax,
+		"Test quote",
+	)
+
+	quoteRepo.On("FindByID", mock.Anything, quote.ID).Return(quote, nil)
+	quoteRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Quote")).Return(nil)
+
+	mockPricingService.On("CalculateFinalSalePrice", mock.Anything, mock.Anything).Return(&pricing_app.CalculateFinalSalePriceResponse{
+		CalculatedItems: []pricing_app.CalculatedSaleItemResponse{
+			{
+				ProductVariantID: variantID,
+				Quantity:         3,
+				BaseSalesPrice:   pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
+				TaxRate:          21.0,
+			},
+		},
+	}, nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
+
+	unitPrice := application.MoneyDTO{Amount: 100, Currency: domain.DefaultCurrency}
+	cmd := application.UpdateQuoteCommand{
+		QuoteID: quote.ID,
+		Items: []application.QuoteLineItemInput{
+			{
+				ProductVariantID: variantID,
+				Quantity:         3,
+				UnitPrice:        &unitPrice,
+			},
+		},
+	}
+
+	result, err := service.UpdateQuote(ctx, cmd)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.InDelta(t, 300.0, result.Subtotal.Amount, 0.001)
+	assert.InDelta(t, 63.0, result.TaxAmount.Amount, 0.001)
+	assert.InDelta(t, 363.0, result.Total.Amount, 0.001)
+	quoteRepo.AssertExpectations(t)
 	mockPricingService.AssertExpectations(t)
 }
 
@@ -2659,6 +2728,7 @@ func TestSalesService_RemoveOrderLineItem_Success(t *testing.T) {
 				ProductVariantID: variantID2,
 				Quantity:         3,
 				BaseSalesPrice:   pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
+				TaxRate:          21.0,
 				FinalPrice:       pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
 			},
 		},
@@ -2676,6 +2746,10 @@ func TestSalesService_RemoveOrderLineItem_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
+	assert.Equal(t, 1, len(result.LineItems))
+	assert.InDelta(t, 300.0, result.Subtotal.Amount, 0.001)
+	assert.InDelta(t, 63.0, result.TaxAmount.Amount, 0.001)
+	assert.InDelta(t, 363.0, result.Total.Amount, 0.001)
 	assert.Equal(t, 1, len(result.LineItems))
 	assert.Equal(t, variantID2, result.LineItems[0].ProductVariantID)
 	orderRepo.AssertExpectations(t)

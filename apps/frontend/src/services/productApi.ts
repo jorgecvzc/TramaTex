@@ -99,12 +99,14 @@ class ProductApiService {
   private brandsUrl: string
   private groupsUrl: string
   private attributesUrl: string
+  private variantsUrl: string
 
   constructor() {
     this.baseUrl = `${API_BASE}/products`
     this.brandsUrl = `${API_BASE}/brands`
     this.groupsUrl = `${API_BASE}/product-groups`
     this.attributesUrl = `${API_BASE}/attributes`
+    this.variantsUrl = `${API_BASE}/variants`
   }
 
   /**
@@ -271,7 +273,7 @@ class ProductApiService {
     const data = await response.json()
     
     // Fetch calculated option sets (attributes)
-    let calculatedOptionSets = []
+    let calculatedOptionSets: CalculatedOptionSet[] = []
     try {
       const optionsData = await this.getCalculatedOptionSets(id)
       calculatedOptionSets = optionsData.attributes || []
@@ -386,7 +388,6 @@ class ProductApiService {
       sku: updated.sku,
       name: updated.name,
       long_name: updated.longName,
-      barcode: updated.barcode,
       base_price: updated.basePrice,
       tax_rate: updated.taxRate,
       description: updated.description,
@@ -403,8 +404,8 @@ class ProductApiService {
    * Change product status (activate/deactivate)
    */
   async changeProductStatus(id: string, isActive: boolean): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/${id}/status`, {
-      method: 'PATCH',
+    const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
+      method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify({ is_active: isActive }),
     })
@@ -524,7 +525,7 @@ class ProductApiService {
    */
   async getVariant(variantId: string): Promise<VariantUI> {
     const response = await this.safeFetch(
-      `${this.baseUrl}/variants/${variantId}`,
+      `${this.variantsUrl}/${variantId}`,
       {
         method: 'GET',
         headers: this.getHeaders(),
@@ -544,7 +545,7 @@ class ProductApiService {
    */
   async getVariantBySku(sku: string): Promise<VariantUI> {
     const response = await this.safeFetch(
-      `${this.baseUrl}/variants?sku=${sku}`,
+      `${this.variantsUrl}?sku=${sku}`,
       {
         method: 'GET',
         headers: this.getHeaders(),
@@ -691,7 +692,7 @@ class ProductApiService {
    */
   async updateVariant(variantId: string, data: any): Promise<VariantUI> {
     const response = await this.safeFetch(
-      `${this.baseUrl}/variants/${variantId}`,
+      `${this.variantsUrl}/${variantId}`,
       {
         method: 'PUT',
         headers: this.getHeaders(),
@@ -785,7 +786,7 @@ class ProductApiService {
         id: data.id,
         name: data.name,
         defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
-        is_active: data.isActive !== undefined ? data.isActive : true,
+        isActive: data.isActive !== undefined ? data.isActive : true,
       }),
     })
 
@@ -811,6 +812,20 @@ class ProductApiService {
     }
 
     return response.json()
+  }
+
+  /**
+   * Delete brand
+   */
+  async deleteBrand(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.brandsUrl}/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la marca')
+    }
   }
 
   // ============================================================================
@@ -851,7 +866,7 @@ class ProductApiService {
       name: g.name,
       type: g.type || 'TANGIBLE',
       is_active: g.isActive,
-      parent_group_id: g.parentGroupId,
+      parent_group_id: g.parent_group_id,
       description: g.description,
     }))
     
@@ -880,7 +895,7 @@ class ProductApiService {
       name: data.name,
       type: data.type || 'TANGIBLE',
       is_active: data.isActive,
-      parent_group_id: data.parentGroupId,
+      parent_group_id: data.parent_group_id,
       description: data.description,
     }
   }
@@ -902,8 +917,8 @@ class ProductApiService {
         id: data.id,
         name: data.name,
         type: data.type || 'TANGIBLE',
-        parent_group_id: data.parentGroupId || null,
-        is_active: data.isActive !== undefined ? data.isActive : true,
+        parentID: data.parentGroupId || null,
+        isActive: data.isActive !== undefined ? data.isActive : true,
       }),
     })
 
@@ -929,8 +944,8 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         type: data.type,
-        parent_group_id: data.parentGroupId !== undefined ? data.parentGroupId : undefined,
-        is_active: data.isActive !== undefined ? data.isActive : undefined,
+        parentID: data.parentGroupId !== undefined ? data.parentGroupId : undefined,
+        isActive: data.isActive !== undefined ? data.isActive : undefined,
       }),
     })
 
@@ -939,6 +954,20 @@ class ProductApiService {
     }
 
     return response.json()
+  }
+
+  /**
+   * Delete product group
+   */
+  async deleteProductGroup(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.groupsUrl}/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar la categoría')
+    }
   }
 
   // ============================================================================
@@ -998,7 +1027,6 @@ class ProductApiService {
   async createAttribute(data: {
     name: string
     code: string
-    order?: number
     values?: Array<{
       value: string
       code: string
@@ -1013,7 +1041,6 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         code: data.code,
-        sortOrder: data.order || 0,
         values: (data.values || []).map(v => {
           const hasPriceModifier = v.hasPriceModifier || false
           return {
@@ -1042,7 +1069,6 @@ class ProductApiService {
   async updateAttribute(id: string, data: {
     name?: string
     code?: string
-    order?: number
     values?: Array<{
       id?: string
       value: string
@@ -1058,7 +1084,6 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         code: data.code,
-        sortOrder: data.order || 0,
         values: (data.values || []).map(v => {
           const hasPriceModifier = v.hasPriceModifier || false
           return {
@@ -1078,6 +1103,20 @@ class ProductApiService {
     }
 
     return response.json()
+  }
+
+  /**
+   * Delete attribute
+   */
+  async deleteAttribute(id: string): Promise<void> {
+    const response = await this.safeFetch(`${this.attributesUrl}/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo eliminar el atributo')
+    }
   }
 }
 

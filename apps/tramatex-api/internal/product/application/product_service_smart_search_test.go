@@ -326,7 +326,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 		sizeAttrID := uuid.New()
 		valS := domain.AttributeValue{ID: uuid.New(), Value: "S", Code: "S"}
 		valM := domain.AttributeValue{ID: uuid.New(), Value: "M", Code: "M"}
-		sizeAttr := &domain.Attribute{ID: sizeAttrID, Name: "Size", Code: "SIZE", SortOrder: 1, Values: []domain.AttributeValue{valS, valM}}
+		sizeAttr := &domain.Attribute{ID: sizeAttrID, Name: "Size", Code: "SIZE", Values: []domain.AttributeValue{valS, valM}}
 
 		// Product has direct attribute
 		productWithAttr := &domain.Product{
@@ -367,7 +367,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 
 		sizeAttrID := uuid.New()
 		valS := domain.AttributeValue{ID: uuid.New(), Value: "S", Code: "S"}
-		sizeAttr := &domain.Attribute{ID: sizeAttrID, Name: "Size", Code: "SIZE", SortOrder: 1, Values: []domain.AttributeValue{valS}}
+		sizeAttr := &domain.Attribute{ID: sizeAttrID, Name: "Size", Code: "SIZE", Values: []domain.AttributeValue{valS}}
 
 		productWithAttr := &domain.Product{
 			ID:                 productID,
@@ -410,7 +410,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 		svc3, mockProductRepo3, _, _, mockAttributeRepo3, mockVariantRepo3, _ := newTestService()
 
 		emptyAttrID := uuid.New()
-		emptyAttr := &domain.Attribute{ID: emptyAttrID, Name: "Color", Code: "COLOR", SortOrder: 1, Values: []domain.AttributeValue{}}
+		emptyAttr := &domain.Attribute{ID: emptyAttrID, Name: "Color", Code: "COLOR", Values: []domain.AttributeValue{}}
 
 		productWithAttr := &domain.Product{
 			ID:                 productID,

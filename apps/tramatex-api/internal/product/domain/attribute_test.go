@@ -10,31 +10,30 @@ import (
 
 func TestNewAttribute(t *testing.T) {
 	t.Run("should create a new attribute successfully", func(t *testing.T) {
-		attr, err := domain.NewAttribute("Color", "C", 1)
+		attr, err := domain.NewAttribute("Color", "C")
 		assert.NoError(t, err)
 		assert.NotNil(t, attr)
 		assert.Equal(t, "Color", attr.Name)
 		assert.Equal(t, "C", attr.Code)
-		assert.Equal(t, 1, attr.SortOrder)
 		assert.NotEqual(t, uuid.Nil, attr.ID)
 		assert.Empty(t, attr.Values)
 	})
 
 	t.Run("should return error if name is empty", func(t *testing.T) {
-		_, err := domain.NewAttribute("", "C", 1)
+		_, err := domain.NewAttribute("", "C")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "attribute name cannot be empty")
 	})
 
 	t.Run("should return error if code is empty", func(t *testing.T) {
-		_, err := domain.NewAttribute("Color", "", 1)
+		_, err := domain.NewAttribute("Color", "")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "attribute code cannot be empty")
 	})
 }
 
 func TestAttribute_AddValue(t *testing.T) {
-	attr, _ := domain.NewAttribute("Size", "S", 0)
+	attr, _ := domain.NewAttribute("Size", "S")
 
 	t.Run("should add a value successfully", func(t *testing.T) {
 		val, err := attr.AddValue("Large", "L")
@@ -67,7 +66,7 @@ func TestAttribute_AddValue(t *testing.T) {
 }
 
 func TestAttribute_UpdateValue(t *testing.T) {
-	attr, _ := domain.NewAttribute("Size", "S", 0)
+	attr, _ := domain.NewAttribute("Size", "S")
 	val, _ := attr.AddValue("Large", "L")
 
 	t.Run("should update existing value", func(t *testing.T) {
@@ -97,7 +96,7 @@ func TestAttribute_UpdateValue(t *testing.T) {
 }
 
 func TestAttribute_RemoveValue(t *testing.T) {
-	attr, _ := domain.NewAttribute("Size", "S", 0)
+	attr, _ := domain.NewAttribute("Size", "S")
 	val, _ := attr.AddValue("Large", "L")
 
 	t.Run("should remove existing value", func(t *testing.T) {

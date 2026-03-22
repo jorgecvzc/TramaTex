@@ -96,7 +96,8 @@ func (r *GORMAttributeRepository) FindByCode(ctx context.Context, code string) (
 	return dataModel.ToDomain(), nil
 }
 
-// FindByIDs finds attributes by their IDs
+// FindByIDs finds attributes by their IDs, preserving the order of the input IDs slice.
+// This is critical for SKU generation where attribute order comes from product.DirectAttributeIDs.
 func (r *GORMAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Attribute, error) {
 	var dataModels []AttributeDataModel
 	err := r.db.WithContext(ctx).Preload("Values").Find(&dataModels, "id IN ?", ids).Error
@@ -104,9 +105,17 @@ func (r *GORMAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID
 		return nil, err
 	}
 
-	attributes := make([]domain.Attribute, len(dataModels))
-	for i, dm := range dataModels {
-		attributes[i] = *dm.ToDomain()
+	// Build lookup map for reordering by input ID order
+	dmByID := make(map[uuid.UUID]*AttributeDataModel, len(dataModels))
+	for i := range dataModels {
+		dmByID[dataModels[i].ID] = &dataModels[i]
+	}
+
+	attributes := make([]domain.Attribute, 0, len(ids))
+	for _, id := range ids {
+		if dm, ok := dmByID[id]; ok {
+			attributes = append(attributes, *dm.ToDomain())
+		}
 	}
 
 	return attributes, nil

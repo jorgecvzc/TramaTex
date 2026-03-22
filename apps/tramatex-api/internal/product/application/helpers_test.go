@@ -14,9 +14,9 @@ func TestAttributeMatchesScopeType(t *testing.T) {
 	// brandID := uuid.New()
 	// groupID := uuid.New()
 
-	genericAttr, _ := domain.NewAttribute("Generic", "G", 1)
-	brandAttr, _ := domain.NewAttribute("Brand", "B", 1)
-	groupBrandAttr, _ := domain.NewAttribute("GroupBrand", "GB", 1)
+	genericAttr, _ := domain.NewAttribute("Generic", "G")
+	brandAttr, _ := domain.NewAttribute("Brand", "B")
+	groupBrandAttr, _ := domain.NewAttribute("GroupBrand", "GB")
 
 	if !attributeMatchesScopeType(genericAttr, nil) {
 		t.Fatalf("expected nil scope type to match")
