@@ -145,7 +145,7 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 				return domain.NewNotFoundError("order not found")
 			}
 
-			if err := s.updateOrderInvoiceStatus(txCtx, order, lineItems); err != nil {
+			if err := s.updateOrderInvoiceStatus(txCtx, order); err != nil {
 				return err
 			}
 			if err := s.orderRepo.Save(txCtx, order); err != nil {
@@ -366,7 +366,7 @@ func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, p
 	return lineItems, orderIDs, dnToInvoiceLinks, nil
 }
 
-func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder, newInvoiceItems []domain.InvoiceLineItem) error {
+func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder) error {
 	if order.Status == domain.SalesOrderStatusCanceled {
 		return domain.NewConflictError("cannot update invoice status for canceled order")
 	}
@@ -374,6 +374,8 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 		return domain.NewConflictError("order must be delivered before invoicing")
 	}
 
+	// ListBySalesOrderID is called after saving the invoice, so the new invoice
+	// is already included in the results. No need to add newInvoiceItems separately.
 	invoiced := make(map[uuid.UUID]int)
 	existing, err := s.invoiceRepo.ListBySalesOrderID(ctx, order.ID)
 	if err != nil {
@@ -384,11 +386,6 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 			if item.SalesOrderLineItemID != nil {
 				invoiced[*item.SalesOrderLineItemID] += item.Quantity
 			}
-		}
-	}
-	for _, item := range newInvoiceItems {
-		if item.SalesOrderLineItemID != nil {
-			invoiced[*item.SalesOrderLineItemID] += item.Quantity
 		}
 	}
 
