@@ -210,6 +210,13 @@ func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery
 			}
 			filter.Status = &status
 		}
+		if query.Type != nil {
+			invoiceType := domain.InvoiceType(*query.Type)
+			if err := invoiceType.IsValid(); err != nil {
+				return nil, err
+			}
+			filter.Type = &invoiceType
+		}
 		invoices, err = s.invoiceRepo.List(ctx, filter)
 	}
 	if err != nil {

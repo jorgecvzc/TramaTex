@@ -179,6 +179,15 @@ watch(
 );
 
 watch(
+  () => filters.value.status,
+  (newStatus, oldStatus) => {
+    if (!autoFetchEnabled) return;
+    if (newStatus === oldStatus) return;
+    scheduleDeliveryNotesFetch();
+  },
+);
+
+watch(
   () => [filters.value.fromDate, filters.value.toDate],
   (newValues, oldValues) => {
     if (!autoFetchEnabled || !oldValues) return;

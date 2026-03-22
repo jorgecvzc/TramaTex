@@ -58,6 +58,7 @@ type ListInvoicesQuery struct {
 	SalesOrderID   *uuid.UUID
 	DeliveryNoteID *uuid.UUID
 	Status         *string
+	Type           *string
 	FromDate       *time.Time
 	ToDate         *time.Time
 	Search         *string

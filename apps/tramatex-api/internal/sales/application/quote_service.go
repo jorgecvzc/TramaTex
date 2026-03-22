@@ -52,10 +52,12 @@ func (s *SalesService) CreateQuote(ctx context.Context, cmd CreateQuoteCommand) 
 		notes = *cmd.Notes
 	}
 
+	now := time.Now()
+	quoteDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	quote, err := domain.NewQuote(
 		quoteNumber,
 		cmd.PartyID,
-		time.Now(),
+		quoteDay,
 		cmd.ExpirationDate,
 		lineItems,
 		taxAmount,

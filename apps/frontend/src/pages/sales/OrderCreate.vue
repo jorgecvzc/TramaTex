@@ -347,38 +347,6 @@ onMounted(() => {
   formData.value.orderDate = today;
   formData.value.deliveryDate = today;
 
-  // Pre-fill from quote if navigated from QuoteDetail
-  const fromQuoteRaw = sessionStorage.getItem('orderFromQuote');
-  if (fromQuoteRaw) {
-    sessionStorage.removeItem('orderFromQuote');
-    try {
-      const fromQuote = JSON.parse(fromQuoteRaw);
-      if (fromQuote.quoteId) formData.value.sourceQuoteId = fromQuote.quoteId;
-      if (fromQuote.partyId) formData.value.partyId = fromQuote.partyId;
-      if (fromQuote.notes) formData.value.notes = fromQuote.notes;
-      if (fromQuote.mesWorkRefs?.length) formData.value.mesWorkRefs = fromQuote.mesWorkRefs;
-      if (fromQuote.lineItems?.length) {
-        formData.value.lineItems = fromQuote.lineItems.map(item => ({
-          productVariantId: item.productVariantId || '',
-          productId: '',
-          selectedVariantName: item.selectedVariantName || '',
-          productName: item.productName || '',
-          productDescription: '',
-          optionConfiguration: item.optionConfiguration || {},
-          quickSearchQuery: '',
-          inlineSearchError: '',
-          quantity: item.quantity || 1,
-          listPrice: item.listPrice ?? null,
-          unitPrice: item.unitPrice ?? null,
-          discountPercent: item.discountPercent ?? null,
-          productBasePrice: null,
-        }));
-        calculateTotals();
-      }
-    } catch (e) {
-      console.error('Error parsing quote pre-fill data:', e);
-    }
-  }
 });
 
 watch(() => formData.value.partyId, (partyId) => {

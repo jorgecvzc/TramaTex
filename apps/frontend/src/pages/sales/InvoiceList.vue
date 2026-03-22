@@ -39,8 +39,8 @@
           <label>Tipo</label>
           <select v-model="filters.type" class="filter-select">
             <option value="">Todos</option>
-            <option value="STANDARD">Estándar</option>
-            <option value="SIMPLIFIED">Simplificada</option>
+            <option value="COMPLETA">Estándar</option>
+            <option value="SIMPLIFICADA">Simplificada</option>
           </select>
         </div>
         <div class="filter-group">
@@ -325,7 +325,7 @@ async function fetchInvoices() {
       params.partyId = filters.value.partyId;
     }
     if (filters.value.type) {
-      params.type = filters.value.type;
+      params.invoiceType = filters.value.type;
     }
     if (filters.value.fromDate) {
       params.fromDate = filters.value.fromDate;
@@ -461,8 +461,8 @@ function formatPartyId(partyId) {
 
 function getTypeLabel(type) {
   const labels = {
-    STANDARD: 'Estándar',
-    SIMPLIFIED: 'Simplificada',
+    COMPLETA: 'Estándar',
+    SIMPLIFICADA: 'Simplificada',
   };
   return labels[type] || type;
 }
@@ -703,12 +703,12 @@ function getTypeLabel(type) {
   letter-spacing: 0.025em;
 }
 
-.type-standard {
+.type-completa {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.type-simplified {
+.type-simplificada {
   background: #fef3c7;
   color: #92400e;
 }

@@ -68,14 +68,7 @@
           >
             📧 Emitir
           </button>
-          <button
-            v-if="(quote.status === 'DRAFT' || quote.status === 'ISSUED') && !isEditing"
-            class="btn btn-primary"
-            @click="createOrderFromQuote"
-            title="Crear un pedido a partir de este presupuesto"
-          >
-            📦 Crear Pedido
-          </button>
+
           <button 
             v-if="quote.status === 'DRAFT' && !isEditing" 
             class="btn btn-danger" 
@@ -685,28 +678,6 @@ async function deleteQuote() {
   } catch (err) {
     alert(err?.message || 'No se pudo eliminar el presupuesto');
   }
-}
-
-function createOrderFromQuote() {
-  const q = quote.value;
-  const fromQuote = {
-    quoteId: q.id,
-    partyId: q.partyId,
-    notes: q.notes || '',
-    mesWorkRefs: (q.mesWorkRefs || []).map(r => ({ workSetupId: r.workSetupId || null, description: r.description || '' })),
-    lineItems: (q.lineItems || []).map(item => ({
-      productVariantId: item.productVariantId,
-      selectedVariantName: item.variantSku || '',
-      productName: item.productName || '',
-      optionConfiguration: item.optionConfiguration || {},
-      quantity: item.quantity,
-      unitPrice: item.unitPrice?.amount ?? null,
-      listPrice: item.listUnitPrice?.amount ?? null,
-      discountPercent: item.discountPercent ?? null,
-    })),
-  };
-  sessionStorage.setItem('orderFromQuote', JSON.stringify(fromQuote));
-  router.push('/sales/orders/new');
 }
 
 async function convertToOrder() {
