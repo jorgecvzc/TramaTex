@@ -63,6 +63,25 @@ services:
     labels:
       com.tramatex.environment: "local"
 
+  # Nginx + Vue Frontend (optional for full-stack local testing)
+  # In development, use `npm run dev` directly instead
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+    container_name: ${FRONTEND_CONTAINER:-tramatex_frontend}
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - api
+    networks:
+      - tramatex_network
+    restart: unless-stopped
+    profiles:
+      - full
+    labels:
+      com.tramatex.environment: "local"
+
 volumes:
   postgres_data_local:
     driver: local

@@ -5,7 +5,7 @@
 .PHONY: help setup docker-build docker-up docker-down docker-logs docker-status \
         tramatex-api-build tramatex-api-run tramatex-api-test tramatex-api-test-unit tramatex-api-coverage \
         tramatex-api-lint tramatex-api-fmt tramatex-api-vet tramatex-api-deps db-migrate qa clean \
-        install-tools env-init test-connectivity docker-clean
+        install-tools env-init test-connectivity docker-clean deploy
 
 # ============================================================================
 # GLOBAL CONFIGURATION
@@ -17,18 +17,18 @@ GO=go
 # Detect environment (default: local - PRIMARY)
 ENV ?= local
 ifeq ($(ENV),remote)
-    DOCKER_COMPOSE_FILE=docker-compose.remote.yml
-    ENV_FILE=.env.remote
+    DOCKER_COMPOSE_FILE=docker/docker-compose.remote.yml
+    ENV_FILE=docker/.env
     SSH_HOST=pcele
     SSH_USER=ele
     DOCKER_HOST_FLAG=-H ssh://$(SSH_USER)@$(SSH_HOST)
 else
-    DOCKER_COMPOSE_FILE=docker-compose.local.yml
-    ENV_FILE=.env.local
+    DOCKER_COMPOSE_FILE=docker/docker-compose.local.yml
+    ENV_FILE=docker/.env
     DOCKER_HOST_FLAG=
 endif
 
-DOCKER_COMPOSE=docker-compose -f $(DOCKER_COMPOSE_FILE) --env-file $(ENV_FILE)
+DOCKER_COMPOSE=docker compose -f $(DOCKER_COMPOSE_FILE) --env-file $(ENV_FILE)
 
 # ============================================================================
 # HELP & INITIALIZATION
@@ -57,22 +57,18 @@ help: ## Show this help message
 	@echo "  make docker-up ENV=remote       # Start REMOTE stack (pcele) - Explicit"
 	@echo "  make docker-logs                # View logs from local (default)"
 	@echo "  make docker-logs ENV=remote     # View logs from remote (pcele)"
+	@echo "  make deploy ENV=pcele           # Deploy to local network server"
+	@echo "  make deploy ENV=staging         # Push to staging (auto-deploy)"
+	@echo "  make deploy ENV=prod            # Push to production (auto-deploy)"
 
 env-init: ## Initialize environment files and test connectivity
 	@echo "🔧 Initializing TramaTex environments..."
 	@echo ""
-	@echo "📍 Environment: LOCAL (Windows Docker Desktop)"
-	@if [ -f .env.local ]; then \
-		echo "✓ .env.local exists"; \
+	@echo "📍 Environment: docker/.env"
+	@if [ -f docker/.env ]; then \
+		echo "✓ docker/.env exists"; \
 	else \
-		echo "❌ .env.local missing"; \
-	fi
-	@echo ""
-	@echo "📍 Environment: REMOTE (pcele Linux Server)"
-	@if [ -f .env.remote ]; then \
-		echo "✓ .env.remote exists"; \
-	else \
-		echo "❌ .env.remote missing"; \
+		echo "❌ docker/.env missing — copy from docker/.env.example"; \
 	fi
 	@echo ""
 	@echo "✓ Configuration initialized"
@@ -244,8 +240,45 @@ install-tools: ## Install required development tools
 frontend-dev: ## Frontend development server
 	cd apps/frontend && npm run dev
 
-frontend-build: ## Build frontend
+frontend-build: ## Build frontend for production
 	cd apps/frontend && npm run build
+
+frontend-test: ## Run frontend tests
+	cd apps/frontend && npx vitest run --reporter=verbose
+
+# ============================================================================
+# DEPLOYMENT
+# ============================================================================
+
+deploy: ## Deploy to remote server (ENV=pcele|staging|prod)
+ifeq ($(ENV),pcele)
+	@echo "🚀 Deploying to pcele (local network server)..."
+	ssh ele@pcele "cd /opt/tramatex && git pull origin develop && \
+		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build && \
+		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d && \
+		docker image prune -f"
+	@echo "✓ Deployed to pcele"
+else ifeq ($(ENV),staging)
+	@echo "🚀 Deploying to staging (push to staging branch triggers GitHub Actions)..."
+	git push origin develop:staging
+	@echo "✓ Push to staging complete — GitHub Actions will deploy automatically"
+else ifeq ($(ENV),prod)
+	@echo "🚀 Deploying to production (push to master triggers GitHub Actions)..."
+	@echo "⚠️  Are you sure? This deploys to PRODUCTION."
+	@read -p "Type 'yes' to confirm: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		git push origin staging:master; \
+		echo "✓ Push to master complete — GitHub Actions will deploy automatically"; \
+	else \
+		echo "❌ Deployment cancelled"; \
+	fi
+else
+	@echo "❌ Usage: make deploy ENV=pcele|staging|prod"
+	@echo ""
+	@echo "  pcele   - Deploy to local network server (SSH)"
+	@echo "  staging - Push develop → staging (triggers GitHub Actions)"
+	@echo "  prod    - Push staging → master (triggers GitHub Actions)"
+endif
 
 # ============================================================================
 # DOCUMENTATION
