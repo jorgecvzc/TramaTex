@@ -8,7 +8,7 @@ param(
 
 Write-Host "Iniciando TramaTex Development Environment..." -ForegroundColor Cyan
 if ($Full) { Write-Host "  Modo: FULL (DB + API + Frontend/Nginx)" -ForegroundColor Magenta }
-else       { Write-Host "  Modo: DEV  (DB + API — frontend via npm run dev)" -ForegroundColor Magenta }
+else       { Write-Host "  Modo: DEV  (DB + API - frontend via npm run dev)" -ForegroundColor Magenta }
 Write-Host ""
 
 $previousErrorActionPreference = $ErrorActionPreference
