@@ -36,7 +36,7 @@
         </div>
         <div class="header-actions">
           <button
-            v-if="deliveryNote.status === 'PENDING'"
+            v-if="deliveryNote.status === 'PENDIENTE'"
             class="btn btn-success"
             @click="markAsDelivered"
             :disabled="isChangingStatus"
@@ -44,7 +44,7 @@
             ✅ Marcar como Entregado
           </button>
           <button
-            v-if="deliveryNote.status === 'PENDING'"
+            v-if="deliveryNote.status === 'PENDIENTE'"
             class="btn btn-danger"
             @click="cancelDeliveryNote"
             :disabled="isChangingStatus"
@@ -52,7 +52,7 @@
             ❌ Cancelar
           </button>
           <button
-            v-if="deliveryNote.status === 'DELIVERED' && !relatedInvoice"
+            v-if="deliveryNote.status === 'ENTREGADO' && !relatedInvoice"
             class="btn btn-primary"
             @click="createInvoiceFromDeliveryNote"
             :disabled="isCreatingInvoice"
@@ -370,7 +370,7 @@ async function markAsDelivered() {
   if (!confirm('¿Marcar este albarán como entregado?')) return;
   isChangingStatus.value = true;
   try {
-    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'DELIVERED');
+    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'ENTREGADO');
   } catch (err) {
     alert(err?.message || 'No se pudo cambiar el estado');
   } finally {
@@ -382,7 +382,7 @@ async function cancelDeliveryNote() {
   if (!confirm('¿Cancelar este albarán? Esta acción no se puede deshacer.')) return;
   isChangingStatus.value = true;
   try {
-    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'CANCELLED');
+    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'CANCELADO');
   } catch (err) {
     alert(err?.message || 'No se pudo cancelar el albarán');
   } finally {

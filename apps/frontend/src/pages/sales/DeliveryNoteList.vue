@@ -23,9 +23,9 @@
           <label>Estado</label>
           <select v-model="filters.status" class="filter-input">
             <option value="">Todos</option>
-            <option value="PENDING">Pendiente</option>
-            <option value="DELIVERED">Entregado</option>
-            <option value="CANCELLED">Cancelado</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="ENTREGADO">Entregado</option>
+            <option value="CANCELADO">Cancelado</option>
           </select>
         </div>
 
@@ -62,7 +62,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">
           Buscar
         </button>
       </div>
@@ -143,9 +143,9 @@ const hasFilters = computed(() => {
 });
 
 const isDateRangeValid = computed(() => {
-  const hasFromDate = Boolean(filters.value.fromDate);
-  const hasToDate = Boolean(filters.value.toDate);
-  return hasFromDate === hasToDate;
+  const { fromDate, toDate } = filters.value;
+  if (fromDate && toDate) return fromDate <= toDate;
+  return true;
 });
 
 const filteredDeliveryNotes = computed(() => {
@@ -195,10 +195,6 @@ watch(
     const [newFromDate, newToDate] = newValues;
     const [oldFromDate, oldToDate] = oldValues;
     if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    const hasFromDate = Boolean(newFromDate);
-    const hasToDate = Boolean(newToDate);
-    if (hasFromDate !== hasToDate) return;
 
     scheduleDeliveryNotesFetch();
   },

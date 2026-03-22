@@ -64,7 +64,7 @@
           <span class="limit-label">registros</span>
         </div>
         <button class="btn btn-secondary" @click="clearFilters">Limpiar</button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">Buscar</button>
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">Buscar</button>
       </div>
     </div>
 
@@ -227,9 +227,9 @@ const filteredInvoices = computed(() => {
 });
 
 const isDateRangeValid = computed(() => {
-  const hasFromDate = Boolean(filters.value.fromDate);
-  const hasToDate = Boolean(filters.value.toDate);
-  return hasFromDate === hasToDate;
+  const { fromDate, toDate } = filters.value;
+  if (fromDate && toDate) return fromDate <= toDate;
+  return true;
 });
 
 let searchDebounceTimer = null;
@@ -274,10 +274,6 @@ watch(
     const [newFromDate, newToDate] = newValues;
     const [oldFromDate, oldToDate] = oldValues;
     if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    const hasFromDate = Boolean(newFromDate);
-    const hasToDate = Boolean(newToDate);
-    if (hasFromDate !== hasToDate) return;
 
     scheduleInvoicesFetch();
   },
