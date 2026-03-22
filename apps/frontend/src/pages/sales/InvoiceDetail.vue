@@ -29,7 +29,7 @@
         </div>
         <div class="header-actions">
           <button
-            v-if="invoice.status === 'DRAFT'"
+            v-if="invoice.status === 'BORRADOR'"
             class="btn btn-primary"
             @click="emitInvoice"
             :disabled="isChangingStatus"
@@ -37,7 +37,7 @@
             📤 Emitir
           </button>
           <button
-            v-if="invoice.status === 'ISSUED' || invoice.status === 'OVERDUE'"
+            v-if="invoice.status === 'EMITIDA' || invoice.status === 'VENCIDA'"
             class="btn btn-success"
             @click="markAsPaid"
             :disabled="isChangingStatus"
@@ -45,7 +45,7 @@
             💰 Marcar como Pagada
           </button>
           <button
-            v-if="invoice.status !== 'VOID' && invoice.status !== 'PAID'"
+            v-if="invoice.status !== 'ANULADA' && invoice.status !== 'PAGADA'"
             class="btn btn-danger"
             @click="voidInvoice"
             :disabled="isChangingStatus"
@@ -276,7 +276,7 @@ async function emitInvoice() {
   if (!confirm('¿Emitir esta factura? Una vez emitida no se puede volver a borrador.')) return;
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'ISSUED');
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'EMITIDA');
     showPostIssueModal.value = true;
   } catch (err) {
     alert(err?.message || 'No se pudo emitir la factura');
@@ -383,7 +383,7 @@ async function markAsPaid() {
   if (!confirm('¿Marcar esta factura como pagada?')) return;
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'PAID');
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'PAGADA');
   } catch (err) {
     alert(err?.message || 'No se pudo marcar como pagada');
   } finally {
@@ -395,7 +395,7 @@ async function voidInvoice() {
   if (!confirm('¿Anular esta factura? Esta acción no se puede deshacer.')) return;
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'VOID');
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'ANULADA');
   } catch (err) {
     alert(err?.message || 'No se pudo anular la factura');
   } finally {

@@ -41,8 +41,27 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 			return err
 		}
 		for _, order := range orders {
+			// Calculate already-invoiced quantities to avoid double-invoicing
+			// when some delivery notes for this order have already been invoiced.
+			existingInvoices, err := s.invoiceRepo.ListBySalesOrderID(txCtx, order.ID)
+			if err != nil {
+				return err
+			}
+			alreadyInvoiced := make(map[uuid.UUID]int)
+			for _, inv := range existingInvoices {
+				for _, invItem := range inv.LineItems {
+					if invItem.SalesOrderLineItemID != nil {
+						alreadyInvoiced[*invItem.SalesOrderLineItemID] += invItem.Quantity
+					}
+				}
+			}
+
 			for _, item := range order.LineItems {
-				lineItem, err := buildInvoiceLineItemFromOrder(item, item.Quantity)
+				remaining := item.Quantity - alreadyInvoiced[item.ID]
+				if remaining <= 0 {
+					continue // This line item is already fully invoiced
+				}
+				lineItem, err := buildInvoiceLineItemFromOrder(item, remaining)
 				if err != nil {
 					return err
 				}
@@ -126,7 +145,7 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 				return domain.NewNotFoundError("order not found")
 			}
 
-			if err := s.updateOrderInvoiceStatus(txCtx, order, lineItems); err != nil {
+			if err := s.updateOrderInvoiceStatus(txCtx, order); err != nil {
 				return err
 			}
 			if err := s.orderRepo.Save(txCtx, order); err != nil {
@@ -209,6 +228,13 @@ func (s *SalesService) ListInvoices(ctx context.Context, query ListInvoicesQuery
 				return nil, err
 			}
 			filter.Status = &status
+		}
+		if query.Type != nil {
+			invoiceType := domain.InvoiceType(*query.Type)
+			if err := invoiceType.IsValid(); err != nil {
+				return nil, err
+			}
+			filter.Type = &invoiceType
 		}
 		invoices, err = s.invoiceRepo.List(ctx, filter)
 	}
@@ -340,7 +366,7 @@ func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, p
 	return lineItems, orderIDs, dnToInvoiceLinks, nil
 }
 
-func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder, newInvoiceItems []domain.InvoiceLineItem) error {
+func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder) error {
 	if order.Status == domain.SalesOrderStatusCanceled {
 		return domain.NewConflictError("cannot update invoice status for canceled order")
 	}
@@ -348,6 +374,8 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 		return domain.NewConflictError("order must be delivered before invoicing")
 	}
 
+	// ListBySalesOrderID is called after saving the invoice, so the new invoice
+	// is already included in the results. No need to add newInvoiceItems separately.
 	invoiced := make(map[uuid.UUID]int)
 	existing, err := s.invoiceRepo.ListBySalesOrderID(ctx, order.ID)
 	if err != nil {
@@ -358,11 +386,6 @@ func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *doma
 			if item.SalesOrderLineItemID != nil {
 				invoiced[*item.SalesOrderLineItemID] += item.Quantity
 			}
-		}
-	}
-	for _, item := range newInvoiceItems {
-		if item.SalesOrderLineItemID != nil {
-			invoiced[*item.SalesOrderLineItemID] += item.Quantity
 		}
 	}
 

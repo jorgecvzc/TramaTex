@@ -39,8 +39,8 @@
           <label>Tipo</label>
           <select v-model="filters.type" class="filter-select">
             <option value="">Todos</option>
-            <option value="STANDARD">Estándar</option>
-            <option value="SIMPLIFIED">Simplificada</option>
+            <option value="COMPLETA">Estándar</option>
+            <option value="SIMPLIFICADA">Simplificada</option>
           </select>
         </div>
         <div class="filter-group">
@@ -64,7 +64,7 @@
           <span class="limit-label">registros</span>
         </div>
         <button class="btn btn-secondary" @click="clearFilters">Limpiar</button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">Buscar</button>
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">Buscar</button>
       </div>
     </div>
 
@@ -227,9 +227,9 @@ const filteredInvoices = computed(() => {
 });
 
 const isDateRangeValid = computed(() => {
-  const hasFromDate = Boolean(filters.value.fromDate);
-  const hasToDate = Boolean(filters.value.toDate);
-  return hasFromDate === hasToDate;
+  const { fromDate, toDate } = filters.value;
+  if (fromDate && toDate) return fromDate <= toDate;
+  return true;
 });
 
 let searchDebounceTimer = null;
@@ -274,10 +274,6 @@ watch(
     const [newFromDate, newToDate] = newValues;
     const [oldFromDate, oldToDate] = oldValues;
     if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    const hasFromDate = Boolean(newFromDate);
-    const hasToDate = Boolean(newToDate);
-    if (hasFromDate !== hasToDate) return;
 
     scheduleInvoicesFetch();
   },
@@ -325,7 +321,7 @@ async function fetchInvoices() {
       params.partyId = filters.value.partyId;
     }
     if (filters.value.type) {
-      params.type = filters.value.type;
+      params.invoiceType = filters.value.type;
     }
     if (filters.value.fromDate) {
       params.fromDate = filters.value.fromDate;
@@ -461,8 +457,8 @@ function formatPartyId(partyId) {
 
 function getTypeLabel(type) {
   const labels = {
-    STANDARD: 'Estándar',
-    SIMPLIFIED: 'Simplificada',
+    COMPLETA: 'Estándar',
+    SIMPLIFICADA: 'Simplificada',
   };
   return labels[type] || type;
 }
@@ -703,12 +699,12 @@ function getTypeLabel(type) {
   letter-spacing: 0.025em;
 }
 
-.type-standard {
+.type-completa {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.type-simplified {
+.type-simplificada {
   background: #fef3c7;
   color: #92400e;
 }

@@ -75,9 +75,6 @@ function toBackendStatus(status: string): string {
 }
 
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
-  if (obj && typeof obj.status === 'string') {
-    obj.status = normalizeStatus(obj.status)
-  }
   // Normalize invoice-specific field names from backend camelCase
   if (obj && 'invoiceType' in obj) {
     obj.type = obj.invoiceType
@@ -749,22 +746,22 @@ class SalesApi {
    */
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
-      'DRAFT': 'secondary',
-      'ISSUED': 'info',
-      'ACCEPTED': 'success',
-      'REJECTED': 'danger',
-      'EXPIRED': 'secondary',
-      'CONVERTED': 'primary',
-      'PENDING': 'warning',
-      'CONFIRMED': 'info',
-      'PARTIALLY_DELIVERED': 'primary',
-      'DELIVERED': 'success',
-      'CANCELLED': 'danger',
-      'PARTIALLY_INVOICED': 'info',
-      'INVOICED': 'success',
-      'PAID': 'success',
-      'OVERDUE': 'danger',
-      'VOID': 'secondary',
+      'BORRADOR': 'secondary',
+      'EMITIDA': 'info',
+      'APROBADA': 'success',
+      'RECHAZADA': 'danger',
+      'EXPIRADA': 'secondary',
+      'CONVERTIDA_A_PEDIDO': 'primary',
+      'PENDIENTE': 'warning',
+      'EN_PREPARACION': 'info',
+      'ENTREGADO_PARCIALMENTE': 'primary',
+      'ENTREGADO': 'success',
+      'CANCELADO': 'danger',
+      'FACTURADO_PARCIALMENTE': 'info',
+      'FACTURADO_COMPLETAMENTE': 'success',
+      'PAGADA': 'success',
+      'VENCIDA': 'danger',
+      'ANULADA': 'secondary',
     }
     return statusMap[status] || 'secondary'
   }
@@ -774,22 +771,22 @@ class SalesApi {
    */
   getStatusLabel(status: string): string {
     const statusLabels: Record<string, string> = {
-      'DRAFT': 'Borrador',
-      'ISSUED': 'Emitido',
-      'ACCEPTED': 'Aceptado',
-      'REJECTED': 'Rechazado',
-      'EXPIRED': 'Expirado',
-      'CONVERTED': 'Convertido a Pedido',
-      'PENDING': 'Pendiente',
-      'CONFIRMED': 'En Preparación',
-      'PARTIALLY_DELIVERED': 'Entregado Parcialmente',
-      'DELIVERED': 'Entregado',
-      'CANCELLED': 'Cancelado',
-      'PARTIALLY_INVOICED': 'Facturado Parcialmente',
-      'INVOICED': 'Facturado Completamente',
-      'PAID': 'Pagada',
-      'OVERDUE': 'Vencida',
-      'VOID': 'Anulada',
+      'BORRADOR': 'Borrador',
+      'EMITIDA': 'Emitida',
+      'APROBADA': 'Aprobada',
+      'RECHAZADA': 'Rechazada',
+      'EXPIRADA': 'Expirada',
+      'CONVERTIDA_A_PEDIDO': 'Convertida a Pedido',
+      'PENDIENTE': 'Pendiente',
+      'EN_PREPARACION': 'En Preparación',
+      'ENTREGADO_PARCIALMENTE': 'Entregado Parcialmente',
+      'ENTREGADO': 'Entregado',
+      'CANCELADO': 'Cancelado',
+      'FACTURADO_PARCIALMENTE': 'Facturado Parcialmente',
+      'FACTURADO_COMPLETAMENTE': 'Facturado Completamente',
+      'PAGADA': 'Pagada',
+      'VENCIDA': 'Vencida',
+      'ANULADA': 'Anulada',
     }
     return statusLabels[status] || status
   }

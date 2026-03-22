@@ -37,13 +37,13 @@
           <label>Estado</label>
           <select v-model="filters.status" class="filter-select">
             <option value="">Todos</option>
-            <option value="PENDING">Pendiente</option>
-            <option value="CONFIRMED">En Preparación</option>
-            <option value="PARTIALLY_DELIVERED">Entregado Parcialmente</option>
-            <option value="DELIVERED">Entregado</option>
-            <option value="CANCELLED">Cancelado</option>
-            <option value="PARTIALLY_INVOICED">Facturado Parcialmente</option>
-            <option value="INVOICED">Facturado</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="EN_PREPARACION">En Preparación</option>
+            <option value="ENTREGADO_PARCIALMENTE">Entregado Parcialmente</option>
+            <option value="ENTREGADO">Entregado</option>
+            <option value="CANCELADO">Cancelado</option>
+            <option value="FACTURADO_PARCIALMENTE">Facturado Parcialmente</option>
+            <option value="FACTURADO_COMPLETAMENTE">Facturado</option>
           </select>
         </div>
 
@@ -80,7 +80,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">
           Buscar
         </button>
       </div>
@@ -190,9 +190,9 @@ const hasFilters = computed(() => {
 });
 
 const isDateRangeValid = computed(() => {
-  const hasFromDate = Boolean(filters.value.fromDate);
-  const hasToDate = Boolean(filters.value.toDate);
-  return hasFromDate === hasToDate;
+  const { fromDate, toDate } = filters.value;
+  if (fromDate && toDate) return fromDate <= toDate;
+  return true;
 });
 
 const filteredOrders = computed(() => {
@@ -241,10 +241,6 @@ watch(
     const [newFromDate, newToDate] = newValues;
     const [oldFromDate, oldToDate] = oldValues;
     if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    const hasFromDate = Boolean(newFromDate);
-    const hasToDate = Boolean(newToDate);
-    if (hasFromDate !== hasToDate) return;
 
     scheduleOrdersFetch();
   },
@@ -375,7 +371,7 @@ async function confirmOrder(orderId) {
   if (!confirm('¿Confirmar este pedido?')) return;
 
   try {
-    await salesApi.changeOrderStatus(orderId, 'CONFIRMED');
+    await salesApi.changeOrderStatus(orderId, 'EN_PREPARACION');
     await fetchOrders();
   } catch (err) {
     alert(err?.message || 'No se pudo confirmar el pedido');
@@ -386,7 +382,7 @@ async function cancelOrder(orderId) {
   if (!confirm('¿Cancelar este pedido? Esta acción no se puede deshacer.')) return;
 
   try {
-    await salesApi.changeOrderStatus(orderId, 'CANCELLED');
+    await salesApi.changeOrderStatus(orderId, 'CANCELADO');
     await fetchOrders();
   } catch (err) {
     alert(err?.message || 'No se pudo cancelar el pedido');
@@ -394,7 +390,7 @@ async function cancelOrder(orderId) {
 }
 
 function canCancel(status) {
-  return ['PENDING', 'CONFIRMED'].includes(status);
+  return ['PENDIENTE', 'EN_PREPARACION'].includes(status);
 }
 
 function formatDate(dateString) {

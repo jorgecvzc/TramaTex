@@ -59,7 +59,7 @@
             ✕ Cancelar
           </button>
           <button 
-            v-if="order.status === 'PENDING'" 
+            v-if="order.status === 'PENDIENTE'" 
             class="btn btn-success" 
             @click="confirmOrder"
           >
@@ -90,7 +90,7 @@
             Cancelar Pedido
           </button>
           <button
-            v-if="order.status === 'CANCELLED'"
+            v-if="order.status === 'CANCELADO'"
             class="btn btn-success"
             @click="reactivateOrder"
           >
@@ -332,7 +332,7 @@
                 </td>
                 <td class="col-subtotal">
                   <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
-                  <span v-else class="subtotal-value">{{ formatMoneyAmount(calculateEditLineSubtotal(item)) }}</span>
+                  <span v-else class="subtotal-value">{{ formatMoneyAmount(calculateEditLineSubtotal(idx)) }}</span>
                 </td>
                 <td class="actions-cell">
                   <button type="button" class="btn-icon danger" @click="removeEditLineItem(idx)" title="Eliminar">🗑️</button>
@@ -553,19 +553,19 @@ const headerEditForm = ref({
 });
 
 const canEdit = computed(() => {
-  return order.value && ['PENDING', 'CONFIRMED'].includes(order.value.status);
+  return order.value && ['PENDIENTE', 'EN_PREPARACION'].includes(order.value.status);
 });
 
 const canCancel = computed(() => {
-  return order.value && ['PENDING', 'CONFIRMED'].includes(order.value.status);
+  return order.value && ['PENDIENTE', 'EN_PREPARACION'].includes(order.value.status);
 });
 
 const canCreateDeliveryNote = computed(() => {
-  return order.value && ['CONFIRMED', 'PARTIALLY_DELIVERED'].includes(order.value.status);
+  return order.value && ['EN_PREPARACION', 'ENTREGADO_PARCIALMENTE'].includes(order.value.status);
 });
 
 const canCreateInvoice = computed(() => {
-  return order.value && ['DELIVERED', 'PARTIALLY_INVOICED'].includes(order.value.status);
+  return order.value && ['ENTREGADO', 'FACTURADO_PARCIALMENTE'].includes(order.value.status);
 });
 
 const isCreatingInvoice = ref(false);
@@ -647,7 +647,7 @@ function initializeDeliveryNoteForm() {
   // Calculate already-delivered quantities from existing delivery notes
   const deliveredByLineItem = {};
   for (const note of deliveryNotes.value) {
-    if (note.status === 'CANCELLED') continue;
+    if (note.status === 'CANCELADO') continue;
     for (const noteItem of (note.lineItems || [])) {
       const key = noteItem.salesOrderLineItemId;
       deliveredByLineItem[key] = (deliveredByLineItem[key] || 0) + noteItem.deliveredQuantity;
@@ -758,7 +758,7 @@ async function confirmOrder() {
   if (!confirm('¿Confirmar este pedido?')) return;
 
   try {
-    await salesApi.changeOrderStatus(order.value.id, 'CONFIRMED');
+    await salesApi.changeOrderStatus(order.value.id, 'EN_PREPARACION');
     await fetchOrder();
   } catch (err) {
     alert(err?.message || 'No se pudo confirmar el pedido');
@@ -769,7 +769,7 @@ async function cancelOrder() {
   if (!confirm('¿Cancelar este pedido? Esta acción no se puede deshacer.')) return;
 
   try {
-    await salesApi.changeOrderStatus(order.value.id, 'CANCELLED');
+    await salesApi.changeOrderStatus(order.value.id, 'CANCELADO');
     await fetchOrder();
   } catch (err) {
     alert(err?.message || 'No se pudo cancelar el pedido');
@@ -780,7 +780,7 @@ async function reactivateOrder() {
   if (!confirm('¿Reactivar este pedido? Volverá a estado Pendiente.')) return;
 
   try {
-    await salesApi.changeOrderStatus(order.value.id, 'PENDING');
+    await salesApi.changeOrderStatus(order.value.id, 'PENDIENTE');
     await fetchOrder();
   } catch (err) {
     alert(err?.message || 'No se pudo reactivar el pedido');
@@ -839,12 +839,15 @@ function removeEditLineItem(index) {
   editLineItems.value.splice(index, 1);
 }
 
-function calculateEditLineSubtotal(item) {
+function calculateEditLineSubtotal(index) {
   if (!previewResult.value) return 0;
-  const match = previewResult.value.lineItems.find(
-    li => li.productVariantId === item.productVariantId
-  );
-  return match?.subtotal?.amount ?? 0;
+  // Map form index to preview index (preview only contains items with productVariantId)
+  let previewIdx = 0;
+  for (let i = 0; i < index; i++) {
+    if (editLineItems.value[i].productVariantId) previewIdx++;
+  }
+  const previewItem = previewResult.value.lineItems[previewIdx];
+  return previewItem?.subtotal?.amount ?? 0;
 }
 
 const editCalculatedTotals = computed(() => {

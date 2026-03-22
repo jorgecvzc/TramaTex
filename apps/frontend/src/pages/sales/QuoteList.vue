@@ -37,11 +37,12 @@
           <label>Estado</label>
           <select v-model="filters.status" class="filter-select">
             <option value="">Todos</option>
-            <option value="DRAFT">Borrador</option>
-            <option value="ISSUED">Emitido</option>
-            <option value="ACCEPTED">Aceptado</option>
-            <option value="REJECTED">Rechazado</option>
-            <option value="EXPIRED">Expirado</option>
+            <option value="BORRADOR">Borrador</option>
+            <option value="EMITIDA">Emitida</option>
+            <option value="APROBADA">Aprobada</option>
+            <option value="RECHAZADA">Rechazada</option>
+            <option value="EXPIRADA">Expirada</option>
+            <option value="CONVERTIDA_A_PEDIDO">Convertida a Pedido</option>
           </select>
         </div>
 
@@ -78,7 +79,7 @@
         <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
           Limpiar Filtros
         </button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'Completa ambas fechas o vacía ambas para buscar' : ''">
+        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">
           Buscar
         </button>
       </div>
@@ -183,9 +184,9 @@ const hasFilters = computed(() => {
 });
 
 const isDateRangeValid = computed(() => {
-  const hasFromDate = Boolean(filters.value.fromDate);
-  const hasToDate = Boolean(filters.value.toDate);
-  return hasFromDate === hasToDate;
+  const { fromDate, toDate } = filters.value;
+  if (fromDate && toDate) return fromDate <= toDate;
+  return true;
 });
 
 const filteredQuotes = computed(() => {
@@ -234,10 +235,6 @@ watch(
     const [newFromDate, newToDate] = newValues;
     const [oldFromDate, oldToDate] = oldValues;
     if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    const hasFromDate = Boolean(newFromDate);
-    const hasToDate = Boolean(newToDate);
-    if (hasFromDate !== hasToDate) return;
 
     scheduleQuotesFetch();
   },
@@ -357,7 +354,7 @@ function navigateToDetail(quoteId) {
 }
 
 function canConvertToOrder(status) {
-  return status === 'ACCEPTED';
+  return status === 'APROBADA';
 }
 
 async function convertToOrder(quoteId) {
@@ -426,24 +423,24 @@ function getMesWorkIds(lineItems) {
 
 function getStatusClass(status) {
   const classes = {
-    DRAFT: 'warning',
-    ISSUED: 'info',
-    ACCEPTED: 'success',
-    REJECTED: 'danger',
-    EXPIRED: 'secondary',
-    CONVERTED: 'primary',
+    BORRADOR: 'warning',
+    EMITIDA: 'info',
+    APROBADA: 'success',
+    RECHAZADA: 'danger',
+    EXPIRADA: 'secondary',
+    CONVERTIDA_A_PEDIDO: 'primary',
   };
   return classes[status] || 'secondary';
 }
 
 function getStatusLabel(status) {
   const labels = {
-    DRAFT: 'Borrador',
-    ISSUED: 'Emitido',
-    ACCEPTED: 'Aceptado',
-    REJECTED: 'Rechazado',
-    EXPIRED: 'Expirado',
-    CONVERTED: 'Convertido a Pedido',
+    BORRADOR: 'Borrador',
+    EMITIDA: 'Emitida',
+    APROBADA: 'Aprobada',
+    RECHAZADA: 'Rechazada',
+    EXPIRADA: 'Expirada',
+    CONVERTIDA_A_PEDIDO: 'Convertida a Pedido',
   };
   return labels[status] || status;
 }

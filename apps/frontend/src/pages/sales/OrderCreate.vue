@@ -203,7 +203,7 @@
                   </td>
                   <td class="col-subtotal">
                     <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
-                    <span v-else class="subtotal-value">{{ formatMoney(calculateLineSubtotal(item)) }}</span>
+                    <span v-else class="subtotal-value">{{ formatMoney(calculateLineSubtotal(index)) }}</span>
                   </td>
                   <td class="col-actions">
                     <button
@@ -347,38 +347,6 @@ onMounted(() => {
   formData.value.orderDate = today;
   formData.value.deliveryDate = today;
 
-  // Pre-fill from quote if navigated from QuoteDetail
-  const fromQuoteRaw = sessionStorage.getItem('orderFromQuote');
-  if (fromQuoteRaw) {
-    sessionStorage.removeItem('orderFromQuote');
-    try {
-      const fromQuote = JSON.parse(fromQuoteRaw);
-      if (fromQuote.quoteId) formData.value.sourceQuoteId = fromQuote.quoteId;
-      if (fromQuote.partyId) formData.value.partyId = fromQuote.partyId;
-      if (fromQuote.notes) formData.value.notes = fromQuote.notes;
-      if (fromQuote.mesWorkRefs?.length) formData.value.mesWorkRefs = fromQuote.mesWorkRefs;
-      if (fromQuote.lineItems?.length) {
-        formData.value.lineItems = fromQuote.lineItems.map(item => ({
-          productVariantId: item.productVariantId || '',
-          productId: '',
-          selectedVariantName: item.selectedVariantName || '',
-          productName: item.productName || '',
-          productDescription: '',
-          optionConfiguration: item.optionConfiguration || {},
-          quickSearchQuery: '',
-          inlineSearchError: '',
-          quantity: item.quantity || 1,
-          listPrice: item.listPrice ?? null,
-          unitPrice: item.unitPrice ?? null,
-          discountPercent: item.discountPercent ?? null,
-          productBasePrice: null,
-        }));
-        calculateTotals();
-      }
-    } catch (e) {
-      console.error('Error parsing quote pre-fill data:', e);
-    }
-  }
 });
 
 watch(() => formData.value.partyId, (partyId) => {
@@ -574,12 +542,15 @@ function removeLineItem(index) {
   calculateTotals();
 }
 
-function calculateLineSubtotal(item) {
+function calculateLineSubtotal(index) {
   if (!previewResult.value) return 0;
-  const match = previewResult.value.lineItems.find(
-    li => li.productVariantId === item.productVariantId
-  );
-  return match?.subtotal?.amount ?? 0;
+  // Map form index to preview index (preview only contains items with productVariantId)
+  let previewIdx = 0;
+  for (let i = 0; i < index; i++) {
+    if (formData.value.lineItems[i].productVariantId) previewIdx++;
+  }
+  const previewItem = previewResult.value.lineItems[previewIdx];
+  return previewItem?.subtotal?.amount ?? 0;
 }
 
 function calculateTotals() {

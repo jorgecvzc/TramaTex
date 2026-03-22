@@ -67,7 +67,7 @@ func (h *SalesHandler) ListQuotes(c *gin.Context) {
 	} else {
 		return
 	}
-	if toDate, ok := parseTimeQuery(c, "toDate"); ok {
+	if toDate, ok := parseEndDateQuery(c, "toDate"); ok {
 		query.ToDate = toDate
 	} else {
 		return
@@ -269,7 +269,7 @@ func (h *SalesHandler) ListOrders(c *gin.Context) {
 	} else {
 		return
 	}
-	if toDate, ok := parseTimeQuery(c, "toDate"); ok {
+	if toDate, ok := parseEndDateQuery(c, "toDate"); ok {
 		query.ToDate = toDate
 	} else {
 		return
@@ -465,7 +465,7 @@ func (h *SalesHandler) ListDeliveryNotes(c *gin.Context) {
 	} else {
 		return
 	}
-	if toDate, ok := parseTimeQuery(c, "toDate"); ok {
+	if toDate, ok := parseEndDateQuery(c, "toDate"); ok {
 		query.ToDate = toDate
 	} else {
 		return
@@ -595,12 +595,15 @@ func (h *SalesHandler) ListInvoices(c *gin.Context) {
 	if status := strings.TrimSpace(c.Query("status")); status != "" {
 		query.Status = &status
 	}
+	if invoiceType := strings.TrimSpace(c.Query("type")); invoiceType != "" {
+		query.Type = &invoiceType
+	}
 	if fromDate, ok := parseTimeQuery(c, "fromDate"); ok {
 		query.FromDate = fromDate
 	} else {
 		return
 	}
-	if toDate, ok := parseTimeQuery(c, "toDate"); ok {
+	if toDate, ok := parseEndDateQuery(c, "toDate"); ok {
 		query.ToDate = toDate
 	} else {
 		return
@@ -656,6 +659,30 @@ func parseTimeQuery(c *gin.Context, name string) (*time.Time, bool) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + name + ". Expected format: YYYY-MM-DD or RFC3339"})
 			return nil, false
 		}
+	}
+	return &parsed, true
+}
+
+// parseEndDateQuery parses a "toDate" query parameter. When the value is a
+// date-only string (YYYY-MM-DD) it is adjusted to the end of that day
+// (23:59:59.999999999 UTC) so that records created at any point during that
+// day are included in the results.
+func parseEndDateQuery(c *gin.Context, name string) (*time.Time, bool) {
+	value := strings.TrimSpace(c.Query(name))
+	if value == "" {
+		return nil, true
+	}
+	// Try RFC3339 first — caller provided a precise timestamp, use as-is.
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		// Date-only format: extend to end of day.
+		parsed, err = time.Parse("2006-01-02", value)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + name + ". Expected format: YYYY-MM-DD or RFC3339"})
+			return nil, false
+		}
+		endOfDay := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, time.UTC)
+		return &endOfDay, true
 	}
 	return &parsed, true
 }

@@ -27,7 +27,7 @@
         </div>
         <div class="header-actions">
           <button
-            v-if="quote.status !== 'DRAFT'"
+            v-if="quote.status !== 'BORRADOR'"
             class="btn btn-secondary"
             @click="printQuote"
             title="Imprimir presupuesto"
@@ -61,23 +61,16 @@
             ✕ Cancelar
           </button>
           <button 
-            v-if="quote.status === 'DRAFT' && !isEditing" 
+            v-if="quote.status === 'BORRADOR' && !isEditing" 
             class="btn btn-primary" 
             @click="confirmIssueQuote"
             title="Emitir presupuesto al cliente"
           >
             📧 Emitir
           </button>
-          <button
-            v-if="(quote.status === 'DRAFT' || quote.status === 'ISSUED') && !isEditing"
-            class="btn btn-primary"
-            @click="createOrderFromQuote"
-            title="Crear un pedido a partir de este presupuesto"
-          >
-            📦 Crear Pedido
-          </button>
+
           <button 
-            v-if="quote.status === 'DRAFT' && !isEditing" 
+            v-if="quote.status === 'BORRADOR' && !isEditing" 
             class="btn btn-danger" 
             @click="deleteQuote"
             title="Eliminar presupuesto"
@@ -87,7 +80,7 @@
           
           <!-- ISSUED: Editar, Aceptar (abre modal de conversión), Rechazar -->
           <button 
-            v-if="quote.status === 'ISSUED' && !isExpired && !isEditing" 
+            v-if="quote.status === 'EMITIDA' && !isExpired && !isEditing" 
             class="btn btn-success" 
             @click="showConvertModal = true"
             title="Aceptar presupuesto y generar pedido"
@@ -95,7 +88,7 @@
             ✓ Aceptar y Generar Pedido
           </button>
           <button 
-            v-if="quote.status === 'ISSUED' && !isEditing" 
+            v-if="quote.status === 'EMITIDA' && !isEditing" 
             class="btn btn-danger" 
             @click="rejectQuote"
             title="Marcar como rechazado"
@@ -105,7 +98,7 @@
 
           <!-- REJECTED: Reactivar -->
           <button 
-            v-if="quote.status === 'REJECTED'" 
+            v-if="quote.status === 'RECHAZADA'" 
             class="btn btn-primary" 
             @click="reactivateQuote"
             title="Volver a borrador para editar y reemitir"
@@ -129,10 +122,10 @@
       </div>
 
       <!-- Expiration Warning (ISSUED and approaching expiration) -->
-      <div v-if="quote.status === 'ISSUED' && daysUntilExpiration <= 7 && daysUntilExpiration > 0" class="warning-card">
+      <div v-if="quote.status === 'EMITIDA' && daysUntilExpiration <= 7 && daysUntilExpiration > 0" class="warning-card">
         ⚠️ Este presupuesto vence en <strong>{{ daysUntilExpiration }}</strong> día{{ daysUntilExpiration !== 1 ? 's' : '' }}.
       </div>
-      <div v-if="isExpired && quote.status === 'ISSUED'" class="error-card">
+      <div v-if="isExpired && quote.status === 'EMITIDA'" class="error-card">
         ❌ Este presupuesto ha <strong>EXPIRADO</strong>. No se puede convertir a pedido.
       </div>
 
@@ -343,7 +336,7 @@
                 </td>
                 <td class="col-subtotal">
                   <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
-                  <span v-else class="subtotal-value">{{ formatMoneyAmount(getEditLineSubtotal(item)) }}</span>
+                  <span v-else class="subtotal-value">{{ formatMoneyAmount(getEditLineSubtotal(idx)) }}</span>
                 </td>
                 <td class="actions-cell">
                   <button type="button" class="btn-icon danger" @click="removeEditLineItem(idx)" title="Eliminar">🗑️</button>
@@ -531,7 +524,7 @@ const minDeliveryDate = computed(() => {
 
 const canEdit = computed(() => {
   const s = quote.value?.status;
-  return s === 'DRAFT' || s === 'ISSUED';
+  return s === 'BORRADOR' || s === 'EMITIDA';
 });
 
 const isExpired = computed(() => {
@@ -600,7 +593,7 @@ async function confirmIssueQuote() {
   if (!confirm('¿Emitir este presupuesto al cliente? El estado cambiará a "Emitido".')) return;
 
   try {
-    await salesApi.changeQuoteStatus(quote.value.id, 'ISSUED');
+    await salesApi.changeQuoteStatus(quote.value.id, 'EMITIDA');
     await fetchQuote();
     showPostIssueModal.value = true;
   } catch (err) {
@@ -658,7 +651,7 @@ async function rejectQuote() {
   if (!confirm('¿Marcar este presupuesto como rechazado? Podrá reactivarse más tarde.')) return;
 
   try {
-    await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED');
+    await salesApi.changeQuoteStatus(quote.value.id, 'RECHAZADA');
     await fetchQuote();
   } catch (err) {
     alert(err?.message || 'No se pudo rechazar el presupuesto');
@@ -669,7 +662,7 @@ async function reactivateQuote() {
   if (!confirm('¿Reactivar este presupuesto? Volverá al estado Borrador para poder editarlo y reemitirlo.')) return;
 
   try {
-    await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT');
+    await salesApi.changeQuoteStatus(quote.value.id, 'BORRADOR');
     await fetchQuote();
   } catch (err) {
     alert(err?.message || 'No se pudo reactivar el presupuesto');
@@ -687,28 +680,6 @@ async function deleteQuote() {
   }
 }
 
-function createOrderFromQuote() {
-  const q = quote.value;
-  const fromQuote = {
-    quoteId: q.id,
-    partyId: q.partyId,
-    notes: q.notes || '',
-    mesWorkRefs: (q.mesWorkRefs || []).map(r => ({ workSetupId: r.workSetupId || null, description: r.description || '' })),
-    lineItems: (q.lineItems || []).map(item => ({
-      productVariantId: item.productVariantId,
-      selectedVariantName: item.variantSku || '',
-      productName: item.productName || '',
-      optionConfiguration: item.optionConfiguration || {},
-      quantity: item.quantity,
-      unitPrice: item.unitPrice?.amount ?? null,
-      listPrice: item.listUnitPrice?.amount ?? null,
-      discountPercent: item.discountPercent ?? null,
-    })),
-  };
-  sessionStorage.setItem('orderFromQuote', JSON.stringify(fromQuote));
-  router.push('/sales/orders/new');
-}
-
 async function convertToOrder() {
   if (!convertForm.value.deliveryDate) {
     alert('Por favor, especifica una fecha de entrega');
@@ -724,11 +695,11 @@ async function convertToOrder() {
 
   try {
     let order;
-    if (quote.value.status === 'ISSUED') {
+    if (quote.value.status === 'EMITIDA') {
       // Accept + convert in one atomic operation
       order = await salesApi.acceptAndConvertQuote(quote.value.id, salesApi.formatDateForAPI(new Date(convertForm.value.deliveryDate)));
     } else {
-      // Already ACCEPTED, just convert
+      // Already APROBADA, just convert
       order = await salesApi.convertQuoteToOrder(quote.value.id, salesApi.formatDateForAPI(new Date(convertForm.value.deliveryDate)));
     }
     
@@ -873,12 +844,15 @@ const previewResult = ref(null);
 const isPreviewLoading = ref(false);
 let previewDebounceTimer = null;
 
-function getEditLineSubtotal(item) {
+function getEditLineSubtotal(index) {
   if (!previewResult.value) return 0;
-  const match = previewResult.value.lineItems.find(
-    li => li.productVariantId === item.productVariantId
-  );
-  return match?.subtotal?.amount ?? 0;
+  // Map form index to preview index (preview only contains items with productVariantId)
+  let previewIdx = 0;
+  for (let i = 0; i < index; i++) {
+    if (editForm.value.lineItems[i].productVariantId) previewIdx++;
+  }
+  const previewItem = previewResult.value.lineItems[previewIdx];
+  return previewItem?.subtotal?.amount ?? 0;
 }
 
 const editCalculatedTotals = computed(() => {
@@ -1061,24 +1035,24 @@ function buildDisplayName(item) {
 
 function getStatusLabel(status) {
   const labels = {
-    DRAFT: 'Borrador',
-    ISSUED: 'Emitido',
-    ACCEPTED: 'Aceptado',
-    REJECTED: 'Rechazado',
-    EXPIRED: 'Expirado',
-    CONVERTED: 'Convertido a Pedido',
+    BORRADOR: 'Borrador',
+    EMITIDA: 'Emitida',
+    APROBADA: 'Aprobada',
+    RECHAZADA: 'Rechazada',
+    EXPIRADA: 'Expirada',
+    CONVERTIDA_A_PEDIDO: 'Convertida a Pedido',
   };
   return labels[status] || status;
 }
 
 function getStatusClass(status) {
   const classes = {
-    DRAFT: 'warning',
-    ISSUED: 'info',
-    ACCEPTED: 'success',
-    REJECTED: 'danger',
-    EXPIRED: 'secondary',
-    CONVERTED: 'primary',
+    BORRADOR: 'warning',
+    EMITIDA: 'info',
+    APROBADA: 'success',
+    RECHAZADA: 'danger',
+    EXPIRADA: 'secondary',
+    CONVERTIDA_A_PEDIDO: 'primary',
   };
   return classes[status] || 'secondary';
 }
