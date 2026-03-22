@@ -41,8 +41,27 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 			return err
 		}
 		for _, order := range orders {
+			// Calculate already-invoiced quantities to avoid double-invoicing
+			// when some delivery notes for this order have already been invoiced.
+			existingInvoices, err := s.invoiceRepo.ListBySalesOrderID(txCtx, order.ID)
+			if err != nil {
+				return err
+			}
+			alreadyInvoiced := make(map[uuid.UUID]int)
+			for _, inv := range existingInvoices {
+				for _, invItem := range inv.LineItems {
+					if invItem.SalesOrderLineItemID != nil {
+						alreadyInvoiced[*invItem.SalesOrderLineItemID] += invItem.Quantity
+					}
+				}
+			}
+
 			for _, item := range order.LineItems {
-				lineItem, err := buildInvoiceLineItemFromOrder(item, item.Quantity)
+				remaining := item.Quantity - alreadyInvoiced[item.ID]
+				if remaining <= 0 {
+					continue // This line item is already fully invoiced
+				}
+				lineItem, err := buildInvoiceLineItemFromOrder(item, remaining)
 				if err != nil {
 					return err
 				}
