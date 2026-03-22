@@ -1,0 +1,51 @@
+# TramaTex - Deploy to Staging (DigitalOcean)
+# Triggered on push/merge to staging branch
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [staging]
+
+jobs:
+  deploy:
+    name: Deploy to Staging Server
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            cd /opt/tramatex
+
+            # Pull latest code
+            git fetch origin staging
+            git checkout staging
+            git reset --hard origin/staging
+
+            # Write environment file
+            echo "${{ secrets.ENV_STAGING }}" > docker/.env
+
+            # Build and restart services
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
+
+            # Wait for API health
+            echo "Waiting for API health check..."
+            for i in $(seq 1 30); do
+              if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
+                echo "API is healthy"
+                break
+              fi
+              sleep 2
+            done
+
+            # Cleanup old images
+            docker image prune -f

@@ -1,5 +1,5 @@
-# Docker Compose - REMOTE (pcele Linux Server via SSH)
-# Usage: docker-compose -f docker-compose.remote.yml -H ssh://ele@pcele up -d
+# Docker Compose - REMOTE (pcele Linux Server via SSH / DigitalOcean)
+# Usage: docker-compose -f docker-compose.remote.yml --env-file .env.remote up -d
 # Or use the Makefile: make docker-up ENV=remote
 
 services:
@@ -11,8 +11,6 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data_remote:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +23,7 @@ services:
     labels:
       com.tramatex.environment: "remote"
 
-  # TramaTex API
+  # TramaTex API (Go backend - internal only, not exposed)
   api:
     build:
       context: ..
@@ -45,8 +43,6 @@ services:
       JWT_ACCESS_TOKEN_TTL: ${JWT_ACCESS_TOKEN_TTL}
       JWT_REFRESH_TOKEN_TTL: ${JWT_REFRESH_TOKEN_TTL}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    ports:
-      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,11 +50,27 @@ services:
       - tramatex_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    labels:
+      com.tramatex.environment: "remote"
+
+  # Nginx + Vue Frontend (single entry point: port 80)
+  frontend:
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+    container_name: ${FRONTEND_CONTAINER:-tramatex_frontend}
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - api
+    networks:
+      - tramatex_network
+    restart: unless-stopped
     labels:
       com.tramatex.environment: "remote"
 

@@ -27,10 +27,10 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Implementación de Infraestructura de Despliegue Multientorno
 
 - **Session ID:** `infra-multi-env-deployment-impl-2026-03-10`
-- **Status:** En Pausa (Pendiente de inicio)
+- **Status:** En Progreso
 - **Sprint:** N/A
 - **Started:** 2026-03-10
-- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+- **Rama:** `infra/multi-env-deployment` → Merge a `develop` al finalizar
 
 ### Contexto
 
