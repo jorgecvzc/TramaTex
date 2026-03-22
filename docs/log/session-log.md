@@ -24,49 +24,13 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ---
 # SESIONES ABIERTAS
 
-## Análisis de Refinamiento Arquitectónico del MVP
-
-- **Session ID:** `mvp-refinement-analysis-2026-03-12`
-- **Status:** En Progreso
-- **Sprint:** N/A
-- **Started:** 2026-03-12
-
-### Contexto
-
-Análisis modular sistemático del backend para identificar oportunidades de mejora (simplificación, desacoplamiento, rendimiento) antes del lanzamiento a producción del MVP. Se genera el archivo maestro `tmp/mvp_refinement_proposals.md`.
-
-### Trabajo Completado
-
-- [x] **Fase 0: Preparación**: Creación de `tmp/mvp_refinement_proposals.md` con scaffolding.
-- [x] **Módulo 1: IAM**: Finalizado (Propuesta de UUIDs y alineación con ActorID).
-- [x] **Módulo 2: Party**: Finalizado (Integridad de datos fiscales y mapeadores).
-- [x] **Módulo 3: Product**: Finalizado (Fragmentación de servicio y herencia de atributos).
-- [x] **Módulo 4: Pricing**: Finalizado (Consolidación como SSoT de cálculos económicos).
-- [x] **Módulo 5: Sales (Ventas y Facturación)**: Finalizado (Alineación con ADR-020, tickets y fragmentación de Billing).
-- [x] **Deduplicación**: Identificación de lógica redundante en cálculos y handlers (Shared).
-- [x] **Integridad Doc-Code**: Validación de alineación entre ADRs y realidad técnica.
-- [x] **Módulo 6: MES (Producción)**: **COMPLETADO** (Propuestas añadidas a `tmp/mvp_refinement_proposals.md`; documentación MES actualizada el 2026-03-20).
-
-### Próximos Pasos
-
-- [ ] **Refactor de MES (Usuario)**: Esperar a que el usuario complete la refactorización manual de MES.
-- [ ] **Análisis y Propuestas de MES**: Estudiar el nuevo código de MES y añadir sus propuestas a `tmp/mvp_refinement_proposals.md`.
-- [ ] **Priorización e Implementación**: Iniciar la ejecución de refinamientos en el resto de módulos (Sales, Product, IAM).
-
-### Archivos de Contexto
-
-- `tmp/mvp_refinement_proposals.md` (Registro maestro de propuestas)
-- `docs/architecture/adrs/`
-- `apps/tramatex-api/internal/`
-
----
-
 ## Implementación de Infraestructura de Despliegue Multientorno
 
 - **Session ID:** `infra-multi-env-deployment-impl-2026-03-10`
 - **Status:** En Pausa (Pendiente de inicio)
 - **Sprint:** N/A
 - **Started:** 2026-03-10
+- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
 
 ### Contexto
 
@@ -80,9 +44,12 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 - [ ] Actualizar `docker/docker-compose.remote.yml` para incluir el servicio Nginx.
 - [ ] Crear Workflows de GitHub Actions para despliegue automático en `staging` y `master`.
 - [ ] Refinar `Makefile` para soportar perfiles de despliegue (`pcele`, `staging`, `prod`).
+- [ ] Limpiar residuos del repositorio: verificar que archivos temporales previamente commiteados (ahora en `.gitignore`) se eliminen del tracking con `git rm --cached`.
+- [ ] Limpiar ramas obsoletas: eliminar `product-module-validation`, `scaffolding-refinement`, `scaffolding-system-enhancement` (local y remoto). **Antes de eliminar `scaffolding-refinement`, hacer copia de su contenido en `tmp/`.**
 
 ### Archivos de Contexto
 
+- `.gitignore`
 - `tmp/estudio_despliegue_tramatex.md`
 - `docker/docker-compose.remote.yml`
 - `Dockerfile`
@@ -90,10 +57,156 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 ---
 
+
+
+## QA — Verificación de Calidad Integral
+
+- **Session ID:** `qa-full-verification-2026-03-21`
+- **Status:** En Progreso
+- **Sprint:** N/A
+- **Started:** 2026-03-21
+- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+
+### Contexto
+
+Sesión de verificación de calidad completa del sistema tras todos los refactors realizados (Sprint 14, sort_order, fragmentación SalesService, estandarización errores, migración UUID IAM). El objetivo es comprobar que todo funciona correctamente end-to-end y subsanar posibles errores antes de continuar con las sesiones posteriores.
+
+### Próximos Pasos
+
+- [ ] **Revisión Sprint 14:** Analizar si el sprint 14 (`mvp-arch-refinement`) tiene consistencia como unidad o si conviene dividirlo en sprints más pequeños.
+- [ ] **Planificación de sprints:** Evaluar si las sesiones restantes (doc-alignment, despliegue, UI/UX, TFM) requieren abrir nuevos sprints formales en `sprint-registry.yaml`.
+- [ ] Ejecutar suite completa de tests Go (30 paquetes) y verificar 0 fallos.
+- [ ] Ejecutar suite completa de tests frontend (Vitest, 230+ tests) y verificar 0 fallos.
+- [ ] Levantar entorno Docker completo (`docker-compose up`) y verificar que las migraciones se ejecutan correctamente (incluida 009).
+- [ ] Verificar flujo completo de login (crear usuario, autenticación, token JWT).
+- [ ] Verificar CRUD de Party (crear, editar, listar, eliminar).
+- [ ] Verificar CRUD de Product (crear con atributos, verificar SKU generado con orden correcto de DirectAttributeIDs).
+- [ ] Verificar generación de variantes y que el SKU refleja el orden de atributos.
+- [ ] Verificar flujo de Sales (crear pedido, añadir líneas, calcular totales, facturar).
+- [ ] Verificar Pricing (reglas de precio, descuentos).
+- [ ] Verificar MES (órdenes de producción, terminal de taller).
+- [ ] Documentar bugs encontrados y corregirlos in situ.
+
+### Archivos de Contexto
+
+- `agents/project/sprint-registry.yaml`
+- `apps/tramatex-api/run_tests.sh`
+- `apps/frontend/vitest.config.ts`
+- `docker/docker-compose.yml`
+- `tmp/manual-testing-guide.md`
+
+---
+
+## Alineación Documental Post-Refactors Sprint 14
+
+- **Session ID:** `doc-alignment-post-sprint14-2026-03-21`
+- **Status:** En Pausa (Pendiente de inicio)
+- **Sprint:** N/A
+- **Started:** 2026-03-21
+- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+
+### Contexto
+
+Tras los refactors del Sprint 14 (fragmentación de SalesService, estandarización de errores, migración UUID en IAM, eliminación de sort_order en Product), la documentación técnica ha quedado desalineada con el código. Se ha elaborado un roadmap de tareas documentales en `tmp/documentation-alignment-roadmap.md`.
+
+### Próximos Pasos
+
+- [ ] **IAM:** Actualizar `docs/modules/iam/domain-model.md` — UserID como `uuid.UUID`, eliminar menciones a `createdAt`/`updatedAt`.
+- [ ] **Sales:** Actualizar `docs/modules/sales/implementation-guide.md` y `module-spec.md` con nueva estructura de servicios fragmentados.
+- [ ] **Sales:** Documentar `calculations.go` en `docs/modules/sales/domain-model.md`.
+- [ ] **MES/Errores:** Actualizar guías de implementación de Product, Sales y MES para indicar delegación de errores HTTP al middleware `shared`.
+- [ ] **Estructura:** Actualizar `docs/guides/developer/project-structure-details.md` con nuevos paths.
+- [ ] **Product:** Documentar eliminación de `sort_order` y nuevo flujo de ordenamiento por `DirectAttributeIDs`.
+- [ ] **Frontend:** Verificar que docs no referencien `apps/frontend/src/pages/organizations`.
+- [ ] **Agents:** Actualizar agent contexts en `agents/project/context/` (`architecture.yaml`, `bounded-contexts.yaml`, `code-standards.yaml`, `tech-stack.yaml`) para reflejar los refactors del Sprint 14.
+
+### Archivos de Contexto
+
+- `tmp/documentation-alignment-roadmap.md`
+- `docs/modules/iam/domain-model.md`
+- `docs/modules/sales/implementation-guide.md`
+- `docs/modules/sales/module-spec.md`
+- `docs/guides/developer/project-structure-details.md`
+
+---
+
+## Mejora UI/UX — Unificación Estética y Componentes Base
+
+- **Session ID:** `ui-ux-improvement-post-mvp-2026-03-21`
+- **Status:** En Pausa (Pendiente de inicio)
+- **Sprint:** Post-MVP
+- **Started:** 2026-03-21
+- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+
+### Contexto
+
+Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se detectaron inconsistencias entre módulos: patrones de navegación mixtos en listados, botones sin base global, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta sesión implementa el plan de mejora estética para dar coherencia visual antes de la presentación TFM. También sirve como validación del trabajo Post-MVP y del flujo de despliegue definido en la sesión de infraestructura (`infra-multi-env-deployment-impl-2026-03-10`).
+
+**Dependencias:** Requiere completar previamente la sesión de despliegue multientorno.
+
+### Próximos Pasos
+
+- [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
+- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
+- [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
+- [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
+- [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
+- [ ] Forzar uso estricto de variables de `_variables.css` (paleta, radios de borde, sombras).
+- [ ] Migrar `PartyList.vue` como primer listado estandarizado de referencia.
+- [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
+- [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
+- [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
+
+### Archivos de Contexto
+
+- `tmp/ui-ux-improvement-suggestions.md`
+- `apps/frontend/src/assets/styles/theme.css`
+- `apps/frontend/src/assets/styles/_variables.css`
+- `apps/frontend/src/components/`
+
+---
+
+## Preparación TFM — Presentación Final de TramaTex
+
+- **Session ID:** `tfm-final-presentation-2026-03-21`
+- **Status:** En Pausa (Pendiente de inicio)
+- **Sprint:** N/A
+- **Started:** 2026-03-21
+- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` (y a `main` como entrega final)
+
+### Contexto
+
+TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la preparación integral del proyecto para su entrega y defensa académica: revisión de documentación, presentación, memoria, y asegurar que el estado del código, los tests y el despliegue son coherentes y presentables. Es la **última sesión** del proyecto.
+
+### Próximos Pasos
+
+- [ ] Revisar y actualizar la presentación existente (`docs/presentations/tramatex-presentation.md`, `TramaTex_Presentacion_Final.pptx`).
+- [ ] Asegurar que `README.md` del proyecto refleja el estado final (visión, arquitectura, instrucciones de instalación/ejecución).
+- [ ] Verificar que la documentación de arquitectura (`docs/architecture/`) está completa y actualizada.
+- [ ] Confirmar que todos los módulos tienen documentación consistente en `docs/modules/`.
+- [ ] Validar que los tests pasan limpiamente (Go + Vitest) y documentar cobertura.
+- [ ] Revisar `CONTRIBUTING.md` y `LICENSE.md` para coherencia académica.
+- [ ] Preparar memoria/informe TFM si es necesario (estructura, introducción, conclusiones, trabajo futuro).
+- [ ] Generar diapositivas de presentación para la defensa del TFM (basarse en `docs/presentations/slides_spec.md` y `tramatex-presentation.md`).
+- [ ] Limpiar archivos temporales en `tmp/` que no deban ir en la entrega final.
+- [ ] Verificar que el despliegue Docker funciona correctamente de principio a fin.
+
+### Archivos de Contexto
+
+- `docs/presentations/tramatex-presentation.md`
+- `docs/presentations/TramaTex_Presentacion_Final.pptx`
+- `docs/presentations/slides_spec.md`
+- `docs/architecture/architecture-vision.md`
+- `README.md`
+- `CONTRIBUTING.md`
+
+---
+
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
-
+- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 2026-03-21 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO
+- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 2026-03-12 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
 - **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 2026-03-20 | Finalizada: 2026-03-20 | Status: ✅ COMPLETADO
 - **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 2026-03-19 | Finalizada: 2026-03-19
 - **Refinamiento y Estabilización ERP Core** | Iniciada: 2026-03-09 | Finalizada: 2026-03-14

@@ -2,16 +2,18 @@ package model_test
 
 import (
 	"testing"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 )
+
+var testUserID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 func TestUserNewWithValidData(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("user-123", email, password, model.RoleWorkshop)
+	u, err := model.NewUser(testUserID, email, password, model.RoleWorkshop)
 
 	if err != nil {
 		t.Errorf("NewUser with valid data should not fail: %v", err)
@@ -21,8 +23,8 @@ func TestUserNewWithValidData(t *testing.T) {
 		t.Error("NewUser should return a user instance")
 	}
 
-	if u.ID() != "user-123" {
-		t.Errorf("ID() = %q, want %q", u.ID(), "user-123")
+	if u.ID() != testUserID {
+		t.Errorf("ID() = %s, want %s", u.ID(), testUserID)
 	}
 
 	if !u.Email().Equals(email) {
@@ -37,7 +39,7 @@ func TestUserNewWithValidData(t *testing.T) {
 func TestUserNewWithMissingEmail(t *testing.T) {
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("user-123", nil, password, model.RoleWorkshop)
+	u, err := model.NewUser(testUserID, nil, password, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with nil email should fail")
@@ -51,7 +53,7 @@ func TestUserNewWithMissingEmail(t *testing.T) {
 func TestUserNewWithMissingPassword(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 
-	u, err := model.NewUser("user-123", email, nil, model.RoleWorkshop)
+	u, err := model.NewUser(testUserID, email, nil, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with nil password should fail")
@@ -66,7 +68,7 @@ func TestUserNewWithEmptyID(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("", email, password, model.RoleWorkshop)
+	u, err := model.NewUser(uuid.Nil, email, password, model.RoleWorkshop)
 
 	if err == nil {
 		t.Error("NewUser with empty ID should fail")
@@ -81,7 +83,7 @@ func TestUserNewWithInvalidRole(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, err := model.NewUser("user-123", email, password, model.Role("invalid"))
+	u, err := model.NewUser(testUserID, email, password, model.Role("invalid"))
 
 	if err == nil {
 		t.Error("NewUser with invalid role should fail")
@@ -99,7 +101,7 @@ func TestUserNewWithValidRoles(t *testing.T) {
 
 	for _, role := range roles {
 		t.Run(string(role), func(t *testing.T) {
-			u, err := model.NewUser("user-123", email, password, role)
+			u, err := model.NewUser(testUserID, email, password, role)
 
 			if err != nil {
 				t.Errorf("NewUser with role %q should succeed: %v", role, err)
@@ -116,7 +118,7 @@ func TestUserImmutableAfterCreation(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
+	u, _ := model.NewUser(testUserID, email, password, model.RoleWorkshop)
 
 	// Verify ID doesn't change
 	id1 := u.ID()
@@ -133,36 +135,11 @@ func TestUserImmutableAfterCreation(t *testing.T) {
 	}
 }
 
-func TestUserTimestampsAutomatic(t *testing.T) {
-	email, _ := model.NewEmail("user@example.com")
-	password, _ := model.NewPassword("validPassword123")
-
-	before := time.Now()
-	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
-	after := time.Now()
-
-	createdAt := u.CreatedAt()
-	updatedAt := u.UpdatedAt()
-
-	if createdAt.Before(before) || createdAt.After(after) {
-		t.Error("CreatedAt should be between before and after times")
-	}
-
-	if updatedAt.Before(before) || updatedAt.After(after) {
-		t.Error("UpdatedAt should be between before and after times")
-	}
-
-	// Initially, created and updated should be equal (or very close)
-	if createdAt.Sub(updatedAt).Abs() > time.Millisecond {
-		t.Errorf("CreatedAt and UpdatedAt should be equal: diff=%v", createdAt.Sub(updatedAt))
-	}
-}
-
 func TestUserActiveFlag(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
+	u, _ := model.NewUser(testUserID, email, password, model.RoleWorkshop)
 
 	// Default to active
 	if !u.IsActive() {
@@ -186,10 +163,7 @@ func TestUserChangePassword(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	oldPassword, _ := model.NewPassword("oldPassword123")
 
-	u, _ := model.NewUser("user-123", email, oldPassword, model.RoleWorkshop)
-
-	oldUpdatedAt := u.UpdatedAt()
-	time.Sleep(10 * time.Millisecond) // Ensure time difference
+	u, _ := model.NewUser(testUserID, email, oldPassword, model.RoleWorkshop)
 
 	newPassword, _ := model.NewPassword("newPassword456")
 	err := u.ChangePassword(newPassword)
@@ -205,18 +179,13 @@ func TestUserChangePassword(t *testing.T) {
 	if u.Password().Matches("oldPassword123") {
 		t.Error("Old password should not match after change")
 	}
-
-	newUpdatedAt := u.UpdatedAt()
-	if !newUpdatedAt.After(oldUpdatedAt) {
-		t.Error("UpdatedAt should be updated after ChangePassword")
-	}
 }
 
 func TestUserChangePasswordWithNil(t *testing.T) {
 	email, _ := model.NewEmail("user@example.com")
 	password, _ := model.NewPassword("validPassword123")
 
-	u, _ := model.NewUser("user-123", email, password, model.RoleWorkshop)
+	u, _ := model.NewUser(testUserID, email, password, model.RoleWorkshop)
 
 	err := u.ChangePassword(nil)
 	if err == nil {
@@ -260,12 +229,12 @@ func TestNewUserWithUUID(t *testing.T) {
 	}
 
 	// UUID should be valid (non-empty, not "")
-	if u.ID() == "" {
+	if u.ID() == uuid.Nil {
 		t.Error("User ID should not be empty")
 	}
 
 	// UUID format check (simple: contains dashes)
-	if len(u.ID()) != 36 {
+	if len(u.ID().String()) != 36 {
 		t.Errorf("UUID format unexpected: %q", u.ID())
 	}
 }

@@ -108,6 +108,7 @@ func (h *PartyHandler) CreateParty(c *gin.Context) {
 			Website:   stringPtr(req.OrganizationProfile.Website),
 			Phone:     stringPtr(req.OrganizationProfile.Phone),
 			Email:     stringPtr(req.OrganizationProfile.Email),
+			Notes:     stringPtr(req.OrganizationProfile.Notes),
 		}
 	}
 
@@ -207,7 +208,14 @@ func (h *PartyHandler) ListParties(c *gin.Context) {
 
 	dtos := make([]*PartyDTO, len(parties))
 	for i, party := range parties {
-		dtos[i] = MapPartyToDTO(party)
+		dto := MapPartyToDTO(party)
+		canDelete, err := h.deleteHandler.CanDelete(c.Request.Context(), party.ID().String())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to evaluate party deletability"})
+			return
+		}
+		dto.CanDelete = canDelete
+		dtos[i] = dto
 	}
 
 	response := ListResponse{
@@ -262,6 +270,7 @@ func (h *PartyHandler) UpdateParty(c *gin.Context) {
 			Website:   stringPtr(req.OrganizationProfile.Website),
 			Phone:     stringPtr(req.OrganizationProfile.Phone),
 			Email:     stringPtr(req.OrganizationProfile.Email),
+			Notes:     stringPtr(req.OrganizationProfile.Notes),
 		}
 	}
 

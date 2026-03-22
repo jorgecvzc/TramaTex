@@ -21,7 +21,7 @@ type Task struct {
 
 func NewTask(name, reference, description string, isActive bool) (*Task, error) {
 	if name == "" {
-		return nil, fmt.Errorf("task name is required")
+		return nil, NewValidationError("task name is required")
 	}
 
 	return &Task{
@@ -45,10 +45,10 @@ type Position struct {
 
 func NewPosition(name, code, description string, isActive bool) (*Position, error) {
 	if name == "" {
-		return nil, fmt.Errorf("position name is required")
+		return nil, NewValidationError("position name is required")
 	}
 	if code == "" {
-		return nil, fmt.Errorf("position code is required")
+		return nil, NewValidationError("position code is required")
 	}
 
 	return &Position{
@@ -79,15 +79,15 @@ type WorkType struct {
 
 func NewWorkType(name, reference, description string, isActive bool, tasks []WorkTypeTask) (*WorkType, error) {
 	if name == "" {
-		return nil, fmt.Errorf("work type name is required")
+		return nil, NewValidationError("work type name is required")
 	}
 
 	for _, task := range tasks {
 		if task.TaskID == uuid.Nil {
-			return nil, fmt.Errorf("task ID is required")
+			return nil, NewValidationError("task ID is required")
 		}
 		if task.Sequence <= 0 {
-			return nil, fmt.Errorf("task sequence must be greater than zero")
+			return nil, NewValidationError("task sequence must be greater than zero")
 		}
 	}
 
@@ -133,21 +133,21 @@ func NewWorkSetup(
 	lines []WorkSetupLine,
 ) (*WorkSetup, error) {
 	if name == "" {
-		return nil, fmt.Errorf("work setup name is required")
+		return nil, NewValidationError("work setup name is required")
 	}
 	if partyID == "" {
-		return nil, fmt.Errorf("party id is required")
+		return nil, NewValidationError("party id is required")
 	}
 
 	for _, line := range lines {
 		if line.WorkTypeID == uuid.Nil {
-			return nil, fmt.Errorf("work type id is required in setup line")
+			return nil, NewValidationError("work type id is required in setup line")
 		}
 		if line.PositionID == uuid.Nil {
-			return nil, fmt.Errorf("position id is required in setup line")
+			return nil, NewValidationError("position id is required in setup line")
 		}
 		if line.Sequence <= 0 {
-			return nil, fmt.Errorf("setup line sequence must be greater than zero")
+			return nil, NewValidationError("setup line sequence must be greater than zero")
 		}
 	}
 

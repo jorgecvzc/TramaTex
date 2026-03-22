@@ -21,6 +21,7 @@ export interface OrganizationProfile {
   tax_id: string | null
   tax_id_type: TaxIdType | null
   website: string | null
+  notes?: string | null
 }
 
 export interface PersonProfile {
@@ -39,6 +40,7 @@ export interface Party {
   id: string
   status: PartyStatus
   roles: string[]  // Array of roles like ['CLIENT'], ['SUPPLIER'], or ['CLIENT', 'SUPPLIER']
+  can_delete?: boolean
   default_discount_percentage?: number
   organization_profile?: OrganizationProfile
   person_profile?: PersonProfile
@@ -54,6 +56,8 @@ export interface PartyUI {
   name: string
   role: PartyRole
   status: PartyStatus
+  can_delete: boolean
+  notes?: string | null
   tax_id: string | null
   tax_id_type: TaxIdType | null
   website: string | null
@@ -118,6 +122,7 @@ export interface CreatePartyRequest {
   website?: string | null
   phone?: string | null
   email?: string | null
+  notes?: string | null
   entityType?: EntityType  // New field to specify entity type
   firstName?: string  // For person entities
   lastName?: string   // For person entities
@@ -131,6 +136,8 @@ export interface UpdatePartyRequest {
   website?: string | null
   phone?: string | null
   email?: string | null
+  notes?: string | null
+  default_discount_percentage?: number
 }
 
 export interface ChangePartyStatusRequest {

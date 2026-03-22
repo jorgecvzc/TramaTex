@@ -6,21 +6,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/application/usecase"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 )
 
+const testUserIDStr = "00000000-0000-0000-0000-000000000001"
+
 type fakeUserRepo struct {
-	byIDFunc    func(ctx context.Context, id string) (*model.User, error)
+	byIDFunc    func(ctx context.Context, id uuid.UUID) (*model.User, error)
 	byEmailFunc func(ctx context.Context, email *model.Email) (*model.User, error)
 	saveFunc    func(ctx context.Context, user *model.User) error
-	deleteFunc  func(ctx context.Context, id string) error
+	deleteFunc  func(ctx context.Context, id uuid.UUID) error
 	listFunc    func(ctx context.Context) ([]*model.User, error)
 	savedUsers  []*model.User
 }
 
-func (f *fakeUserRepo) ByID(ctx context.Context, id string) (*model.User, error) {
+func (f *fakeUserRepo) ByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	if f.byIDFunc != nil {
 		return f.byIDFunc(ctx, id)
 	}
@@ -42,7 +45,7 @@ func (f *fakeUserRepo) Save(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (f *fakeUserRepo) Delete(ctx context.Context, id string) error {
+func (f *fakeUserRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	if f.deleteFunc != nil {
 		return f.deleteFunc(ctx, id)
 	}
@@ -214,7 +217,7 @@ func TestLoginUseCase(t *testing.T) {
 }
 
 func TestRefreshTokenUseCase(t *testing.T) {
-	claims, _ := security.NewTokenClaims("user-1", "user@example.com", "commercial", time.Now(), time.Now().Add(time.Hour))
+	claims, _ := security.NewTokenClaims(testUserIDStr, "user@example.com", "commercial", time.Now(), time.Now().Add(time.Hour))
 	repo := &fakeUserRepo{}
 	jwtService := &fakeJWTService{
 		validateFunc: func(ctx context.Context, token string) (*security.TokenClaims, error) {
@@ -239,7 +242,7 @@ func TestRefreshTokenUseCase(t *testing.T) {
 	jwtService.validateFunc = func(ctx context.Context, token string) (*security.TokenClaims, error) {
 		return claims, nil
 	}
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return nil, model.ErrUserNotFound
 	}
 	_, err = uc.Execute(context.Background(), usecase.RefreshInput{RefreshToken: "refresh"})
@@ -249,7 +252,7 @@ func TestRefreshTokenUseCase(t *testing.T) {
 
 	inactive := newUser(t, "user@example.com", "password123", model.RoleCommercial)
 	inactive.Deactivate()
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return inactive, nil
 	}
 	_, err = uc.Execute(context.Background(), usecase.RefreshInput{RefreshToken: "refresh"})
@@ -258,7 +261,7 @@ func TestRefreshTokenUseCase(t *testing.T) {
 	}
 
 	active := newUser(t, "user@example.com", "password123", model.RoleCommercial)
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return active, nil
 	}
 	output, err := uc.Execute(context.Background(), usecase.RefreshInput{RefreshToken: "refresh"})
@@ -284,18 +287,18 @@ func TestAssignRoleUseCase(t *testing.T) {
 		t.Fatalf("expected invalid role error")
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return nil, model.ErrUserNotFound
 	}
-	_, err = uc.Execute(context.Background(), usecase.AssignRoleInput{UserID: "user", Role: "admin"})
+	_, err = uc.Execute(context.Background(), usecase.AssignRoleInput{UserID: testUserIDStr, Role: "admin"})
 	if !errors.Is(err, model.ErrUserNotFound) {
 		t.Fatalf("expected user not found error")
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return newUser(t, "user@example.com", "password123", model.RoleCommercial), nil
 	}
-	output, err := uc.Execute(context.Background(), usecase.AssignRoleInput{UserID: "user", Role: "admin"})
+	output, err := uc.Execute(context.Background(), usecase.AssignRoleInput{UserID: testUserIDStr, Role: "admin"})
 	if err != nil {
 		t.Fatalf("expected assign role success, got error: %v", err)
 	}
@@ -318,19 +321,19 @@ func TestCheckAuthorizationUseCase(t *testing.T) {
 		t.Fatalf("expected user id required error")
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return nil, model.ErrUserNotFound
 	}
-	_, err = uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: "user", RequiredRoles: []string{"admin"}})
+	_, err = uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: testUserIDStr, RequiredRoles: []string{"admin"}})
 	if !errors.Is(err, model.ErrUserNotFound) {
 		t.Fatalf("expected user not found error")
 	}
 
 	user := newUser(t, "user@example.com", "password123", model.RoleDesigner)
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return user, nil
 	}
-	output, err := uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: "user", RequiredRoles: []string{"admin", "designer"}})
+	output, err := uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: testUserIDStr, RequiredRoles: []string{"admin", "designer"}})
 	if err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -338,7 +341,7 @@ func TestCheckAuthorizationUseCase(t *testing.T) {
 		t.Fatalf("expected authorization allowed")
 	}
 
-	output, err = uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: "user", RequiredRoles: []string{"admin"}})
+	output, err = uc.Execute(context.Background(), usecase.CheckAuthorizationInput{UserID: testUserIDStr, RequiredRoles: []string{"admin"}})
 	if err != nil {
 		t.Fatalf("expected success, got error: %v", err)
 	}
@@ -379,17 +382,17 @@ func TestDeleteUserUseCase(t *testing.T) {
 		t.Fatalf("expected validation error")
 	}
 
-	repo.deleteFunc = func(ctx context.Context, id string) error {
+	repo.deleteFunc = func(ctx context.Context, id uuid.UUID) error {
 		return errors.New("delete failed")
 	}
-	if err := uc.Execute(context.Background(), "user"); err == nil {
+	if err := uc.Execute(context.Background(), testUserIDStr); err == nil {
 		t.Fatalf("expected delete error")
 	}
 
-	repo.deleteFunc = func(ctx context.Context, id string) error {
+	repo.deleteFunc = func(ctx context.Context, id uuid.UUID) error {
 		return nil
 	}
-	if err := uc.Execute(context.Background(), "user"); err != nil {
+	if err := uc.Execute(context.Background(), testUserIDStr); err != nil {
 		t.Fatalf("expected delete success, got error: %v", err)
 	}
 }

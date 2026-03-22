@@ -1,8 +1,8 @@
 -- ============================================================================
--- Migration: v2_003_init_product.sql
--- Description: Initialize Product module
--- Date: 2026-02-25
--- Modules: Brands, Product Groups, Attributes, Attribute Values, Products, Product Variants
+-- Migration: 003_init_product.sql
+-- Description: Initialize Product module (consolidated)
+-- Absorbs: 003, 009 (drop sort_order), 018 (backfill default variants)
+-- Date: 2026-03-21
 -- ============================================================================
 
 BEGIN;
@@ -81,7 +81,6 @@ CREATE TABLE IF NOT EXISTS attributes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
-    sort_order INT NOT NULL DEFAULT 0,
     scope_brand_id UUID,
     scope_group_id UUID,
     created_by VARCHAR(255),
@@ -212,5 +211,5 @@ CREATE TRIGGER trg_product_variants_updated_at BEFORE UPDATE ON product_variants
 COMMIT;
 
 -- ============================================================================
--- END OF MIGRATION: v2_003_init_product.sql
+-- END OF MIGRATION: 003_init_product.sql (consolidated, absorbs 003 + 009 + 018)
 -- ============================================================================

@@ -27,19 +27,6 @@
       <small class="hint">Solo letras mayúsculas, números y guiones bajos</small>
     </div>
 
-    <div class="form-group">
-      <label for="order">Orden de visualización</label>
-      <input 
-        id="order"
-        v-model.number="formData.order" 
-        type="number" 
-        class="form-input"
-        min="0"
-        placeholder="0"
-      />
-      <small class="hint">Menor número = mayor prioridad</small>
-    </div>
-
     <div class="form-section">
       <h3>Valores del Atributo</h3>
       <p class="section-description">Define los valores posibles para este atributo y sus modificadores de precio</p>
@@ -138,7 +125,6 @@ const emit = defineEmits(['submit', 'cancel'])
 const formData = reactive({
   name: '',
   code: '',
-  order: 0,
   values: [
     { 
       value: '', 
@@ -217,7 +203,6 @@ function handleSubmit() {
   const payload = {
     name: formData.name.trim(),
     code: formData.code.trim(),
-    order: formData.order,
     values: cleanedValues
   }
   
@@ -232,7 +217,6 @@ onMounted(() => {
   if (props.attribute && props.mode === 'edit') {
     formData.name = props.attribute.name || ''
     formData.code = props.attribute.code || ''
-    formData.order = props.attribute.sort_order || 0
     
     if (props.attribute.values && props.attribute.values.length > 0) {
       formData.values = props.attribute.values.map(v => ({

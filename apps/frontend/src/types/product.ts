@@ -126,7 +126,6 @@ export interface Attribute {
 export interface AttributeOption {
   value: string
   label: string
-  sort_order: number
 }
 
 // AttributeValue with price modifiers for variant pricing

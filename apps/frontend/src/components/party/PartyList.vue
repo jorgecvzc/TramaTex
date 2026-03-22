@@ -94,7 +94,7 @@
                 <button class="btn btn-secondary" @click="toggleStatus(party)">
                   {{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}
                 </button>
-                <button class="btn btn-danger" @click="deleteParty(party)" title="Eliminar entidad">
+                <button v-if="party.can_delete" class="btn btn-danger" @click="deleteParty(party)" title="Eliminar entidad">
                   🗑️ Eliminar
                 </button>
               </div>

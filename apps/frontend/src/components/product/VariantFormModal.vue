@@ -289,7 +289,7 @@ function populateFormFromVariant() {
   if (!props.variant) return
   
   form.value.barcode = props.variant.barcode || ''
-  form.value.baseCost = props.variant.base_cost || null
+  form.value.baseCost = props.variant.base_cost ?? null
   form.value.status = props.variant.status || 'PROVISIONAL'
   form.value.isActive = props.variant.is_active !== false
 }

@@ -27,9 +27,8 @@ func TestProductService_CreateAttribute(t *testing.T) {
 
 		// Updated after scope refactoring: removed ScopeBrandID and ScopeGroupID
 		cmd := application.CreateAttributeCommand{
-			Name:      "Color",
-			Code:      "C",
-			SortOrder: 1,
+			Name: "Color",
+			Code: "C",
 			Values: []application.CreateAttributeValueCommand{
 				{Value: "Red", Code: "R"},
 			},
@@ -112,21 +111,19 @@ func TestProductService_UpdateAttribute(t *testing.T) {
 	service := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.WithValue(context.Background(), "actorID", "test-actor")
 
-	attr, _ := domain.NewAttribute("Size", "S", 1)
+	attr, _ := domain.NewAttribute("Size", "S")
 	value1, _ := attr.AddValue("Large", "L")
 	value2, _ := attr.AddValue("Medium", "M")
 	newName := "Size Updated"
 	newCode := "SZ"
-	newSort := 2
 
 	t.Run("should update attribute values and remove extras", func(t *testing.T) {
 		mockAttributeRepo.ExpectedCalls = nil
 
 		cmd := application.UpdateAttributeCommand{
-			ID:        attr.ID,
-			Name:      &newName,
-			Code:      &newCode,
-			SortOrder: &newSort,
+			ID:   attr.ID,
+			Name: &newName,
+			Code: &newCode,
 			Values: []application.UpdateAttributeValueCommand{
 				{ID: &value1.ID, Value: "XL", Code: "XL"},
 				{Value: "Small", Code: "S"},
@@ -176,7 +173,7 @@ func TestProductService_GetAndListAttributes(t *testing.T) {
 	service := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.WithValue(context.Background(), "actorID", "test-actor")
 
-	attr, _ := domain.NewAttribute("Generic", "G", 0)
+	attr, _ := domain.NewAttribute("Generic", "G")
 
 	t.Run("get attribute by id", func(t *testing.T) {
 		mockAttributeRepo.ExpectedCalls = nil
@@ -205,7 +202,7 @@ func TestProductService_GetProductAndVariants(t *testing.T) {
 	ctx := context.WithValue(context.Background(), "actorID", "test-actor")
 
 	product := &domain.Product{ID: uuid.New(), SKU: "P-1", Name: "Product", BrandID: uuid.New(), IsActive: true}
-	attr, _ := domain.NewAttribute("Color", "C", 0)
+	attr, _ := domain.NewAttribute("Color", "C")
 	val, _ := attr.AddValue("Red", "R")
 	variant := &domain.ProductVariant{ID: uuid.New(), ProductID: product.ID, SKU: "P-1-C.R", AttributeValues: []uuid.UUID{val.ID}, Status: domain.StatusConfirmed, IsActive: true}
 
@@ -298,7 +295,7 @@ func TestProductService_UpdateProductVariant(t *testing.T) {
 	service := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.WithValue(context.Background(), "actorID", "test-actor")
 
-	attr, _ := domain.NewAttribute("Color", "C", 0)
+	attr, _ := domain.NewAttribute("Color", "C")
 	val, _ := attr.AddValue("Red", "R")
 	variant := &domain.ProductVariant{ID: uuid.New(), SKU: "P-1-C.R", AttributeValues: []uuid.UUID{val.ID}, Status: domain.StatusProvisional}
 	newBarcode := "123"

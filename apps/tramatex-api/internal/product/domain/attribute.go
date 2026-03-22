@@ -14,11 +14,10 @@ const (
 // Note: Scope (brand/group) restrictions removed for MVP simplicity.
 // Users are responsible for assigning appropriate attributes to products.
 type Attribute struct {
-	ID        uuid.UUID
-	Name      string
-	Code      string
-	SortOrder int
-	Values    []AttributeValue
+	ID     uuid.UUID
+	Name   string
+	Code   string
+	Values []AttributeValue
 }
 
 // AttributeValue represents a specific value for an Attribute (e.g., "Large", "Red").
@@ -33,7 +32,7 @@ type AttributeValue struct {
 }
 
 // NewAttribute creates a new Attribute with validation.
-func NewAttribute(name, code string, sortOrder int) (*Attribute, error) {
+func NewAttribute(name, code string) (*Attribute, error) {
 	if name == "" {
 		return nil, NewValidationError("attribute name cannot be empty")
 	}
@@ -42,11 +41,10 @@ func NewAttribute(name, code string, sortOrder int) (*Attribute, error) {
 	}
 
 	return &Attribute{
-		ID:        uuid.New(),
-		Name:      name,
-		Code:      code,
-		SortOrder: sortOrder,
-		Values:    make([]AttributeValue, 0),
+		ID:     uuid.New(),
+		Name:   name,
+		Code:   code,
+		Values: make([]AttributeValue, 0),
 	}, nil
 }
 

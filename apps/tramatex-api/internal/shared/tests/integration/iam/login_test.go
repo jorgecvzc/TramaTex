@@ -5,10 +5,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	iam_usecase "github.com/joran-cortez/tramatex/internal/iam/application/usecase"
 	iam_model "github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 )
+
+var testLoginUserID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 // MockUserRepository mocks the UserRepository interface
 type MockUserRepository struct {
@@ -16,7 +19,7 @@ type MockUserRepository struct {
 	err  error
 }
 
-func (m *MockUserRepository) ByID(ctx context.Context, id string) (*iam_model.User, error) {
+func (m *MockUserRepository) ByID(ctx context.Context, id uuid.UUID) (*iam_model.User, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -44,7 +47,7 @@ func (m *MockUserRepository) Save(ctx context.Context, user *iam_model.User) err
 	return nil
 }
 
-func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
+func (m *MockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -95,7 +98,7 @@ func TestLoginUseCaseWithValidCredentials(t *testing.T) {
 	// Arrange
 	email, _ := iam_model.NewEmail("user@example.com")
 	password, _ := iam_model.NewPassword("SecurePassword123!")
-	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleWorkshop)
+	testUser, _ := iam_model.NewUser(testLoginUserID, email, password, iam_model.RoleWorkshop)
 
 	mockRepo := &MockUserRepository{
 		user: testUser,
@@ -156,7 +159,7 @@ func TestLoginUseCaseWithWrongPassword(t *testing.T) {
 	// Arrange
 	email, _ := iam_model.NewEmail("user@example.com")
 	password, _ := iam_model.NewPassword("CorrectPassword123!")
-	testUser, _ := iam_model.NewUser("user-123", email, password, iam_model.RoleWorkshop)
+	testUser, _ := iam_model.NewUser(testLoginUserID, email, password, iam_model.RoleWorkshop)
 
 	mockRepo := &MockUserRepository{
 		user: testUser,

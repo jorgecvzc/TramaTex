@@ -1,6 +1,10 @@
 package interfaces
 
-import "github.com/joran-cortez/tramatex/internal/party/domain"
+import (
+	"time"
+
+	"github.com/joran-cortez/tramatex/internal/party/domain"
+)
 
 // PartyDTO represents a party in API responses
 
@@ -8,7 +12,10 @@ type PartyDTO struct {
 	ID                        string                  `json:"id"`
 	Status                    string                  `json:"status"`
 	Roles                     []string                `json:"roles"`
+	CanDelete                 bool                    `json:"can_delete"`
 	DefaultDiscountPercentage float64                 `json:"default_discount_percentage"`
+	CreatedAt                 time.Time               `json:"created_at"`
+	ModifiedAt                time.Time               `json:"modified_at"`
 	PersonProfile             *PersonProfileDTO       `json:"person_profile,omitempty"`
 	OrganizationProfile       *OrganizationProfileDTO `json:"organization_profile,omitempty"`
 }
@@ -27,6 +34,7 @@ type OrganizationProfileDTO struct {
 	Website   string              `json:"website,omitempty"`
 	Phone     string              `json:"phone,omitempty"`
 	Email     string              `json:"email,omitempty"`
+	Notes     string              `json:"notes,omitempty"`
 	Contacts  []ContactDetailsDTO `json:"contacts,omitempty"`
 }
 
@@ -79,6 +87,7 @@ type OrganizationProfileRequest struct {
 	Website   string                  `json:"website,omitempty"`
 	Phone     string                  `json:"phone,omitempty"`
 	Email     string                  `json:"email,omitempty"`
+	Notes     string                  `json:"notes,omitempty"`
 	Contacts  []ContactDetailsRequest `json:"contacts,omitempty"`
 }
 
@@ -146,7 +155,10 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 		ID:                        party.ID().String(),
 		Status:                    string(party.Status()),
 		Roles:                     make([]string, 0),
+		CanDelete:                 true,
 		DefaultDiscountPercentage: party.DefaultDiscountPercentage(),
+		CreatedAt:                 party.CreatedAt(),
+		ModifiedAt:                party.ModifiedAt(),
 	}
 
 	for _, role := range party.Roles() {
@@ -170,6 +182,7 @@ func MapPartyToDTO(party *domain.Party) *PartyDTO {
 		orgDTO := &OrganizationProfileDTO{
 			Name:     profile.Name(),
 			Website:  profile.Website(),
+			Notes:    profile.Notes(),
 			Contacts: make([]ContactDetailsDTO, 0),
 		}
 		if profile.TaxID() != nil {

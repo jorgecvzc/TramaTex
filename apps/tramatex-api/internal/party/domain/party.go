@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // Party is the aggregate root for the Party module
 // It can contain a PersonProfile, OrganizationProfile, or both.
 type Party struct {
@@ -10,6 +12,8 @@ type Party struct {
 	roles                     []PartyRole
 	relationships             []PartyRelationship
 	defaultDiscountPercentage float64
+	createdAt                 time.Time
+	modifiedAt                time.Time
 }
 
 func NewParty(
@@ -72,6 +76,19 @@ func (p *Party) ID() PartyID {
 
 func (p *Party) Status() PartyStatus {
 	return p.status
+}
+
+func (p *Party) CreatedAt() time.Time {
+	return p.createdAt
+}
+
+func (p *Party) ModifiedAt() time.Time {
+	return p.modifiedAt
+}
+
+func (p *Party) SetTimestamps(createdAt, modifiedAt time.Time) {
+	p.createdAt = createdAt
+	p.modifiedAt = modifiedAt
 }
 
 func (p *Party) Activate() error {

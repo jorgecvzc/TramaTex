@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	domain_model "github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	domain_repo "github.com/joran-cortez/tramatex/internal/iam/domain/repository"
 )
@@ -33,7 +34,12 @@ func (uc *AssignRoleUseCase) Execute(ctx context.Context, input AssignRoleInput)
 		return nil, err
 	}
 
-	user, err := uc.userRepo.ByID(ctx, input.UserID)
+	parsedUserID, err := uuid.Parse(input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user_id: %w", err)
+	}
+
+	user, err := uc.userRepo.ByID(ctx, parsedUserID)
 	if err != nil {
 		if errors.Is(err, domain_model.ErrUserNotFound) {
 			return nil, domain_model.ErrUserNotFound
@@ -50,7 +56,7 @@ func (uc *AssignRoleUseCase) Execute(ctx context.Context, input AssignRoleInput)
 	}
 
 	return &AssignRoleOutput{
-		UserID: user.ID(),
+		UserID: user.ID().String(),
 		Role:   string(user.Role()),
 	}, nil
 }

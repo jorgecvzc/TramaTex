@@ -31,6 +31,7 @@ go.work.sum
 *.test.exe
 
 # Coverage artifacts (Go)
+coverage
 coverage/
 coverage-reports/
 coverage-product/

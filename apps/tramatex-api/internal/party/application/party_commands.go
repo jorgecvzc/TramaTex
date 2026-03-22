@@ -32,6 +32,7 @@ type OrganizationProfileInput struct {
 	Website   *string
 	Phone     *string
 	Email     *string
+	Notes     *string
 }
 
 func stringValue(value *string) string {
@@ -155,6 +156,7 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Website)),
 			phone,
 			email,
+			strings.TrimSpace(stringValue(cmd.OrganizationProfile.Notes)),
 		)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid organization profile", err)
@@ -314,6 +316,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 		website := ""
 		var phone *domain.Phone
 		var email *domain.Email
+		notes := ""
 
 		if existing != nil {
 			name = existing.Name()
@@ -321,6 +324,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			website = existing.Website()
 			phone = existing.Phone()
 			email = existing.Email()
+			notes = existing.Notes()
 		}
 
 		if cmd.OrganizationProfile.Name != nil {
@@ -374,7 +378,11 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 			}
 		}
 
-		profile, err := domain.NewOrganizationProfile(name, taxID, website, phone, email)
+		if cmd.OrganizationProfile.Notes != nil {
+			notes = strings.TrimSpace(*cmd.OrganizationProfile.Notes)
+		}
+
+		profile, err := domain.NewOrganizationProfile(name, taxID, website, phone, email, notes)
 		if err != nil {
 			return nil, domain.WrapValidation("invalid organization profile", err)
 		}
@@ -472,6 +480,59 @@ func NewDeletePartyHandler(partyRepo persistence.PartyRepository, relRepo persis
 	return &DeletePartyHandler{partyRepo: partyRepo, relRepo: relRepo}
 }
 
+func (h *DeletePartyHandler) CanDelete(ctx context.Context, partyID string) (bool, error) {
+	id, err := domain.NewPartyID(partyID)
+	if err != nil {
+		return false, domain.WrapValidation("invalid party ID", err)
+	}
+	canDelete, _, err := h.canDeleteWithReason(ctx, id)
+	return canDelete, err
+}
+
+func (h *DeletePartyHandler) canDeleteWithReason(ctx context.Context, partyID domain.PartyID) (bool, string, error) {
+	// Verify party exists
+	_, err := h.partyRepo.FindByID(ctx, partyID)
+	if err != nil {
+		return false, "", domain.WrapNotFound("party not found", err)
+	}
+
+	// Check party relationships
+	relationships, err := h.relRepo.FindByPartyID(ctx, partyID)
+	if err != nil {
+		return false, "", domain.WrapPersistence("failed to load party relationships", err)
+	}
+	if len(relationships) > 0 {
+		return false, "relationships", nil
+	}
+
+	hasContactRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, partyID)
+	if err != nil {
+		return false, "", domain.WrapPersistence("failed to check contact details references", err)
+	}
+	if hasContactRefs {
+		return false, "contact_details", nil
+	}
+
+	hasMESRefs, err := h.partyRepo.HasMESWorkReferences(ctx, partyID)
+	if err != nil {
+		return false, "", domain.WrapPersistence("failed to check MES work references", err)
+	}
+	if hasMESRefs {
+		return false, "mes", nil
+	}
+
+	hasSalesRefs, err := h.partyRepo.HasSalesReferences(ctx, partyID)
+	if err != nil {
+		return false, "", domain.WrapPersistence("failed to check sales references", err)
+	}
+
+	if hasSalesRefs {
+		return false, "sales", nil
+	}
+
+	return true, "", nil
+}
+
 func (h *DeletePartyHandler) Handle(ctx context.Context, cmd *DeletePartyCommand) error {
 	actorID := strings.TrimSpace(cmd.ActorID)
 	if actorID == "" {
@@ -486,49 +547,23 @@ func (h *DeletePartyHandler) Handle(ctx context.Context, cmd *DeletePartyCommand
 		return domain.WrapValidation("invalid party ID", err)
 	}
 
-	// Verify party exists
-	_, err = h.partyRepo.FindByID(ctx, partyID)
+	canDelete, reason, err := h.canDeleteWithReason(ctx, partyID)
 	if err != nil {
-		return domain.WrapNotFound("party not found", err)
+		return err
 	}
-
-	// Check party relationships
-	relationships, err := h.relRepo.FindByPartyID(ctx, partyID)
-	if err != nil {
-		return domain.WrapPersistence("failed to load party relationships", err)
-	}
-
-	if len(relationships) > 0 {
-		return domain.NewValidationError("party is linked to other entities and cannot be deleted")
-	}
-
-	hasContactRefs, err := h.partyRepo.HasContactDetailsReferences(ctx, partyID)
-	if err != nil {
-		return domain.WrapPersistence("failed to check contact details references", err)
-	}
-
-	if hasContactRefs {
-		return domain.NewValidationError("contact is referenced in organization contact details and cannot be deleted")
-	}
-
-	// Check MES work references
-	hasMESRefs, err := h.partyRepo.HasMESWorkReferences(ctx, partyID)
-	if err != nil {
-		return domain.WrapPersistence("failed to check MES work references", err)
-	}
-
-	if hasMESRefs {
-		return domain.NewValidationError("party has MES work records and cannot be deleted")
-	}
-
-	// Check Sales references (quotes, orders, invoices, delivery notes)
-	hasSalesRefs, err := h.partyRepo.HasSalesReferences(ctx, partyID)
-	if err != nil {
-		return domain.WrapPersistence("failed to check sales references", err)
-	}
-
-	if hasSalesRefs {
-		return domain.NewValidationError("party has sales documents (quotes, orders, invoices, or delivery notes) and cannot be deleted")
+	if !canDelete {
+		switch reason {
+		case "relationships":
+			return domain.NewValidationError("party is linked to other entities and cannot be deleted")
+		case "contact_details":
+			return domain.NewValidationError("contact is referenced in organization contact details and cannot be deleted")
+		case "mes":
+			return domain.NewValidationError("party has MES work records and cannot be deleted")
+		case "sales":
+			return domain.NewValidationError("party has sales documents (quotes, orders, invoices, or delivery notes) and cannot be deleted")
+		default:
+			return domain.NewValidationError("party cannot be deleted")
+		}
 	}
 
 	if err := h.partyRepo.Delete(ctx, partyID); err != nil {

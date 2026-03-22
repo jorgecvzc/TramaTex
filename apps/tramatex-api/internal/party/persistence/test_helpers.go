@@ -329,7 +329,8 @@ func (tdb *TestDB) SetUpParty() error {
 			tax_id_type VARCHAR(20),
 			website VARCHAR(255),
 			phone VARCHAR(30),
-			email VARCHAR(255)
+			email VARCHAR(255),
+			notes TEXT
 		);
 
 		CREATE TABLE party_roles (

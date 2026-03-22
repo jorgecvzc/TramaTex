@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	domain_model "github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	domain_repo "github.com/joran-cortez/tramatex/internal/iam/domain/repository"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
@@ -33,7 +34,12 @@ func (uc *RefreshTokenUseCase) Execute(ctx context.Context, input RefreshInput) 
 		return nil, err
 	}
 
-	user, err := uc.userRepo.ByID(ctx, claims.Subject())
+	parsedSubject, err := uuid.Parse(claims.Subject())
+	if err != nil {
+		return nil, fmt.Errorf("invalid user id in token: %w", err)
+	}
+
+	user, err := uc.userRepo.ByID(ctx, parsedSubject)
 	if err != nil {
 		if errors.Is(err, domain_model.ErrUserNotFound) {
 			return nil, domain_model.ErrUserNotFound
@@ -48,7 +54,7 @@ func (uc *RefreshTokenUseCase) Execute(ctx context.Context, input RefreshInput) 
 	now := time.Now()
 	expiresAt := now.Add(15 * time.Minute)
 	newClaims, err := security.NewTokenClaims(
-		user.ID(),
+		user.ID().String(),
 		user.Email().Value(),
 		string(user.Role()),
 		now,

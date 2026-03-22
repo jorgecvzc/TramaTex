@@ -1,8 +1,10 @@
 -- ============================================================================
--- Migration: v2_005_init_sales.sql
--- Description: Initialize Sales module
--- Date: 2026-02-25
--- Modules: Quotes, Sales Orders, Delivery Notes, Invoices
+-- Migration: 005_init_sales.sql
+-- Description: Initialize Sales module (consolidated)
+-- Absorbs: 005, 009, 011, 013, 014, 015, 017, 019, 026, 030, 031
+-- Date: 2026-03-21
+-- Note: quote_work_setups and order_work_setups depend on work_setups (MES)
+--       so those tables are created in 006_init_mes.sql
 -- ============================================================================
 
 BEGIN;
@@ -98,28 +100,30 @@ CREATE INDEX IF NOT EXISTS idx_quotes_quote_date ON quotes(quote_date);
 COMMENT ON TABLE quotes IS 'Sales quotes (presupuestos)';
 
 -- ============================================================================
+-- QUOTE LINE ITEMS
+-- Final column names after consolidation:
+--   list_unit_price_* = precio de tarifa (ex calculated_unit_price_*)
+--   unit_price_*      = precio de venta (ex final_unit_price_*)
+--   discount_per_unit_* = descuento aplicado (ex final_discount_per_unit_*)
+--   discount_percent    = porcentaje fuente de verdad
+-- No mes_work_id (removed in 014). No manual_* columns (removed in 013).
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS quote_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     quote_id UUID NOT NULL,
     product_variant_id UUID NOT NULL,
     quantity INT NOT NULL,
-    calculated_unit_price_amount NUMERIC(12,2) NOT NULL,
-    calculated_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    manual_unit_price_amount NUMERIC(12,2),
-    manual_unit_price_currency VARCHAR(3),
-    final_unit_price_amount NUMERIC(12,2) NOT NULL,
-    final_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    calculated_discount_per_unit_amount NUMERIC(12,2),
-    calculated_discount_per_unit_currency VARCHAR(3),
-    manual_discount_per_unit_amount NUMERIC(12,2),
-    manual_discount_per_unit_currency VARCHAR(3),
-    final_discount_per_unit_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-    final_discount_per_unit_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    list_unit_price_amount NUMERIC(12,2) NOT NULL,
+    list_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    unit_price_amount NUMERIC(12,2) NOT NULL,
+    unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    discount_per_unit_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    discount_per_unit_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    discount_percent NUMERIC(5,2) NOT NULL DEFAULT 0,
     tax_rate NUMERIC(5,2) NOT NULL DEFAULT 21.00,
     tax_amount NUMERIC(10,2),
     subtotal_amount NUMERIC(12,2) NOT NULL,
     subtotal_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    mes_work_id UUID NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -133,7 +137,6 @@ CREATE INDEX IF NOT EXISTS idx_quote_line_items_quote_id ON quote_line_items(quo
 CREATE INDEX IF NOT EXISTS idx_quote_line_items_tax_rate ON quote_line_items(tax_rate);
 
 COMMENT ON TABLE quote_line_items IS 'Line items in sales quotes';
-COMMENT ON COLUMN quote_line_items.mes_work_id IS 'Optional reference to MES work (for service products)';
 
 -- ============================================================================
 -- SALES ORDERS
@@ -168,28 +171,24 @@ CREATE INDEX IF NOT EXISTS idx_sales_orders_order_date ON sales_orders(order_dat
 COMMENT ON TABLE sales_orders IS 'Sales orders (pedidos)';
 
 -- ============================================================================
+-- ORDER LINE ITEMS (same final column structure as quote_line_items)
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS order_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sales_order_id UUID NOT NULL,
     product_variant_id UUID NOT NULL,
     quantity INT NOT NULL,
-    calculated_unit_price_amount NUMERIC(12,2) NOT NULL,
-    calculated_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    manual_unit_price_amount NUMERIC(12,2),
-    manual_unit_price_currency VARCHAR(3),
-    final_unit_price_amount NUMERIC(12,2) NOT NULL,
-    final_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    calculated_discount_per_unit_amount NUMERIC(12,2),
-    calculated_discount_per_unit_currency VARCHAR(3),
-    manual_discount_per_unit_amount NUMERIC(12,2),
-    manual_discount_per_unit_currency VARCHAR(3),
-    final_discount_per_unit_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-    final_discount_per_unit_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    list_unit_price_amount NUMERIC(12,2) NOT NULL,
+    list_unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    unit_price_amount NUMERIC(12,2) NOT NULL,
+    unit_price_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    discount_per_unit_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    discount_per_unit_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+    discount_percent NUMERIC(5,2) NOT NULL DEFAULT 0,
     tax_rate NUMERIC(5,2) NOT NULL DEFAULT 21.00,
     tax_amount NUMERIC(10,2),
     subtotal_amount NUMERIC(12,2) NOT NULL,
     subtotal_currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    mes_work_id UUID NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -203,7 +202,6 @@ CREATE INDEX IF NOT EXISTS idx_order_line_items_order_id ON order_line_items(sal
 CREATE INDEX IF NOT EXISTS idx_order_line_items_tax_rate ON order_line_items(tax_rate);
 
 COMMENT ON TABLE order_line_items IS 'Line items in sales orders';
-COMMENT ON COLUMN order_line_items.mes_work_id IS 'Optional reference to MES work (for service products)';
 
 -- ============================================================================
 -- DELIVERY NOTES
@@ -230,6 +228,9 @@ CREATE INDEX IF NOT EXISTS idx_delivery_notes_party_id ON delivery_notes(party_i
 COMMENT ON TABLE delivery_notes IS 'Delivery notes (albaranes)';
 
 -- ============================================================================
+-- DELIVERY NOTE LINE ITEMS
+-- Includes invoice_line_item_id for DNâ†”Invoice traceability (from 019)
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS delivery_note_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     delivery_note_id UUID NOT NULL,
@@ -238,6 +239,7 @@ CREATE TABLE IF NOT EXISTS delivery_note_line_items (
     delivered_quantity INT NOT NULL,
     tax_rate NUMERIC(5,2) NOT NULL DEFAULT 21.00,
     tax_amount NUMERIC(10,2),
+    invoice_line_item_id UUID,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE,
@@ -255,14 +257,15 @@ COMMENT ON TABLE delivery_note_line_items IS 'Line items in delivery notes';
 
 -- ============================================================================
 -- INVOICES
+-- series_code uses FV (factura venta) / FT (factura ticket) convention
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_number VARCHAR(50) NOT NULL,
     type invoice_type NOT NULL DEFAULT 'COMPLETA',
-    series_code VARCHAR(10) NOT NULL DEFAULT 'A',
+    series_code VARCHAR(10) NOT NULL DEFAULT 'FV',
     series_year INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
-    series_prefix VARCHAR(10) NOT NULL DEFAULT 'A',
+    series_prefix VARCHAR(10) NOT NULL DEFAULT 'FV',
     party_id UUID NOT NULL,
     invoice_date TIMESTAMP WITH TIME ZONE NOT NULL,
     due_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -288,8 +291,10 @@ CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 
 COMMENT ON TABLE invoices IS 'Sales invoices (facturas)';
 COMMENT ON COLUMN invoices.type IS 'COMPLETA (full B2B invoice) or SIMPLIFICADA (ticket < 3,000 EUR)';
-COMMENT ON COLUMN invoices.series_code IS 'Invoice series code (A, TKT, B, etc.)';
+COMMENT ON COLUMN invoices.series_code IS 'FV (factura venta) or FT (factura ticket)';
 
+-- ============================================================================
+-- INVOICE LINE ITEMS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS invoice_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -323,6 +328,80 @@ CREATE INDEX IF NOT EXISTS idx_invoice_line_items_tax_rate ON invoice_line_items
 
 COMMENT ON TABLE invoice_line_items IS 'Line items in invoices';
 
+-- Now that invoice_line_items exists, add the FK for delivery_note traceability
+ALTER TABLE delivery_note_line_items
+    ADD CONSTRAINT fk_dn_line_items_invoice_line_item
+    FOREIGN KEY (invoice_line_item_id) REFERENCES invoice_line_items(id);
+
+CREATE INDEX IF NOT EXISTS idx_dn_line_items_invoice_line_item_id
+    ON delivery_note_line_items(invoice_line_item_id)
+    WHERE invoice_line_item_id IS NOT NULL;
+
+-- ============================================================================
+-- DOCUMENT SEQUENCES (from 017)
+-- Sequential counters for document numbering per prefix and year.
+-- Format: PREFIX-YEAR-NNNN (PRE, PED, ALB, FV, FT)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS document_sequences (
+    prefix       VARCHAR(10) NOT NULL,
+    year         INTEGER     NOT NULL,
+    current_value INTEGER    NOT NULL DEFAULT 0,
+    PRIMARY KEY (prefix, year)
+);
+
+COMMENT ON TABLE document_sequences IS 'Sequential counters for document numbering per prefix and year';
+COMMENT ON COLUMN document_sequences.prefix IS 'Document prefix: PRE, PED, ALB, FV, FT';
+COMMENT ON COLUMN document_sequences.year IS 'Fiscal year for the sequence';
+COMMENT ON COLUMN document_sequences.current_value IS 'Last assigned sequential number';
+
+-- Seed counters from existing documents (safe no-op in a fresh DB)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quotes') THEN
+    INSERT INTO document_sequences (prefix, year, current_value)
+    SELECT 'PRE', EXTRACT(YEAR FROM quote_date)::INTEGER, COUNT(*)
+    FROM quotes WHERE deleted_at IS NULL
+    GROUP BY EXTRACT(YEAR FROM quote_date)
+    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sales_orders') THEN
+    INSERT INTO document_sequences (prefix, year, current_value)
+    SELECT 'PED', EXTRACT(YEAR FROM order_date)::INTEGER, COUNT(*)
+    FROM sales_orders WHERE deleted_at IS NULL
+    GROUP BY EXTRACT(YEAR FROM order_date)
+    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'delivery_notes') THEN
+    INSERT INTO document_sequences (prefix, year, current_value)
+    SELECT 'ALB', EXTRACT(YEAR FROM delivery_date)::INTEGER, COUNT(*)
+    FROM delivery_notes WHERE deleted_at IS NULL
+    GROUP BY EXTRACT(YEAR FROM delivery_date)
+    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'invoices') THEN
+    INSERT INTO document_sequences (prefix, year, current_value)
+    SELECT
+        CASE WHEN series_code = 'FT' THEN 'FT' ELSE 'FV' END,
+        EXTRACT(YEAR FROM invoice_date)::INTEGER,
+        COUNT(*)
+    FROM invoices WHERE deleted_at IS NULL
+    GROUP BY CASE WHEN series_code = 'FT' THEN 'FT' ELSE 'FV' END, EXTRACT(YEAR FROM invoice_date)
+    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
+  END IF;
+END $$;
+
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
@@ -347,5 +426,8 @@ CREATE TRIGGER trg_invoice_line_items_updated_at BEFORE UPDATE ON invoice_line_i
 COMMIT;
 
 -- ============================================================================
--- END OF MIGRATION: v2_005_init_sales.sql
+-- END OF MIGRATION: 005_init_sales.sql (consolidated)
+-- Absorbs: 005, 009, 011, 013, 014, 015, 017, 019
+-- Note: quote_work_setups / order_work_setups â†’ see 006_init_mes.sql
 -- ============================================================================
+

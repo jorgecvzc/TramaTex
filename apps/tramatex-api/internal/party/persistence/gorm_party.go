@@ -87,6 +87,7 @@ func (r *GORMPartyRepository) Save(ctx context.Context, party *domain.Party, cre
 				TaxID:     taxID,
 				TaxIDType: taxType,
 				Website:   org.Website(),
+				Notes:     org.Notes(),
 			}
 			if org.Phone() != nil {
 				phone := org.Phone().Value()
@@ -189,6 +190,7 @@ func (r *GORMPartyRepository) FindByID(ctx context.Context, id domain.PartyID) (
 	if partyModel.DefaultDiscountPercentage > 0 {
 		_ = party.SetDefaultDiscountPercentage(partyModel.DefaultDiscountPercentage)
 	}
+	party.SetTimestamps(partyModel.CreatedAt, partyModel.ModifiedAt)
 	return party, nil
 }
 
@@ -432,7 +434,7 @@ func (r *GORMPartyRepository) loadOrganizationProfile(ctx context.Context, party
 		email = e
 	}
 
-	org, err := domain.NewOrganizationProfile(profile.Name, tax, profile.Website, phone, email)
+	org, err := domain.NewOrganizationProfile(profile.Name, tax, profile.Website, phone, email, profile.Notes)
 	if err != nil {
 		return nil, err
 	}

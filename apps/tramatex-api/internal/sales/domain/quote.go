@@ -252,29 +252,17 @@ func calculateTaxAmount(subtotal Money, taxRate float64) (Money, error) {
 	return subtotal.Multiply(taxMultiplier)
 }
 func sumLineItemSubtotals(items []QuoteLineItem) (Money, error) {
-	subtotal, err := NewMoney(0, DefaultCurrency)
-	if err != nil {
-		return Money{}, err
+	amounts := make([]Money, len(items))
+	for i, item := range items {
+		amounts[i] = item.Subtotal
 	}
-	for _, item := range items {
-		subtotal, err = subtotal.Add(item.Subtotal)
-		if err != nil {
-			return Money{}, err
-		}
-	}
-	return subtotal, nil
+	return SumAmounts(amounts)
 }
 
 func sumLineItemTaxAmounts(items []QuoteLineItem) (Money, error) {
-	taxTotal, err := NewMoney(0, DefaultCurrency)
-	if err != nil {
-		return Money{}, err
+	amounts := make([]Money, len(items))
+	for i, item := range items {
+		amounts[i] = item.TaxAmount
 	}
-	for _, item := range items {
-		taxTotal, err = taxTotal.Add(item.TaxAmount)
-		if err != nil {
-			return Money{}, err
-		}
-	}
-	return taxTotal, nil
+	return SumAmounts(amounts)
 }

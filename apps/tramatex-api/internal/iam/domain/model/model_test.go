@@ -3,6 +3,8 @@ package model
 import (
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestEmailValidation(t *testing.T) {
@@ -92,20 +94,21 @@ func TestUserLifecycle(t *testing.T) {
 	email, _ := NewEmail("user@example.com")
 	password, _ := NewPassword("strongpass")
 
-	if _, err := NewUser("", email, password, RoleAdmin); err == nil {
+	anyID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	if _, err := NewUser(uuid.Nil, email, password, RoleAdmin); err == nil {
 		t.Fatalf("expected error for empty id")
 	}
-	if _, err := NewUser("id", nil, password, RoleAdmin); err == nil {
+	if _, err := NewUser(anyID, nil, password, RoleAdmin); err == nil {
 		t.Fatalf("expected error for nil email")
 	}
-	if _, err := NewUser("id", email, nil, RoleAdmin); err == nil {
+	if _, err := NewUser(anyID, email, nil, RoleAdmin); err == nil {
 		t.Fatalf("expected error for nil password")
 	}
-	if _, err := NewUser("id", email, password, Role("invalid")); err == nil {
+	if _, err := NewUser(anyID, email, password, Role("invalid")); err == nil {
 		t.Fatalf("expected error for invalid role")
 	}
 
-	user, err := NewUser("id", email, password, RoleCommercial)
+	user, err := NewUser(anyID, email, password, RoleCommercial)
 	if err != nil {
 		t.Fatalf("expected user creation success, got error: %v", err)
 	}

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 )
 
@@ -12,7 +13,7 @@ import (
 type Repository interface {
 	// ByID retrieves a user by their unique identifier.
 	// Returns ErrUserNotFound if user does not exist.
-	ByID(ctx context.Context, id string) (*model.User, error)
+	ByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 
 	// ByEmail retrieves a user by their email address.
 	// Returns ErrUserNotFound if user does not exist.
@@ -24,7 +25,7 @@ type Repository interface {
 
 	// Delete removes a user from storage.
 	// Should be soft delete (mark as inactive) in production.
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 
 	// List retrieves all users.
 	List(ctx context.Context) ([]*model.User, error)

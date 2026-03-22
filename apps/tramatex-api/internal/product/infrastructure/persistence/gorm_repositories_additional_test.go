@@ -86,7 +86,7 @@ func TestGORMAttributeRepository_Save_UpdateValues(t *testing.T) {
 	ctxUpdate := context.WithValue(context.Background(), "actorID", "actor-2")
 	repo := NewGORMAttributeRepository(tdb.DB)
 
-	attr, _ := domain.NewAttribute("Color", "C", 1)
+	attr, _ := domain.NewAttribute("Color", "C")
 	valRed, _ := attr.AddValue("Red", "R")
 	assert.NoError(t, repo.Save(ctxCreate, attr))
 

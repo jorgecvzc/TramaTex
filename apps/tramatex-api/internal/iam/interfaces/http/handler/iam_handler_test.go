@@ -11,25 +11,28 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/application/usecase"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/logging"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 )
 
+const testUserIDStr = "00000000-0000-0000-0000-000000000001"
+
 func init() {
 	logging.InitLogger("test")
 }
 
 type fakeUserRepo struct {
-	byIDFunc    func(ctx context.Context, id string) (*model.User, error)
+	byIDFunc    func(ctx context.Context, id uuid.UUID) (*model.User, error)
 	byEmailFunc func(ctx context.Context, email *model.Email) (*model.User, error)
 	saveFunc    func(ctx context.Context, user *model.User) error
-	deleteFunc  func(ctx context.Context, id string) error
+	deleteFunc  func(ctx context.Context, id uuid.UUID) error
 	listFunc    func(ctx context.Context) ([]*model.User, error)
 }
 
-func (f *fakeUserRepo) ByID(ctx context.Context, id string) (*model.User, error) {
+func (f *fakeUserRepo) ByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	if f.byIDFunc != nil {
 		return f.byIDFunc(ctx, id)
 	}
@@ -50,7 +53,7 @@ func (f *fakeUserRepo) Save(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (f *fakeUserRepo) Delete(ctx context.Context, id string) error {
+func (f *fakeUserRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	if f.deleteFunc != nil {
 		return f.deleteFunc(ctx, id)
 	}
@@ -254,11 +257,11 @@ func TestIAMHandler_Refresh(t *testing.T) {
 		t.Fatalf("expected 401, got %d", response.Code)
 	}
 
-	claims, _ := security.NewTokenClaims("user-1", "user@example.com", "admin", time.Now(), time.Now().Add(time.Hour))
+	claims, _ := security.NewTokenClaims(testUserIDStr, "user@example.com", "admin", time.Now(), time.Now().Add(time.Hour))
 	jwt.validateFunc = func(ctx context.Context, token string) (*security.TokenClaims, error) {
 		return claims, nil
 	}
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return newUser(t, "user@example.com", "password123", model.RoleAdmin), nil
 	}
 	response = performRequest(t, h.Refresh, http.MethodPost, "/auth/refresh", usecase.RefreshInput{RefreshToken: "valid"}, nil, nil)
@@ -311,18 +314,18 @@ func TestIAMHandler_AssignRole(t *testing.T) {
 		t.Fatalf("expected 400, got %d", response.Code)
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return nil, model.ErrUserNotFound
 	}
-	response = performRequest(t, h.AssignRole, http.MethodPost, "/auth/assign-role", usecase.AssignRoleInput{UserID: "user", Role: "admin"}, nil, nil)
+	response = performRequest(t, h.AssignRole, http.MethodPost, "/auth/assign-role", usecase.AssignRoleInput{UserID: testUserIDStr, Role: "admin"}, nil, nil)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", response.Code)
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return newUser(t, "user@example.com", "password123", model.RoleCommercial), nil
 	}
-	response = performRequest(t, h.AssignRole, http.MethodPost, "/auth/assign-role", usecase.AssignRoleInput{UserID: "user", Role: "admin"}, nil, nil)
+	response = performRequest(t, h.AssignRole, http.MethodPost, "/auth/assign-role", usecase.AssignRoleInput{UserID: testUserIDStr, Role: "admin"}, nil, nil)
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", response.Code)
 	}
@@ -338,19 +341,19 @@ func TestIAMHandler_CheckAuthorization(t *testing.T) {
 		t.Fatalf("expected 400, got %d", response.Code)
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return nil, model.ErrUserNotFound
 	}
-	response = performRequest(t, h.CheckAuthorization, http.MethodPost, "/auth/authorize", usecase.CheckAuthorizationInput{UserID: "user", RequiredRoles: []string{"admin"}}, nil, nil)
+	response = performRequest(t, h.CheckAuthorization, http.MethodPost, "/auth/authorize", usecase.CheckAuthorizationInput{UserID: testUserIDStr, RequiredRoles: []string{"admin"}}, nil, nil)
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", response.Code)
 	}
 
-	repo.byIDFunc = func(ctx context.Context, id string) (*model.User, error) {
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
 		return newUser(t, "user@example.com", "password123", model.RoleAdmin), nil
 	}
 	response = performRequest(t, h.CheckAuthorization, http.MethodPost, "/auth/authorize", usecase.CheckAuthorizationInput{RequiredRoles: []string{"admin"}}, nil, func(c *gin.Context) {
-		c.Set("userID", "user")
+		c.Set("userID", testUserIDStr)
 	})
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", response.Code)
@@ -369,21 +372,21 @@ func TestIAMHandler_DeleteUser(t *testing.T) {
 		t.Fatalf("expected 400, got %d", response.Code)
 	}
 
-	repo.deleteFunc = func(ctx context.Context, id string) error {
+	repo.deleteFunc = func(ctx context.Context, id uuid.UUID) error {
 		return errors.New("delete failed")
 	}
-	response = performRequest(t, h.DeleteUser, http.MethodDelete, "/auth/users/1", nil, nil, func(c *gin.Context) {
-		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+	response = performRequest(t, h.DeleteUser, http.MethodDelete, "/auth/users/"+testUserIDStr, nil, nil, func(c *gin.Context) {
+		c.Params = []gin.Param{{Key: "id", Value: testUserIDStr}}
 	})
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", response.Code)
 	}
 
-	repo.deleteFunc = func(ctx context.Context, id string) error {
+	repo.deleteFunc = func(ctx context.Context, id uuid.UUID) error {
 		return nil
 	}
-	response = performRequest(t, h.DeleteUser, http.MethodDelete, "/auth/users/1", nil, nil, func(c *gin.Context) {
-		c.Params = []gin.Param{{Key: "id", Value: "1"}}
+	response = performRequest(t, h.DeleteUser, http.MethodDelete, "/auth/users/"+testUserIDStr, nil, nil, func(c *gin.Context) {
+		c.Params = []gin.Param{{Key: "id", Value: testUserIDStr}}
 	})
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", response.Code)

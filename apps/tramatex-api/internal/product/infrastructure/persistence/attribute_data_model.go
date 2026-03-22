@@ -11,11 +11,10 @@ import (
 // Note: Scope fields removed for MVP simplicity.
 type AttributeDataModel struct {
 	gorm.Model
-	ID        uuid.UUID                 `gorm:"type:uuid;primary_key;"`
-	Name      string                    `gorm:"not null"`
-	Code      string                    `gorm:"uniqueIndex;not null"`
-	SortOrder int                       `gorm:"not null;default:0"`
-	Values    []AttributeValueDataModel `gorm:"foreignKey:AttributeID"`
+	ID     uuid.UUID                 `gorm:"type:uuid;primary_key;"`
+	Name   string                    `gorm:"not null"`
+	Code   string                    `gorm:"uniqueIndex;not null"`
+	Values []AttributeValueDataModel `gorm:"foreignKey:AttributeID"`
 }
 
 func (AttributeDataModel) TableName() string {
@@ -46,11 +45,10 @@ func (a *AttributeDataModel) ToDomain() *domain.Attribute {
 	}
 
 	return &domain.Attribute{
-		ID:        a.ID,
-		Name:      a.Name,
-		Code:      a.Code,
-		SortOrder: a.SortOrder,
-		Values:    values,
+		ID:     a.ID,
+		Name:   a.Name,
+		Code:   a.Code,
+		Values: values,
 	}
 }
 
@@ -84,11 +82,10 @@ func AttributeFromDomain(a *domain.Attribute) *AttributeDataModel {
 	}
 
 	return &AttributeDataModel{
-		ID:        a.ID,
-		Name:      a.Name,
-		Code:      a.Code,
-		SortOrder: a.SortOrder,
-		Values:    values,
+		ID:     a.ID,
+		Name:   a.Name,
+		Code:   a.Code,
+		Values: values,
 	}
 }
 

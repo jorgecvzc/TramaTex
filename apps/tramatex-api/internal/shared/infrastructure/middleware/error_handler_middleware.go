@@ -1,48 +1,59 @@
 package middleware
 
 import (
+	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	sharedomain "github.com/joran-cortez/tramatex/internal/shared/domain"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/logging"
 )
 
 // ErrorHandlerMiddleware sanitizes error responses based on environment.
 // Production: Generic error messages (avoid leaking implementation details)
 // Development: Detailed error messages (for debugging)
+//
+// Domain errors implementing shared/domain.HTTPStatuser automatically determine
+// the HTTP status code. Untyped errors fall back to 500.
 func ErrorHandlerMiddleware(environment string) gin.HandlerFunc {
 	isProduction := environment == "production"
 
 	return func(c *gin.Context) {
 		c.Next()
 
-		// Check if there are errors after processing the request
-		if len(c.Errors) > 0 {
-			err := c.Errors.Last()
+		if len(c.Errors) == 0 {
+			return
+		}
 
-			// Get request ID for correlation
-			requestID, _ := c.Get("requestID")
-			reqID, _ := requestID.(string)
+		ginErr := c.Errors.Last()
 
-			// Log the actual error with full details
-			logging.WithRequestID(reqID).WithFields(map[string]interface{}{
-				"path":   c.Request.URL.Path,
-				"method": c.Request.Method,
-				"error":  err.Error(),
-			}).Error("Request processing error")
+		// Get request ID for log correlation
+		requestID, _ := c.Get("requestID")
+		reqID, _ := requestID.(string)
 
-			// Return sanitized error to client
-			if isProduction {
-				// Generic error in production
-				c.JSON(c.Writer.Status(), gin.H{
-					"error":      "An error occurred while processing your request",
-					"request_id": reqID,
-				})
-			} else {
-				// Detailed error in development
-				c.JSON(c.Writer.Status(), gin.H{
-					"error":      err.Error(),
-					"request_id": reqID,
-				})
-			}
+		logging.WithRequestID(reqID).WithFields(map[string]interface{}{
+			"path":   c.Request.URL.Path,
+			"method": c.Request.Method,
+			"error":  ginErr.Error(),
+		}).Error("Request processing error")
+
+		// Determine HTTP status from the error type when available
+		status := http.StatusInternalServerError
+		var statuser sharedomain.HTTPStatuser
+		if errors.As(ginErr.Err, &statuser) {
+			status = statuser.HTTPStatus()
+		}
+
+		if isProduction {
+			c.JSON(status, gin.H{
+				"error":      "An error occurred while processing your request",
+				"request_id": reqID,
+			})
+		} else {
+			c.JSON(status, gin.H{
+				"error":      ginErr.Error(),
+				"request_id": reqID,
+			})
 		}
 	}
 }

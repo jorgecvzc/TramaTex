@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/product/application"
 	"github.com/joran-cortez/tramatex/internal/product/domain"
+	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -317,6 +318,7 @@ func registerProductRoutes(router *gin.Engine, handler *ProductHandler) {
 
 func newTestRouter(handler *ProductHandler) *gin.Engine {
 	router := gin.New()
+	router.Use(infra_middleware.ErrorHandlerMiddleware("development"))
 	router.Use(func(c *gin.Context) {
 		ctx := context.WithValue(c.Request.Context(), "actorID", "test-actor")
 		c.Request = c.Request.WithContext(ctx)
@@ -565,7 +567,7 @@ func TestProductHandler_AddDirectAttributeToProduct_Success(t *testing.T) {
 	productID := uuid.New()
 	attributeID := uuid.New()
 	product := &domain.Product{ID: productID, SKU: "P-1", Name: "Product", BrandID: uuid.New(), IsActive: true}
-	attribute, _ := domain.NewAttribute("Color", "C", 0)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	attribute.ID = attributeID
 	service := application.NewProductService(
 		&stubProductRepo{findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.Product, error) {
@@ -665,7 +667,6 @@ func TestProductHandler_CreateAttribute_Success(t *testing.T) {
 	body := map[string]interface{}{
 		"Name":      "Color",
 		"Code":      "C",
-		"SortOrder": 1,
 		"Values": []map[string]string{
 			{"Value": "Red", "Code": "R"},
 		},
@@ -685,7 +686,7 @@ func TestProductHandler_CreateAttribute_MissingActorID(t *testing.T) {
 	handler := NewProductHandler(nil)
 	router := newTestRouterWithoutActor(handler)
 
-	data, _ := json.Marshal(map[string]interface{}{"Name": "Color", "Code": "C", "SortOrder": 1})
+	data, _ := json.Marshal(map[string]interface{}{"Name": "Color", "Code": "C"})
 	req := httptest.NewRequest(http.MethodPost, "/attributes", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -697,7 +698,7 @@ func TestProductHandler_CreateAttribute_MissingActorID(t *testing.T) {
 
 func TestProductHandler_UpdateAttribute_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	attribute, _ := domain.NewAttribute("Color", "C", 0)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	service := application.NewProductService(
 		&stubProductRepo{},
 		&stubBrandRepo{},
@@ -736,7 +737,7 @@ func TestProductHandler_UpdateAttribute_MissingActorID(t *testing.T) {
 
 func TestProductHandler_GetAttributeByID_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	attribute, _ := domain.NewAttribute("Color", "C", 0)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	service := application.NewProductService(
 		&stubProductRepo{},
 		&stubBrandRepo{},
@@ -760,7 +761,7 @@ func TestProductHandler_GetAttributeByID_Success(t *testing.T) {
 
 func TestProductHandler_ListAttributes_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	attribute, _ := domain.NewAttribute("Color", "C", 0)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	service := application.NewProductService(
 		&stubProductRepo{},
 		&stubBrandRepo{},
@@ -809,7 +810,7 @@ func TestProductHandler_GetProductByID_Success(t *testing.T) {
 func TestProductHandler_VariantEndpoints_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	productID := uuid.New()
-	attribute, _ := domain.NewAttribute("Color", "C", 0)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	value, _ := attribute.AddValue("Red", "R")
 	variant := &domain.ProductVariant{ID: uuid.New(), ProductID: productID, SKU: "P-1-C.R", AttributeValues: []uuid.UUID{value.ID}, Status: domain.StatusConfirmed, IsActive: true}
 	service := application.NewProductService(
@@ -1102,7 +1103,7 @@ func TestProductHandler_GetCalculatedOptionSetsForProduct_Success(t *testing.T) 
 	productID := uuid.New()
 	brandID := uuid.New()
 	groupID := uuid.New()
-	attribute, _ := domain.NewAttribute("Color", "C", 1)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	product := &domain.Product{
 		ID:                 productID,
 		SKU:                "P-1",
@@ -1154,7 +1155,7 @@ func TestProductHandler_GenerateProductVariants_Success(t *testing.T) {
 	productID := uuid.New()
 	brandID := uuid.New()
 	groupID := uuid.New()
-	attribute, _ := domain.NewAttribute("Color", "C", 1)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	product := &domain.Product{
 		ID:                 productID,
 		SKU:                "P-1",
@@ -1206,7 +1207,7 @@ func TestProductHandler_FindOrCreateProductVariant_Success(t *testing.T) {
 	productID := uuid.New()
 	brandID := uuid.New()
 	groupID := uuid.New()
-	attribute, _ := domain.NewAttribute("Color", "C", 1)
+	attribute, _ := domain.NewAttribute("Color", "C")
 	value, _ := attribute.AddValue("Red", "R")
 	product := &domain.Product{
 		ID:                 productID,
@@ -1476,7 +1477,6 @@ func TestProductHandler_CreateAttribute_ServiceError(t *testing.T) {
 	body := map[string]interface{}{
 		"Name":      "Color",
 		"Code":      "C",
-		"SortOrder": 1,
 	}
 	data, _ := json.Marshal(body)
 	req := httptest.NewRequest(http.MethodPost, "/attributes", bytes.NewBuffer(data))

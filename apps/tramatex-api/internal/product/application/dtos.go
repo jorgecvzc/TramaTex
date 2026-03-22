@@ -60,11 +60,10 @@ type AttributeValueDTO struct {
 // AttributeDTO represents the data transfer object for an Attribute (ProductOptionSet in API).
 // Note: Scope fields removed for MVP simplicity.
 type AttributeDTO struct {
-	ID        uuid.UUID           `json:"id"`
-	Name      string              `json:"name"`
-	Code      string              `json:"code"` // Changed from AttributeName for consistency
-	SortOrder int                 `json:"sortOrder"`
-	Values    []AttributeValueDTO `json:"values"` // Full value objects with ID, value, and code
+	ID     uuid.UUID           `json:"id"`
+	Name   string              `json:"name"`
+	Code   string              `json:"code"`
+	Values []AttributeValueDTO `json:"values"`
 }
 
 // NewAttributeDTOFromDomain creates an AttributeDTO from a domain.Attribute entity.
@@ -82,11 +81,10 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 	}
 
 	return &AttributeDTO{
-		ID:        a.ID,
-		Name:      a.Name,
-		Code:      a.Code,
-		SortOrder: a.SortOrder,
-		Values:    values,
+		ID:     a.ID,
+		Name:   a.Name,
+		Code:   a.Code,
+		Values: values,
 	}
 }
 
@@ -129,13 +127,15 @@ func NewProductVariantDTOFromDomain(v *domain.ProductVariant, product *domain.Pr
 
 				// Find the parent attribute for this attribute value
 				for _, attr := range allAttributes {
+					foundParent := false
 					for _, value := range attr.Values {
 						if value.ID == avID {
 							optionConfig[attr.Name] = av.Value // Using Attribute Name as key
+							foundParent = true
 							break
 						}
 					}
-					if _, exists := optionConfig[attr.Name]; exists {
+					if foundParent {
 						break
 					}
 				}

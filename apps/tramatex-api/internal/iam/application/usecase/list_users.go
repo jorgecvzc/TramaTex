@@ -27,7 +27,7 @@ func (uc *ListUsersUseCase) Execute(ctx context.Context) ([]UserDTO, error) {
 	result := make([]UserDTO, 0, len(users))
 	for _, u := range users {
 		result = append(result, UserDTO{
-			ID:    u.ID(),
+			ID:    u.ID().String(),
 			Email: u.Email().Value(),
 			Role:  string(u.Role()),
 		})

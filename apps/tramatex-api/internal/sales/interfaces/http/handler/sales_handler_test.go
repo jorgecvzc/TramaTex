@@ -16,6 +16,7 @@ import (
 	pricing_app "github.com/joran-cortez/tramatex/internal/pricing/application"
 	"github.com/joran-cortez/tramatex/internal/sales/application"
 	"github.com/joran-cortez/tramatex/internal/sales/domain"
+	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 )
 
 // ===== STUB REPOSITORIES =====
@@ -268,7 +269,9 @@ func (s *stubPartyLookup) HasPartyRole(ctx context.Context, id uuid.UUID, role s
 
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	return gin.New()
+	r := gin.New()
+	r.Use(infra_middleware.ErrorHandlerMiddleware("development"))
+	return r
 }
 
 // ===== TESTS: QUOTE HANDLERS =====

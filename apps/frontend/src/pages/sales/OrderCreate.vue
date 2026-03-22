@@ -477,6 +477,7 @@ function handleVariantSelected(payload) {
   }
   showVariantSelector.value = false;
   editingLineIndex.value = null;
+  calculateTotals();
 }
 
 async function inlineSmartSearch(index) {
@@ -670,10 +671,6 @@ async function handleSubmit() {
       deliveryDate: salesApi.formatDateForAPI(new Date(formData.value.deliveryDate)),
       items: lineItems,
     };
-
-    if (formData.value.sourceQuoteId) {
-      orderData.quoteId = formData.value.sourceQuoteId
-    }
 
     if (formData.value.mesWorkRefs.length > 0) {
       orderData.mesWorkRefs = formData.value.mesWorkRefs;

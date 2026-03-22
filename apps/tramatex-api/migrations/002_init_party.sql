@@ -1,8 +1,8 @@
 -- ============================================================================
--- Migration: v2_002_init_party.sql
--- Description: Initialize Party module
--- Date: 2026-02-25
--- Modules: Parties, Person/Organization Profiles, Roles, Relationships, Contact Details, Addresses
+-- Migration: 002_init_party.sql
+-- Description: Initialize Party module (consolidated)
+-- Absorbs: 002, 007 (phone/email + notes), 008 (discount), 012 (CONSUMIDOR FINAL seed), 016 (role fix)
+-- Date: 2026-03-21
 -- ============================================================================
 
 BEGIN;
@@ -13,6 +13,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS parties (
     id VARCHAR(36) PRIMARY KEY,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    default_discount_percentage NUMERIC(5,2) NOT NULL DEFAULT 0,
     created_by UUID NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_by UUID NOT NULL,
@@ -26,6 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_parties_status ON parties(status);
 
 COMMENT ON TABLE parties IS 'Parties aggregate root - represents any entity (person or organization)';
 COMMENT ON COLUMN parties.status IS 'Party status: ACTIVE, INACTIVE';
+COMMENT ON COLUMN parties.default_discount_percentage IS 'Default discount percentage applied when this party acts as a client (0-100)';
 
 -- ============================================================================
 -- PERSON PROFILE (Optional, 1:1 with party)
@@ -34,11 +36,15 @@ CREATE TABLE IF NOT EXISTS person_profiles (
     party_id VARCHAR(36) PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30),
+    email VARCHAR(255),
     
     CONSTRAINT fk_person_profiles_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE CASCADE
 );
 
 COMMENT ON TABLE person_profiles IS 'Person-specific profile data (1:1 with party)';
+COMMENT ON COLUMN person_profiles.phone IS 'Contact phone number for person';
+COMMENT ON COLUMN person_profiles.email IS 'Contact email address for person';
 
 -- ============================================================================
 -- ORGANIZATION PROFILE (Optional, 1:1 with party)
@@ -49,6 +55,9 @@ CREATE TABLE IF NOT EXISTS organization_profiles (
     tax_id VARCHAR(50),
     tax_id_type VARCHAR(20),
     website VARCHAR(255),
+    phone VARCHAR(30),
+    email VARCHAR(255),
+    notes TEXT,
     
     CONSTRAINT fk_organization_profiles_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE CASCADE
 );
@@ -56,6 +65,8 @@ CREATE TABLE IF NOT EXISTS organization_profiles (
 CREATE INDEX IF NOT EXISTS idx_organization_profiles_tax_id ON organization_profiles(tax_id);
 
 COMMENT ON TABLE organization_profiles IS 'Organization-specific profile data (1:1 with party)';
+COMMENT ON COLUMN organization_profiles.phone IS 'Primary contact phone number for organization';
+COMMENT ON COLUMN organization_profiles.email IS 'Primary contact email address for organization';
 
 -- ============================================================================
 -- PARTY ROLES (Many per party)
@@ -167,8 +178,24 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 COMMENT ON TABLE party_service_configurations IS 'Service-specific configurations for parties';
 
+-- ============================================================================
+-- SEED DATA: CONSUMIDOR FINAL (for simplified invoices/tickets)
+-- UUID: 00000000-0000-0000-0000-000000000001
+-- ============================================================================
+INSERT INTO parties (id, status, created_by, modified_by, default_discount_percentage)
+VALUES ('00000000-0000-0000-0000-000000000001', 'ACTIVE', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 0)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO organization_profiles (party_id, name, tax_id, tax_id_type)
+VALUES ('00000000-0000-0000-0000-000000000001', 'CONSUMIDOR FINAL', NULL, NULL)
+ON CONFLICT (party_id) DO NOTHING;
+
+INSERT INTO party_roles (party_id, role)
+VALUES ('00000000-0000-0000-0000-000000000001', 'CLIENT')
+ON CONFLICT (party_id, role) DO NOTHING;
+
 COMMIT;
 
 -- ============================================================================
--- END OF MIGRATION: v2_002_init_party.sql
+-- END OF MIGRATION: 002_init_party.sql
 -- ============================================================================
