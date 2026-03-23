@@ -33,9 +33,9 @@ jobs:
             # Write environment file
             echo "${{ secrets.ENV_PROD }}" > docker/.env
 
-            # Build and restart services
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
+            # Build and restart services (--no-cache evita bundles viejos en capas cacheadas)
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build --no-cache
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d --force-recreate
 
             # Wait for API health
             echo "Waiting for API health check..."

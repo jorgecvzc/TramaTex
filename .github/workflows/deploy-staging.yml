@@ -1,13 +1,15 @@
 # TramaTex - CI for Staging branch
 # Triggered on push/merge to staging branch
 # NOTE: Staging deploys to pcele (192.168.0.20, LAN) — not reachable from GitHub Actions.
-# Actual deployment is manual: make deploy ENV=staging (from local machine with LAN access)
-# This workflow only validates that the code builds correctly.
+# Actual deployment is manual via SSH desde la máquina local con acceso LAN.
+# Este workflow solo valida que el código compila y los tests pasan.
 
 name: Staging CI
 
 on:
   push:
+    branches: [staging, develop]
+  pull_request:
     branches: [staging]
 
 jobs:
