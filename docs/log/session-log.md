@@ -88,56 +88,77 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 ## Despliegue en Producción (DigitalOcean)
 
-
-
-## Despliegue en Producción (DigitalOcean)
-
 - **Session ID:** `infra-production-digitalocean-2026-03-23`
-- **Status:** En Progreso
+- **Status:** En Progreso (reanudar mañana)
 - **Sprint:** N/A
 - **Started:** 2026-03-23
-- **Rama:** `infra/production-digitalocean` → Merge a `develop` al finalizar
+- **Rama:** `infra/production-digitalocean` → Mergeada a `develop` y `master`
 
 ### Contexto
 
-Completar la estrategia de despliegue multientorno configurando el despliegue automático en producción (DigitalOcean). El workflow `deploy-production.yml` en GitHub Actions ya está preparado: se activa en push a `master` y despliega vía SSH. Solo falta aprovisionar la infraestructura y configurar los secrets.
+Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Actions. El workflow `deploy-production.yml` se activa en push a `master` → SSH al Droplet → `docker compose build --no-cache && up --force-recreate`.
 
-### Estado del CI/CD (evaluado 2026-03-23)
+### Infraestructura aprovisionada (2026-03-23)
+
+| Componente | Estado | Detalle |
+|---|---|---|
+| Droplet DigitalOcean | ✅ Creado | IP: `46.101.188.130`, Ubuntu 24.04 |
+| Docker CE | ✅ Instalado | v29.3.0, `docker compose` v5.1.1 |
+| Usuario `tramatex` | ✅ Creado | Grupo `docker`, SSH configurado |
+| Repo clonado | ✅ OK | `/opt/tramatex`, rama `master` @ `20dabf7` |
+| SSH Key (sin passphrase) | ✅ OK | `tmp/do-setup/deploy_final` + `.pub` |
+| 4 GitHub Secrets | ✅ OK | `PROD_IP`, `SSH_USER`, `SSH_PRIVATE_KEY`, `ENV_PROD` |
+
+### Estado del CI/CD
 
 | Workflow | Estado | Notas |
 |---|---|---|
 | `backend.yml` | ✅ Corregido | `main` → `develop`, Go 1.21 → 1.23 |
 | `frontend.yml` | ✅ Corregido | `main` → `develop` |
-| `deploy-staging.yml` | ✅ OK | CI en `staging` + `develop`, deploy manual (pcele en LAN) |
-| `deploy-production.yml` | ✅ Corregido | Añadido `--no-cache` + `--force-recreate` |
+| `deploy-staging.yml` | ✅ OK | CI en `staging` + `develop` |
+| `deploy-production.yml` | ✅ Corregido | `--no-cache`, `--force-recreate`, `command_timeout: 30m` |
 
-El deploy automático a producción se activa con un `push` o `merge` a `master`. El flujo es:
-```
-develop → (PR) → staging → (PR) → master → GitHub Actions → DigitalOcean SSH deploy
-```
+### Bugs resueltos hoy en el Droplet
 
-### Próximos Pasos
+| Error | Causa | Fix |
+|---|---|---|
+| `apt-get upgrade` cuelga interactivo | Sin `DEBIAN_FRONTEND=noninteractive` | Añadido + `--force-confdef --force-confold` en `bootstrap-droplet.sh` |
+| `docker.io` no encontrado | No está en repos Ubuntu | Instalado desde repo oficial Docker CE |
+| `chown: invalid user tramatex` | Usuario no existía | `useradd -m -s /bin/bash tramatex` manual |
+| `mkdir /home/tramatex/.docker: permission denied` | `/home/tramatex` era `root:root` | **PENDIENTE**: `chown tramatex:tramatex /home/tramatex` en consola web |
+| `Could not resolve host: github.com` | systemd-resolved recién instalado | DNS OK tras estabilizarse (verificado con `nslookup`) |
+| `Run Command Timeout` | Build Go+npm supera 30s default | Aumentado `command_timeout: 30m` en workflow |
 
-- [ ] Crear Droplet en DigitalOcean (Ubuntu 24.04, mín. 1 GB RAM).
-- [ ] Instalar Docker en el Droplet (`apt install docker.io docker-compose-plugin`).
-- [ ] Clonar el repo en `/opt/tramatex` en el Droplet.
-- [ ] Configurar GitHub Secrets en el repositorio:
-  - `PROD_IP` — IP pública del Droplet
-  - `SSH_USER` — usuario SSH (ej. `root` o `tramatex`)
-  - `SSH_PRIVATE_KEY` — clave SSH privada (sin passphrase)
-  - `ENV_PROD` — contenido del fichero `.env` de producción
-- [ ] Configurar DNS del dominio apuntando al Droplet.
-- [ ] Primer deploy manual para verificar (luego automático vía GitHub Actions).
-- [ ] Configurar SSL con Let's Encrypt (`certbot`) y activar `nginx-ssl.conf`.
-- [ ] Verificar flujo completo en producción (login, Party, Products, Sales).
+### Próximos Pasos (para mañana)
+
+- [ ] **URGENTE**: En consola web DO → ejecutar `chown tramatex:tramatex /home/tramatex`
+- [ ] Relanzar workflow desde GitHub Actions → "Re-run all jobs"
+- [ ] Verificar que el deploy completa sin errores (esperar ~8-10 min)
+- [ ] Probar en navegador: `http://46.101.188.130` → pantalla de login
+- [ ] Verificar API: `curl http://46.101.188.130/api/health`
+- [ ] Configurar DNS del dominio apuntando a `46.101.188.130`
+- [ ] Instalar certbot + SSL: `certbot --nginx -d tudominio.com`
+- [ ] Activar `nginx-ssl.conf` (descomentar volumes SSL en `docker-compose.remote.yml`)
+- [ ] Merge `develop` → `staging` para sincronizar
+
+### Claves SSH (en `tmp/do-setup/`, en .gitignore)
+
+- `deploy_final` — clave privada para GitHub Secret `SSH_PRIVATE_KEY`
+- `deploy_final.pub` — clave pública (ya en `/home/tramatex/.ssh/authorized_keys` del Droplet)
+- Clave pública: `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBeWnhbHBUsNJFRioqoh/d+5cUpztmViGEhDiwWuuiOE github-actions-tramatex`
+
+### Commits relevantes
+
+- `20dabf7` — fix(nginx-ssl): aplicar mismo fix resolver DNS y no-cache index.html que nginx.conf
+- `17e4374` — fix(ci): aumentar timeout ssh-action a 30m para builds en Droplet
 
 ### Archivos de Contexto
 
 - `.github/workflows/deploy-production.yml`
 - `docker/docker-compose.remote.yml`
 - `docker/nginx-ssl.conf`
-- `docker/.env.production.example`
-- `docs/guides/developer/deployment-guide.md`
+- `tmp/do-setup/env-prod.txt` (valores .env producción)
+- `tmp/do-setup/deploy_final` (clave privada SSH)
 
 ---
 
