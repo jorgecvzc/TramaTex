@@ -67,11 +67,15 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 - `postgres` container tenía `restart: no` → no arrancaba tras reinicio del sistema. Fix: `docker update --restart unless-stopped` + `docker-compose.remote.yml` actualizado.
 - Nginx cacheaba la IP de `api` al arrancar → 502 cuando API se reiniciaba. Fix: directiva `resolver 127.0.0.11 valid=10s` + `set $api_backend` en `nginx.conf`.
 
-### Commits
+### Commits relevantes
 
 - `a557f41` — feat: infraestructura de despliegue multientorno (Dockerfile, Nginx, GitHub Actions, Makefile)
 - `4c04b65` — chore: eliminar archivos de tracking que están en .gitignore
-- *(pendiente)* — feat: completar sistema de despliegue (env examples, SSL, scripts, docs)
+- `daf0331` — feat: completar sistema de despliegue (env examples, SSL, scripts, docs)
+- `80702e2` — fix: usar 127.0.0.1 en healthcheck de Dockerfiles (IPv6 en Alpine)
+- `485b8b5` — fix(infra): añadir restart unless-stopped a postgres en docker-compose.remote.yml
+- `249138c` — fix(infra): usar resolver DNS dinámico en Nginx para evitar 502 al reiniciar API
+- `f215450` — merge: infra/pcele-staging-deploy → develop
 
 ---
 

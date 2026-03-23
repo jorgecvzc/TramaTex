@@ -109,7 +109,40 @@ hotfix/database-migration-error
 
 ---
 
-### 4. `release/*` - Preparación de Releases
+### 4. `infra/*` - Infraestructura y DevOps
+
+**Propósito:** Cambios de infraestructura, CI/CD, Docker, Nginx, scripts de despliegue.
+
+**Formato:**
+```
+infra/<entorno-o-componente>-<descripcion>
+infra/<descripcion-general>
+```
+
+**Ejemplos:**
+```bash
+infra/multi-env-deployment
+infra/production-digitalocean
+infra/staging-ci-pipeline
+infra/nginx-ssl-config
+infra/docker-compose-refactor
+```
+
+**Cuándo usar:**
+- ✅ Configuración de Docker / docker-compose
+- ✅ Workflows de GitHub Actions
+- ✅ Scripts de despliegue
+- ✅ Configuración de Nginx / servidores
+- ✅ Cambios en Makefile / scripts de entorno
+
+**Naming rules:**
+- Usar nombres de **entornos genéricos** (`staging`, `production`, `local`), no nombres de máquinas reales
+- `infra/production-digitalocean` ✅ → proveedor genérico
+- `infra/staging-setup` ✅ → entorno genérico
+
+---
+
+### 5. `release/*` - Preparación de Releases
 
 **Propósito:** Preparar una nueva versión para producción (bump version, changelog, últimos ajustes).
 
@@ -140,7 +173,7 @@ release/v1.0.1
 
 ---
 
-### 5. `docs/*` - Solo Documentación (Opcional)
+### 6. `docs/*` - Solo Documentación (Opcional)
 
 **Propósito:** Cambios exclusivos de documentación sin código funcional.
 
@@ -167,7 +200,7 @@ docs/readme-improvement
 
 ---
 
-### 6. `refactor/*` - Refactorizaciones Sin Cambio Funcional (Opcional)
+### 7. `refactor/*` - Refactorizaciones Sin Cambio Funcional (Opcional)
 
 **Propósito:** Mejoras de código sin cambiar funcionalidad externa.
 
@@ -194,7 +227,7 @@ refactor/party-repository-optimization
 
 ---
 
-### 7. `test/*` - Mejoras de Testing (Opcional)
+### 8. `test/*` - Mejoras de Testing (Opcional)
 
 **Propósito:** Añadir o mejorar tests sin cambiar código funcional.
 
@@ -312,9 +345,9 @@ feature/wip                # Work in progress no es descriptivo
 
 ### ❌ Nombres con Datos Reales
 ```bash
-feature/pcele-deployment   # pcele es máquina real
-bugfix/jorge-issue         # nombre de persona
+feature/jorge-new-ui       # nombre de persona
 feature/client-acme-fix    # nombre de cliente real
+infra/pcele-deployment     # nombre de máquina real (usar entorno genérico: infra/staging-setup)
 ```
 
 ### ❌ Formato Incorrecto
@@ -373,6 +406,7 @@ hotfix/* → master (directo) + develop (back-merge)
 | `feature/*` | develop | develop | develop | `feature/ui-logic-validation` |
 | `bugfix/*` | develop | develop | develop | `bugfix/sales-form-validation` |
 | `hotfix/*` | **master** | master | master + develop | `hotfix/security-critical` |
+| `infra/*` | develop | develop | develop | `infra/production-digitalocean` |
 | `release/*` | develop | master | master + develop | `release/v1.1.0` |
 | `docs/*` | develop | develop | develop | `docs/adr-testing-strategy` |
 | `refactor/*` | develop | develop | develop | `refactor/pricing-simplify` |
@@ -390,5 +424,5 @@ hotfix/* → master (directo) + develop (back-merge)
 
 ---
 
-**Última Actualización:** 2026-02-22  
+**Última Actualización:** 2026-03-23  
 **Autor:** Equipo TramaTex
