@@ -30,7 +30,7 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 - **Status:** En Progreso
 - **Sprint:** N/A
 - **Started:** 2026-03-10
-- **Rama:** `infra/multi-env-deployment` → Merge a `develop` al finalizar
+- **Rama:** `infra/pcele-staging-deploy` → Merge a `develop` al finalizar
 
 ### Contexto
 
@@ -56,11 +56,16 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 ### Próximos Pasos
 
-- [ ] Verificar build Docker local (bloqueado temporalmente por conectividad Docker Hub).
-- [ ] Crear rama `staging` desde `develop` (después de merge).
-- [ ] Primer despliegue en pcele (requiere configurar Docker + SSH).
+- [x] Verificar build Docker local (bloqueado temporalmente por conectividad Docker Hub).
+- [x] Crear rama `staging` desde `develop` (después de merge).
+- [x] Primer despliegue en pcele (requiere configurar Docker + SSH). ✅ 2026-03-23
 - [ ] Crear Droplet en DigitalOcean y configurar GitHub Secrets.
 - [ ] Configurar DNS + SSL/Let's Encrypt en producción.
+
+### Bugs Corregidos en pcele (2026-03-23)
+
+- `postgres` container tenía `restart: no` → no arrancaba tras reinicio del sistema. Fix: `docker update --restart unless-stopped` + `docker-compose.remote.yml` actualizado.
+- Nginx cacheaba la IP de `api` al arrancar → 502 cuando API se reiniciaba. Fix: directiva `resolver 127.0.0.11 valid=10s` + `set $api_backend` en `nginx.conf`.
 
 ### Commits
 
