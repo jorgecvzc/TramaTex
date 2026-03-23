@@ -99,3 +99,6 @@ temp/
 # Special files (Windows)
 NUL
 nul
+
+# SSH keys — DigitalOcean deploy
+tmp/do-setup/
