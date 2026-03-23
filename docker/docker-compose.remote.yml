@@ -13,6 +13,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data_remote:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
