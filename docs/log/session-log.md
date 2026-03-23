@@ -66,6 +66,10 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 - `postgres` container tenía `restart: no` → no arrancaba tras reinicio del sistema. Fix: `docker update --restart unless-stopped` + `docker-compose.remote.yml` actualizado.
 - Nginx cacheaba la IP de `api` al arrancar → 502 cuando API se reiniciaba. Fix: directiva `resolver 127.0.0.11 valid=10s` + `set $api_backend` en `nginx.conf`.
+- `crypto.randomUUID()` no disponible en contextos HTTP (pcele sin HTTPS) → error al crear Party. Fix: eliminado `crypto.randomUUID`, reemplazado por generador UUID v4 propio con `Math.random()` en `partyApi.ts` y `PartyForm.vue`.
+- Docker build usaba capas cacheadas → bundle JS viejo desplegado aunque el source cambiara. Fix: rebuild con `--no-cache` + recrear contenedor con `docker compose up --force-recreate` (no `docker restart`).
+- Contenedor `tramatex_db` creado por docker-compose v1 (nombre con prefijo hash) → al recrear frontend con compose v2, la DB se paraba. Fix: migrar DB a docker compose v2 (`docker rm` + `docker compose up --no-deps postgres`).
+- `index.html` sin headers de caché → el navegador servía el bundle antiguo. Fix: añadido bloque `location = /index.html` con `Cache-Control: no-cache, no-store, must-revalidate` en `nginx.conf`.
 
 ### Commits relevantes
 
@@ -76,10 +80,66 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 - `485b8b5` — fix(infra): añadir restart unless-stopped a postgres en docker-compose.remote.yml
 - `249138c` — fix(infra): usar resolver DNS dinámico en Nginx para evitar 502 al reiniciar API
 - `f215450` — merge: infra/pcele-staging-deploy → develop
+- `48a0957` — fix(party): eliminar crypto.randomUUID, usar generador UUID propio
+- `dc0ad29` — fix(nginx): no-cache para index.html, evita que el navegador sirva bundle antiguo
+- `865cf0e` — ci: corregir workflows — usar develop, --no-cache y --force-recreate en deploy-production *(rama: infra/production-digitalocean)*
 
 ---
 
+## Despliegue en Producción (DigitalOcean)
 
+
+
+## Despliegue en Producción (DigitalOcean)
+
+- **Session ID:** `infra-production-digitalocean-2026-03-23`
+- **Status:** En Progreso
+- **Sprint:** N/A
+- **Started:** 2026-03-23
+- **Rama:** `infra/production-digitalocean` → Merge a `develop` al finalizar
+
+### Contexto
+
+Completar la estrategia de despliegue multientorno configurando el despliegue automático en producción (DigitalOcean). El workflow `deploy-production.yml` en GitHub Actions ya está preparado: se activa en push a `master` y despliega vía SSH. Solo falta aprovisionar la infraestructura y configurar los secrets.
+
+### Estado del CI/CD (evaluado 2026-03-23)
+
+| Workflow | Estado | Notas |
+|---|---|---|
+| `backend.yml` | ✅ Corregido | `main` → `develop`, Go 1.21 → 1.23 |
+| `frontend.yml` | ✅ Corregido | `main` → `develop` |
+| `deploy-staging.yml` | ✅ OK | CI en `staging` + `develop`, deploy manual (pcele en LAN) |
+| `deploy-production.yml` | ✅ Corregido | Añadido `--no-cache` + `--force-recreate` |
+
+El deploy automático a producción se activa con un `push` o `merge` a `master`. El flujo es:
+```
+develop → (PR) → staging → (PR) → master → GitHub Actions → DigitalOcean SSH deploy
+```
+
+### Próximos Pasos
+
+- [ ] Crear Droplet en DigitalOcean (Ubuntu 24.04, mín. 1 GB RAM).
+- [ ] Instalar Docker en el Droplet (`apt install docker.io docker-compose-plugin`).
+- [ ] Clonar el repo en `/opt/tramatex` en el Droplet.
+- [ ] Configurar GitHub Secrets en el repositorio:
+  - `PROD_IP` — IP pública del Droplet
+  - `SSH_USER` — usuario SSH (ej. `root` o `tramatex`)
+  - `SSH_PRIVATE_KEY` — clave SSH privada (sin passphrase)
+  - `ENV_PROD` — contenido del fichero `.env` de producción
+- [ ] Configurar DNS del dominio apuntando al Droplet.
+- [ ] Primer deploy manual para verificar (luego automático vía GitHub Actions).
+- [ ] Configurar SSL con Let's Encrypt (`certbot`) y activar `nginx-ssl.conf`.
+- [ ] Verificar flujo completo en producción (login, Party, Products, Sales).
+
+### Archivos de Contexto
+
+- `.github/workflows/deploy-production.yml`
+- `docker/docker-compose.remote.yml`
+- `docker/nginx-ssl.conf`
+- `docker/.env.production.example`
+- `docs/guides/developer/deployment-guide.md`
+
+---
 
 ## QA — Verificación de Calidad Integral
 
