@@ -90,7 +90,8 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 ## Despliegue en Producción (DigitalOcean)
 
 - **Session ID:** `infra-production-digitalocean-2026-03-23`
-- **Status:** En Progreso (DNS + SSL pendientes)
+- **Status:** ✅ Completado
+- **Finished:** 2026-03-24
 - **Sprint:** N/A
 - **Started:** 2026-03-23
 - **Rama:** `infra/production-digitalocean` → Mergeada a `develop` y `master`
@@ -163,9 +164,8 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 - [x] Verificar deploy completa sin errores ✅
 - [x] Probar en navegador: `http://46.101.188.130` → pantalla de login ✅
 - [x] Verificar API: `curl http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
-- [ ] Configurar DNS del dominio apuntando a `46.101.188.130`
-- [ ] Instalar certbot + SSL: `certbot --nginx -d tudominio.com`
-- [ ] Activar `nginx-ssl.conf` (descomentar volumes SSL en `docker-compose.remote.yml`)
+- [ ] ~~Configurar DNS del dominio~~ — **Descartado para MVP.** El entorno de producción es un despliegue de muestra, accesible por IP directa (`http://46.101.188.130`).
+- [ ] ~~SSL/Let's Encrypt~~ — **Descartado para MVP.** Sin dominio no aplica.
 
 ### Claves SSH (en `tmp/do-setup/`, en .gitignore)
 
