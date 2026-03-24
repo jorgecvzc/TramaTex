@@ -26,9 +26,7 @@ services:
 
   # TramaTex API (Go backend - internal only, not exposed)
   api:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: ghcr.io/jorgecvzc/tramatex-api:latest
     container_name: ${API_CONTAINER:-tramatex_api}
     environment:
       ENV: ${ENV:-production}
@@ -61,9 +59,7 @@ services:
 
   # Nginx + Vue Frontend (single entry point: port 80, or 80+443 with SSL)
   frontend:
-    build:
-      context: ..
-      dockerfile: Dockerfile.frontend
+    image: ghcr.io/jorgecvzc/tramatex-frontend:latest
     container_name: ${FRONTEND_CONTAINER:-tramatex_frontend}
     ports:
       - "${FRONTEND_PORT:-80}:80"

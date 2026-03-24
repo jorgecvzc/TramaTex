@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# CI/CD
+.github
+
+# Docs and temp files
+docs/
+tmp/
+project-scaffolding/
+bin/
+
+# Node modules and build artifacts (rebuilt inside Docker)
+apps/frontend/node_modules/
+apps/frontend/dist/
+
+# Go build artifacts
+apps/tramatex-api/tramatex
+
+# Markdown files at root
+*.md
