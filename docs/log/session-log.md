@@ -164,8 +164,8 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 - [x] Verificar deploy completa sin errores ✅
 - [x] Probar en navegador: `http://46.101.188.130` → pantalla de login ✅
 - [x] Verificar API: `curl http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
-- [ ] ~~Configurar DNS del dominio~~ — **Descartado para MVP.** El entorno de producción es un despliegue de muestra, accesible por IP directa (`http://46.101.188.130`).
-- [ ] ~~SSL/Let's Encrypt~~ — **Descartado para MVP.** Sin dominio no aplica.
+- [ ] ~~Configurar DNS del dominio~~ — **Pospuesto a Post-MVP.** El entorno actual es un despliegue de muestra accesible por IP directa (`http://46.101.188.130`). Cuando se decida hacer un despliegue de producción real, será necesario apuntar un dominio a esta IP y configurar SSL.
+- [ ] ~~SSL/Let's Encrypt~~ — **Pospuesto a Post-MVP.** La infra está preparada: `docker/nginx-ssl.conf` ya existe y `docker-compose.remote.yml` tiene los volumes SSL comentados. Pasos cuando aplique: (1) apuntar dominio a `46.101.188.130`, (2) instalar certbot, (3) descomentar volumes SSL en `docker-compose.remote.yml`, (4) activar `nginx-ssl.conf`.
 
 ### Claves SSH (en `tmp/do-setup/`, en .gitignore)
 
