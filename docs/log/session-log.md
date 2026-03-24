@@ -27,10 +27,11 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Implementación de Infraestructura de Despliegue Multientorno
 
 - **Session ID:** `infra-multi-env-deployment-impl-2026-03-10`
-- **Status:** En Progreso
+- **Status:** ✅ Completado
 - **Sprint:** N/A
 - **Started:** 2026-03-10
-- **Rama:** `infra/pcele-staging-deploy` → Merge a `develop` al finalizar
+- **Finished:** 2026-03-24
+- **Rama:** `infra/pcele-staging-deploy` → Mergeada a `develop` y `master`
 
 ### Contexto
 
@@ -59,8 +60,8 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 - [x] Verificar build Docker local (bloqueado temporalmente por conectividad Docker Hub).
 - [x] Crear rama `staging` desde `develop` (después de merge).
 - [x] Primer despliegue en pcele (requiere configurar Docker + SSH). ✅ 2026-03-23
-- [ ] Crear Droplet en DigitalOcean y configurar GitHub Secrets.
-- [ ] Configurar DNS + SSL/Let's Encrypt en producción.
+- [x] Crear Droplet en DigitalOcean y configurar GitHub Secrets. ✅ 2026-03-23
+- [ ] Configurar DNS + SSL/Let's Encrypt en producción. *(pendiente — sesión `infra-production-digitalocean-2026-03-23`)*
 
 ### Bugs Corregidos en pcele (2026-03-23)
 
