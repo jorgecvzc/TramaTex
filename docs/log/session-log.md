@@ -245,7 +245,8 @@ Sesión de verificación de calidad completa del sistema tras todos los refactor
 ## Alineación Documental Post-Refactors Sprint 14
 
 - **Session ID:** `doc-alignment-post-sprint14-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
+- **Status:** En Pausa — **Próxima sesión (iniciar mañana 2026-03-25)**
+- **Prioridad:** 1º — Antes que la sesión TFM
 - **Sprint:** N/A
 - **Started:** 2026-03-21
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
@@ -278,8 +279,8 @@ Tras los refactors del Sprint 14 (fragmentación de SalesService, estandarizaci�
 ## Mejora UI/UX — Unificación Estética y Componentes Base
 
 - **Session ID:** `ui-ux-improvement-post-mvp-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
-- **Sprint:** Post-MVP
+- **Status:** En Pausa — **Pendiente de decisión: puede no realizarse antes del TFM**
+- **Prioridad:** Opcional pre-TFM. Si el tiempo no lo permite, queda como tarea Post-MVP.
 - **Started:** 2026-03-21
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
 
@@ -314,7 +315,8 @@ Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se det
 ## Preparación TFM — Presentación Final de TramaTex
 
 - **Session ID:** `tfm-final-presentation-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
+- **Status:** En Pausa — **Iniciar tras completar `doc-alignment-post-sprint14`**
+- **Prioridad:** 2º (bloquea entrega final)
 - **Sprint:** N/A
 - **Started:** 2026-03-21
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` (y a `main` como entrega final)
