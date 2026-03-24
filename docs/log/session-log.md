@@ -89,14 +89,14 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 ## Despliegue en Producción (DigitalOcean)
 
 - **Session ID:** `infra-production-digitalocean-2026-03-23`
-- **Status:** En Progreso (reanudar mañana)
+- **Status:** En Progreso (DNS + SSL pendientes)
 - **Sprint:** N/A
 - **Started:** 2026-03-23
 - **Rama:** `infra/production-digitalocean` → Mergeada a `develop` y `master`
 
 ### Contexto
 
-Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Actions. El workflow `deploy-production.yml` se activa en push a `master` → SSH al Droplet → `docker compose build --no-cache && up --force-recreate`.
+Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Actions. El workflow `deploy-production.yml` se activa en push a `master` → build de imágenes en Actions runner → push a GHCR → SSH al Droplet → `docker pull` + `docker compose up --force-recreate`.
 
 ### Infraestructura aprovisionada (2026-03-23)
 
@@ -105,41 +105,66 @@ Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Act
 | Droplet DigitalOcean | ✅ Creado | IP: `46.101.188.130`, Ubuntu 24.04 |
 | Docker CE | ✅ Instalado | v29.3.0, `docker compose` v5.1.1 |
 | Usuario `tramatex` | ✅ Creado | Grupo `docker`, SSH configurado |
-| Repo clonado | ✅ OK | `/opt/tramatex`, rama `master` @ `20dabf7` |
+| Repo clonado | ✅ OK | `/opt/tramatex`, rama `master` @ `f73e8d7` |
 | SSH Key (sin passphrase) | ✅ OK | `tmp/do-setup/deploy_final` + `.pub` |
 | 4 GitHub Secrets | ✅ OK | `PROD_IP`, `SSH_USER`, `SSH_PRIVATE_KEY`, `ENV_PROD` |
 
-### Estado del CI/CD
+### Estado del CI/CD ✅ OPERATIVO (2026-03-24)
 
 | Workflow | Estado | Notas |
 |---|---|---|
 | `backend.yml` | ✅ Corregido | `main` → `develop`, Go 1.21 → 1.23 |
 | `frontend.yml` | ✅ Corregido | `main` → `develop` |
 | `deploy-staging.yml` | ✅ OK | CI en `staging` + `develop` |
-| `deploy-production.yml` | ✅ Corregido | `--no-cache`, `--force-recreate`, `command_timeout: 30m` |
+| `deploy-production.yml` | ✅ **Operativo** | 3 jobs: `build-api` + `build-frontend` + `deploy` |
 
-### Bugs resueltos hoy en el Droplet
+**Estrategia CI/CD actual:**
+- `build-api` → `docker build -f Dockerfile` → push `ghcr.io/jorgecvzc/tramatex-api:latest`
+- `build-frontend` → `docker build -f Dockerfile.frontend` → push `ghcr.io/jorgecvzc/tramatex-frontend:latest`
+- `deploy` → SSH al Droplet → `docker pull` + `docker compose up --force-recreate`
+- El Droplet NO hace builds (limitación 1 GB RAM evita OOM en `npm run build`)
+
+### Estado de contenedores en producción (verificado 2026-03-24)
+
+```
+tramatex_frontend   Up (healthy)   ghcr.io/jorgecvzc/tramatex-frontend:latest
+tramatex_api        Up (healthy)   ghcr.io/jorgecvzc/tramatex-api:latest
+tramatex_db         Up (healthy)   postgres:15-alpine
+```
+
+- **Frontend**: `http://46.101.188.130` → HTTP 200 ✅
+- **API Health**: `http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
+
+### Bugs resueltos (2026-03-23)
 
 | Error | Causa | Fix |
 |---|---|---|
-| `apt-get upgrade` cuelga interactivo | Sin `DEBIAN_FRONTEND=noninteractive` | Añadido + `--force-confdef --force-confold` en `bootstrap-droplet.sh` |
+| `apt-get upgrade` cuelga interactivo | Sin `DEBIAN_FRONTEND=noninteractive` | Añadido + `--force-confdef --force-confold` |
 | `docker.io` no encontrado | No está en repos Ubuntu | Instalado desde repo oficial Docker CE |
 | `chown: invalid user tramatex` | Usuario no existía | `useradd -m -s /bin/bash tramatex` manual |
-| `mkdir /home/tramatex/.docker: permission denied` | `/home/tramatex` era `root:root` | **PENDIENTE**: `chown tramatex:tramatex /home/tramatex` en consola web |
-| `Could not resolve host: github.com` | systemd-resolved recién instalado | DNS OK tras estabilizarse (verificado con `nslookup`) |
-| `Run Command Timeout` | Build Go+npm supera 30s default | Aumentado `command_timeout: 30m` en workflow |
+| `Could not resolve host: github.com` | systemd-resolved recién instalado | DNS OK tras estabilizarse |
+| `Run Command Timeout` (30s) | Build Go+npm supera timeout default | Aumentado `command_timeout` |
 
-### Próximos Pasos (para mañana)
+### Bugs resueltos (2026-03-24)
 
-- [ ] **URGENTE**: En consola web DO → ejecutar `chown tramatex:tramatex /home/tramatex`
-- [ ] Relanzar workflow desde GitHub Actions → "Re-run all jobs"
-- [ ] Verificar que el deploy completa sin errores (esperar ~8-10 min)
-- [ ] Probar en navegador: `http://46.101.188.130` → pantalla de login
-- [ ] Verificar API: `curl http://46.101.188.130/api/health`
+| Error | Causa | Fix |
+|---|---|---|
+| `Permission denied (publickey)` | Secret `SSH_PRIVATE_KEY` en GitHub tenía valor incorrecto | Copiar `tmp/do-setup/deploy_final` → actualizar secret manualmente |
+| `Run Command Timeout` (30 min) | Droplet 1 GB RAM — OOM al hacer `npm run build` dentro de Docker | Mover el build a GitHub Actions runner (7 GB RAM) → push imágenes a GHCR → Droplet solo hace `docker pull` |
+| `Run Command Timeout` (10 min) | Primera descarga de imágenes GHCR supera el timeout | Aumentar `command_timeout` a `20m` |
+| `tramatex_frontend` en `Restarting` ejecutando binario Go | BuildKit cache collision: 2 builds en mismo job reusaban capas, `tramatex-frontend:latest` recibía el binario Go API | Separar en 2 jobs independientes (`build-api`, `build-frontend`) |
+| `tramatex_frontend` en `Restarting` aún después de jobs separados | `docker/build-push-action@v5` ignora el parámetro `dockerfile:` y siempre usa `Dockerfile` por defecto | Reemplazar la action por comando `docker build --no-cache -f Dockerfile.frontend` explícito |
+
+### Próximos Pasos
+
+- [x] **URGENTE**: `chown tramatex:tramatex /home/tramatex` — ejecutado ✅
+- [x] Relanzar workflow → "Re-run all jobs" ✅
+- [x] Verificar deploy completa sin errores ✅
+- [x] Probar en navegador: `http://46.101.188.130` → pantalla de login ✅
+- [x] Verificar API: `curl http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
 - [ ] Configurar DNS del dominio apuntando a `46.101.188.130`
 - [ ] Instalar certbot + SSL: `certbot --nginx -d tudominio.com`
 - [ ] Activar `nginx-ssl.conf` (descomentar volumes SSL en `docker-compose.remote.yml`)
-- [ ] Merge `develop` → `staging` para sincronizar
 
 ### Claves SSH (en `tmp/do-setup/`, en .gitignore)
 
@@ -151,11 +176,17 @@ Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Act
 
 - `20dabf7` — fix(nginx-ssl): aplicar mismo fix resolver DNS y no-cache index.html que nginx.conf
 - `17e4374` — fix(ci): aumentar timeout ssh-action a 30m para builds en Droplet
+- `aee6896` — ci(deploy): build images in GitHub Actions, push to GHCR — avoid OOM on Droplet
+- `0bdb70c` — ci(deploy): increase SSH command_timeout to 20m for first pull from GHCR
+- `f936eef` — ci(deploy): split API and frontend builds into separate jobs to fix BuildKit cache collision
+- `f73e8d7` — ci(deploy): replace build-push-action with explicit docker build+push to fix dockerfile selection bug
 
 ### Archivos de Contexto
 
 - `.github/workflows/deploy-production.yml`
 - `docker/docker-compose.remote.yml`
+- `.dockerignore`
+- `docker/nginx.conf`
 - `docker/nginx-ssl.conf`
 - `tmp/do-setup/env-prod.txt` (valores .env producción)
 - `tmp/do-setup/deploy_final` (clave privada SSH)

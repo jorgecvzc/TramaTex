@@ -145,60 +145,118 @@ ssh ele@pcele "cd /opt/tramatex && docker compose -f docker/docker-compose.remot
 
 ## 3. Entorno Producción (DigitalOcean)
 
+> **Estrategia de build:** Los builds NO ocurren en el Droplet (1 GB RAM → OOM con `npm run build`).
+> Las imágenes se construyen en el runner de GitHub Actions (7 GB RAM) y se publican en GHCR.
+> El Droplet solo ejecuta `docker pull` + `docker compose up`.
+
 ### Configuración inicial del Droplet
 
 ```bash
-# Crear Droplet en DigitalOcean (Ubuntu 22.04, Docker pre-instalado)
-# Conectar por SSH con la IP del Droplet
+# En el Droplet (Ubuntu 22.04/24.04):
 
-# En el Droplet:
+# Crear usuario de despliegue
+sudo useradd -m -s /bin/bash tramatex
+sudo usermod -aG docker tramatex
+sudo chown tramatex:tramatex /home/tramatex
+
+# Crear directorio y clonar el repo
 sudo mkdir -p /opt/tramatex
-sudo chown $USER:$USER /opt/tramatex
-cd /opt/tramatex
+sudo chown tramatex:tramatex /opt/tramatex
+sudo -u tramatex git clone https://github.com/jorgecvzc/TramaTex.git /opt/tramatex
+cd /opt/tramatex && git checkout master
 
-# Clonar el repo
-git clone <repo-url> .
-git checkout master
-
-# El archivo docker/.env será escrito por GitHub Actions
-# Para la primera vez, crear manualmente:
+# El archivo docker/.env será escrito por GitHub Actions en cada deploy
+# Para la primera vez, crearlo manualmente (opcional):
 cp docker/.env.production.example docker/.env
-nano docker/.env  # Configurar con valores de producción
+# nano docker/.env  → Configurar con valores de producción reales
+```
+
+### Generar clave SSH para el deploy
+
+```bash
+# En local (o en el Droplet):
+ssh-keygen -t ed25519 -C "github-actions-tramatex" -f ./deploy_key -N ""
+
+# Añadir la clave pública al servidor
+cat deploy_key.pub >> /home/tramatex/.ssh/authorized_keys
+chmod 600 /home/tramatex/.ssh/authorized_keys
+
+# El contenido de 'deploy_key' (privada) va en el GitHub Secret SSH_PRIVATE_KEY
 ```
 
 ### GitHub Secrets necesarios
 
 Configurar en **Settings → Secrets → Actions** del repositorio:
 
-| Secret            | Descripción                                          | Ejemplo                    |
-|-------------------|------------------------------------------------------|----------------------------|
-| `SSH_PRIVATE_KEY` | Clave privada SSH para acceder al Droplet            | `-----BEGIN OPENSSH...`    |
-| `SSH_USER`        | Usuario SSH en el Droplet                            | `root` o `deploy`          |
-| `PROD_IP`         | IP del Droplet de producción                         | `164.90.xxx.xxx`           |
-| `ENV_PROD`        | Contenido completo del archivo docker/.env           | (ver docker/.env.production.example) |
+| Secret            | Descripción                                                     | Ejemplo                      |
+|-------------------|-----------------------------------------------------------------|------------------------------|
+| `SSH_PRIVATE_KEY` | Clave privada SSH para acceder al Droplet (ed25519, sin pass)   | `-----BEGIN OPENSSH...`      |
+| `SSH_USER`        | Usuario SSH en el Droplet                                       | `tramatex`                   |
+| `PROD_IP`         | IP del Droplet de producción                                    | `46.101.188.130`             |
+| `ENV_PROD`        | Contenido completo del archivo `docker/.env` de producción      | (ver `docker/.env.production.example`) |
+
+> `GITHUB_TOKEN` es automático — lo usa GitHub Actions para autenticarse en GHCR. No hay que crearlo.
 
 ### GitHub Environments
 
 Crear en **Settings → Environments**:
-1. **production** — con revisores requeridos (opcional)
+1. **production** — con revisores requeridos (opcional, para control adicional)
 
-### Flujo de despliegue
+### Flujo del workflow deploy-production.yml
 
-```bash
-# Promover staging a producción:
-make deploy ENV=prod
-# Equivale a: git push origin staging:master
-# (pide confirmación antes de ejecutar)
-
-# GitHub Actions detecta push a master y:
-# 1. Conecta por SSH al Droplet
-# 2. Escribe docker/.env desde el secret ENV_PROD
-# 3. docker compose build + up
-# 4. Verifica health check
-# 5. Limpia imágenes antiguas
+```
+push a master
+    │
+    ├── build-api (ubuntu-latest, 7GB RAM)
+    │     docker build --no-cache -f Dockerfile .
+    │     docker push ghcr.io/jorgecvzc/tramatex-api:latest
+    │
+    ├── build-frontend (ubuntu-latest, 7GB RAM)
+    │     docker build --no-cache -f Dockerfile.frontend .
+    │     docker push ghcr.io/jorgecvzc/tramatex-frontend:latest
+    │
+    └── deploy (needs: build-api, build-frontend)
+          SSH al Droplet →
+            git pull master
+            printf '%s' "$ENV_PROD" > docker/.env
+            docker login ghcr.io
+            docker compose pull          ← solo descarga las imágenes ya construidas
+            docker compose up -d --force-recreate
+            docker image prune -f
 ```
 
----
+### Promover a producción manualmente
+
+```bash
+# Haz push a master (cualquier commit desencadena el deploy):
+git push origin master
+
+# O desde una rama de feature:
+git push origin mi-rama:master
+```
+
+### Verificar el deploy
+
+```bash
+# Desde local:
+ssh -i tmp/do-setup/deploy_final tramatex@46.101.188.130 \
+  "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+
+# Health check API:
+curl http://46.101.188.130/api/health
+# → {"status":"healthy"}
+```
+
+### Acceder al entorno de producción
+- **Frontend**: http://46.101.188.130 (HTTP) o https://tu-dominio.com (con SSL)
+- **API Health**: http://46.101.188.130/api/health
+
+### Ver logs en producción
+
+```bash
+ssh -i tmp/do-setup/deploy_final tramatex@46.101.188.130 \
+  "cd /opt/tramatex && docker compose -f docker/docker-compose.remote.yml logs -f"
+```
 
 ## 4. SSL/HTTPS (Producción)
 

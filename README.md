@@ -54,28 +54,115 @@ Para poner en marcha una copia local del proyecto, sigue estos pasos.
 La forma más sencilla y recomendada de ejecutar el proyecto es a través de Docker.
 - **Docker**: Asegúrate de tenerlo instalado y en ejecución. Puede ser Docker Desktop (para entornos de desarrollo en Windows/macOS) o Docker Engine en un servidor Linux.
 
-### Instalación
+### Instalación en Desarrollo Local
 
 1. **Clona el repositorio:**
    ```sh
    git clone git@github.com:jorgecvzc/TramaTex.git
    cd TramaTex
    ```
-2. **Copia los archivos de entorno:**
+2. **Crea el archivo de entorno:**
    ```sh
-   cp apps/tramatex-api/.env.example apps/tramatex-api/.env
-   cp apps/frontend/.env.example apps/frontend/.env
+   cp docker/.env.example docker/.env
+   # Edita docker/.env con tus valores de desarrollo (o deja los que vienen por defecto)
    ```
-   *(Opcional: edita los archivos `.env` para adaptar las configuraciones).*
 
-3. **Levanta los servicios con Docker Compose:**
-   ```sh
-   docker-compose up --build
+3. **Levanta la base de datos y la API (modo desarrollo habitual):**
+   ```powershell
+   # Windows
+   .\start-dev.ps1
+
+   # Linux/macOS
+   docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
    ```
+   El frontend se ejecuta aparte con hot-reload:
+   ```sh
+   cd apps/frontend && npm install && npm run dev
+   # → http://localhost:5173
+   ```
+
+4. **O levanta el stack completo con Nginx (modo producción local):**
+   ```powershell
+   # Windows
+   .\start-dev.ps1 -Full
+   # → http://localhost:3000
+
+   # Docker Compose directo
+   docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profile full up -d --build
+   ```
+
+### Instalación en Servidor de Producción
+
+> **Arquitectura:** Los builds se realizan en GitHub Actions y las imágenes se publican en GHCR. El servidor solo descarga (`docker pull`) y ejecuta — no compila nada localmente.
+
+#### Prerrequisitos del servidor
+
+- Ubuntu 22.04 / 24.04
+- Docker Engine + Docker Compose v2
+- Git
+- Usuario no-root con acceso al grupo `docker`
+- Mínimo 1 GB RAM (no es necesario RAM para compilación)
+
+#### 1. Preparar el servidor
+
+```bash
+# Crear usuario de despliegue y directorio
+sudo useradd -m -s /bin/bash tramatex
+sudo usermod -aG docker tramatex
+sudo mkdir -p /opt/tramatex
+sudo chown tramatex:tramatex /opt/tramatex
+
+# Clonar el repositorio
+sudo -u tramatex git clone https://github.com/jorgecvzc/TramaTex.git /opt/tramatex
+
+# Generar clave SSH para GitHub Actions (sin passphrase)
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/deploy_key -N ""
+cat ~/.ssh/deploy_key.pub >> /home/tramatex/.ssh/authorized_keys
+```
+
+#### 2. Configurar GitHub Secrets
+
+En GitHub → **Settings → Secrets and variables → Actions**, crear:
+
+| Secret            | Valor                                              |
+|-------------------|----------------------------------------------------|
+| `PROD_IP`         | IP pública del servidor (ej. `46.101.188.130`)     |
+| `SSH_USER`        | Usuario SSH (ej. `tramatex`)                       |
+| `SSH_PRIVATE_KEY` | Contenido del archivo `deploy_key` (clave privada) |
+| `ENV_PROD`        | Contenido completo de `docker/.env` de producción  |
+
+> **Plantilla para `ENV_PROD`:** copia `docker/.env.production.example` y rellena con tus valores reales.
+
+#### 3. Primer despliegue
+
+```bash
+# En local: haz push a master para activar el workflow
+git push origin master
+
+# GitHub Actions ejecuta automáticamente:
+# 1. Build de la imagen API    → ghcr.io/jorgecvzc/tramatex-api:latest
+# 2. Build de la imagen Nginx  → ghcr.io/jorgecvzc/tramatex-frontend:latest
+# 3. SSH al servidor → git pull + docker pull + docker compose up
+```
 
 Una vez completado, el sistema estará disponible en:
-- **Aplicación Frontend:** `http://localhost:5173`
-- **API Backend:** `http://localhost:8080`
+
+- **Aplicación Frontend:** `http://<IP-servidor>` (HTTP) o `https://<tu-dominio>` (tras configurar SSL)
+- **API Health:** `http://<IP-servidor>/api/health`
+
+#### 4. SSL / HTTPS (opcional pero recomendado)
+
+```bash
+# En el servidor, con certbot:
+sudo apt install certbot
+docker compose -f docker/docker-compose.remote.yml down
+sudo certbot certonly --standalone -d tramatex.tudominio.com
+# Editar docker/docker-compose.remote.yml: descomentar port 443 y volumes SSL
+docker compose -f docker/docker-compose.remote.yml up -d
+```
+
+Para más detalles sobre cada entorno (local, staging, producción), consulta la:
+👉 **[Guía de Despliegue Completa](docs/guides/developer/deployment-guide.md)**
 
 ## 📂 Estructura del Proyecto
 
