@@ -57,8 +57,12 @@ tramatex/
 │   │   │   │   └── ...
 │   │   │   ├── product/
 │   │   │   ├── pricing/
-│   │   │   ├── sales/
-│   │   │   ├── mes/
+│   │   │   ├── sales/                 # Bounded Context: Sales (Ventas)
+│   │   │   │   ├── application/       # Servicios fragmentados (Quote, Order, Billing)
+│   │   │   │   ├── domain/            # Modelo de dominio (Quote, SalesOrder, calculations)
+│   │   │   │   ├── infrastructure/    # Persistencia (GORM) y adaptadores externos
+│   │   │   │   └── interfaces/        # Handlers HTTP y DTOs
+│   │   │   ├── mes/                   # Bounded Context: MES (Producción)
 │   │   │   └── shared/                # Código compartido entre Bounded Contexts
 │   │   ├── pkg/
 │   │   └── ...

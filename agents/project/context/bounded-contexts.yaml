@@ -26,10 +26,10 @@ erp_core_modules:
 core_contexts:
   iam:
     title: "Gestión de Identidad (IAM)"
-    description: Responsable de la autenticación y autorización de usuarios, roles y permisos.
+    description: Responsable de la autenticación y autorización de usuarios, roles y permisos. Utiliza UUID v4 para identificadores persistentes.
     criticality: CRITICAL
     implementation_phase: ✅ Completado
-    key_entities: [User, Role, Permission, Token]
+    key_entities: [User (UUID), Role, Permission, Token]
     dependencies_on: []
     depended_on_by: [All Modules]
   party:
@@ -42,7 +42,7 @@ core_contexts:
     depended_on_by: [Product, Pricing, Sales, MES]
   product:
     title: "Catálogo de Productos (Product)"
-    description: Fuente de verdad para bienes y servicios, incluyendo variantes JIT y atributos.
+    description: Fuente de verdad para bienes y servicios, incluyendo variantes JIT y atributos. Ordenamiento determinista por DirectAttributeIDs.
     criticality: CRITICAL
     implementation_phase: ✅ Completado
     key_entities: [Product, ProductVariant, Attribute, AttributeValue, Brand, ProductGroup]
@@ -58,10 +58,10 @@ core_contexts:
     depended_on_by: [Sales]
   sales:
     title: "Ciclo de Ventas (Sales)"
-    description: Gestiona desde presupuestos hasta facturas (completas y tickets).
+    description: Gestiona desde presupuestos hasta facturas (completas y tickets). Fragmentado en servicios especializados (Quote, Order, DeliveryNote, Billing).
     criticality: CRITICAL
     implementation_phase: ✅ Completado
-    key_entities: [Quote, SalesOrder, DeliveryNote, Invoice]
+    key_entities: [Quote, SalesOrder, DeliveryNote, Invoice, SalesWorkSetup]
     dependencies_on: [Party, Product, Pricing]
     depended_on_by: [MES]
   mes:

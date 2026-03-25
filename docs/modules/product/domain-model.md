@@ -21,19 +21,18 @@ Es la unidad mínima de venta. Representa una combinación única de valores de 
 ---
 
 ## 2. Comportamientos y Reglas Críticas
+### Ordenamiento de Atributos por Lista Determinista
+El orden en que los atributos se aplican a un producto (para el cálculo de costes y la generación de SKUs) es crítico para la consistencia del catálogo.
+- **Eliminación de `sort_order`**: Se ha eliminado el campo explícito de orden en la entidad `Attribute` para evitar inconsistencias globales.
+- **Orden por `DirectAttributeIDs`**: El orden de herencia y aplicación se determina estrictamente por la posición de los IDs de atributos en la lista `DirectAttributeIDs` del Agregado `Product`.
+- **Impacto en SKU**: El SKU de una variante se genera concatenando el SKU base del producto con los códigos de los valores de atributos, siguiendo exactamente el orden definido en la lista del producto.
 
 ### Estrategia de Coste Dinámico (`BaseCost`)
 A diferencia de otros sistemas, TramaTex **no persiste el coste de las variantes**. El coste se calcula en tiempo real siguiendo este flujo:
 1. Se toma el precio base del producto.
-2. Se aplican los modificadores porcentuales sobre el base.
-3. Se añaden/restan los modificadores fijos.
-**Razón:** Esto garantiza que si el coste de una materia prima (un atributo) cambia, el coste de miles de variantes se actualice instantáneamente sin procesos de migración masivos.
-
-### Resolución de Atributos por Precedencia
-El sistema decide qué atributos "ve" un producto basándose en una jerarquía de herencia:
-- **Asignación Directa:** Atributos específicos del producto.
-- **Herencia por Grupo/Marca:** Atributos comunes a una familia de productos.
-La lógica de dominio garantiza que el nivel más específico siempre anula al más general, permitiendo excepciones controladas en el catálogo.
+2. Se aplican los modificadores de atributos secuencialmente según el orden definido en `DirectAttributeIDs`.
+3. Los modificadores pueden ser de tipo **FIXED** (€) o **PERCENTAGE** (%).
+**Razón:** Esto garantiza que si el coste de una materia prima (un atributo) cambia, el coste de todas las variantes afectadas se actualice instantáneamente sin procesos de migración masivos.
 
 ---
-**Última Actualización:** 2026-03-07
+**Última Actualización:** 2026-03-25

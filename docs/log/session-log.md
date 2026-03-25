@@ -244,10 +244,11 @@ Sesión de verificación de calidad completa del sistema tras todos los refactor
 ## Alineación Documental Post-Refactors Sprint 14
 
 - **Session ID:** `doc-alignment-post-sprint14-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
+- **Status:** En Progreso
+- **Prioridad:** 1º — Antes que la sesión TFM
 - **Sprint:** N/A
 - **Started:** 2026-03-21
-- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+- **Rama:** `doc/alignment-sprint14-cicd-verify` → Merge a `develop` al finalizar
 
 ### Contexto
 
