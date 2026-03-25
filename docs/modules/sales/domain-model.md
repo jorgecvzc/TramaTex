@@ -109,4 +109,25 @@ Sales puede consultar el estado de ejecución de los `WorkOrder`s asociados a un
 - El adaptador en infraestructura (`MESWorkLookupAdapter`) traduce entre los DTOs de MES y los DTOs de Sales.
 
 ---
-**Última Actualización:** 2026-03-20
+
+## 4. Cálculos y Redondeo
+
+La integridad financiera del módulo Sales reside en una lógica de cálculo centralizada y predecible, compartida por presupuestos, pedidos y facturas.
+
+### Centralización en `SumAmounts`
+Todos los cálculos de agregación (subtotales de líneas, totales de impuestos, totales de documento) delegan en la función de dominio `SumAmounts`. Esta función garantiza:
+- **Consistencia de Moneda**: Valida que todos los importes sumados pertenezcan a la misma moneda (Euros por defecto en el MVP).
+- **Tratamiento de Nulos**: Devuelve un objeto `Money` con valor cero si la lista de importes está vacía, evitando errores de puntero nulo.
+
+### El Método `RecalculateTotals`
+Cada Agregado de ventas (`Quote`, `SalesOrder`, `Invoice`) implementa un método `RecalculateTotals()` que orquestra el flujo de cálculo:
+1. **Subtotal**: Suma de los subtotales de cada línea (Cantidad × Precio Unitario Neto).
+2. **Impuestos**: Suma de los importes de IVA de cada línea. Si una línea no especifica IVA pero el documento tiene un IVA global definido, se usa este último como fallback.
+3. **Total**: Suma aritmética de Subtotal + Impuestos.
+
+### Precisión y Redondeo
+- **Almacenamiento**: Los importes se manejan internamente mediante el Value Object `Money`, que utiliza `float64` para los cálculos pero asegura el redondeo a **2 decimales** en las operaciones de salida y persistencia.
+- **Redondeo en Línea**: El subtotal de cada línea se redondea antes de sumarse al total del documento, minimizando discrepancias por decimales huérfanos en documentos extensos.
+
+---
+**Última Actualización:** 2026-03-25

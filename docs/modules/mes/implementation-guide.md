@@ -90,8 +90,17 @@ Cuando un pedido de Sales es cancelado o reactivado, `SalesService.ChangeOrderSt
 | `mes/application` | 57.1% | 18 tests unitarios (fake repos) |
 | `mes/domain` | 87.1% | 8 tests (entidades + validación) |
 
+## 7. Gestión de Errores Estandarizada
+
+El módulo `MES` delega la traducción de errores de dominio a respuestas HTTP en el `ErrorHandlerMiddleware` de la capa `shared`. 
+
+Para que esto funcione:
+1. **Definir Errores en Dominio**: Todos los errores de negocio se definen en `internal/mes/domain/errors.go`.
+2. **Implementar `HTTPStatuser`**: Los errores de dominio implementan la interfaz `shared/domain.HTTPStatuser` para indicar su código HTTP correspondiente (ej. `ErrWorkOrderNotFound` devuelve `404`).
+3. **Delegación en Handlers**: Los controladores Gin NO deben formatear respuestas de error manualmente. Deben simplemente adjuntar el error al contexto: `c.Error(err)`. El middleware se encargará de sanitizar la respuesta y registrar el log con el ID de petición.
+
 ---
 **Referencia:** Ver [module-spec.md](module-spec.md) para la especificación funcional completa.
 
 ---
-**Última Actualización:** 20 de marzo de 2026
+**Última Actualización:** 2026-03-25
