@@ -63,7 +63,7 @@ Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se det
 ## Preparación TFM — Presentación Final de TramaTex
 
 - **Session ID:** `tfm-final-presentation-21-03-2026`
-- **Status:** En Pausa — **Iniciar tras completar `doc-alignment-post-sprint14`**
+- **Status:** 🔄 En Progreso
 - **Prioridad:** 2º (bloquea entrega final)
 - **Sprint:** N/A
 - **Started:** 21-03-2026

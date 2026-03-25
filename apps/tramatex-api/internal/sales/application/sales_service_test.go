@@ -470,10 +470,33 @@ func TestSalesService_CreateInvoice_FromDeliveredOrder(t *testing.T) {
 	_ = order.ChangeStatus(domain.SalesOrderStatusDelivered)
 
 	orderRepo.On("FindByIDForUpdate", mock.Anything, order.ID).Return(order, nil)
-	invoiceRepo.On("ListBySalesOrderID", mock.Anything, order.ID).Return([]*domain.Invoice{}, nil)
+	// First call (building line items): no existing invoices.
+	invoiceRepo.On("ListBySalesOrderID", mock.Anything, order.ID).Return([]*domain.Invoice{}, nil).Once()
 
 	invoiceNumber, _ := domain.NewInvoiceNumber("FV-2026-0001")
 	numbers.On("NextInvoiceNumber", mock.Anything, mock.Anything).Return(invoiceNumber, nil)
+
+	// Build a matching invoice to simulate what would be persisted.
+	// updateOrderInvoiceStatus calls ListBySalesOrderID after Save, and needs
+	// to see an invoice that covers all order line items.
+	invLineItem, _ := domain.NewInvoiceLineItem(variantID, 1, money, nil, nil, 0)
+	invLineItem.SalesOrderLineItemID = &orderItem.ID
+	taxAmount, _ := domain.NewMoney(0, domain.DefaultCurrency)
+	currentYear := time.Now().Year()
+	invSeries, _ := domain.NewInvoiceSeries("FV", currentYear)
+	expectedInvoice, _ := domain.NewInvoice(
+		invoiceNumber,
+		domain.InvoiceTypeComplete,
+		invSeries,
+		partyID,
+		time.Now(),
+		time.Now().Add(24*time.Hour),
+		[]domain.InvoiceLineItem{invLineItem},
+		taxAmount,
+		"",
+	)
+	// Second call (updateOrderInvoiceStatus): return the saved invoice.
+	invoiceRepo.On("ListBySalesOrderID", mock.Anything, order.ID).Return([]*domain.Invoice{expectedInvoice}, nil).Once()
 
 	var savedOrder *domain.SalesOrder
 	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Run(func(args mock.Arguments) {
