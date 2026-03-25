@@ -103,4 +103,4 @@ Para que esto funcione:
 **Referencia:** Ver [module-spec.md](module-spec.md) para la especificación funcional completa.
 
 ---
-**Última Actualización:** 2026-03-25
+**Última Actualización:** 25-03-2026

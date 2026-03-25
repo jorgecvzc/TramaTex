@@ -130,4 +130,4 @@ Cada Agregado de ventas (`Quote`, `SalesOrder`, `Invoice`) implementa un método
 - **Redondeo en Línea**: El subtotal de cada línea se redondea antes de sumarse al total del documento, minimizando discrepancias por decimales huérfanos en documentos extensos.
 
 ---
-**Última Actualización:** 2026-03-25
+**Última Actualización:** 25-03-2026

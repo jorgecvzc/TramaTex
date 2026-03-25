@@ -27,10 +27,11 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Implementación de Infraestructura de Despliegue Multientorno
 
 - **Session ID:** `infra-multi-env-deployment-impl-2026-03-10`
-- **Status:** En Progreso
+- **Status:** ✅ Completado
 - **Sprint:** N/A
-- **Started:** 2026-03-10
-- **Rama:** `infra/pcele-staging-deploy` → Merge a `develop` al finalizar
+- **Started:** 10-03-2026
+- **Finished:** 24-03-2026
+- **Rama:** `infra/pcele-staging-deploy` → Mergeada a `develop` y `master`
 
 ### Contexto
 
@@ -58,11 +59,11 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 - [x] Verificar build Docker local (bloqueado temporalmente por conectividad Docker Hub).
 - [x] Crear rama `staging` desde `develop` (después de merge).
-- [x] Primer despliegue en pcele (requiere configurar Docker + SSH). ✅ 2026-03-23
-- [ ] Crear Droplet en DigitalOcean y configurar GitHub Secrets.
-- [ ] Configurar DNS + SSL/Let's Encrypt en producción.
+- [x] Primer despliegue en pcele (requiere configurar Docker + SSH). ✅ 23-03-2026
+- [x] Crear Droplet en DigitalOcean y configurar GitHub Secrets. ✅ 23-03-2026
+- [ ] Configurar DNS + SSL/Let's Encrypt en producción. *(pendiente — sesión `infra-production-digitalocean-23-03-2026`)*
 
-### Bugs Corregidos en pcele (2026-03-23)
+### Bugs Corregidos en pcele (23-03-2026)
 
 - `postgres` container tenía `restart: no` → no arrancaba tras reinicio del sistema. Fix: `docker update --restart unless-stopped` + `docker-compose.remote.yml` actualizado.
 - Nginx cacheaba la IP de `api` al arrancar → 502 cuando API se reiniciaba. Fix: directiva `resolver 127.0.0.11 valid=10s` + `set $api_backend` en `nginx.conf`.
@@ -88,17 +89,18 @@ Implementación técnica de la estrategia de despliegue multientorno definida en
 
 ## Despliegue en Producción (DigitalOcean)
 
-- **Session ID:** `infra-production-digitalocean-2026-03-23`
-- **Status:** En Progreso (DNS + SSL pendientes)
+- **Session ID:** `infra-production-digitalocean-23-03-2026`
+- **Status:** ✅ Completado
+- **Finished:** 24-03-2026
 - **Sprint:** N/A
-- **Started:** 2026-03-23
+- **Started:** 23-03-2026
 - **Rama:** `infra/production-digitalocean` → Mergeada a `develop` y `master`
 
 ### Contexto
 
 Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Actions. El workflow `deploy-production.yml` se activa en push a `master` → build de imágenes en Actions runner → push a GHCR → SSH al Droplet → `docker pull` + `docker compose up --force-recreate`.
 
-### Infraestructura aprovisionada (2026-03-23)
+### Infraestructura aprovisionada (23-03-2026)
 
 | Componente | Estado | Detalle |
 |---|---|---|
@@ -109,7 +111,7 @@ Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Act
 | SSH Key (sin passphrase) | ✅ OK | `tmp/do-setup/deploy_final` + `.pub` |
 | 4 GitHub Secrets | ✅ OK | `PROD_IP`, `SSH_USER`, `SSH_PRIVATE_KEY`, `ENV_PROD` |
 
-### Estado del CI/CD ✅ OPERATIVO (2026-03-24)
+### Estado del CI/CD ✅ OPERATIVO (24-03-2026)
 
 | Workflow | Estado | Notas |
 |---|---|---|
@@ -124,7 +126,7 @@ Despliegue automático de TramaTex en producción vía DigitalOcean + GitHub Act
 - `deploy` → SSH al Droplet → `docker pull` + `docker compose up --force-recreate`
 - El Droplet NO hace builds (limitación 1 GB RAM evita OOM en `npm run build`)
 
-### Estado de contenedores en producción (verificado 2026-03-24)
+### Estado de contenedores en producción (verificado 24-03-2026)
 
 ```
 tramatex_frontend   Up (healthy)   ghcr.io/jorgecvzc/tramatex-frontend:latest
@@ -135,7 +137,7 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 - **Frontend**: `http://46.101.188.130` → HTTP 200 ✅
 - **API Health**: `http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
 
-### Bugs resueltos (2026-03-23)
+### Bugs resueltos (23-03-2026)
 
 | Error | Causa | Fix |
 |---|---|---|
@@ -145,7 +147,7 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 | `Could not resolve host: github.com` | systemd-resolved recién instalado | DNS OK tras estabilizarse |
 | `Run Command Timeout` (30s) | Build Go+npm supera timeout default | Aumentado `command_timeout` |
 
-### Bugs resueltos (2026-03-24)
+### Bugs resueltos (24-03-2026)
 
 | Error | Causa | Fix |
 |---|---|---|
@@ -162,9 +164,8 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 - [x] Verificar deploy completa sin errores ✅
 - [x] Probar en navegador: `http://46.101.188.130` → pantalla de login ✅
 - [x] Verificar API: `curl http://46.101.188.130/api/health` → `{"status":"healthy"}` ✅
-- [ ] Configurar DNS del dominio apuntando a `46.101.188.130`
-- [ ] Instalar certbot + SSL: `certbot --nginx -d tudominio.com`
-- [ ] Activar `nginx-ssl.conf` (descomentar volumes SSL en `docker-compose.remote.yml`)
+- [ ] ~~Configurar DNS del dominio~~ — **Pospuesto a Post-MVP.** El entorno actual es un despliegue de muestra accesible por IP directa (`http://46.101.188.130`). Cuando se decida hacer un despliegue de producción real, será necesario apuntar un dominio a esta IP y configurar SSL.
+- [ ] ~~SSL/Let's Encrypt~~ — **Pospuesto a Post-MVP.** La infra está preparada: `docker/nginx-ssl.conf` ya existe y `docker-compose.remote.yml` tiene los volumes SSL comentados. Pasos cuando aplique: (1) apuntar dominio a `46.101.188.130`, (2) instalar certbot, (3) descomentar volumes SSL en `docker-compose.remote.yml`, (4) activar `nginx-ssl.conf`.
 
 ### Claves SSH (en `tmp/do-setup/`, en .gitignore)
 
@@ -195,11 +196,11 @@ tramatex_db         Up (healthy)   postgres:15-alpine
 
 ## QA — Verificación de Calidad Integral
 
-- **Session ID:** `qa-full-verification-2026-03-21`
+- **Session ID:** `qa-full-verification-21-03-2026`
 - **Status:** ✅ Completado
 - **Sprint:** N/A
-- **Started:** 2026-03-21
-- **Finished:** 2026-03-22
+- **Started:** 21-03-2026
+- **Finished:** 22-03-2026
 - **Rama:** `qa/full-verification` → Merged a `develop`
 
 ### Contexto
@@ -243,12 +244,13 @@ Sesión de verificación de calidad completa del sistema tras todos los refactor
 
 ## Alineación Documental Post-Refactors Sprint 14
 
-- **Session ID:** `doc-alignment-post-sprint14-2026-03-21`
-- **Status:** En Progreso
+- **Session ID:** `doc-alignment-post-sprint14-21-03-2026`
+- **Status:** ✅ Completado
 - **Prioridad:** 1º — Antes que la sesión TFM
 - **Sprint:** N/A
-- **Started:** 2026-03-21
-- **Rama:** `doc/alignment-sprint14-cicd-verify` → Merge a `develop` al finalizar
+- **Started:** 21-03-2026
+- **Finished:** 25-03-2026
+- **Rama:** `doc/alignment-sprint14-cicd-verify` → Mergeada a `develop`, `staging` y `master`
 
 ### Contexto
 
@@ -256,14 +258,14 @@ Tras los refactors del Sprint 14 (fragmentación de SalesService, estandarizaci�
 
 ### Próximos Pasos
 
-- [ ] **IAM:** Actualizar `docs/modules/iam/domain-model.md` — UserID como `uuid.UUID`, eliminar menciones a `createdAt`/`updatedAt`.
-- [ ] **Sales:** Actualizar `docs/modules/sales/implementation-guide.md` y `module-spec.md` con nueva estructura de servicios fragmentados.
-- [ ] **Sales:** Documentar `calculations.go` en `docs/modules/sales/domain-model.md`.
-- [ ] **MES/Errores:** Actualizar guías de implementación de Product, Sales y MES para indicar delegación de errores HTTP al middleware `shared`.
-- [ ] **Estructura:** Actualizar `docs/guides/developer/project-structure-details.md` con nuevos paths.
-- [ ] **Product:** Documentar eliminación de `sort_order` y nuevo flujo de ordenamiento por `DirectAttributeIDs`.
-- [ ] **Frontend:** Verificar que docs no referencien `apps/frontend/src/pages/organizations`.
-- [ ] **Agents:** Actualizar agent contexts en `agents/project/context/` (`architecture.yaml`, `bounded-contexts.yaml`, `code-standards.yaml`, `tech-stack.yaml`) para reflejar los refactors del Sprint 14.
+- [x] **IAM:** Actualizar `docs/modules/iam/domain-model.md` — UserID como `uuid.UUID`, eliminar menciones a `createdAt`/`updatedAt`.
+- [x] **Sales:** Actualizar `docs/modules/sales/implementation-guide.md` y `module-spec.md` con nueva estructura de servicios fragmentados.
+- [x] **Sales:** Documentar `calculations.go` en `docs/modules/sales/domain-model.md`.
+- [x] **MES/Errores:** Actualizar guías de implementación de Product, Sales y MES para indicar delegación de errores HTTP al middleware `shared`.
+- [x] **Estructura:** Actualizar `docs/guides/developer/project-structure-details.md` con nuevos paths.
+- [x] **Product:** Documentar eliminación de `sort_order` y nuevo flujo de ordenamiento por `DirectAttributeIDs`.
+- [x] **Frontend:** Verificar que docs no referencien `apps/frontend/src/pages/organizations`.
+- [x] **Agents:** Actualizar agent contexts en `agents/project/context/` (`architecture.yaml`, `bounded-contexts.yaml`, `code-standards.yaml`, `tech-stack.yaml`) para reflejar los refactors del Sprint 14.
 
 ### Archivos de Contexto
 
@@ -277,10 +279,10 @@ Tras los refactors del Sprint 14 (fragmentación de SalesService, estandarizaci�
 
 ## Mejora UI/UX — Unificación Estética y Componentes Base
 
-- **Session ID:** `ui-ux-improvement-post-mvp-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
-- **Sprint:** Post-MVP
-- **Started:** 2026-03-21
+- **Session ID:** `ui-ux-improvement-post-mvp-21-03-2026`
+- **Status:** En Pausa — **Pendiente de decisión: puede no realizarse antes del TFM**
+- **Prioridad:** Opcional pre-TFM. Si el tiempo no lo permite, queda como tarea Post-MVP.
+- **Started:** 21-03-2026
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
 
 ### Contexto
@@ -313,10 +315,11 @@ Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se det
 
 ## Preparación TFM — Presentación Final de TramaTex
 
-- **Session ID:** `tfm-final-presentation-2026-03-21`
-- **Status:** En Pausa (Pendiente de inicio)
+- **Session ID:** `tfm-final-presentation-21-03-2026`
+- **Status:** En Pausa — **Iniciar tras completar `doc-alignment-post-sprint14`**
+- **Prioridad:** 2º (bloquea entrega final)
 - **Sprint:** N/A
-- **Started:** 2026-03-21
+- **Started:** 21-03-2026
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` (y a `main` como entrega final)
 
 ### Contexto
@@ -350,9 +353,10 @@ TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la pr
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
-- **QA — Verificación de Calidad Integral** | Iniciada: 2026-03-21 | Finalizada: 2026-03-22 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
-- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 2026-03-21 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO
-- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 2026-03-12 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
-- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 2026-03-20 | Finalizada: 2026-03-20 | Status: ✅ COMPLETADO
-- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 2026-03-19 | Finalizada: 2026-03-19
-- **Refinamiento y Estabilización ERP Core** | Iniciada: 2026-03-09 | Finalizada: 2026-03-14
+- **Alineación Documental Post-Refactors Sprint 14** | Iniciada: 21-03-2026 | Finalizada: 25-03-2026 | Status: ✅ COMPLETADO | Rama: `doc/alignment-sprint14-cicd-verify` → `develop`, `staging`, `master`
+- **QA — Verificación de Calidad Integral** | Iniciada: 21-03-2026 | Finalizada: 22-03-2026 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
+- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 21-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO
+- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 12-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
+- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 20-03-2026 | Finalizada: 20-03-2026 | Status: ✅ COMPLETADO
+- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 19-03-2026 | Finalizada: 19-03-2026
+- **Refinamiento y Estabilización ERP Core** | Iniciada: 09-03-2026 | Finalizada: 14-03-2026

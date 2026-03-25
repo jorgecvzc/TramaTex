@@ -35,4 +35,4 @@ A diferencia de otros sistemas, TramaTex **no persiste el coste de las variantes
 **Razón:** Esto garantiza que si el coste de una materia prima (un atributo) cambia, el coste de todas las variantes afectadas se actualice instantáneamente sin procesos de migración masivos.
 
 ---
-**Última Actualización:** 2026-03-25
+**Última Actualización:** 25-03-2026
