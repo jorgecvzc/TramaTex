@@ -63,28 +63,50 @@ Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se det
 ## Preparación TFM — Presentación Final de TramaTex
 
 - **Session ID:** `tfm-final-presentation-21-03-2026`
-- **Status:** 🔄 En Progreso
+- **Status:** ⏸️ En Pausa
 - **Prioridad:** 2º (bloquea entrega final)
 - **Sprint:** N/A
 - **Started:** 21-03-2026
-- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` (y a `main` como entrega final)
+- **Rama:** `docs/tfm-final-preparation` (pushed a origin, pendiente merge a `develop`)
 
 ### Contexto
 
 TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la preparación integral del proyecto para su entrega y defensa académica: revisión de documentación, presentación, memoria, y asegurar que el estado del código, los tests y el despliegue son coherentes y presentables. Es la **última sesión** del proyecto.
 
-### Próximos Pasos
+### Progreso completado (sesiones 21–25 mar 2026)
 
-- [ ] Revisar y actualizar la presentación existente (`docs/presentations/tramatex-presentation.md`, `TramaTex_Presentacion_Final.pptx`).
-- [ ] Asegurar que `README.md` del proyecto refleja el estado final (visión, arquitectura, instrucciones de instalación/ejecución).
-- [ ] Verificar que la documentación de arquitectura (`docs/architecture/`) está completa y actualizada.
-- [ ] Confirmar que todos los módulos tienen documentación consistente en `docs/modules/`.
-- [ ] Validar que los tests pasan limpiamente (Go + Vitest) y documentar cobertura.
-- [ ] Revisar `CONTRIBUTING.md` y `LICENSE.md` para coherencia académica.
-- [ ] Preparar memoria/informe TFM si es necesario (estructura, introducción, conclusiones, trabajo futuro).
-- [ ] Generar diapositivas de presentación para la defensa del TFM (basarse en `docs/presentations/slides_spec.md` y `tramatex-presentation.md`).
-- [ ] Limpiar archivos temporales en `tmp/` que no deban ir en la entrega final.
-- [ ] Verificar que el despliegue Docker funciona correctamente de principio a fin.
+- [x] Licencias verificadas — "Jorge Cortés Villalba" aparece en `LICENSE.md`, `project-scaffolding/LICENSE.md`, `README.md` y ADRs.
+- [x] Tests Go backend: 29 paquetes OK, 0 FAIL (excluido `product/persistence` que requiere PostgreSQL local).
+- [x] Tests frontend Vitest: 230 tests pasados, 0 fallos.
+- [x] Bug corregido en `sales_service_test.go`: mock `ListBySalesOrderID` con `.Once()` para flujo de doble llamada.
+- [x] `CONTRIBUTING.md`: corregido enlace roto a ADR-011.
+- [x] Presentación: reemplazado placeholder de logo por texto.
+- [x] `README.md`: añadida sección Demo Pública, corregido comando de instalación, añadida sección Mantenimiento.
+- [x] Creado `.github/workflows/demo-reset.yml`: reset semanal automatizado de la demo.
+- [x] Auditoría de secretos: **LIMPIO** — no se exponen secretos reales. Solo credenciales de demo (`admin123`) y placeholders en `.example`.
+- [x] ADR filename casing: evaluado, descartado (funciona en Windows/GitHub, riesgo alto para beneficio mínimo).
+- [x] `tmp/` ya está en `.gitignore`, no se trackea.
+
+### Próximos Pasos (para la próxima jornada)
+
+**PRIMERO — Limpiar artefactos trackeados en frontend:**
+- [ ] Añadir a `apps/frontend/.gitignore`:
+  ```
+  # Test artifacts
+  test-results/
+  playwright-report/
+  test-results.txt
+  build-output.txt
+  ```
+- [ ] Eliminar del tracking (sin borrar local): `git rm --cached apps/frontend/build-output.txt apps/frontend/test-results.txt` y `git rm --cached -r apps/frontend/test-results/ apps/frontend/playwright-report/`
+- [ ] Commit: `chore: remove tracked test artifacts and update frontend .gitignore`
+
+**DESPUÉS — Merge y tareas TFM restantes:**
+- [ ] Merge rama `docs/tfm-final-preparation` → `develop` (y luego a `main` como entrega final).
+- [ ] Preparar memoria/informe TFM (estructura, introducción, conclusiones, trabajo futuro).
+- [ ] Verificar despliegue Docker de principio a fin.
+- [ ] Revisar presentación final (`docs/presentations/tramatex-presentation.md`, `TramaTex_Presentacion_Final.pptx`).
+- [ ] Decidir sobre sesión UI/UX (`ui-ux-improvement-post-mvp-21-03-2026`) — opcional pre-TFM.
 
 ### Archivos de Contexto
 
@@ -94,6 +116,7 @@ TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la pr
 - `docs/architecture/architecture-vision.md`
 - `README.md`
 - `CONTRIBUTING.md`
+- `apps/frontend/.gitignore` ← pendiente de actualizar
 
 ---
 
