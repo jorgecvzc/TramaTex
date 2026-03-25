@@ -24,47 +24,12 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ---
 # SESIONES ABIERTAS
 
-## Alineación Documental Post-Refactors Sprint 14
-
-- **Session ID:** `doc-alignment-post-sprint14-2026-03-21`
-- **Status:** ✅ Completado
-- **Prioridad:** 1º — Antes que la sesión TFM
-- **Sprint:** N/A
-- **Started:** 2026-03-21
-- **Finished:** 2026-03-25
-- **Rama:** `doc/alignment-sprint14-cicd-verify` → Mergeada a `develop`, `staging` y `master`
-
-### Contexto
-
-Tras los refactors del Sprint 14 (fragmentación de SalesService, estandarización de errores, migración UUID en IAM, eliminación de sort_order en Product), la documentación técnica ha quedado desalineada con el código. Se ha elaborado un roadmap de tareas documentales en `tmp/documentation-alignment-roadmap.md`.
-
-### Próximos Pasos
-
-- [x] **IAM:** Actualizar `docs/modules/iam/domain-model.md` — UserID como `uuid.UUID`, eliminar menciones a `createdAt`/`updatedAt`.
-- [x] **Sales:** Actualizar `docs/modules/sales/implementation-guide.md` y `module-spec.md` con nueva estructura de servicios fragmentados.
-- [x] **Sales:** Documentar `calculations.go` en `docs/modules/sales/domain-model.md`.
-- [x] **MES/Errores:** Actualizar guías de implementación de Product, Sales y MES para indicar delegación de errores HTTP al middleware `shared`.
-- [x] **Estructura:** Actualizar `docs/guides/developer/project-structure-details.md` con nuevos paths.
-- [x] **Product:** Documentar eliminación de `sort_order` y nuevo flujo de ordenamiento por `DirectAttributeIDs`.
-- [x] **Frontend:** Verificar que docs no referencien `apps/frontend/src/pages/organizations`.
-- [x] **Agents:** Actualizar agent contexts en `agents/project/context/` (`architecture.yaml`, `bounded-contexts.yaml`, `code-standards.yaml`, `tech-stack.yaml`) para reflejar los refactors del Sprint 14.
-
-### Archivos de Contexto
-
-- `tmp/documentation-alignment-roadmap.md`
-- `docs/modules/iam/domain-model.md`
-- `docs/modules/sales/implementation-guide.md`
-- `docs/modules/sales/module-spec.md`
-- `docs/guides/developer/project-structure-details.md`
-
----
-
 ## Mejora UI/UX — Unificación Estética y Componentes Base
 
-- **Session ID:** `ui-ux-improvement-post-mvp-2026-03-21`
+- **Session ID:** `ui-ux-improvement-post-mvp-21-03-2026`
 - **Status:** En Pausa — **Pendiente de decisión: puede no realizarse antes del TFM**
 - **Prioridad:** Opcional pre-TFM. Si el tiempo no lo permite, queda como tarea Post-MVP.
-- **Started:** 2026-03-21
+- **Started:** 21-03-2026
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
 
 ### Contexto
@@ -97,11 +62,11 @@ Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se det
 
 ## Preparación TFM — Presentación Final de TramaTex
 
-- **Session ID:** `tfm-final-presentation-2026-03-21`
+- **Session ID:** `tfm-final-presentation-21-03-2026`
 - **Status:** En Pausa — **Iniciar tras completar `doc-alignment-post-sprint14`**
 - **Prioridad:** 2º (bloquea entrega final)
 - **Sprint:** N/A
-- **Started:** 2026-03-21
+- **Started:** 21-03-2026
 - **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` (y a `main` como entrega final)
 
 ### Contexto
@@ -135,10 +100,10 @@ TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la pr
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
-- **Alineación Documental Post-Refactors Sprint 14** | Iniciada: 2026-03-21 | Finalizada: 2026-03-25 | Status: ✅ COMPLETADO | Rama: `doc/alignment-sprint14-cicd-verify` → `develop`, `staging`, `master`
-- **QA — Verificación de Calidad Integral** | Iniciada: 2026-03-21 | Finalizada: 2026-03-22 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
-- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 2026-03-21 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO
-- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 2026-03-12 | Finalizada: 2026-03-21 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
-- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 2026-03-20 | Finalizada: 2026-03-20 | Status: ✅ COMPLETADO
-- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 2026-03-19 | Finalizada: 2026-03-19
-- **Refinamiento y Estabilización ERP Core** | Iniciada: 2026-03-09 | Finalizada: 2026-03-14
+- **Alineación Documental Post-Refactors Sprint 14** | Iniciada: 21-03-2026 | Finalizada: 25-03-2026 | Status: ✅ COMPLETADO | Rama: `doc/alignment-sprint14-cicd-verify` → `develop`, `staging`, `master`
+- **QA — Verificación de Calidad Integral** | Iniciada: 21-03-2026 | Finalizada: 22-03-2026 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
+- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 21-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO
+- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 12-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
+- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 20-03-2026 | Finalizada: 20-03-2026 | Status: ✅ COMPLETADO
+- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 19-03-2026 | Finalizada: 19-03-2026
+- **Refinamiento y Estabilización ERP Core** | Iniciada: 09-03-2026 | Finalizada: 14-03-2026
