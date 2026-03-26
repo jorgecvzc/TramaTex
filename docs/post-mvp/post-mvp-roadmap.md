@@ -7,9 +7,9 @@
 
 ## Índice
 
-1. [Integración Sales ↔ MES (Producto-Trabajo)](#1-integración-sales--mes-producto-trabajo)
-2. [Extracción MES como Microservicio](#2-extracción-mes-como-microservicio)
-3. [Mejoras de UI y Experiencia de Usuario](#3-mejoras-de-ui-y-experiencia-de-usuario)
+1. [Unificación UI/UX y Sistema de Diseño](#1-unificación-uiux-y-sistema-de-diseño)
+2. [Integración Sales ↔ MES (Producto-Trabajo)](#2-integración-sales--mes-producto-trabajo)
+3. [Extracción MES como Microservicio](#3-extracción-mes-como-microservicio)
 4. [Caché de Productos/Variantes y Precios](#4-caché-de-productosvariantes-y-precios)
 5. [Comunicación Asíncrona (Message Broker)](#5-comunicación-asíncrona-message-broker)
 6. [Inteligencia de Negocio y Analítica](#6-inteligencia-de-negocio-y-analítica)
@@ -19,10 +19,43 @@
 10. [Mejoras Técnicas de Infraestructura](#10-mejoras-técnicas-de-infraestructura)
 11. [Cobertura de Tests](#11-cobertura-de-tests)
 12. [Generación de Documentos PDF](#12-generación-de-documentos-pdf)
+13. [Mejoras UX Avanzadas](#13-mejoras-ux-avanzadas)
+14. [Facturación Consolidada Multi-Albarán](#14-facturación-consolidada-multi-albarán)
+15. [Gestión Avanzada de Archivos de Diseño (MES)](#15-gestión-avanzada-de-archivos-de-diseño-mes)
+16. [Asignación de Tareas MES a Operarios](#16-asignación-de-tareas-mes-a-operarios)
 
 ---
 
-## 1. Integración Sales ↔ MES (Producto-Trabajo)
+## 1. Unificación UI/UX y Sistema de Diseño
+
+**Prioridad:** Alta (primera tarea Post-MVP)  
+**Referencia:** Auditoría UI/UX completada en sesión `ui-ux-improvement-post-mvp-21-03-2026`  
+**Contexto:**
+
+Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
+
+**Hallazgos clave:**
+- Patrones de navegación mixtos: Sales usa `clickable-row`, Party/Product usan botones explícitos, MES usa enlaces "Ver".
+- No existe una definición `.btn` global — cada módulo redefine estilos en `<style scoped>`.
+- Radios de borde varían entre 2px, 4px y 8px. El amarillo primario varía entre `#E6B800` y `#f4c430`.
+- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Lucide.
+
+**Tareas:**
+
+- [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
+- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
+- [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
+- [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
+- [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
+- [ ] Forzar uso estricto de variables de `_variables.css` (paleta, radios de borde, sombras).
+- [ ] Migrar `PartyList.vue` como primer listado estandarizado de referencia.
+- [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
+- [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
+- [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
+
+---
+
+## 2. Integración Sales ↔ MES (Producto-Trabajo)
 
 **Prioridad:** Alta  
 **Contexto:**
@@ -55,7 +88,7 @@ Implementar la vinculación completa y funcional entre líneas de producto y tra
 
 ---
 
-## 2. Extracción MES como Microservicio
+## 3. Extracción MES como Microservicio
 
 **Prioridad:** Media  
 **Referencia:** [ADR-022](adr-022-mes-microservice-extraction-strategy.md)
@@ -69,18 +102,6 @@ Extraer el módulo MES del monolito modular a un microservicio independiente:
 - [ ] Propagación de JWT en metadatos gRPC.
 - [ ] Proyecciones locales (vistas materializadas) para lectura rápida.
 - [ ] Pull Consumers con suscripciones duraderas para escalado horizontal.
-
----
-
-## 3. Mejoras de UI y Experiencia de Usuario
-
-**Prioridad:** Alta  
-**Referencia:** [ADR-022 (notas)](adr-022-mes-microservice-extraction-strategy.md#L3-L5)
-
-- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
-- [ ] **Mejora interfaz TPV:** Mayor agilidad para ventas rápidas (tickets/facturas simplificadas).
-- [ ] **Diseño responsive:** Adaptación completa a tablets de taller.
-- [ ] **Modo oscuro** para terminales de producción.
 
 ---
 
@@ -190,7 +211,19 @@ Objetivos Post-MVP de cobertura:
 - [ ] Generación de PDFs para presupuestos/pedidos.
 - [ ] Plantillas personalizables por empresa.
 
-## 13. Facturación Consolidada Multi-Albarán
+## 13. Mejoras UX Avanzadas
+
+**Prioridad:** Media  
+**Contexto:** Mejoras de experiencia de usuario de segunda fase, que dependen de la unificación estética (sección 1).
+
+- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
+- [ ] **Mejora interfaz TPV:** Mayor agilidad para ventas rápidas (tickets/facturas simplificadas).
+- [ ] **Diseño responsive:** Adaptación completa a tablets de taller.
+- [ ] **Modo oscuro** para terminales de producción.
+
+---
+
+## 14. Facturación Consolidada Multi-Albarán
 
 **Prioridad:** Media  
 **Referencia:** [module-spec.md](../modules/sales/module-spec.md) — Fase 6, [use-cases.md](../modules/sales/use-cases.md) — CU-S-025
@@ -207,7 +240,7 @@ La infraestructura base (campo `invoice_line_item_id` en `delivery_note_line_ite
 
 ---
 
-## 14. Gestión Avanzada de Archivos de Diseño (MES)
+## 15. Gestión Avanzada de Archivos de Diseño (MES)
 
 **Prioridad:** Media  
 **Contexto:**
@@ -230,7 +263,7 @@ En el MVP, `design_file_path` almacena una ruta de texto libre en `WorkSetupLine
 
 ---
 
-## 15. Asignación de Tareas MES a Operarios
+## 16. Asignación de Tareas MES a Operarios
 
 **Prioridad:** Media  
 **Contexto:**
@@ -254,4 +287,4 @@ La columna `assigned_to` (FK a `users.id`) existe en `mes_work_tasks` desde el e
 
 ---
 
-*Última actualización: 2026-03-20*
+*Última actualización: 2026-03-26*
