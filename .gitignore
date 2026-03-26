@@ -100,5 +100,11 @@ temp/
 NUL
 nul
 
+# VS Code skill files
+*.skill
+
+# Static preview files
+LOGIN-PREVIEW.html
+
 # SSH keys — DigitalOcean deploy
 tmp/do-setup/
