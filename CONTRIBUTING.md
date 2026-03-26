@@ -92,7 +92,7 @@ make install-tools
 
 ## Testing
 
-La estrategia de testing es una parte fundamental de nuestra calidad. Consulta el [ADR-011: Estrategia de Testing y Coverage](../../architecture/adrs/ADR-011-testing-coverage-strategy.md) para los detalles completos.
+La estrategia de testing es una parte fundamental de nuestra calidad. Consulta el [ADR-011: Estrategia de Testing y Coverage](docs/architecture/adrs/ADR-011-testing-coverage-strategy.md) para los detalles completos.
 
 **Comandos clave:**
 ```bash

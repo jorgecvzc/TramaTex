@@ -16,6 +16,7 @@ Documentación técnica profunda sobre el framework, patrones de diseño y flujo
 - **[CI/CD](./ci-cd.md):** Pipeline de integración y despliegue continuo.
 - **[Gestión de Configuración](./configuration-management.md):** Manejo de variables de entorno y secretos.
 - **[Comandos de Makefile](./makefile-commands.md):** Automatización de tareas comunes.
+- **[Guía de Despliegue](./deployment-guide.md):** Proceso de despliegue del sistema.
 
 ## 🧪 Calidad y Seguridad
 
@@ -28,3 +29,11 @@ Documentación técnica profunda sobre el framework, patrones de diseño y flujo
 
 - **[Gobernanza](./governance.md):** Procesos de toma de decisiones técnicas.
 - **[Deuda Técnica](./technical-debt.md):** Registro y priorización de mejoras pendientes.
+
+## 📂 Guías Especializadas
+
+- **[Guía de Contribución](./CONTRIBUTING.md):** Cómo contribuir al proyecto.
+- **[Control de Versiones](./version-control-guide.md):** Flujo de trabajo Git y convenciones.
+- **[Bootstrapping del Proyecto](./project-bootstrapping-guide.md):** Puesta en marcha del proyecto desde cero.
+- **[Estructura del Proyecto](./project-structure-details.md):** Detalles de la estructura de archivos y carpetas.
+- **[Backend Developer Guide](./backend/README.md):** Guía específica para el desarrollo del backend.

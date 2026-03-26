@@ -9,6 +9,18 @@
 
 > Un sistema ERP modular de código abierto especializado en la gestión integral de empresas de vestuario laboral y EPIs.
 
+## 🌐 Demo Pública
+
+Puedes explorar TramaTex en vivo sin instalar nada:
+
+| | |
+|---|---|
+| **URL** | http://46.101.188.130 |
+| **Email** | `admin@tramatex.local` |
+| **Contraseña** | `admin123` |
+
+> Los datos de la demo se restauran automáticamente cada domingo a las 3:00 AM UTC mediante un [workflow de GitHub Actions](.github/workflows/demo-reset.yml). Para más detalles sobre el mantenimiento de la demo, consulta la sección [Mantenimiento de la Demo](#-mantenimiento-de-la-demo).
+
 ## 💡 Sobre TramaTex
 
 TramaTex nace con la misión de digitalizar y profesionalizar a las microempresas dedicadas a la venta de vestuario laboral y EPIs. Tradicionalmente, este sector ha carecido de herramientas adaptadas a su escala y a sus necesidades específicas de personalización y marcaje.
@@ -73,7 +85,7 @@ La forma más sencilla y recomendada de ejecutar el proyecto es a través de Doc
    .\start-dev.ps1
 
    # Linux/macOS
-   docker compose -f docker/docker-compose.yml --env-file docker/.env up -d
+   docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
    ```
    El frontend se ejecuta aparte con hot-reload:
    ```sh
@@ -164,7 +176,31 @@ docker compose -f docker/docker-compose.remote.yml up -d
 Para más detalles sobre cada entorno (local, staging, producción), consulta la:
 👉 **[Guía de Despliegue Completa](docs/guides/developer/deployment-guide.md)**
 
-## 📂 Estructura del Proyecto
+## � Mantenimiento de la Demo
+
+TramaTex sigue una filosofía **local-first**: el MVP está diseñado para instalación y operación local, sin depender de conexiones SSH ni infraestructura remota.
+
+### Reset a datos de fábrica (local)
+
+Para restaurar la base de datos al estado inicial con los datos de demostración, ejecuta:
+
+```powershell
+# Windows
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
+.\start-dev.ps1
+
+# Linux/macOS
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
+```
+
+Esto elimina el volumen de PostgreSQL y arranca desde cero. La API ejecuta automáticamente todas las migraciones y los datos semilla (`migrations/007_seed_data.sql`), restaurando el usuario admin y los datos de demostración.
+
+### Reset automático de la demo pública
+
+La instancia de demostración desplegada en producción se resetea automáticamente cada domingo a las 3:00 AM UTC mediante el workflow [`.github/workflows/demo-reset.yml`](.github/workflows/demo-reset.yml). También puede ejecutarse manualmente desde la pestaña **Actions** del repositorio en GitHub.
+
+## �📂 Estructura del Proyecto
 
 El proyecto sigue una estructura de monolito modular para separar las responsabilidades:
 

@@ -8,6 +8,19 @@ Para una descripción detallada de las decisiones arquitectónicas, entidades de
 
 *   [ADR-016: Arquitectura del Módulo de Pricing](../../architecture/adrs/adr-016-pricing-module-architecture.md)
 
+## Documentación Detallada
+
+Consulte los siguientes documentos para una descripción más profunda del módulo de Pricing:
+
+*   **Especificación del Módulo:** [module-spec.md](./module-spec.md)
+*   **Modelo de Dominio:** [domain-model.md](./domain-model.md)
+*   **Casos de Uso:** [use-cases.md](./use-cases.md)
+*   **Contratos de API:** [api-contracts.md](./api-contracts.md)
+*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
+*   **Integración con otros módulos:** [integration.md](./integration.md)
+*   **Diagrama de Dominio:** [diagrams/domain-model.md](./diagrams/domain-model.md)
+*   **Diagramas del Módulo:** [diagrams/pricing-module-diagrams.md](./diagrams/pricing-module-diagrams.md)
+
 ## Componentes Clave
 
 *   **Entidades de Dominio:**

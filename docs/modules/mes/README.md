@@ -47,6 +47,8 @@ El módulo MES de TramaTex controla la personalización de artículos textiles (
 *   **Modelo de Dominio:** [domain-model.md](./domain-model.md) - Entidades, jerarquía y reglas.
 *   **Casos de Uso:** [use-cases.md](./use-cases.md) - Flujos funcionales.
 *   **Contratos de API:** [api-contracts.md](./api-contracts.md) - Endpoints y contratos.
+*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md) - Directrices técnicas de desarrollo.
+*   **Diagrama de Dominio:** [diagrams/domain-model.md](./diagrams/domain-model.md) - Representación visual del modelo.
 
 ---
 
