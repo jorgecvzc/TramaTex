@@ -126,7 +126,7 @@ TramaTex se presenta como Trabajo Fin de Máster (TFM). Esta sesión cubre la pr
 - **Alineación Documental Post-Refactors Sprint 14** | Iniciada: 21-03-2026 | Finalizada: 25-03-2026 | Status: ✅ COMPLETADO | Rama: `doc/alignment-sprint14-cicd-verify` → `develop`, `staging`, `master`
 - **QA — Verificación de Calidad Integral** | Iniciada: 21-03-2026 | Finalizada: 22-03-2026 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
 - **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 21-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO
-- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 12-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO | Ver: [sprint-14](docs/log/sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
+- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 12-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO | Ver: [sprint-14](./sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
 - **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 20-03-2026 | Finalizada: 20-03-2026 | Status: ✅ COMPLETADO
 - **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 19-03-2026 | Finalizada: 19-03-2026
 - **Refinamiento y Estabilización ERP Core** | Iniciada: 09-03-2026 | Finalizada: 14-03-2026

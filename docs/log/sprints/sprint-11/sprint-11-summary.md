@@ -25,6 +25,16 @@
 
 **Total de tareas:** 3 completadas
 
+### 📊 Reportes Auxiliares
+
+| Reporte | Enlace |
+|---------|--------|
+| Informe de Cobertura Pricing | [pricing-coverage-report.md](./pricing-coverage-report.md) |
+| Correcciones de Compilación Product | [product-compilation-fixes.md](./product-compilation-fixes.md) |
+| Informe de Cobertura Product | [product-coverage-report.md](./product-coverage-report.md) |
+| Diagnóstico de Handlers Product | [product-handlers-diagnostic.md](./product-handlers-diagnostic.md) |
+| Informe de Cobertura Sales | [sales-coverage-report.md](./sales-coverage-report.md) |
+
 ---
 
 ## 📊 MÉTRICAS AGREGADAS (Post-Remediación)

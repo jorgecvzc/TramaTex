@@ -11,4 +11,4 @@ Principios visuales, componentes y recursos para la interfaz de usuario de Trama
 
 ## 🖼️ Mockups y Recursos
 
-- **[Mockups de Pantallas](./mockups/README.md):** Diseños conceptuales y capturas de la interfaz.
+- **Mockups de Pantallas:** Diseños conceptuales y capturas disponibles en la carpeta `mockups/`.

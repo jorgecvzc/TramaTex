@@ -75,8 +75,8 @@
 
 ### Mejoras Técnicas
 
-- ✅ Creación de diagramas de módulo para el contexto de Precios, ilustrando su arquitectura interna (ver [pricing-module-diagrams.md](../../modules/pricing/diagrams/pricing-module-diagrams.md)).
-- ✅ Detalle de la definición del dominio de Precios, incluyendo lenguaje ubicuo, entidades, value objects y servicios de dominio (ver [pricing-domain.md](../../modules/pricing/pricing-domain.md)).
+- ✅ Creación de diagramas de módulo para el contexto de Precios, ilustrando su arquitectura interna (ver [pricing-module-diagrams.md](../../../modules/pricing/diagrams/pricing-module-diagrams.md)).
+- ✅ Detalle de la definición del dominio de Precios, incluyendo lenguaje ubicuo, entidades, value objects y servicios de dominio (ver [domain-model.md](../../../modules/pricing/domain-model.md)).
 
 ### Decisiones Arquitectónicas
 

@@ -14,10 +14,12 @@ La misión de este módulo es eliminar la fragmentación del conocimiento. Al ce
 
 Para comprender el funcionamiento y la integración de este módulo, consulta las siguientes guías conceptuales:
 
-1. **[Lógica de Identidad y Dominio](./domain-model.md):** Explica cómo conviven los perfiles de personas y organizaciones, y cómo fluyen los roles comerciales.
-2. **[Estrategia de Interacción (API)](./api-contracts.md):** Describe los puntos de integración y la intención detrás de las operaciones de identidad.
-3. **[Procesos Operativos](./use-cases.md):** Guía sobre el ciclo de vida de un tercero, desde el alta hasta el bloqueo preventivo.
-4. **[Estándares de Integración](./implementation-guide.md):** Directrices para que otros módulos consuman la información de Party respetando la soberanía del dato.
+1. **[Especificación del Módulo](./module-spec.md):** Definición formal de entidades, estados y componentes.
+2. **[Lógica de Identidad y Dominio](./domain-model.md):** Explica cómo conviven los perfiles de personas y organizaciones, y cómo fluyen los roles comerciales.
+3. **[Estrategia de Interacción (API)](./api-contracts.md):** Describe los puntos de integración y la intención detrás de las operaciones de identidad.
+4. **[Procesos Operativos](./use-cases.md):** Guía sobre el ciclo de vida de un tercero, desde el alta hasta el bloqueo preventivo.
+5. **[Estándares de Integración](./implementation-guide.md):** Directrices para que otros módulos consuman la información de Party respetando la soberanía del dato.
+6. **[Diagrama de Dominio](./diagrams/domain-model.md):** Representación visual del modelo de dominio.
 
 ---
 
