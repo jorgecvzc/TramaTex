@@ -46,6 +46,10 @@ tmp/
 temp/
 *.tmp
 
+# Compiled binary
+api
+api.exe
+
 # Database files
 *.db
 *.sqlite

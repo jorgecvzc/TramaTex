@@ -2,7 +2,7 @@
 marp: true
 theme: default
 paginate: true
-header: '![w:80](https://img.placeholder.com/80x20?text=TramaTex)'
+header: 'TramaTex'
 footer: 'TramaTex - La solución inteligente para la microempresa textil'
 style: |
   section {

@@ -19,7 +19,7 @@
 
 | ID | Título | Estado | Duración | Enlace |
 |----|--------|--------|----------|--------|
-| 02-01 | Refactorización del Sistema de Documentación de Desarrollo | ✅ Completado | 2 horas | [01-refactorizacion-sistema-documentacion.md](./01-refactorizacion-sistema-documentacion.md) |
+| 02-01 | Refactorización del Sistema de Documentación de Desarrollo | ✅ Completado | 2 horas | [01-documentation-system-refactoring.md](./01-documentation-system-refactoring.md) |
 | 02-02 | Compilación, Testeo y Refactorización del tramatex-api | ✅ Completado | 3 horas | [02-backend-compilation-and-testing.md](./02-backend-compilation-and-testing.md) |
 
 **Total de tareas:** 2 completadas

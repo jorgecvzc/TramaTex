@@ -109,6 +109,7 @@ Este documento detalla el contenido requerido para cada diapositiva de la presen
 - **Seguridad:** Sistema de acceso y permisos robusto.
 
 **Hoja de Ruta (Post-MVP):**
+- **Unificación UI/UX:** Sistema de diseño cohesivo, iconografía profesional (Lucide) y componentes base estandarizados.
 - **Inteligencia de Negocio:** Cuadros de mando avanzados y analítica de ventas.
 - **Automatización Técnica:** Notificaciones en tiempo real (WebSockets) y búsqueda global avanzada.
 - **Expansión Modular:** Compras, Gestión de Inventario avanzado, Logística y Contabilidad.

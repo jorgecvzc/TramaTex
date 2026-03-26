@@ -30,6 +30,7 @@ Tras la entrega del MVP (Sprint 13), este sprint consolida todos los módulos de
 | 14-02 | Validación Product: TaxRate, UI y Mejoras Pricing/Party | ✅ Completado | [02-product-pricing-validation.md](02-product-pricing-validation.md) |
 | 14-03 | Sales UX: Layout, VariantSelector y Facturas | ✅ Completado | [03-sales-ux-improvements.md](03-sales-ux-improvements.md) |
 | 14-04 | MES: Refactor Completo de Dominio e Integración Sales | ✅ Completado | [04-mes-refactor-sales-integration.md](04-mes-refactor-sales-integration.md) |
+| 14-05 | Refinamiento Arquitectónico del MVP | ✅ Completado | [05-mvp-architectural-refinement.md](05-mvp-architectural-refinement.md) |
 
 
 ---
