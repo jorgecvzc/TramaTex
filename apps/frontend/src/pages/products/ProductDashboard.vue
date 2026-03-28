@@ -3,7 +3,7 @@
   
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Gestión de Catálogo" :breadcrumbs="[{ label: 'Operaciones', to: '/products' }, { label: 'Dashboard' }]">
+      <PageHeader title="Panel de Gestión de Catálogo" :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Dashboard' }]">
         <template #icon><span class="material-symbols-outlined">inventory_2</span></template>
         <template #actions>
           <button class="btn btn-primary" @click="router.push('/products/new')">
@@ -16,7 +16,7 @@
 
     <div class="product-dashboard-content">
       <!-- KPIs Superiores -->
-      <section class="stats-grid mb-8">
+      <section class="stats-grid mb-12">
         <div class="stat-card clickable" @click="router.push('/products')">
           <div class="stat-icon blue"><span class="material-symbols-outlined">inventory_2</span></div>
           <div class="stat-info">
@@ -51,39 +51,37 @@
         </div>
       </section>
 
-      <div class="dashboard-grid-main">
-        <!-- Productos Recientes -->
-        <section class="dashboard-section">
-          <div class="section-header">
-            <span class="material-symbols-outlined text-primary">new_releases</span>
-            <h2>Últimas Incorporaciones</h2>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Producto</th>
-                  <th>Precio Base</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="prod in recentProducts" :key="prod.id" class="row-clickable" @click="router.push(`/products/${prod.id}`)">
-                  <td><code class="code-badge">{{ prod.sku }}</code></td>
-                  <td><strong>{{ prod.name }}</strong></td>
-                  <td>{{ formatPrice(prod.base_price) }}</td>
-                  <td>
-                    <span :class="['status-badge', prod.is_active ? 'status-success' : 'status-secondary']">
-                      {{ prod.is_active ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+      <!-- Productos Recientes -->
+      <section class="dashboard-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined text-primary">new_releases</span>
+          <h2>Últimas Incorporaciones</h2>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Producto</th>
+                <th>Precio Base</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="prod in recentProducts" :key="prod.id" class="row-clickable" @click="router.push(`/products/${prod.id}`)">
+                <td><code class="code-badge">{{ prod.sku }}</code></td>
+                <td><strong>{{ prod.name }}</strong></td>
+                <td>{{ formatPrice(prod.base_price) }}</td>
+                <td>
+                  <span :class="['status-badge', prod.is_active ? 'status-success' : 'status-secondary']">
+                    {{ prod.is_active ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <template #sidebar>
@@ -172,8 +170,6 @@ onMounted(loadProductData);
 
 <style scoped>
 @import "@/design-system/_sections.css";
-
-/* Reuse patterns from Main Dashboard */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
 .stat-card { background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--color-border); display: flex; align-items: center; gap: 1rem; position: relative; transition: 0.2s; cursor: pointer; }
 .stat-card:hover { transform: translateY(-3px); box-shadow: var(--box-shadow-md); border-color: var(--color-primary); }
@@ -183,24 +179,17 @@ onMounted(loadProductData);
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
-
 .stat-info { display: flex; flex-direction: column; }
 .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
 .stat-value { font-size: 1.5rem; font-weight: 700; }
 .stat-link-arrow { position: absolute; right: 1rem; color: var(--color-border); font-size: 18px; }
-
 .dashboard-section { background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--color-border); }
 .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-background); }
 .section-header h2 { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; margin: 0; }
-
 .code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary); }
-
 .admin-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--color-background); border-radius: 10px; border: 1px solid transparent; text-decoration: none; color: var(--color-text-primary); transition: 0.2s; }
 .admin-card:hover { background: white; border-color: var(--color-primary); transform: translateX(4px); box-shadow: var(--box-shadow-sm); }
-.admin-card-info strong { font-size: 0.85rem; display: block; }
-.admin-card-info p { font-size: 0.7rem; color: var(--color-text-secondary); margin: 0; }
-
-.help-notice { padding: 1.25rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3); }
-.notice-header { display: flex; align-items: center; gap: 0.5rem; color: #2563eb; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; }
+.help-notice { padding: 1.25rem; background: var(--color-background); border-radius: 12px; border: 1px dashed var(--color-border-strong); }
+.notice-header { display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
 .help-text { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.5rem; line-height: 1.5; }
 </style>

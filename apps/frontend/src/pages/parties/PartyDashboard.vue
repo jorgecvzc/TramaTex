@@ -3,7 +3,7 @@
   
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Gestión de Entidades" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Dashboard' }]">
+      <PageHeader title="Panel de Gestión de Entidades" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Dashboard' }]">
         <template #icon><span class="material-symbols-outlined">groups</span></template>
         <template #actions>
           <button class="btn btn-primary" @click="router.push('/parties/new')">
@@ -16,7 +16,7 @@
 
     <div class="party-dashboard-content">
       <!-- KPIs Superiores -->
-      <section class="stats-grid mb-8">
+      <section class="stats-grid mb-12">
         <div class="stat-card clickable" @click="router.push('/parties/list')">
           <div class="stat-icon blue"><span class="material-symbols-outlined">groups</span></div>
           <div class="stat-info">
@@ -51,52 +51,48 @@
         </div>
       </section>
 
-      <div class="dashboard-grid-main">
-        <!-- Entidades Recientes -->
-        <section class="dashboard-section">
-          <div class="section-header">
-            <span class="material-symbols-outlined text-primary">recent_actors</span>
-            <h2>Últimas Altas</h2>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Rol</th>
-                  <th>Identificación</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="p in recentParties" :key="p.id" class="row-clickable" @click="router.push(`/parties/${p.id}`)">
-                  <td><strong>{{ p.name }}</strong></td>
-                  <td>{{ formatRole(p.role) }}</td>
-                  <td><code class="code-badge">{{ p.tax_id || '—' }}</code></td>
-                  <td>
-                    <span :class="['status-badge', p.status === 'ACTIVE' ? 'status-success' : 'status-secondary']">
-                      {{ p.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+      <!-- Entidades Recientes -->
+      <section class="dashboard-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined text-primary">recent_actors</span>
+          <h2>Últimas Altas</h2>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Rol</th>
+                <th>Identificación</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in recentParties" :key="p.id" class="row-clickable" @click="router.push(`/parties/${p.id}`)">
+                <td><strong>{{ p.name }}</strong></td>
+                <td>{{ formatRole(p.role) }}</td>
+                <td><code class="code-badge">{{ p.tax_id || '—' }}</code></td>
+                <td>
+                  <span :class="['status-badge', p.status === 'ACTIVE' ? 'status-success' : 'status-secondary']">
+                    {{ p.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
 
     <template #sidebar>
-      <section class="sidebar-section">
-        <div class="section-header">
+      <section class="help-notice">
+        <div class="notice-header">
           <span class="material-symbols-outlined">contact_support</span>
-          <h2>Ayuda y Soporte</h2>
+          <h2>Sobre las Entidades</h2>
         </div>
-        <div class="help-notice">
-          <p class="help-text">
-            Las entidades representan a cualquier persona u organización con la que TramaTex interactúa. Un contacto puede ser cliente y proveedor simultáneamente.
-          </p>
-        </div>
+        <p class="help-text">
+          Las entidades representan a cualquier persona u organización con la que TramaTex interactúa. Un contacto puede ser cliente y proveedor simultáneamente.
+        </p>
       </section>
     </template>
   </BaseDashboardPage>
@@ -156,6 +152,7 @@ onMounted(loadPartyData);
 .section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-background); }
 .section-header h2 { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; margin: 0; }
 .code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; font-weight: 700; }
-.help-notice { padding: 1.25rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3); }
-.help-text { font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5; }
+.help-notice { padding: 1.25rem; background: var(--color-background); border-radius: 12px; border: 1px dashed var(--color-border-strong); }
+.notice-header { display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+.help-text { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.5rem; line-height: 1.5; }
 </style>
