@@ -3,162 +3,155 @@
   
   <div class="dashboard-page">
     <div class="dashboard-container">
-      <header class="dashboard-header mb-10">
-        <div class="welcome-section">
-          <h1 class="font-brand">¡Hola de nuevo, {{ userName }}!</h1>
-          <p class="text-muted">Aquí tienes el resumen operativo de TramaTex para hoy.</p>
+      <!-- CABECERA: Bienvenida y Fecha -->
+      <header class="dashboard-header mb-8">
+        <div class="welcome-text">
+          <h1 class="font-brand">Panel de Control</h1>
+          <p class="text-muted">Bienvenido, <strong>{{ userName }}</strong>. Gestión de TramaTex para el {{ todayDate }}.</p>
         </div>
-        <div class="header-date">
-          <span class="material-symbols-outlined">calendar_today</span>
-          <span>{{ todayDate }}</span>
+        <div class="header-actions">
+          <button @click="loadStats" class="btn-refresh" :disabled="isLoading" title="Actualizar datos">
+            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">sync</span>
+          </button>
         </div>
       </header>
 
-      <!-- SECCIÓN: KPIs GLOBALES -->
-      <section class="stats-grid mb-10">
-        <div class="stat-card blue">
-          <div class="stat-icon"><span class="material-symbols-outlined">payments</span></div>
-          <div class="stat-data">
-            <span class="stat-value">{{ salesStats.monthlyTotal }}</span>
-            <span class="stat-label">Ventas del Mes</span>
+      <!-- CAPA 1: KPIs RESUMEN (Más ligeros y con más aire inferior) -->
+      <section class="kpi-grid mb-12">
+        <div class="kpi-card">
+          <div class="kpi-icon blue"><span class="material-symbols-outlined">payments</span></div>
+          <div class="kpi-data">
+            <label>Ventas Mes</label>
+            <strong>{{ salesStats.monthlyTotal }}</strong>
           </div>
         </div>
-        <div class="stat-card green">
-          <div class="stat-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
-          <div class="stat-data">
-            <span class="stat-value">{{ salesStats.pendingOrders }}</span>
-            <span class="stat-label">Pedidos Pendientes</span>
+        <div class="kpi-card">
+          <div class="kpi-icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="kpi-data">
+            <label>Pedidos Pendientes</label>
+            <strong>{{ salesStats.pendingOrders }}</strong>
           </div>
         </div>
-        <div class="stat-card yellow">
-          <div class="stat-icon"><span class="material-symbols-outlined">precision_manufacturing</span></div>
-          <div class="stat-data">
-            <span class="stat-value">{{ mesStats.activeWorkOrders }}</span>
-            <span class="stat-label">Órdenes en Taller</span>
+        <div class="kpi-card">
+          <div class="kpi-icon yellow"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+          <div class="kpi-data">
+            <label>Órdenes Taller</label>
+            <strong>{{ mesStats.activeWorkOrders }}</strong>
           </div>
         </div>
-        <div class="stat-card purple">
-          <div class="stat-icon"><span class="material-symbols-outlined">groups</span></div>
-          <div class="stat-data">
-            <span class="stat-value">{{ partyStats.totalParties }}</span>
-            <span class="stat-label">Entidades</span>
+        <div class="kpi-card">
+          <div class="kpi-icon purple"><span class="material-symbols-outlined">groups</span></div>
+          <div class="kpi-data">
+            <label>Entidades</label>
+            <strong>{{ partyStats.totalParties }}</strong>
           </div>
         </div>
       </section>
 
-      <!-- SECCIÓN: ACCESOS DIRECTOS OPERATIVOS -->
-      <section class="dashboard-section mb-10">
-        <div class="section-header">
-          <span class="material-symbols-outlined">bolt</span>
-          <h2>Operaciones Rápidas</h2>
-        </div>
-        <div class="actions-grid">
-          <RouterLink to="/sales/orders/new" class="action-card">
-            <span class="material-symbols-outlined">add_shopping_cart</span>
-            <span>Nuevo Pedido</span>
-          </RouterLink>
-          <RouterLink to="/sales/quotes/new" class="action-card">
-            <span class="material-symbols-outlined">add_notes</span>
-            <span>Presupuesto</span>
-          </RouterLink>
-          <RouterLink to="/sales/tickets/new" class="action-card highlight">
-            <span class="material-symbols-outlined">point_of_sale</span>
-            <span>Venta Directa</span>
-          </RouterLink>
-          <RouterLink to="/products/new" class="action-card">
-            <span class="material-symbols-outlined">add_box</span>
-            <span>Nuevo Producto</span>
-          </RouterLink>
-        </div>
-      </section>
-
-      <!-- SECCIÓN: DASHBOARDS DE MÓDULO -->
-      <section class="dashboard-section mb-10">
-        <div class="section-header">
-          <span class="material-symbols-outlined">monitoring</span>
-          <h2>Paneles de Control de Módulo</h2>
-        </div>
-        <div class="module-dashboards-grid">
-          <RouterLink to="/sales/dashboard" class="module-card">
-            <div class="module-icon blue"><span class="material-symbols-outlined">payments</span></div>
-            <div class="module-info">
-              <strong>Dashboard de Ventas</strong>
-              <p>KPIs de facturación, pedidos y entregas.</p>
+      <div class="dashboard-main-layout">
+        <!-- COLUMNA PRINCIPAL: OPERACIONES Y MÓDULOS -->
+        <main class="main-column">
+          <!-- Centro de Operaciones -->
+          <section class="ops-section card mb-8">
+            <div class="ops-header">
+              <span class="material-symbols-outlined">rocket_launch</span>
+              <h2>Accesos Directos</h2>
             </div>
-            <span class="material-symbols-outlined arrow">chevron_right</span>
-          </RouterLink>
-
-          <RouterLink to="/products/dashboard" class="module-card">
-            <div class="module-icon yellow"><span class="material-symbols-outlined">inventory_2</span></div>
-            <div class="module-info">
-              <strong>Gestión de Catálogo</strong>
-              <p>Métricas de productos, marcas y atributos.</p>
+            <div class="ops-grid">
+              <RouterLink to="/sales/orders/new" class="op-item">
+                <div class="op-icon"><span class="material-symbols-outlined">add_shopping_cart</span></div>
+                <span>Nuevo Pedido</span>
+              </RouterLink>
+              <RouterLink to="/sales/tickets/new" class="op-item highlight">
+                <div class="op-icon"><span class="material-symbols-outlined">point_of_sale</span></div>
+                <span>Venta Directa</span>
+              </RouterLink>
+              <RouterLink to="/products/new" class="op-item">
+                <div class="op-icon"><span class="material-symbols-outlined">add_box</span></div>
+                <span>Nuevo Producto</span>
+              </RouterLink>
+              <RouterLink to="/parties/new" class="op-item">
+                <div class="op-icon"><span class="material-symbols-outlined">person_add</span></div>
+                <span>Nueva Entidad</span>
+              </RouterLink>
             </div>
-            <span class="material-symbols-outlined arrow">chevron_right</span>
-          </RouterLink>
+          </section>
 
-          <RouterLink to="/parties/dashboard" class="module-card">
-            <div class="module-icon green"><span class="material-symbols-outlined">groups</span></div>
-            <div class="module-info">
-              <strong>Control de Entidades</strong>
-              <p>Visión general de clientes y proveedores.</p>
+          <!-- Gestión por Módulos -->
+          <section class="modules-section">
+            <div class="section-title-alt">
+              <span class="material-symbols-outlined">grid_view</span>
+              <h2>Gestión de Módulos</h2>
             </div>
-            <span class="material-symbols-outlined arrow">chevron_right</span>
-          </RouterLink>
+            <div class="modules-grid">
+              <RouterLink to="/sales/dashboard" class="module-link-card">
+                <div class="m-icon blue"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+                <div class="m-info">
+                  <strong>Ventas y Facturación</strong>
+                  <p>Presupuestos, pedidos y albaranes.</p>
+                </div>
+                <span class="material-symbols-outlined arrow">chevron_right</span>
+              </RouterLink>
 
-          <RouterLink to="/mes/dashboard" class="module-card">
-            <div class="module-icon purple"><span class="material-symbols-outlined">precision_manufacturing</span></div>
-            <div class="module-info">
-              <strong>Monitor de Taller (MES)</strong>
-              <p>Estado de producción y órdenes activas.</p>
+              <RouterLink to="/products/dashboard" class="module-link-card">
+                <div class="m-icon yellow"><span class="material-symbols-outlined">inventory_2</span></div>
+                <div class="m-info">
+                  <strong>Catálogo y Almacén</strong>
+                  <p>Variantes JIT, marcas y atributos.</p>
+                </div>
+                <span class="material-symbols-outlined arrow">chevron_right</span>
+              </RouterLink>
+
+              <RouterLink to="/parties/dashboard" class="module-link-card">
+                <div class="m-icon green"><span class="material-symbols-outlined">groups</span></div>
+                <div class="m-info">
+                  <strong>Terceros y CRM</strong>
+                  <p>Base de datos de clientes y proveedores.</p>
+                </div>
+                <span class="material-symbols-outlined arrow">chevron_right</span>
+              </RouterLink>
+
+              <RouterLink to="/mes/dashboard" class="module-link-card">
+                <div class="m-icon purple"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+                <div class="m-info">
+                  <strong>Monitor de Producción</strong>
+                  <p>Estado de taller y órdenes MES.</p>
+                </div>
+                <span class="material-symbols-outlined arrow">chevron_right</span>
+              </RouterLink>
             </div>
-            <span class="material-symbols-outlined arrow">chevron_right</span>
-          </RouterLink>
-        </div>
-      </section>
+          </section>
+        </main>
 
-      <div class="dashboard-grid-main">
-        <!-- Listados de actividad -->
-        <section class="dashboard-section main-area">
-          <div class="section-header">
-            <span class="material-symbols-outlined">history</span>
-            <h2>Actividad Reciente</h2>
-          </div>
-          <div v-if="isLoading" class="loading-state">
-            <div class="spinner"></div>
-            <p>Sincronizando datos operativos...</p>
-          </div>
-          <div v-else class="activity-content">
-            <p class="text-muted italic">Últimos movimientos registrados en el sistema.</p>
-            <!-- Aquí iría un feed de actividad en el futuro -->
-          </div>
-        </section>
-
-        <!-- Sidebar Administrativo -->
-        <aside class="dashboard-sidebar">
-          <section class="dashboard-section">
-            <div class="section-header">
+        <!-- COLUMNA LATERAL: ADMIN Y AYUDA -->
+        <aside class="side-column">
+          <section class="card admin-side-card mb-6">
+            <div class="ops-header">
               <span class="material-symbols-outlined">admin_panel_settings</span>
-              <h2>Administración</h2>
+              <h2>Sistema</h2>
             </div>
-            <div class="admin-links">
-              <RouterLink to="/admin/users" class="admin-card">
+            <div class="side-links">
+              <RouterLink to="/admin/users" class="side-link-item">
                 <span class="material-symbols-outlined">manage_accounts</span>
-                <div class="admin-card-info">
-                  <strong>Gestión de Usuarios</strong>
-                  <p>Roles y accesos</p>
-                </div>
-                <span class="material-symbols-outlined arrow">chevron_right</span>
+                <span>Gestión de Usuarios</span>
               </RouterLink>
-              <RouterLink to="/admin/print-profile" class="admin-card mt-3">
+              <RouterLink to="/admin/print-profile" class="side-link-item mt-2">
                 <span class="material-symbols-outlined">receipt_long</span>
-                <div class="admin-card-info">
-                  <strong>Perfil de Impresión</strong>
-                  <p>Datos fiscales para PDF</p>
-                </div>
-                <span class="material-symbols-outlined arrow">chevron_right</span>
+                <span>Perfil de Impresión</span>
+              </RouterLink>
+              <RouterLink to="/dev/design-system" class="side-link-item mt-2 dev-link">
+                <span class="material-symbols-outlined">architecture</span>
+                <span>Design System</span>
               </RouterLink>
             </div>
+          </section>
+
+          <section class="notice-card card">
+            <div class="notice-header">
+              <span class="material-symbols-outlined">info</span>
+              <h3>TramaTex v1.0 MVP</h3>
+            </div>
+            <p class="text-muted">Sistema operativo y estable. El reset semanal de la demo se realiza los domingos a las 03:00 AM.</p>
           </section>
         </aside>
       </div>
@@ -192,12 +185,11 @@ async function loadStats() {
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
       partyApi.listParties({ limit: 1 })
     ])
-    
     salesStats.value.pendingOrders = orders.total || 0
     mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
     partyStats.value.totalParties = parties.total || 0
   } catch (err) {
-    console.error('Error loading dashboard stats:', err)
+    console.error('Error dashboard:', err)
   } finally {
     isLoading.value = false
   }
@@ -207,74 +199,76 @@ onMounted(loadStats)
 </script>
 
 <style scoped>
-.dashboard-page { background-color: var(--color-background); min-height: 100vh; padding-bottom: 4rem; }
+.dashboard-page { background-color: var(--color-background); min-height: 100vh; }
 .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-.dashboard-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.dashboard-header h1 { font-size: 2rem; color: var(--color-secondary); margin: 0; }
-.header-date { display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary); font-size: 0.9rem; font-weight: 600; padding: 0.5rem 1rem; background: white; border-radius: 100px; box-shadow: var(--box-shadow-sm); border: 1px solid var(--color-border); }
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.dashboard-header h1 { font-size: 2.25rem; color: var(--color-text-primary); margin: 0; font-weight: 800; }
+.btn-refresh { background: white; border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 8px; cursor: pointer; color: var(--color-text-secondary); transition: 0.2s; }
+.btn-refresh:hover { color: var(--color-primary); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 
-/* KPI Cards */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
-.stat-card { background: white; padding: 1.5rem; border-radius: 16px; display: flex; align-items: center; gap: 1.25rem; box-shadow: var(--box-shadow-sm); border: 1px solid var(--color-border); }
-.stat-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-.stat-icon .material-symbols-outlined { font-size: 32px; }
+/* KPIs Refinados */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+.kpi-card { background: white; padding: 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--color-border); }
+.kpi-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.kpi-icon .material-symbols-outlined { font-size: 24px; }
+.kpi-icon.blue { background: rgba(37, 99, 235, 0.08); color: #2563eb; }
+.kpi-icon.green { background: rgba(22, 163, 74, 0.08); color: #16a34a; }
+.kpi-icon.yellow { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+.kpi-icon.purple { background: rgba(147, 51, 234, 0.08); color: #9333ea; }
+.kpi-data { display: flex; flex-direction: column; }
+.kpi-data label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
+.kpi-data strong { font-size: 1.4rem; color: var(--color-text-primary); font-weight: 800; }
 
-.stat-card.blue .stat-icon { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.stat-card.green .stat-icon { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-.stat-card.yellow .stat-icon { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.stat-card.purple .stat-icon { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+/* Layout de dos columnas */
+.dashboard-main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; align-items: start; }
 
-.stat-data { display: flex; flex-direction: column; }
-.stat-value { font-size: 1.75rem; font-weight: 800; color: var(--color-text-primary); }
-.stat-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
+/* Ops Section (Quick Actions) */
+.ops-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+.ops-header h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); }
+.ops-header .material-symbols-outlined { color: var(--color-primary); }
 
-/* Dashboard Sections */
-.dashboard-section { background: white; padding: 2rem; border-radius: 16px; border: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
-.section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-background); }
-.section-header h2 { font-size: 1rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); letter-spacing: 0.05em; }
-.section-header .material-symbols-outlined { color: var(--color-primary); font-size: 24px; }
+.ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+.op-item { display: flex; flex-direction: column; align-items: center; padding: 1.5rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; font-size: 0.85rem; transition: 0.2s; text-align: center; gap: 0.75rem; border: 1px solid transparent; }
+.op-item:hover { transform: translateY(-3px); background: white; border-color: var(--color-primary); box-shadow: var(--box-shadow-md); color: var(--color-primary); }
+.op-icon { color: var(--color-primary); }
+.op-icon .material-symbols-outlined { font-size: 32px; }
+.op-item.highlight { background: rgba(230, 184, 0, 0.05); border: 1px dashed var(--color-primary); }
 
-/* Actions Grid */
-.actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-.action-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; padding: 2rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; transition: all 0.2s ease; border: 1px solid transparent; }
-.action-card:hover { transform: translateY(-4px); background: white; border-color: var(--color-primary); box-shadow: var(--box-shadow-md); color: var(--color-primary); }
-.action-card .material-symbols-outlined { font-size: 36px; color: var(--color-primary); }
-.action-card.highlight { background: rgba(230, 184, 0, 0.1); border: 1px dashed var(--color-primary); }
+/* Modules Grid */
+.section-title-alt { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.section-title-alt h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
+.modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.module-link-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.25rem; background: white; border-radius: 12px; border: 1px solid var(--color-border); text-decoration: none; transition: 0.2s; }
+.module-link-card:hover { transform: translateX(5px); border-color: var(--color-secondary); box-shadow: var(--box-shadow-sm); }
+.m-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.m-icon .material-symbols-outlined { font-size: 22px; }
+.m-icon.blue { background: rgba(37, 99, 235, 0.05); color: #2563eb; }
+.m-icon.yellow { background: rgba(217, 119, 6, 0.05); color: #d97706; }
+.m-icon.green { background: rgba(22, 163, 74, 0.05); color: #16a34a; }
+.m-icon.purple { background: rgba(147, 51, 234, 0.05); color: #9333ea; }
+.m-info strong { display: block; font-size: 0.9rem; color: var(--color-text-primary); }
+.m-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0.1rem 0 0; }
+.module-link-card .arrow { margin-left: auto; color: var(--color-border); font-size: 18px; }
 
-/* Module Dashboards Grid */
-.module-dashboards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-.module-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.25rem; background: var(--color-background); border-radius: 12px; text-decoration: none; transition: all 0.2s; border: 1px solid transparent; position: relative; }
-.module-card:hover { background: white; border-color: var(--color-secondary); transform: translateX(4px); box-shadow: var(--box-shadow-md); }
-.module-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.module-icon .material-symbols-outlined { font-size: 24px; }
-.module-icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.module-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.module-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-.module-icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+/* Sidebar */
+.side-link-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
+.side-link-item:hover { background: white; border-color: var(--color-primary); color: var(--color-primary); transform: translateX(3px); }
+.side-link-item .material-symbols-outlined { font-size: 20px; color: var(--color-text-secondary); }
+.dev-link { margin-top: 1.5rem; opacity: 0.7; }
 
-.module-info { flex: 1; }
-.module-info strong { display: block; font-size: 0.95rem; color: var(--color-text-primary); }
-.module-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0.25rem 0 0; }
-.module-card .arrow { color: var(--color-border); transition: 0.2s; }
-.module-card:hover .arrow { color: var(--color-secondary); transform: translateX(3px); }
+/* Notice Card Suavizada */
+.notice-card { background: white; border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); }
+.notice-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; color: var(--color-primary); font-weight: 800; font-size: 0.8rem; text-transform: uppercase; }
+.notice-card p { font-size: 0.8rem; line-height: 1.5; margin: 0; }
 
-/* Main Grid Layout */
-.dashboard-grid-main { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; align-items: start; }
-.admin-card { display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--color-background); border-radius: 10px; border: 1px solid transparent; text-decoration: none; color: var(--color-text-primary); transition: 0.2s; }
-.admin-card:hover { background: white; border-color: var(--color-primary); transform: translateX(4px); box-shadow: var(--box-shadow-sm); }
-.admin-card-info strong { font-size: 0.85rem; display: block; }
-.admin-card-info p { font-size: 0.7rem; color: var(--color-text-secondary); margin: 0; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-.help-notice { padding: 1.25rem; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px dashed rgba(59, 130, 246, 0.3); }
-.notice-header { display: flex; align-items: center; gap: 0.5rem; color: #2563eb; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; }
-.help-text { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.5rem; line-height: 1.5; }
-
-.spinner { width: 40px; height: 40px; margin: 2rem auto; border: 3px solid #f3f4f6; border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.mb-12 { margin-bottom: 3.5rem; }
 
 @media (max-width: 1024px) {
-  .dashboard-grid-main { grid-template-columns: 1fr; }
-  .module-dashboards-grid { grid-template-columns: 1fr; }
+  .dashboard-main-layout { grid-template-columns: 1fr; }
+  .modules-grid { grid-template-columns: 1fr; }
 }
 </style>
