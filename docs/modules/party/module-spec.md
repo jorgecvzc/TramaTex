@@ -6,7 +6,7 @@ El módulo Party es el núcleo de identidad de TramaTex. Su propósito es propor
 
 ## 1. Filosofía de Identidad Unificada
 
-A diferencia de sistemas tradicionales que separan físicamente a un "Cliente" de un "Proveedor", TramaTex utiliza el patrón **Party**. Esto permite que una entidad (ej. una empresa textil que nos compra botones pero nos vende uniformes) mantenga una única ficha técnica, dirección y contactos, asumiendo múltiples roles comerciales simultáneamente.
+A diferencia de sistemas tradicionales que separan físicamente a un "Cliente" de un "Proveedor", TramaTex utiliza el patrón **Party**. Esto permite que una entidad (ej. una empresa textil que nos vende botones pero nos compra uniformes) mantenga una única ficha técnica, dirección y contactos, asumiendo múltiples roles comerciales simultáneamente.
 
 ### Objetivos de Valor
 - **Integridad de Datos:** Evitar que cambios en la dirección o razón social deban replicarse en múltiples tablas.
@@ -20,10 +20,10 @@ A diferencia de sistemas tradicionales que separan físicamente a un "Cliente" d
 ### Gestión de Perfiles Adaptativos
 El módulo distingue entre la naturaleza de la entidad (**Persona** vs. **Organización**). El comportamiento del sistema se adapta automáticamente:
 - Si es organización, activa la gestión de puntos de contacto y datos fiscales corporativos.
-- Si es persona, se enfoca en la identidad individual y roles operativos (ej. operario de taller).
+- Si es persona, se enfoca en la identidad individual y roles operativos (ej. contacto de de una organización).
 
 ### Arquitectura de Roles Dinámicos
-Los roles no son definiciones estáticas, sino "capas" de comportamiento que se añaden a la identidad. Una Party puede nacer como un contacto genérico y evolucionar a Cliente o Proveedor según se generen documentos en los módulos de **Sales** o **Product**.
+Los roles no son definiciones estáticas, sino "capas" de comportamiento que se añaden a la identidad. Una Party puede nacer como un contacto genérico y evolucionar a Cliente o Proveedor según se generen documentos en los módulos de **Sales**.
 
 ### Gobernanza de la Relación
 El módulo permite modelar el mercado real mediante relaciones jerárquicas (Filial de, Empleado de), permitiendo que las reglas de negocio (como descuentos heredados) fluyan a través de la estructura organizativa del cliente.

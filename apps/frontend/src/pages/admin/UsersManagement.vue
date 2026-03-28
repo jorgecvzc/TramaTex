@@ -1,153 +1,182 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">Administración / Usuarios</p>
-          <h1>Gestión de usuarios</h1>
-          <p class="subtitle">Administración de usuarios, roles y accesos.</p>
-        </div>
+  <Navbar />
+  
+  <div class="main-container">
+    <PageHeader 
+      title="Gestión de Usuarios" 
+      :breadcrumbs="[{ label: 'Administración', to: '/admin/users' }, { label: 'Usuarios' }]"
+    >
+      <template #actions>
         <button class="btn btn-secondary" @click="loadUsers" :disabled="isLoading">
-          {{ isLoading ? 'Cargando...' : 'Refrescar' }}
+          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+          Actualizar Lista
         </button>
-      </header>
+      </template>
+    </PageHeader>
 
-      <div v-if="!isAdmin" class="alert-warning">
-        Solo el rol admin puede gestionar usuarios.
-      </div>
+    <div v-if="!isAdmin" class="alert alert-warning card">
+      <span class="material-symbols-outlined">warning</span>
+      <p>Acceso restringido. Solo el personal administrador puede gestionar cuentas de usuario.</p>
+    </div>
 
-      <div v-else class="cards-grid">
-        <section class="card">
+    <div v-else class="admin-layout">
+      <!-- Top Section: Creation and Info -->
+      <div class="cards-grid">
+        <section class="card form-card">
           <div class="card-header">
-            <div>
-              <h2>Alta de usuario</h2>
-              <p>Crea cuentas con roles predefinidos.</p>
+            <div class="header-icon">
+              <span class="material-symbols-outlined">person_add</span>
             </div>
-            <span class="badge">Admin</span>
+            <div>
+              <h2>Alta de Nuevo Usuario</h2>
+              <p>Crea una cuenta con permisos específicos.</p>
+            </div>
           </div>
 
-          <form class="form-grid" @submit.prevent="createUser">
-            <div>
-              <label>Email</label>
-              <input
-                v-model.trim="newUser.email"
-                type="email"
-                placeholder="usuario@tramatex.local"
-                required
-              />
+          <form class="user-form" @submit.prevent="createUser">
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined icon-start">mail</span>
+                <input
+                  v-model.trim="newUser.email"
+                  type="email"
+                  placeholder="usuario@tramatex.local"
+                  required
+                />
+              </div>
             </div>
-            <div>
-              <label>Contraseña</label>
-              <input
-                v-model="newUser.password"
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                required
-                minlength="8"
-              />
+            
+            <div class="form-group">
+              <label>Contraseña de Acceso</label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined icon-start">lock</span>
+                <input
+                  v-model="newUser.password"
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  minlength="8"
+                />
+              </div>
             </div>
-            <div>
-              <label>Rol</label>
+
+            <div class="form-group">
+              <label>Rol Asignado</label>
               <select v-model="newUser.role">
-                <option value="admin">admin</option>
-                <option value="commercial">commercial</option>
-                <option value="designer">designer</option>
-                <option value="workshop">workshop</option>
+                <option value="admin">Administrador (Total)</option>
+                <option value="commercial">Comercial (Ventas)</option>
+                <option value="designer">Diseñador (Productos)</option>
+                <option value="workshop">Taller (MES)</option>
               </select>
             </div>
+
             <div class="form-actions">
               <button type="submit" class="btn btn-primary" :disabled="isCreating">
-                {{ isCreating ? 'Creando...' : 'Crear usuario' }}
+                <span class="material-symbols-outlined">{{ isCreating ? 'sync' : 'save' }}</span>
+                <span>{{ isCreating ? 'Creando...' : 'Registrar Usuario' }}</span>
               </button>
-              <button type="button" class="btn btn-secondary" @click="resetNewUser">
+              <button type="button" class="btn btn-outline" @click="resetNewUser">
                 Limpiar
               </button>
             </div>
-            <p class="helper-text">
-              Las contraseñas se almacenan con hash bcrypt. El acceso se controla por rol.
-            </p>
           </form>
         </section>
 
-        <section class="card">
-          <h2>Roles disponibles</h2>
-          <p class="card-subtitle">Referencia rápida de permisos (MVP).</p>
-          <ul class="roles-list">
+        <section class="card help-card">
+          <div class="card-header">
+            <div class="header-icon secondary">
+              <span class="material-symbols-outlined">verified_user</span>
+            </div>
+            <div>
+              <h2>Permisos por Rol</h2>
+              <p>Resumen de capacidades del sistema.</p>
+            </div>
+          </div>
+          
+          <ul class="roles-guide">
             <li>
               <strong>admin</strong>
-              <span>Acceso total y administración.</span>
+              <span>Gestión total, configuración fiscal y borrado de registros.</span>
             </li>
             <li>
               <strong>commercial</strong>
-              <span>Gestión comercial y clientes.</span>
+              <span>Gestión de clientes, presupuestos y pedidos de venta.</span>
             </li>
             <li>
               <strong>designer</strong>
-              <span>Diseño de pedidos.</span>
+              <span>Edición de catálogo de productos, variantes y atributos.</span>
             </li>
             <li>
               <strong>workshop</strong>
-              <span>Operaciones de taller.</span>
+              <span>Acceso al terminal de taller y reporte de operaciones MES.</span>
             </li>
           </ul>
         </section>
       </div>
 
-      <section v-if="isAdmin" class="card card-full">
-        <div class="filters">
-          <div>
-            <label>Buscar por nombre o email</label>
-            <input
-              v-model.trim="search"
-              type="text"
-              placeholder="Buscar por email"
-            />
+      <!-- Bottom Section: Users Table -->
+      <section class="card table-card mt-6">
+        <div class="table-header-filters">
+          <div class="filter-group">
+            <label>Buscar usuario</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined icon-start">search</span>
+              <input v-model.trim="search" type="text" placeholder="Email o nombre..." />
+            </div>
           </div>
-          <div>
+          <div class="filter-group">
             <label>Filtrar por rol</label>
             <select v-model="roleFilter">
-              <option value="">Todos</option>
-              <option value="admin">admin</option>
-              <option value="commercial">commercial</option>
-              <option value="designer">designer</option>
-              <option value="workshop">workshop</option>
+              <option value="">Todos los roles</option>
+              <option value="admin">Administrador</option>
+              <option value="commercial">Comercial</option>
+              <option value="designer">Diseñador</option>
+              <option value="workshop">Taller</option>
             </select>
           </div>
         </div>
 
-        <div v-if="error" class="alert-error">
-          {{ error }}
+        <div v-if="error" class="alert alert-error">
+          <span class="material-symbols-outlined">error</span>
+          <p>{{ error }}</p>
         </div>
 
         <div class="table-wrapper">
-          <table>
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Email</th>
-                <th>Rol</th>
-                <th class="align-right">Acciones</th>
+                <th>Usuario (Email)</th>
+                <th>Rol Actual</th>
+                <th class="align-right">Acciones de Gestión</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in filteredUsers" :key="user.id">
-                <td>{{ user.email }}</td>
+              <tr v-for="user in filteredUsers" :key="user.id" class="row-hover">
                 <td>
-                  <span class="role-pill">{{ user.role }}</span>
+                  <div class="user-cell">
+                    <span class="material-symbols-outlined user-avatar">account_circle</span>
+                    <strong>{{ user.email }}</strong>
+                  </div>
+                </td>
+                <td>
+                  <span class="role-badge">{{ user.role }}</span>
                 </td>
                 <td class="align-right">
                   <div class="action-buttons">
-                    <button class="btn btn-outline" @click="openRoleModal(user)">
-                      Asignar rol
+                    <button class="btn btn-outline btn-sm" @click="openRoleModal(user)">
+                      <span class="material-symbols-outlined">key</span>
+                      Cambiar Rol
                     </button>
-                    <button class="btn btn-danger" @click="confirmDelete(user)">
+                    <button class="btn btn-danger btn-sm" @click="confirmDelete(user)">
+                      <span class="material-symbols-outlined">delete</span>
                       Eliminar
                     </button>
                   </div>
                 </td>
               </tr>
               <tr v-if="!isLoading && filteredUsers.length === 0">
-                <td colspan="3" class="empty-state">No hay usuarios para mostrar.</td>
+                <td colspan="3" class="empty-row">No se han encontrado usuarios que coincidan con la búsqueda.</td>
               </tr>
             </tbody>
           </table>
@@ -155,35 +184,46 @@
       </section>
     </div>
 
-    <div v-if="showModal" class="modal-backdrop">
-      <div class="modal">
-        <h2>Asignar rol</h2>
-        <p>
-          Usuario: <strong>{{ selectedUser?.email }}</strong>
-        </p>
+    <!-- Role Assignment Modal -->
+    <Transition name="fade">
+      <div v-if="showModal" class="modal-backdrop">
+        <div class="modal card">
+          <div class="modal-header">
+            <span class="material-symbols-outlined">manage_accounts</span>
+            <h2>Modificar Rol de Usuario</h2>
+          </div>
+          
+          <div class="modal-body">
+            <p class="modal-info">Estás actualizando los permisos para: <br><strong>{{ selectedUser?.email }}</strong></p>
+            
+            <div class="form-group">
+              <label>Nuevo Rol</label>
+              <select v-model="selectedRole">
+                <option value="admin">Administrador</option>
+                <option value="commercial">Comercial</option>
+                <option value="designer">Diseñador</option>
+                <option value="workshop">Taller</option>
+              </select>
+            </div>
+          </div>
 
-        <label>Rol</label>
-        <select v-model="selectedRole">
-          <option value="admin">admin</option>
-          <option value="commercial">commercial</option>
-          <option value="designer">designer</option>
-          <option value="workshop">workshop</option>
-        </select>
-
-        <div class="modal-actions">
-          <button class="btn btn-secondary" @click="closeModal">Cancelar</button>
-          <button class="btn btn-primary" @click="saveRole" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Guardar' }}
-          </button>
+          <div class="modal-actions">
+            <button class="btn btn-outline" @click="closeModal">Cancelar</button>
+            <button class="btn btn-primary" @click="saveRole" :disabled="isSaving">
+              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'check' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Confirmar Cambio' }}</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { Usuario, UserRole } from '@/types/auth'
 import { iamService } from '@/services/iam'
@@ -222,14 +262,12 @@ const filteredUsers = computed(() => {
 
 const loadUsers = async () => {
   if (!isAdmin.value) return
-
   isLoading.value = true
   error.value = null
-
   try {
     users.value = await iamService.listUsers()
   } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo cargar el listado.'
+    error.value = err?.response?.data?.error || err?.message || 'Error al cargar usuarios.'
   } finally {
     isLoading.value = false
   }
@@ -248,35 +286,24 @@ const closeModal = () => {
 
 const saveRole = async () => {
   if (!selectedUser.value) return
-
   isSaving.value = true
   try {
     const result = await iamService.assignRole(selectedUser.value.id, selectedRole.value)
-    users.value = users.value.map((user) =>
-      user.id === result.userId ? { ...user, role: result.role } : user
-    )
+    users.value = users.value.map((u) => u.id === result.userId ? { ...u, role: result.role } : u)
     closeModal()
   } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo asignar el rol.'
+    error.value = err?.response?.data?.error || err?.message || 'Error al asignar rol.'
   } finally {
     isSaving.value = false
   }
 }
 
-const resetNewUser = () => {
-  newUser.value = {
-    email: '',
-    password: '',
-    role: 'commercial'
-  }
-}
+const resetNewUser = () => { newUser.value = { email: '', password: '', role: 'commercial' } }
 
 const createUser = async () => {
   if (!isAdmin.value) return
-
   isCreating.value = true
   error.value = null
-
   try {
     const created = await iamService.createUser({
       email: newUser.value.email,
@@ -286,7 +313,7 @@ const createUser = async () => {
     users.value = [created, ...users.value]
     resetNewUser()
   } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo crear el usuario.'
+    error.value = err?.response?.data?.error || err?.message || 'Error al crear usuario.'
   } finally {
     isCreating.value = false
   }
@@ -294,339 +321,159 @@ const createUser = async () => {
 
 const confirmDelete = async (user: Usuario) => {
   if (!isAdmin.value || isDeleting.value) return
-
-  const confirmed = window.confirm(`¿Eliminar al usuario ${user.email}?`)
-  if (!confirmed) return
-
+  if (!window.confirm(`¿Estás seguro de eliminar permanentemente a ${user.email}?`)) return
   isDeleting.value = true
   error.value = null
-
   try {
     await iamService.deleteUser(user.id)
     users.value = users.value.filter((item) => item.id !== user.id)
   } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo eliminar el usuario.'
+    error.value = err?.message || 'Error al eliminar usuario.'
   } finally {
     isDeleting.value = false
   }
 }
 
-onMounted(() => {
-  loadUsers()
-})
+onMounted(() => loadUsers())
 </script>
 
 <style scoped>
-.dashboard {
-  min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
-}
+.main-container { padding-bottom: 4rem; }
 
-.dashboard-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.page-header h1 {
-  color: #1b3a6b;
-  margin: 0.25rem 0 0;
-}
-
-.breadcrumb {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin: 0;
-}
-
-.subtitle {
-  color: #64748b;
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
+.admin-layout { display: flex; flex-direction: column; gap: 1.5rem; }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
 }
 
-.card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.card-full {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.card h2 {
-  color: #1b3a6b;
-  margin-bottom: 0.5rem;
-}
-
-.card p {
-  color: #64748b;
-  font-size: 0.9rem;
-}
-
+/* Card Styling */
 .card-header {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-background);
 }
 
-.badge {
-  background-color: #002395;
-  color: #ffffff;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.form-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
-}
-
-input,
-select {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-}
-
-input:focus,
-select:focus {
-  outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
-}
-
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.helper-text {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.roles-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.roles-list li {
-  border: 1px solid #e2e8f0;
+.header-icon {
+  width: 48px;
+  height: 48px;
   border-radius: 10px;
+  background: rgba(230, 184, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.header-icon.secondary { background: rgba(0, 35, 149, 0.1); color: var(--color-secondary); }
+.header-icon .material-symbols-outlined { font-size: 28px; }
+
+.card h2 { font-size: 1.1rem; margin: 0; color: var(--color-text-primary); }
+.card p { margin: 0.25rem 0 0; font-size: 0.85rem; color: var(--color-text-secondary); }
+
+/* Form */
+.user-form { display: grid; gap: 1.25rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: var(--font-size-xs); font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); }
+
+input, select {
+  width: 100%;
   padding: 0.75rem 1rem;
-  background: #f8fafc;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+}
+
+.input-with-icon { position: relative; display: flex; align-items: center; }
+.icon-start { position: absolute; left: 0.85rem; font-size: 20px; color: var(--color-text-secondary); }
+.input-with-icon input { padding-left: 2.75rem; }
+
+.form-actions { display: flex; gap: 1rem; margin-top: 0.5rem; }
+.form-actions .btn-primary { flex: 2; }
+.form-actions .btn-outline { flex: 1; }
+
+/* Roles Guide */
+.roles-guide { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.roles-guide li {
+  padding: 0.75rem 1rem;
+  background: var(--color-background);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
+.roles-guide strong { color: var(--color-secondary); font-size: 0.9rem; }
+.roles-guide span { font-size: 0.8rem; color: var(--color-text-secondary); }
 
-.roles-list strong {
-  color: #002395;
-}
-
-.filters {
+/* Table Section */
+.table-header-filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.filters > div {
-  flex: 1;
-  min-width: 220px;
-}
+.table-header-filters .filter-group { flex: 1; margin: 0; }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-thead {
-  background: #f8fafc;
-  color: #64748b;
-}
-
-th,
-td {
-  padding: 0.85rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.align-right {
-  text-align: right;
-}
-
-.role-pill {
-  display: inline-block;
-  background-color: #e2e8f0;
-  color: #1e293b;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #e6b800;
-  color: #1e293b;
-  font-weight: 700;
-}
-
-.btn-primary:hover {
-  background: #d6aa00;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-danger {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.alert-warning {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  color: #92400e;
+.table-wrapper { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; text-align: left; }
+.data-table th {
   padding: 1rem;
-  border-radius: 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td { padding: 1rem; border-bottom: 1px solid var(--color-border); font-size: var(--font-size-sm); vertical-align: middle; }
+
+.user-cell { display: flex; align-items: center; gap: 0.75rem; }
+.user-avatar { color: var(--color-border); font-size: 32px; }
+.role-badge { 
+  display: inline-block; padding: 0.2rem 0.6rem; background: var(--color-background); 
+  border-radius: 99px; font-size: 0.75rem; font-weight: 600; color: var(--color-text-secondary);
 }
 
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  color: #991b1b;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-}
+.align-right { text-align: right; }
+.action-buttons { display: flex; justify-content: flex-end; gap: 0.5rem; }
 
-.empty-state {
-  text-align: center;
-  color: #64748b;
-  padding: 1.5rem;
-}
-
+/* Modal */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
-  z-index: 50;
+  z-index: 1000;
+  padding: 1rem;
 }
 
-.modal {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
-  display: grid;
-  gap: 1rem;
-}
+.modal { width: 100%; max-width: 450px; padding: 0; }
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; }
+.modal-header .material-symbols-outlined { color: var(--color-primary); }
+.modal-body { padding: 1.5rem; }
+.modal-info { background: var(--color-background); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.modal-actions { padding: 1.25rem 1.5rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 1rem; }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
+/* Transitions */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.mt-6 { margin-top: 1.5rem; }
+
+@media (max-width: 1024px) { .cards-grid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) {
-  .dashboard-content {
-    padding: 1.5rem;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
+  .table-header-filters { flex-direction: column; }
+  .action-buttons { flex-direction: column; align-items: stretch; }
 }
 </style>

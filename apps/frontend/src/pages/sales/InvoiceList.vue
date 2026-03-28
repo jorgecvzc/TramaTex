@@ -1,844 +1,184 @@
 <template>
-  <Navbar />
-  <div class="invoice-list-container">
-    <!-- Page Header -->
-    <div class="page-header">
-      <h1>Facturas</h1>
-      <div class="header-actions">
-        <button class="btn btn-secondary" @click="navigateToCreateTicket">
-          + Nuevo Ticket
+  <div class="page-layout">
+    <Navbar style="z-index: 2000;" class="no-print" />
+    
+    <BaseCatalog
+      title="Gestión de Facturas"
+      :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Facturas' }]"
+      :items="invoices"
+      :is-loading="isLoading"
+      :error="error"
+      :has-filters="hasFilters"
+      empty-icon="receipt_long"
+      empty-text="No hay facturas registradas"
+      @clear-filters="clearFilters"
+      @refresh="fetchInvoices"
+      @click-item="(item) => navigateToDetail(item.id)"
+    >
+      <template #header-actions>
+        <button class="btn btn-outline" @click="router.push('/sales/orders')">
+          <span class="material-symbols-outlined">list_alt</span>
+          <span>Catálogo de Pedidos</span>
         </button>
-        <button class="btn btn-primary" @click="showCreateInvoiceModal = true">
-          + Nueva Factura
-        </button>
-      </div>
-    </div>
+      </template>
 
-    <!-- Filters -->
-    <div class="filters-card">
-      <div class="filters-grid">
-        <div class="filter-group">
-          <PartySelector
-            v-model="filters.partyId"
-            label="Cliente"
-            placeholder="Buscar cliente por nombre o referencia..."
-            role-filter="CLIENT"
-            :required="false"
-          />
-        </div>
+      <template #filters>
         <div class="filter-group">
           <label>Búsqueda</label>
-          <input
-            v-model="filters.searchText"
-            type="text"
-            class="filter-input"
-            placeholder="Buscar por referencia o nombre"
-          />
+          <input v-model="filters.searchText" type="text" placeholder="Ref. factura..." />
         </div>
+
         <div class="filter-group">
           <label>Tipo</label>
-          <select v-model="filters.type" class="filter-select">
-            <option value="">Todos</option>
-            <option value="COMPLETA">Estándar</option>
-            <option value="SIMPLIFICADA">Simplificada</option>
+          <select v-model="filters.type">
+            <option value="">Todos los tipos</option>
+            <option value="STANDARD">Estándar</option>
+            <option value="SIMPLIFIED">Simplificada</option>
           </select>
         </div>
+
+        <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.status">
+            <option value="">Cualquier estado</option>
+            <option value="DRAFT">Borrador</option>
+            <option value="ISSUED">Emitida</option>
+            <option value="PAID">Pagada</option>
+            <option value="CANCELLED">Cancelada</option>
+          </select>
+        </div>
+
         <div class="filter-group">
           <label>Desde</label>
-          <input v-model="filters.fromDate" type="date" class="filter-input" />
+          <input v-model="filters.fromDate" type="date" />
         </div>
+
         <div class="filter-group">
           <label>Hasta</label>
-          <input v-model="filters.toDate" type="date" class="filter-input" />
+          <input v-model="filters.toDate" type="date" />
         </div>
-      </div>
-      <div class="filter-actions">
-        <div class="limit-group">
-          <label>Mostrar</label>
-          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
-            <option :value="25">25</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-            <option :value="0">Todos</option>
-          </select>
-          <span class="limit-label">registros</span>
-        </div>
-        <button class="btn btn-secondary" @click="clearFilters">Limpiar</button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">Buscar</button>
-      </div>
-    </div>
+      </template>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Cargando facturas...</p>
-    </div>
+      <template #table-header>
+        <th>Número</th>
+        <th>Tipo</th>
+        <th>Fecha Factura</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th class="align-right">Total</th>
+        <th class="align-right">Acciones</th>
+      </template>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-message">{{ error }}</p>
-      <button class="btn btn-secondary" @click="fetchInvoices">Reintentar</button>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!filteredInvoices || filteredInvoices.length === 0" class="empty-state">
-      <p>No se encontraron facturas con los criterios seleccionados</p>
-      <button class="btn btn-primary" @click="showCreateInvoiceModal = true">
-        Crear Primera Factura
-      </button>
-    </div>
-
-    <!-- Data Table -->
-    <div v-else class="table-card">
-      <div class="table-container">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Cliente</th>
-              <th>Fecha</th>
-              <th>Vencimiento</th>
-              <th>Tipo</th>
-              <th>Estado</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="invoice in filteredInvoices"
-              :key="invoice.id"
-              class="clickable-row"
-              @click="navigateToDetail(invoice.id)"
-            >
-              <td class="invoice-number">{{ invoice.invoiceNumber }}</td>
-              <td class="party-id">{{ formatPartyId(invoice.partyId) }}</td>
-              <td>{{ formatDate(invoice.issueDate) }}</td>
-              <td>{{ formatDate(invoice.dueDate) }}</td>
-              <td>
-                <span :class="['type-badge', `type-${invoice.type.toLowerCase()}`]">
-                  {{ getTypeLabel(invoice.type) }}
-                </span>
-              </td>
-              <td>
-                <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
-                  {{ salesApi.getStatusLabel(invoice.status) }}
-                </span>
-              </td>
-              <td class="amount">{{ salesApi.formatMoney(invoice.total) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="table-summary">
-        Mostrando {{ filteredInvoices.length }} de {{ invoices.length }} factura(s)
-      </div>
-    </div>
-
-    <!-- Create Invoice Modal -->
-    <div v-if="showCreateInvoiceModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Nueva Factura Estándar</h3>
-          <button class="btn-close" @click="closeModal">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <PartySelector
-              v-model="invoiceForm.partyId"
-              label="Cliente"
-              placeholder="Buscar cliente por nombre o referencia..."
-              role-filter="CLIENT"
-              :required="true"
-              help-text="Cliente para el que se emitirá la factura"
-            />
+      <template #item="{ item }">
+        <td><span class="order-ref">{{ item.invoiceNumber }}</span></td>
+        <td>
+          <span :class="['type-tag', item.type === 'SIMPLIFIED' ? 'simplified' : 'standard']">
+            {{ item.type === 'SIMPLIFIED' ? 'Simplificada' : 'Estándar' }}
+          </span>
+        </td>
+        <td>{{ formatDate(item.invoiceDate) }}</td>
+        <td>{{ formatPartyName(item.partyId) }}</td>
+        <td>
+          <span :class="['status-badge', `status-${getStatusClass(item.status)}`]">
+            {{ getStatusLabel(item.status) }}
+          </span>
+        </td>
+        <td class="align-right"><strong>{{ salesApi.formatMoney(item.total) }}</strong></td>
+        <td class="align-right" @click.stop>
+          <div class="action-buttons">
+            <button class="btn-icon" @click="navigateToDetail(item.id)" title="Ver detalle">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
           </div>
-          <div class="form-group">
-            <label>IDs de Pedidos (separados por coma)</label>
-            <input
-              v-model="invoiceForm.salesOrderIds"
-              type="text"
-              placeholder="uuid1,uuid2,uuid3"
-              class="form-input"
-            />
-            <span class="help-text">
-              Puede dejar vacío si solo factura albaranes
-            </span>
-          </div>
-          <div class="form-group">
-            <label>IDs de Albaranes (separados por coma)</label>
-            <input
-              v-model="invoiceForm.deliveryNoteIds"
-              type="text"
-              placeholder="uuid1,uuid2,uuid3"
-              class="form-input"
-            />
-          </div>
-          <div class="form-group">
-            <label>Condiciones de Pago</label>
-            <textarea
-              v-model="invoiceForm.paymentTerms"
-              class="form-textarea"
-              rows="2"
-              placeholder="Ej: Pago a 30 días..."
-            ></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="closeModal">Cancelar</button>
-          <button
-            class="btn btn-primary"
-            @click="createInvoice"
-            :disabled="isCreating || !isInvoiceFormValid"
-          >
-            {{ isCreating ? 'Creando...' : 'Crear Factura' }}
-          </button>
-        </div>
-      </div>
-    </div>
+        </td>
+      </template>
+    </BaseCatalog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
-import PartySelector from '@/components/party/PartySelector.vue';
+import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 
 const router = useRouter();
-
 const invoices = ref([]);
 const isLoading = ref(false);
 const error = ref('');
+const filters = ref({ searchText: '', status: '', type: '', fromDate: '', toDate: '' });
 const partiesCache = ref({});
 
-const filters = ref({
-  partyId: '',
-  searchText: '',
-  type: '',
-  fromDate: '',
-  toDate: '',
-  limit: 50,
-});
+const hasFilters = computed(() => filters.value.searchText || filters.value.status || filters.value.type || filters.value.fromDate || filters.value.toDate);
 
-const filteredInvoices = computed(() => {
-  return invoices.value;
-});
-
-const isDateRangeValid = computed(() => {
-  const { fromDate, toDate } = filters.value;
-  if (fromDate && toDate) return fromDate <= toDate;
-  return true;
-});
-
+// Lógica de filtrado automática con debounce
 let searchDebounceTimer = null;
-let autoFetchEnabled = false;
+watch(filters, () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => fetchInvoices(), 350);
+}, { deep: true });
 
-function scheduleInvoicesFetch() {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
-
-  searchDebounceTimer = setTimeout(() => {
-    fetchInvoices();
-  }, 300);
-}
-
-watch(
-  () => filters.value.searchText,
-  (newSearch, oldSearch) => {
-    const normalizedNew = (newSearch || '').trim();
-    const normalizedOld = (oldSearch || '').trim();
-    if (normalizedNew === normalizedOld) return;
-
-    scheduleInvoicesFetch();
-  },
-);
-
-watch(
-  () => [filters.value.partyId, filters.value.type],
-  (newValues, oldValues) => {
-    if (!oldValues) return;
-    if (newValues[0] === oldValues[0] && newValues[1] === oldValues[1]) return;
-
-    scheduleInvoicesFetch();
-  },
-);
-
-watch(
-  () => [filters.value.fromDate, filters.value.toDate],
-  (newValues, oldValues) => {
-    if (!autoFetchEnabled || !oldValues) return;
-
-    const [newFromDate, newToDate] = newValues;
-    const [oldFromDate, oldToDate] = oldValues;
-    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    scheduleInvoicesFetch();
-  },
-);
-
-onBeforeUnmount(() => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
-});
-
-const showCreateInvoiceModal = ref(false);
-const isCreating = ref(false);
-
-const invoiceForm = ref({
-  partyId: '',
-  salesOrderIds: '',
-  deliveryNoteIds: '',
-  paymentTerms: '',
-});
-
-const isInvoiceFormValid = computed(() => {
-  return (
-    invoiceForm.value.partyId &&
-    (invoiceForm.value.salesOrderIds || invoiceForm.value.deliveryNoteIds)
-  );
-});
-
-onMounted(() => {
-  autoFetchEnabled = true;
-  fetchInvoices();
-});
+onMounted(() => fetchInvoices());
 
 async function fetchInvoices() {
   isLoading.value = true;
   error.value = '';
-
   try {
-    const params = {};
-
-    if (filters.value.searchText) {
-      params.searchText = filters.value.searchText;
-    }
-    if (filters.value.partyId) {
-      params.partyId = filters.value.partyId;
-    }
-    if (filters.value.type) {
-      params.invoiceType = filters.value.type;
-    }
-    if (filters.value.fromDate) {
-      params.fromDate = filters.value.fromDate;
-    }
-    if (filters.value.toDate) {
-      params.toDate = filters.value.toDate;
-    }
-    if (filters.value.limit) {
-      params.limit = filters.value.limit;
-    }
-
-    const response = await salesApi.listInvoices(params);
-
-    // Handle both array and object with data property
-    invoices.value = Array.isArray(response) ? response : (response.data || []);
+    const res = await salesApi.listInvoices(filters.value);
+    invoices.value = res.data || (Array.isArray(res) ? res : []);
     
-    // Load party names for display
-    await loadPartyNames();
+    if (invoices.value.length > 0) {
+      await loadPartyNames();
+    }
   } catch (err) {
-    error.value = err?.message || 'No se pudieron cargar las facturas';
-    console.error('Error loading invoices:', err);
+    console.error('Error fetching invoices:', err);
+    error.value = 'No se han podido cargar las facturas.';
   } finally {
     isLoading.value = false;
   }
 }
 
 async function loadPartyNames() {
-  const partyIds = [...new Set(invoices.value.map(i => i.partyId).filter(Boolean))];
-  
-  // Filter out already cached parties
-  const uncachedIds = partyIds.filter(id => !partiesCache.value[id]);
-  
-  if (uncachedIds.length === 0) {
-    return;
-  }
-
+  const ids = [...new Set(invoices.value.map(i => i.partyId).filter(id => id && !partiesCache.value[id]))];
+  if (ids.length === 0) return;
   try {
-    const partiesMap = await partyApi.getPartiesBatch(uncachedIds);
-    
-    // Update cache with batch results
-    for (const partyId of uncachedIds) {
-      if (partiesMap[partyId]) {
-        partiesCache.value[partyId] = partiesMap[partyId].name || 'Desconocido';
-      } else {
-        partiesCache.value[partyId] = 'No encontrado';
-      }
-    }
-  } catch (err) {
-    console.error('Error loading party names:', err);
-    // Fallback: mark as error
-    for (const partyId of uncachedIds) {
-      if (!partiesCache.value[partyId]) {
-        partiesCache.value[partyId] = 'Error al cargar';
-      }
-    }
-  }
+    const map = await partyApi.getPartiesBatch(ids);
+    ids.forEach(id => partiesCache.value[id] = map[id]?.name || 'Desconocido');
+  } catch (err) {}
 }
 
-async function createInvoice() {
-  if (!isInvoiceFormValid.value || isCreating.value) return;
+function formatPartyName(id) { return partiesCache.value[id] || 'Cargando...'; }
 
-  isCreating.value = true;
-
-  try {
-    const data = {
-      partyId: invoiceForm.value.partyId,
-      salesOrderIds: invoiceForm.value.salesOrderIds
-        ? invoiceForm.value.salesOrderIds.split(',').map((id) => id.trim()).filter(Boolean)
-        : [],
-      deliveryNoteIds: invoiceForm.value.deliveryNoteIds
-        ? invoiceForm.value.deliveryNoteIds.split(',').map((id) => id.trim()).filter(Boolean)
-        : [],
-    };
-
-    if (invoiceForm.value.paymentTerms) {
-      data.paymentTerms = invoiceForm.value.paymentTerms;
-    }
-
-    const newInvoice = await salesApi.createInvoice(data);
-    router.push(`/sales/invoices/${newInvoice.id}`);
-  } catch (err) {
-    alert(err?.message || 'No se pudo crear la factura');
-  } finally {
-    isCreating.value = false;
-  }
+function clearFilters() { 
+  filters.value = { searchText: '', status: '', type: '', fromDate: '', toDate: '' }; 
+  // El watch se encargará de llamar a fetchInvoices al cambiar la referencia
 }
 
-function clearFilters() {
-  filters.value = {
-    partyId: '',
-    searchText: '',
-    type: '',
-    fromDate: '',
-    toDate: '',
-    limit: 50,
-  };
-  fetchInvoices();
-}
+function navigateToDetail(id) { router.push(`/sales/invoices/${id}`); }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'; }
 
-function applyFilters() {
-  if (!isDateRangeValid.value) return;
-  fetchInvoices();
-}
-
-function closeModal() {
-  showCreateInvoiceModal.value = false;
-  invoiceForm.value = {
-    partyId: '',
-    salesOrderIds: '',
-    deliveryNoteIds: '',
-    paymentTerms: '',
-  };
-}
-
-function navigateToDetail(invoiceId) {
-  router.push(`/sales/invoices/${invoiceId}`);
-}
-
-function navigateToCreateTicket() {
-  router.push('/sales/tickets/new');
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES');
-}
-
-function formatPartyId(partyId) {
-  if (!partyId) return '—';
-  return partiesCache.value[partyId] || 'Cargando...';
-}
-
-function getTypeLabel(type) {
-  const labels = {
-    COMPLETA: 'Estándar',
-    SIMPLIFICADA: 'Simplificada',
-  };
-  return labels[type] || type;
-}
+function getStatusLabel(s) { return salesApi.getStatusLabel(s); }
+function getStatusClass(s) { return salesApi.getStatusClass(s); }
 </script>
 
 <style scoped>
-.invoice-list-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+.order-ref { font-family: var(--font-family-mono); font-weight: 700; color: var(--color-secondary); }
+.align-right { text-align: right; }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.filters-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.filters-grid {
-  display: contents;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.filter-group label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #4a5568;
-  margin-bottom: 0.25rem;
-}
-
-.filter-input,
-.filter-select {
-  width: 100%;
-  padding: 0.4rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.filter-input:focus,
-.filter-select:focus {
-  outline: none;
-  border-color: #E6B800;
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-}
-
-.filter-actions {
-  display: contents;
-}
-
-.limit-group {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.limit-group label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.limit-select {
-  width: 70px;
-}
-
-.limit-label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #E6B800;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a700;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #4a5568;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border: 3px solid #f3f4f6;
-  border-top-color: #E6B800;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.error-message {
-  color: #dc2626;
-  margin-bottom: 1rem;
-}
-
-.table-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead {
-  background: #f9fafb;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
+.type-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  color: #6b7280;
-  letter-spacing: 0.05em;
-}
-
-.data-table td {
-  padding: 1rem;
-  border-top: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1f2937;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.clickable-row:hover {
-  background: #f9fafb;
-}
-
-.invoice-number {
-  font-family: 'Courier New', monospace;
-  color: #002395;
-  font-weight: 500;
-}
-
-.party-id {
-  font-family: 'Courier New', monospace;
-  color: #6b7280;
-}
-
-.amount {
-  font-weight: 600;
-  text-align: right;
-}
-
-.type-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.type-completa {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.type-simplificada {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  background: transparent;
-  border: none;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-  font-size: 1.25rem;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.btn-icon:hover {
-  opacity: 1;
-}
-
-.table-summary {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.btn-close {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  color: #9ca3af;
-  cursor: pointer;
-  padding: 0;
-  width: 2rem;
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0.2rem 0.5rem;
   border-radius: 4px;
-  transition: all 0.2s;
+  border: 1px solid transparent;
 }
+.type-tag.standard { background: rgba(37, 99, 235, 0.1); color: #2563eb; border-color: rgba(37, 99, 235, 0.2); }
+.type-tag.simplified { background: rgba(217, 119, 6, 0.1); color: #d97706; border-color: rgba(217, 119, 6, 0.2); }
 
-.btn-close:hover {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.modal-body {
-  padding: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4a5568;
-  margin-bottom: 0.25rem;
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-family: inherit;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #E6B800;
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-}
-
-.help-text {
-  display: block;
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 0.25rem;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-  padding: 1.5rem;
-  border-top: 1px solid #f3f4f6;
-}
+.action-buttons { display: flex; justify-content: flex-end; }
+.btn-icon { color: var(--color-text-secondary); transition: 0.2s; padding: 0.4rem; border-radius: 6px; border: none; background: transparent; cursor: pointer; }
+.btn-icon:hover { color: var(--color-text-primary); background: rgba(0,0,0,0.05); }
 </style>

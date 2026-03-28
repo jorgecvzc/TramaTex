@@ -1,83 +1,104 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">MES / Tareas</p>
-          <h1>Tareas</h1>
-          <p class="subtitle">Administra las tareas base de producción.</p>
-        </div>
-        <RouterLink to="/mes/tasks/new" class="btn btn-primary">Nueva tarea</RouterLink>
-      </header>
+  <Navbar />
+  
+  <BaseCatalog
+    title="Tareas de Producción"
+    icon="assignment"
+    :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Tareas' }]"
+    :items="tasks"
+    :is-loading="isLoading"
+    :error="error"
+    :has-filters="!!search || statusFilter !== ''"
+    create-route="/mes/tasks/new"
+    create-text="Nueva Tarea"
+    empty-icon="assignment_late"
+    empty-text="No hay tareas registradas"
+    @clear-filters="clearFilters"
+    @refresh="loadTasks"
+    @click-item="(item) => navigateToEdit(item.id)"
+  >
+    <template #filters>
+      <div class="filter-group">
+        <label>Búsqueda</label>
+        <input 
+          v-model="search" 
+          type="text" 
+          placeholder="Nombre o referencia de tarea..." 
+          @input="debouncedSearch"
+        />
+      </div>
 
-      <section class="card filters">
-        <input v-model="search" type="text" placeholder="Buscar por nombre" class="input" />
-        <select v-model="statusFilter" class="input">
-          <option value="">Todas</option>
+      <div class="filter-group">
+        <label>Estado</label>
+        <select v-model="statusFilter" @change="loadTasks">
+          <option value="">Todos los estados</option>
           <option value="true">Activas</option>
           <option value="false">Inactivas</option>
         </select>
-        <button @click="loadTasks" class="btn btn-secondary">Filtrar</button>
-      </section>
+      </div>
+    </template>
 
-      <section class="card">
-        <div v-if="isLoading" class="empty-state">Cargando tareas...</div>
-        <div v-else-if="error" class="alert">{{ error }}</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Referencia</th>
-              <th>Descripción</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="task in tasks" :key="task.id">
-              <td><strong>{{ task.name }}</strong></td>
-              <td>{{ task.reference || '—' }}</td>
-              <td>{{ task.description || '—' }}</td>
-              <td>
-                <span class="badge" :class="task.is_active ? 'ok' : 'off'">
-                  {{ task.is_active ? 'Activa' : 'Inactiva' }}
-                </span>
-              </td>
-              <td class="actions">
-                <RouterLink :to="`/mes/tasks/${task.id}/edit`" class="btn btn-sm">Editar</RouterLink>
-                <button @click="toggleActive(task)" class="btn btn-sm" :class="task.is_active ? 'btn-off' : 'btn-on'">
-                  {{ task.is_active ? 'Desactivar' : 'Activar' }}
-                </button>
-              </td>
-            </tr>
-            <tr v-if="tasks.length === 0">
-              <td colspan="5" class="empty-state">No hay tareas registradas.</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </div>
-  </div>
+    <template #table-header>
+      <th>Nombre</th>
+      <th>Referencia</th>
+      <th>Descripción</th>
+      <th class="text-center">Estado</th>
+      <th class="align-right">Acciones</th>
+    </template>
+
+    <template #item="{ item }">
+      <td><strong>{{ item.name }}</strong></td>
+      <td><code class="code-badge">{{ item.reference || '—' }}</code></td>
+      <td><span class="text-muted">{{ item.description || '—' }}</span></td>
+      <td class="text-center">
+        <span :class="['status-pill', item.is_active ? 'status-active' : 'status-inactive']">
+          {{ item.is_active ? 'Activa' : 'Inactiva' }}
+        </span>
+      </td>
+      <td class="align-right" @click.stop>
+        <div class="action-buttons">
+          <router-link :to="`/mes/tasks/${item.id}/edit`" class="btn-icon" title="Editar">
+            <span class="material-symbols-outlined">edit</span>
+          </router-link>
+          <button 
+            class="btn-icon" 
+            @click="toggleActive(item)" 
+            :title="item.is_active ? 'Desactivar' : 'Activar'"
+            :class="{ 'text-warning': item.is_active }"
+          >
+            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+          </button>
+        </div>
+      </td>
+    </template>
+  </BaseCatalog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { onMounted, ref, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
+import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
 import type { MESTask } from '@/types/mes'
 
+const router = useRouter()
 const tasks = ref<MESTask[]>([])
 const isLoading = ref(false)
 const error = ref('')
 const search = ref('')
 const statusFilter = ref('')
 
+let searchTimeout: any = null
+
+function debouncedSearch() {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => loadTasks(), 350)
+}
+
 async function loadTasks() {
   isLoading.value = true
   error.value = ''
-
   try {
     const isActive = statusFilter.value === '' ? undefined : statusFilter.value === 'true'
     tasks.value = await mesApi.listTasks({
@@ -85,45 +106,41 @@ async function loadTasks() {
       is_active: isActive,
     })
   } catch (err: any) {
-    error.value = err.message || 'No se pudieron cargar las tareas'
+    error.value = err.message || 'Error al cargar tareas'
   } finally {
     isLoading.value = false
   }
 }
 
-async function toggleActive(task: MESTask) {
+async function toggleActive(item: MESTask) {
   try {
-    await mesApi.updateTask(task.id, { is_active: !task.is_active })
+    await mesApi.updateTask(item.id, { is_active: !item.is_active })
     await loadTasks()
   } catch (err: any) {
-    error.value = err.message || 'No se pudo cambiar el estado de la tarea'
+    alert(err.message)
   }
 }
 
+function clearFilters() {
+  search.value = ''
+  statusFilter.value = ''
+  loadTasks()
+}
+
+function navigateToEdit(id: string) {
+  router.push(`/mes/tasks/${id}/edit`)
+}
+
 onMounted(loadTasks)
+onUnmounted(() => { if (searchTimeout) clearTimeout(searchTimeout) })
 </script>
 
 <style scoped>
-.dashboard { min-height: 100vh; background-color: #f1f5f9; }
-.dashboard-content { max-width: 1200px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.breadcrumb { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin: 0; }
-.subtitle { color: #64748b; margin: .5rem 0 0; }
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
-.filters { display: grid; grid-template-columns: 1fr 180px auto; gap: .75rem; }
-.input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .6rem .75rem; }
-.btn { border: none; border-radius: 8px; padding: .6rem 1rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
-.btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
-.btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: .75rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
-.badge { padding: .2rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 600; }
-.badge.ok { background: #dcfce7; color: #166534; }
-.badge.off { background: #e2e8f0; color: #475569; }
-.empty-state { text-align: center; color: #64748b; padding: 1rem; }
-.alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
-.actions { display: flex; gap: .5rem; align-items: center; }
-.btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
-.btn-off { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-.btn-on { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.code-badge { background: var(--color-background); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary); }
+.align-right { text-align: right; }
+.text-center { text-align: center; }
+
+.action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
+.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }
+.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 </style>

@@ -23,7 +23,6 @@ Es la unidad mínima de venta. Representa una combinación única de valores de 
 ## 2. Comportamientos y Reglas Críticas
 ### Ordenamiento de Atributos por Lista Determinista
 El orden en que los atributos se aplican a un producto (para el cálculo de costes y la generación de SKUs) es crítico para la consistencia del catálogo.
-- **Eliminación de `sort_order`**: Se ha eliminado el campo explícito de orden en la entidad `Attribute` para evitar inconsistencias globales.
 - **Orden por `DirectAttributeIDs`**: El orden de herencia y aplicación se determina estrictamente por la posición de los IDs de atributos en la lista `DirectAttributeIDs` del Agregado `Product`.
 - **Impacto en SKU**: El SKU de una variante se genera concatenando el SKU base del producto con los códigos de los valores de atributos, siguiendo exactamente el orden definido en la lista del producto.
 

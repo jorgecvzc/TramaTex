@@ -10,7 +10,7 @@ En TramaTex, una **Identidad (Party)** es un contenedor de información biográf
 
 ### Perfiles Duales
 A diferencia de un modelo rígido, una identidad puede desplegar simultáneamente o de forma evolutiva dos perfiles:
-- **Perfil Individual:** Datos de persona física, críticos para operarios y contactos directos.
+- **Perfil Individual:** Datos de persona física, críticos para operarios (post-MVP) y contactos directos.
 - **Perfil Corporativo:** Datos de persona jurídica, necesarios para la fiscalidad B2B.
 
 **Regla de Negocio:** Una identidad es válida siempre que posea al menos uno de estos perfiles. El sistema permite la coexistencia para casos donde el dueño de una microempresa opera tanto a título personal como societario.

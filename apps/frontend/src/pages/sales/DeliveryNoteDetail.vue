@@ -1,290 +1,320 @@
 <template>
   <Navbar />
-  <div class="delivery-note-detail-container">
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
+  
+  <BaseEntityPage v-if="isLoading">
+    <template #header>
+      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+    </template>
+    <div class="loading-state card">
       <div class="spinner"></div>
-      <p>Cargando albarán...</p>
+      <p>Cargando información del albarán...</p>
     </div>
+  </BaseEntityPage>
 
-    <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-message">{{ error }}</p>
-      <button class="btn btn-secondary" @click="fetchDeliveryNote">Reintentar</button>
-      <button class="btn btn-secondary" @click="goBack">Volver</button>
+  <BaseEntityPage v-else-if="error">
+    <template #header>
+      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+    </template>
+    <div class="alert-card card">
+      <div class="alert-icon-wrapper error">
+        <span class="material-symbols-outlined">error</span>
+      </div>
+      <div class="alert-content">
+        <h3>Error al cargar</h3>
+        <p>{{ error }}</p>
+        <button class="btn btn-outline btn-sm mt-4" @click="router.push('/sales/delivery-notes')">Volver al catálogo</button>
+      </div>
     </div>
+  </BaseEntityPage>
 
-    <!-- Delivery Note Detail -->
-    <div v-else-if="deliveryNote" class="delivery-note-content">
-      <!-- Header -->
-      <div class="page-header">
-        <div>
-          <button class="btn-back" @click="goBack">← Volver</button>
-          <h1>Albarán {{ deliveryNote.deliveryNoteNumber }}
-            <span :class="['status-badge', 'status-' + salesApi.getStatusClass(deliveryNote.status)]">{{ salesApi.getStatusLabel(deliveryNote.status) }}</span>
-          </h1>
-          <span class="subtitle">
-            Pedido: 
-            <a 
-              href="#" 
-              @click.prevent="navigateToOrder(deliveryNote.salesOrderId)" 
-              class="order-link"
-            >
-              {{ formatOrderId(deliveryNote.salesOrderId) }}
-            </a>
+  <BaseEntityPage v-else-if="deliveryNote">
+    <!-- 1. IDENTITY HEADER -->
+    <template #header>
+      <PageHeader 
+        :title="mode === 'edit' ? `Editando Albarán ${deliveryNote.deliveryNoteNumber}` : `Albarán ${deliveryNote.deliveryNoteNumber}`" 
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
+      >
+        <template #icon>
+          <span class="material-symbols-outlined">local_shipping</span>
+        </template>
+        <template #actions>
+          <template v-if="mode === 'detail'">
+            <button class="btn btn-outline" @click="printDeliveryNote">
+              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
+            </button>
+            <button v-if="deliveryNote.status === 'PENDIENTE'" class="btn btn-primary" @click="enterEditMode">
+              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
+            </button>
+          </template>
+          <template v-else>
+            <button class="btn btn-outline" @click="mode = 'detail'" :disabled="isSaving">Cancelar</button>
+            <button class="btn btn-secondary" @click="saveDeliveryNote" :disabled="isSaving">
+              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}</span>
+            </button>
+          </template>
+        </template>
+      </PageHeader>
+    </template>
+
+    <!-- 2. TOOLBAR -->
+    <template #toolbar v-if="mode === 'detail'">
+      <div class="action-toolbar card">
+        <div class="toolbar-info">
+          <span :class="['status-badge', `status-${salesApi.getStatusClass(deliveryNote.status)}`]">
+            {{ salesApi.getStatusLabel(deliveryNote.status) }}
           </span>
         </div>
-        <div class="header-actions">
+        <div class="toolbar-buttons">
           <button
-            v-if="deliveryNote.status === 'PENDIENTE'"
-            class="btn btn-success"
+            v-if="['PENDING', 'PENDIENTE'].includes(deliveryNote.status)"
+            class="btn btn-success btn-sm"
             @click="markAsDelivered"
             :disabled="isChangingStatus"
           >
-            ✅ Marcar como Entregado
+            <span class="material-symbols-outlined">check_circle</span> <span>Confirmar Entrega</span>
           </button>
           <button
-            v-if="deliveryNote.status === 'PENDIENTE'"
-            class="btn btn-danger"
+            v-if="['PENDING', 'PENDIENTE'].includes(deliveryNote.status)"
+            class="btn btn-danger btn-sm"
             @click="cancelDeliveryNote"
             :disabled="isChangingStatus"
           >
-            ❌ Cancelar
+            <span class="material-symbols-outlined">cancel</span> <span>Anular Albarán</span>
           </button>
           <button
-            v-if="deliveryNote.status === 'ENTREGADO' && !relatedInvoice"
-            class="btn btn-primary"
+            v-if="['DELIVERED', 'ENTREGADO'].includes(deliveryNote.status) && !relatedInvoice"
+            class="btn btn-success btn-sm"
             @click="createInvoiceFromDeliveryNote"
             :disabled="isCreatingInvoice"
           >
-            {{ isCreatingInvoice ? 'Creando...' : '📄 Crear Factura' }}
-          </button>
-          <button 
-            class="btn btn-secondary" 
-            @click="printDeliveryNote"
-            title="Imprimir albarán (PDF)"
-          >
-            🖨️ Imprimir Albarán
+            <span class="material-symbols-outlined">receipt_long</span> <span>Facturar Albarán</span>
           </button>
         </div>
       </div>
+    </template>
 
-      <div class="print-doc-header">
-        <p class="print-brand">{{ issuerProfile.displayName }}</p>
-        <p v-if="issuerProfile.taxId" class="print-issuer-line">{{ issuerProfile.taxLabel }}: {{ issuerProfile.taxId }}</p>
-        <p v-if="issuerProfile.addressLine || issuerProfile.cityLine" class="print-issuer-line">{{ issuerProfile.addressLine }}<span v-if="issuerProfile.addressLine && issuerProfile.cityLine"> · </span>{{ issuerProfile.cityLine }}</p>
-        <p v-if="issuerProfile.contactLine" class="print-issuer-line">{{ issuerProfile.contactLine }}</p>
-        <h2>Albarán {{ deliveryNote.deliveryNoteNumber }}</h2>
-        <div class="print-doc-meta">
-          <span>Cliente: {{ partyName }}</span>
-          <span>Fecha entrega: {{ formatDate(deliveryNote.deliveryDate) }}</span>
-          <span>Pedido: {{ orderNumber || formatOrderId(deliveryNote.salesOrderId) }}</span>
+    <!-- 3. SUMMARY -->
+    <template #summary>
+      <div class="overview-tags-row">
+        <div class="summary-tag">
+          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
-      </div>
-
-      <!-- Delivery Note Info Cards -->
-      <div class="info-grid">
-        <div class="info-card">
-          <h3>Información del Pedido</h3>
-          <div class="info-row">
-            <span class="label">Número de Pedido:</span>
-            <a 
-              href="#" 
-              @click.prevent="navigateToOrder(deliveryNote.salesOrderId)" 
-              class="value-link"
-            >
-              {{ orderNumber || 'Cargando...' }}
-            </a>
-          </div>
-          <div class="info-row">
-            <span class="label">Order ID:</span>
-            <span class="value order-id">{{ formatOrderId(deliveryNote.salesOrderId) }}</span>
+        <div class="summary-tag">
+          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="tag-content"><label>Fecha Entrega</label><strong>{{ formatDate(deliveryNote.deliveryDate) }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon purple"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-content">
+            <label>Pedido Origen</label>
+            <strong>{{ orderNumber || formatOrderId(deliveryNote.salesOrderId) }}</strong>
           </div>
         </div>
-
-        <div class="info-card">
-          <h3>Información del Cliente</h3>
-          <div class="info-row">
-            <span class="label">Cliente:</span>
-            <span class="value">{{ partyName }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Party ID:</span>
-            <span class="value party-id">{{ formatPartyId(deliveryNote.partyId) }}</span>
-          </div>
-        </div>
-
-        <div class="info-card">
-          <h3>Fecha de Entrega</h3>
-          <div class="info-row">
-            <span class="label">Fecha:</span>
-            <span class="value">{{ formatDate(deliveryNote.deliveryDate) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">Creado:</span>
-            <span class="value">{{ formatDateTime(deliveryNote.createdAt) }}</span>
+        <div class="summary-tag">
+          <div class="icon green"><span class="material-symbols-outlined">package_2</span></div>
+          <div class="tag-content">
+            <label>Bultos / Líneas</label>
+            <strong>{{ deliveryNote.lineItems?.length || 0 }} ítems</strong>
           </div>
         </div>
       </div>
+    </template>
 
-      <!-- Delivery Address -->
-      <div v-if="deliveryNote.deliveryAddress" class="info-card address-card">
-        <h3>Dirección de Entrega</h3>
-        <div class="address-content">
-          <p v-if="deliveryNote.deliveryAddress.street">{{ deliveryNote.deliveryAddress.street }}</p>
-          <p v-if="deliveryNote.deliveryAddress.city || deliveryNote.deliveryAddress.postalCode">
-            {{ deliveryNote.deliveryAddress.postalCode }} {{ deliveryNote.deliveryAddress.city }}
-          </p>
-          <p v-if="deliveryNote.deliveryAddress.province">{{ deliveryNote.deliveryAddress.province }}</p>
-          <p v-if="deliveryNote.deliveryAddress.country">{{ deliveryNote.deliveryAddress.country }}</p>
-        </div>
-      </div>
-
-      <!-- Delivery Notes / Comments -->
-      <div v-if="deliveryNote.notes" class="notes-card">
-        <h3>Observaciones</h3>
-        <p>{{ deliveryNote.notes }}</p>
-      </div>
-
-      <!-- Line Items -->
-      <div class="line-items-section">
-        <div class="section-header">
-          <h2>Líneas Entregadas</h2>
-        </div>
-
-        <div v-if="!deliveryNote.lineItems || deliveryNote.lineItems.length === 0" class="empty-state">
-          <p>No hay líneas en este albarán</p>
-        </div>
-
-        <div v-else class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad Entregada</th>
-                <th>Observaciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in deliveryNote.lineItems" :key="item.id">
-                <td class="variant-id">
-                  <span v-if="item.productName">{{ item.productName }}</span>
-                  <small v-if="item.variantSku" class="variant-sku"> ({{ item.variantSku }})</small>
-                  <span v-if="!item.productName && !item.variantSku">{{ formatVariantId(item.productVariantId) }}</span>
-                </td>
-                <td class="quantity">{{ item.deliveredQuantity }}</td>
-                <td class="observations">{{ '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Signatures Section -->
-      <div v-if="deliveryNote.signatures || showSignaturesSection" class="signatures-section">
-        <h3>Firmas</h3>
-        <div class="signatures-grid">
-          <div class="signature-box">
-            <div class="signature-label">Firma del Cliente</div>
-            <div class="signature-area">
-              <span v-if="deliveryNote.signatures?.customer" class="signature-present">✓ Firmado</span>
-              <span v-else class="signature-pending">Pendiente</span>
-            </div>
-            <div v-if="deliveryNote.signatures?.customer" class="signature-info">
-              <small>{{ deliveryNote.signatures.customer.name }}</small><br>
-              <small>{{ formatDateTime(deliveryNote.signatures.customer.timestamp) }}</small>
-            </div>
+    <!-- 4. RELATED -->
+    <template #related v-if="mode === 'detail'">
+      <div class="related-history-grid">
+        <router-link :to="`/sales/orders/${deliveryNote.salesOrderId}`" class="related-tag-card highlight-info">
+          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-content">
+            <label>Pedido de Venta Origen</label>
+            <strong>{{ orderNumber || 'Ver Pedido' }}</strong>
           </div>
-          
-          <div class="signature-box">
-            <div class="signature-label">Firma del Repartidor</div>
-            <div class="signature-area">
-              <span v-if="deliveryNote.signatures?.driver" class="signature-present">✓ Firmado</span>
-              <span v-else class="signature-pending">Pendiente</span>
-            </div>
-            <div v-if="deliveryNote.signatures?.driver" class="signature-info">
-              <small>{{ deliveryNote.signatures.driver.name }}</small><br>
-              <small>{{ formatDateTime(deliveryNote.signatures.driver.timestamp) }}</small>
-            </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
+
+        <router-link v-if="relatedInvoice" :to="`/sales/invoices/${relatedInvoice.id}`" class="related-tag-card">
+          <div class="tag-icon success"><span class="material-symbols-outlined">receipt</span></div>
+          <div class="tag-content">
+            <label>Factura Generada</label>
+            <strong>{{ relatedInvoice.invoiceNumber }}</strong>
+          </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
+      </div>
+    </template>
+
+    <!-- 5. MAIN CONTENT -->
+    <FormSection title="Identificación del Cliente" icon="person">
+      <DataRow label="Nombre del Cliente" :value="partyName" icon="person" />
+      <DataRow v-if="deliveryNote.taxId" label="NIF/CIF" :value="deliveryNote.taxId" is-mono />
+    </FormSection>
+
+    <FormSection title="Detalles de Entrega" icon="local_shipping">
+      <div v-if="mode === 'detail'">
+        <DataRow label="Fecha de Entrega" :value="formatDate(deliveryNote.deliveryDate)" icon="calendar_today" />
+        <DataRow v-if="deliveryNote.deliveryAddress" label="Dirección de Entrega" icon="location_on">
+          <div class="address-content">
+            <p>{{ deliveryNote.deliveryAddress.street }}</p>
+            <p>{{ deliveryNote.deliveryAddress.postalCode }} {{ deliveryNote.deliveryAddress.city }}</p>
+            <p v-if="deliveryNote.deliveryAddress.province">{{ deliveryNote.deliveryAddress.province }}</p>
+            <p v-if="deliveryNote.deliveryAddress.country">{{ deliveryNote.deliveryAddress.country }}</p>
+          </div>
+        </DataRow>
+        <DataRow label="Observaciones del Albarán" icon="notes">
+          <p class="notes-text">{{ deliveryNote.notes || 'Sin observaciones.' }}</p>
+        </DataRow>
+      </div>
+      <div v-else>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha de Entrega *</label>
+            <input v-model="formData.deliveryDate" type="date" class="form-input" required />
           </div>
         </div>
+        <div class="address-edit-group mt-4">
+          <label class="form-label">Dirección de Entrega</label>
+          <input v-model="formData.address.street" type="text" class="form-input mb-2" placeholder="Calle y número" />
+          <div class="form-row">
+            <input v-model="formData.address.postalCode" type="text" class="form-input" placeholder="CP" />
+            <input v-model="formData.address.city" type="text" class="form-input" placeholder="Ciudad" />
+          </div>
+        </div>
+        <div class="form-group mt-4">
+          <label>Observaciones</label>
+          <textarea v-model="formData.notes" class="form-textarea" rows="3" placeholder="Instrucciones para el transportista..."></textarea>
+        </div>
       </div>
+    </FormSection>
 
-      <!-- Related Documents -->
-      <div class="related-documents-section">
-        <h3>Documentos Relacionados</h3>
-        <div class="documents-list">
-          <div class="document-item">
-            <span class="document-icon">📄</span>
-            <div class="document-info">
-              <span class="document-label">Pedido origen</span>
-              <a 
-                href="#" 
-                @click.prevent="navigateToOrder(deliveryNote.salesOrderId)" 
-                class="document-link"
-              >
-                {{ orderNumber || formatOrderId(deliveryNote.salesOrderId) }}
-              </a>
-            </div>
-          </div>
-          
-          <div v-if="relatedInvoice" class="document-item">
-            <span class="document-icon">💰</span>
-            <div class="document-info">
-              <span class="document-label">Factura asociada</span>
-              <a 
-                href="#" 
-                @click.prevent="navigateToInvoice(relatedInvoice.id)" 
-                class="document-link"
-              >
-                {{ relatedInvoice.invoiceNumber }}
-              </a>
-            </div>
-          </div>
+    <FormSection title="Líneas del Albarán" icon="list_alt">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto / Referencia</th>
+              <th class="text-center">Cant. Entregada</th>
+              <th>Estado / Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in deliveryNote.lineItems" :key="item.id">
+              <td>
+                <div class="product-info-cell">
+                  <span class="material-symbols-outlined icon-secondary">inventory_2</span>
+                  <div class="content">
+                    <strong>{{ item.productName || formatVariantId(item.productVariantId) }}</strong>
+                    <code v-if="item.variantSku" class="code-badge ml-2">{{ item.variantSku }}</code>
+                  </div>
+                </div>
+              </td>
+              <td class="text-center">
+                <template v-if="mode === 'detail'">
+                  <strong class="text-success" style="font-size: 1.1rem">{{ item.deliveredQuantity }}</strong>
+                </template>
+                <input v-else v-model.number="item.deliveredQuantity" type="number" class="form-input-sm w-24 text-center" />
+              </td>
+              <td class="text-muted italic">Correcto</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </FormSection>
 
-          <div v-else class="document-item disabled">
-            <span class="document-icon">💰</span>
-            <div class="document-info">
-              <span class="document-label">Factura asociada</span>
-              <span class="document-link-disabled">No generada aún</span>
-            </div>
+    <FormSection v-if="mode === 'detail'" title="Conformidad y Firmas" icon="history_edu">
+      <div class="signatures-grid">
+        <div class="signature-box">
+          <label class="form-label">Recibido por (Cliente)</label>
+          <div class="signature-area">
+            <template v-if="deliveryNote.signatures?.customer">
+              <span class="material-symbols-outlined text-success">check_circle</span>
+              <div class="sig-info">
+                <strong>{{ deliveryNote.signatures.customer.name }}</strong>
+                <small>{{ formatDateTime(deliveryNote.signatures.customer.timestamp) }}</small>
+              </div>
+            </template>
+            <span v-else class="text-muted">Pendiente de firma del receptor</span>
+          </div>
+        </div>
+        <div class="signature-box">
+          <label class="form-label">Entregado por (Logística)</label>
+          <div class="signature-area">
+            <template v-if="deliveryNote.signatures?.driver">
+              <span class="material-symbols-outlined text-success">check_circle</span>
+              <div class="sig-info">
+                <strong>{{ deliveryNote.signatures.driver.name }}</strong>
+                <small>{{ formatDateTime(deliveryNote.signatures.driver.timestamp) }}</small>
+              </div>
+            </template>
+            <span v-else class="text-muted">Pendiente de firma del transportista</span>
           </div>
         </div>
       </div>
+    </FormSection>
 
-      <div class="print-doc-footer">
-        <span>Documento generado por {{ issuerProfile.displayName }}</span>
-        <span>Creado: {{ formatDateTime(deliveryNote.createdAt) }}</span>
+    <!-- 6. FOOTER -->
+    <template #footer v-if="mode === 'detail' && deliveryNote">
+      <div class="audit-info">
+        <p>Documento oficial de entrega generado por TramaTex.</p>
+        <p>ID único del documento: <code>{{ deliveryNote.id }}</code></p>
       </div>
+    </template>
+  </BaseEntityPage>
+
+  <!-- DIÁLOGO DE CONFIRMACIÓN DE FACTURACIÓN -->
+  <BaseDialog
+    :show="showInvoiceConfirm"
+    title="Confirmar Facturación"
+    icon="receipt_long"
+    confirm-text="Generar Factura"
+    confirm-class="btn-success"
+    :is-confirming="isCreatingInvoice"
+    @close="showInvoiceConfirm = false"
+    @confirm="confirmCreateInvoice"
+  >
+    <div class="confirm-dialog-body">
+      <p>Está a punto de <strong>generar una factura oficial</strong> para este albarán.</p>
+      <div class="info-notice mt-4">
+        <span class="material-symbols-outlined">info</span>
+        <p>Esta operación creará un nuevo documento contable y vinculará permanentemente este albarán.</p>
+      </div>
+      <p class="mt-4 text-secondary italic">¿Desea continuar?</p>
     </div>
-  </div>
+  </BaseDialog>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import FormSection from '@/components/shared/FormSection.vue';
+import DataRow from '@/components/shared/DataRow.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
-import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
-import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 
+const mode = ref('detail');
 const deliveryNote = ref(null);
 const isLoading = ref(false);
+const isSaving = ref(false);
 const isChangingStatus = ref(false);
 const isCreatingInvoice = ref(false);
+const showInvoiceConfirm = ref(false);
 const error = ref('');
 const partyName = ref('Cargando...');
 const orderNumber = ref(null);
 const relatedInvoice = ref(null);
-const issuerProfile = getPrintIssuerProfile();
 
-const showSignaturesSection = computed(() => {
-  // Show signatures section even if empty for visual consistency
-  return true;
+const formData = reactive({
+  deliveryDate: '',
+  notes: '',
+  address: { street: '', city: '', postalCode: '', province: '', country: '' }
 });
 
 onMounted(() => {
@@ -293,76 +323,65 @@ onMounted(() => {
 
 async function fetchDeliveryNote() {
   const noteId = route.params.id;
-  if (!noteId) {
-    error.value = 'ID de albarán no válido';
-    return;
-  }
-
+  if (!noteId) return;
   isLoading.value = true;
-  error.value = '';
-
   try {
     deliveryNote.value = await salesApi.getDeliveryNote(noteId);
-    
-    // Load related data
-    await Promise.all([
-      loadPartyName(),
-      loadOrderNumber(),
-      loadRelatedInvoice(),
-    ]);
+    await Promise.all([loadPartyName(), loadOrderNumber(), loadRelatedInvoice()]);
   } catch (err) {
     error.value = err?.message || 'No se pudo cargar el albarán';
-    console.error('Error loading delivery note:', err);
   } finally {
     isLoading.value = false;
   }
 }
 
 async function loadPartyName() {
-  if (!deliveryNote.value?.partyId) {
-    partyName.value = 'Desconocido';
-    return;
-  }
-  
+  if (!deliveryNote.value?.partyId) return;
   try {
     const party = await partyApi.getParty(deliveryNote.value.partyId);
     partyName.value = party.name || 'Sin nombre';
-  } catch (err) {
-    console.error('Error loading party name:', err);
-    partyName.value = 'Error al cargar';
-  }
+  } catch (err) {}
 }
 
 async function loadOrderNumber() {
-  if (!deliveryNote.value?.salesOrderId) {
-    return;
-  }
-  
+  if (!deliveryNote.value?.salesOrderId) return;
   try {
     const order = await salesApi.getOrder(deliveryNote.value.salesOrderId);
-    orderNumber.value = order.orderNumber || formatOrderId(order.id);
-  } catch (err) {
-    console.error('Error loading order number:', err);
-  }
+    orderNumber.value = order.orderNumber;
+  } catch (err) {}
 }
 
 async function loadRelatedInvoice() {
-  if (!deliveryNote.value?.id) {
-    return;
-  }
-  
+  if (!deliveryNote.value?.id) return;
   try {
-    // Find invoice linked to this specific delivery note
-    const invoices = await salesApi.listInvoices({ 
-      deliveryNoteId: deliveryNote.value.id 
-    });
-    
-    if (invoices && invoices.length > 0) {
-      relatedInvoice.value = invoices[0];
-    }
+    const res = await salesApi.listInvoices({ deliveryNoteId: deliveryNote.value.id });
+    const invoices = Array.isArray(res) ? res : (res.data || []);
+    if (invoices.length > 0) relatedInvoice.value = invoices[0];
   } catch (err) {
     console.error('Error loading related invoice:', err);
-    // Non-critical, don't show error to user
+  }
+}
+
+function enterEditMode() {
+  if (!deliveryNote.value) return;
+  formData.deliveryDate = deliveryNote.value.deliveryDate ? new Date(deliveryNote.value.deliveryDate).toISOString().split('T')[0] : '';
+  formData.notes = deliveryNote.value.notes || '';
+  if (deliveryNote.value.deliveryAddress) {
+    Object.assign(formData.address, deliveryNote.value.deliveryAddress);
+  }
+  mode.value = 'edit';
+}
+
+async function saveDeliveryNote() {
+  isSaving.value = true;
+  try {
+    alert('Función de actualización de albarán en desarrollo (Backend MVP limitado)');
+    mode.value = 'detail';
+    await fetchDeliveryNote();
+  } catch (err) {
+    alert('Error al guardar: ' + err.message);
+  } finally {
+    isSaving.value = false;
   }
 }
 
@@ -372,561 +391,105 @@ async function markAsDelivered() {
   try {
     deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'ENTREGADO');
   } catch (err) {
-    alert(err?.message || 'No se pudo cambiar el estado');
+    alert(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
   }
 }
 
 async function cancelDeliveryNote() {
-  if (!confirm('¿Cancelar este albarán? Esta acción no se puede deshacer.')) return;
+  if (!confirm('¿Anular este albarán?')) return;
   isChangingStatus.value = true;
   try {
     deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'CANCELADO');
   } catch (err) {
-    alert(err?.message || 'No se pudo cancelar el albarán');
+    alert(err?.message || 'Error al anular');
   } finally {
     isChangingStatus.value = false;
   }
 }
 
-async function createInvoiceFromDeliveryNote() {
-  if (!confirm('¿Crear factura para este albarán?')) return;
+function createInvoiceFromDeliveryNote() {
+  showInvoiceConfirm.value = true;
+}
+
+async function confirmCreateInvoice() {
   isCreatingInvoice.value = true;
   try {
     const now = new Date();
     const dueDate = new Date(now);
     dueDate.setDate(dueDate.getDate() + 30);
-    const data = {
+    const newInvoice = await salesApi.createInvoice({
       partyId: deliveryNote.value.partyId,
       deliveryNoteIds: [deliveryNote.value.id],
       invoiceDate: now.toISOString(),
       dueDate: dueDate.toISOString(),
-    };
-    const newInvoice = await salesApi.createInvoice(data);
+    });
+    showInvoiceConfirm.value = false;
     router.push(`/sales/invoices/${newInvoice.id}`);
   } catch (err) {
-    alert(err?.message || 'No se pudo crear la factura');
-    console.error('Error creating invoice:', err);
+    alert(err?.message || 'Error al crear factura');
   } finally {
     isCreatingInvoice.value = false;
   }
 }
 
-function printDeliveryNote() {
-  window.print();
-}
+function printDeliveryNote() { window.print(); }
 
-function navigateToOrder(orderId) {
-  if (!orderId) return;
-  router.push(`/sales/orders/${orderId}`);
-}
-
-function navigateToInvoice(invoiceId) {
-  if (!invoiceId) return;
-  router.push(`/sales/invoices/${invoiceId}`);
-}
-
-function goBack() {
-  router.push('/sales/delivery-notes');
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-function formatDateTime(dateString) {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return date.toLocaleString('es-ES', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatOrderId(orderId) {
-  if (!orderId) return '—';
-  return orderId.substring(0, 8) + '...';
-}
-
-function formatPartyId(partyId) {
-  if (!partyId) return '—';
-  return partyId.substring(0, 8) + '...';
-}
-
-function formatVariantId(variantId) {
-  if (!variantId) return '—';
-  return variantId.substring(0, 8) + '...';
-}
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'; }
+function formatDateTime(d) { return d ? new Date(d).toLocaleString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; }
+function formatOrderId(id) { return id ? id.substring(0, 8) : '—'; }
+function formatVariantId(id) { return id ? id.substring(0, 8) : '—'; }
 </script>
 
 <style scoped>
-.delivery-note-detail-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  background: white;
-  border-radius: 8px;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border: 3px solid #f3f4f6;
-  border-top-color: #E6B800;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error-message {
-  color: #dc2626;
-  margin-bottom: 1rem;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0.5rem 0 0.25rem;
-}
-
-.subtitle {
-  font-size: 0.875rem;
-  color: #6b7280;
-}
-
-.order-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.order-link:hover {
-  text-decoration: underline;
-}
-
-.btn-back {
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  transition: color 0.2s;
-}
-
-.btn-back:hover {
-  color: #1f2937;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.info-card,
-.notes-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.address-card {
-  grid-column: 1 / -1;
-}
-
-.info-card h3,
-.notes-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
-}
-
-.info-row .label {
-  color: #6b7280;
-}
-
-.info-row .value {
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.value-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.value-link:hover {
-  text-decoration: underline;
-}
-
-.order-id,
-.party-id {
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-}
-
-.address-content {
-  font-size: 0.875rem;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.address-content p {
-  margin: 0.25rem 0;
-}
-
-.notes-card {
-  margin-bottom: 2rem;
-}
-
-.notes-card p {
-  font-size: 0.875rem;
-  color: #4b5563;
-  line-height: 1.6;
-}
-
-.line-items-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.section-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #E6B800;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a700;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #4a5568;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.btn-success {
-  background: #10b981;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #059669;
-}
-
-.btn-danger {
-  background: #ef4444;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-}
-
-.table-container {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead {
-  background: #f9fafb;
-}
-
-.data-table th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #6b7280;
-  letter-spacing: 0.05em;
-}
-
-.data-table td {
-  padding: 1rem;
-  border-top: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-  color: #1f2937;
-}
-
-.variant-id {
-  color: #374151;
-}
-
-.variant-sku {
-  color: #6b7280;
-  font-family: 'Courier New', monospace;
-  font-size: 0.85em;
-}
-
-.quantity {
-  font-weight: 600;
-  color: #059669;
-}
-
-.observations {
-  color: #6b7280;
-  font-style: italic;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #9ca3af;
-}
-
-.signatures-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-}
-
-.signatures-section h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.signatures-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.signature-box {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.signature-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4b5563;
-  margin-bottom: 0.75rem;
-}
-
-.signature-area {
-  min-height: 80px;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.5rem;
-}
-
-.signature-present {
-  color: #059669;
-  font-weight: 600;
-  font-size: 1.25rem;
-}
-
-.signature-pending {
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.signature-info {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-align: center;
-}
-
-.related-documents-section {
-  background: white;
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.related-documents-section h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.documents-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.document-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.document-item.disabled {
-  opacity: 0.6;
-}
-
-.document-icon {
-  font-size: 1.5rem;
-}
-
-.document-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.document-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-}
-
-.document-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.875rem;
-}
-
-.document-link:hover {
-  text-decoration: underline;
-}
-
-.document-link-disabled {
-  color: #9ca3af;
-  font-style: italic;
-  font-size: 0.875rem;
-}
-
-/* Print styles: see @/assets/sales-print.css */
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  vertical-align: middle;
-  margin-left: 0.75rem;
-}
-
-.status-warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.status-primary {
-  background: #dbeafe;
-  color: #1e40af;
-}
+@import "@/design-system/_sections.css";
+
+.overview-tags-row, .related-history-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
+.related-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
+.related-tag-card { padding: 0.6rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-left: 4px solid var(--color-secondary); border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; position: relative; transition: all 0.2s ease; }
+.related-tag-card.highlight-info { border-left-color: #2563eb; }
+.related-tag-card:hover { background: white; transform: translateX(2px) translateY(-1px); box-shadow: var(--box-shadow-md); }
+.related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
+
+.tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
+.tag-icon .material-symbols-outlined { font-size: 22px; }
+
+.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
+.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+.icon.green, .tag-icon.success { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+
+.tag-content { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; }
+.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
+.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
+
+.jump-icon { font-size: 18px; color: var(--color-text-secondary); opacity: 0.5; margin-left: auto; transition: all 0.2s; }
+.related-tag-card:hover .jump-icon { opacity: 1; color: var(--color-primary); transform: scale(1.1); }
+
+.action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); margin: 0; }
+.status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em; }
+.toolbar-buttons { display: flex; gap: 0.75rem; }
+
+.address-content p { margin: 0.2rem 0; color: var(--color-text-primary); }
+.notes-text { font-style: italic; color: var(--color-text-secondary); margin: 0; }
+
+.product-info-cell { display: flex; align-items: center; gap: 0.75rem; }
+.product-info-cell .content { display: flex; flex-direction: column; }
+
+.signatures-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+.signature-box { padding: 1.25rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; }
+.signature-area { min-height: 80px; background: var(--color-background); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; }
+.sig-info { display: flex; flex-direction: column; line-height: 1.2; }
+.sig-info strong { font-size: 0.9rem; color: var(--color-text-primary); }
+.sig-info small { font-size: 0.75rem; color: var(--color-text-secondary); }
+.form-label { display: block; font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.75rem; }
+
+.audit-info { color: var(--color-text-secondary); font-size: 0.8rem; font-style: italic; }
+.code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; }
+
+.info-notice { display: flex; gap: 0.75rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #1e40af; font-size: 0.9rem; }
+.info-notice .material-symbols-outlined { color: #2563eb; }
 </style>

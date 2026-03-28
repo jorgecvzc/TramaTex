@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="modal-header">
         <h3>Vista Previa de Combinaciones</h3>
-        <button @click="$emit('close')" class="btn-close">✕</button>
+        <button @click="$emit('close')" class="btn-close"><X :size="16" /></button>
       </div>
 
       <!-- Body -->
@@ -27,7 +27,7 @@
 
         <!-- Error State -->
         <div v-if="error" class="error-message">
-          ⚠️ {{ error }}
+          <AlertTriangle :size="16" /> {{ error }}
         </div>
 
         <!-- Combinations Table -->
@@ -142,6 +142,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { X, AlertTriangle } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

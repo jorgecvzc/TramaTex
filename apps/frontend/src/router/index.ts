@@ -140,7 +140,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/sales/quotes/new",
     name: "CreateQuote",
-    component: () => import("@/pages/sales/QuoteCreate.vue"),
+    component: () => import("@/pages/sales/QuoteDetail.vue"),
     meta: {
       requiresAuth: true,
       title: "Nuevo Presupuesto - TramaTex",
@@ -167,7 +167,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/sales/orders/new",
     name: "CreateOrder",
-    component: () => import("@/pages/sales/OrderCreate.vue"),
+    component: () => import("@/pages/sales/OrderDetail.vue"),
     meta: {
       requiresAuth: true,
       title: "Nuevo Pedido - TramaTex",
@@ -469,11 +469,11 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/style-guide",
-    name: "StyleGuide",
-    component: StyleGuide,
+    path: "/dev/design-system",
+    name: "DesignSystem",
+    component: () => import("@/pages/dev/DesignSystem.vue"),
     meta: {
-      title: "Guía de Estilos - TramaTex",
+      title: "Sistema de Diseño - TramaTex",
     },
   },
   {

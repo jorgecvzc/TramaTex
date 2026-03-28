@@ -1,286 +1,218 @@
 <template>
   <Navbar />
-  <div class="order-create-container">
-    <div class="page-header">
-      <div>
-        <button class="btn-back" @click="goBack">← Volver</button>
-        <h1>Nuevo Pedido</h1>
-      </div>
-    </div>
+  
+  <div class="main-container">
+    <PageHeader 
+      title="Nuevo Pedido de Venta" 
+      :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Crear Nuevo' }]"
+    >
+      <template #actions>
+        <button @click="router.push('/sales/orders')" class="btn btn-outline">
+          <span class="material-symbols-outlined">list_alt</span>
+          <span>Ir al catálogo</span>
+        </button>
+      </template>
+    </PageHeader>
 
-    <div class="form-card">
+    <div class="order-form-layout">
       <form @submit.prevent="handleSubmit">
-        <!-- Customer Selection -->
-        <div class="form-section">
-          <h2>Cliente</h2>
-          <PartySelector
-            v-model="formData.partyId"
-            label="Cliente"
-            placeholder="Buscar cliente por nombre o referencia..."
-            role-filter="CLIENT"
-            :required="true"
-            help-text="Seleccione el cliente para este pedido"
-            @select="onPartySelected"
-          />
-        </div>
+        <!-- Customer Section -->
+        <section class="card mb-6">
+          <div class="section-header">
+            <span class="material-symbols-outlined">person</span>
+            <h2>Selección de Cliente</h2>
+          </div>
+          <div class="section-body">
+            <PartySelector
+              v-model="formData.partyId"
+              label="Cliente *"
+              placeholder="Buscar por nombre, NIF o referencia..."
+              role-filter="CLIENT"
+              :required="true"
+              @select="onPartySelected"
+            />
+          </div>
+        </section>
 
-        <!-- Order Details -->
-        <div class="form-section">
-          <h2>Detalles del Pedido</h2>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="orderDate">Fecha de Pedido *</label>
-              <input
-                id="orderDate"
-                v-model="formData.orderDate"
-                type="date"
-                class="form-input"
-                required
-              />
+        <!-- Order Details Section -->
+        <section class="card mb-6">
+          <div class="section-header">
+            <span class="material-symbols-outlined">event_note</span>
+            <h2>Detalles del Pedido</h2>
+          </div>
+          <div class="section-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="orderDate">Fecha de Pedido *</label>
+                <input id="orderDate" v-model="formData.orderDate" type="date" class="form-input" required />
+              </div>
+              <div class="form-group">
+                <label for="deliveryDate">Fecha de Entrega Estimada *</label>
+                <input id="deliveryDate" v-model="formData.deliveryDate" type="date" class="form-input" :min="minDeliveryDate" required />
+              </div>
             </div>
-            <div class="form-group">
-              <label for="deliveryDate">Fecha de Entrega *</label>
-              <input
-                id="deliveryDate"
-                v-model="formData.deliveryDate"
-                type="date"
-                class="form-input"
-                :min="minDeliveryDate"
-                required
-              />
+            <div class="form-group mt-4">
+              <label for="notes">Observaciones del Pedido</label>
+              <textarea id="notes" v-model="formData.notes" class="form-textarea" rows="3" placeholder="Instrucciones especiales para logística o taller..."></textarea>
             </div>
           </div>
-          <div class="form-group">
-            <label for="notes">Notas</label>
-            <textarea
-              id="notes"
-              v-model="formData.notes"
-              class="form-textarea"
-              rows="3"
-              placeholder="Notas adicionales sobre el pedido..."
-            ></textarea>
-          </div>
-        </div>
+        </section>
 
-        <!-- MES Work Configurations (Document-level) -->
-        <div v-if="formData.partyId" class="form-section">
-          <h2>Configuraciones MES</h2>
-          <p class="help-text">Asocie configuraciones MES a este pedido. Puede seleccionar una existente o crear una personalizada con observaciones.</p>
-          <div v-if="isLoadingMesWorks" class="mes-loading">Cargando configuraciones MES...</div>
-          <div v-else class="mes-ref-list">
-            <div v-for="(config, idx) in formData.mesWorkRefs" :key="idx" class="mes-config-entry">
-              <div class="form-row mes-config-row">
-                <div class="form-group">
-                  <label>Configuración base</label>
-                  <select class="form-input" :value="config.workSetupId || ''"
-                    @change="onSetupSelect(idx, $event.target.value)">
-                    <option value="">— Personalizada —</option>
-                    <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Descripción</label>
-                  <div class="input-with-action">
-                    <textarea class="form-textarea" rows="2" v-model="config.description" placeholder="Descripción de la configuración..."></textarea>
-                    <button type="button" class="btn-remove" @click="removeConfig(idx)" title="Eliminar configuración">✕</button>
+        <!-- MES Work Configurations -->
+        <section v-if="formData.partyId" class="card mb-6 highlight-blue">
+          <div class="section-header">
+            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <h2>Configuraciones MES (Producción)</h2>
+          </div>
+          <div class="section-body">
+            <div v-if="isLoadingMesWorks" class="loading-inline">
+              <div class="spinner-tiny"></div> Cargando configuraciones...
+            </div>
+            <div v-else class="mes-ref-list">
+              <div v-for="(config, idx) in formData.mesWorkRefs" :key="idx" class="mes-config-entry card mb-3">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Elegir configuración base</label>
+                    <select class="form-input" :value="config.workSetupId || ''" @change="onSetupSelect(idx, $event.target.value)">
+                      <option value="">— Configuración Personalizada —</option>
+                      <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Descripción del encargo</label>
+                    <div class="input-with-action">
+                      <input v-model="config.description" type="text" class="form-input" placeholder="Ej: Bordado logo espalda" />
+                      <button type="button" class="btn btn-outline btn-sm text-danger" @click="removeConfig(idx)"><span class="material-symbols-outlined">delete</span></button>
+                    </div>
                   </div>
                 </div>
               </div>
+              <button type="button" class="btn btn-secondary btn-sm" @click="addConfig">
+                <span class="material-symbols-outlined">add</span> Añadir Configuración MES
+              </button>
             </div>
-            <button type="button" class="btn btn-secondary" @click="addConfig">+ Agregar configuración</button>
           </div>
-        </div>
+        </section>
 
-        <!-- Line Items -->
-        <div class="form-section">
-          <div class="section-header">
-            <h2>Líneas del Pedido</h2>
-            <button type="button" class="btn btn-secondary" @click="addLineItem">
-              + Agregar Línea
+        <!-- Line Items Section -->
+        <section class="card table-card mb-6">
+          <div class="table-header-row">
+            <div class="section-header">
+              <span class="material-symbols-outlined">shopping_basket</span>
+              <h2>Líneas del Pedido</h2>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
+              <span class="material-symbols-outlined">add</span> Añadir Producto
             </button>
           </div>
 
-          <p class="help-text">El precio final de venta e IVA se calculan automáticamente en Pricing al crear el pedido.</p>
-
-          <div v-if="formData.lineItems.length === 0" class="empty-state">
-            <p>No hay líneas agregadas. Agregue al menos una línea para crear el pedido.</p>
-          </div>
-
-          <div v-else class="line-items-table-wrapper">
-            <table class="line-items-table">
+          <div class="table-wrapper">
+            <table class="data-table">
               <thead>
                 <tr>
-                  <th class="col-num">#</th>
-                  <th class="col-variant">Referencia</th>
-                  <th class="col-product-name">Nombre</th>
-                  <th class="col-qty">Cant.</th>
-                  <th class="col-list-price">P. Tarifa</th>
-                  <th class="col-price">Precio</th>
-                  <th class="col-discount">Dto. %</th>
-                  <th class="col-subtotal">Subtotal</th>
-                  <th class="col-actions"></th>
+                  <th>#</th>
+                  <th>Referencia / Producto</th>
+                  <th class="text-center">Cant.</th>
+                  <th class="align-right">P. Tarifa</th>
+                  <th class="align-right">P. Venta</th>
+                  <th class="text-center">Dto %</th>
+                  <th class="align-right">Subtotal</th>
+                  <th class="text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in formData.lineItems" :key="index" class="line-item-row">
-                  <td class="col-num">{{ index + 1 }}</td>
-                  <td class="col-variant">
-                    <div class="variant-inline-search">
-                      <input
-                        v-if="!item.productVariantId"
-                        v-model="item.quickSearchQuery"
-                        type="text"
-                        class="form-input"
-                        placeholder="SKU o código de barras..."
-                        @keyup.enter="inlineSmartSearch(index)"
-                      />
-                      <span
-                        v-else
-                        class="variant-selected-label"
-                        @click="clearLineVariant(index)"
-                        title="Haz clic para cambiar"
-                      >
-                        {{ item.selectedVariantName }}
-                      </span>
-                      <button
-                        type="button"
-                        class="btn-browse-variant"
-                        @click="openVariantSelector(index)"
-                        title="Buscar en catálogo"
-                      >
-                        📋
-                      </button>
+                <tr v-for="(item, index) in formData.lineItems" :key="index">
+                  <td class="text-muted">{{ index + 1 }}</td>
+                  <td>
+                    <div class="variant-search-group">
+                      <div v-if="!item.productVariantId" class="input-with-icon">
+                        <span class="material-symbols-outlined icon-start">barcode_scanner</span>
+                        <input v-model="item.quickSearchQuery" type="text" class="form-input-sm" placeholder="SKU o código..." @keyup.enter="inlineSmartSearch(index)" />
+                        <button type="button" class="btn-icon-inside" @click="openVariantSelector(index)"><span class="material-symbols-outlined">search</span></button>
+                      </div>
+                      <div v-else class="variant-selected-tag" @click="clearLineVariant(index)">
+                        <span class="variant-sku">{{ item.selectedVariantName }}</span>
+                        <span class="variant-name">{{ buildDisplayName(item) }}</span>
+                        <span class="material-symbols-outlined">close</span>
+                      </div>
+                      <small v-if="item.inlineSearchError" class="text-danger">{{ item.inlineSearchError }}</small>
                     </div>
-                    <small v-if="item.inlineSearchError" class="inline-search-error">
-                      {{ item.inlineSearchError }}
-                    </small>
-                    <input v-model="item.productVariantId" type="hidden" required />
                   </td>
-                  <td class="col-product-name">
-                    <span class="product-name-readonly">{{ buildDisplayName(item) }}</span>
+                  <td class="text-center"><input v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" @input="calculateTotals" /></td>
+                  <td class="align-right text-muted">{{ item.listPrice != null ? item.listPrice.toFixed(2) : '—' }}</td>
+                  <td class="align-right"><input v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-20 text-right" @input="calculateTotals" /></td>
+                  <td class="text-center"><input v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" @input="calculateTotals" /></td>
+                  <td class="align-right">
+                    <span v-if="isPreviewLoading" class="spinner-tiny"></span>
+                    <strong v-else>{{ formatMoney(calculateLineSubtotal(index)) }}</strong>
                   </td>
-                  <td class="col-qty">
-                    <input
-                      v-model.number="item.quantity"
-                      type="number"
-                      min="1"
-                      class="form-input"
-                      required
-                      @input="calculateTotals"
-                    />
+                  <td class="text-center">
+                    <button type="button" class="btn-icon text-danger" @click="removeLineItem(index)"><span class="material-symbols-outlined">delete</span></button>
                   </td>
-                  <td class="col-list-price">
-                    <input
-                      :value="item.listPrice != null ? item.listPrice.toFixed(3) : ''"
-                      type="text"
-                      class="form-input input-readonly"
-                      readonly
-                      tabindex="-1"
-                      placeholder="—"
-                    />
-                  </td>
-                  <td class="col-price">
-                    <input
-                      v-model.number="item.unitPrice"
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      class="form-input"
-                      @input="calculateTotals"
-                    />
-                  </td>
-                  <td class="col-discount">
-                    <input
-                      v-model.number="item.discountPercent"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      placeholder="0.00"
-                      class="form-input"
-                      @input="calculateTotals"
-                    />
-                  </td>
-                  <td class="col-subtotal">
-                    <span v-if="isPreviewLoading" class="subtotal-loading">…</span>
-                    <span v-else class="subtotal-value">{{ formatMoney(calculateLineSubtotal(index)) }}</span>
-                  </td>
-                  <td class="col-actions">
-                    <button
-                      type="button"
-                      class="btn-remove"
-                      @click="removeLineItem(index)"
-                      title="Eliminar línea"
-                    >
-                      ✕
-                    </button>
-                  </td>
+                </tr>
+                <tr v-if="formData.lineItems.length === 0">
+                  <td colspan="8" class="empty-row">No hay productos en el pedido. Pulse "Añadir Producto" para comenzar.</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <!-- Totals Summary -->
-        <div v-if="formData.lineItems.length > 0" class="totals-section">
-          <h3>Resumen de Totales</h3>
-          <div class="totals-grid">
+        <!-- Totals & Actions -->
+        <div class="form-footer-layout">
+          <section class="card totals-summary-card">
             <div class="total-row">
-              <span class="total-label">Subtotal:</span>
-              <span class="total-value">{{ formatMoney(calculatedTotals.subtotal) }}</span>
+              <label>Subtotal:</label>
+              <span>{{ formatMoney(calculatedTotals.subtotal) }}</span>
             </div>
             <div class="total-row">
-              <span class="total-label">IVA:</span>
-              <span class="total-value">{{ formatMoney(calculatedTotals.tax) }}</span>
+              <label>IVA (21%):</label>
+              <span>{{ formatMoney(calculatedTotals.tax) }}</span>
             </div>
             <div class="total-row total-final">
-              <span class="total-label">Total:</span>
+              <label>TOTAL PEDIDO:</label>
               <span class="total-value">{{ formatMoney(calculatedTotals.total) }}</span>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="goBack">
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="!isFormValid || isSubmitting"
-          >
-            {{ isSubmitting ? "Creando..." : "Crear Pedido" }}
-          </button>
+          <div class="form-actions mt-6">
+            <button type="button" class="btn btn-outline btn-lg" @click="goBack">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-lg" :disabled="!isFormValid || isSubmitting">
+              <span class="material-symbols-outlined">{{ isSubmitting ? 'sync' : 'shopping_cart_checkout' }}</span>
+              <span>{{ isSubmitting ? "Procesando..." : "Confirmar y Crear Pedido" }}</span>
+            </button>
+          </div>
         </div>
       </form>
 
-      <!-- Error Display -->
-      <div v-if="submitError" class="error-box">
-        {{ submitError }}
+      <div v-if="submitError" class="alert alert-error mt-4">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ submitError }}</p>
       </div>
     </div>
 
     <!-- Variant Selector Modal -->
-    <div v-if="showVariantSelector" class="modal-overlay" @click.self="showVariantSelector = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Seleccionar Variante de Producto</h3>
-          <button class="btn-close" @click="showVariantSelector = false">✕</button>
-        </div>
-        <div class="modal-body">
-          <VariantSelector
-            :key="variantSelectorQuery + '-' + editingLineIndex"
-            :product-id="null"
-            :initial-query="variantSelectorQuery"
-            initial-mode="quick"
-            title=""
-            description="Seleccione una variante de producto"
-            @variant-selected="handleVariantSelected"
-          />
+    <Transition name="fade">
+      <div v-if="showVariantSelector" class="modal-backdrop">
+        <div class="modal card w-modal-xl">
+          <div class="modal-header">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <h2>Seleccionar Producto</h2>
+            <button class="btn-icon-inside ml-auto" @click="showVariantSelector = false"><span class="material-symbols-outlined">close</span></button>
+          </div>
+          <div class="modal-body overflow-y">
+            <VariantSelector
+              :key="variantSelectorQuery + '-' + editingLineIndex"
+              :product-id="null"
+              :initial-query="variantSelectorQuery"
+              initial-mode="quick"
+              title=""
+              @variant-selected="handleVariantSelected"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -288,6 +220,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '@/components/layout/Navbar.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
@@ -299,12 +232,11 @@ const router = useRouter();
 
 const formData = ref({
   partyId: '',
-  orderDate: '',
-  deliveryDate: '',
+  orderDate: new Date().toISOString().split('T')[0],
+  deliveryDate: new Date().toISOString().split('T')[0],
   notes: '',
   mesWorkRefs: [],
   lineItems: [],
-  sourceQuoteId: null,
 });
 
 const isSubmitting = ref(false);
@@ -313,49 +245,25 @@ const mesWorkSetups = ref([]);
 const isLoadingMesWorks = ref(false);
 const partyDefaultDiscount = ref(null);
 
-const calculatedTotals = ref({
-  subtotal: 0,
-  tax: 0,
-  total: 0,
-});
-
+const calculatedTotals = ref({ subtotal: 0, tax: 0, total: 0 });
 const previewResult = ref(null);
 const isPreviewLoading = ref(false);
 let previewDebounceTimer = null;
 
 const minDeliveryDate = computed(() => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   return tomorrow.toISOString().split('T')[0];
 });
 
-const isFormValid = computed(() => {
-  return (
-    formData.value.partyId &&
-    formData.value.orderDate &&
-    formData.value.deliveryDate &&
-    formData.value.lineItems.length > 0 &&
-    formData.value.lineItems.every(
-      (item) => item.productVariantId && item.quantity > 0
-    )
-  );
-});
+const isFormValid = computed(() => (
+  formData.value.partyId && formData.value.orderDate && 
+  formData.value.lineItems.length > 0 && 
+  formData.value.lineItems.every(i => i.productVariantId && i.quantity > 0)
+));
 
-onMounted(() => {
-  // Set default order date to today
-  const today = new Date().toISOString().split('T')[0];
-  formData.value.orderDate = today;
-  formData.value.deliveryDate = today;
+watch(() => formData.value.partyId, (partyId) => { loadMesWorksForParty(partyId); });
 
-});
-
-watch(() => formData.value.partyId, (partyId) => {
-  loadMesWorksForParty(partyId);
-});
-
-function onPartySelected(party) {
-  partyDefaultDiscount.value = party?.default_discount_percentage || null;
-}
+function onPartySelected(party) { partyDefaultDiscount.value = party?.default_discount_percentage || null; }
 
 const showVariantSelector = ref(false);
 const editingLineIndex = ref(null);
@@ -363,68 +271,32 @@ const variantSelectorQuery = ref('');
 
 function addLineItem() {
   formData.value.lineItems.push({
-    productVariantId: '',
-    productId: '',
-    selectedVariantName: '',
-    productName: '',
-    productDescription: '',
-    optionConfiguration: {},
-    quickSearchQuery: '',
-    inlineSearchError: '',
-    quantity: 1,
-    listPrice: null,
-    unitPrice: null,
-    discountPercent: partyDefaultDiscount.value || null,
-    productBasePrice: null,
+    productVariantId: '', productId: '', selectedVariantName: '', productName: '',
+    optionConfiguration: {}, quickSearchQuery: '', inlineSearchError: '',
+    quantity: 1, listPrice: null, unitPrice: null, discountPercent: partyDefaultDiscount.value || null,
   });
 }
 
 async function loadMesWorksForParty(partyId) {
-  if (!partyId) {
-    mesWorkSetups.value = [];
-    formData.value.mesWorkRefs = [];
-    return;
-  }
-
+  if (!partyId) { mesWorkSetups.value = []; formData.value.mesWorkRefs = []; return; }
   isLoadingMesWorks.value = true;
-  try {
-    mesWorkSetups.value = await mesApi.listWorkSetups({ party_id: partyId });
-  } catch (error) {
-    console.error('Error loading MES work setups for selected party:', error);
-    mesWorkSetups.value = [];
-  } finally {
-    isLoadingMesWorks.value = false;
-  }
+  try { mesWorkSetups.value = await mesApi.listWorkSetups({ party_id: partyId }); }
+  catch (err) { mesWorkSetups.value = []; }
+  finally { isLoadingMesWorks.value = false; }
 }
 
-function onSetupSelect(idx, setupId) {
-  const config = formData.value.mesWorkRefs[idx];
-  if (!config) return;
-  if (setupId) {
-    config.workSetupId = setupId;
-  } else {
-    config.workSetupId = null;
-  }
-}
-
-function addConfig() {
-  formData.value.mesWorkRefs.push({ workSetupId: null, description: '' });
-}
-
-function removeConfig(idx) {
-  formData.value.mesWorkRefs.splice(idx, 1);
-}
+function addConfig() { formData.value.mesWorkRefs.push({ workSetupId: null, description: '' }); }
+function removeConfig(idx) { formData.value.mesWorkRefs.splice(idx, 1); }
+function onSetupSelect(idx, setupId) { formData.value.mesWorkRefs[idx].workSetupId = setupId || null; }
 
 function openVariantSelector(index) {
   editingLineIndex.value = index;
-  const item = formData.value.lineItems[index];
-  variantSelectorQuery.value = item?.quickSearchQuery?.trim() || '';
+  variantSelectorQuery.value = formData.value.lineItems[index]?.quickSearchQuery?.trim() || '';
   showVariantSelector.value = true;
 }
 
 function handleVariantSelected(payload) {
-  const variant = payload?.variant || payload
-
+  const variant = payload?.variant || payload;
   if (editingLineIndex.value !== null && variant) {
     const item = formData.value.lineItems[editingLineIndex.value];
     item.productVariantId = variant.id;
@@ -432,125 +304,52 @@ function handleVariantSelected(payload) {
     item.selectedVariantName = variant.sku;
     item.productName = variant.product_name || '';
     item.optionConfiguration = variant.option_configuration || {};
-    item.productDescription = variant.product_description || '';
-    item.quickSearchQuery = '';
-    item.inlineSearchError = '';
-    item.productBasePrice = variant.product_base_price ?? variant.base_cost ?? null;
-    // Immediately show base_cost so price is never blank
-    if (item.productBasePrice != null && item.unitPrice == null) {
-      item.listPrice = item.productBasePrice;
-      item.unitPrice = item.productBasePrice;
-    }
+    item.listPrice = variant.product_base_price ?? variant.base_cost ?? null;
+    item.unitPrice = item.listPrice;
     fetchPriceForLineItem(item);
   }
   showVariantSelector.value = false;
-  editingLineIndex.value = null;
   calculateTotals();
+}
+
+async function fetchPriceForLineItem(item) {
+  if (!item.productVariantId || !item.productId) return;
+  try {
+    const result = await calculateBaseSalesPrice(item.productId, item.productVariantId);
+    item.listPrice = result.baseSalesPrice?.amount ?? item.listPrice;
+    item.unitPrice = item.listPrice;
+    calculateTotals();
+  } catch (err) {}
 }
 
 async function inlineSmartSearch(index) {
   const item = formData.value.lineItems[index];
   const query = item.quickSearchQuery?.trim();
   if (!query) return;
-  
-  item.inlineSearchError = '';
-  
   try {
     const result = await productApi.smartSearch(query);
-    
     if (result.type === 'exact_variant' && result.variant) {
-      item.productVariantId = result.variant.id;
-      item.productId = result.variant.product_id || result.product?.id || '';
-      item.selectedVariantName = result.variant.sku;
-      item.productName = result.product?.name || '';
-      item.optionConfiguration = result.variant.option_configuration || {};
-      item.productDescription = result.product?.description || '';
-      item.quickSearchQuery = '';
-      item.productBasePrice = result.product?.base_price ?? result.variant.base_cost ?? null;
-      if (item.productBasePrice != null && item.unitPrice == null) {
-        item.listPrice = item.productBasePrice;
-        item.unitPrice = item.productBasePrice;
-      }
-      fetchPriceForLineItem(item);
-      calculateTotals();
-    } else if (result.type === 'no_match') {
-      item.inlineSearchError = 'No encontrado. Usa 📋 para buscar en catálogo.';
+      handleVariantSelected(result.variant);
     } else {
-      // Ambiguous or partial result → open modal with query pre-filled
-      editingLineIndex.value = index;
-      variantSelectorQuery.value = query;
-      showVariantSelector.value = true;
+      openVariantSelector(index);
     }
-  } catch (err) {
-    console.error('[OrderCreate] Inline search error:', err);
-    item.inlineSearchError = err.message || 'Error en búsqueda';
-  }
+  } catch (err) { item.inlineSearchError = 'No encontrado'; }
 }
 
 function clearLineVariant(index) {
-  const item = formData.value.lineItems[index];
-  item.productVariantId = '';
-  item.productId = '';
-  item.selectedVariantName = '';
-  item.productName = '';
-  item.optionConfiguration = {};
-  item.productDescription = '';
-  item.quickSearchQuery = '';
-  item.inlineSearchError = '';
-  item.listPrice = null;
-  item.unitPrice = null;
-  item.discountPercent = null;
-  item.productBasePrice = null;
+  formData.value.lineItems[index] = {
+    ...formData.value.lineItems[index], productVariantId: '', productId: '', selectedVariantName: '', productName: '',
+    listPrice: null, unitPrice: null, discountPercent: null
+  };
   calculateTotals();
 }
 
-/**
- * Fetch sale price from Pricing Engine (ADR-015) and auto-fill listPrice + unitPrice.
- * Sale price = base_price + attribute modifiers + brand markup.
- * Falls back to product base_price when pricing engine is unavailable.
- */
-async function fetchPriceForLineItem(item) {
-  if (!item.productVariantId || !item.productId) {
-    // Without productId we cannot call the pricing engine
-    if (item.productBasePrice != null) {
-      item.listPrice = item.productBasePrice;
-      item.unitPrice = item.productBasePrice;
-      calculateTotals();
-    }
-    return;
-  }
-  try {
-    const result = await calculateBaseSalesPrice(item.productId, item.productVariantId);
-    const rawPrice = result.baseSalesPrice?.amount ?? item.productBasePrice ?? null;
-    const salePrice = rawPrice != null ? Math.round(rawPrice * 1000) / 1000 : null;
-    item.listPrice = salePrice;
-    item.unitPrice = salePrice;
-    calculateTotals();
-  } catch (err) {
-    console.warn('[OrderCreate] Error fetching sale price:', err.message);
-    // Pricing engine unavailable — fall back to product base price
-    if (item.productBasePrice != null) {
-      item.listPrice = item.productBasePrice;
-      item.unitPrice = item.productBasePrice;
-      calculateTotals();
-    }
-  }
-}
+function removeLineItem(index) { formData.value.lineItems.splice(index, 1); calculateTotals(); }
 
-function removeLineItem(index) {
-  formData.value.lineItems.splice(index, 1);
-  calculateTotals();
-}
-
-function calculateLineSubtotal(index) {
+function calculateLineSubtotal(i) {
   if (!previewResult.value) return 0;
-  // Map form index to preview index (preview only contains items with productVariantId)
-  let previewIdx = 0;
-  for (let i = 0; i < index; i++) {
-    if (formData.value.lineItems[i].productVariantId) previewIdx++;
-  }
-  const previewItem = previewResult.value.lineItems[previewIdx];
-  return previewItem?.subtotal?.amount ?? 0;
+  let pIdx = 0; for(let j=0; j<i; j++) if(formData.value.lineItems[j].productVariantId) pIdx++;
+  return previewResult.value.lineItems[pIdx]?.subtotal?.amount ?? 0;
 }
 
 function calculateTotals() {
@@ -558,666 +357,93 @@ function calculateTotals() {
   previewDebounceTimer = setTimeout(fetchPreviewCalculation, 400);
 }
 
-function buildPreviewItems() {
-  return formData.value.lineItems
-    .filter(item => item.productVariantId)
-    .map(item => ({
-      productVariantId: item.productVariantId,
-      quantity: item.quantity || 1,
-      unitPrice: item.unitPrice ? { amount: item.unitPrice, currency: 'EUR' } : undefined,
-      discountPercent: item.discountPercent != null ? item.discountPercent : undefined,
-    }));
-}
-
 async function fetchPreviewCalculation() {
   const partyId = formData.value.partyId;
-  const items = buildPreviewItems();
-  if (!partyId || items.length === 0) {
-    previewResult.value = null;
-    calculatedTotals.value = { subtotal: 0, tax: 0, total: 0 };
-    return;
-  }
+  const items = formData.value.lineItems.filter(i => i.productVariantId).map(i => ({
+    productVariantId: i.productVariantId, quantity: i.quantity,
+    unitPrice: i.unitPrice ? { amount: i.unitPrice, currency: 'EUR' } : undefined,
+    discountPercent: i.discountPercent || undefined
+  }));
+  if (!partyId || items.length === 0) { calculatedTotals.value = { subtotal: 0, tax: 0, total: 0 }; return; }
   isPreviewLoading.value = true;
   try {
     previewResult.value = await salesApi.previewOrderCalculation(partyId, items);
-    calculatedTotals.value = {
-      subtotal: previewResult.value.subtotal?.amount ?? 0,
-      tax: previewResult.value.taxAmount?.amount ?? 0,
-      total: previewResult.value.total?.amount ?? 0,
-    };
-  } catch (err) {
-    console.warn('[OrderCreate] Preview calculation error:', err.message);
-  } finally {
-    isPreviewLoading.value = false;
-  }
-}
-
-function buildDisplayName(item) {
-  if (!item.productName) return '';
-  const config = item.optionConfiguration;
-  if (!config || Object.keys(config).length === 0) return item.productName;
-  return item.productName + ' - ' + Object.values(config).join(', ');
-}
-
-function formatMoney(amount) {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+    calculatedTotals.value = { subtotal: previewResult.value.subtotal.amount, tax: previewResult.value.taxAmount.amount, total: previewResult.value.total.amount };
+  } catch (err) {}
+  finally { isPreviewLoading.value = false; }
 }
 
 async function handleSubmit() {
   if (!isFormValid.value || isSubmitting.value) return;
-
   isSubmitting.value = true;
-  submitError.value = '';
-
   try {
-    // Prepare line items
-    const lineItems = formData.value.lineItems.map((item) => {
-      const lineItem = {
-        productVariantId: item.productVariantId,
-        quantity: item.quantity,
-      };
-
-      if (item.unitPrice != null && item.unitPrice > 0) {
-        lineItem.unitPrice = {
-          amount: item.unitPrice,
-          currency: 'EUR',
-        };
-      }
-
-      if (item.discountPercent != null) {
-        lineItem.discountPercent = item.discountPercent;
-      }
-
-      return lineItem;
-    });
-
-    // Prepare order data — field names must match backend CreateOrderCommand json tags
     const orderData = {
       partyId: formData.value.partyId,
       deliveryDate: salesApi.formatDateForAPI(new Date(formData.value.deliveryDate)),
-      items: lineItems,
+      items: formData.value.lineItems.map(i => ({
+        productVariantId: i.productVariantId, quantity: i.quantity,
+        unitPrice: i.unitPrice ? { amount: i.unitPrice, currency: 'EUR' } : undefined,
+        discountPercent: i.discountPercent || undefined
+      })),
+      notes: formData.value.notes,
+      mesWorkRefs: formData.value.mesWorkRefs
     };
-
-    if (formData.value.mesWorkRefs.length > 0) {
-      orderData.mesWorkRefs = formData.value.mesWorkRefs;
-    }
-
-    if (formData.value.notes) {
-      orderData.notes = formData.value.notes;
-    }
-
-    // Create order
     const newOrder = await salesApi.createOrder(orderData);
-
-    // Navigate to order detail
     router.push(`/sales/orders/${newOrder.id}`);
-  } catch (err) {
-    submitError.value = err?.message || 'No se pudo crear el pedido';
-    console.error('Error creating order:', err);
-  } finally {
-    isSubmitting.value = false;
-  }
+  } catch (err) { submitError.value = err.message; }
+  finally { isSubmitting.value = false; }
 }
 
-function goBack() {
-  router.push('/sales/orders');
-}
+function goBack() { router.back(); }
+function buildDisplayName(i) { return i.productName + (i.optionConfiguration ? ' - ' + Object.values(i.optionConfiguration).join(', ') : ''); }
+function formatMoney(a) { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(a); }
 </script>
 
 <style scoped>
-.input-readonly {
-  background-color: #f3f4f6;
-  cursor: not-allowed;
-  color: #6b7280;
-}
-
-.order-create-container {
-  padding: 1.5rem 2rem;
-}
-
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0.5rem 0;
-}
-
-.btn-back {
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  transition: color 0.2s;
-}
-
-.btn-back:hover {
-  color: #1f2937;
-}
-
-.form-card {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.form-section:last-of-type {
-  border-bottom: none;
-}
-
-.form-section h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1.5rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.section-header h2 {
-  margin: 0;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4a5568;
-  margin-bottom: 0.5rem;
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-family: inherit;
-}
-
-.form-input:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #E6B800;
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-}
-
-.help-text {
-  display: block;
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 0.25rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #9ca3af;
-  background: #f9fafb;
-  border-radius: 4px;
-}
-
-/* ── Line Items Table ── */
-.line-items-table-wrapper {
-  overflow-x: auto;
-  margin-top: 0.5rem;
-}
-
-.line-items-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.line-items-table thead th {
-  background: #f3f4f6;
-  color: #4b5563;
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.625rem 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.line-items-table tbody tr {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.15s;
-}
-
-.line-items-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.line-items-table td {
-  padding: 0.5rem;
-  vertical-align: middle;
-}
-
-.line-items-table .col-num {
-  width: 2.5rem;
-  text-align: center;
-  color: #9ca3af;
-  font-weight: 600;
-}
-
-.line-items-table .col-variant {
-  width: 280px;
-  min-width: 240px;
-}
-
-.line-items-table .col-product-name {
-  min-width: 200px;
-}
-
-.product-name-readonly {
-  font-size: 0.8125rem;
-  color: #374151;
-}
-
-.line-items-table .col-mes {
-  min-width: 160px;
-}
-
-.line-items-table .col-qty,
-.line-items-table .col-list-price,
-.line-items-table .col-price,
-.line-items-table .col-discount {
-  width: 90px;
-}
-
-.line-items-table .col-subtotal {
-  width: 100px;
-  text-align: right;
-}
-
-.line-items-table .col-actions {
-  width: 40px;
-  text-align: center;
-}
-
-.line-items-table .form-input {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.8125rem;
-}
-
-.btn-remove {
-  background: transparent;
-  border: none;
-  color: #dc2626;
-  cursor: pointer;
-  font-size: 1.125rem;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-  line-height: 1;
-}
-
-.btn-remove:hover {
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.subtotal-value {
-  font-size: 0.875rem;
-  color: #1f2937;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.totals-section {
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.totals-section h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem;
-}
-
-.totals-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-}
-
-.total-row.total-final {
-  margin-top: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 2px solid #d1d5db;
-  font-size: 1.125rem;
-  font-weight: 700;
-}
-
-.total-label {
-  color: #6b7280;
-}
-
-.total-row.total-final .total-label {
-  color: #1f2937;
-}
-
-.total-value {
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.total-row.total-final .total-value {
-  color: #E6B800;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-}
-
-.btn {
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #E6B800;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a700;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #4a5568;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-.btn-select-variant {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.875rem;
-}
-
-.btn-select-variant:hover {
-  border-color: #3b82f6;
-  background: #f9fafb;
-}
-
-.variant-inline-search {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-.variant-inline-search .form-input {
-  flex: 1;
-}
-
-.variant-selected-label {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  color: #166534;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.variant-description {
-  display: block;
-  color: #6b7280;
-  font-size: 0.75rem;
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.variant-selected-label:hover {
-  background: #dcfce7;
-  border-color: #22c55e;
-}
-
-.btn-browse-variant {
-  background: #f8fafc;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 0.5rem 0.65rem;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.15s;
-}
-
-.btn-browse-variant:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-}
-
-.inline-search-error {
-  color: #dc2626;
-  font-size: 0.75rem;
-  margin-top: 0.2rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #1b3a6b;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.btn-close:hover {
-  color: #dc2626;
-}
-
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-.error-box {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-@media (max-width: 1024px) {
-  .line-items-table .col-mes {
-    display: none;
-  }
-  .line-items-table thead th.col-mes {
-    display: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .line-items-table thead {
-    display: none;
-  }
-  .line-items-table,
-  .line-items-table tbody,
-  .line-items-table tr,
-  .line-items-table td {
-    display: block;
-    width: 100%;
-  }
-  .line-items-table tr {
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    background: #f9fafb;
-  }
-  .line-items-table td {
-    padding: 0.25rem 0;
-  }
-  .line-items-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    font-size: 0.75rem;
-    color: #6b7280;
-    display: block;
-    margin-bottom: 0.15rem;
-  }
-  .line-items-table .col-num {
-    display: none;
-  }
-}
-
-/* MES config styles */
-.mes-loading,
-.mes-empty {
-  color: #6b7280;
-  font-size: 0.875rem;
-  font-style: italic;
-  padding: 0.5rem 0;
-}
-
-.mes-ref-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.mes-config-entry {
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.mes-config-entry:last-of-type {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.mes-config-row {
-  margin-bottom: 0;
-}
-
-.input-with-action {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.input-with-action .form-input {
-  flex: 1;
-}
+.main-container { padding-bottom: 4rem; }
+
+.section-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
+.section-header h2 { font-size: 1rem; margin: 0; color: var(--color-text-primary); text-transform: uppercase; letter-spacing: 0.025em; }
+.section-header .material-symbols-outlined { color: var(--color-text-secondary); font-size: 22px; }
+
+.section-body { padding: 1.5rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group label { display: block; font-size: var(--font-size-xs); font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+
+input, select, textarea { width: 100%; padding: 0.75rem 1rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border); font-size: var(--font-size-sm); }
+
+/* MES */
+.highlight-blue { border-top: 4px solid var(--color-secondary); }
+.mes-config-entry { padding: 1rem; background: var(--color-background); border: 1px solid var(--color-border); }
+
+/* Table */
+.table-card { padding: 0; overflow: hidden; }
+.table-header-row { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-background); }
+.data-table th { background: var(--color-background); padding: 1rem; font-size: var(--font-size-xs); }
+.data-table td { padding: 1rem; border-bottom: 1px solid var(--color-background); vertical-align: middle; }
+
+/* Variant Search */
+.variant-search-group { min-width: 300px; }
+.variant-selected-tag { 
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; 
+  background: rgba(34, 197, 94, 0.1); border: 1px solid #86efac; border-radius: 6px; cursor: pointer;
+}
+.variant-sku { font-family: var(--font-family-mono); font-weight: 700; color: #166534; font-size: 0.85rem; }
+.variant-name { font-size: 0.85rem; flex: 1; }
+
+.input-with-icon { position: relative; display: flex; align-items: center; }
+.icon-start { position: absolute; left: 0.75rem; font-size: 20px; color: var(--color-text-secondary); }
+.input-with-icon input { padding-left: 2.5rem; }
+.btn-icon-inside { background: transparent; border: none; padding: 0.25rem; color: var(--color-text-secondary); cursor: pointer; }
+
+/* Footer & Totals */
+.form-footer-layout { display: flex; flex-direction: column; align-items: flex-end; }
+.totals-summary-card { width: 400px; padding: 1.5rem; background: var(--color-background); }
+.total-row { display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.9rem; }
+.total-final { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-border); font-weight: 700; font-size: 1.25rem; }
+.total-value { color: var(--color-primary); }
+
+.w-16 { width: 4rem; } .w-20 { width: 5rem; } .w-24 { width: 6rem; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.w-modal-xl { width: 90%; max-width: 1000px; }
 </style>

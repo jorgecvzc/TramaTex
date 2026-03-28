@@ -216,6 +216,43 @@ Interfaz táctil para operarios que permite gestionar el avance de las `WorkOrde
 
 ---
 
+## 🎨 UI/UX y Sistema de Diseño
+
+### B
+
+**BaseEntityPage**
+Plantilla maestra para la gestión integral de una Entidad de Dominio a pantalla completa. Implementa la arquitectura de tres capas para asegurar consistencia y enfoque operativo.
+
+### C
+
+**Context Header (Cabecera de Contexto)**
+Bloque dinámico de la `BaseEntityPage` que hace scroll con el contenido. Agrupa la Toolbar de estado, la cinta de Summary y la trazabilidad (Related). Su fondo es Gris Ceniza (`#f9fafb`).
+
+### I
+
+**Identity Header (Cabecera de Identidad)**
+Bloque superior fijo (`Sticky`) de la `BaseEntityPage`. Contiene la identidad del objeto (Título e ID) y las acciones globales. Su fondo es Blanco Puro (`#ffffff`).
+
+### M
+
+**Main Content (Área de Trabajo)**
+Zona operativa central de la página donde residen las secciones de datos (`FormSection`) y el motor de líneas. Utiliza el fondo gris base de la aplicación para resaltar las tarjetas blancas.
+
+**Material Symbols Outlined**
+Estándar obligatorio de iconografía para TramaTex. Se integra mediante la clase CSS `.material-symbols-outlined` y utiliza nombres semánticos de iconos de Google.
+
+### R
+
+**Related Traceability (Consola de Trazabilidad)**
+Sección dentro del `Context Header` que muestra enlaces rápidos a documentos vinculados (orígenes y destinos), permitiendo navegar por la genealogía del objeto sin perder contexto.
+
+### S
+
+**Summary Ribbon (Cinta de Resumen)**
+Fila de tarjetas KPI situada en el `Context Header`. Proporciona lectura rápida de los 4 datos más críticos de la entidad (ej. Cliente, Fecha, Total).
+
+---
+
 ## Abreviaturas Comunes
 
 | Abreviatura | Significado |

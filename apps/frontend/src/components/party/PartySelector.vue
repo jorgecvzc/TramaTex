@@ -14,13 +14,14 @@
           type="text"
           :placeholder="placeholder || 'Buscar por nombre o referencia...'"
           class="form-input"
-          @input="handleSearch"
-          @focus="showDropdown = true"
+          @input="handleInput"
+          @focus="onFocus"
           @blur="handleBlur"
           @keydown.enter.prevent="selectFirst"
           @keydown.down.prevent="navigateDown"
           @keydown.up.prevent="navigateUp"
           :required="required"
+          autocomplete="off"
         />
         
         <!-- Dropdown Results -->
@@ -38,13 +39,15 @@
           >
             <div class="party-info">
               <span class="party-name">{{ party.name }}</span>
-              <span v-if="party.tax_id" class="party-tax">{{ party.tax_id }}</span>
-              <span class="party-role">{{ getRoleLabel(party.role) }}</span>
+              <div class="party-meta">
+                <span v-if="party.tax_id" class="party-tax">{{ party.tax_id }}</span>
+                <span class="party-role-badge">{{ getRoleLabel(party.role) }}</span>
+              </div>
             </div>
             <span v-if="party.id === modelValue" class="selected-indicator">✓</span>
           </div>
           <div v-if="!isSearching && filteredParties.length === 0" class="dropdown-item empty">
-            No se encontraron resultados
+            No se encontraron resultados para "{{ searchTerm }}"
           </div>
         </div>
       </div>
@@ -66,10 +69,7 @@
       </div>
     </div>
     
-    <!-- Hidden input for form compatibility -->
     <input type="hidden" :value="modelValue" :name="name" />
-    
-    <!-- Help Text -->
     <span v-if="helpText" class="help-text">{{ helpText }}</span>
   </div>
 </template>
@@ -79,45 +79,25 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({
-  modelValue: {
-    type: String,
-    default: '',
-  },
-  label: {
-    type: String,
-    default: '',
-  },
-  placeholder: {
-    type: String,
-    default: 'Buscar por nombre o referencia...',
-  },
-  required: {
-    type: Boolean,
-    default: false,
-  },
-  roleFilter: {
-    type: String,
-    default: 'CLIENT', // CLIENT, SUPPLIER, BOTH, or null for all
-  },
-  name: {
-    type: String,
-    default: 'partyId',
-  },
-  helpText: {
-    type: String,
-    default: '',
-  },
+  modelValue: { type: String, default: '' },
+  label: { type: String, default: '' },
+  placeholder: { type: String, default: 'Buscar por nombre o referencia...' },
+  required: { type: Boolean, default: false },
+  roleFilter: { type: String, default: null },
+  name: { type: String, default: 'partyId' },
+  helpText: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'select']);
 
-// Component state
 const searchTerm = ref('');
-const allParties = ref([]);
+const allParties = ref<any[]>([]);
 const showDropdown = ref(false);
 const isSearching = ref(false);
 const activeIndex = ref(0);
 const inputId = computed(() => `party-selector-${Math.random().toString(36).substr(2, 9)}`);
+
+let searchTimer: any = null;
 
 const selectedParty = computed(() => {
   if (!props.modelValue) return null;
@@ -125,44 +105,23 @@ const selectedParty = computed(() => {
 });
 
 const filteredParties = computed(() => {
-  if (!searchTerm.value.trim()) {
-    return allParties.value.slice(0, 50); // Show first 50 if no search
-  }
-  
-  const term = searchTerm.value.toLowerCase();
-  return allParties.value
-    .filter((party) => {
-      const searchableValues = [
-        party?.name,
-        party?.tax_id,
-        party?.id,
-        party?.code,
-        party?.reference,
-      ]
-
-      return searchableValues
-        .filter((value) => typeof value === 'string' && value.trim().length > 0)
-        .some((value) => value.toLowerCase().includes(term))
-    })
-    .slice(0, 50)
+  // Siempre devolvemos lo que hay en allParties (ya viene filtrado del servidor o de la carga inicial)
+  return allParties.value.slice(0, 50);
 });
 
-// Methods
-async function loadParties() {
+async function loadParties(name = '') {
   isSearching.value = true;
   try {
-    const filters = {};
-    if (props.roleFilter) {
-      filters.role = props.roleFilter;
-    }
-    filters.pageSize = 500; // Load more parties for search
+    const filters: any = { pageSize: 100 };
+    if (props.roleFilter) filters.role = props.roleFilter;
+    if (name) filters.name = name;
     
     const response = await partyApi.listParties(filters);
     allParties.value = response.data || [];
     
-    // If modelValue is set, load that party's name into search
-    if (props.modelValue && selectedParty.value) {
-      searchTerm.value = selectedParty.value.name;
+    if (props.modelValue && !name) {
+      const selected = allParties.value.find(p => p.id === props.modelValue);
+      if (selected) searchTerm.value = selected.name;
     }
   } catch (error) {
     console.error('Error loading parties:', error);
@@ -171,49 +130,42 @@ async function loadParties() {
   }
 }
 
-function handleSearch() {
+function handleInput() {
   showDropdown.value = true;
   activeIndex.value = 0;
+  
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    loadParties(searchTerm.value);
+  }, 300);
+}
+
+function onFocus() {
+  showDropdown.value = true;
+  if (allParties.value.length === 0) loadParties();
 }
 
 function handleBlur() {
-  // Delay to allow click event on dropdown
   setTimeout(() => {
     showDropdown.value = false;
-    // Reset search term to selected party name or clear
-    if (selectedParty.value) {
-      searchTerm.value = selectedParty.value.name;
-    } else if (!props.modelValue) {
-      searchTerm.value = '';
-    }
-  }, 200);
+    if (selectedParty.value) searchTerm.value = selectedParty.value.name;
+    else if (!props.modelValue) searchTerm.value = '';
+  }, 250);
 }
 
-function selectParty(party) {
+function selectParty(party: any) {
   emit('update:modelValue', party.id);
   emit('select', party);
   searchTerm.value = party.name;
   showDropdown.value = false;
-  activeIndex.value = 0;
 }
 
 function selectFirst() {
-  if (filteredParties.value.length > 0) {
-    selectParty(filteredParties.value[0]);
-  }
+  if (filteredParties.value.length > 0) selectParty(filteredParties.value[activeIndex.value]);
 }
 
-function navigateDown() {
-  if (activeIndex.value < filteredParties.value.length - 1) {
-    activeIndex.value++;
-  }
-}
-
-function navigateUp() {
-  if (activeIndex.value > 0) {
-    activeIndex.value--;
-  }
-}
+function navigateDown() { if (activeIndex.value < filteredParties.value.length - 1) activeIndex.value++; }
+function navigateUp() { if (activeIndex.value > 0) activeIndex.value--; }
 
 function clearSelection() {
   emit('update:modelValue', '');
@@ -222,21 +174,15 @@ function clearSelection() {
   showDropdown.value = false;
 }
 
-function getRoleLabel(role) {
-  const labels = {
-    CLIENT: 'Cliente',
-    SUPPLIER: 'Proveedor',
-    BOTH: 'Cliente/Proveedor',
-  };
+function getRoleLabel(role: string) {
+  const labels: any = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Ambos', CONTACT: 'Contacto' };
   return labels[role] || role;
 }
 
-// Watch for external changes to modelValue
 watch(() => props.modelValue, (newVal) => {
-  if (newVal && selectedParty.value) {
-    searchTerm.value = selectedParty.value.name;
-  } else if (!newVal) {
-    searchTerm.value = '';
+  if (newVal && !searchTerm.value) {
+    // Si cambia el valor externamente y no tenemos nombre, buscarlo
+    loadParties();
   }
 });
 
@@ -246,165 +192,45 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.party-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+.party-selector { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-label { font-weight: 700; color: var(--color-text-secondary); font-size: 0.75rem; text-transform: uppercase; }
+.required { color: var(--color-danger); margin-left: 0.25rem; }
+.selector-container { position: relative; }
+.search-selector { position: relative; }
 
-.form-label {
-  font-weight: 500;
-  color: #374151;
-  font-size: 0.875rem;
+.form-input { 
+  width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--color-border-strong); border-radius: 8px; font-size: 0.9rem; transition: all 0.2s; 
+  background: white; box-shadow: var(--box-shadow-sm);
 }
-
-.required {
-  color: #dc2626;
-  margin-left: 0.25rem;
-}
-
-.selector-container {
-  position: relative;
-}
-
-.search-selector {
-  position: relative;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
+.form-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.1); }
 
 .dropdown-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 0.25rem;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1000;
+  position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.5rem; background: white; border: 1px solid var(--color-border-strong);
+  border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); max-height: 350px; overflow-y: auto; z-index: 2000;
 }
 
-.dropdown-item {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: background-color 0.15s;
-}
+.dropdown-item { padding: 0.75rem 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-background); }
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover, .dropdown-item.active { background-color: var(--color-background); }
+.dropdown-item.selected { background-color: rgba(0, 35, 149, 0.05); }
 
-.dropdown-item:hover,
-.dropdown-item.active {
-  background-color: #f3f4f6;
-}
+.party-info { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+.party-name { font-weight: 600; color: var(--color-text-primary); }
+.party-meta { display: flex; align-items: center; gap: 0.75rem; }
+.party-tax { font-size: 0.75rem; color: var(--color-text-secondary); font-family: var(--font-family-mono); }
+.party-role-badge { font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(0, 35, 149, 0.1); color: var(--color-primary); border-radius: 4px; font-weight: 700; text-transform: uppercase; }
 
-.dropdown-item.selected {
-  background-color: #eff6ff;
-}
-
-.dropdown-item.loading,
-.dropdown-item.empty {
-  cursor: default;
-  color: #6b7280;
-  justify-content: center;
-}
-
-.party-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.party-name {
-  font-weight: 500;
-  color: #111827;
-}
-
-.party-tax,
-.party-detail {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.party-role {
-  font-size: 0.75rem;
-  color: #3b82f6;
-  font-weight: 500;
-}
-
-.selected-indicator {
-  color: #10b981;
-  font-weight: bold;
-}
+.selected-indicator { color: var(--color-success); font-weight: bold; }
 
 .selected-party {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 0.875rem;
-  background-color: #eff6ff;
-  border: 1px solid #3b82f6;
-  border-radius: 0.375rem;
+  display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background-color: white; 
+  border: 2px solid var(--color-primary); border-radius: 8px; box-shadow: var(--box-shadow-sm);
 }
+.selected-party .party-name { color: var(--color-primary); }
 
-.selected-party-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
+.btn-clear { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; padding: 0.25rem; font-size: 1.1rem; }
+.btn-clear:hover { color: var(--color-danger); }
 
-.btn-clear {
-  background: none;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.25rem;
-  font-size: 1.25rem;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.btn-clear:hover {
-  color: #dc2626;
-}
-
-.help-text {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.spinner-small {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-  margin-right: 0.5rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+.spinner-small { display: inline-block; width: 1rem; height: 1rem; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 0.5rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

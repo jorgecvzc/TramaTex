@@ -1,454 +1,428 @@
-<template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <h1>Bienvenido, {{ usuario?.email || 'Usuario' }}</h1>
-          <p class="subtitle">Panel de control del sistema TramaTex ERP/MES</p>
-        </div>
-      </header>
-
-      <div class="areas-grid">
-        <!-- Área de Entidades -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Users :size="40" />
-            </div>
-            <h2>Entidades</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestiona clientes y proveedores</p>
-          <div class="area-links">
-            <RouterLink to="/parties" class="link-primary">
-              <span class="link-icon">
-                <Users :size="24" />
-              </span>
-              <span>Entidades</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Productos - Con enlaces completos -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Package :size="40" />
-            </div>
-            <h2>Productos</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestiona el catálogo de productos, atributos, marcas y categorías</p>
-          <div class="area-links">
-            <RouterLink to="/products" class="link-primary">
-              <span class="link-icon">
-                <Package :size="24" />
-              </span>
-              <span>Catálogo de Productos</span>
-            </RouterLink>
-            <RouterLink to="/master-data/attributes" class="link-secondary">
-              <span class="link-icon">
-                <Zap :size="24" />
-              </span>
-              <span>Atributos</span>
-            </RouterLink>
-            <RouterLink to="/master-data/brands" class="link-secondary">
-              <span class="link-icon">
-                <Tag :size="24" />
-              </span>
-              <span>Marcas</span>
-            </RouterLink>
-            <RouterLink to="/master-data/product-groups" class="link-secondary">
-              <span class="link-icon">
-                <Folder :size="24" />
-              </span>
-              <span>Categorías</span>
-            </RouterLink>
-            <RouterLink to="/products/pricing" class="link-secondary">
-              <span class="link-icon">
-                <Calculator :size="24" />
-              </span>
-              <span>Calculadora de Precios</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Ventas -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <DollarSign :size="40" />
-            </div>
-            <h2>Ventas</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestión de cotizaciones, pedidos y facturación</p>
-          <div class="area-links">
-            <RouterLink to="/sales/quotes" class="link-primary">
-              <span class="link-icon">
-                <Clipboard :size="24" />
-              </span>
-              <span>Presupuestos</span>
-            </RouterLink>
-            <RouterLink to="/sales/orders" class="link-secondary">
-              <span class="link-icon">
-                <ShoppingCart :size="24" />
-              </span>
-              <span>Pedidos</span>
-            </RouterLink>
-            <RouterLink to="/sales/delivery-notes" class="link-secondary">
-              <span class="link-icon">
-                <ScrollText :size="24" />
-              </span>
-              <span>Albaranes</span>
-            </RouterLink>
-            <RouterLink to="/sales/invoices" class="link-secondary">
-              <span class="link-icon">
-                <Receipt :size="24" />
-              </span>
-              <span>Facturas</span>
-            </RouterLink>
-            <RouterLink to="/sales/tickets/new" class="link-secondary">
-              <span class="link-icon">
-                <Ticket :size="24" />
-              </span>
-              <span>Nuevo Ticket</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Producción/MES -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Factory :size="40" />
-            </div>
-            <h2>Producción</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Manufacturing Execution System - Control de producción</p>
-          <div class="area-links">
-            <RouterLink to="/mes/dashboard" class="link-primary">
-              <span class="link-icon">
-                <Home :size="24" />
-              </span>
-              <span>Panel de control</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-orders" class="link-secondary">
-              <span class="link-icon">
-                <ShoppingCart :size="24" />
-              </span>
-              <span>Órdenes de trabajo</span>
-            </RouterLink>
-            <RouterLink to="/mes/tasks" class="link-secondary">
-              <span class="link-icon">
-                <Clipboard :size="24" />
-              </span>
-              <span>Tareas</span>
-            </RouterLink>
-            <RouterLink to="/mes/positions" class="link-secondary">
-              <span class="link-icon">
-                <Users :size="24" />
-              </span>
-              <span>Posiciones</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-types" class="link-secondary">
-              <span class="link-icon">
-                <Folder :size="24" />
-              </span>
-              <span>Tipos de trabajo</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-setups" class="link-secondary">
-              <span class="link-icon">
-                <Settings :size="24" />
-              </span>
-              <span>Configuraciones</span>
-            </RouterLink>
-            <RouterLink to="/mes/terminal" class="link-secondary">
-              <span class="link-icon">
-                <Wrench :size="24" />
-              </span>
-              <span>Terminal de taller</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Informes -->
-        <div class="area-card area-disabled">
-          <div class="area-header">
-            <div class="area-icon">
-              <BarChart :size="40" />
-            </div>
-            <h2>Informes</h2>
-            <span class="area-badge disabled">Post-MVP</span>
-          </div>
-          <p class="area-description">Reportes, análisis y estadísticas del sistema</p>
-          <div class="area-links">
-            <div class="link-primary link-disabled">
-              <span class="link-icon">
-                <LineChart :size="24" />
-              </span>
-              <span>Dashboard Analítico</span>
-            </div>
-            <div class="link-secondary link-disabled">
-              <span class="link-icon">
-                <FileText :size="24" />
-              </span>
-              <span>Reportes</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Área de Administración -->
-        <div v-if="isAdmin" class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <UserCog :size="40" />
-            </div>
-            <h2>Administración</h2>
-            <span class="area-badge admin">Admin</span>
-          </div>
-          <p class="area-description">Gestión de usuarios, roles y configuración del sistema</p>
-          <div class="area-links">
-            <RouterLink to="/admin/users" class="link-primary">
-              <span class="link-icon">
-                <User :size="24" />
-              </span>
-              <span>Gestión de Usuarios</span>
-            </RouterLink>
-            <RouterLink to="/admin/print-profile" class="link-secondary">
-              <span class="link-icon">
-                <FileText :size="24" />
-              </span>
-              <span>Perfil Fiscal de Impresión</span>
-            </RouterLink>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import { useAuth } from '@/composables'
 import { useAuthStore } from '@/stores/auth'
-import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, Home, LineChart, FileText, User, Calculator } from 'lucide-vue-next';
 
-const { usuario } = useAuth()
+// API Services
+import { partyApi } from '@/services/partyApi'
+import { productApi } from '@/services/productApi'
+import salesApi from '@/services/salesApi'
+import { mesApi } from '@/services/mesApi'
+
+const router = useRouter()
 const authStore = useAuthStore()
+const { user } = useAuth()
+
 const isAdmin = computed(() => authStore.isAdmin)
+
+// Reactive Stats
+const counts = ref({
+  parties: 0,
+  products: 0,
+  ordersToday: 0,
+  mesTasks: 0
+})
+
+const isLoading = ref(true)
+
+const stats = computed(() => [
+  { label: 'Entidades', value: counts.value.parties.toString(), icon: 'groups_2', color: 'blue', link: '/parties' },
+  { label: 'Productos', value: counts.value.products.toString(), icon: 'inventory_2', color: 'green', link: '/products' },
+  { label: 'Pedidos Hoy', value: counts.value.ordersToday.toString(), icon: 'shopping_cart', color: 'yellow', link: '/sales/orders' },
+  { label: 'Tareas MES', value: counts.value.mesTasks.toString(), icon: 'precision_manufacturing', color: 'purple', link: '/mes/dashboard' }
+])
+
+async function fetchDashboardData() {
+  isLoading.value = true
+  try {
+    const [partiesRes, productsRes, salesRes, mesRes] = await Promise.all([
+      partyApi.listParties({ pageSize: 1000 }),
+      productApi.listProducts({ pageSize: 1000 }),
+      salesApi.listOrders({ 
+        pageSize: 1000,
+        startDate: new Date().toISOString().split('T')[0]
+      }),
+      mesApi.getWorkOrderDashboardStats().catch(() => ({ total: 0, by_status: { IN_PROGRESS: 0 } }))
+    ])
+
+    counts.value.parties = partiesRes.data?.length || 0
+    counts.value.products = productsRes.data?.length || 0
+    counts.value.ordersToday = salesRes.data?.length || 0
+    
+    const mesStats = mesRes as any
+    counts.value.mesTasks = (mesStats.by_status?.IN_PROGRESS || 0) + (mesStats.by_status?.PENDING || 0)
+  } catch (error) {
+    console.error('Error cargando datos del dashboard:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function navigateTo(link: string) {
+  router.push(link)
+}
+
+onMounted(() => {
+  fetchDashboardData()
+})
 </script>
+
+<template>
+  <div class="dashboard">
+    <Navbar />
+    
+    <main class="dashboard-content">
+      <header class="dashboard-header">
+        <div class="header-title">
+          <h1>Bienvenido, {{ user?.name || user?.email || 'Usuario' }}</h1>
+          <p class="subtitle">Panel de control general de TramaTex ERP/MES</p>
+        </div>
+        <button @click="fetchDashboardData" class="btn btn-outline btn-sm" :disabled="isLoading">
+          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+          Actualizar datos
+        </button>
+      </header>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div 
+          v-for="stat in stats" 
+          :key="stat.label" 
+          class="stat-card clickable" 
+          :class="{ 'loading-pulse': isLoading }"
+          @click="navigateTo(stat.link)"
+        >
+          <div class="stat-icon" :class="stat.color">
+            <span class="material-symbols-outlined">{{ stat.icon }}</span>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">{{ stat.label }}</span>
+            <span class="stat-value">{{ isLoading ? '...' : stat.value }}</span>
+          </div>
+          <div class="stat-link-arrow">
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Main Actions (Shortcuts) -->
+        <section class="dashboard-section main-actions">
+          <div class="section-header">
+            <span class="material-symbols-outlined">bolt</span>
+            <h2>Accesos Directos</h2>
+            <span class="header-tag">Fijos</span>
+          </div>
+          <div class="actions-grid">
+            <RouterLink to="/sales/orders/new" class="action-card">
+              <span class="material-symbols-outlined icon-secondary">add_shopping_cart</span>
+              <span>Nuevo Pedido</span>
+            </RouterLink>
+            <RouterLink to="/products/new" class="action-card">
+              <span class="material-symbols-outlined icon-secondary">add_box</span>
+              <span>Nuevo Producto</span>
+            </RouterLink>
+            <RouterLink to="/parties/new" class="action-card">
+              <span class="material-symbols-outlined icon-secondary">person_add</span>
+              <span>Nueva Entidad</span>
+            </RouterLink>
+            <RouterLink to="/mes/terminal" class="action-card highlight">
+              <span class="material-symbols-outlined icon-secondary">tablet_mac</span>
+              <span>Terminal de Taller</span>
+            </RouterLink>
+          </div>
+          <div class="shortcuts-footer">
+            <span class="material-symbols-outlined">info</span>
+            <p>La personalización de accesos directos por usuario estará disponible Post-MVP.</p>
+          </div>
+        </section>
+
+        <!-- Avisos (Post-MVP) -->
+        <section class="dashboard-section notices">
+          <div class="section-header">
+            <span class="material-symbols-outlined">notifications</span>
+            <h2>Avisos y Notificaciones</h2>
+          </div>
+          <div class="notices-placeholder">
+            <div class="placeholder-content">
+              <span class="material-symbols-outlined icon-muted">construction</span>
+              <h3>Próximamente</h3>
+              <p>Módulo centralizado de alertas automáticas (stock, urgencias, MES).</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Admin Quick Access -->
+        <section v-if="isAdmin" class="dashboard-section admin">
+          <div class="section-header">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <h2>Administración</h2>
+          </div>
+          <div class="admin-links">
+            <div class="admin-card clickable" @click="navigateTo('/admin/users')">
+              <span class="material-symbols-outlined icon-muted">manage_accounts</span>
+              <div class="admin-card-info">
+                <strong>Gestión de Usuarios</strong>
+                <p>Accesos, roles y seguridad</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </div>
+            <div class="admin-card clickable" @click="navigateTo('/admin/print-profile')">
+              <span class="material-symbols-outlined icon-muted">business</span>
+              <div class="admin-card-info">
+                <strong>Datos de la Empresa</strong>
+                <p>Perfil fiscal y configuración</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</template>
 
 <style scoped>
 .dashboard {
   min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
 }
 
 .dashboard-content {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1rem;
 }
 
-.page-header {
-  margin-bottom: 2.5rem;
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
 }
 
-.page-header h1 {
-  color: #1b3a6b;
+.dashboard-header h1 {
   font-size: 2rem;
-  margin: 0 0 0.5rem;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem;
+  font-family: var(--font-family-brand);
 }
 
 .subtitle {
-  color: #64748b;
-  font-size: 1rem;
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
   margin: 0;
 }
 
-/* Areas Grid */
-.areas-grid {
+/* Stats Grid */
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
-/* Area Card */
-.area-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-.area-card:not(.area-disabled):hover {
-  border-color: #f4c430;
-  box-shadow: 0 8px 20px rgba(244, 196, 48, 0.15);
-  transform: translateY(-2px);
-}
-
-.area-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Area Header */
-.area-header {
+.stat-card {
+  background: var(--color-surface);
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  gap: 1.25rem;
+  position: relative;
+  box-shadow: var(--box-shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
 }
 
-.area-icon :deep(svg) {
-  width: 2.5rem; /* Equivalent to 40px */
-  height: 2.5rem; /* Equivalent to 40px */
+.stat-card.clickable {
+  cursor: pointer;
 }
 
-.area-header h2 {
-  color: #1b3a6b;
-  font-size: 1.5rem;
+.stat-card.clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--box-shadow-md);
+  border-color: var(--color-primary);
+}
+
+.stat-card.clickable:hover .stat-link-arrow {
+  color: var(--color-primary);
+  transform: translateX(3px);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon .material-symbols-outlined { font-size: 32px; }
+.stat-icon.blue { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.stat-icon.green { background-color: rgba(34, 197, 94, 0.1); color: #22c55e; }
+.stat-icon.yellow { background-color: rgba(230, 184, 0, 0.1); color: #E6B800; }
+.stat-icon.purple { background-color: rgba(168, 85, 247, 0.1); color: #a855f7; }
+
+.stat-info { display: flex; flex-direction: column; }
+.stat-label { font-size: 0.75rem; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-value { font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary); }
+
+.stat-link-arrow { 
+  position: absolute; 
+  right: 1.25rem; 
+  color: var(--color-border); 
+  transition: all 0.2s; 
+}
+
+/* Sections Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.dashboard-section {
+  background: var(--color-surface);
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-background);
+}
+
+.section-header h2 {
+  font-size: 1rem;
   font-weight: 700;
   margin: 0;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
   flex: 1;
 }
 
-.area-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.4rem 0.875rem;
-  font-size: 0.7rem;
+.section-header .material-symbols-outlined { color: var(--color-text-secondary); font-size: 22px; }
+
+.header-tag {
+  font-size: 0.6rem;
   font-weight: 700;
-  border-radius: 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  border-radius: 4px;
 }
 
-.area-badge:not(.disabled):not(.admin) {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  color: #166534;
+/* Actions Grid */
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
 }
 
-.area-badge.disabled {
-  background: #f1f5f9;
-  color: #94a3b8;
-}
-
-.area-badge.admin {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #78350f;
-}
-
-/* Area Description */
-.area-description {
-  color: #64748b;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* Area Links */
-.area-links {
+.action-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* Primary Link (más grande y destacado) */
-.link-primary {
-  display: flex;
   align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background-color: var(--color-background);
   border-radius: 12px;
   text-decoration: none;
+  color: var(--color-text-primary);
   font-weight: 600;
-  font-size: 1.05rem;
-  color: #1b3a6b;
-  background: linear-gradient(135deg, #f4c430 0%, #f4d03f 100%);
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 
-.link-primary:not(.link-disabled):hover {
-  background: linear-gradient(135deg, #f4d03f 0%, #fde68a 100%);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(244, 196, 48, 0.3);
+.icon-secondary { color: var(--color-secondary); font-size: 32px; }
+
+.action-card:hover {
+  transform: translateY(-2px);
+  background-color: white;
+  box-shadow: var(--box-shadow-md);
+  border-color: var(--color-primary);
 }
 
-.link-primary .link-icon :deep(svg) {
-  width: 1.5rem; /* Equivalent to 24px */
-  height: 1.5rem; /* Equivalent to 24px */
-}
+.action-card.highlight { background-color: rgba(230, 184, 0, 0.05); border: 1px dashed var(--color-primary); }
 
-/* Secondary Links (más pequeños) */
-.link-secondary {
+.shortcuts-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-background);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: #475569;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-  border: 1px solid #e2e8f0;
+  gap: 0.5rem;
+  color: var(--color-text-secondary);
 }
 
-.link-secondary:not(.link-disabled):hover {
-  background: #f1f5f9;
-  color: #1b3a6b;
-  border-color: #cbd5e1;
+.shortcuts-footer .material-symbols-outlined { font-size: 16px; }
+.shortcuts-footer p { margin: 0; font-size: 0.75rem; font-style: italic; }
+
+/* Notices Placeholder */
+.notices-placeholder {
+  padding: 2rem 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  border: 1px dashed var(--color-border);
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.icon-muted { color: var(--color-border); font-size: 48px; }
+.placeholder-content h3 { margin: 0; font-size: 0.9rem; color: var(--color-text-secondary); }
+.placeholder-content p { margin: 0; font-size: 0.8rem; color: var(--color-text-secondary); max-width: 200px; }
+
+/* Admin Section */
+.admin-links { display: flex; flex-direction: column; gap: 0.75rem; }
+.admin-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--color-background);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.admin-card.clickable { cursor: pointer; }
+
+.admin-card.clickable:hover {
+  background-color: white;
+  border-color: var(--color-primary);
+  box-shadow: var(--box-shadow-sm);
   transform: translateX(4px);
 }
 
-.link-secondary .link-icon :deep(svg) {
-  width: 1.25rem; /* Equivalent to 20px */
-  height: 1.25rem; /* Equivalent to 20px */
-}
+.admin-card .material-symbols-outlined:first-child { font-size: 24px; color: var(--color-text-secondary); }
+.admin-card-info { flex: 1; }
+.admin-card-info strong { display: block; font-size: 0.9rem; }
+.admin-card-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0; }
+.admin-card .arrow { color: var(--color-border); transition: color 0.2s; font-size: 18px; }
+.admin-card.clickable:hover .arrow { color: var(--color-primary); }
 
-/* Disabled Links */
-.link-disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-  background: #f1f5f9 !important;
-}
+/* Helpers */
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.loading-pulse { opacity: 0.7; }
 
-.link-disabled:hover {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .areas-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .area-card {
-    padding: 1.5rem;
-  }
-  
-  .area-icon :deep(svg) {
-    width: 2rem;
-    height: 2rem;
-  }
-  
-  .area-header h2 {
-    font-size: 1.25rem;
-  }
-}
+@media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
 </style>

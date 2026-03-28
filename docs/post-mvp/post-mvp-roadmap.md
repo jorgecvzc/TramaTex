@@ -52,6 +52,7 @@ Auditoría completa de UI/UX detectó inconsistencias significativas entre módu
 - [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
 - [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
 - [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
+- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
 
 ---
 
@@ -130,7 +131,7 @@ Extraer el módulo MES del monolito modular a un microservicio independiente:
 
 ## 6. Inteligencia de Negocio y Analítica
 
-**Prioridad:** Media  
+**Prioridad:** Baja  
 **Referencia:** Presentaciones ([slides_spec.md](../presentations/slides_spec.md#L111))
 
 - [ ] Cuadros de mando avanzados (dashboards).
@@ -203,23 +204,20 @@ Objetivos Post-MVP de cobertura:
 
 ## 12. Generación de Documentos PDF
 
-**Prioridad:** Alta  
+**Prioridad:** Baja
 **Referencia:** [erp-core-completion.md](../log/erp-core-completion.md#L448)
 
-- [ ] Generación de PDFs para albaranes.
-- [ ] Generación de PDFs para facturas.
-- [ ] Generación de PDFs para presupuestos/pedidos.
 - [ ] Plantillas personalizables por empresa.
 
 ## 13. Mejoras UX Avanzadas
 
-**Prioridad:** Media  
+**Prioridad:** Baja  
 **Contexto:** Mejoras de experiencia de usuario de segunda fase, que dependen de la unificación estética (sección 1).
 
-- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
 - [ ] **Mejora interfaz TPV:** Mayor agilidad para ventas rápidas (tickets/facturas simplificadas).
 - [ ] **Diseño responsive:** Adaptación completa a tablets de taller.
 - [ ] **Modo oscuro** para terminales de producción.
+- [ ] **Aplicación dirigida por teclado avanzada:** Atajos, navegación sin ratón, flujo rápido para operadores.
 
 ---
 

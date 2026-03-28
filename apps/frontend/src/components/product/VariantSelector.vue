@@ -8,7 +8,7 @@
 
     <!-- Error Display -->
     <div v-if="error" class="error-banner">
-      ⚠️ {{ error }}
+      <AlertTriangle :size="16" /> {{ error }}
     </div>
 
     <!-- Search Section -->
@@ -69,7 +69,7 @@
             </p>
             <div class="card-footer">
               <button @click="confirmSelection" class="btn btn-success btn-add">
-                ✓ Agregar
+                <Check :size="16" /> Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -150,7 +150,7 @@
           :disabled="isProcessing"
         >
           <span v-if="isProcessing">Cargando...</span>
-          <span v-else>✓ Agregar</span>
+          <span v-else><Check :size="16" /> Agregar</span>
         </button>
       </div>
 
@@ -168,7 +168,7 @@
             </p>
             <div class="card-footer">
               <button @click="confirmSelection" class="btn btn-success btn-add">
-                ✓ Agregar
+                <Check :size="16" /> Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -184,6 +184,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { AlertTriangle, Check } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({
@@ -497,7 +498,7 @@ async function performSmartSearch() {
     
     switch (result.type) {
       case 'exact_variant':
-        // Variant found directly → show card with "Agregar"
+        // Variant found directly → Auto-select and confirm immediately
         if (result.variant) {
           selectedVariant.value = {
             ...result.variant,
@@ -506,8 +507,11 @@ async function performSmartSearch() {
             product_base_price: result.product?.base_price ?? null,
             product_tax_rate: result.product?.tax_rate ?? null,
           }
+          // Emit the event right away to close modal and add line
+          confirmSelection()
         }
         break
+
         
       case 'exact_product':
         // Product found → load its attribute selectors

@@ -27,36 +27,49 @@ ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
 ## Mejora UI/UX — Unificación Estética y Componentes Base
 
 - **Session ID:** `ui-ux-improvement-post-mvp-21-03-2026`
-- **Status:** En Pausa — **Pendiente de decisión: puede no realizarse antes del TFM**
-- **Prioridad:** Opcional pre-TFM. Si el tiempo no lo permite, queda como tarea Post-MVP.
+- **Status:** En Progreso — **Post-MVP: Estandarización estética pre-TFM**
+- **Prioridad:** Alta (Consistencia Visual TFM)
 - **Started:** 21-03-2026
-- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
+- **Rama:** `feat/ui-ux-standardization-post-mvp` (desde `develop`)
 
 ### Contexto
 
-Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se detectaron inconsistencias entre módulos: patrones de navegación mixtos en listados, botones sin base global, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta sesión implementa el plan de mejora estética para dar coherencia visual antes de la presentación TFM. También sirve como validación del trabajo Post-MVP y del flujo de despliegue definido en la sesión de infraestructura (`infra-multi-env-deployment-impl-2026-03-10`).
+Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Esta sesión implementa el plan de mejora estética para dar coherencia visual antes de la presentación TFM. Se documenta en el **Sprint 16** (Tarea 16-01).
 
 **Dependencias:** Requiere completar previamente la sesión de despliegue multientorno.
 
 ### Próximos Pasos
 
-- [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
-- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
-- [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
-- [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
-- [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
-- [ ] Forzar uso estricto de variables de `_variables.css` (paleta, radios de borde, sombras).
-- [ ] Migrar `PartyList.vue` como primer listado estandarizado de referencia.
-- [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
-- [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
-- [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
-
+- [x] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales e importar en `theme.css`.
+- [x] Estandarizar iconografía en módulos clave (Sales, Party).
+- [x] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico.
+- [x] Refactorizar componente `PageHeader` y aplicar Material Symbols.
+- [x] Crear componente maestro `BaseEntityPage`.
+- [x] Implementar Sticky Identity Header y Context Header.
+- [x] Estandarizar secciones: Toolbar, Summary, Related (Centralizado en `_sections.css`).
+- [x] Migrar `QuoteDetail.vue` e `InvoiceDetail.vue` al nuevo estándar `BaseEntityPage`.
+- [ ] **ESTABILIZAR OrderDetail.vue (BLOQUEO CRÍTICO)**: 
+    - [x] Corregir error "invalid id" (redirección post-creación).
+    - [x] Corregir error "invalid request body" (omisión de UUIDs vacíos).
+    - [x] Corregir rutas de API (cambio de `/items` a `/line-items`).
+    - [x] Eliminar bucles de actualización recursiva (`Maximum recursive updates exceeded`) persistentes.
+    - [x] Asegurar carga de precios y mapeo de `productVariantId` tras limpieza de reactividad.    - [x] Confirmar/Anular pedido: campo `status` → `newStatus` en `changeOrderStatus`.
+    - [x] MES: `mesWorkId`/`observations` → `workSetupId`/`description` en template y `enterEditMode`.
+    - [x] Reabrir pedido cancelado: función `reopenOrder` + computed `canReopen` + botón `btn-primary`.
+    - [x] Listado de albaranes: query param `order_id` → `salesOrderId` + array parsing directo.
+    - [x] Listado de facturas: query param `order_id` → `orderId` + array parsing directo.
+    - [x] Navegación MES: botón apunta a orden de trabajo (`workOrderId`); si no existe → badge "Pendiente".
+    - [x] `enterEditMode` + `saveOrder`: preservar `workOrderId` en mesWorkRefs al editar.
+- **SIGUIENTE: Arreglar UI Presupuestos (QuoteDetail.vue)**:
+    - [ ] Aplicar mismos fixes de integración frontend↔backend (ver `/memories/repo/orderdetail-frontend-fixes.md`).
+    - [ ] Listados relacionados (albaranes, facturas vinculadas) — mismo patrón de array parsing.
+    - [ ] Revisar campos MES en template de presupuesto (`workSetupId`, `description`).
+    - [ ] Verificar navegación y acciones de estado (aprobar, rechazar, convertir a pedido).
 ### Archivos de Contexto
 
-- `tmp/ui-ux-improvement-suggestions.md`
-- `apps/frontend/src/assets/styles/theme.css`
-- `apps/frontend/src/assets/styles/_variables.css`
-- `apps/frontend/src/components/`
+- `apps/frontend/src/design-system/_sections.css`
+- `apps/frontend/src/pages/sales/OrderDetail.vue`
+- `apps/frontend/src/router/guards.ts`
 
 ---
 

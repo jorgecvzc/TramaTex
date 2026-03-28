@@ -1,523 +1,137 @@
-/**
- * Shared print stylesheet for Sales document detail pages.
- * Provides professional PDF-ready output using TramaTex Design System.
- *
- * Design System tokens:
- *   Primary (blue):  #002395
- *   Accent (yellow): #E6B800
- *   Text primary:    #1e293b
- *   Text secondary:  #64748b
- *   Font:            Inter, sans-serif
- */
+/* sales-print.css - Estándar de Impresión Profesional TramaTex */
 
-/* ── Screen: hide print-only elements ─────────────────────────── */
-
-.print-doc-header,
-.print-doc-footer {
-  display: none;
+@media screen {
+  .print-only {
+    display: none !important;
+  }
 }
-
-/* ── PDF rendering mode (mirrors @media print for html2pdf.js) ── */
-
-.pdf-rendering .print-doc-header {
-  display: block !important;
-  border: none;
-  border-bottom: 3px solid #002395;
-  padding: 0 0 0.6rem 0;
-  margin-bottom: 1rem;
-  background: white;
-  position: relative;
-}
-
-.pdf-rendering .print-doc-header::after {
-  content: '';
-  display: block;
-  width: 60px;
-  height: 3px;
-  background: #E6B800;
-  position: absolute;
-  bottom: -3px;
-  left: 0;
-}
-
-.pdf-rendering .print-doc-footer {
-  display: flex !important;
-  justify-content: space-between;
-  align-items: center;
-  border: none;
-  border-top: 2px solid #002395;
-  padding: 0.5rem 0 0;
-  margin-top: 1.5rem;
-  font-size: 0.7rem;
-  color: #64748b;
-  background: white;
-  position: relative;
-}
-
-.pdf-rendering .print-doc-footer::after {
-  content: '';
-  display: block;
-  width: 40px;
-  height: 2px;
-  background: #E6B800;
-  position: absolute;
-  top: -2px;
-  right: 0;
-}
-
-.pdf-rendering .page-header,
-.pdf-rendering .btn-back,
-.pdf-rendering .header-actions,
-.pdf-rendering .modal-overlay,
-.pdf-rendering .btn,
-.pdf-rendering .btn-icon,
-.pdf-rendering .actions-cell,
-.pdf-rendering .warning-card,
-.pdf-rendering .error-card,
-.pdf-rendering .success-card {
-  display: none !important;
-}
-
-.pdf-rendering .info-grid {
-  grid-template-columns: 1fr 1fr !important;
-  gap: 0.6rem !important;
-}
-
-.pdf-rendering .info-card,
-.pdf-rendering .notes-card {
-  box-shadow: none !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 4px !important;
-  padding: 0.6rem 0.8rem !important;
-}
-
-.pdf-rendering .info-card h3,
-.pdf-rendering .notes-card h3 {
-  font-size: 0.7rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  color: #002395 !important;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 0.25rem;
-  margin-bottom: 0.35rem !important;
-}
-
-.pdf-rendering .info-row {
-  font-size: 0.78rem !important;
-  padding: 0.15rem 0 !important;
-}
-
-.pdf-rendering .info-row .label {
-  color: #64748b !important;
-}
-
-.pdf-rendering .info-row .value {
-  color: #1e293b !important;
-  font-weight: 500 !important;
-}
-
-.pdf-rendering .info-row.total .value {
-  font-weight: 700 !important;
-  font-size: 0.9rem !important;
-  color: #002395 !important;
-}
-
-.pdf-rendering .line-items-section,
-.pdf-rendering .related-section {
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-.pdf-rendering .section-header h2,
-.pdf-rendering .line-items-section h2 {
-  font-size: 0.8rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.04em !important;
-  color: #002395 !important;
-  margin-bottom: 0.4rem !important;
-}
-
-.pdf-rendering .table-container {
-  box-shadow: none !important;
-  border: none !important;
-  overflow: visible !important;
-}
-
-.pdf-rendering .data-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  font-size: 0.75rem !important;
-}
-
-.pdf-rendering .data-table thead {
-  background: #002395 !important;
-}
-
-.pdf-rendering .data-table thead th {
-  color: white !important;
-  font-weight: 600 !important;
-  font-size: 0.68rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.03em !important;
-  padding: 0.4rem 0.5rem !important;
-  border: none !important;
-}
-
-.pdf-rendering .data-table tbody td {
-  padding: 0.35rem 0.5rem !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  color: #1e293b !important;
-  vertical-align: middle !important;
-}
-
-.pdf-rendering .data-table tbody tr:nth-child(even) {
-  background: #f8fafc !important;
-}
-
-.pdf-rendering .data-table tfoot td {
-  padding: 0.35rem 0.5rem !important;
-  border-top: 2px solid #002395 !important;
-  border-bottom: none !important;
-  font-weight: 600 !important;
-  color: #1e293b !important;
-}
-
-.pdf-rendering .data-table tfoot .total td {
-  font-size: 0.85rem !important;
-  font-weight: 700 !important;
-  color: #002395 !important;
-  border-top: none !important;
-}
-
-.pdf-rendering .status-badge,
-.pdf-rendering .type-badge {
-  border: 1px solid #9ca3af !important;
-  color: #1e293b !important;
-  background: transparent !important;
-  font-size: 0.7rem !important;
-  padding: 0.15rem 0.5rem !important;
-}
-
-.pdf-rendering .party-id {
-  font-size: 0.65rem !important;
-  color: #9ca3af !important;
-}
-
-.print-brand {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #002395;
-}
-
-.print-doc-header h2 {
-  margin: 0.3rem 0 0.15rem;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.print-issuer-line {
-  margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: #64748b;
-}
-
-.print-doc-meta {
-  display: flex;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  font-size: 0.78rem;
-  color: #1e293b;
-  margin-top: 0.35rem;
-}
-
-.print-doc-meta span {
-  white-space: nowrap;
-}
-
-/* ── Print mode ───────────────────────────────────────────────── */
 
 @media print {
-  /* Page setup */
-  @page {
-    size: A4 portrait;
-    margin: 12mm 15mm 14mm 15mm;
-  }
-
-  /* Force white background and readable colour */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    font-size: 10pt;
-    color: #1e293b;
-    background: white;
-  }
-
-  /* Hide all interactive / navigation chrome */
-  nav,
-  .navbar,
-  .page-header,
-  .btn-back,
-  .header-actions,
-  .modal-overlay,
-  .btn,
-  .btn-icon,
-  .actions-cell,
-  .related-link,
-  .document-link,
-  .order-link,
-  .value-link,
-  .mes-link,
-  .warning-card,
-  .error-card {
+  /* Ocultar elementos de interfaz */
+  .navbar, 
+  .action-toolbar, 
+  .header-actions-group, 
+  .btn, 
+  .breadcrumb-nav,
+  .no-print {
     display: none !important;
   }
 
-  /* Remove page container spacing */
-  .quote-detail-container,
-  .order-detail-container,
-  .invoice-detail-container,
-  .delivery-note-detail-container {
-    padding: 0 !important;
-    max-width: none !important;
+  /* Reset de layout para papel */
+  body, .main-container, .detail-standard-layout {
     margin: 0 !important;
-  }
-
-  /* ── Document header (brand block) ────────────────────────── */
-
-  .print-doc-header {
-    display: block !important;
-    border: none;
-    border-bottom: 3px solid #002395;
-    padding: 0 0 0.6rem 0;
-    margin-bottom: 1rem;
-    background: white;
-    position: relative;
-  }
-
-  .print-doc-header::after {
-    content: '';
-    display: block;
-    width: 60px;
-    height: 3px;
-    background: #E6B800;
-    position: absolute;
-    bottom: -3px;
-    left: 0;
-  }
-
-  .print-brand {
-    font-size: 1.1rem;
-    color: #002395;
-  }
-
-  .print-doc-header h2 {
-    font-size: 1.15rem;
-    color: #1e293b;
-    margin-top: 0.4rem;
-  }
-
-  .print-doc-meta {
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    color: #64748b;
-  }
-
-  /* ── Document footer ──────────────────────────────────────── */
-
-  .print-doc-footer {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    border: none;
-    border-top: 2px solid #002395;
-    padding: 0.5rem 0 0;
-    margin-top: 1.5rem;
-    font-size: 0.7rem;
-    color: #64748b;
-    background: white;
-    position: relative;
-  }
-
-  .print-doc-footer::after {
-    content: '';
-    display: block;
-    width: 40px;
-    height: 2px;
-    background: #E6B800;
-    position: absolute;
-    top: -2px;
-    right: 0;
-  }
-
-  /* ── Info cards ────────────────────────────────────────────── */
-
-  .info-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.6rem !important;
-  }
-
-  .info-card,
-  .notes-card {
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 4px !important;
-    padding: 0.6rem 0.8rem !important;
-    break-inside: avoid;
-  }
-
-  .info-card h3,
-  .notes-card h3 {
-    font-size: 0.7rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: #002395 !important;
-    border-bottom: 1px solid #e2e8f0;
-    padding-bottom: 0.25rem;
-    margin-bottom: 0.35rem !important;
-  }
-
-  .info-row {
-    font-size: 0.78rem !important;
-    padding: 0.15rem 0 !important;
-  }
-
-  .info-row .label {
-    color: #64748b !important;
-  }
-
-  .info-row .value {
-    color: #1e293b !important;
-    font-weight: 500 !important;
-  }
-
-  .info-row.total .value {
-    font-weight: 700 !important;
-    font-size: 0.9rem !important;
-    color: #002395 !important;
-  }
-
-  /* ── Tables ────────────────────────────────────────────────── */
-
-  .line-items-section,
-  .delivery-notes-section,
-  .related-section,
-  .related-documents-section,
-  .signatures-section {
-    box-shadow: none !important;
-    border: none !important;
     padding: 0 !important;
-    break-inside: avoid;
-  }
-
-  .section-header h2,
-  .line-items-section h2 {
-    font-size: 0.8rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
-    color: #002395 !important;
-    margin-bottom: 0.4rem !important;
-  }
-
-  .table-container {
-    box-shadow: none !important;
-    border: none !important;
-    overflow: visible !important;
-  }
-
-  .data-table {
     width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 0.75rem !important;
+    max-width: none !important;
+    background: white !important;
+    color: black !important;
   }
 
-  .data-table thead {
-    background: #002395 !important;
+  .print-only {
+    display: block !important;
   }
 
-  .data-table thead th {
-    color: white !important;
-    font-weight: 600 !important;
-    font-size: 0.68rem !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.03em !important;
-    padding: 0.4rem 0.5rem !important;
-    border: none !important;
+  /* Configuración de página A4 */
+  @page {
+    size: A4;
+    margin: 15mm;
   }
 
-  .data-table tbody td {
-    padding: 0.35rem 0.5rem !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    color: #1e293b !important;
-    vertical-align: middle !important;
+  /* Cabecera del Documento */
+  .print-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    border-bottom: 2px solid #333;
+    padding-bottom: 1rem;
   }
 
-  .data-table tbody tr:nth-child(even) {
-    background: #f8fafc !important;
+  .issuer-info h1 {
+    font-size: 2rem;
+    color: #1b3a6b !important; /* Azul corporativo incluso en print si es posible */
+    margin: 0;
   }
 
-  .data-table tfoot td {
-    padding: 0.35rem 0.5rem !important;
-    border-top: 2px solid #002395 !important;
-    border-bottom: none !important;
-    font-weight: 600 !important;
-    color: #1e293b !important;
+  .document-info {
+    text-align: right;
   }
 
-  .data-table tfoot .total td {
-    font-size: 0.85rem !important;
-    font-weight: 700 !important;
-    color: #002395 !important;
-    border-top: none !important;
+  .document-info h2 {
+    font-size: 1.5rem;
+    margin: 0;
+    text-transform: uppercase;
   }
 
-  .data-table .amount,
-  .data-table .totals-label {
-    font-variant-numeric: tabular-nums !important;
+  /* Bloque de Direcciones */
+  .print-addresses {
+    display: flex;
+    gap: 4rem;
+    margin-bottom: 3rem;
   }
 
-  /* ── Status badges (greyscale for print) ───────────────────── */
-
-  .status-badge,
-  .type-badge {
-    border: 1px solid #9ca3af !important;
-    color: #1e293b !important;
-    background: transparent !important;
-    font-size: 0.7rem !important;
-    padding: 0.15rem 0.5rem !important;
+  .address-block {
+    flex: 1;
   }
 
-  /* ── Signatures (delivery notes) ───────────────────────────── */
-
-  .signature-box {
-    box-shadow: none !important;
-    border: 1px solid #d1d5db !important;
-    break-inside: avoid;
+  .address-block label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
   }
 
-  .document-item {
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
+  /* Tabla de Líneas */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
   }
 
-  /* Party ID → hide in print (not customer-facing) */
-  .party-id {
-    font-size: 0.65rem !important;
-    color: #9ca3af !important;
+  .print-table th {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    text-align: left;
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    border-bottom: 2px solid #333;
   }
 
-  /* Avoid page breaks inside info blocks */
-  .info-grid,
-  .notes-card {
-    break-inside: avoid;
+  .print-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+  }
+
+  /* Totales */
+  .print-totals {
+    margin-left: auto;
+    width: 250px;
+  }
+
+  .print-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+  }
+
+  .print-total-row.final {
+    border-top: 2px solid #333;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Footer Legal */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    font-size: 0.7rem;
+    color: #666;
+    text-align: center;
+    border-top: 1px solid #eee;
+    padding-top: 0.5rem;
   }
 }

@@ -56,7 +56,7 @@
               @click="clearClientSelection"
               title="Limpiar selección"
             >
-              ✕
+              <X :size="16" />
             </button>
           </div>
           <div v-if="showClientDropdown && filteredClients.length > 0" class="client-dropdown">
@@ -260,8 +260,8 @@
     <div v-if="showHistoryModal" class="modal-overlay" @click.self="closeHistoryModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>📋 Historial de Precios</h3>
-          <button class="modal-close" @click="closeHistoryModal">✕</button>
+          <h3><ClipboardList :size="16" /> Historial de Precios</h3>
+          <button class="modal-close" @click="closeHistoryModal"><X :size="16" /></button>
         </div>
 
         <div class="modal-body">
@@ -323,7 +323,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
-import { BarChart3, Calculator, DollarSign, CheckCircle, Package, Info, Settings, ClipboardList } from 'lucide-vue-next'
+import { BarChart3, Calculator, DollarSign, CheckCircle, Package, Info, Settings, ClipboardList, X } from 'lucide-vue-next'
 import { pricingApi } from '@/services/pricingApi'
 import { partyApi } from '@/services/partyApi'
 

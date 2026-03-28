@@ -13,11 +13,11 @@
 
 Puedes explorar TramaTex en vivo sin instalar nada:
 
-| | |
-|---|---|
-| **URL** | http://46.101.188.130 |
-| **Email** | `admin@tramatex.local` |
-| **Contraseña** | `admin123` |
+|                |                        |
+| -------------- | ---------------------- |
+| **URL**        | http://46.101.188.130  |
+| **Email**      | `admin@tramatex.local` |
+| **Contraseña** | `admin123`             |
 
 > Los datos de la demo se restauran automáticamente cada domingo a las 3:00 AM UTC mediante un [workflow de GitHub Actions](.github/workflows/demo-reset.yml). Para más detalles sobre el mantenimiento de la demo, consulta la sección [Mantenimiento de la Demo](#-mantenimiento-de-la-demo).
 
@@ -56,6 +56,19 @@ Este proyecto se ha construido utilizando un stack de tecnologías modernas y ro
 - **Base de Datos:** PostgreSQL (v15+)
 - **UI Framework:** Tailwind CSS
 - **Contenerización:** Docker & Docker Compose
+
+## 🎨 UI/UX & Sistema de Diseño
+
+TramaTex utiliza un lenguaje visual propietario diseñado para la eficiencia operativa en entornos industriales y de gestión. El sistema se basa en una **Arquitectura de Tres Capas** que garantiza claridad y enfoque:
+
+1.  **Capa de Identidad (Blanco Puro):** Cabeceras fijas (`Sticky`) con acciones globales.
+2.  **Capa de Contexto (Gris Ceniza):** Dashboard de metadatos, KPIs y trazabilidad del objeto.
+3.  **Capa de Trabajo (Gris Base):** Área operativa con tarjetas de alto contraste y bordes reforzados.
+
+### Herramientas para Desarrolladores (Públicas)
+*   **Design System Center:** Explora la librería de componentes en vivo en [http://46.101.188.130/dev/design-system](http://46.101.188.130/dev/design-system).
+*   **Estándar de Pantallas:** Guía técnica para crear nuevas páginas de entidad en `docs/guides/developer/ui-entity-page-standard.md`.
+*   **Iconografía:** Uso exclusivo de **Material Symbols Outlined** para coherencia visual.
 
 ## 🚀 Cómo Empezar
 
@@ -103,78 +116,10 @@ La forma más sencilla y recomendada de ejecutar el proyecto es a través de Doc
    docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profile full up -d --build
    ```
 
-### Instalación en Servidor de Producción
+Una vez levantado, el sistema estará disponible en:
 
-> **Arquitectura:** Los builds se realizan en GitHub Actions y las imágenes se publican en GHCR. El servidor solo descarga (`docker pull`) y ejecuta — no compila nada localmente.
-
-#### Prerrequisitos del servidor
-
-- Ubuntu 22.04 / 24.04
-- Docker Engine + Docker Compose v2
-- Git
-- Usuario no-root con acceso al grupo `docker`
-- Mínimo 1 GB RAM (no es necesario RAM para compilación)
-
-#### 1. Preparar el servidor
-
-```bash
-# Crear usuario de despliegue y directorio
-sudo useradd -m -s /bin/bash tramatex
-sudo usermod -aG docker tramatex
-sudo mkdir -p /opt/tramatex
-sudo chown tramatex:tramatex /opt/tramatex
-
-# Clonar el repositorio
-sudo -u tramatex git clone https://github.com/jorgecvzc/TramaTex.git /opt/tramatex
-
-# Generar clave SSH para GitHub Actions (sin passphrase)
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/deploy_key -N ""
-cat ~/.ssh/deploy_key.pub >> /home/tramatex/.ssh/authorized_keys
-```
-
-#### 2. Configurar GitHub Secrets
-
-En GitHub → **Settings → Secrets and variables → Actions**, crear:
-
-| Secret            | Valor                                              |
-|-------------------|----------------------------------------------------|
-| `PROD_IP`         | IP pública del servidor (ej. `46.101.188.130`)     |
-| `SSH_USER`        | Usuario SSH (ej. `tramatex`)                       |
-| `SSH_PRIVATE_KEY` | Contenido del archivo `deploy_key` (clave privada) |
-| `ENV_PROD`        | Contenido completo de `docker/.env` de producción  |
-
-> **Plantilla para `ENV_PROD`:** copia `docker/.env.production.example` y rellena con tus valores reales.
-
-#### 3. Primer despliegue
-
-```bash
-# En local: haz push a master para activar el workflow
-git push origin master
-
-# GitHub Actions ejecuta automáticamente:
-# 1. Build de la imagen API    → ghcr.io/jorgecvzc/tramatex-api:latest
-# 2. Build de la imagen Nginx  → ghcr.io/jorgecvzc/tramatex-frontend:latest
-# 3. SSH al servidor → git pull + docker pull + docker compose up
-```
-
-Una vez completado, el sistema estará disponible en:
-
-- **Aplicación Frontend:** `http://<IP-servidor>` (HTTP) o `https://<tu-dominio>` (tras configurar SSL)
-- **API Health:** `http://<IP-servidor>/api/health`
-
-#### 4. SSL / HTTPS (opcional pero recomendado)
-
-```bash
-# En el servidor, con certbot:
-sudo apt install certbot
-docker compose -f docker/docker-compose.remote.yml down
-sudo certbot certonly --standalone -d tramatex.tudominio.com
-# Editar docker/docker-compose.remote.yml: descomentar port 443 y volumes SSL
-docker compose -f docker/docker-compose.remote.yml up -d
-```
-
-Para más detalles sobre cada entorno (local, staging, producción), consulta la:
-👉 **[Guía de Despliegue Completa](docs/guides/developer/deployment-guide.md)**
+- **Aplicación Frontend:** `http://localhost:3000`
+- **API Health:** `http://localhost:3000/api/health`
 
 ## � Mantenimiento de la Demo
 
