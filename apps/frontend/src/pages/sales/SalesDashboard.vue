@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
       <PageHeader title="Panel de Control de Ventas" :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Dashboard' }]">
@@ -124,7 +122,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import salesApi from '@/services/salesApi';

@@ -1,10 +1,9 @@
 <template>
   <Navbar />
-  
   <div class="dashboard-page">
     <div class="dashboard-container">
       <!-- CABECERA: Bienvenida y Fecha -->
-      <header class="dashboard-header mb-8">
+      <header class="dashboard-header">
         <div class="welcome-text">
           <h1 class="font-brand">Panel de Control</h1>
           <p class="text-muted">Bienvenido, <strong>{{ userName }}</strong>. Gestión de TramaTex para el {{ todayDate }}.</p>
@@ -17,7 +16,7 @@
       </header>
 
       <!-- CAPA 1: KPIs INTERACTIVOS -->
-      <section class="kpi-grid mb-12">
+      <section class="kpi-grid section-spacing">
         <div class="kpi-card clickable" @click="navigateTo('/sales/dashboard')">
           <div class="kpi-icon blue"><span class="material-symbols-outlined">payments</span></div>
           <div class="kpi-data">
@@ -49,10 +48,9 @@
       </section>
 
       <div class="dashboard-main-layout">
-        <!-- COLUMNA PRINCIPAL: OPERACIONES Y MÓDULOS -->
+        <!-- COLUMNA PRINCIPAL: MÓDULOS -->
         <main class="main-column">
-          <!-- Gestión por Módulos -->
-          <section class="modules-section">
+          <section class="modules-section section-spacing">
             <div class="section-title-alt">
               <span class="material-symbols-outlined">grid_view</span>
               <h2>Gestión de Módulos</h2>
@@ -96,8 +94,7 @@
 
         <!-- COLUMNA LATERAL: ACCIONES Y ADMIN -->
         <aside class="side-column">
-          <!-- Centro de Operaciones -->
-          <section class="ops-section card mb-8">
+          <section class="ops-section card section-spacing">
             <div class="ops-header">
               <span class="material-symbols-outlined">rocket_launch</span>
               <h2>Accesos Directos</h2>
@@ -162,7 +159,6 @@ const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
 const userName = computed(() => authStore.user?.email.split('@')[0] || 'Usuario')
 const todayDate = computed(() => new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
-
 const isLoading = ref(true)
 const salesStats = ref({ monthlyTotal: '0,00 €', pendingOrders: 0 })
 const mesStats = ref({ activeWorkOrders: 0 })
@@ -185,23 +181,18 @@ async function loadStats() {
     isLoading.value = false
   }
 }
-
-function navigateTo(path: string) {
-  router.push(path)
-}
-
+function navigateTo(path: string) { router.push(path) }
 onMounted(loadStats)
 </script>
 
 <style scoped>
 .dashboard-page { background-color: var(--color-background); min-height: 100vh; }
 .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-
-.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; }
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3rem; }
 .dashboard-header h1 { font-size: 2.25rem; color: var(--color-text-primary); margin: 0; font-weight: 800; }
 .btn-refresh { background: white; border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 8px; cursor: pointer; color: var(--color-text-secondary); transition: 0.2s; }
 .btn-refresh:hover { color: var(--color-primary); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
-
+.section-spacing { margin-bottom: 3rem; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
 .kpi-card { background: white; padding: 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--color-border); }
 .kpi-card.clickable { cursor: pointer; transition: 0.2s; }
@@ -215,22 +206,19 @@ onMounted(loadStats)
 .kpi-data { display: flex; flex-direction: column; }
 .kpi-data label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
 .kpi-data strong { font-size: 1.4rem; color: var(--color-text-primary); font-weight: 800; }
-
-.dashboard-main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 2rem; align-items: start; }
-
+.dashboard-main-layout { display: grid; grid-template-columns: 1fr 380px; gap: 3rem; align-items: start; }
 .ops-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
 .ops-header h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); }
 .ops-header .material-symbols-outlined { color: var(--color-primary); }
-.ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; }
+.ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .op-item { display: flex; flex-direction: column; align-items: center; padding: 1.5rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; font-size: 0.85rem; transition: 0.2s; text-align: center; gap: 0.75rem; border: 1px solid transparent; }
 .op-item:hover { transform: translateY(-3px); background: white; border-color: var(--color-primary); box-shadow: var(--box-shadow-md); color: var(--color-primary); }
 .op-icon { color: var(--color-primary); }
 .op-icon .material-symbols-outlined { font-size: 32px; }
 .op-item.highlight { background: rgba(230, 184, 0, 0.05); border: 1px dashed var(--color-primary); }
-
 .section-title-alt { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; }
 .section-title-alt h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
-.modules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.modules-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
 .module-link-card { display: flex; align-items: center; gap: 1.25rem; padding: 1.25rem; background: white; border-radius: 12px; border: 1px solid var(--color-border); text-decoration: none; transition: 0.2s; }
 .module-link-card:hover { transform: translateX(5px); border-color: var(--color-secondary); box-shadow: var(--box-shadow-sm); }
 .m-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -242,23 +230,13 @@ onMounted(loadStats)
 .m-info strong { display: block; font-size: 0.9rem; color: var(--color-text-primary); }
 .m-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0.1rem 0 0; }
 .module-link-card .arrow { margin-left: auto; color: var(--color-border); font-size: 18px; }
-
 .side-link-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
 .side-link-item:hover { background: white; border-color: var(--color-primary); color: var(--color-primary); transform: translateX(3px); }
 .side-link-item .material-symbols-outlined { font-size: 20px; color: var(--color-text-secondary); }
 .dev-link { margin-top: 1.5rem; opacity: 0.7; }
-
-.notice-card { background: white; border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); }
-.notice-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; color: var(--color-primary); font-weight: 800; font-size: 0.8rem; text-transform: uppercase; }
-.notice-card p { font-size: 0.8rem; line-height: 1.5; margin: 0; }
-
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-.mb-12 { margin-bottom: 3.5rem; }
-
 @media (max-width: 1024px) {
   .dashboard-main-layout { grid-template-columns: 1fr; }
-  .modules-grid { grid-template-columns: 1fr; }
 }
 </style>

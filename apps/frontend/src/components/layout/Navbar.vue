@@ -41,8 +41,12 @@ function toggleMES() {
   showMES.value = next
 }
 
-function handleDocumentClick() {
-  closeAllDropdowns()
+function handleDocumentClick(event: MouseEvent) {
+  // Solo cerrar si el clic es fuera de un toggle
+  const target = event.target as HTMLElement
+  if (!target.closest('.dropdown-toggle')) {
+    closeAllDropdowns()
+  }
 }
 
 function handleShortcuts(e: KeyboardEvent) {
@@ -72,78 +76,94 @@ onBeforeUnmount(() => {
 
       <ul class="nav-menu">
         <li>
-          <RouterLink to="/dashboard" class="nav-link" active-class="active" title="Dashboard">
+          <RouterLink to="/dashboard" class="nav-link" active-class="active">
             <span class="material-symbols-outlined">dashboard</span>
+            <span class="nav-label">Dashboard</span>
           </RouterLink>
         </li>
         <li>
-          <RouterLink to="/parties" class="nav-link" active-class="active" title="Entidades">
+          <RouterLink to="/parties" class="nav-link" active-class="active">
             <span class="material-symbols-outlined">groups</span>
+            <span class="nav-label">Entidades</span>
           </RouterLink>
         </li>
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="Producto" @click.stop="toggleProduct">
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleProduct">
             <span class="material-symbols-outlined">inventory_2</span>
-            <span class="material-symbols-outlined chevron">expand_more</span>
+            <span class="nav-label">Catálogo</span>
           </button>
           <ul v-if="showProduct" class="dropdown-menu">
             <li>
-              <RouterLink to="/products" class="dropdown-item" title="Catálogo de Productos" @click="closeAllDropdowns">
+              <RouterLink to="/products" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">list_alt</span>
+                <span>Listado de Productos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/products/new" class="dropdown-item" title="Nuevo Producto" @click="closeAllDropdowns">
+              <RouterLink to="/products/new" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">add_box</span>
+                <span>Nuevo Producto</span>
               </RouterLink>
             </li>
           </ul>
         </li>
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="Ventas" @click.stop="toggleSales">
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleSales">
             <span class="material-symbols-outlined">payments</span>
-            <span class="material-symbols-outlined chevron">expand_more</span>
+            <span class="nav-label">Ventas</span>
           </button>
           <ul v-if="showSales" class="dropdown-menu">
             <li>
-              <RouterLink to="/sales/quotes" class="dropdown-item" title="Presupuestos" @click="closeAllDropdowns">
+              <RouterLink to="/sales/quotes" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">request_quote</span>
+                <span>Presupuestos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/orders" class="dropdown-item" title="Pedidos" @click="closeAllDropdowns">
+              <RouterLink to="/sales/orders" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">shopping_cart</span>
+                <span>Pedidos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/delivery-notes" class="dropdown-item" title="Albaranes" @click="closeAllDropdowns">
+              <RouterLink to="/sales/delivery-notes" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">local_shipping</span>
+                <span>Albaranes</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/invoices" class="dropdown-item" title="Facturas" @click="closeAllDropdowns">
+              <RouterLink to="/sales/invoices" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">receipt_long</span>
+                <span>Facturas</span>
               </RouterLink>
             </li>
           </ul>
         </li>
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="MES" @click="toggleMES">
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleMES">
             <span class="material-symbols-outlined">precision_manufacturing</span>
-            <span class="material-symbols-outlined chevron">expand_more</span>
+            <span class="nav-label">Taller</span>
           </button>
           <ul v-if="showMES" class="dropdown-menu">
             <li>
-              <RouterLink to="/mes/dashboard" class="dropdown-item" title="Panel de control" @click="closeAllDropdowns">
+              <RouterLink to="/mes/dashboard" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">monitoring</span>
+                <span>Panel de control</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/terminal" class="dropdown-item" title="Terminal Taller" @click="closeAllDropdowns">
+              <RouterLink to="/mes/terminal" class="dropdown-item" @click="closeAllDropdowns">
                 <span class="material-symbols-outlined">tablet_mac</span>
+                <span>Terminal Taller</span>
               </RouterLink>
             </li>
           </ul>
+        </li>
+        <li v-if="isAdmin">
+          <RouterLink to="/admin/users" class="nav-link" active-class="active">
+            <span class="material-symbols-outlined">manage_accounts</span>
+            <span class="nav-label">Admin</span>
+          </RouterLink>
         </li>
       </ul>
 
@@ -193,7 +213,7 @@ onBeforeUnmount(() => {
 .nav-menu {
   display: flex;
   list-style: none;
-  gap: 0.5rem;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
 }
@@ -201,21 +221,35 @@ onBeforeUnmount(() => {
   color: white;
   text-decoration: none;
   transition: all 0.2s;
-  padding: 0.75rem;
-  border-radius: 4px;
+  padding: 0.5rem;
+  border-radius: 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
-  gap: 0.25rem;
+  gap: 0.2rem;
+  width: 80px;
+  height: 60px;
 }
 .nav-link:hover, .nav-link.active {
   color: #E6B800;
   background-color: rgba(230, 184, 0, 0.1);
 }
-.chevron { opacity: 0.5; font-size: 18px !important; }
+.nav-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 .dropdown { position: relative; }
-.dropdown-toggle { cursor: pointer; user-select: none; border: none; background: transparent; font: inherit; color: inherit; }
+.dropdown-toggle {
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
 .dropdown-menu {
   position: absolute;
   top: 100%;
@@ -242,7 +276,7 @@ onBeforeUnmount(() => {
   padding: 0.75rem 1rem;
   border-radius: 4px;
   transition: all 0.2s;
-  min-width: 150px;
+  min-width: 180px;
 }
 .dropdown-item:hover {
   background-color: rgba(230, 184, 0, 0.1);
