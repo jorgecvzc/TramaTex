@@ -1,146 +1,194 @@
 <template>
-  <Navbar />
-  
-  <BaseCatalog
-    title="Posiciones"
-    icon="factory"
-    :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Posiciones' }]"
-    :items="positions"
-    :is-loading="isLoading"
-    :error="error"
-    :has-filters="!!search || statusFilter !== ''"
-    create-route="/mes/positions/new"
-    create-text="Nueva Posición"
-    empty-icon="location_off"
-    empty-text="No hay posiciones registradas"
-    @clear-filters="clearFilters"
-    @refresh="loadPositions"
-    @click-item="(item) => navigateToEdit(item.id)"
-  >
-    <template #filters>
-      <div class="filter-group">
-        <label>Búsqueda</label>
-        <input 
-          v-model="search" 
-          type="text" 
-          placeholder="Nombre o código de posición..." 
-          @input="debouncedSearch"
-        />
-      </div>
+  <div class="page-layout">
+    <Navbar style="z-index: 2000;" />
+    
+    <BaseCatalog
+      title="Catálogo de Posiciones de Marcaje"
+      icon="location_on"
+      :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Posiciones' }]"
+      :items="positions"
+      :is-loading="isLoading"
+      :error="error"
+      :has-filters="hasFilters"
+      empty-icon="location_off"
+      empty-text="No hay posiciones registradas"
+      @clear-filters="clearFilters"
+      @refresh="loadPositions"
+    >
+      <template #header-actions>
+        <button @click="openCreateModal" class="btn btn-primary">
+          <span class="material-symbols-outlined">add</span>
+          <span>Nueva Posición</span>
+        </button>
+      </template>
 
-      <div class="filter-group">
-        <label>Estado</label>
-        <select v-model="statusFilter" @change="loadPositions">
-          <option value="">Todos los estados</option>
-          <option value="true">Activas</option>
-          <option value="false">Inactivas</option>
-        </select>
-      </div>
-    </template>
-
-    <template #table-header>
-      <th>Nombre</th>
-      <th>Código</th>
-      <th>Descripción</th>
-      <th class="text-center">Estado</th>
-      <th class="align-right">Acciones</th>
-    </template>
-
-    <template #item="{ item }">
-      <td><strong>{{ item.name }}</strong></td>
-      <td><code class="code-badge">{{ item.code }}</code></td>
-      <td><span class="text-muted">{{ item.description || '—' }}</span></td>
-      <td class="text-center">
-        <span :class="['status-pill', item.is_active ? 'status-active' : 'status-inactive']">
-          {{ item.is_active ? 'Activa' : 'Inactiva' }}
-        </span>
-      </td>
-      <td class="align-right" @click.stop>
-        <div class="action-buttons">
-          <router-link :to="`/mes/positions/${item.id}/edit`" class="btn-icon" title="Editar">
-            <span class="material-symbols-outlined">edit</span>
-          </router-link>
-          <button 
-            class="btn-icon" 
-            @click="toggleActive(item)" 
-            :title="item.is_active ? 'Desactivar' : 'Activar'"
-            :class="{ 'text-warning': item.is_active }"
-          >
-            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
-          </button>
+      <template #filters>
+        <div class="filter-group">
+          <label>Búsqueda</label>
+          <input v-model="filters.search" type="text" placeholder="Nombre o código..." />
         </div>
-      </td>
-    </template>
-  </BaseCatalog>
+
+        <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.isActive">
+            <option value="">Cualquier estado</option>
+            <option value="true">Activas</option>
+            <option value="false">Inactivas</option>
+          </select>
+        </div>
+      </template>
+
+      <template #table-header>
+        <th>Nombre de la Posición</th>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th class="text-center">Estado</th>
+        <th class="align-right">Acciones</th>
+      </template>
+
+      <template #item="{ item }">
+        <td><strong>{{ item.name }}</strong></td>
+        <td><code class="code-badge">{{ item.code || '—' }}</code></td>
+        <td><span class="text-muted">{{ item.description || '—' }}</span></td>
+        <td class="text-center">
+          <span :class="['status-badge', item.is_active ? 'status-success' : 'status-secondary']">
+            {{ item.is_active ? 'Activa' : 'Inactiva' }}
+          </span>
+        </td>
+        <td class="align-right" @click.stop>
+          <div class="action-buttons">
+            <button @click="editPosition(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button 
+              @click="toggleActive(item)" 
+              class="btn-icon" 
+              :title="item.is_active ? 'Desactivar' : 'Activar'"
+            >
+              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+            </button>
+          </div>
+        </td>
+      </template>
+    </BaseCatalog>
+
+    <!-- MODAL: CREAR/EDITAR POSICIÓN -->
+    <BaseDialog
+      :show="showModal"
+      :title="modalMode === 'create' ? 'Nueva Posición de Marcaje' : 'Editar Posición'"
+      icon="location_on"
+      confirm-text="Guardar Posición"
+      :is-confirming="isSaving"
+      @close="showModal = false"
+      @confirm="savePosition"
+    >
+      <div class="form-group">
+        <label>Nombre de la Posición *</label>
+        <input v-model="formData.name" type="text" class="form-input" placeholder="Ej: Pecho Izquierdo, Espalda..." required />
+      </div>
+      <div class="form-row mt-4">
+        <div class="form-group">
+          <label>Código Interno</label>
+          <input v-model="formData.code" type="text" class="form-input" placeholder="Ej: P-IZQ" />
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <label class="checkbox-label mt-2">
+            <input v-model="formData.is_active" type="checkbox" class="form-checkbox" />
+            <span>Posición activa</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group mt-4">
+        <label>Notas de la posición</label>
+        <textarea v-model="formData.description" class="form-textarea" rows="3"></textarea>
+      </div>
+    </BaseDialog>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
 import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
+import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { mesApi } from '@/services/mesApi'
 import type { MESPosition } from '@/types/mes'
 
-const router = useRouter()
 const positions = ref<MESPosition[]>([])
 const isLoading = ref(false)
+const isSaving = ref(false)
 const error = ref('')
-const search = ref('')
-const statusFilter = ref('')
 
-let searchTimeout: any = null
+const filters = reactive({ search: '', isActive: '' })
+const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
 
-function debouncedSearch() {
-  if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => loadPositions(), 350)
-}
+// Modal State
+const showModal = ref(false)
+const modalMode = ref<'create' | 'edit'>('create')
+const selectedPositionId = ref<string | null>(null)
+const formData = reactive({ name: '', code: '', description: '', is_active: true })
+
+let debounceTimer: any = null
+watch(filters, () => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => loadPositions(), 350)
+}, { deep: true })
 
 async function loadPositions() {
   isLoading.value = true
   error.value = ''
   try {
-    const isActive = statusFilter.value === '' ? undefined : statusFilter.value === 'true'
-    positions.value = await mesApi.listPositions({
-      search: search.value.trim() || undefined,
-      is_active: isActive,
-    })
-  } catch (err: any) {
-    error.value = err.message || 'Error al cargar posiciones'
-  } finally {
-    isLoading.value = false
-  }
+    const isActive = filters.isActive === '' ? undefined : filters.isActive === 'true'
+    positions.value = await mesApi.listPositions({ search: filters.search.trim() || undefined, is_active: isActive })
+  } catch (err: any) { error.value = 'Error al cargar posiciones.' }
+  finally { isLoading.value = false }
 }
 
-async function toggleActive(position: MESPosition) {
+function openCreateModal() {
+  modalMode.value = 'create'; selectedPositionId.value = null
+  Object.assign(formData, { name: '', code: '', description: '', is_active: true })
+  showModal.value = true
+}
+
+function editPosition(item: MESPosition) {
+  modalMode.value = 'edit'; selectedPositionId.value = item.id
+  Object.assign(formData, { name: item.name, code: item.code, description: item.description, is_active: item.is_active })
+  showModal.value = true
+}
+
+async function savePosition() {
+  if (!formData.name) return;
+  isSaving.value = true
   try {
-    await mesApi.updatePosition(position.id, { is_active: !position.is_active })
-    await loadPositions()
-  } catch (err: any) {
-    alert(err.message)
-  }
+    if (modalMode.value === 'create') await mesApi.createPosition(formData)
+    else await mesApi.updatePosition(selectedPositionId.value!, formData)
+    showModal.value = false; await loadPositions()
+  } catch (err: any) { alert(err.message) }
+  finally { isSaving.value = false }
 }
 
-function clearFilters() {
-  search.value = ''
-  statusFilter.value = ''
-  loadPositions()
+async function toggleActive(item: MESPosition) {
+  try { await mesApi.updatePosition(item.id, { is_active: !item.is_active }); await loadPositions() }
+  catch (err: any) { alert(err.message) }
 }
 
-function navigateToEdit(id: string) {
-  router.push(`/mes/positions/${id}/edit`)
-}
+function clearFilters() { filters.search = ''; filters.isActive = ''; }
 
 onMounted(loadPositions)
-onUnmounted(() => { if (searchTimeout) clearTimeout(searchTimeout) })
+onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 </script>
 
 <style scoped>
-.code-badge { background: var(--color-background); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary); }
+.page-layout { background-color: var(--color-background); min-height: 100vh; }
+.code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; font-weight: 700; color: var(--color-secondary); }
 .align-right { text-align: right; }
-.text-center { text-align: center; }
+.action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
+.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 
-.action-buttons { display: flex; justify-content: flex-end; }
-.btn-icon { color: var(--color-text-secondary); transition: 0.2s; padding: 0.4rem; border-radius: 6px; border: none; background: transparent; cursor: pointer; }
-.btn-icon:hover { color: var(--color-text-primary); background: rgba(0,0,0,0.05); }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+.form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.checkbox-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.9rem; }
+.form-checkbox { width: 18px; height: 18px; }
 </style>
