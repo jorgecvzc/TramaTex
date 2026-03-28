@@ -1,280 +1,235 @@
 <script setup lang="ts">
-/**
- * BaseCatalog.vue - Maestro de Listados/Catálogos TramaTex
- * 
- * Sigue la Arquitectura de Tres Capas:
- * 1. Identidad: PageHeader + Acciones Globales
- * 2. Contexto: Filtros y Summary (opcional)
- * 3. Trabajo: Tabla de datos y paginación
- */
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted } from 'vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
-
-interface Breadcrumb {
-  label: string
-  to?: string
-}
 
 const props = defineProps<{
   title: string
-  breadcrumbs: Breadcrumb[]
+  icon?: string
+  breadcrumbs: { label: string; to: string }[]
   items: any[]
-  isLoading?: boolean
+  isLoading: boolean
   error?: string
-  hasFilters?: boolean
-  createRoute?: string
   createText?: string
-  emptyIcon?: string
+  createRoute?: string
   emptyText?: string
-  // Control de visibilidad
-  hideHeader?: boolean
-  hideToolbar?: boolean
+  emptyIcon?: string
+  hasFilters?: boolean
 }>()
 
 const emit = defineEmits(['refresh', 'clear-filters', 'click-item'])
-const router = useRouter()
 
-function handleRowClick(item: any) {
-  emit('click-item', item)
+const activeIndex = ref(-1)
+
+function handleKeydown(e: KeyboardEvent) {
+  if (props.items && props.items.length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      activeIndex.value = (activeIndex.value + 1) % props.items.length
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      activeIndex.value = (activeIndex.value - 1 + props.items.length) % props.items.length
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (activeIndex.value >= 0 && activeIndex.value < props.items.length) {
+        emit('click-item', props.items[activeIndex.value])
+      }
+    }
+  }
 }
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
-  <div class="catalog-master-layout">
-    <!-- CAPA 1: IDENTIDAD (Sticky Header) -->
-    <header class="catalog-identity-layer" v-if="!hideHeader">
-      <PageHeader :title="title" :breadcrumbs="breadcrumbs">
-        <template #actions>
+  <div class="base-catalog-layout">
+    <PageHeader 
+      :title="title" 
+      :icon="icon"
+      :breadcrumbs="breadcrumbs"
+      class="catalog-header"
+    >
+      <template #actions>
+        <div class="header-actions">
+          <button v-if="hasFilters" class="btn btn-outline btn-sm" @click="$emit('clear-filters')">
+            Limpiar Filtros
+          </button>
           <slot name="header-actions">
-            <button v-if="createRoute" class="btn btn-primary" @click="router.push(createRoute)">
+            <RouterLink v-if="createRoute" :to="createRoute" class="btn btn-primary">
               <span class="material-symbols-outlined">add</span>
-              <span>{{ createText || 'Nuevo Registro' }}</span>
-            </button>
+              <span>{{ createText || 'Nuevo' }}</span>
+            </RouterLink>
           </slot>
-        </template>
-      </PageHeader>
-    </header>
-
-    <!-- CAPA 2: CONTEXTO (Filtros y Dashboard de Listado) -->
-    <section class="catalog-context-layer" v-if="!hideToolbar">
-      <div class="filters-card card compact">
-        <div class="catalog-toolbar">
-          <div class="filters-scroll-area">
-            <div class="filters-grid-inline">
-              <slot name="filters"></slot>
-            </div>
-          </div>
-          
-          <div class="filter-actions-inline">
-            <button class="btn-icon" title="Limpiar filtros" @click="emit('clear-filters')" :disabled="!hasFilters">
-              <span class="material-symbols-outlined">filter_alt_off</span>
-            </button>
-            <button class="btn-icon" title="Refrescar datos" @click="emit('refresh')" :disabled="isLoading">
-              <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
-            </button>
-          </div>
         </div>
-      </div>
-      
-      <!-- Slot para KPIs o Resúmenes del listado (opcional) -->
-      <div v-if="$slots.summary" class="catalog-summary-area mb-6">
-        <slot name="summary"></slot>
-      </div>
-    </section>
-
-    <!-- CAPA 3: TRABAJO (Área de Datos) -->
-    <main class="catalog-work-layer">
-      <div v-if="error" class="alert-card card error">
-        <span class="material-symbols-outlined">error</span>
-        <p>{{ error }}</p>
-        <button class="btn btn-outline btn-sm" @click="emit('refresh')">Reintentar</button>
+      </template>
+    </PageHeader>
+    
+    <div class="catalog-content">
+      <div class="card filters-card" v-if="$slots.filters">
+        <slot name="filters"></slot>
       </div>
 
       <div class="card table-card">
-        <div class="table-wrapper" :class="{ 'is-loading': isLoading }">
+        <div v-if="isLoading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Cargando datos...</p>
+        </div>
+        <div v-else-if="error" class="error-state">
+          <span class="material-symbols-outlined">error</span>
+          <h3>Error al cargar</h3>
+          <p>{{ error }}</p>
+          <button class="btn btn-sm btn-outline" @click="$emit('refresh')">Reintentar</button>
+        </div>
+        <div v-else-if="items.length === 0" class="empty-state">
+          <span class="material-symbols-outlined">{{ emptyIcon || 'folder_off' }}</span>
+          <p>{{ emptyText || 'No hay elementos que mostrar.' }}</p>
+          <RouterLink v-if="createRoute" :to="createRoute" class="btn btn-primary btn-sm mt-4">
+            <span class="material-symbols-outlined">add</span>
+            <span>{{ createText || 'Crear el primero' }}</span>
+          </RouterLink>
+        </div>
+        <div v-else class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
                 <slot name="table-header"></slot>
               </tr>
             </thead>
-            <tbody v-if="items.length > 0">
+            <tbody>
               <tr 
-                v-for="(item, idx) in items" 
-                :key="item.id || idx" 
-                class="row-clickable"
-                @click="handleRowClick(item)"
+                v-for="(item, index) in items" 
+                :key="item.id" 
+                class="row-clickable" 
+                :class="{ 'row-active': index === activeIndex }"
+                @click="$emit('click-item', item)"
+                @mouseenter="activeIndex = index"
               >
                 <slot name="item" :item="item"></slot>
               </tr>
             </tbody>
           </table>
-
-          <!-- Estados Vacíos y Carga -->
-          <div v-if="isLoading && items.length === 0" class="loading-state">
-            <div class="spinner"></div>
-            <p>Consultando catálogo...</p>
-          </div>
-
-          <div v-else-if="items.length === 0" class="empty-state">
-            <div class="empty-icon-wrapper">
-              <span class="material-symbols-outlined">{{ emptyIcon || 'inventory_2' }}</span>
-            </div>
-            <h3>{{ emptyText || 'No se han encontrado registros' }}</h3>
-            <p v-if="hasFilters">Pruebe a cambiar los criterios de búsqueda o limpie los filtros.</p>
-            <button v-if="hasFilters" class="btn btn-nav btn-sm mt-4" @click="emit('clear-filters')">
-              Limpiar Filtros
-            </button>
-          </div>
         </div>
       </div>
-      
-      <!-- Footer de tabla (Paginación, etc.) -->
-      <footer v-if="$slots.pagination" class="catalog-pagination mt-4">
-        <slot name="pagination"></slot>
-      </footer>
-    </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.catalog-master-layout {
+.base-catalog-layout {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1.5rem 3rem 1.5rem;
+  height: 100vh;
+  background-color: var(--color-background);
 }
-
-/* Layer 1: Identity */
-.catalog-identity-layer {
-  position: sticky;
-  top: 60px;
+.catalog-header {
   background: white;
-  z-index: 500;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  margin-left: -1.5rem;
-  margin-right: -1.5rem;
-  margin-bottom: 2rem;
+  position: sticky;
+  top: 65px; /* Altura de la Navbar */
+  z-index: 900;
+  padding-bottom: 1.5rem !important;
+  margin-bottom: 0 !important;
 }
-
-.catalog-identity-layer :deep(.page-header) {
+.catalog-content {
+  flex: 1;
+  padding: 2rem;
   max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  margin-bottom: 0;
-}
-
-/* Layer 2: Context */
-.catalog-context-layer {
-  margin-bottom: 1rem;
-}
-
-.catalog-toolbar {
-  display: flex;
-  align-items: flex-end; /* Alinear a la base */
-  gap: 1rem;
   width: 100%;
+  margin: 0 auto;
+  overflow-y: auto;
 }
-
-.filters-scroll-area {
-  flex: 1;
-  overflow-x: auto;
-  padding-bottom: 4px; /* Espacio para el focus ring de los inputs */
-}
-
-.filters-grid-inline {
+.header-actions {
   display: flex;
-  align-items: flex-end; /* Alinear campos a la base */
   gap: 1rem;
-  min-width: min-content;
 }
-
-.filter-actions-inline {
-  display: flex;
-  gap: 0.25rem;
-  padding-bottom: 6px; /* Ajuste fino para alinear iconos con texto de inputs */
-}
-
-.filter-actions-inline .btn-icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Layer 3: Work */
-.catalog-work-layer {
-  flex: 1;
-}
-
-.table-card {
-  overflow: hidden;
+.card {
+  background: white;
   border-radius: 12px;
-  box-shadow: var(--box-shadow-md);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--box-shadow-sm);
 }
-
-.table-wrapper {
-  position: relative;
-  min-height: 200px;
-}
-
-.table-wrapper.is-loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-/* Utility classes */
-.spin { animation: rotate 1s linear infinite; }
-@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-.alert-card.error {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border-left: 4px solid var(--color-danger);
-  color: var(--color-danger);
-  padding: 1rem 1.5rem;
+.filters-card {
+  padding: 1.5rem;
   margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
-
-.empty-state {
-  padding: 5rem 2rem;
-  text-align: center;
+.filter-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 0.5rem;
 }
-
-.empty-icon-wrapper {
-  width: 64px;
-  height: 64px;
-  background: var(--color-background);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
+.filter-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
-
-.empty-icon-wrapper .material-symbols-outlined {
-  font-size: 32px;
+.filter-group input, .filter-group select {
+  min-width: 220px;
 }
-
-.loading-state {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,0.5);
+.table-card {
+  overflow: hidden;
+}
+.table-wrapper {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th, .data-table td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border-soft);
+  vertical-align: middle;
+}
+.data-table th {
+  background: var(--color-background);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+}
+.row-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+.row-clickable:hover {
+  background-color: var(--color-background-soft);
+}
+.row-active {
+  background-color: var(--color-primary-soft) !important;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.empty-state, .loading-state, .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
 }
+.empty-state .material-symbols-outlined, .error-state .material-symbols-outlined {
+  font-size: 3rem;
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>

@@ -1,95 +1,40 @@
-<script setup lang="ts">
-/**
- * BaseDialog.vue - Maestro de Diálogos TramaTex
- * 
- * Proporciona un contenedor modal estandarizado con:
- * - Backdrop con efecto blur
- * - Cabecera con icono y botón de cierre
- * - Acciones consistentes (Cancelar/Aceptar)
- */
-import { watch, onMounted, onUnmounted } from 'vue'
-
-const props = defineProps<{
-  show: boolean
-  title: string
-  icon?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'
-  confirmText?: string
-  confirmClass?: string
-  isConfirming?: boolean
-  disableConfirm?: boolean
-  hideActions?: boolean
-}>()
-
-const emit = defineEmits(['close', 'confirm'])
-
-function handleBackdropClick() {
-  emit('close')
-}
-
-function handleEscapeKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.show) {
-    emit('close')
-  }
-}
-
-// Escuchador global de teclado
-onMounted(() => {
-  window.addEventListener('keydown', handleEscapeKey)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleEscapeKey)
-})
-
-// Bloquear scroll del body cuando el modal está abierto
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
-  }
-}, { immediate: true })
-</script>
-
 <template>
   <Teleport to="body">
-    <Transition name="dialog-fade">
-      <div v-if="show" class="dialog-fixed-overlay" @click.self="handleBackdropClick">
-        <div :class="['dialog-surface', size || 'md']">
-          <!-- CABECERA -->
-          <header class="dialog-header">
-            <div class="dialog-title-group">
-              <span v-if="icon" class="material-symbols-outlined dialog-icon">
-                {{ icon }}
-              </span>
+    <Transition name="fade">
+      <div v-if="show" class="dialog-overlay" @mousedown="$emit('close')">
+        <div
+          ref="dialogRef"
+          class="dialog"
+          role="dialog"
+          aria-modal="true"
+          :class="[size, { 'has-icon': !!icon }]"
+          @mousedown.stop
+        >
+          <header v-if="!hideHeader" class="dialog-header">
+            <div class="header-content">
+              <span v-if="icon" class="material-symbols-outlined">{{ icon }}</span>
               <h2>{{ title }}</h2>
             </div>
-            <button class="btn-close" @click="emit('close')" aria-label="Cerrar">
+            <button @click="$emit('close')" class="btn-icon" aria-label="Cerrar">
               <span class="material-symbols-outlined">close</span>
             </button>
           </header>
 
-          <!-- CUERPO -->
-          <main class="dialog-body custom-scrollbar">
-            <slot></slot>
+          <main class="dialog-body" :class="contentClass">
+            <slot />
           </main>
 
-          <!-- ACCIONES -->
           <footer v-if="!hideActions" class="dialog-footer">
-            <slot name="actions">
-              <button class="btn btn-outline" @click="emit('close')" :disabled="isConfirming">
-                Cancelar
-              </button>
-              <button 
-                :class="['btn', confirmClass || 'btn-primary']" 
-                @click="emit('confirm')" 
-                :disabled="isConfirming || disableConfirm"
-              >
-                <span v-if="isConfirming" class="material-symbols-outlined spin mr-2">sync</span>
-                <span>{{ confirmText || 'Confirmar' }}</span>
-              </button>
-            </slot>
+            <button class="btn btn-outline" @click="$emit('close')">Cancelar</button>
+            <button
+              class="btn"
+              :class="confirmClass"
+              @click="$emit('confirm')"
+              :disabled="isConfirming"
+            >
+              <span v-if="isConfirming" class="spinner"></span>
+              <span v-else>{{ confirmText }}</span>
+            </button>
           </footer>
         </div>
       </div>
@@ -97,113 +42,170 @@ watch(() => props.show, (newVal) => {
   </Teleport>
 </template>
 
-<style>
-/* ESTILOS GLOBALES PARA EL OVERLAY (Fuera de scoped para garantizar el fixed) */
-.dialog-fixed-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(15, 23, 42, 0.75) !important;
-  backdrop-filter: blur(8px) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 10000 !important;
-  padding: 1.5rem;
+<script setup lang="ts">
+import { ref, watch, onUnmounted, nextTick } from 'vue'
+
+const dialogRef = ref<HTMLElement | null>(null)
+const props = withDefaults(defineProps<{
+  show: boolean
+  title: string
+  icon?: string
+  size?: 'md' | 'lg' | 'xl'
+  contentClass?: string
+  hideHeader?: boolean
+  hideActions?: boolean
+  isConfirming?: boolean
+  confirmText?: string
+  confirmClass?: 'btn-primary' | 'btn-secondary' | 'btn-danger'
+  initialFocus?: HTMLElement | null
+}>(), {
+  size: 'md',
+  confirmText: 'Confirmar',
+  confirmClass: 'btn-primary',
+})
+
+const emit = defineEmits(['close', 'confirm'])
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    emit('close')
+  }
 }
 
-.dialog-fade-enter-active, .dialog-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.dialog-fade-enter-from, .dialog-fade-leave-to {
-  opacity: 0;
-}
-</style>
+watch(() => props.show, (isShown) => {
+  if (isShown) {
+    document.addEventListener('keydown', handleKeydown)
+    nextTick(() => {
+      if (props.initialFocus) {
+        props.initialFocus.focus()
+      } else {
+        dialogRef.value?.focus()
+      }
+    })
+  } else {
+    document.removeEventListener('keydown', handleKeydown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+</script>
 
 <style scoped>
-.dialog-surface {
-  background: white !important;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+.fade-enter-active .dialog,
+.fade-leave-active .dialog {
+  transition: transform 0.2s ease;
+}
+.fade-enter-from .dialog,
+.fade-leave-to .dialog {
+  transform: scale(0.95);
+}
+
+.dialog {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
-  width: 100%;
-  position: relative;
+  width: 90%;
 }
-
-/* Tamaños */
-.sm { max-width: 400px; }
-.md { max-width: 600px; }
-.lg { max-width: 800px; }
-.xl { max-width: 1140px; }
+.dialog:focus {
+  outline: none;
+}
+.dialog.md { max-width: 550px; }
+.dialog.lg { max-width: 800px; }
+.dialog.xl { max-width: 1100px; }
 
 .dialog-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--color-border);
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
-
-.dialog-title-group {
+.header-content {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.dialog-title-group h2 {
-  margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--color-text-primary);
 }
-
-.dialog-icon {
-  color: var(--color-primary);
-  font-size: 24px;
-}
-
-.btn-close {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
-  display: flex;
-  transition: all 0.2s;
-}
-
-.btn-close:hover {
-  background: #f1f5f9;
-  color: #ef4444;
-}
+.header-content .material-symbols-outlined { color: var(--color-primary); }
+.btn-icon { background: none; border: none; padding: 0.5rem; border-radius: 50%; cursor: pointer; color: var(--color-text-secondary); }
+.btn-icon:hover { background: var(--color-background-soft); }
 
 .dialog-body {
-  padding: 1.5rem;
+  padding: 1.5rem 1.75rem;
   overflow-y: auto;
-  flex: 1;
 }
 
 .dialog-footer {
-  padding: 1.25rem 1.5rem;
-  background: #f8fafc;
-  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  border-bottom-left-radius: 16px;
-  border-bottom-right-radius: 16px;
+  gap: 0.75rem;
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  flex-shrink: 0;
 }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-outline {
+  background: white;
+  border-color: var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+.btn-outline:hover { background: var(--color-background-soft); }
 
-.spin { animation: rotate 1s linear infinite; }
-@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.btn-primary { background: var(--color-primary); color: white; }
+.btn-primary:hover { background: var(--color-primary-dark); }
+.btn-secondary { background: var(--color-secondary); color: white; }
+.btn-secondary:hover { background: var(--color-secondary-dark); }
+.btn-danger { background: var(--color-danger); color: white; }
+.btn-danger:hover { background: var(--color-danger-dark); }
 
-.mr-2 { margin-right: 0.5rem; }
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
