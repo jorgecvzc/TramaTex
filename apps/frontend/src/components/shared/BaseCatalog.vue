@@ -130,7 +130,7 @@ onUnmounted(() => {
   background: white;
   border-bottom: 1px solid var(--color-border);
   position: sticky;
-  top: 65px; /* Altura de la Navbar */
+  top: 0; /* Se ajustará con el nuevo layout sin Navbar */
   z-index: 900;
   padding-bottom: 1.5rem !important;
   margin-bottom: 0 !important;
@@ -172,6 +172,16 @@ onUnmounted(() => {
 }
 .filter-group input, .filter-group select {
   min-width: 220px;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-background);
+  transition: all 0.2s;
+}
+.filter-group input:focus, .filter-group select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
 }
 .table-card {
   overflow: hidden;
