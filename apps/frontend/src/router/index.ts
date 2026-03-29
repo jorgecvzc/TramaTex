@@ -84,6 +84,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/pages/products/Detail.vue"),
     meta: { requiresAuth: true, title: "Detalle de Producto - TramaTex" },
   },
+  {
+    path: "/products/pricing",
+    name: "ProductPricing",
+    component: () => import("@/pages/products/Pricing.vue"),
+    meta: { requiresAuth: true, title: "Gestión de Precios - TramaTex" },
+  },
 
   // --- MÓDULO: VENTAS (SALES) ---
   {

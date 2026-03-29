@@ -1,7 +1,5 @@
 <template>
   <div class="style-guide-wrapper">
-    <Navbar />
-    
     <div class="style-guide">
       <h1 class="font-brand" style="font-size: 2.5rem; color: var(--color-secondary);">Guía de Estilos de TramaTex</h1>
       <p>Este componente sirve como una guía visual de los elementos de UI definidos en el sistema de diseño, alineados con los mockups más recientes.</p>
@@ -152,7 +150,6 @@
 </template>
 
 <script setup>
-import Navbar from './layout/Navbar.vue';
 </script>
 
 <style scoped>

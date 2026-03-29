@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseEntityPage v-if="isLoading">
     <template #header>
       <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Operaciones', to: '/parties' }, { label: 'Entidades' }]" />
@@ -217,7 +215,6 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';

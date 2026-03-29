@@ -1,12 +1,10 @@
 <template>
   <div class="catalog-page">
-    <Navbar style="z-index: 2000;" />
     <ProductList />
   </div>
 </template>
 
 <script setup>
-import Navbar from '@/components/layout/Navbar.vue'
 import ProductList from '@/components/product/ProductList.vue'
 </script>
 

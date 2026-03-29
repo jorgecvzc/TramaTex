@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseCatalog
     title="Tipos de Trabajo"
     icon="account_tree"
@@ -81,7 +79,6 @@
 <script setup lang="ts">
 import { onMounted, ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
 import type { MESWorkType } from '@/types/mes'

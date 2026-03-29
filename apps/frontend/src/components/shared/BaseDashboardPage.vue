@@ -59,7 +59,7 @@ defineProps<{
 }
 
 .header-content-wrapper {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 2rem;
 }
@@ -68,7 +68,7 @@ defineProps<{
   display: flex;
   flex: 1;
   overflow: hidden;
-  max-width: 1400px;
+  max-width: 1300px;
   width: 100%;
   margin: 0 auto;
 }

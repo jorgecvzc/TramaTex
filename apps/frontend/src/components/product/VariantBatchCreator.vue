@@ -380,7 +380,7 @@ async function handleCreate() {
 }
 
 .modal-content.large {
-  max-width: 1400px;
+  max-width: 1300px;
 }
 
 .modal-header {

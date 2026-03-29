@@ -6,8 +6,8 @@
   /* Colores primarios y de marca */
   --color-primary: #E6B800;        /* Moderate Dark Yellow (Oro Viejo) */
   --color-primary-light: #fffbeb;  /* Crema muy suave para fondos de acento amarillo */
-  --color-secondary: #002395;      /* Intense Royal Blue */
-  --color-secondary-light: #1e40af;/* Azul un punto más claro para estados hover */
+  --color-secondary: #1b3a6b;      /* Original Top Menu Blue - Corporate Secondary */
+  --color-secondary-light: #324e7a;/* Azul suavizado (basado en el search box) para SideNavbar */
 
   /* Colores de fondo y superficie */
   --color-background: #f1f5f9;     /* Gris azulado muy claro */

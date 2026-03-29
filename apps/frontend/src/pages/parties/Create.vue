@@ -1,5 +1,4 @@
 <template>
-  <Navbar />
   <div class="main-container">
     <PageHeader 
       title="Nueva Entidad" 
@@ -21,7 +20,6 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import PartyForm from '@/components/party/PartyForm.vue'
 

@@ -1,5 +1,4 @@
 <template>
-  <Navbar class="no-print" />
   
   <BaseEntityPage v-if="isLoading" class="no-print">
     <template #header>
@@ -239,7 +238,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
@@ -397,7 +395,7 @@ function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { ye
 @import "@/design-system/_sections.css";
 
 .sticky-header-container { background: white; margin-top: -1.5rem; padding-top: 1.5rem; border-bottom: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
-.entity-tabs { display: flex; max-width: 1400px; margin: 0 auto; padding: 0 2rem; gap: 0.25rem; }
+.entity-tabs { display: flex; max-width: 1300px; margin: 0 auto; padding: 0 2rem; gap: 0.25rem; }
 .tab-btn { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 1.25rem; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--color-text-secondary); font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: -1px; }
 .tab-btn:hover { color: var(--color-primary); background: rgba(0,0,0,0.02); }
 .tab-btn.active { border-bottom-color: var(--color-secondary); color: var(--color-secondary); background: rgba(0, 35, 149, 0.03); }

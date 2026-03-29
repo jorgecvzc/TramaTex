@@ -184,32 +184,35 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .navbar {
-  background-color: #1b3a6b;
+  background-color: var(--color-secondary);
   color: white;
   padding: 0.5rem 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  z-index: 1000;
+  z-index: 2100; /* Mantenemos el predominio visual */
 }
+
 .navbar-container {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #E6B800;
+  color: var(--color-primary);
   text-decoration: none;
   font-family: var(--font-family-brand);
   font-style: italic;
   letter-spacing: -0.025em;
   margin-right: 2rem;
 }
+
 .nav-menu {
   display: flex;
   list-style: none;
@@ -217,6 +220,7 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 0;
 }
+
 .nav-link {
   color: white;
   text-decoration: none;
@@ -231,17 +235,24 @@ onBeforeUnmount(() => {
   width: 80px;
   height: 60px;
 }
-.nav-link:hover, .nav-link.active {
-  color: #E6B800;
-  background-color: rgba(230, 184, 0, 0.1);
+
+.nav-link:hover, 
+.nav-link.active {
+  color: var(--color-primary);
+  background-color: rgba(255, 255, 255, 0.1);
 }
+
 .nav-label {
   font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.dropdown { position: relative; }
+
+.dropdown {
+  position: relative;
+}
+
 .dropdown-toggle {
   cursor: pointer;
   user-select: none;
@@ -250,12 +261,13 @@ onBeforeUnmount(() => {
   font: inherit;
   color: inherit;
 }
+
 .dropdown-menu {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #1b3a6b;
+  background-color: var(--color-secondary);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   list-style: none;
@@ -267,6 +279,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
   z-index: 1000;
 }
+
 .dropdown-item {
   display: flex;
   align-items: center;
@@ -278,41 +291,71 @@ onBeforeUnmount(() => {
   transition: all 0.2s;
   min-width: 180px;
 }
+
 .dropdown-item:hover {
-  background-color: rgba(230, 184, 0, 0.1);
-  color: #E6B800;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-primary);
 }
+
 .navbar-actions {
   flex: 1;
   display: flex;
   justify-content: center;
   padding: 0 2rem;
 }
+
 .search-btn {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  padding: 0.5rem 1rem;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.85rem;
+  min-height: 36px;
   border-radius: 8px;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   width: 100%;
   max-width: 400px;
   transition: all 0.2s;
 }
+
+.search-btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
 .search-btn:hover {
-  background: rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
   color: white;
 }
-.search-placeholder { flex: 1; text-align: left; font-size: 0.9rem; }
+
+.search-placeholder {
+  flex: 1;
+  text-align: left;
+  font-size: 0.84rem;
+}
+
 .kbd-shortcut {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-family: monospace;
-  background: rgba(0,0,0,0.2);
-  padding: 0.1rem 0.4rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.08rem 0.35rem;
   border-radius: 4px;
+}
+
+@media (min-width: 1201px) {
+  .nav-menu {
+    display: none;
+  }
+
+  .navbar-actions {
+    justify-content: center;
+    padding-left: 0;
+  }
+
+  .logo {
+    margin-right: 0.75rem;
+  }
 }
 </style>

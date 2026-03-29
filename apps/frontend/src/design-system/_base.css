@@ -21,9 +21,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global Container - Max width 1400px */
+/* Global Container - Max width 1300px */
 .main-container {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: var(--spacing-lg) var(--spacing-md);
   width: 100%;

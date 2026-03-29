@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseEntityPage v-if="isLoading">
     <template #header>
       <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
@@ -287,7 +285,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
+
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';

@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <Navbar />
     
     <BaseFormLayout
       title="Nuevo Producto"
@@ -146,7 +145,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import { productApi } from '@/services/productApi'

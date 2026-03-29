@@ -1,6 +1,5 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" />
     
     <BaseCatalog
       title="Catálogo de Tareas Básicas"
@@ -107,7 +106,6 @@
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { mesApi } from '@/services/mesApi'

@@ -1,5 +1,5 @@
 <template>
-  <Navbar />
+  
   
   <BaseEntityPage v-if="isLoading">
     <template #header>
@@ -361,7 +361,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';

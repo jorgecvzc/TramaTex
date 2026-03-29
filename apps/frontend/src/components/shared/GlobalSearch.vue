@@ -77,6 +77,48 @@ const activeResultIndex = ref(0)
 
 let debounceTimer: any
 
+function asArray(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  return []
+}
+
+async function fetchGlobalResults(searchText: string) {
+  const [ordersResp, productsResp, partiesResp] = await Promise.allSettled([
+    api.get('/sales/orders', { params: { search: searchText, limit: 5 } }),
+    api.get('/products', { params: { search: searchText, page_size: 5 } }),
+    api.get('/parties', { params: { name: searchText, page_size: 5 } }),
+  ])
+
+  const orders = ordersResp.status === 'fulfilled' ? asArray(ordersResp.value.data) : []
+  const products = productsResp.status === 'fulfilled' ? asArray(productsResp.value.data) : []
+  const parties = partiesResp.status === 'fulfilled' ? asArray(partiesResp.value.data) : []
+
+  return [
+    ...orders.map((o: any) => ({
+      id: `order-${o.id}`,
+      type: 'order',
+      title: o.orderNumber ? `Pedido ${o.orderNumber}` : 'Pedido',
+      subtitle: o.status || 'Sin estado',
+      url: `/sales/orders/${o.id}`,
+    })),
+    ...products.map((p: any) => ({
+      id: `product-${p.id}`,
+      type: 'product',
+      title: p.name || p.long_name || 'Producto',
+      subtitle: p.sku ? `SKU: ${p.sku}` : 'Sin SKU',
+      url: `/products/${p.id}`,
+    })),
+    ...parties.map((p: any) => ({
+      id: `party-${p.id}`,
+      type: 'party',
+      title: p.name || 'Entidad',
+      subtitle: p.tax_id ? `NIF/CIF: ${p.tax_id}` : 'Sin identificación fiscal',
+      url: `/parties/${p.id}`,
+    })),
+  ]
+}
+
 watch(query, (newQuery) => {
   clearTimeout(debounceTimer)
   if (!newQuery.trim()) {
@@ -87,8 +129,7 @@ watch(query, (newQuery) => {
   isLoading.value = true
   debounceTimer = setTimeout(async () => {
     try {
-      const response = await api.get(`/search?q=${newQuery}`)
-      results.value = response.data || []
+      results.value = await fetchGlobalResults(newQuery)
     } catch (err) {
       console.error('Error en búsqueda global:', err)
       results.value = []

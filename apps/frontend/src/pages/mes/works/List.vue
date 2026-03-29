@@ -1,6 +1,5 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" />
     
     <BaseCatalog
       title="Órdenes de Trabajo (Producción)"
@@ -78,7 +77,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
 import type { WorkOrder } from '@/types/mes'

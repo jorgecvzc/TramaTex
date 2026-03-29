@@ -1,5 +1,5 @@
 <template>
-  <Navbar class="no-print" />
+  
   
   <BaseDashboardPage :is-loading="isLoading" class="no-print">
     <!-- CAPA 1: IDENTIDAD -->
@@ -168,7 +168,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
 import PartySelector from '@/components/party/PartySelector.vue';

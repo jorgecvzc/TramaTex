@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <Navbar />
     <div class="dashboard-content">
       <header class="page-header">
         <div>
@@ -113,7 +112,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import { mesApi } from '@/services/mesApi'
 import { partyApi } from '@/services/partyApi'
 import type { MESPosition, MESWorkType, WorkOrder } from '@/types/mes'

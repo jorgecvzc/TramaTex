@@ -1,6 +1,6 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" class="no-print" />
+    
     
     <BaseCatalog
       title="Gestión de Facturas"
@@ -99,7 +99,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';

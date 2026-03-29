@@ -1,7 +1,5 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" />
-    
     <BaseCatalog
       title="Gestión de Albaranes"
       :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Albaranes' }]"
@@ -77,7 +75,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
+
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
 

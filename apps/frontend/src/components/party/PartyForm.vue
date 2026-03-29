@@ -518,7 +518,7 @@ function generateId() {
 
 <style scoped>
 .party-form {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   width: 100%;
 }

@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseFormLayout
     title="Nuevo Presupuesto"
     :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Crear Presupuesto' }]"
@@ -126,7 +124,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import PartySelector from '@/components/party/PartySelector.vue';

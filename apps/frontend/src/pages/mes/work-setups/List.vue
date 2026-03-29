@@ -1,6 +1,5 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" />
     
     <BaseCatalog
       title="Configuraciones Técnicas por Cliente"
@@ -75,7 +74,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
 import type { WorkSetup } from '@/types/mes'

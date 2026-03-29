@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <BaseCatalog
     title="Gestión de Categorías"
     icon="category"
@@ -122,7 +120,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { productApi } from '@/services/productApi'
 

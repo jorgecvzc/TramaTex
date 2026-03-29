@@ -1,6 +1,4 @@
 <template>
-  <Navbar />
-  
   <div class="main-container">
     <PageHeader 
       title="Nuevo Pedido de Venta" 
@@ -219,7 +217,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';

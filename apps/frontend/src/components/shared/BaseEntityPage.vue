@@ -58,8 +58,8 @@
 /* --- 1. IDENTITY HEADER --- */
 .identity-header-sticky {
   position: sticky;
-  top: 60px;
-  z-index: 500; /* Reducido para permitir que el Navbar esté por encima */
+  top: 76px; /* Ajustado a la Navbar superior */
+  z-index: 500;
   background-color: white;
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -68,7 +68,7 @@
 
 
 .header-max-width {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -94,7 +94,7 @@
 
 /* --- 3. MAIN CONTENT --- */
 .entity-body-layout {
-  max-width: 1400px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 0 1rem;
 }

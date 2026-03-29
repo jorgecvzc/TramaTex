@@ -1,6 +1,5 @@
 <template>
   <div class="page-layout">
-    <Navbar style="z-index: 2000;" />
     
     <BaseCatalog
       title="Gestión de Marcas"
@@ -97,7 +96,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Navbar from '@/components/layout/Navbar.vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { productApi } from '@/services/productApi'

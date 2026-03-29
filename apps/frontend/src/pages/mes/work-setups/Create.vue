@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <Navbar />
     <div class="dashboard-content">
       <header class="page-header">
         <div>
@@ -88,7 +87,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
 import { productApi } from '@/services/productApi'
