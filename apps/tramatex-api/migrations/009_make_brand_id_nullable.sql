@@ -1,11 +1,16 @@
--- Migration to make brand_id nullable in products and other tables
--- This allows products to be created without a mandatory brand association.
+-- Migration to make brand_id nullable in products.
+-- The check keeps this migration safe on legacy databases where this table/column
+-- can differ from current consolidated schema.
 
-ALTER TABLE products ALTER COLUMN brand_id DROP NOT NULL;
-
--- Also check brand_profit_margins if it should be nullable (keeping it NOT NULL if it defines margins per brand)
--- In 004_init_pricing.sql: brand_id UUID NOT NULL
--- If a product has no brand, it just won''t have a brand-specific margin. That''s fine.
-
--- base_sales_price_rules already has nullable brand_id in some places but not others?
--- Let''s make it nullable where it makes sense.
+DO $$
+BEGIN
+	IF EXISTS (
+		SELECT 1
+		FROM information_schema.columns
+		WHERE table_schema = 'public'
+		  AND table_name = 'products'
+		  AND column_name = 'brand_id'
+	) THEN
+		EXECUTE 'ALTER TABLE products ALTER COLUMN brand_id DROP NOT NULL';
+	END IF;
+END $$;
