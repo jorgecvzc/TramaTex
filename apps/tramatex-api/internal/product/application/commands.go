@@ -14,7 +14,7 @@ type CreateProductCommand struct {
 	Barcode            *string            `json:"barcode,omitempty"`
 	Description        string             `json:"description"`
 	ProductType        domain.ProductType `json:"product_type"`
-	BrandID            uuid.UUID          `json:"brand_id"`
+	BrandID            *uuid.UUID         `json:"brand_id,omitempty"`
 	GroupIDs           []uuid.UUID        `json:"group_ids"`
 	DirectAttributeIDs []uuid.UUID        `json:"direct_attribute_ids"`
 	BasePrice          float64            `json:"base_price"`
@@ -185,21 +185,21 @@ type DeleteBrandCommand struct {
 
 // CreateProductGroupCommand is the input DTO for creating a product group.
 type CreateProductGroupCommand struct {
-	ActorID  string
-	Name     string
-	Type     string // TANGIBLE or SERVICE
-	ParentID *uuid.UUID
-	IsActive bool
+	ActorID  string     `json:"-"`
+	Name     string     `json:"name"`
+	Type     string     `json:"type"` // TANGIBLE or SERVICE
+	ParentID *uuid.UUID `json:"parent_id,omitempty"`
+	IsActive bool       `json:"isActive"`
 }
 
 // UpdateProductGroupCommand is the input DTO for updating a product group.
 type UpdateProductGroupCommand struct {
-	ActorID  string
-	ID       uuid.UUID
-	Name     *string
-	Type     *string // TANGIBLE or SERVICE
-	ParentID *uuid.UUID
-	IsActive *bool
+	ActorID  string     `json:"-"`
+	ID       uuid.UUID  `json:"-"`
+	Name     *string    `json:"name,omitempty"`
+	Type     *string    `json:"type,omitempty"` // TANGIBLE or SERVICE
+	ParentID *uuid.UUID `json:"parent_id,omitempty"`
+	IsActive *bool      `json:"isActive,omitempty"`
 }
 
 // DeleteProductGroupCommand is the input DTO for deleting a product group.

@@ -18,7 +18,7 @@ type ProductDataModel struct {
 	Barcode            *string `gorm:"uniqueIndex"`
 	Description        string
 	ProductType        string         `gorm:"type:product_type;not null"`
-	BrandID            uuid.UUID      `gorm:"not null"`
+	BrandID            *uuid.UUID     `gorm:"type:uuid"`
 	GroupIDs           pq.StringArray `gorm:"type:uuid[]"`
 	DirectAttributeIDs pq.StringArray `gorm:"type:uuid[]"`
 	BasePrice          float64        `gorm:"type:numeric(12,2);not null"`

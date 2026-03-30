@@ -64,12 +64,16 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		return nil, err
 	}
 	// 1. Validate Brand and Groups exist (external aggregates)
-	brand, err := s.brandRepo.FindByID(ctx, cmd.BrandID)
-	if err != nil {
-		return nil, domain.WrapPersistence("brand not found", err)
-	}
-	if brand == nil {
-		return nil, domain.NewNotFoundErrorf("brand with ID %s does not exist", cmd.BrandID)
+	var finalBrandID *uuid.UUID
+	if cmd.BrandID != nil && *cmd.BrandID != uuid.Nil {
+		brand, err := s.brandRepo.FindByID(ctx, *cmd.BrandID)
+		if err != nil {
+			return nil, domain.WrapPersistence("brand not found", err)
+		}
+		if brand == nil {
+			return nil, domain.NewNotFoundErrorf("brand with ID %s does not exist", *cmd.BrandID)
+		}
+		finalBrandID = cmd.BrandID
 	}
 
 	for _, groupID := range cmd.GroupIDs {
@@ -98,7 +102,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, cmd CreateProductCom
 		cmd.LongName,
 		cmd.Description,
 		cmd.ProductType,
-		cmd.BrandID,
+		finalBrandID,
 		cmd.Barcode,
 		cmd.BasePrice,
 		cmd.TaxRate,
@@ -280,7 +284,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, cmd UpdateProductCom
 		product.Description = *cmd.Description
 	}
 	if cmd.BrandID != nil {
-		product.BrandID = *cmd.BrandID
+		product.BrandID = cmd.BrandID
 	}
 	if cmd.GroupIDs != nil {
 		product.GroupIDs = cmd.GroupIDs
@@ -574,7 +578,7 @@ func productMatchesQuery(product *domain.Product, query ListProductsQuery) bool 
 			return false
 		}
 	}
-	if query.BrandID != nil && product.BrandID != *query.BrandID {
+	if query.BrandID != nil && (product.BrandID == nil || *product.BrandID != *query.BrandID) {
 		return false
 	}
 	if query.GroupID != nil && !productHasGroup(product, *query.GroupID) {
@@ -1358,7 +1362,7 @@ func (s *ProductService) DeleteBrand(ctx context.Context, cmd DeleteBrandCommand
 		return domain.WrapPersistence("failed to validate brand usage", err)
 	}
 	for _, product := range products {
-		if product.BrandID == cmd.ID {
+		if product.BrandID != nil && *product.BrandID == cmd.ID {
 			return domain.NewValidationError("cannot delete brand because it is used by one or more products")
 		}
 	}

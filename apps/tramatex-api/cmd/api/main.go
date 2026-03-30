@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"fmt"
@@ -48,8 +48,8 @@ import (
 	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
 	"github.com/joran-cortez/tramatex/internal/shared/interfaces/http/middleware"
-)
-
+	shared_handler "github.com/joran-cortez/tramatex/internal/shared/interfaces/http/handler"
+	)
 func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
@@ -59,14 +59,14 @@ func main() {
 
 	// Initialize logger
 	logging.InitLogger(cfg.Server.Environment)
-	logging.Logger.Info("🚀 TramaTex API starting...")
+	logging.Logger.Info("[STARTUP] TramaTex API starting...")
 	logging.Logger.WithFields(map[string]interface{}{
 		"host":        cfg.Server.Host,
 		"port":        cfg.Server.Port,
 		"environment": cfg.Server.Environment,
 	}).Info("Server configuration loaded")
 
-	fmt.Println("🚀 TramaTex API starting...")
+	fmt.Println("[STARTUP] TramaTex API starting...")
 	fmt.Printf("Server: %s:%s\n", cfg.Server.Host, cfg.Server.Port)
 	fmt.Printf("Database: %s\n", cfg.DB.Host)
 
@@ -75,15 +75,15 @@ func main() {
 	if err != nil {
 		logging.Logger.WithError(err).Fatal("Failed to connect to database")
 	}
-	logging.Logger.Info("✓ Database connected")
-	fmt.Println("✓ Database connected")
+	logging.Logger.Info("[OK] Database connected")
+	fmt.Println("[OK] Database connected")
 
 	// Run migrations
-	fmt.Println("🔄 Starting migrations...")
+	fmt.Println("[MIGRATIONS] Starting migrations...")
 	if err := migrations.RunMigrations(db); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
-	fmt.Println("✓ Migrations completed")
+	fmt.Println("[OK] Migrations completed")
 
 	// Setup Gin router
 	router := gin.Default()
@@ -99,7 +99,10 @@ func main() {
 	// DEPENDENCY INJECTION & ROUTE SETUP
 	// =========================================================================
 
-	// --- IAM Module Dependencies ---
+	// --- Search Handler ---
+        searchHandler := shared_handler.NewSearchHandler(db)
+
+        // --- IAM Module Dependencies ---
 	// 1. Repository
 	userRepository := iam_repo.NewPostgresUserRepository(db)
 	// 2. Security Service (JWT)
@@ -272,7 +275,7 @@ func main() {
 	salesService.SetTransactionManager(sales_repo.NewGORMTransactionManager(db))
 	salesHandler := sales_handler.NewSalesHandler(salesService)
 
-	// --- Cross-module adapters (MES ← Sales) ---
+	// --- Cross-module adapters (MES <- Sales) ---
 	salesOrderLinker := sales_repo.NewSalesOrderLinkerAdapter(db)
 	pendingSetupProvider := sales_repo.NewPendingSetupProviderAdapter(orderRepo)
 	workOrderCreator := sales_repo.NewWorkOrderCreatorAdapter(mesService)
@@ -323,7 +326,10 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(authMiddleware)
 		{
-			parties := protected.Group("/parties")
+		        protected.GET("/search", searchHandler.GlobalSearch)
+
+		        parties := protected.Group("/parties")
+
 			{
 				parties.POST("", infra_middleware.RequireRole("admin", "commercial"), partyHandler.CreateParty)
 				parties.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), partyHandler.UpdateParty)
@@ -554,3 +560,4 @@ func main() {
 		logging.Logger.WithError(err).Fatal("Failed to start server")
 	}
 }
+

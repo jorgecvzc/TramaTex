@@ -46,8 +46,12 @@ func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, varian
 	// Get brand markup percentage
 	var brand productpersistence.BrandDataModel
 	var brandMarkup float64
-	if err := c.db.WithContext(ctx).First(&brand, "id = ?", product.BrandID).Error; err == nil {
-		brandMarkup = brand.DefaultMarkupPercentage
+	brandID := uuid.Nil
+	if product.BrandID != nil {
+		brandID = *product.BrandID
+		if err := c.db.WithContext(ctx).First(&brand, "id = ?", brandID).Error; err == nil {
+			brandMarkup = brand.DefaultMarkupPercentage
+		}
 	}
 
 	return &pricingapp.ProductPricingInfo{
@@ -55,7 +59,7 @@ func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, varian
 		ProductID:             variant.ProductID,
 		BaseCost:              baseCost,
 		Currency:              "EUR",
-		BrandID:               product.BrandID,
+		BrandID:               brandID,
 		BrandMarkupPercentage: brandMarkup,
 		GroupIDs:              parseUUIDs(product.GroupIDs),
 		TaxRate:               product.TaxRate,
@@ -79,8 +83,12 @@ func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, prod
 	// Get brand markup percentage
 	var brand productpersistence.BrandDataModel
 	var brandMarkup float64
-	if err := c.db.WithContext(ctx).First(&brand, "id = ?", product.BrandID).Error; err == nil {
-		brandMarkup = brand.DefaultMarkupPercentage
+	brandID := uuid.Nil
+	if product.BrandID != nil {
+		brandID = *product.BrandID
+		if err := c.db.WithContext(ctx).First(&brand, "id = ?", brandID).Error; err == nil {
+			brandMarkup = brand.DefaultMarkupPercentage
+		}
 	}
 
 	groupIDs := parseUUIDs(product.GroupIDs)
@@ -98,7 +106,7 @@ func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, prod
 			ProductID:             variant.ProductID,
 			BaseCost:              baseCost,
 			Currency:              "EUR",
-			BrandID:               product.BrandID,
+			BrandID:               brandID,
 			BrandMarkupPercentage: brandMarkup,
 			GroupIDs:              groupIDs,
 			TaxRate:               product.TaxRate,

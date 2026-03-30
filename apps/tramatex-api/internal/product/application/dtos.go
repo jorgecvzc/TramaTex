@@ -30,6 +30,10 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 	if p.Barcode != nil {
 		barcode = p.Barcode
 	}
+	var brandID uuid.UUID
+	if p.BrandID != nil {
+		brandID = *p.BrandID
+	}
 	return &ProductDTO{
 		ID:                 p.ID,
 		SKU:                p.SKU,
@@ -38,7 +42,7 @@ func NewProductDTOFromDomain(p *domain.Product) *ProductDTO {
 		Barcode:            barcode,
 		Description:        p.Description,
 		ProductType:        p.ProductType,
-		BrandID:            p.BrandID,
+		BrandID:            brandID,
 		GroupIDs:           p.GroupIDs,
 		DirectAttributeIDs: p.DirectAttributeIDs,
 		BasePrice:          p.BasePrice,
