@@ -363,7 +363,7 @@ func TestProductService_DeleteBrand(t *testing.T) {
 		mockProductRepo.ExpectedCalls = nil
 		brandID := uuid.New()
 		existing := &domain.Brand{ID: brandID, Name: "Brand", IsActive: true}
-		inUseProduct := &domain.Product{ID: uuid.New(), BrandID: brandID}
+		inUseProduct := &domain.Product{ID: uuid.New(), BrandID: uuidPtr(brandID)}
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(existing, nil).Once()
 		mockProductRepo.On("FindAll", ctx).Return([]*domain.Product{inUseProduct}, nil).Once()
 

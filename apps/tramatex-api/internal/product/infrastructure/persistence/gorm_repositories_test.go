@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
+
 func setupProductTestDB(t *testing.T) (*TestDB, func()) {
 	LockProductTestDB()
 	tdb := NewTestDB(t)
@@ -55,7 +57,7 @@ func TestDataModelConversions(t *testing.T) {
 	assert.Equal(t, val.ID, attrModel.Values[0].ID)
 	assert.Equal(t, attr.ID, attrModel.ToDomain().ID)
 
-	product := &domain.Product{ID: uuid.New(), SKU: "P-1", Name: "Prod", BrandID: uuid.New(), IsActive: true}
+	product := &domain.Product{ID: uuid.New(), SKU: "P-1", Name: "Prod", BrandID: uuidPtr(uuid.New()), IsActive: true}
 	productModel := FromDomain(product)
 	assert.Equal(t, product.ID, productModel.ID)
 	assert.Equal(t, product.ID, productModel.ToDomain().ID)
@@ -112,7 +114,7 @@ func TestGORMRepositories(t *testing.T) {
 		SKU:         "P-1",
 		Name:        "Product",
 		ProductType: domain.ProductTypeTangible,
-		BrandID:     brandID,
+		BrandID:     uuidPtr(brandID),
 		IsActive:    true,
 	}
 	productRepo := NewGORMProductRepository(db)

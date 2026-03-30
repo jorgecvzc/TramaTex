@@ -25,7 +25,7 @@ func TestGORMProductRepository_Save_Update(t *testing.T) {
 		SKU:         "P-100",
 		Name:        "Product",
 		ProductType: domain.ProductTypeTangible,
-		BrandID:     brandID,
+		BrandID:     uuidPtr(brandID),
 		IsActive:    true,
 	}
 
@@ -54,7 +54,7 @@ func TestGORMVariantRepository_Save_Update(t *testing.T) {
 	brandID := uuid.New()
 	productID := uuid.New()
 	assert.NoError(t, db.WithContext(ctxCreate).Create(&BrandDataModel{ID: brandID, Name: "Brand"}).Error)
-	assert.NoError(t, db.WithContext(ctxCreate).Create(&ProductDataModel{ID: productID, SKU: "P-200", Name: "Product", ProductType: "TANGIBLE", BrandID: brandID, IsActive: true}).Error)
+	assert.NoError(t, db.WithContext(ctxCreate).Create(&ProductDataModel{ID: productID, SKU: "P-200", Name: "Product", ProductType: "TANGIBLE", BrandID: uuidPtr(brandID), IsActive: true}).Error)
 
 	variant := &domain.ProductVariant{
 		ID:              uuid.New(),
