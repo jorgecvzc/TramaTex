@@ -1,43 +1,112 @@
+# Bitácora de Sesiones de Desarrollo
+
+---
+## SESIONES ABIERTAS
+---
+
+## POST-REFACTOR STABILIZATION & FINAL POLISH (Sprint 16)
+- **Session ID:** `sprint-16-stabilization-final`
+- **Status:** En Progreso
+- **Sprint:** Sprint 16
+- **Started:** 2026-03-29 09:00 CET
+- **Expected Close:** 2026-03-29 16:00 CET
+- Contexto: Estabilización total tras refactor de marca nullable, implementación de búsqueda global backend y alineación exhaustiva de tests frontend.
+
+### Logros de la Sesión
+✅ **Backend Completo Estable**  
+- Refactor de `BrandID uuid.UUID → *uuid.UUID` sincronizado en:  
+  - Dominio, application, persistence, handlers, todas las capas.
+  - 25+ archivos de test migrados a puntero y pasando.  
+- Búsqueda global unificada (`/api/search`) con concurrencia Go.
+- Fix de pricing product client para nullable brand (safe dereference pattern).
+- Fix en migración `009_make_brand_id_nullable.sql` para tolerar esquemas legacy sin bloquear el arranque.
+- Compile y `go test ./...` en verde.
+
+✅ **Frontend Estable (230/230 tests passing)**  
+- Normalización de payload en `productApi.ts` (camelCase/snake_case, null/empty brand).  
+- Compatibilidad `salesApi.ts` (backward compat + legacy test support).  
+- Actualización exhaustiva de formularios (PartyForm, OrderCreate, ProductCreate/Detail).  
+- Buscador global refactorizado con categorización por módulo y búsqueda backend real.
+
+✅ **Documentation & Context**  
+- Sesión formal reabierta en el log.
+- Guía de búsqueda global (`docs/guides/developer/global-search-strategy.md`) documentada.
+- Migración DB 009 para hacer col. brand_id nullable.
+- Índices y documentación de módulos alineados con `/api/search`, autenticación del buscador y `brand_id` nullable en Product/Pricing/Sales.
+
+### Pendiente (Próxima Sesión - 2026-03-30)
+✅ **Backend ya consolidado en commits atómicos**:
+  1. `refactor: make brand_id nullable across product domain`
+  2. `test: migrate product tests to nullable brand_id pointer`
+  3. `fix: make migration 009 tolerant to legacy schemas`
+
+⏳ **Pendiente de cierre frontend**:
+  4. `fix: normalize product brand payload + salesApi backward compat` — productApi, salesApi, test align
+  5. Verificación final UI/UX en `PartyForm`, `OrderCreate`, alta de producto sin marca y flujo `Ctrl+K` en interfaz
+
+✅ **Pre-commit Validation Done**:
+  - Backend: `go vet` limpio, `go test ./...` pasando
+  - Frontend: `npm run build` completado sin warnings bloqueantes
+  - Encoding: main.go limpiado (UTF-8 corruption resuelto)
+
+✅ **Validación Operativa Post-Commit (backend)**:
+  - `GET /api/search` validado con autenticación local (200).
+  - Login demo restaurado en base limpia local.
+  - Migración `009_make_brand_id_nullable.sql` aplicada correctamente.
+  - `products.brand_id` confirmado como nullable en PostgreSQL local.
+
+⏳ **Validación Operativa Pendiente (frontend)**: Comprobar flujo Ctrl+K en interfaz y alta de producto sin marca desde UI.
+
+- Archivos de Contexto: docs/log/sprints/sprint-16/01-ui-ux-standardization.md, docs/guides/developer/global-search-strategy.md, git status
+
+---
+## REGISTRO DE SESIONES CERRADAS
+---
+
 # Session Log - 2026-03-28
 
 ## Resumen de la Sesión
-
 Sesión extensa de estabilización y refinamiento UI/UX de TramaTex. Se reparó el layout global tras el intento fallido de barra lateral, se consolidó el shell principal en `App.vue`, se integró una `SideNavbar` funcional, se corrigieron múltiples vistas Vue dañadas, se restableció el build del frontend y se hizo una pasada amplia de consistencia visual sobre dashboards, catálogos, cabeceras y navegación.
 
 ## Estado Final
+- **Layout Global Reparado**: `App.vue` es ahora el único shell principal y monta `Navbar` + `SideNavbar` + `RouterView`.
+- **Barra Lateral Activa**: `SideNavbar.vue` quedó integrada, colapsable y persistente.
+- **Búsqueda Global**: Interfaz `Ctrl+K` operativa con búsqueda federada inicial.
 
-- **Layout Global Reparado**: Eliminadas las `Navbar` duplicadas en vistas internas. `App.vue` es ahora el único shell principal y monta `Navbar` + `SideNavbar` + `RouterView`.
-- **Barra Lateral Activa**: `SideNavbar.vue` quedó integrada, colapsable y persistente, con accesos a dashboards de Ventas, Productos, Entidades y MES, además del área de administración.
-- **Cabeceras y Contenedores**: Se recuperó la alineación de `PageHeader` y se corrigió el ancho de los listados basados en `BaseCatalog`, incluido `/parties`, para respetar el contenedor estándar de 1300.
-- **Búsqueda Global**: La interfaz `Ctrl+K` está operativa y ya no depende de un endpoint inexistente; actualmente hace búsqueda federada desde frontend contra pedidos, productos y entidades.
-- **Dashboards de Módulo**: Los cuatro KPIs superiores de los dashboards de Ventas, Productos, Entidades y MES se muestran en una sola fila en escritorio, con comportamiento responsivo en tamaños menores.
-- **Dashboard Principal**: Reordenado y refinado con mejor jerarquía visual, separación entre bloques, grids en fila para accesos y módulos, y ajustes de spacing consistentes con lo visto en la sesión.
-- **Correcciones Técnicas**: Se arreglaron varios SFC mal formados, se restauraron plantillas dañadas y se creó `OrderLines.vue` para resolver una dependencia rota en ventas.
-- **Estado de Build**: El frontend compila correctamente con `npm run -s build`. Persisten solo warnings no bloqueantes por tamaño de chunks.
+---
 
-## Errores Pendientes de Solución
+# Session Log - 2026-03-29
 
-1. **Pulido de `SideNavbar`**: Sigue pendiente una revisión final del menú lateral izquierdo para ajustar espaciados verticales, asegurar visibilidad clara de `Admin` y de la flecha de despliegue en todas las alturas útiles, y compactar mejor la relación entre `TX`, accesos principales y bloque inferior.
-2. **Consistencia de Plantillas**: Conviene revisar que todos los layouts compartidos sigan exactamente el mismo patrón de contenedor y padding (`1300px` + padding lateral) sin excepciones residuales.
-3. **Búsqueda Unificada Backend**: La solución actual de búsqueda global funciona, pero es federada desde frontend. Sigue pendiente decidir si se sustituye por un endpoint backend único (`/search`) y registrar de forma real la ruta si se adopta ese enfoque.
-4. **Revisión Visual Final en Navegador**: Aunque el build está estable, queda pendiente una pasada visual completa en entorno real para validar los últimos ajustes de spacing y navegación lateral en desktop.
+## Resumen de la Sesión
+Sesión de **madurez arquitectónica y profesionalización de la UI**. Se ha definido y ejecutado un nuevo sistema de **Familias de UI**, se ha unificado la identidad visual mediante átomos globales y se ha implementado un motor de búsqueda profesional en el backend. Además, se han resuelto bloqueos técnicos críticos en la gestión de productos y categorías.
 
-## Próximos Pasos para la Siguiente Sesión
+## Avances Realizados
 
-1. **Cerrar el lateral izquierdo**:
-    - Compactar espaciados de `SideNavbar.vue`.
-    - Garantizar que `Admin` y la flecha de despliegue se vean siempre con claridad.
-    - Verificar también el comportamiento colapsado y expandido con contenido real.
+### 🏛️ Arquitectura de UI (Estandarización Total)
+- **Definición de Macro-Familias**: Documentadas en `ui-families.md` (Dashboards, Gestión de Entidades, Viewports Especializados).
+- **Unificación de Dashboards**: Todos los paneles (Ventas, MES, Catálogo, Entidades) siguen ahora un patrón de 3 capas con espaciado consistente de **1.5rem**.
+- **Refactorización de Listados**: Sincronización de `BaseCatalog` y `BaseEntityPage` con la Navbar superior (76px sticky) para evitar solapamientos.
+- **Sistema de Formularios**: Creado `_forms.css` como fuente de verdad única para inputs, selects y textareas, eliminando estilos locales redundantes.
 
-2. **Pasada final de coherencia visual**:
-    - Revisar en navegador `Dashboard.vue`, dashboards de módulo y listados principales.
-    - Confirmar que la distancia entre secciones siempre sea mayor que la distancia entre tags o elementos internos.
-    - Validar que no queden cabeceras fuera del patrón de contenedor.
+### 🔍 Búsqueda Global Profesional
+- **Backend Unificado**: Implementado endpoint `/api/search` en Go con concurrencia nativa.
+- **Búsqueda Enriquecida**: Soporte para localizar pedidos, presupuestos, facturas y albaranes por **Nombre de Cliente** (ILIKE Case-insensitive).
+- **Frontend Categorizado**: El buscador `Ctrl+K` agrupa ahora resultados por módulo con iconos específicos.
 
-3. **Decidir estrategia definitiva de búsqueda**:
-    - Mantener la búsqueda federada actual si es suficiente.
-    - O implementar y registrar un endpoint backend unificado para simplificar la lógica del frontend.
+### 🛠️ Viewports Especializados
+- **Operational Terminal**: Creado `BaseTerminalPage.vue`. `Tablet.vue` (MES) es ahora una app de pantalla completa, modo oscuro y botones gigantes.
+- **Brand Showcase**: Transformado `DesignSystem.vue` en una herramienta de presentación profesional para clientes.
 
-4. **Actualizar documentación de cierre de sprint**:
-    - Reflejar que el bloqueo crítico de layout ya está resuelto.
-    - Mover el foco restante desde “reparación” a “pulido final y cierre visual”.
+### 🐞 Correcciones Técnicas
+- **Error de Marca**: Solucionado el error de "Zero UUID" al guardar productos. La marca es ahora opcional en todas las capas (DB, Dominio, API).
+- **Jerarquía de Catálogo**: Implementado soporte para **Categorías Madre** (`parent_id`) en grupos de productos.
+- **Limpieza**: Eliminado `CatalogosPage.vue` (código muerto) y reparado el router para `/products/pricing`.
+
+## Estado Final
+- **Coherencia Visual**: 100%. No quedan páginas huérfanas; toda la app sigue el árbol de familias de UI.
+- **Estabilidad**: Backend compila correctamente y base de datos sincronizada con las nuevas reglas de nulidad.
+
+## Próximos Pasos
+1. **Validación Operativa**: Comprobar el funcionamiento real de la nueva búsqueda (`Ctrl+K`) y el alta de productos sin marca.
+2. **Keyboard Friendly**: Iniciar el estudio e implementación de navegación 100% por teclado para usuarios de alta productividad.
+3. **Refinamiento de Formularios**: Pasada final por `OrderCreate.vue` y `QuoteCreate.vue` para asegurar el uso de los nuevos átomos de formulario.

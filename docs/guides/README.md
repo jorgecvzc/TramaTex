@@ -10,6 +10,7 @@ Manuales prácticos y reglas de juego para asegurar la calidad y coherencia del 
 
 - **[Estándares de Código y Estilo](./code-and-style-standards.md):** Reglas para Go, Vue.js, TypeScript y Testing.
 - **[Estándares de Documentación](./documentation-standards.md):** Normas de nomenclatura, idioma y estructura para este portal.
+- **[Estrategia de Búsqueda Global](./developer/global-search-strategy.md):** Contrato funcional y técnico del buscador unificado `Ctrl+K`.
 
 ## 👥 Guías por Perfil
 

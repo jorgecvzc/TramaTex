@@ -7,7 +7,9 @@ Este documento describe la lógica de estructuración del catálogo de TramaTex,
 ## 1. Agregados y Entidades de Dominio
 
 ### El Producto como Plantilla (`Product`)
-El `Product` actúa como el concepto base o "molde". Define la naturaleza del artículo (Tangible o Servicio), su marca, su categorización y, lo más importante, su **coste base de referencia** y su **tasa impositiva**. Un producto por sí solo no es vendible si requiere configuración; es la base para generar variantes.
+El `Product` actúa como el concepto base o "molde". Define la naturaleza del artículo (Tangible o Servicio), su categorización y, opcionalmente, su marca. También concentra su **coste base de referencia** y su **tasa impositiva**. Un producto por sí solo no es vendible si requiere configuración; es la base para generar variantes.
+
+- **Marca Opcional:** `BrandID` puede ser nulo. Esto permite crear productos genéricos o todavía no asociados a fabricante, manteniendo operativas la creación, la venta y la búsqueda del producto.
 
 ### Atributos y Valores (`Attribute` / `AttributeValue`)
 Representan las dimensiones de personalización (ej. Talla, Color, Material). 

@@ -1,7 +1,7 @@
 # Módulo de Product (Catálogo de Productos)
 
 **Estado:** ✅ **COMPLETO (100%)**  
-**Última actualización:** 1 de marzo de 2026
+**Última actualización:** 30 de marzo de 2026
 
 ## Estado de Implementación
 
@@ -45,7 +45,7 @@
 ### 2.1. Requisitos Funcionales
 
 *   **RF-P-001:** Crear y mantener atributos y sus valores.
-*   **RF-P-002:** Crear y mantener productos (tangibles o servicios) con sus atributos base, marca y grupos.
+*   **RF-P-002:** Crear y mantener productos (tangibles o servicios) con sus atributos base, marca opcional y grupos.
 *   **RF-P-003:** Gestionar la asignación y herencia de atributos a productos.
 *   **RF-P-004:** Generar SKUs deterministas para `ProductVariant`s basados en su configuración de atributos.
 *   **RF-P-005:** Crear `ProductVariant`s de forma explícita o "Just-in-Time".
@@ -66,7 +66,7 @@ Para una descripción detallada del modelo de dominio, incluyendo entidades, Val
 *   **Modelo de Atributos/Valores Explícito:** Se utiliza un modelo flexible de `Attribute` y `AttributeValue` para gestionar las características configurables de los productos.
 *   **Modificadores de Precio en Atributos:** Los `AttributeValue` pueden incluir modificadores de precio (FIXED o PERCENTAGE) que ajustan dinámicamente el precio base de las variantes. Los modificadores pueden ser positivos (incrementan precio) o negativos (reducen precio).
 *   **Cálculo Dinámico de Precio Base de Variante:** El `baseCost` de una variante se calcula algorítmicamente: `baseCost = producto.basePrice + sum(modificadores de atributos)`. Este valor NO se almacena, se calcula en tiempo real para mantener coherencia con los cambios en los modificadores.
-*   **Herencia de Atributos con Anulación:** Los atributos se heredan de marcas y grupos, permitiendo la anulación en niveles más específicos (directo, grupo+marca, grupo, marca, genérico).
+*   **Herencia de Atributos con Anulación:** Los atributos se heredan de marcas y grupos, permitiendo la anulación en niveles más específicos (directo, grupo+marca, grupo, marca, genérico). Si el producto no tiene marca, solo participan los niveles directos, de grupo y genéricos.
 *   **Creación JIT de `ProductVariant`s:** Las variantes se crean en la base de datos bajo demanda para evitar la pre-generación masiva, comenzando con un estado `PROVISIONAL`.
 *   **Composición de SKU Determinista:** Los SKUs de las variantes se construyen algorítmicamente a partir de los códigos de atributos y valores.
 *   **`ProductType` (`TANGIBLE` vs `SERVICE`):** Permite diferenciar entre bienes físicos y servicios, con un manejo especial para `PartyServiceConfiguration`s en el caso de servicios (ver `ADR-013`).

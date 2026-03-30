@@ -37,3 +37,4 @@ Documentación técnica profunda sobre el framework, patrones de diseño y flujo
 - **[Bootstrapping del Proyecto](./project-bootstrapping-guide.md):** Puesta en marcha del proyecto desde cero.
 - **[Estructura del Proyecto](./project-structure-details.md):** Detalles de la estructura de archivos y carpetas.
 - **[Backend Developer Guide](./backend/README.md):** Guía específica para el desarrollo del backend.
+- **[Estrategia de Búsqueda Global](./global-search-strategy.md):** Endpoint, alcance funcional y criterios UX del buscador unificado.

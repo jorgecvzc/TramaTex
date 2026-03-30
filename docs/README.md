@@ -31,7 +31,7 @@ Guías de comportamiento y reglas de negocio por cada área del sistema.
 
 ### 📚 [Guías Operativas](./guides/README.md)
 Estándares de ingeniería, procesos de despliegue y manuales de usuario.
-- **[Inicio Rápido](./guides/quick-start.md)** | **[Estándares de Ingeniería](./guides/code-and-style-standards.md)**
+- **[Inicio Rápido](./guides/quick-start.md)** | **[Estándares de Ingeniería](./guides/code-and-style-standards.md)** | **[Estrategia de Búsqueda Global](./guides/developer/global-search-strategy.md)**
 
 ### 🚀 [Hoja de Ruta Post-MVP](./post-mvp/post-mvp-roadmap.md)
 Mejoras, funcionalidades y módulos planificados tras el MVP.

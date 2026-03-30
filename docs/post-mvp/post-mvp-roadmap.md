@@ -158,7 +158,7 @@ Extraer el módulo MES del monolito modular a un microservicio independiente:
 **Referencia:** Presentaciones, [erp-core-completion.md](../log/erp-core-completion.md#L450)
 
 - [ ] Búsqueda full-text con Elasticsearch o similar.
-- [ ] Búsqueda global unificada (productos, clientes, pedidos, facturas).
+- [x] Búsqueda global unificada (productos, clientes, pedidos, facturas) mediante `Ctrl+K` + endpoint backend autenticado `/api/search`.
 - [ ] Autocompletado y sugerencias.
 
 ---
