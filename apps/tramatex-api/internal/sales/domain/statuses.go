@@ -14,6 +14,7 @@ const (
 	QuoteStatusDraft     QuoteStatus = "BORRADOR"
 	QuoteStatusIssued    QuoteStatus = "EMITIDA"
 	QuoteStatusApproved  QuoteStatus = "APROBADA"
+	QuoteStatusAccepted  QuoteStatus = "ACEPTADA" // Alias for backward compatibility or UI consistency
 	QuoteStatusRejected  QuoteStatus = "RECHAZADA"
 	QuoteStatusExpired   QuoteStatus = "EXPIRADA"
 	QuoteStatusConverted QuoteStatus = "CONVERTIDA_A_PEDIDO"
@@ -39,7 +40,7 @@ const (
 
 func (s QuoteStatus) IsValid() error {
 	switch s {
-	case QuoteStatusDraft, QuoteStatusIssued, QuoteStatusApproved, QuoteStatusRejected, QuoteStatusExpired, QuoteStatusConverted:
+	case QuoteStatusDraft, QuoteStatusIssued, QuoteStatusApproved, QuoteStatusAccepted, QuoteStatusRejected, QuoteStatusExpired, QuoteStatusConverted:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid quote status: %s", s))
@@ -79,8 +80,8 @@ func canTransitionQuote(from QuoteStatus, to QuoteStatus) bool {
 	case QuoteStatusDraft:
 		return to == QuoteStatusIssued
 	case QuoteStatusIssued:
-		return to == QuoteStatusApproved || to == QuoteStatusRejected || to == QuoteStatusExpired || to == QuoteStatusDraft
-	case QuoteStatusApproved:
+		return to == QuoteStatusApproved || to == QuoteStatusAccepted || to == QuoteStatusRejected || to == QuoteStatusExpired || to == QuoteStatusDraft
+	case QuoteStatusApproved, QuoteStatusAccepted:
 		return to == QuoteStatusConverted
 	case QuoteStatusRejected:
 		return to == QuoteStatusDraft

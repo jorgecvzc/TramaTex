@@ -32,18 +32,18 @@
 **Referencia:** Auditoría UI/UX completada en sesión `ui-ux-improvement-post-mvp-21-03-2026`  
 **Contexto:**
 
-Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
+Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Material Symbols, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
 
 **Hallazgos clave:**
 - Patrones de navegación mixtos: Sales usa `clickable-row`, Party/Product usan botones explícitos, MES usa enlaces "Ver".
 - No existe una definición `.btn` global — cada módulo redefine estilos en `<style scoped>`.
 - Radios de borde varían entre 2px, 4px y 8px. El amarillo primario varía entre `#E6B800` y `#f4c430`.
-- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Lucide.
+- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Material Symbols.
 
 **Tareas:**
 
 - [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
-- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
+- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Material Symbols Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
 - [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
 - [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
 - [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
@@ -52,6 +52,7 @@ Auditoría completa de UI/UX detectó inconsistencias significativas entre módu
 - [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
 - [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
 - [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
+- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
 
 ---
 
@@ -130,7 +131,7 @@ Extraer el módulo MES del monolito modular a un microservicio independiente:
 
 ## 6. Inteligencia de Negocio y Analítica
 
-**Prioridad:** Media  
+**Prioridad:** Baja  
 **Referencia:** Presentaciones ([slides_spec.md](../presentations/slides_spec.md#L111))
 
 - [ ] Cuadros de mando avanzados (dashboards).
@@ -157,7 +158,7 @@ Extraer el módulo MES del monolito modular a un microservicio independiente:
 **Referencia:** Presentaciones, [erp-core-completion.md](../log/erp-core-completion.md#L450)
 
 - [ ] Búsqueda full-text con Elasticsearch o similar.
-- [ ] Búsqueda global unificada (productos, clientes, pedidos, facturas).
+- [x] Búsqueda global unificada (productos, clientes, pedidos, facturas) mediante `Ctrl+K` + endpoint backend autenticado `/api/search`.
 - [ ] Autocompletado y sugerencias.
 
 ---
@@ -203,23 +204,20 @@ Objetivos Post-MVP de cobertura:
 
 ## 12. Generación de Documentos PDF
 
-**Prioridad:** Alta  
+**Prioridad:** Baja
 **Referencia:** [erp-core-completion.md](../log/erp-core-completion.md#L448)
 
-- [ ] Generación de PDFs para albaranes.
-- [ ] Generación de PDFs para facturas.
-- [ ] Generación de PDFs para presupuestos/pedidos.
 - [ ] Plantillas personalizables por empresa.
 
 ## 13. Mejoras UX Avanzadas
 
-**Prioridad:** Media  
+**Prioridad:** Baja  
 **Contexto:** Mejoras de experiencia de usuario de segunda fase, que dependen de la unificación estética (sección 1).
 
-- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
 - [ ] **Mejora interfaz TPV:** Mayor agilidad para ventas rápidas (tickets/facturas simplificadas).
 - [ ] **Diseño responsive:** Adaptación completa a tablets de taller.
 - [ ] **Modo oscuro** para terminales de producción.
+- [ ] **Aplicación dirigida por teclado avanzada:** Atajos, navegación sin ratón, flujo rápido para operadores.
 
 ---
 

@@ -9,11 +9,11 @@
       </div>
       <div class="header-actions">
         <button @click="openAddVariantModal" class="btn btn-primary" :disabled="isLoading">
-          <Plus :size="16" />
+          <span class="material-symbols-outlined" style="font-size: 16px">add</span>
           Añadir Variante
         </button>
         <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-          <RefreshCw :size="16" />
+          <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
           Actualizar
         </button>
       </div>
@@ -27,14 +27,14 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && variants.length === 0" class="empty-state">
-      <Package :size="64" class="empty-icon" />
+      <span class="material-symbols-outlined empty-icon" style="font-size: 64px">inventory_2</span>
       <p>No hay variantes creadas para este producto.</p>
       <p class="empty-hint">
         Las variantes se crean automáticamente (Just-in-Time) cuando se añaden a una orden,
         o puedes generarlas manualmente según las combinaciones de atributos disponibles.
       </p>
       <button class="btn btn-primary" @click="openBatchCreator">
-        <Zap :size="16" />
+        <span class="material-symbols-outlined" style="font-size: 16px">bolt</span>
         Generar variantes
       </button>
     </div>
@@ -94,13 +94,23 @@
               <span v-else class="text-muted">—</span>
             </td>
             <td class="align-center">
-              <button
-                @click="openEditVariantModal(variant)"
-                class="btn-icon"
-                title="Editar variante"
-              >
-                <Edit2 :size="16" />
-              </button>
+              <div class="action-buttons-cell">
+                <button
+                  @click="openEditVariantModal(variant)"
+                  class="btn-icon"
+                  title="Editar variante"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 18px">edit</span>
+                </button>
+                <button 
+                  @click="toggleVariantStatus(variant)" 
+                  class="btn-icon" 
+                  :title="variant.is_active ? 'Desactivar' : 'Activar'"
+                  :class="{ 'text-warning': variant.is_active }"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 18px">{{ variant.is_active ? 'block' : 'check_circle' }}</span>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -137,7 +147,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import { Plus, RefreshCw, Package, Zap, Edit2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
@@ -218,6 +227,22 @@ function openBatchCreator() {
 
 function closeBatchCreator() {
   showBatchCreator.value = false
+}
+
+async function toggleVariantStatus(variant) {
+  const action = variant.is_active ? 'desactivar' : 'activar'
+  const confirmed = window.confirm(`¿Estás seguro de que deseas ${action} la variante ${variant.sku}?`)
+  
+  if (!confirmed) return
+
+  try {
+    await productApi.updateVariant(variant.id, {
+      is_active: !variant.is_active
+    })
+    emit('refresh')
+  } catch (err) {
+    alert(`Error al ${action} la variante: ` + err.message)
+  }
 }
 
 function handleBatchCreated(result) {
@@ -676,4 +701,11 @@ td.align-center {
   color: #16a34a;
   font-weight: 700;
 }
+
+.action-buttons-cell {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
 </style>
+style>

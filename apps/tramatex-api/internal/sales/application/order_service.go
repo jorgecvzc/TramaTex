@@ -801,7 +801,7 @@ func canEditOrderDetails(status domain.SalesOrderStatus) bool {
 
 
 func canEditOrderLineItems(status domain.SalesOrderStatus) bool {
-	return status == domain.SalesOrderStatusPending
+	return status == domain.SalesOrderStatusPending || status == domain.SalesOrderStatusInPreparation
 }
 
 

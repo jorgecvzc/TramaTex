@@ -1,543 +1,153 @@
 <template>
-  <Navbar />
-  <div class="delivery-notes-list-container">
-    <!-- Header -->
-    <div class="page-header">
-      <h1>Albaranes</h1>
-    </div>
+  <div class="page-layout">
+    <BaseCatalog
+      title="Gestión de Albaranes"
+      icon="local_shipping"
+      :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes' }]"
+      :items="deliveryNotes"
+      :is-loading="isLoading"
+      :has-filters="hasFilters"
+      empty-icon="local_shipping"
+      empty-text="No se han encontrado albaranes"
+      @clear-filters="clearFilters"
+      @refresh="fetchNotes"
+      @click-item="(item) => navigateToDetail(item.id)"
+    >
+      <template #header-actions>
+        <button class="btn btn-outline" @click="router.push('/sales/orders')">
+          <span class="material-symbols-outlined">list_alt</span>
+          <span>Catálogo de Pedidos</span>
+        </button>
+      </template>
 
-    <!-- Filters -->
-    <div class="filters-card">
-      <div class="filters-grid">
+      <template #filters>
         <div class="filter-group">
           <label>Búsqueda</label>
-          <input
-            v-model="filters.searchText"
-            type="text"
-            placeholder="Buscar por referencia o nombre"
-            class="filter-input"
-          />
-        </div>
-
-        <div class="filter-group">
-          <label>Estado</label>
-          <select v-model="filters.status" class="filter-input">
-            <option value="">Todos</option>
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="ENTREGADO">Entregado</option>
-            <option value="CANCELADO">Cancelado</option>
-          </select>
+          <input v-model="filters.searchText" type="text" placeholder="Ref. albarán..." />
         </div>
 
         <div class="filter-group">
           <label>Desde</label>
-          <input
-            v-model="filters.fromDate"
-            type="date"
-            class="filter-input"
-          />
+          <input v-model="filters.fromDate" type="date" />
         </div>
 
         <div class="filter-group">
           <label>Hasta</label>
-          <input
-            v-model="filters.toDate"
-            type="date"
-            class="filter-input"
-          />
+          <input v-model="filters.toDate" type="date" />
         </div>
-      </div>
+      </template>
 
-      <div class="filters-actions">
-        <div class="limit-group">
-          <label>Mostrar</label>
-          <select v-model.number="filters.limit" class="filter-select limit-select" @change="applyFilters">
-            <option :value="25">25</option>
-            <option :value="50">50</option>
-            <option :value="100">100</option>
-            <option :value="0">Todos</option>
-          </select>
-          <span class="limit-label">registros</span>
-        </div>
-        <button class="btn btn-secondary" @click="clearFilters" v-if="hasFilters">
-          Limpiar Filtros
-        </button>
-        <button class="btn btn-primary" @click="applyFilters" :disabled="!isDateRangeValid" :title="!isDateRangeValid ? 'La fecha Desde no puede ser posterior a la fecha Hasta' : ''">
-          Buscar
-        </button>
-      </div>
-    </div>
+      <template #table-header>
+        <th>Número</th>
+        <th>Fecha Entrega</th>
+        <th>Pedido Relacionado</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th class="align-right">Acciones</th>
+      </template>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Cargando albaranes...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="error-state">
-      <p class="error-message">{{ error }}</p>
-      <button class="btn btn-secondary" @click="fetchDeliveryNotes">Reintentar</button>
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="filteredDeliveryNotes.length === 0" class="empty-state">
-      <p>No se encontraron albaranes</p>
-      <p class="hint">Los albaranes se crean desde los pedidos</p>
-    </div>
-
-    <!-- Delivery Notes Table -->
-    <div v-else class="table-container">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Número</th>
-            <th>Cliente</th>
-            <th>Pedido</th>
-            <th>Fecha Entrega</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="note in filteredDeliveryNotes" :key="note.id" @click="navigateToDetail(note.id)" class="clickable-row">
-            <td class="note-number">{{ note.deliveryNoteNumber }}</td>
-            <td>{{ partiesCache[note.partyId] || '—' }}</td>
-            <td>{{ ordersCache[note.salesOrderId] || formatOrderId(note.salesOrderId) }}</td>
-            <td>{{ formatDate(note.deliveryDate) }}</td>
-            <td><span :class="['status-badge', 'status-' + salesApi.getStatusClass(note.status)]">{{ salesApi.getStatusLabel(note.status) }}</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <template #item="{ item }">
+        <td><span class="order-ref">{{ item.deliveryNoteNumber }}</span></td>
+        <td>{{ formatDate(item.deliveryDate) }}</td>
+        <td>
+          <router-link v-if="item.salesOrderId" :to="`/sales/orders/${item.salesOrderId}`" class="link-sm" @click.stop>
+            #{{ formatOrderNumber(item.salesOrderId) }}
+          </router-link>
+          <span v-else class="text-muted">—</span>
+        </td>
+        <td>{{ formatPartyName(item.partyId) }}</td>
+        <td>
+          <span :class="['status-badge', `status-${salesApi.getStatusClass(item.status)}`]">
+            {{ salesApi.getStatusLabel(item.status) }}
+          </span>
+        </td>
+        <td class="align-right" @click.stop>
+          <div class="action-buttons">
+            <button class="btn-icon" @click="navigateToDetail(item.id)" title="Ver detalle">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </td>
+      </template>
+    </BaseCatalog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
+
+import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
-import { partyApi } from '@/services/partyApi';
 
 const router = useRouter();
-
 const deliveryNotes = ref([]);
 const isLoading = ref(false);
-const error = ref('');
+const filters = ref({ searchText: '', fromDate: '', toDate: '' });
 const partiesCache = ref({});
 const ordersCache = ref({});
 
-const filters = ref({
-  searchText: '',
-  status: '',
-  fromDate: '',
-  toDate: '',
-  limit: 50,
-});
-
-const hasFilters = computed(() => {
-  return filters.value.searchText.trim() !== '' || 
-         filters.value.status !== '' ||
-         filters.value.fromDate !== '' || 
-         filters.value.toDate !== '';
-});
-
-const isDateRangeValid = computed(() => {
-  const { fromDate, toDate } = filters.value;
-  if (fromDate && toDate) return fromDate <= toDate;
-  return true;
-});
-
-const filteredDeliveryNotes = computed(() => {
-  return deliveryNotes.value;
-});
+const hasFilters = computed(() => filters.value.searchText || filters.value.fromDate || filters.value.toDate);
 
 let searchDebounceTimer = null;
-let autoFetchEnabled = false;
-
-function scheduleDeliveryNotesFetch() {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
-
-  searchDebounceTimer = setTimeout(() => {
-    fetchDeliveryNotes();
-  }, 300);
-}
-
-watch(
-  () => filters.value.searchText,
-  (newSearch, oldSearch) => {
-    const normalizedNew = (newSearch || '').trim();
-    const normalizedOld = (oldSearch || '').trim();
-    if (normalizedNew === normalizedOld) return;
-
-    if (!autoFetchEnabled) return;
-
-    scheduleDeliveryNotesFetch();
-  },
-);
-
-watch(
-  () => filters.value.status,
-  (newStatus, oldStatus) => {
-    if (!autoFetchEnabled) return;
-    if (newStatus === oldStatus) return;
-    scheduleDeliveryNotesFetch();
-  },
-);
-
-watch(
-  () => [filters.value.fromDate, filters.value.toDate],
-  (newValues, oldValues) => {
-    if (!autoFetchEnabled || !oldValues) return;
-
-    const [newFromDate, newToDate] = newValues;
-    const [oldFromDate, oldToDate] = oldValues;
-    if (newFromDate === oldFromDate && newToDate === oldToDate) return;
-
-    scheduleDeliveryNotesFetch();
-  },
-);
-
-onBeforeUnmount(() => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
+watch(() => [filters.value.searchText, filters.value.fromDate, filters.value.toDate], () => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => fetchNotes(), 350);
 });
 
-onMounted(() => {
-  autoFetchEnabled = true;
-  
-  fetchDeliveryNotes();
-});
+onMounted(() => fetchNotes());
 
-async function fetchDeliveryNotes() {
+async function fetchNotes() {
   isLoading.value = true;
-  error.value = '';
-
   try {
-    const apiFilters = {};
+    const res = await salesApi.listDeliveryNotes(filters.value);
+    deliveryNotes.value = res.data || (Array.isArray(res) ? res : []);
     
-    if (filters.value.searchText) apiFilters.searchText = filters.value.searchText;
-    if (filters.value.status) apiFilters.status = filters.value.status;
-    if (filters.value.fromDate) apiFilters.fromDate = filters.value.fromDate;
-    if (filters.value.toDate) apiFilters.toDate = filters.value.toDate;
-    if (filters.value.limit) apiFilters.limit = filters.value.limit;
-
-    const response = await salesApi.listDeliveryNotes(apiFilters);
-    deliveryNotes.value = Array.isArray(response) ? response : (response.data || []);
-    await Promise.all([loadPartyNames(), loadOrderNumbers()]);
+    if (deliveryNotes.value.length > 0) {
+      await Promise.all([loadPartyNames(), loadOrderNumbers()]);
+    }
   } catch (err) {
-    error.value = err?.message || 'No se pudieron cargar los albaranes';
-    console.error('Error loading delivery notes:', err);
+    console.error('Error fetching delivery notes:', err);
   } finally {
     isLoading.value = false;
   }
 }
 
-function applyFilters() {
-  if (!isDateRangeValid.value) return;
-  fetchDeliveryNotes();
-}
-
-function clearFilters() {
-  filters.value.searchText = '';
-  filters.value.status = '';
-  filters.value.fromDate = '';
-  filters.value.toDate = '';
-  filters.value.limit = 50;
-  fetchDeliveryNotes();
-}
-
 async function loadPartyNames() {
-  const partyIds = [...new Set(deliveryNotes.value.map((note) => note.partyId).filter(Boolean))];
-  const uncachedIds = partyIds.filter((id) => !partiesCache.value[id]);
-
-  if (uncachedIds.length === 0) {
-    return;
-  }
-
+  const ids = [...new Set(deliveryNotes.value.map(n => n.partyId).filter(id => id && !partiesCache.value[id]))];
+  if (ids.length === 0) return;
   try {
-    const partiesMap = await partyApi.getPartiesBatch(uncachedIds);
-    for (const partyId of uncachedIds) {
-      partiesCache.value[partyId] = partiesMap[partyId]?.name || 'Sin nombre';
-    }
-  } catch (loadError) {
-    console.error('Error loading delivery note party names:', loadError);
-  }
+    const map = await partyApi.getPartiesBatch(ids);
+    ids.forEach(id => partiesCache.value[id] = map[id]?.name || 'Desconocido');
+  } catch (err) {}
 }
 
 async function loadOrderNumbers() {
-  const orderIds = [...new Set(deliveryNotes.value.map((note) => note.salesOrderId).filter(Boolean))];
-  const uncachedIds = orderIds.filter((id) => !ordersCache.value[id]);
-
-  if (uncachedIds.length === 0) {
-    return;
-  }
-
-  const results = await Promise.allSettled(uncachedIds.map((id) => salesApi.getOrder(id)));
-  results.forEach((result, index) => {
-    const orderId = uncachedIds[index];
-    if (result.status === 'fulfilled') {
-      ordersCache.value[orderId] = result.value.orderNumber || formatOrderId(orderId);
-    }
-  });
+  const ids = [...new Set(deliveryNotes.value.map(n => n.salesOrderId).filter(id => id && !ordersCache.value[id]))];
+  if (ids.length === 0) return;
+  try {
+    const results = await Promise.allSettled(ids.map(id => salesApi.getOrder(id)));
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled') ordersCache.value[ids[i]] = r.value.orderNumber;
+    });
+  } catch (err) {}
 }
 
-function navigateToDetail(noteId) {
-  router.push(`/sales/delivery-notes/${noteId}`);
-}
+function formatPartyName(id) { return partiesCache.value[id] || 'Cargando...'; }
+function formatOrderNumber(id) { return ordersCache.value[id] || id?.substring(0, 8) || '...'; }
 
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
-
-function formatOrderId(orderId) {
-  if (!orderId) return '—';
-  return orderId.substring(0, 8) + '...';
-}
+function clearFilters() { filters.value = { searchText: '', fromDate: '', toDate: '' }; fetchNotes(); }
+function navigateToDetail(id) { router.push(`/sales/delivery-notes/${id}`); }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'; }
 </script>
 
 <style scoped>
-.delivery-notes-list-container {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
+.order-ref { font-family: var(--font-family-mono); font-weight: 700; color: var(--color-secondary); }
+.align-right { text-align: right; }
+.link-sm { font-size: 0.85rem; color: var(--color-secondary); text-decoration: none; font-weight: 600; background: var(--color-background); padding: 0.2rem 0.5rem; border-radius: 4px; border: 1px solid var(--color-border); }
+.link-sm:hover { background: white; border-color: var(--color-secondary); }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.filters-card {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-
-.filters-grid {
-  display: contents;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.filter-group label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 0.25rem;
-}
-
-.filter-input,
-.filter-select {
-  padding: 0.4rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.85rem;
-}
-
-.filters-actions {
-  display: contents;
-}
-
-.limit-group {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.limit-group label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.limit-select {
-  width: 70px;
-}
-
-.limit-label {
-  font-size: 0.8rem;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  background: white;
-  border-radius: 8px;
-}
-
-.hint {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin-top: 0.5rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f4f6;
-  border-top-color: #E6B800;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.table-container {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead {
-  background: #f9fafb;
-}
-
-.data-table th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.data-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.clickable-row:hover {
-  background: #f9fafb;
-}
-
-.note-number {
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
-  color: #1e40af;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-
-.btn-icon:hover {
-  background: #f3f4f6;
-}
-
-.btn {
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #E6B800;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #d4a700;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.status-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.status-success {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.status-danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.status-primary {
-  background: #dbeafe;
-  color: #1e40af;
-}
+.action-buttons { display: flex; justify-content: flex-end; }
+.btn-icon { color: var(--color-text-secondary); transition: 0.2s; padding: 0.4rem; border-radius: 6px; border: none; background: transparent; cursor: pointer; }
+.btn-icon:hover { color: var(--color-text-primary); background: rgba(0,0,0,0.05); }
 </style>

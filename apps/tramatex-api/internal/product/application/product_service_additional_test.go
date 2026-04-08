@@ -66,7 +66,7 @@ func TestProductService_CreateProduct_ActorIDHandling(t *testing.T) {
 			SKU:         "P-1",
 			Name:        "Product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 		}
 
 		result, err := service.CreateProduct(ctx, cmd)
@@ -82,7 +82,7 @@ func TestProductService_CreateProduct_ActorIDHandling(t *testing.T) {
 			SKU:         "P-2",
 			Name:        "Product 2",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 		}
 
 		ctxMatcher := mock.MatchedBy(func(c context.Context) bool {
@@ -201,7 +201,7 @@ func TestProductService_GetProductAndVariants(t *testing.T) {
 	service := application.NewProductService(mockProductRepo, mockBrandRepo, mockGroupRepo, mockAttributeRepo, mockVariantRepo, mockPartyServiceConfigRepo)
 	ctx := context.WithValue(context.Background(), "actorID", "test-actor")
 
-	product := &domain.Product{ID: uuid.New(), SKU: "P-1", Name: "Product", BrandID: uuid.New(), IsActive: true}
+	product := &domain.Product{ID: uuid.New(), SKU: "P-1", Name: "Product", BrandID: uuidPtr(uuid.New()), IsActive: true}
 	attr, _ := domain.NewAttribute("Color", "C")
 	val, _ := attr.AddValue("Red", "R")
 	variant := &domain.ProductVariant{ID: uuid.New(), ProductID: product.ID, SKU: "P-1-C.R", AttributeValues: []uuid.UUID{val.ID}, Status: domain.StatusConfirmed, IsActive: true}
@@ -390,7 +390,7 @@ func TestProductService_UpdateProduct_Success(t *testing.T) {
 			LongName:    "Old Long Name",
 			Description: "Old Description",
 			ProductType: "SIMPLE",
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 		}
 
 		newName := "Updated Name"
@@ -453,7 +453,7 @@ func TestProductService_GetProductByID_Success(t *testing.T) {
 			LongName:    "Test Product Long Name",
 			Description: "Test Description",
 			ProductType: "SIMPLE",
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 		}
 
 		mockProductRepo.On("FindByID", ctx, productID).Return(expectedProduct, nil).Once()

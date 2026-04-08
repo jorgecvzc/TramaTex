@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="modal-header">
         <h3>Vista Previa de Combinaciones</h3>
-        <button @click="$emit('close')" class="btn-close">✕</button>
+        <button @click="$emit('close')" class="btn-close"><span class="material-symbols-outlined" style="font-size: 16px">close</span></button>
       </div>
 
       <!-- Body -->
@@ -27,7 +27,7 @@
 
         <!-- Error State -->
         <div v-if="error" class="error-message">
-          ⚠️ {{ error }}
+          <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle">warning</span> {{ error }}
         </div>
 
         <!-- Combinations Table -->
@@ -379,7 +379,7 @@ async function handleCreate() {
 }
 
 .modal-content.large {
-  max-width: 1400px;
+  max-width: 1300px;
 }
 
 .modal-header {

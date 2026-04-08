@@ -137,24 +137,32 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 
 ### Criterios Aceptados (Extracto)
 - **Uso del Framework:** Exclusivamente Composition API. Stores de Pinia para estado global. Composables para lógica reutilizable. Capa de servicios para llamadas API.
-- **Diseño de Componentes:** Pequeños y enfocados (máx. 100 líneas). Contratos claros de props y emits. Separación de responsabilidades.
-- **Estilo:** Exclusivamente Tailwind CSS. Clases CSS siguiendo convenciones de Tailwind. Diseño responsivo con breakpoints de Tailwind.
+- **Diseño de Componentes:** Pequeños y enfocados (máx. 100-150 líneas). Contratos claros de props y emits. Separación de responsabilidades.
+- **Sistema de Diseño (CSS):**
+  - **Uso de Vanilla CSS:** El proyecto NO usa Tailwind CSS. Se utiliza CSS nativo con variables globales (`_variables.css`).
+  - **Arquitectura Modular:** Los estilos se dividen en archivos de sistema (`_base.css`, `_buttons.css`, `_forms.css`, `_sections.css`).
+  - **Identidad Visual:** Uso obligatorio de la tipografía corporativa y la paleta de colores definida en las variables CSS.
+- **Estándares de Formularios (Crítico):**
+  - **Inputs:** Deben usar siempre la clase `.form-input` (definida en `_forms.css`).
+  - **Selects:** Deben usar `.form-input` o componentes especializados como `PartySelector.vue`.
+  - **Textareas:** Deben usar la clase `.form-textarea`.
+  - **Estados:** Se deben implementar estilos consistentes para `:focus` (borde azul oscuro/oro y sombra suave), `:disabled` y estados de error.
+  - **Estructura:** Uso de `FormSection` para agrupar campos y `DataRow` para visualización mixta (lectura/edición).
+- **Iconografía:** Exclusivamente `Material Symbols Outlined`. Los emojis están **PROHIBIDOS** en la interfaz final.
 - **Manejo de Formularios:** Validación en composables o stores. Lógica de validación reutilizable. Mensajes de error claros al usuario.
 - **Gestión de Estado:** Estado global en stores de Pinia. Acciones de store para mutaciones. Propiedades computadas para estado derivado.
-- **Testing:** Tests para lógica de negocio crítica en stores y composables. Vitest configurado. ≥80% de cobertura para composables críticos.
-- **Calidad de Código:** TypeScript en modo estricto. ESLint sin warnings. Formato de Prettier aplicado.
+- **Testing:** Tests para lógica de negocio crítica en stores y composables. Vitest configurado. ≥80% de cobertura para componentes y composables críticos.
+- **Calidad de Código:** TypeScript en modo estricto. ESLint sin warnings.
 
 ### Criterios Rechazados (Extracto)
-- Options API.
-- Vuex para gestión de estado.
-- Estado global en datos de componentes.
-- Estilos inline o CSS puro.
-- Llamadas directas a API en componentes.
-- Validación de datos a nivel de plantilla.
-- Componentes de más de 100 líneas.
+- **Tailwind CSS:** El uso de Tailwind está estrictamente **prohibido** para mantener la pureza del sistema de diseño propio.
+- Options API o Vuex.
+- Estilos inline (salvo casos dinámicos excepcionales).
+- Llamadas directas a API en componentes (usar servicios).
+- Validación de datos a nivel de plantilla exclusivamente.
+- Componentes gigantes sin sub-componentes.
 - Tipos de TypeScript faltantes (`any`).
-- Problemas de linting o formato.
-- Lógica de negocio crítica sin tests.
+- Uso de emojis como iconos.
 
 ---
 

@@ -68,7 +68,7 @@ sequenceDiagram
         ACL_Party-->>Engine: Category + DefaultDiscount
     end
 
-    Engine->>Engine: Aplicar Margen de Marca
+    Engine->>Engine: Aplicar Margen de Marca (si existe BrandID)
     Engine->>Engine: Aplicar Reglas de Escalado (Qty)
     Engine->>Engine: Aplicar Overrides de Cliente
     Engine->>Engine: Calcular IVA final

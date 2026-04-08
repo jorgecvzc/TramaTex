@@ -2,7 +2,7 @@
 
 - **Version:** 1.2.0
 - **Status:** ✅ **Implementado (100% MVP)**
-- **Última actualización:** 7 de marzo de 2026
+- **Última actualización:** 30 de marzo de 2026
 
 Este documento define la API consolidada para el módulo de `product`, reflejando la implementación actual en el sistema TramaTex.
 
@@ -35,13 +35,13 @@ Este documento define la API consolidada para el módulo de `product`, reflejand
 ## 2. Gestión de Productos (`/api/products`)
 
 ### 2.1. DTOs
-- **`ProductDTO`**: `id`, `sku`, `name`, `longName`, `barcode`, `description`, `productType` (TANGIBLE|SERVICE), `brandId`, `groupIds` ([]uuid), `directAttributeIds` ([]uuid), `basePrice`, `taxRate`, `isActive`.
+- **`ProductDTO`**: `id`, `sku`, `name`, `longName`, `barcode`, `description`, `productType` (TANGIBLE|SERVICE), `brandId` (uuid, nullable), `groupIds` ([]uuid), `directAttributeIds` ([]uuid), `basePrice`, `taxRate`, `isActive`.
 
 ### 2.2. Endpoints
-- `GET /api/products`: Listado con filtros (`search`, `brand_id`, `is_active`).
-- `POST /api/products`: Creación de producto base.
+- `GET /api/products`: Listado con filtros (`search`, `brand_id`, `is_active`). El filtro `brand_id` es opcional; si no se envía, el listado incluye productos con marca y sin marca.
+- `POST /api/products`: Creación de producto base. `brandId` es opcional/nullable.
 - `GET /api/products/:id`: Detalle del producto.
-- `PUT /api/products/:id`: Actualización de campos y asignaciones.
+- `PUT /api/products/:id`: Actualización de campos y asignaciones. Permite establecer `brandId = null`.
 
 ---
 

@@ -112,8 +112,8 @@ describe('SalesApi Service', () => {
 
       const result = await salesApi.listQuotes()
 
-      expect(result).toHaveLength(2)
-      expect(result[0].quote_number).toBe('Q-001')
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0].quote_number).toBe('Q-001')
     })
 
     it('should apply filters correctly', async () => {
@@ -354,8 +354,8 @@ describe('SalesApi Service', () => {
 
       const result = await salesApi.listOrders()
 
-      expect(result).toHaveLength(2)
-      expect(result[0].order_number).toBe('O-001')
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0].order_number).toBe('O-001')
     })
 
     it('should apply filters correctly', async () => {
@@ -670,8 +670,8 @@ describe('SalesApi Service', () => {
 
       const result = await salesApi.listDeliveryNotes()
 
-      expect(result).toHaveLength(2)
-      expect(result[0].delivery_note_number).toBe('DN-001')
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0].delivery_note_number).toBe('DN-001')
     })
 
     it('should filter by orderId and search', async () => {
@@ -840,8 +840,8 @@ describe('SalesApi Service', () => {
 
       const result = await salesApi.listInvoices()
 
-      expect(result).toHaveLength(2)
-      expect(result[0].invoice_number).toBe('INV-001')
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0].invoice_number).toBe('INV-001')
     })
 
     it('should filter by orderId and search', async () => {

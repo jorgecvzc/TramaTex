@@ -15,7 +15,7 @@ Este documento describe los casos de uso para el motor de precios y la gestión 
 - **Descripción:** Calcula el precio de venta final para una combinación de producto, cliente y cantidad, aplicando la jerarquía de reglas de negocio.
 - **Flujo Lógico del Motor:**
   1. **Obtención del Coste:** Recupera el `BaseCost` de la variante desde el módulo `Product`.
-  2. **Aplicación de Margen de Marca:** Aplica el `BrandProfitMargin` configurado para la marca del producto.
+  2. **Aplicación de Margen de Marca:** Si el producto tiene marca, aplica el `BrandProfitMargin` configurado para ella. Si `BrandID` es nulo, este paso se omite sin error.
   3. **Evaluación de Reglas Generales:** Busca y aplica `PricingRule` que coincidan con la categoría de la party y el producto.
   4. **Evaluación de Precios Específicos:** Busca `ClientPricing` (overrides) para ese cliente y producto específico. Si existe, tiene prioridad sobre las reglas generales.
   5. **Aplicación de Descuentos Fallback:** Si no hay reglas específicas, aplica el `DefaultDiscountPercentage` de la ficha del cliente (módulo `Party`).

@@ -2237,8 +2237,9 @@ func TestSalesService_UpdateOrderLineItem_InvalidStatus(t *testing.T) {
 		"Test order",
 	)
 
-	// Change order to IN_PREPARATION status (cannot edit line items)
+	// Change order to DELIVERED status (cannot edit line items)
 	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusDelivered)
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
 
@@ -2608,10 +2609,22 @@ func TestSalesService_RemoveOrderLineItem_InvalidStatus(t *testing.T) {
 		"Test order",
 	)
 
-	// Change order to IN_PREPARATION status (cannot edit line items)
+	// Change order to DELIVERED status (cannot edit line items)
 	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusDelivered)
 
 	orderRepo.On("FindByID", mock.Anything, order.ID).Return(order, nil)
+
+	mockPricingService.On("CalculateFinalSalePrice", mock.Anything, mock.Anything).Return(&pricing_app.CalculateFinalSalePriceResponse{
+		CalculatedItems: []pricing_app.CalculatedSaleItemResponse{
+			{
+				ProductVariantID: variantID,
+				Quantity:         3,
+				BaseSalesPrice:   pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
+				FinalPrice:       pricing_app.MoneyDTO{Amount: 100.0, Currency: domain.DefaultCurrency},
+			},
+		},
+	}, nil)
 
 	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, mockPricingService, nil, nil, nil)
 

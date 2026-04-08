@@ -1,75 +1,33 @@
 # Bitácora de Sesiones de Desarrollo
 
-<!--
-Este archivo registra las sesiones de desarrollo.
-
-SECCIONES:
-1. SESIONES ABIERTAS: Contiene las sesiones de trabajo que están en progreso, pausadas o bloqueadas. El objetivo es detallar el contexto y los próximos pasos.
-2. REGISTRO DE SESIONES CERRADAS: Un archivo histórico de todas las sesiones completadas, conservando solo metadatos esenciales.
-
-ESTRUCTURA DE UNA SESIÓN ABIERTA:
-- Título (##): Un H2 con un título descriptivo y único.
-- Metadatos:
-  - **Session ID:** `identificador-unico-kebab-case` (OBLIGATORIO Y ÚNICO)
-  - **Status:** (En Progreso | En Pausa | Bloqueado)
-  - **Sprint:** Sprint XX
-  - **Started:** Fecha de inicio (YYYY-MM-DD).
-- Contexto: Breve descripción del objetivo de la sesión.
-- Próximos Pasos: Checklist de las tareas pendientes.
-- Archivos de Contexto: Lista de archivos clave.
-
-ESTRUCTURA DE UNA SESIÓN CERRADA (en el registro):
-- Una línea de lista con: **[Título]** | Iniciada: [Fecha YYYY-MM-DD] | Finalizada: [Fecha YYYY-MM-DD]
--->
 ---
-# SESIONES ABIERTAS
-
-## Mejora UI/UX — Unificación Estética y Componentes Base
-
-- **Session ID:** `ui-ux-improvement-post-mvp-21-03-2026`
-- **Status:** En Pausa — **Pendiente de decisión: puede no realizarse antes del TFM**
-- **Prioridad:** Opcional pre-TFM. Si el tiempo no lo permite, queda como tarea Post-MVP.
-- **Started:** 21-03-2026
-- **Rama:** Cerrar rama actual → Crear rama nueva para esta sesión → Merge a `develop` al finalizar
-
-### Contexto
-
-Auditoría de UI/UX completada en `tmp/ui-ux-improvement-suggestions.md`. Se detectaron inconsistencias entre módulos: patrones de navegación mixtos en listados, botones sin base global, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta sesión implementa el plan de mejora estética para dar coherencia visual antes de la presentación TFM. También sirve como validación del trabajo Post-MVP y del flujo de despliegue definido en la sesión de infraestructura (`infra-multi-env-deployment-impl-2026-03-10`).
-
-**Dependencias:** Requiere completar previamente la sesión de despliegue multientorno.
-
-### Próximos Pasos
-
-- [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
-- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
-- [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
-- [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
-- [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
-- [ ] Forzar uso estricto de variables de `_variables.css` (paleta, radios de borde, sombras).
-- [ ] Migrar `PartyList.vue` como primer listado estandarizado de referencia.
-- [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
-- [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
-- [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
-
-### Archivos de Contexto
-
-- `tmp/ui-ux-improvement-suggestions.md`
-- `apps/frontend/src/assets/styles/theme.css`
-- `apps/frontend/src/assets/styles/_variables.css`
-- `apps/frontend/src/components/`
-
+## SESIONES ABIERTAS
 ---
 
----
+## POST-REFACTOR STABILIZATION & FINAL POLISH (Sprint 16)
+- **Session ID:** `sprint-16-stabilization-final`
+- **Status:** En Progreso
+- **Sprint:** Sprint 16
+- **Started:** 2026-04-07
+- **Context:** Estabilización general tras refactor, unificación de UI/UX, corrección de integración Sales-MES y refinamiento intensivo del TPV.
+- **Logros de Hoy (2026-04-07):**
+    - ✅ **TPV: Rediseño horizontal compacto** de las líneas del ticket (Cant | PVP | Dto% | Total).
+    - ✅ **TPV: Integración total ADR-015 (Pricing)**. Precios de venta exactos incluyendo márgenes de marca y recargos por atributos (ej. tallas) desde el primer segundo.
+    - ✅ **TPV: Gestión de Descuentos**. Sincronización automática con el cliente, redondeo a 2 decimales y visibilidad total.
+    - ✅ **TPV: Cliente por defecto**. Implementado **CONSUMIDOR FINAL** como cliente fijo al inicio y tras ventas.
+    - ✅ **TPV: Impresión Industrial (80mm)**. Solucionada la superposición de menús y el centrado del ticket mediante Vue Teleport y reglas CSS globales.
+    - ✅ **Backend Pricing:** Corregida lógica para sumar modificadores de atributos al coste base *antes* de aplicar márgenes comerciales.
+    - ✅ **Backend SQL:** Eliminadas comillas dobles en el repositorio Party que causaban errores de "relation not found" en PostgreSQL.
+    - ✅ **Sales API:** Exportados mapeos de estado para corregir errores de referencia en la emisión de presupuestos.
+- **Próximos Pasos (Mañana):**
+    - 🔍 Realizar una venta real completa en el TPV y verificar la persistencia final en la base de datos.
+    - 🔍 Verificar la creación de órdenes MES desde solicitudes de ventas (flujo integral).
+    - ⌨️ Iniciar estudio de navegación 100% por teclado una vez estabilizada la funcionalidad.
+- **Archivos de Contexto:**
+    - `apps/frontend/src/pages/sales/TicketCreate.vue`
+    - `apps/tramatex-api/internal/pricing/application/pricing_engine_service.go`
+    - `apps/frontend/src/services/salesApi.ts`
 
 ---
-# REGISTRO DE SESIONES CERRADAS
+## REGISTRO DE SESIONES CERRADAS
 ---
-- **Preparación TFM — Presentación Final de TramaTex** | Iniciada: 21-03-2026 | Finalizada: 26-03-2026 | Status: ✅ COMPLETADO | Rama: `docs/tfm-final-preparation` → `develop`, `staging`, `master` | Cleanup frontend/backend, link audit (~170 docs, 25 renames, 11 links rotos), Post-MVP roadmap, deploys local+staging+prod
-- **Alineación Documental Post-Refactors Sprint 14** | Iniciada: 21-03-2026 | Finalizada: 25-03-2026 | Status: ✅ COMPLETADO | Rama: `doc/alignment-sprint14-cicd-verify` → `develop`, `staging`, `master`
-- **QA — Verificación de Calidad Integral** | Iniciada: 21-03-2026 | Finalizada: 22-03-2026 | Status: ✅ COMPLETADO | Rama: `qa/full-verification` → `develop` | 5 commits, 4 bugs corregidos, QA manual 6/6 puntos OK
-- **Refactor sort_order → DirectAttributeIDs (Producto/Atributos)** | Iniciada: 21-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO
-- **Análisis de Refinamiento Arquitectónico del MVP (Sprint 14)** | Iniciada: 12-03-2026 | Finalizada: 21-03-2026 | Status: ✅ COMPLETADO | Ver: [sprint-14](./sprints/sprint-14/sprint-14-summary.md) | PR pendiente: `mvp-arch-refinement` → `develop`
-- **Análisis de Refinamiento Arquitectónico del Módulo MES** | Iniciada: 20-03-2026 | Finalizada: 20-03-2026 | Status: ✅ COMPLETADO
-- **Integración MES-Sales: Terminal de Taller y Visibilidad de Producción en Pedidos** | Iniciada: 19-03-2026 | Finalizada: 19-03-2026
-- **Refinamiento y Estabilización ERP Core** | Iniciada: 09-03-2026 | Finalizada: 14-03-2026

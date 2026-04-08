@@ -1,1201 +1,837 @@
 <template>
-  <Navbar />
-  <div class="ticket-create-container">
-    <div class="page-header">
-      <div>
-        <button class="btn-back" @click="goBack">← Volver</button>
-        <h1>Nuevo Ticket (Factura Simplificada)</h1>
-      </div>
-    </div>
+  <BaseTerminalPage 
+    title="Terminal de Venta Directa (Ticket)" 
+    station-id="CAJA PRINCIPAL"
+    icon="point_of_sale"
+    :is-loading="isSubmitting"
+    @close="router.push('/sales/dashboard')"
+    @refresh="clearTicket"
+  >
+    <!-- LAYOUT PRINCIPAL DEL TERMINAL (DOS COLUMNAS) -->
+    <div class="terminal-grid">
+      
+      <!-- COLUMNA IZQUIERDA: BÚSQUEDA Y CARRITO -->
+      <div class="main-column">
+        <!-- ÁREA DE BÚSQUEDA INDUSTRIAL -->
+        <section class="terminal-card mb-4 search-section">
+          <div class="terminal-search-row">
+            <span class="material-symbols-outlined search-icon">barcode_scanner</span>
+            <input 
+              ref="productSearchInput"
+              v-model="productSearch" 
+              type="text" 
+              class="terminal-input-giant" 
+              placeholder="Escanee código o busque producto..." 
+              @keyup.enter="handleSearch"
+            />
+            <button class="btn-terminal-action primary" @click="handleSearch">
+              <span class="material-symbols-outlined">add</span>
+              <span>Añadir</span>
+            </button>
+          </div>
+        </section>
 
-    <div class="form-card">
-      <form @submit.prevent="handleSubmit">
-        <!-- Client Selector -->
-        <div class="form-section">
-          <div class="client-selector-row">
-            <div class="client-selector-field">
-              <PartySelector
-                v-model="selectedPartyId"
-                label="Cliente"
-                placeholder="Buscar cliente... (por defecto: Consumidor Final)"
-                role-filter="CLIENT"
-                @select="onPartySelected"
-              />
+        <!-- LISTADO DE TICKET (CARRITO) -->
+        <section class="terminal-card ticket-list-section">
+          <header class="card-header">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <h2>Artículos en Ticket ({{ lineItems.length }})</h2>
+          </header>
+          
+          <div class="ticket-items-container">
+            <div v-for="item in lineItems" :key="item.productVariantId" class="ticket-item-row">
+              <!-- IDENTIDAD (Nombre y SKU) -->
+              <div class="item-identity">
+                <span class="item-name">{{ item.productName }}</span>
+                <div class="item-meta">
+                  <code class="item-sku">{{ item.variantSku }}</code>
+                  <span v-if="item.optionDescription" class="item-attributes">{{ item.optionDescription }}</span>
+                </div>
+              </div>
+              
+              <!-- GRID DE DATOS EN UNA LÍNEA -->
+              <div class="item-data-line">
+                <!-- CANTIDAD -->
+                <div class="data-col qty-col">
+                  <div class="qty-stepper-mini">
+                    <button @click="updateQtyByItem(item, -1)">-</button>
+                    <input v-model.number="item.quantity" type="number" @change="refreshLinePrice(item)" />
+                    <button @click="updateQtyByItem(item, 1)">+</button>
+                  </div>
+                </div>
+
+                <!-- PRECIO VENTA (PVP calculado con márgenes) -->
+                <div class="data-col price-col">
+                  <span class="value-text">{{ salesApi.formatMoney({ amount: item.unitPrice, currency: 'EUR' }) }}</span>
+                </div>
+
+                <!-- DESCUENTO -->
+                <div class="data-col discount-col">
+                  <div class="discount-input-compact">
+                    <input v-model.number="item.discountPercent" type="number" min="0" max="100" />
+                    <span class="pct-symbol">%</span>
+                  </div>
+                </div>
+
+                <!-- TOTAL LÍNEA -->
+                <div class="data-col total-col">
+                  <span class="value-total">{{ salesApi.formatMoney({ amount: (item.unitPrice * item.quantity) * (1 - item.discountPercent / 100), currency: 'EUR' }) }}</span>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="data-col action-col">
+                  <button class="btn-remove-item" @click="removeLine(item)">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <button
-              v-if="selectedPartyId !== CONSUMIDOR_FINAL_ID"
-              type="button"
-              class="btn btn-secondary btn-reset-client"
-              @click="resetToConsumidorFinal"
-              title="Volver a Consumidor Final"
+
+            <div v-if="lineItems.length === 0" class="terminal-empty-state">
+              <span class="material-symbols-outlined">point_of_sale</span>
+              <p>Escanee un producto para comenzar la venta</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- COLUMNA DERECHA: CLIENTE Y COBRO -->
+      <aside class="side-column">
+        <!-- SELECCIÃ“N DE CLIENTE -->
+        <section class="terminal-card mb-4">
+          <header class="card-header">
+            <span class="material-symbols-outlined">person</span>
+            <h2>Cliente</h2>
+          </header>
+          <div class="p-4 bg-dark-alt rounded-lg">
+            <PartySelector
+              v-model="partyId"
+              label=""
+              placeholder="Buscar cliente..."
+              role-filter="CLIENT"
+              :dark-mode="true"
+              :required="false"
+            />
+          </div>
+        </section>
+
+        <!-- PANEL DE TOTALES Y COBRO -->
+        <section class="terminal-card checkout-panel mb-4">
+          <div class="totals-area">
+            <div class="total-line">
+              <label>Subtotal</label>
+              <span>{{ salesApi.formatMoney({ amount: subtotal, currency: 'EUR' }) }}</span>
+            </div>
+            <div class="total-line">
+              <label>IVA (21%)</label>
+              <span>{{ salesApi.formatMoney({ amount: taxAmount, currency: 'EUR' }) }}</span>
+            </div>
+            <div class="total-main">
+              <label>TOTAL A COBRAR</label>
+              <div class="grand-total">{{ salesApi.formatMoney({ amount: total, currency: 'EUR' }) }}</div>
+            </div>
+          </div>
+
+          <div class="checkout-actions">
+            <button 
+              class="btn-giant-checkout success" 
+              :disabled="lineItems.length === 0 || isSubmitting" 
+              @click="processTicket"
             >
-              ↺ Consumidor Final
+              <span class="material-symbols-outlined">print</span>
+              <span>COBRAR E IMPRIMIR (F12)</span>
+            </button>
+            <button class="btn-giant-checkout danger mt-4" @click="clearTicketPrompt">
+              <span class="material-symbols-outlined">delete_sweep</span>
+              <span>ANULAR TICKET</span>
             </button>
           </div>
-        </div>
+        </section>
 
-        <!-- Line Items Section -->
-        <div class="form-section">
-          <div class="section-header">
-            <h2>Líneas del Ticket</h2>
-            <button type="button" class="btn btn-secondary" @click="addLineItem">
-              + Agregar Línea
-            </button>
+        <!-- LEYENDA DE ATAJOS -->
+        <section class="terminal-card shortcut-legend">
+          <header class="card-header">
+            <span class="material-symbols-outlined">keyboard</span>
+            <h2>Atajos de Teclado</h2>
+          </header>
+          <div class="shortcuts-grid">
+            <div class="shortcut-item"><kbd>F3</kbd> <span>Buscar Producto</span></div>
+            <div class="shortcut-item"><kbd>F4</kbd> <span>Seleccionar Cliente</span></div>
+            <div class="shortcut-item"><kbd>F12</kbd> <span>Cobrar e Imprimir</span></div>
+            <div class="shortcut-item"><kbd>Esc</kbd> <span>Cerrar / Limpiar</span></div>
+            <div class="shortcut-item"><kbd>Num +</kbd> <span>Más Cantidad</span></div>
+            <div class="shortcut-item"><kbd>Num -</kbd> <span>Menos Cantidad</span></div>
+            <div class="shortcut-item"><kbd>Supr</kbd> <span>Eliminar ítem</span></div>
           </div>
-
-          <div v-if="formData.lineItems.length === 0" class="empty-state">
-            <p>No hay líneas agregadas. Agregue al menos una línea para crear el ticket.</p>
-          </div>
-
-          <div v-else class="line-items-table-wrapper">
-            <table class="line-items-table">
-              <thead>
-                <tr>
-                  <th class="col-num">#</th>
-                  <th class="col-variant">Producto / Variante</th>
-                  <th class="col-qty">Cantidad</th>
-                  <th class="col-price">P. Unit.</th>
-                  <th class="col-discount">Dto. %</th>
-                  <th class="col-total">Total</th>
-                  <th class="col-actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in formData.lineItems" :key="index" class="line-item-row">
-                  <td class="col-num">{{ index + 1 }}</td>
-                  <td class="col-variant">
-                    <div class="variant-inline-search">
-                      <input
-                        v-if="!item.productVariantId"
-                        v-model="item.quickSearchQuery"
-                        type="text"
-                        class="form-input"
-                        placeholder="SKU o código de barras..."
-                        @keyup.enter="inlineSmartSearch(index)"
-                      />
-                      <span
-                        v-else
-                        class="variant-selected-label"
-                        @click="clearLineVariant(index)"
-                        title="Haz clic para cambiar"
-                      >
-                        {{ item.selectedVariantName }}
-                      </span>
-                      <button
-                        type="button"
-                        class="btn-browse-variant"
-                        @click="openVariantSelector(index)"
-                        title="Buscar en catálogo"
-                      >
-                        📋
-                      </button>
-                    </div>
-                    <small v-if="item.inlineSearchError" class="inline-search-error">
-                      {{ item.inlineSearchError }}
-                    </small>
-                    <input v-model="item.productVariantId" type="hidden" required />
-                  </td>
-                  <td class="col-qty">
-                    <input
-                      v-model.number="item.quantity"
-                      type="number"
-                      min="1"
-                      class="form-input"
-                      required
-                      @change="recalculateItemPrice(index)"
-                    />
-                  </td>
-                  <td class="col-price">
-                    <span v-if="item.unitPrice != null">{{ formatEur(item.unitPrice) }}</span>
-                    <span v-else-if="item.loadingPrice" class="price-loading">…</span>
-                    <span v-else class="price-pending">—</span>
-                  </td>
-                  <td class="col-discount">
-                    <input
-                      v-model.number="item.discountPercent"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      class="form-input"
-                      placeholder="0"
-                    />
-                  </td>
-                  <td class="col-total">
-                    <span v-if="item.unitPrice != null">{{ formatEur(lineTotal(item)) }}</span>
-                    <span v-else>—</span>
-                  </td>
-                  <td class="col-actions">
-                    <button
-                      type="button"
-                      class="btn-remove"
-                      @click="removeLineItem(index)"
-                      title="Eliminar línea"
-                    >
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Total Summary -->
-        <div v-if="formData.lineItems.length > 0" class="total-summary">
-          <div class="total-row">
-            <span class="label">Líneas:</span>
-            <span class="value">{{ formData.lineItems.length }}</span>
-          </div>
-          <div class="total-row">
-            <span class="label">Subtotal (sin IVA):</span>
-            <span class="value">{{ formatEur(ticketSubtotal) }}</span>
-          </div>
-          <div class="total-row" v-if="ticketTaxAmount > 0">
-            <span class="label">IVA:</span>
-            <span class="value">{{ formatEur(ticketTaxAmount) }}</span>
-          </div>
-          <div class="total-row total">
-            <span class="label">Total estimado:</span>
-            <span class="value">{{ formatEur(ticketTotal) }}</span>
-          </div>
-          <p class="pricing-note">Los precios se obtienen del motor de Pricing. El total final se confirma al crear el ticket.</p>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" @click="goBack">
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn btn-primary"
-            :disabled="!isFormValid || isSubmitting"
-          >
-            {{ isSubmitting ? 'Creando...' : 'Crear Ticket' }}
-          </button>
-        </div>
-      </form>
-
-      <!-- Error Display -->
-      <div v-if="submitError" class="error-box">
-        {{ submitError }}
-      </div>
+        </section>
+      </aside>
     </div>
 
-    <!-- Ticket Receipt Modal -->
-    <div v-if="createdInvoice" class="modal-overlay" @click.self="closeReceipt">
-      <div class="receipt-modal">
-        <div class="receipt-header">
-          <p class="receipt-brand">{{ issuerProfile.displayName }}</p>
-          <p v-if="issuerProfile.taxId" class="receipt-issuer">{{ issuerProfile.taxLabel }}: {{ issuerProfile.taxId }}</p>
-          <p v-if="issuerProfile.addressLine" class="receipt-issuer">{{ issuerProfile.addressLine }}</p>
-          <p v-if="issuerProfile.cityLine" class="receipt-issuer">{{ issuerProfile.cityLine }}</p>
-          <div class="receipt-divider"></div>
-          <p class="receipt-title">TICKET {{ createdInvoice.invoiceNumber }}</p>
-          <p class="receipt-date">{{ formatReceiptDate(createdInvoice.issueDate) }}</p>
-          <div class="receipt-divider"></div>
-        </div>
-
-        <div class="receipt-body">
-          <table class="receipt-table">
-            <thead>
-              <tr>
-                <th class="rt-name">Producto</th>
-                <th class="rt-qty">Cant.</th>
-                <th class="rt-price">P. Unit.</th>
-                <th class="rt-total">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in createdInvoice.lineItems" :key="item.id || item.productVariantID">
-                <td class="rt-name">
-                  {{ item.productName || '—' }}
-                  <small v-if="item.discountAmount && item.discountAmount.amount > 0" class="rt-discount">
-                    (Dto. {{ salesApi.formatMoney(item.discountAmount) }})
-                  </small>
-                </td>
-                <td class="rt-qty">{{ item.quantity }}</td>
-                <td class="rt-price">{{ salesApi.formatUnitPrice(item.unitPrice) }}</td>
-                <td class="rt-total">{{ salesApi.formatMoney(item.total) }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="receipt-divider"></div>
-
-          <div class="receipt-totals">
-            <div class="receipt-total-row">
-              <span>Subtotal</span>
-              <span>{{ salesApi.formatMoney(createdInvoice.subtotal) }}</span>
-            </div>
-            <div class="receipt-total-row">
-              <span>IVA</span>
-              <span>{{ salesApi.formatMoney(createdInvoice.taxAmount) }}</span>
-            </div>
-            <div class="receipt-total-row receipt-grand-total">
-              <span>TOTAL</span>
-              <span>{{ salesApi.formatMoney(createdInvoice.total) }}</span>
-            </div>
-          </div>
-
-          <div class="receipt-divider"></div>
-          <p class="receipt-footer-text">Cliente: {{ selectedPartyName }}</p>
-          <p class="receipt-footer-text">Gracias por su compra</p>
-        </div>
-
-        <div class="receipt-actions no-print">
-          <button class="btn btn-secondary" @click="printReceipt">🖨️ Imprimir</button>
-          <button class="btn btn-primary" @click="newTicket">+ Nuevo Ticket</button>
-          <button class="btn btn-secondary" @click="closeReceipt">Cerrar</button>
-        </div>
+    <!-- MODAL DE PRODUCTOS (ADAPTADO) -->
+    <BaseDialog
+      :show="showVariantSelector"
+      title="Buscador de Productos"
+      icon="search"
+      size="xl"
+      hide-actions
+      @close="closeVariantSelector"
+    >
+      <div class="terminal-dialog-fix">
+        <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
       </div>
-    </div>
+    </BaseDialog>
 
-    <!-- Variant Selector Modal -->
-    <div v-if="showVariantSelector" class="modal-overlay" @click.self="showVariantSelector = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Seleccionar Variante de Producto</h3>
-          <button class="btn-close" @click="showVariantSelector = false">✕</button>
-        </div>
-        <div class="modal-body">
-          <VariantSelector
-            :product-id="null"
-            initial-mode="quick"
-            title=""
-            description="Seleccione una variante de producto"
-            :initial-query="variantSelectorQuery"
-            @variant-selected="handleVariantSelected"
-          />
-        </div>
+    <!-- CAPA DE IMPRESIÃ“N (Teleportada a la raÃ­z para evitar interferencias de la UI) -->
+    <Teleport to="body">
+      <div id="tpv-print-area" class="print-ticket-container" v-if="lastProcessedTicket">
+        <PrintTicket
+          :number="lastProcessedTicket.number"
+          :date="lastProcessedTicket.date"
+          :items="lastProcessedTicket.items"
+          :totals="lastProcessedTicket.totals"
+          :customer-name="lastProcessedTicket.customerName"
+        />
       </div>
-    </div>
-  </div>
+    </Teleport>
+  </BaseTerminalPage>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import Navbar from '@/components/layout/Navbar.vue';
-import VariantSelector from '@/components/product/VariantSelector.vue';
+import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
+import VariantSelector from '@/components/product/VariantSelector.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
+import PrintTicket from '@/components/sales/PrintTicket.vue';
 import salesApi from '@/services/salesApi';
+import { partyApi } from '@/services/partyApi';
 import { productApi } from '@/services/productApi';
-import { calculateFinalSalePrice } from '@/services/pricingApi';
-import { getPrintIssuerProfile } from '@/services/printIssuerProfile';
+import { pricingApi } from '@/services/pricingApi';
 
 const router = useRouter();
-const issuerProfile = getPrintIssuerProfile();
-
-// CONSUMIDOR_FINAL UUID (from backend seed)
+const productSearchInput = ref(null);
+const productSearch = ref('');
 const CONSUMIDOR_FINAL_ID = '00000000-0000-0000-0000-000000000001';
-
-const selectedPartyId = ref(CONSUMIDOR_FINAL_ID);
-const selectedPartyName = ref('CONSUMIDOR FINAL');
-const partyDefaultDiscount = ref(null);
-
-const formData = ref({
-  lineItems: [],
-});
-
+const partyId = ref(CONSUMIDOR_FINAL_ID);
+const customerDiscount = ref(0);
+const lineItems = ref([]);
 const isSubmitting = ref(false);
-const submitError = ref('');
 const showVariantSelector = ref(false);
-const editingLineIndex = ref(null);
-const variantSelectorQuery = ref('');
-const createdInvoice = ref(null);
+const lastProcessedTicket = ref(null);
 
-function onPartySelected(party) {
-  selectedPartyName.value = party?.name || 'CONSUMIDOR FINAL';
-  partyDefaultDiscount.value = party?.default_discount_percentage || null;
-}
+const subtotal = computed(() => lineItems.value.reduce((acc, item) => {
+  const lineTotal = (item.unitPrice * item.quantity);
+  const discount = lineTotal * (item.discountPercent / 100);
+  return acc + (lineTotal - discount);
+}, 0));
+const taxAmount = computed(() => subtotal.value * 0.21);
+const total = computed(() => subtotal.value + taxAmount.value);
 
-function resetToConsumidorFinal() {
-  selectedPartyId.value = CONSUMIDOR_FINAL_ID;
-  selectedPartyName.value = 'CONSUMIDOR FINAL';
-  partyDefaultDiscount.value = null;
-}
-
-// Recalculate all prices when client changes (pricing may differ per client)
-watch(selectedPartyId, async (newId, oldId) => {
-  if (!newId || newId === oldId) return;
-  const items = formData.value.lineItems;
-  const promises = items
-    .map((_, idx) => items[idx].productVariantId ? fetchItemPrice(idx) : null)
-    .filter(Boolean);
-  await Promise.all(promises);
+watch(partyId, async (newId) => {
+  if (newId) {
+    try {
+      const party = await partyApi.getParty(newId);
+      customerDiscount.value = party?.default_discount_percentage || 0;
+      // Recalcular precios para todas las lÃ­neas con el nuevo cliente
+      if (lineItems.value.length > 0) {
+        for (const item of lineItems.value) {
+          item.discountPercent = customerDiscount.value;
+          await refreshLinePrice(item);
+        }
+      }
+    } catch (err) {
+      console.error("Error al cargar descuento del cliente:", err);
+    }
+  } else {
+    customerDiscount.value = 0;
+  }
+  focusSearch();
 });
 
-const isFormValid = computed(() => {
-  return (
-    formData.value.lineItems.length > 0 &&
-    formData.value.lineItems.every(
-      (item) =>
-        item.productVariantId &&
-        item.quantity > 0
-    )
-  );
-});
-
-function addLineItem() {
-  formData.value.lineItems.push({
-    productVariantId: '',
-    selectedVariantName: '',
-    quickSearchQuery: '',
-    inlineSearchError: '',
-    quantity: 1,
-    unitPrice: null,
-    taxRate: null,
-    finalPriceWithTax: null,
-    loadingPrice: false,
-    discountPercent: 0,
+function focusSearch() {
+  nextTick(() => {
+    productSearchInput.value?.focus();
   });
 }
 
-function lineTotal(item) {
-  if (item.unitPrice == null) return 0;
-  const disc = item.discountPercent || 0;
-  return item.unitPrice * item.quantity * (1 - disc / 100);
-}
+function handleGlobalKeydown(e) {
+  // Solo procesar si no estamos en un input que no sea el de búsqueda principal
+  // a menos que sean teclas de función específicas.
+  const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+  const isSearchInput = document.activeElement === productSearchInput.value;
 
-const ticketSubtotal = computed(() => {
-  return formData.value.lineItems.reduce((sum, item) => {
-    if (item.unitPrice != null) return sum + lineTotal(item);
-    return sum;
-  }, 0);
-});
+  // F3: Buscar Producto
+  if (e.key === 'F3') {
+    e.preventDefault();
+    focusSearch();
+  }
+  
+  // F4: Seleccionar Cliente
+  if (e.key === 'F4') {
+    e.preventDefault();
+    const partyInput = document.querySelector('.party-selector input');
+    partyInput?.focus();
+  }
 
-const ticketTaxAmount = computed(() => {
-  return formData.value.lineItems.reduce((sum, item) => {
-    if (item.unitPrice != null && item.finalPriceWithTax != null) {
-      return sum + (item.finalPriceWithTax - item.unitPrice) * item.quantity;
+  // F12: Cobrar
+  if (e.key === 'F12') {
+    e.preventDefault();
+    if (lineItems.value.length > 0 && !isSubmitting.value) {
+      processTicket();
     }
-    return sum;
-  }, 0);
-});
+  }
 
-const ticketTotal = computed(() => ticketSubtotal.value + ticketTaxAmount.value);
+  // Esc: Cerrar diálogos o limpiar búsqueda
+  if (e.key === 'Escape') {
+    if (showVariantSelector.value) {
+      closeVariantSelector();
+    } else {
+      productSearch.value = '';
+      focusSearch();
+    }
+  }
 
-function formatEur(amount) {
-  if (amount == null) return '—';
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount);
+  // Atajos para el carrito (solo si no estamos escribiendo en un input de datos)
+  if (!isInput || isSearchInput) {
+    // Num + : Incrementar última línea
+    if (e.key === '+' || e.key === 'Add') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        updateQtyByItem(lineItems.value[lineItems.value.length - 1], 1);
+      }
+    }
+
+    // Num - : Decrementar última línea
+    if (e.key === '-' || e.key === 'Subtract') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        updateQtyByItem(lineItems.value[lineItems.value.length - 1], -1);
+      }
+    }
+
+    // Supr : Eliminar última línea
+    if (e.key === 'Delete') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        removeLine(lineItems.value[lineItems.value.length - 1]);
+      }
+    }
+  }
 }
 
-async function fetchItemPrice(index) {
-  const item = formData.value.lineItems[index];
-  if (!item.productVariantId) return;
-  item.loadingPrice = true;
+onMounted(async () => {
+  window.addEventListener('keydown', handleGlobalKeydown);
+  // Aseguramos que cargue consumidor final al inicio
+  if (!partyId.value) partyId.value = CONSUMIDOR_FINAL_ID;
+  await loadDefaultCustomer();
+  focusSearch();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
+});
+
+async function loadDefaultCustomer() {
+  // Ya inicializamos con el ID constante de CONSUMIDOR FINAL
   try {
-    const result = await calculateFinalSalePrice(
+    const party = await partyApi.getParty(CONSUMIDOR_FINAL_ID);
+    if (party) {
+      partyId.value = party.id;
+      customerDiscount.value = party.default_discount_percentage || 0;
+    }
+  } catch (err) {
+    console.error("Error cargando consumidor final:", err);
+  }
+}
+
+async function handleSearch() {
+  const query = productSearch.value.trim();
+  if (!query) { 
+    showVariantSelector.value = true; 
+    return; 
+  }
+  try {
+    const result = await productApi.smartSearch(query);
+    if (result.type === 'exact_variant') {
+      handleVariantSelected(result.variant);
+    } else {
+      showVariantSelector.value = true;
+    }
+  } catch (err) { 
+    console.error("Error en búsqueda rápida:", err);
+    showVariantSelector.value = true; 
+  }
+}
+
+async function handleVariantSelected(v) {
+  const variant = v.variant || v;
+  const existing = lineItems.value.find(i => i.productVariantId === variant.id);
+  
+  // Formateamos los atributos (Color, Talla, etc.)
+  let optionDescription = '';
+  const options = variant.option_configuration || variant.optionConfiguration;
+  if (options) {
+    optionDescription = Object.entries(options)
+      .map(([key, val]) => `${key}: ${val}`)
+      .join(' | ');
+  }
+
+  if (existing) {
+    existing.quantity++;
+    await refreshLinePrice(existing);
+  } else {
+    // Creamos el item pero CON PRECIO CERO inicialmente para forzar la carga
+    const newItem = {
+      productVariantId: variant.id, 
+      variantSku: variant.sku,
+      productName: variant.product_name || variant.productName || 'Producto', 
+      optionDescription: optionDescription,
+      quantity: 1,
+      unitPrice: 0, 
+      discountPercent: customerDiscount.value 
+    };
+    
+    // CARGA CRÃTICA: Esperamos a que el motor de pricing nos dÃ© el "Precio Venta" (PVP con margen)
+    await refreshLinePrice(newItem);
+    
+    // Solo lo aÃ±adimos cuando tenemos el precio real del motor
+    lineItems.value.push(newItem);
+  }
+  productSearch.value = '';
+  showVariantSelector.value = false;
+  focusSearch();
+}
+
+function closeVariantSelector() {
+  showVariantSelector.value = false;
+  focusSearch();
+}
+
+async function refreshLinePrice(item) {
+  if (!partyId.value) return;
+  try {
+    const result = await pricingApi.calculateFinalSalePrice(
       [{ productVariantId: item.productVariantId, quantity: item.quantity }],
-      selectedPartyId.value,
+      partyId.value,
       new Date()
     );
-    const calcItem = result.calculatedItems?.[0];
-    if (calcItem) {
-      item.unitPrice = calcItem.baseSalesPrice?.amount ?? calcItem.finalPrice?.amount ?? null;
-      item.taxRate = calcItem.taxRate ?? null;
-      item.finalPriceWithTax = calcItem.finalPriceWithTax?.amount ?? null;
-      // Pre-fill discount from party's configured default (exact value)
-      if (partyDefaultDiscount.value && partyDefaultDiscount.value > 0) {
-        item.discountPercent = partyDefaultDiscount.value;
-      } else if (calcItem.discountPercent > 0) {
-        item.discountPercent = calcItem.discountPercent;
+    
+    if (result.calculatedItems && result.calculatedItems.length > 0) {
+      const calc = result.calculatedItems[0];
+      
+      // PRECIO VENTA = BaseSalesPrice (Coste + Suplementos + Margen)
+      // Usamos parentheses para evitar el error de mezcla de operadores ?? y ||
+      item.unitPrice = (calc.baseSalesPrice?.amount ?? calc.baseSalesPrice) || 0;
+      
+      // DESCUENTO: Prioridad al del cliente, salvo que el motor traiga una regla mÃ¡s fuerte
+      const engineDiscount = calc.discountPercent || 0;
+      if (Math.abs(engineDiscount - customerDiscount.value) < 0.5) {
+        item.discountPercent = customerDiscount.value;
+      } else {
+        item.discountPercent = Math.round(engineDiscount * 100) / 100;
       }
     }
   } catch (err) {
-    console.warn('[TicketCreate] Price lookup failed:', err);
-    item.unitPrice = null;
-    item.taxRate = null;
-    item.finalPriceWithTax = null;
-  } finally {
-    item.loadingPrice = false;
+    console.error("Error en motor de pricing:", err);
+    item.discountPercent = customerDiscount.value;
   }
 }
 
-async function recalculateItemPrice(index) {
-  const item = formData.value.lineItems[index];
-  if (item.productVariantId && item.quantity > 0) {
-    await fetchItemPrice(index);
+async function updateQtyByItem(item, delta) {
+  item.quantity = Math.max(1, item.quantity + delta);
+  await refreshLinePrice(item);
+}
+
+function removeLine(item) { 
+  lineItems.value = lineItems.value.filter(i => i.productVariantId !== item.productVariantId); 
+}
+
+function clearTicket() { 
+  lineItems.value = []; 
+  productSearch.value = ''; 
+  partyId.value = CONSUMIDOR_FINAL_ID;
+  focusSearch();
+}
+function clearTicketPrompt() { if (confirm('¿Vaciar el ticket actual?')) clearTicket(); }
+
+async function processTicket() {
+  if (lineItems.value.length === 0) return;
+  if (!partyId.value) {
+    alert('Debes seleccionar un cliente (o cargar el por defecto).');
+    return;
   }
-}
-
-function openVariantSelector(index) {
-  editingLineIndex.value = index;
-  variantSelectorQuery.value = '';
-  showVariantSelector.value = true;
-}
-
-function handleVariantSelected(payload) {
-  const variant = payload?.variant || payload;
-  if (editingLineIndex.value !== null && variant) {
-    const idx = editingLineIndex.value;
-    const item = formData.value.lineItems[idx];
-    item.productVariantId = variant.id;
-    item.selectedVariantName = `${variant.sku} - ${variant.product_name || 'Producto'}`;
-    item.quickSearchQuery = '';
-    item.inlineSearchError = '';
-    fetchItemPrice(idx);
-  }
-  showVariantSelector.value = false;
-  editingLineIndex.value = null;
-}
-
-async function inlineSmartSearch(index) {
-  const item = formData.value.lineItems[index];
-  const query = item.quickSearchQuery?.trim();
-  if (!query) return;
-  
-  item.inlineSearchError = '';
-  
-  try {
-    const result = await productApi.smartSearch(query);
-    
-    if (result.type === 'exact_variant' && result.variant) {
-      item.productVariantId = result.variant.id;
-      item.selectedVariantName = `${result.variant.sku} - ${result.product?.name || 'Producto'}`;
-      item.quickSearchQuery = '';
-      fetchItemPrice(index);
-    } else if (result.type === 'no_match') {
-      item.inlineSearchError = 'No encontrado. Usa 📋 para buscar en catálogo.';
-    } else {
-      editingLineIndex.value = index;
-      variantSelectorQuery.value = query;
-      showVariantSelector.value = true;
-    }
-  } catch (err) {
-    console.error('[TicketCreate] Inline search error:', err);
-    item.inlineSearchError = err.message || 'Error en búsqueda';
-  }
-}
-
-function clearLineVariant(index) {
-  const item = formData.value.lineItems[index];
-  item.productVariantId = '';
-  item.selectedVariantName = '';
-  item.quickSearchQuery = '';
-  item.inlineSearchError = '';
-  item.unitPrice = null;
-  item.taxRate = null;
-  item.finalPriceWithTax = null;
-}
-
-function removeLineItem(index) {
-  formData.value.lineItems.splice(index, 1);
-}
-
-async function handleSubmit() {
-  if (!isFormValid.value || isSubmitting.value) return;
 
   isSubmitting.value = true;
-  submitError.value = '';
-
   try {
-    const items = formData.value.lineItems.map((item) => ({
-      productVariantId: item.productVariantId,
-      quantity: item.quantity,
-      discountPercent: item.discountPercent || 0,
-    }));
+    console.log('Registrando venta en el backend...');
+    
+    const request = {
+      partyId: partyId.value,
+      invoiceDate: new Date().toISOString(), // ISO String para el backend en Go
+      items: lineItems.value.map(item => ({
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+        discountPercent: Number(item.discountPercent || 0)
+      }))
+    };
 
-    const newInvoice = await salesApi.createSimplifiedInvoice({
-      partyId: selectedPartyId.value,
-      invoiceDate: new Date().toISOString(),
-      items,
-    });
+    const invoice = await salesApi.createSimplifiedInvoice(request);
+    console.log('Venta registrada con éxito:', invoice.invoice_number);
 
-    // Show the ticket receipt modal
-    createdInvoice.value = newInvoice;
+    // Mapeamos la respuesta manejando camelCase (API) vs snake_case (Frontend)
+    const apiLineItems = invoice.lineItems || invoice.line_items || [];
+    
+    lastProcessedTicket.value = {
+      number: invoice.invoice_number || invoice.invoiceNumber,
+      date: invoice.issue_date || invoice.invoiceDate || new Date().toISOString(),
+      items: apiLineItems.map(li => ({
+        productName: li.productName || li.product_name || 'Producto',
+        variantSku: li.variantSku || li.variant_sku || '', 
+        quantity: li.quantity,
+        unitPrice: (li.unitPrice?.amount !== undefined ? li.unitPrice.amount : li.unit_price) || 0,
+        discountPercent: li.discountPercent || li.discount_percentage || 0,
+        subtotal: (li.subtotal?.amount !== undefined ? li.subtotal.amount : li.subtotal) || 0
+      })),
+      totals: { 
+        subtotal: (invoice.subtotal?.amount !== undefined ? invoice.subtotal.amount : invoice.subtotal) || 0, 
+        taxAmount: (invoice.taxAmount?.amount !== undefined ? invoice.taxAmount.amount : invoice.tax_total) || 0, 
+        total: (invoice.total?.amount !== undefined ? invoice.total.amount : invoice.total) || 0 
+      },
+      customerName: invoice.partyName || invoice.party_name || 'CONSUMIDOR FINAL'
+    };
+
+    // Pequeño retardo para asegurar que el DOM de PrintTicket se actualiza
+    await new Promise(resolve => setTimeout(resolve, 500));
+    window.print();
+
+    // Limpieza tras imprimir
+    lineItems.value = [];
+    productSearch.value = '';
+    lastProcessedTicket.value = null;
+    focusSearch();
+    
   } catch (err) {
-    submitError.value = err?.message || 'No se pudo crear el ticket';
-    console.error('Error creating ticket:', err);
+    console.error('Error al procesar la venta:', err);
+    alert('Error al registrar la venta: ' + (err.message || 'Error desconocido'));
   } finally {
     isSubmitting.value = false;
   }
 }
-
-function goBack() {
-  router.push('/sales/invoices');
-}
-
-function formatReceiptDate(dateString) {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
-    ' ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
-function printReceipt() {
-  window.print();
-}
-
-function newTicket() {
-  createdInvoice.value = null;
-  formData.value.lineItems = [];
-  submitError.value = '';
-  selectedPartyId.value = CONSUMIDOR_FINAL_ID;
-  selectedPartyName.value = 'CONSUMIDOR FINAL';
-  partyDefaultDiscount.value = null;
-}
-
-function closeReceipt() {
-  router.push('/sales/invoices');
-}
 </script>
 
-<style scoped>
-.ticket-create-container {
-  padding: 1.5rem 2rem;
-}
-
-.page-header {
-  margin-bottom: 2rem;
-}
-
-.page-header h1 {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0.5rem 0 0.25rem;
-}
-
-.subtitle {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0;
-}
-
-.client-selector-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-}
-
-.client-selector-field {
-  flex: 1;
-  max-width: 450px;
-}
-
-.btn-reset-client {
-  white-space: nowrap;
-  margin-bottom: 0.125rem;
-}
-
-.btn-back {
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  transition: color 0.2s;
-}
-
-.btn-back:hover {
-  color: #1f2937;
-}
-
-.form-card {
-  background: white;
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.form-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.form-section:last-of-type {
-  border-bottom: none;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.section-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #9ca3af;
-  background: #f9fafb;
-  border-radius: 4px;
-}
-
-/* ── Line Items Table ── */
-.line-items-table-wrapper {
-  overflow-x: auto;
-  margin-top: 0.5rem;
-}
-
-.line-items-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.line-items-table thead th {
-  background: #f3f4f6;
-  color: #4b5563;
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.625rem 0.5rem;
-  border-bottom: 2px solid #e5e7eb;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.line-items-table tbody tr {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.15s;
-}
-
-.line-items-table tbody tr:hover {
-  background: #f9fafb;
-}
-
-.line-items-table td {
-  padding: 0.5rem;
-  vertical-align: middle;
-}
-
-.line-items-table .col-num {
-  width: 2.5rem;
-  text-align: center;
-  color: #9ca3af;
-  font-weight: 600;
-}
-
-.line-items-table .col-variant {
-  min-width: 200px;
-}
-
-.line-items-table .col-qty {
-  width: 80px;
-}
-
-.line-items-table .col-price,
-.line-items-table .col-total {
-  width: 100px;
-  text-align: right;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.line-items-table .col-discount {
-  width: 80px;
-}
-
-.line-items-table thead .col-price,
-.line-items-table thead .col-total {
-  text-align: right;
-}
-
-.price-loading {
-  color: #9ca3af;
-}
-
-.price-pending {
-  color: #d1d5db;
-}
-
-.line-items-table .col-actions {
-  width: 40px;
-  text-align: center;
-}
-
-.line-items-table .form-input {
-  width: 100%;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.8125rem;
-}
-
-.btn-remove {
-  background: transparent;
-  border: none;
-  color: #dc2626;
-  cursor: pointer;
-  font-size: 1.125rem;
-  padding: 0.25rem 0.4rem;
-  border-radius: 4px;
-  transition: background 0.2s;
-  line-height: 1;
-}
-
-.btn-remove:hover {
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.form-group {
-  margin-bottom: 0;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4a5568;
-  margin-bottom: 0.5rem;
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-family: inherit;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #E6B800;
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-}
-
-.line-item-summary {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  font-size: 0.875rem;
-}
-
-.line-item-summary .label {
-  color: #6b7280;
-  margin-right: 0.5rem;
-}
-
-.line-item-summary .value {
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.total-summary {
-  background: #f9fafb;
-  border-radius: 6px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  font-size: 0.875rem;
-}
-
-.total-row.total {
-  margin-top: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 2px solid #e5e7eb;
-  font-weight: 600;
-  font-size: 1.125rem;
-}
-
-.total-row .label {
-  color: #6b7280;
-}
-
-.total-row .value {
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.total-row.total .label,
-.total-row.total .value {
-  color: #1f2937;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-}
-
-.btn {
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary {
-  background: #E6B800;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a700;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #4a5568;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.error-box {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  color: #991b1b;
-  font-size: 0.875rem;
-}
-
-.btn-select-variant {
-  width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.875rem;
-}
-
-.btn-select-variant:hover {
-  border-color: #3b82f6;
-  background: #f9fafb;
-}
-
-.variant-inline-search {
-  display: flex;
-  gap: 0.35rem;
-  align-items: center;
-}
-
-.variant-inline-search .form-input {
-  flex: 1;
-}
-
-.variant-selected-label {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  color: #166534;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.variant-selected-label:hover {
-  background: #dcfce7;
-  border-color: #22c55e;
-}
-
-.btn-browse-variant {
-  background: #f8fafc;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 0.5rem 0.65rem;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.15s;
-}
-
-.btn-browse-variant:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-}
-
-.inline-search-error {
-  color: #dc2626;
-  font-size: 0.75rem;
-  margin-top: 0.2rem;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #1b3a6b;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.btn-close:hover {
-  color: #dc2626;
-}
-
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-  .line-items-table thead {
-    display: none;
-  }
-  .line-items-table,
-  .line-items-table tbody,
-  .line-items-table tr,
-  .line-items-table td {
-    display: block;
-    width: 100%;
-  }
-  .line-items-table tr {
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
-    background: #f9fafb;
-  }
-  .line-items-table td {
-    padding: 0.25rem 0;
-  }
-  .line-items-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    font-size: 0.75rem;
-    color: #6b7280;
-    display: block;
-    margin-bottom: 0.15rem;
-  }
-  .line-items-table .col-num {
-    display: none;
-  }
-}
-
-/* ── Receipt Modal ── */
-.receipt-modal {
-  background: white;
-  border-radius: 8px;
-  width: 380px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.receipt-header {
-  padding: 1.5rem 1.5rem 0;
-  text-align: center;
-}
-
-.receipt-brand {
-  font-size: 1.1rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #002395;
-  margin: 0 0 0.25rem;
-}
-
-.receipt-issuer {
-  font-size: 0.72rem;
-  color: #64748b;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.receipt-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0.5rem 0 0.15rem;
-}
-
-.receipt-date {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.receipt-divider {
-  border: none;
-  border-top: 1px dashed #cbd5e1;
-  margin: 0.75rem 0;
-}
-
-.receipt-body {
-  padding: 0 1.5rem 1rem;
-}
-
-.receipt-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-}
-
-.receipt-table thead th {
-  font-weight: 600;
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  color: #4b5563;
-  padding: 0.35rem 0.25rem;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-}
-
-.receipt-table tbody td {
-  padding: 0.35rem 0.25rem;
-  vertical-align: top;
-  color: #1e293b;
-}
-
-.rt-name {
-  width: 45%;
-}
-
-.rt-qty {
-  width: 12%;
-  text-align: center !important;
-}
-
-.rt-price {
-  width: 22%;
-  text-align: right !important;
-}
-
-.rt-total {
-  width: 21%;
-  text-align: right !important;
-}
-
-.rt-discount {
-  display: block;
-  color: #dc2626;
-  font-size: 0.7rem;
-}
-
-.receipt-totals {
-  font-size: 0.85rem;
-}
-
-.receipt-total-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.25rem 0;
-  color: #4b5563;
-}
-
-.receipt-grand-total {
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: #1e293b;
-  padding-top: 0.5rem;
-  margin-top: 0.25rem;
-  border-top: 2px solid #1e293b;
-}
-
-.receipt-footer-text {
-  text-align: center;
-  font-size: 0.75rem;
-  color: #64748b;
-  margin: 0.25rem 0;
-}
-
-.receipt-actions {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: center;
-  padding: 1rem 1.5rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* ── Print mode for receipt ── */
+<style>
+/* REGLAS DE IMPRESIÃ“N GLOBALES (Fuera de scoped para poder ocultar #app) */
 @media print {
-  .ticket-create-container > .page-header,
-  .ticket-create-container > .form-card,
-  .navbar,
-  nav,
-  .receipt-actions {
+  /* Ocultamos absolutamente todos los hijos directos del body */
+  body > * {
     display: none !important;
   }
 
-  .ticket-create-container {
+  /* Centramos el contenido del body para que el ticket salga en medio */
+  body {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    background: white !important;
+    width: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
   }
 
-  .modal-overlay {
+  /* Exceptuamos el Ã¡rea de impresiÃ³n del TPV que estÃ¡ teleportada al body */
+  body > #tpv-print-area {
     display: block !important;
-    position: static;
-    background: none;
+    width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
   }
 
-  .receipt-modal {
-    display: block !important;
-    box-shadow: none;
-    border-radius: 0;
-    width: 80mm;
-    max-width: 80mm;
-    margin: 0 auto;
+  /* Reset de mÃ¡rgenes de pÃ¡gina para impresoras tÃ©rmicas */
+  @page {
+    margin: 0;
+    size: 80mm auto;
   }
 }
+</style>
+
+<style scoped>
+.terminal-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  height: 100%;
+  overflow: hidden;
+}
+
+.main-column, .side-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.side-column {
+  overflow-y: auto;
+}
+
+/* Industrial Card */
+.terminal-card {
+  background: #1e293b;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #334155;
+  /* Eliminamos overflow hidden para permitir que los dropdowns salgan */
+}
+
+.card-header {
+  padding: 0.75rem 1.25rem; /* Reducido */
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid #334155;
+  border-radius: 16px 16px 0 0;
+}
+
+.card-header h2 { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin: 0; letter-spacing: 0.05em; }
+.card-header .material-symbols-outlined { color: var(--color-primary); font-size: 1.1rem; }
+
+/* Giant Search Row */
+.terminal-search-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem; /* Reducido */
+}
+
+.search-icon { font-size: 2rem; color: #475569; }
+.terminal-input-giant {
+  flex: 1;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  padding: 1rem 1.25rem; /* Reducido */
+  font-size: 1.25rem; /* Reducido */
+  color: white;
+  font-weight: 700;
+}
+.terminal-input-giant:focus { border-color: var(--color-primary); outline: none; }
+
+.btn-terminal-action {
+  padding: 1rem 1.5rem; /* Reducido */
+  border-radius: 12px;
+  border: none;
+  font-weight: 900;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.btn-terminal-action.primary { background: var(--color-primary); color: black; }
+
+/* Items List */
+.ticket-list-section { flex: 1; overflow: hidden; }
+.ticket-items-container { flex: 1; overflow-y: auto; padding: 0.75rem; }
+
+.ticket-item-row {
+  background: #0f172a;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  border-left: 4px solid var(--color-primary);
+  border: 1px solid #334155;
+}
+
+.item-identity { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 0.15rem; }
+.item-name { font-size: 0.95rem; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-meta { display: flex; align-items: center; gap: 0.5rem; }
+.item-attributes { font-size: 0.7rem; color: var(--color-primary); font-weight: 600; opacity: 0.8; }
+.item-sku { 
+  font-size: 0.65rem; 
+  color: #1e293b; 
+  background: #94a3b8; 
+  padding: 0.05rem 0.3rem; 
+  border-radius: 4px; 
+  width: fit-content;
+  font-weight: 700;
+  font-family: monospace; 
+}
+
+.item-data-line {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.data-col { display: flex; align-items: center; }
+
+/* Global Hide Spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* Stepper Mini */
+.qty-stepper-mini { display: flex; align-items: center; background: #1e293b; border-radius: 6px; overflow: hidden; border: 1px solid #334155; height: 36px; }
+.qty-stepper-mini button { width: 32px; height: 100%; border: none; background: transparent; color: white; font-size: 1.2rem; cursor: pointer; }
+.qty-stepper-mini button:active { background: #334155; }
+.qty-stepper-mini input { width: 40px; text-align: center; background: transparent; border: none; color: white; font-size: 1rem; font-weight: 800; }
+
+/* Precio y Total */
+.value-text { font-size: 1rem; font-weight: 600; color: #94a3b8; width: 80px; text-align: right; }
+.value-total { font-size: 1.1rem; font-weight: 900; color: #16a34a; width: 100px; text-align: right; }
+
+/* Descuento Compacto */
+.discount-input-compact {
+  position: relative;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  width: 70px;
+}
+.discount-input-compact input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: right;
+  padding-right: 0.75rem;
+}
+.discount-input-compact input:focus { outline: none; }
+.pct-symbol { position: absolute; right: 0.4rem; font-size: 0.8rem; font-weight: 800; color: var(--color-primary); }
+
+.btn-remove-item { background: transparent; border: none; color: #64748b; cursor: pointer; display: flex; align-items: center; }
+.btn-remove-item:hover { color: #ef4444; }
+.btn-remove-item .material-symbols-outlined { font-size: 1.25rem; }
+
+/* Totals and Checkout */
+.checkout-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.totals-area { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.total-line { display: flex; justify-content: space-between; font-size: 0.9rem; color: #94a3b8; }
+.total-main { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px solid #334155; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.total-main label { font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.1em; }
+.grand-total { font-size: 2.25rem; font-weight: 900; color: var(--color-primary); line-height: 1; }
+
+.checkout-actions { padding: 1rem; margin-top: auto; }
+.btn-giant-checkout {
+  width: 100%;
+  height: 64px; /* Reducido de 80px */
+  border-radius: 16px;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  cursor: pointer;
+}
+.btn-giant-checkout.success { background: #16a34a; color: white; }
+.btn-giant-checkout.danger { background: transparent; border: 2px solid #334155; color: #ef4444; height: 60px; font-size: 1rem; }
+
+.terminal-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.3; }
+.terminal-empty-state .material-symbols-outlined { font-size: 5rem; margin-bottom: 1rem; }
+
+/* Shortcut Legend */
+.shortcut-legend {
+  margin-top: auto;
+}
+
+.shortcuts-grid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.shortcut-item kbd {
+  background: #334155;
+  color: var(--color-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 800;
+  min-width: 40px;
+  text-align: center;
+  border-bottom: 2px solid #0f172a;
+}
+
+/* Utils */
+.bg-dark-alt { background: #0f172a; }
+.p-4 { padding: 1rem; }
+.rounded-lg { border-radius: 8px; }
+.mt-4 { margin-top: 1rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+
+.print-ticket-container { display: none; }
+
+@media print {
+  /* Ocultamos absolutamente todo desde la raÃ­z */
+  #app, 
+  .app-shell, 
+  .app-layout, 
+  .app-main, 
+  .base-terminal-overlay,
+  header, 
+  nav, 
+  aside, 
+  main, 
+  footer,
+  .no-print { 
+    display: none !important; 
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* El body debe estar limpio para el ticket */
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Mostramos solo el contenedor del ticket y forzamos su visibilidad */
+  .print-ticket-container { 
+    display: block !important; 
+    position: fixed !important; 
+    left: 0 !important; 
+    top: 0 !important; 
+    width: 80mm !important; 
+    z-index: 9999999 !important;
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* Fix para diálogos heredados */
+.terminal-dialog-fix { color: #1e293b; }
+:deep(.form-label) { color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
 </style>

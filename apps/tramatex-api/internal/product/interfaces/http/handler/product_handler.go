@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/joran-cortez/tramatex/internal/product/application"
-	"github.com/joran-cortez/tramatex/internal/product/domain"
 )
 
 type ProductHandler struct {
@@ -40,6 +39,11 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 	cmd.ActorID = actorID
+
+	// Limpieza de UUIDs vacíos para evitar errores de validación de base de datos
+	if cmd.BrandID != nil && *cmd.BrandID == uuid.Nil {
+		cmd.BrandID = nil
+	}
 
 	product, err := h.service.CreateProduct(c.Request.Context(), cmd)
 	if err != nil {
@@ -144,47 +148,22 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Name               *string             `json:"name"`
-		LongName           *string             `json:"long_name"`
-		SKU                *string             `json:"sku"`
-		Barcode            *string             `json:"barcode"`
-		BasePrice          *float64            `json:"base_price"`
-		TaxRate            *float64            `json:"tax_rate"`
-		IsActive           *bool               `json:"is_active"`
-		ProductType        *domain.ProductType `json:"product_type"`
-		Description        *string             `json:"description"`
-		BrandID            *uuid.UUID          `json:"brand_id"`
-		GroupIDs           []uuid.UUID         `json:"group_ids"`
-		DirectAttributeIDs []uuid.UUID         `json:"direct_attribute_ids"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var cmd application.UpdateProductCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	actorID, ok := actorIDFromRequest(c)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing actor ID"})
 		return
 	}
+	cmd.ProductID = productID
+	cmd.ActorID = actorID
 
-	cmd := application.UpdateProductCommand{
-		ActorID:            actorID,
-		ProductID:          productID,
-		Name:               req.Name,
-		LongName:           req.LongName,
-		SKU:                req.SKU,
-		Barcode:            req.Barcode,
-		BasePrice:          req.BasePrice,
-		TaxRate:            req.TaxRate,
-		IsActive:           req.IsActive,
-		ProductType:        req.ProductType,
-		Description:        req.Description,
-		BrandID:            req.BrandID,
-		GroupIDs:           req.GroupIDs,
-		DirectAttributeIDs: req.DirectAttributeIDs,
+	// Limpieza de UUIDs vacíos
+	if cmd.BrandID != nil && *cmd.BrandID == uuid.Nil {
+		cmd.BrandID = nil
 	}
 
 	product, err := h.service.UpdateProduct(c.Request.Context(), cmd)
@@ -246,8 +225,6 @@ func (h *ProductHandler) GetAttributeByID(c *gin.Context) {
 }
 
 func (h *ProductHandler) ListAttributes(c *gin.Context) {
-	// Note: Scope-based filtering removed for MVP simplicity
-	// All attributes are generic and returned without filtering
 	var query application.ListAttributesQuery
 
 	attributes, err := h.service.ListAttributes(c.Request.Context(), query)

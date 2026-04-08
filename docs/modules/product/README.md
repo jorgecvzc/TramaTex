@@ -1,6 +1,6 @@
 # Módulo de Product (Catálogo de Productos)
 
-Este módulo es fundamental para TramaTex, ya que gestiona todo el catálogo de productos y servicios de la empresa. Proporciona la infraestructura para definir productos con atributos configurables, manejar variantes (incluida su creación Just-in-Time) y clasificar el catálogo de manera flexible.
+Este módulo es fundamental para TramaTex, ya que gestiona todo el catálogo de productos y servicios de la empresa. Proporciona la infraestructura para definir productos con atributos configurables, manejar variantes (incluida su creación Just-in-Time) y clasificar el catálogo de manera flexible. La asociación a marca es opcional, permitiendo productos genéricos o todavía no vinculados a fabricante.
 
 ## Diseño Arquitectónico
 

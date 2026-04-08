@@ -7,7 +7,9 @@ Este documento describe la lógica de estructuración del catálogo de TramaTex,
 ## 1. Agregados y Entidades de Dominio
 
 ### El Producto como Plantilla (`Product`)
-El `Product` actúa como el concepto base o "molde". Define la naturaleza del artículo (Tangible o Servicio), su marca, su categorización y, lo más importante, su **coste base de referencia** y su **tasa impositiva**. Un producto por sí solo no es vendible si requiere configuración; es la base para generar variantes.
+El `Product` actúa como el concepto base o "molde". Define la naturaleza del artículo (Tangible o Servicio), su categorización y, opcionalmente, su marca. También concentra su **coste base de referencia** y su **tasa impositiva**. Un producto por sí solo no es vendible si requiere configuración; es la base para generar variantes.
+
+- **Marca Opcional:** `BrandID` puede ser nulo. Esto permite crear productos genéricos o todavía no asociados a fabricante, manteniendo operativas la creación, la venta y la búsqueda del producto.
 
 ### Atributos y Valores (`Attribute` / `AttributeValue`)
 Representan las dimensiones de personalización (ej. Talla, Color, Material). 
@@ -23,7 +25,6 @@ Es la unidad mínima de venta. Representa una combinación única de valores de 
 ## 2. Comportamientos y Reglas Críticas
 ### Ordenamiento de Atributos por Lista Determinista
 El orden en que los atributos se aplican a un producto (para el cálculo de costes y la generación de SKUs) es crítico para la consistencia del catálogo.
-- **Eliminación de `sort_order`**: Se ha eliminado el campo explícito de orden en la entidad `Attribute` para evitar inconsistencias globales.
 - **Orden por `DirectAttributeIDs`**: El orden de herencia y aplicación se determina estrictamente por la posición de los IDs de atributos en la lista `DirectAttributeIDs` del Agregado `Product`.
 - **Impacto en SKU**: El SKU de una variante se genera concatenando el SKU base del producto con los códigos de los valores de atributos, siguiendo exactamente el orden definido en la lista del producto.
 

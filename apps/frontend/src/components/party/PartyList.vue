@@ -1,21 +1,138 @@
+<script setup lang="ts">
+/**
+ * PartyList.vue - Listado Maestro de Entidades (Clientes/Proveedores)
+ * 
+ * Implementa el estándar BaseCatalog con Arquitectura de 3 Capas.
+ */
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { partyApi } from '@/services/partyApi'
+import BaseCatalog from '@/components/shared/BaseCatalog.vue'
+
+const router = useRouter()
+const route = useRoute()
+const parties = ref<any[]>([])
+const isLoading = ref(false)
+const error = ref('')
+
+const filters = reactive({ 
+  name: (route.query.name as string) || '',
+  role: (route.query.role as string) || '', 
+  status: (route.query.status as string) || '' 
+})
+
+const hasFilters = computed(() => 
+  filters.name.trim() !== '' || filters.role !== '' || filters.status !== ''
+)
+
+// Sync filters when navigating to this page from another route (e.g. dashboard KPI cards)
+watch(() => route.query, (newQuery) => {
+  filters.name = (newQuery.name as string) || ''
+  filters.role = (newQuery.role as string) || ''
+  filters.status = (newQuery.status as string) || ''
+}, { deep: true })
+
+// Lógica de filtrado con debounce
+let debounceTimer: any = null
+watch(filters, () => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => fetchParties(), 350)
+}, { deep: true })
+
+async function fetchParties() {
+  isLoading.value = true
+  error.value = ''
+  try {
+    const res = await partyApi.listParties({ 
+      name: filters.name,
+      role: filters.role,
+      status: filters.status,
+      pageSize: 100
+    })
+    parties.value = res.data || (Array.isArray(res) ? res : [])
+  } catch (err: any) { 
+    error.value = 'No se han podido cargar las entidades.'
+    console.error(err)
+  } finally { 
+    isLoading.value = false 
+  }
+}
+
+function clearFilters() { 
+  filters.name = ''
+  filters.role = ''
+  filters.status = ''
+}
+
+function navigateToDetail(party: any) { 
+  router.push(`/parties/${party.id}`) 
+}
+
+function formatRole(r: string) { 
+  const map: Record<string, string> = { 
+    CLIENT: 'Cliente', 
+    SUPPLIER: 'Proveedor', 
+    BOTH: 'Cliente/Prov.', 
+    CONTACT: 'Contacto' 
+  }
+  return map[r] || r
+}
+
+function getStatusLabel(s: string) { return s === 'ACTIVE' ? 'Activo' : 'Inactivo'; }
+function getStatusClass(s: string) { return s === 'ACTIVE' ? 'success' : 'secondary'; }
+function formatDate(d: string) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '—' }
+
+async function toggleStatus(party: any) {
+  const newStatus = party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+  try { 
+    await partyApi.changePartyStatus(party.id, newStatus)
+    party.status = newStatus 
+  } catch (err: any) {
+    alert('Error al cambiar estado: ' + err.message)
+  }
+}
+
+async function deleteParty(party: any) {
+  if (!confirm(`¿Eliminar "${party.name}"? Esta acción no se puede deshacer.`)) return
+  try {
+    await partyApi.deleteParty(party.id)
+    await fetchParties()
+  } catch (err: any) {
+    alert('No se pudo eliminar la entidad: ' + (err.message || 'Error desconocido'))
+  }
+}
+
+onMounted(fetchParties)
+onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
+</script>
+
 <template>
-  <div class="party-list">
-    <!-- Filters and Search -->
-    <div class="filters">
-      <div>
-        <label>Buscar por nombre</label>
-        <input
-          v-model="filters.name"
-          type="text"
-          placeholder="Buscar por nombre"
-          @input="applyFilters"
-        />
+  <BaseCatalog
+    title="Base de Datos de Entidades"
+    :breadcrumbs="[{ label: 'Entidades', to: '/parties/dashboard' }, { label: 'Clientes y Proveedores' }]"
+    :items="parties"
+    :is-loading="isLoading"
+    :error="error"
+    :has-filters="hasFilters"
+    create-route="/parties/new"
+    create-text="Nueva Entidad"
+    empty-icon="groups"
+    empty-text="No hay entidades registradas"
+    @clear-filters="clearFilters"
+    @refresh="fetchParties"
+    @click-item="navigateToDetail"
+  >
+    <!-- CAPA 2: CONTEXTO (Filtros) -->
+    <template #filters>
+      <div class="filter-group">
+        <label>Búsqueda</label>
+        <input v-model="filters.name" type="text" placeholder="Nombre, NIF, Email..." />
       </div>
 
-      <div>
-        <label>Filtrar por rol</label>
-        <select v-model="filters.role" @change="applyFilters">
-          <option value="">Todos</option>
+      <div class="filter-group">
+        <label>Rol de Negocio</label>
+        <select v-model="filters.role">
+          <option value="">Todos los roles</option>
           <option value="CLIENT">Clientes</option>
           <option value="SUPPLIER">Proveedores</option>
           <option value="BOTH">Ambos</option>
@@ -23,575 +140,71 @@
         </select>
       </div>
 
-      <div>
-        <label>Filtrar por estado</label>
-        <select v-model="filters.status" @change="applyFilters">
-          <option value="">Todos</option>
-          <option value="ACTIVE">Activo</option>
-          <option value="INACTIVE">Inactivo</option>
+      <div class="filter-group">
+        <label>Estado</label>
+        <select v-model="filters.status">
+          <option value="">Cualquier estado</option>
+          <option value="ACTIVE">Activos</option>
+          <option value="INACTIVE">Inactivos</option>
         </select>
       </div>
+    </template>
 
-      <div class="filter-actions">
-        <button @click="clearFilters" class="btn btn-secondary">
-          Limpiar filtros
-        </button>
-      </div>
-    </div>
+    <!-- CAPA 3: TRABAJO (Tabla) -->
+    <template #table-header>
+      <th>Nombre / Razón Social</th>
+      <th>Tipo</th>
+      <th>Rol</th>
+      <th>NIF / CIF</th>
+      <th>Estado</th>
+      <th>Fecha Alta</th>
+      <th class="align-right">Acciones</th>
+    </template>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading">
-      <div class="spinner"></div>
-      <p>Cargando entidades...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-if="error" class="alert-error">
-      {{ error }}
-    </div>
-
-    <!-- Parties Table -->
-    <div v-if="!isLoading && parties.length > 0" class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Tipo</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th>NIF/CIF</th>
-            <th>Creado</th>
-            <th class="align-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="party in parties" :key="party.id" :class="{ inactive: party.status === 'INACTIVE' }">
-            <td>
-              <router-link :to="`/parties/${party.id}`" class="party-link">
-                {{ party.name }}
-              </router-link>
-            </td>
-            <td>
-              <span class="type-pill" :class="`type-${party.has_person ? 'person' : 'organization'}`">
-                {{ party.has_person ? '👤 Persona' : '🏢 Organización' }}
-              </span>
-            </td>
-            <td>
-              <span class="role-pill">{{ formatRole(party.role) }}</span>
-            </td>
-            <td>
-              <span class="status-pill" :class="`status-${party.status.toLowerCase()}`">
-                {{ party.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
-              </span>
-            </td>
-            <td>{{ party.tax_id || '—' }}</td>
-            <td>{{ formatDate(party.created_at) }}</td>
-            <td class="align-right">
-              <div class="action-buttons">
-                <router-link :to="`/parties/${party.id}`" class="btn btn-outline">
-                  Ver detalles
-                </router-link>
-                <button class="btn btn-secondary" @click="toggleStatus(party)">
-                  {{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}
-                </button>
-                <button v-if="party.can_delete" class="btn btn-danger" @click="deleteParty(party)" title="Eliminar entidad">
-                  🗑️ Eliminar
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="!isLoading && parties.length === 0">
-            <td colspan="7" class="empty-state">No hay entidades para mostrar.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Empty State -->
-    <div v-if="!isLoading && parties.length === 0" class="empty-state-block">
-      <p>
-        {{
-          filters.name || filters.role || filters.status
-            ? 'Prueba ajustando los filtros.'
-            : 'Crea tu primera entidad para empezar.'
-        }}
-      </p>
-      <router-link v-if="!hasFilters" to="/parties/new" class="btn btn-primary">
-        Crear entidad
-      </router-link>
-    </div>
-
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="pagination">
-      <button
-        :disabled="currentPage === 1"
-        @click="previousPage"
-        class="btn btn-secondary"
-      >
-        ← Anterior
-      </button>
-      <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
-      <button
-        :disabled="currentPage === totalPages"
-        @click="nextPage"
-        class="btn btn-secondary"
-      >
-        Siguiente →
-      </button>
-    </div>
-  </div>
+    <template #item="{ item }">
+      <td><strong class="font-bold">{{ item.name }}</strong></td>
+      <td>
+        <div class="type-info">
+          <span class="material-symbols-outlined icon-secondary">{{ item.has_person ? 'person' : 'domain' }}</span>
+          <span>{{ item.has_person ? 'Persona' : 'Organización' }}</span>
+        </div>
+      </td>
+      <td><span class="role-badge">{{ formatRole(item.role) }}</span></td>
+      <td><code class="text-mono">{{ item.tax_id || '—' }}</code></td>
+      <td>
+        <span :class="['status-badge', `status-${getStatusClass(item.status)}`]">
+          {{ getStatusLabel(item.status) }}
+        </span>
+      </td>
+      <td class="text-muted">{{ formatDate(item.created_at) }}</td>
+      <td class="align-right" @click.stop>
+        <div class="action-buttons">
+          <button 
+            class="btn btn-ghost" 
+            @click="toggleStatus(item)" 
+            :title="item.status === 'ACTIVE' ? 'Desactivar' : 'Activar'"
+          >
+            <span class="material-symbols-outlined">{{ item.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
+          </button>
+          <button 
+            v-if="item.can_delete"
+            class="btn btn-ghost btn-danger"
+            @click.stop="deleteParty(item)"
+            title="Eliminar entidad"
+          >
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      </td>
+    </template>
+  </BaseCatalog>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { partyApi } from '@/services/partyApi';
-
-const parties = ref([]);
-const isLoading = ref(false);
-const error = ref('');
-const currentPage = ref(1);
-const pageSize = ref(10);
-const total = ref(0);
-
-const filters = reactive({
-  name: '',
-  role: '',
-  status: '',
-});
-
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value));
-
-const hasFilters = computed(
-  () => filters.name.trim() !== '' || filters.role !== '' || filters.status !== ''
-);
-
-onMounted(() => {
-  fetchParties();
-});
-
-async function fetchParties() {
-  isLoading.value = true;
-  error.value = '';
-
-  try {
-    const response = await partyApi.listParties({
-      name: filters.name,
-      role: filters.role,
-      status: filters.status,
-      pageNumber: currentPage.value,
-      pageSize: pageSize.value,
-    });
-
-    parties.value = response.data || [];
-    total.value = response.total || 0;
-  } catch (err) {
-    error.value = err?.message || 'No se pudieron cargar las entidades';
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-function applyFilters() {
-  currentPage.value = 1;
-  fetchParties();
-}
-
-function clearFilters() {
-  filters.name = '';
-  filters.role = '';
-  filters.status = '';
-  currentPage.value = 1;
-  fetchParties();
-}
-
-function previousPage() {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchParties();
-  }
-}
-
-function nextPage() {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchParties();
-  }
-}
-
-async function toggleStatus(party) {
-  const newStatus = party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-  isLoading.value = true;
-  error.value = '';
-
-  try {
-    await partyApi.changePartyStatus(party.id, newStatus);
-    party.status = newStatus;
-  } catch (err) {
-    error.value = err?.message || `No se pudo cambiar el estado`;
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-async function deleteParty(party) {
-  // Confirmar eliminación
-  const confirmation = window.confirm(
-    `¿Estás seguro de que deseas eliminar la entidad "${party.name}"?\n\n` +
-    `⚠️ Esta acción no se puede deshacer.`
-  );
-
-  if (!confirmation) {
-    return;
-  }
-
-  isLoading.value = true;
-  error.value = '';
-
-  try {
-    await partyApi.deleteParty(party.id);
-    
-    // Mostrar mensaje de éxito
-    alert(`✅ La entidad "${party.name}" se eliminó correctamente.`);
-    
-    // Recargar la lista de entidades
-    await fetchParties();
-  } catch (err) {
-    // Mostrar error del backend de forma amigable
-    let errorMessage = 'No se pudo eliminar la entidad';
-    
-    if (err?.message) {
-      const msg = err.message.toLowerCase();
-      
-      if (msg.includes('sales documents') || msg.includes('sales') || msg.includes('document')) {
-        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nTiene documentos de ventas asociados (presupuestos, pedidos, facturas o albaranes).`;
-      } else if (msg.includes('mes work') || msg.includes('work record')) {
-        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nTiene trabajos MES asociados.`;
-      } else if (msg.includes('linked') || msg.includes('relationship')) {
-        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nEstá vinculada a otras entidades mediante relaciones.`;
-      } else if (msg.includes('contact details') || msg.includes('referenced')) {
-        errorMessage = `❌ No se puede eliminar "${party.name}"\n\nEstá referenciada como contacto en otras organizaciones.`;
-      } else {
-        errorMessage = `❌ No se pudo eliminar "${party.name}"\n\n${err.message}`;
-      }
-    }
-    
-    error.value = errorMessage;
-    alert(errorMessage);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-function formatRole(role) {
-  const map = {
-    CLIENT: 'Cliente',
-    SUPPLIER: 'Proveedor',
-    BOTH: 'Ambos',
-    CONTACT: 'Contacto',
-  };
-  return map[role] || role;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-</script>
-
 <style scoped>
-.party-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-}
-
-.filters > div {
-  flex: 1;
-  min-width: 0;
-}
-
-.filter-actions {
-  display: flex;
-  align-items: flex-end;
-}
-
-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
-}
-
-input,
-select {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-}
-
-input:focus,
-select:focus {
-  outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(0, 35, 149, 0.12);
-  border-top-color: #002395;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  color: #991b1b;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-thead {
-  background: #f8fafc;
-  color: #64748b;
-}
-
-th {
-  padding: 0.85rem 1rem;
-  text-align: left;
-  font-weight: 600;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-tbody tr {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-tbody tr:hover {
-  background-color: #f8fafc;
-}
-
-tbody tr.inactive {
-  opacity: 0.6;
-}
-
-td {
-  padding: 0.85rem 1rem;
-  color: #1e293b;
-}
-
-.party-link {
-  color: #002395;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.party-link:hover {
-  text-decoration: underline;
-}
-
-.role-pill,
-.status-pill,
-.type-pill {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.role-pill {
-  background-color: #e2e8f0;
-  color: #1e293b;
-}
-
-.type-pill {
-  background-color: #f1f5f9;
-  color: #475569;
-  font-size: 0.7rem;
-}
-
-.type-pill.type-person {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #1e40af;
-}
-
-.type-pill.type-organization {
-  background-color: rgba(168, 85, 247, 0.1);
-  color: #6b21a8;
-}
-
-.status-pill.status-active {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4caf50;
-}
-
-.status-pill.status-inactive {
-  background-color: rgba(158, 158, 158, 0.1);
-  color: #9e9e9e;
-}
-
-.align-right {
-  text-align: right;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.empty-state {
-  text-align: center;
-  color: #64748b;
-  padding: 1.5rem;
-}
-
-.empty-state-block {
-  text-align: center;
-  color: #64748b;
-  padding: 1.5rem;
-  border: 1px dashed #e2e8f0;
-  border-radius: 10px;
-  display: grid;
-  gap: 0.75rem;
-  justify-items: center;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.page-info {
-  color: #64748b;
-  font-weight: 500;
-  min-width: 120px;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
-
-.btn-primary {
-  background: #e6b800;
-  color: #1e293b;
-  font-weight: 700;
-}
-
-.btn-primary:hover {
-  background: #d6aa00;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #f8fafc;
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-danger {
-  background: #ffffff;
-  border: 1px solid #dc2626;
-  color: #dc2626;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #dc2626;
-  color: #ffffff;
-}
-
-.btn-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-@media (max-width: 768px) {
-  .filters {
-    flex-direction: column;
-  }
-
-  table {
-    font-size: 0.875rem;
-  }
-
-  th,
-  td {
-    padding: 0.75rem 0.5rem;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-}
+.font-bold { font-weight: 700; color: var(--color-text-primary); }
+.text-mono { font-family: var(--font-family-mono); font-size: 0.8rem; background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; }
+.type-info { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-secondary); }
+.role-badge { font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); }
+.action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
+.align-right { text-align: right; }
 </style>

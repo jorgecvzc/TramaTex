@@ -4,14 +4,13 @@ import { useTokenManager } from '@/composables'
 
 export async function requireAuth(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: any
+  from: RouteLocationNormalized
 ) {
   const authStore = useAuthStore()
   const { isTokenExpired } = useTokenManager()
 
   if (!authStore.isAuthenticated) {
-    return next({ name: 'Login', query: { redirect: to.fullPath } })
+    return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
   // Verificar si el token expiró
@@ -19,29 +18,24 @@ export async function requireAuth(
     try {
       await authStore.refreshAccessToken()
     } catch (err) {
-      return next({ name: 'Login' })
+      return { name: 'Login' }
     }
   }
-
-  next()
 }
 
 export async function requireGuest(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: any
+  from: RouteLocationNormalized
 ) {
   const authStore = useAuthStore()
 
   if (authStore.isAuthenticated) {
-    return next({ name: 'Dashboard' })
+    return { name: 'Dashboard' }
   }
-
-  next()
 }
 
 export function setupAuthGuards(router: Router) {
-  router.beforeEach(async (to, from, next) => {
+  router.beforeEach(async (to, from) => {
     const authStore = useAuthStore()
 
     // Restaurar sesión si está disponible
@@ -54,17 +48,15 @@ export function setupAuthGuards(router: Router) {
     const requiresAdmin = to.matched.some((record) => record.meta.requiresAdmin)
 
     if (requiresAuth && !authStore.isAuthenticated) {
-      return next({ name: 'Login', query: { redirect: to.fullPath } })
+      return { name: 'Login', query: { redirect: to.fullPath } }
     }
 
     if (requiresAdmin && !authStore.isAdmin) {
-      return next({ name: 'Dashboard' })
+      return { name: 'Dashboard' }
     }
 
     if (requiresGuest && authStore.isAuthenticated) {
-      return next({ name: 'Dashboard' })
+      return { name: 'Dashboard' }
     }
-
-    next()
   })
 }

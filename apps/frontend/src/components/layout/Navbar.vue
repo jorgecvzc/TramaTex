@@ -3,24 +3,30 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import UserMenu from './UserMenu.vue'
-import { Home, Package, Users, DollarSign, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Folder, Zap, User, Wrench, Tag, Plus, Settings } from 'lucide-vue-next'
+import GlobalSearch from '../shared/GlobalSearch.vue'
 
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
 const showProduct = ref(false)
 const showSales = ref(false)
 const showMES = ref(false)
+const showSearch = ref(false)
 
 function closeAllDropdowns() {
-	showProduct.value = false
+  showProduct.value = false
   showSales.value = false
   showMES.value = false
 }
 
+function openSearch() {
+  closeAllDropdowns()
+  showSearch.value = true
+}
+
 function toggleProduct() {
-	const next = !showProduct.value
-	closeAllDropdowns()
-	showProduct.value = next
+  const next = !showProduct.value
+  closeAllDropdowns()
+  showProduct.value = next
 }
 
 function toggleSales() {
@@ -35,16 +41,29 @@ function toggleMES() {
   showMES.value = next
 }
 
-function handleDocumentClick() {
-  closeAllDropdowns()
+function handleDocumentClick(event: MouseEvent) {
+  // Solo cerrar si el clic es fuera de un toggle
+  const target = event.target as HTMLElement
+  if (!target.closest('.dropdown-toggle')) {
+    closeAllDropdowns()
+  }
+}
+
+function handleShortcuts(e: KeyboardEvent) {
+  if (e.ctrlKey && e.key === 'k') {
+    e.preventDefault()
+    openSearch()
+  }
 }
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('keydown', handleShortcuts)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('keydown', handleShortcuts)
 })
 </script>
 
@@ -57,177 +76,150 @@ onBeforeUnmount(() => {
 
       <ul class="nav-menu">
         <li>
-          <RouterLink to="/dashboard" class="nav-link" active-class="active" title="Dashboard">
-            <Home :size="24" />
+          <RouterLink to="/dashboard" class="nav-link" active-class="active">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span class="nav-label">Dashboard</span>
           </RouterLink>
         </li>
         <li>
-          <RouterLink to="/parties" class="nav-link" active-class="active" title="Entidades">
-            <Users :size="24" />
+          <RouterLink to="/parties" class="nav-link" active-class="active">
+            <span class="material-symbols-outlined">groups</span>
+            <span class="nav-label">Entidades</span>
           </RouterLink>
         </li>
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="Producto" @click.stop="toggleProduct">
-            <Package :size="24" />
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleProduct">
+            <span class="material-symbols-outlined">inventory_2</span>
+            <span class="nav-label">Catálogo</span>
           </button>
           <ul v-if="showProduct" class="dropdown-menu">
             <li>
-              <RouterLink to="/products" class="dropdown-item" title="Catálogo de Productos" @click="closeAllDropdowns">
-                <Package :size="20" />
+              <RouterLink to="/products" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">list_alt</span>
+                <span>Listado de Productos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/products/new" class="dropdown-item" title="Nuevo Producto" @click="closeAllDropdowns">
-                <Plus :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/master-data/attributes" class="dropdown-item" title="Atributos" @click="closeAllDropdowns">
-                <Zap :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/master-data/brands" class="dropdown-item" title="Marcas" @click="closeAllDropdowns">
-                <Tag :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/master-data/product-groups" class="dropdown-item" title="Categorías" @click="closeAllDropdowns">
-                <Folder :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/products/pricing" class="dropdown-item" title="Consulta de Precios" @click="closeAllDropdowns">
-                <DollarSign :size="20" />
+              <RouterLink to="/products/new" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">add_box</span>
+                <span>Nuevo Producto</span>
               </RouterLink>
             </li>
           </ul>
         </li>
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="Ventas" @click.stop="toggleSales">
-            <DollarSign :size="24" />
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleSales">
+            <span class="material-symbols-outlined">payments</span>
+            <span class="nav-label">Ventas</span>
           </button>
           <ul v-if="showSales" class="dropdown-menu">
             <li>
-              <RouterLink to="/sales/quotes" class="dropdown-item" title="Presupuestos" @click="closeAllDropdowns">
-                <Clipboard :size="20" />
+              <RouterLink to="/sales/quotes" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">request_quote</span>
+                <span>Presupuestos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/orders" class="dropdown-item" title="Pedidos" @click="closeAllDropdowns">
-                <ShoppingCart :size="20" />
+              <RouterLink to="/sales/orders" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">shopping_cart</span>
+                <span>Pedidos</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/delivery-notes" class="dropdown-item" title="Albaranes" @click="closeAllDropdowns">
-                <ScrollText :size="20" />
+              <RouterLink to="/sales/delivery-notes" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">local_shipping</span>
+                <span>Albaranes</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/sales/invoices" class="dropdown-item" title="Facturas" @click="closeAllDropdowns">
-                <Receipt :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/sales/tickets/new" class="dropdown-item" title="Nuevo Ticket" @click="closeAllDropdowns">
-                <Ticket :size="20" />
+              <RouterLink to="/sales/invoices" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">receipt_long</span>
+                <span>Facturas</span>
               </RouterLink>
             </li>
           </ul>
         </li>
-
         <li class="dropdown" @click.stop>
-          <button type="button" class="nav-link dropdown-toggle" title="MES" @click.stop="toggleMES">
-            <Zap :size="24" />
+          <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleMES">
+            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <span class="nav-label">Taller</span>
           </button>
           <ul v-if="showMES" class="dropdown-menu">
             <li>
-              <RouterLink to="/mes/dashboard" class="dropdown-item" title="Panel de control" @click="closeAllDropdowns">
-                <Home :size="20" />
+              <RouterLink to="/mes/dashboard" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span>Panel de control</span>
               </RouterLink>
             </li>
             <li>
-              <RouterLink to="/mes/tasks" class="dropdown-item" title="Tareas" @click="closeAllDropdowns">
-                <Clipboard :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/mes/positions" class="dropdown-item" title="Posiciones" @click="closeAllDropdowns">
-                <Users :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/mes/work-types" class="dropdown-item" title="Tipos de trabajo" @click="closeAllDropdowns">
-                <Folder :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/mes/work-setups" class="dropdown-item" title="Configuraciones" @click="closeAllDropdowns">
-                <Settings :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/mes/work-orders" class="dropdown-item" title="Órdenes de trabajo" @click="closeAllDropdowns">
-                <ShoppingCart :size="20" />
-              </RouterLink>
-            </li>
-            <li>
-              <RouterLink to="/mes/terminal" class="dropdown-item" title="Terminal Taller" @click="closeAllDropdowns">
-                <Wrench :size="20" />
+              <RouterLink to="/mes/terminal" class="dropdown-item" @click="closeAllDropdowns">
+                <span class="material-symbols-outlined">tablet_mac</span>
+                <span>Terminal Taller</span>
               </RouterLink>
             </li>
           </ul>
         </li>
         <li v-if="isAdmin">
-          <RouterLink to="/admin/users" class="nav-link" active-class="active" title="Usuarios">
-            <User :size="24" />
+          <RouterLink to="/admin/users" class="nav-link" active-class="active">
+            <span class="material-symbols-outlined">manage_accounts</span>
+            <span class="nav-label">Admin</span>
           </RouterLink>
         </li>
       </ul>
 
+      <div class="navbar-actions">
+        <button @click="openSearch" class="search-btn" title="Búsqueda Global (Ctrl+K)">
+          <span class="material-symbols-outlined">search</span>
+          <span class="search-placeholder">Buscar...</span>
+          <span class="kbd-shortcut">Ctrl+K</span>
+        </button>
+      </div>
+
       <UserMenu />
     </div>
   </nav>
+
+  <GlobalSearch :show="showSearch" @close="showSearch = false" />
 </template>
 
 <style scoped>
 .navbar {
-  background-color: #1b3a6b;
+  background-color: var(--color-secondary);
   color: white;
-  padding: 1rem 0;
+  height: 76px; /* Altura fija para alineación exacta */
+  display: flex;
+  align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 2100;
 }
 
 .navbar-container {
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-}
-
-.navbar-brand {
-  display: flex;
   align-items: center;
 }
 
 .logo {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #ffd700;
+  color: var(--color-primary);
   text-decoration: none;
-  transition: color 0.2s;
-}
-
-.logo:hover {
-  color: #ffed4e;
+  font-family: var(--font-family-brand);
+  font-style: italic;
+  letter-spacing: -0.025em;
+  margin-right: 2rem;
 }
 
 .nav-menu {
   display: flex;
   list-style: none;
-  gap: 2rem;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
 }
@@ -236,27 +228,28 @@ onBeforeUnmount(() => {
   color: white;
   text-decoration: none;
   transition: all 0.2s;
-  padding: 0.75rem;
-  border-radius: 4px;
+  padding: 0.5rem;
+  border-radius: 8px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 48px;
+  gap: 0.2rem;
+  width: 80px;
+  height: 60px;
 }
 
-.nav-link :deep(svg) { /* Target Lucide SVG directly */
-  width: 1.5rem; /* Equivalent to 24px */
-  height: 1.5rem; /* Equivalent to 24px */
-}
-
-.nav-link:hover {
-  color: #ffd700;
-  background-color: rgba(255, 215, 0, 0.1);
-}
-
+.nav-link:hover, 
 .nav-link.active {
-  background-color: rgba(255, 215, 0, 0.2);
-  color: #ffd700;
+  color: var(--color-primary);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .dropdown {
@@ -269,6 +262,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   font: inherit;
+  color: inherit;
 }
 
 .dropdown-menu {
@@ -276,58 +270,95 @@ onBeforeUnmount(() => {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #1b3a6b;
+  background-color: var(--color-secondary);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  border-radius: 8px;
   list-style: none;
   margin: 0.5rem 0 0 0;
   padding: 0.5rem;
   display: flex;
-  gap: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  flex-direction: column;
+  gap: 0.25rem;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
   z-index: 1000;
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: white;
   text-decoration: none;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
   transition: all 0.2s;
-  min-width: 48px;
-}
-
-.dropdown-item :deep(svg) { /* Target Lucide SVG directly */
-  width: 1.25rem; /* Equivalent to 20px */
-  height: 1.25rem; /* Equivalent to 20px */
+  min-width: 180px;
 }
 
 .dropdown-item:hover {
-  background-color: rgba(255, 215, 0, 0.1);
-  color: #ffd700;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--color-primary);
 }
 
-@media (max-width: 768px) {
+.navbar-actions {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 2rem;
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.85rem;
+  min-height: 36px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  width: 100%;
+  max-width: 400px;
+  transition: all 0.2s;
+}
+
+.search-btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}
+
+.search-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.search-placeholder {
+  flex: 1;
+  text-align: left;
+  font-size: 0.84rem;
+}
+
+.kbd-shortcut {
+  font-size: 0.68rem;
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+}
+
+@media (min-width: 1201px) {
   .nav-menu {
-    gap: 0.5rem;
+    display: none;
   }
 
-  .nav-link {
-    padding: 0.5rem;
-    min-width: 40px;
+  .navbar-actions {
+    justify-content: center;
+    padding-left: 0;
   }
-  
-  .nav-link :deep(svg) {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-  
-  .dropdown-item :deep(svg) {
-    width: 1rem;
-    height: 1rem;
+
+  .logo {
+    margin-right: 0.75rem;
   }
 }
 </style>

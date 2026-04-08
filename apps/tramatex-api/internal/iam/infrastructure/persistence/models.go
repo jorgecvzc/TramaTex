@@ -19,7 +19,7 @@ type UserModel struct {
 
 // TableName especifica el nombre de la tabla en la base de datos
 func (UserModel) TableName() string {
-	return "users"
+	return "\"users\""
 }
 
 // SeedAdminUser retorna un UserModel para el usuario admin inicial

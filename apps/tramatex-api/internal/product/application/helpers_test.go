@@ -7,6 +7,8 @@ import (
 	"github.com/joran-cortez/tramatex/internal/product/domain"
 )
 
+func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
+
 // COMMENTED OUT: attributeMatchesScopeType function was removed during scope refactoring
 // This test is obsolete since the system now uses DirectAttributeIDs instead of scope-based inheritance
 /*
@@ -58,7 +60,7 @@ func TestProductMatchesQueryAndHasGroup(t *testing.T) {
 		ID:       uuid.New(),
 		SKU:      "P-1",
 		Name:     "Product",
-		BrandID:  brandID,
+		BrandID:  uuidPtr(brandID),
 		GroupIDs: []uuid.UUID{groupID},
 		IsActive: true,
 	}

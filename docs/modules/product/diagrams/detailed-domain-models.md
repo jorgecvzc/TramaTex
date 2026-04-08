@@ -22,7 +22,7 @@ classDiagram
         +LongName: string
         +Barcode: string
         +ProductType: Enum
-        +BrandID: UUID
+        +BrandID: UUID?
         +GroupIDs: List~UUID~
         +DirectAttributeIDs: List~UUID~
         +BasePrice: float64
@@ -70,13 +70,14 @@ classDiagram
 
     Product "1" -- "0..*" ProductVariant : "es instanciado como"
     Product "1" -- "0..*" Attribute : "aplica directamente"
-    Product "1" -- "1" Brand : "pertenece a"
+    Product "1" -- "0..1" Brand : "puede pertenecer a"
     Product "1" -- "0..*" ProductGroup : "puede estar en"
     
     Attribute "1" -- "1..*" AttributeValue : "contiene"
     ProductVariant "1" -- "1..*" AttributeValue: "compuesto por"
 
     note for Attribute "El alcance se define por la combinación de ScopeBrandID y ScopeGroupID (ambos, uno, o ninguno para Genérico)"
+    note for Product "BrandID es opcional: un producto puede operar sin marca y seguir heredando atributos genéricos o de grupo"
 ```
 
 ---

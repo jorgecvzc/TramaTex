@@ -316,7 +316,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description for test product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID:     uuidPtr(brandID),
 			GroupIDs:    []uuid.UUID{groupID1, groupID2},
 		}
 
@@ -333,7 +333,9 @@ func TestProductService_CreateProduct(t *testing.T) {
 		assert.NotNil(t, productDTO)
 		assert.Equal(t, cmd.SKU, productDTO.SKU)
 		assert.Equal(t, cmd.Name, productDTO.Name)
-		assert.Equal(t, cmd.BrandID, productDTO.BrandID)
+		if assert.NotNil(t, cmd.BrandID) {
+			assert.Equal(t, *cmd.BrandID, productDTO.BrandID)
+		}
 		assert.Len(t, productDTO.GroupIDs, 2)
 		mockProductRepo.AssertExpectations(t)
 		mockBrandRepo.AssertExpectations(t)
@@ -350,7 +352,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     invalidBrandID,
+			BrandID:     uuidPtr(invalidBrandID),
 		}
 
 		mockBrandRepo.On("FindByID", ctx, invalidBrandID).Return(nil, nil).Once() // Simulate not found
@@ -373,7 +375,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID:     uuidPtr(brandID),
 			GroupIDs:    []uuid.UUID{invalidGroupID},
 		}
 
@@ -398,7 +400,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 			SKU:         "", // Invalid SKU
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID:     uuidPtr(brandID),
 		}
 
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(&domain.Brand{ID: brandID, Name: "TestBrand"}, nil).Once()
@@ -421,7 +423,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 			SKU:         "TEST-SKU",
 			Name:        "Test Product",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID:     uuidPtr(brandID),
 		}
 
 		mockBrandRepo.On("FindByID", ctx, brandID).Return(&domain.Brand{ID: brandID, Name: "TestBrand"}, nil).Once()
@@ -455,7 +457,7 @@ func TestProductService_AddGroupToProduct(t *testing.T) {
 		ID:       productID,
 		SKU:      "PROD1",
 		Name:     "Product 1",
-		BrandID:  existingBrandID,
+		BrandID:  uuidPtr(existingBrandID),
 		IsActive: true,
 	}
 
@@ -542,7 +544,7 @@ func TestProductService_AddDirectAttributeToProduct(t *testing.T) {
 		ID:       productID,
 		SKU:      "PROD1",
 		Name:     "Product 1",
-		BrandID:  existingBrandID,
+		BrandID:  uuidPtr(existingBrandID),
 		IsActive: true,
 	}
 
@@ -607,14 +609,14 @@ func TestProductService_UpdateProductSKU(t *testing.T) {
 		ID:       productID,
 		SKU:      oldSKU,
 		Name:     "Product to Update",
-		BrandID:  uuid.New(),
+		BrandID:  uuidPtr(uuid.New()),
 		IsActive: true,
 	}
 	updatedProduct := &domain.Product{
 		ID:       productID,
 		SKU:      newSKU,
 		Name:     "Product to Update",
-		BrandID:  uuid.New(),
+		BrandID:  uuidPtr(uuid.New()),
 		IsActive: true,
 	}
 
@@ -698,7 +700,7 @@ func TestProductService_ListProducts(t *testing.T) {
 			ID:       uuid.New(),
 			SKU:      "P-1",
 			Name:     "Product 1",
-			BrandID:  brandID,
+			BrandID:  uuidPtr(brandID),
 			GroupIDs: []uuid.UUID{groupID},
 			IsActive: true,
 		},
@@ -706,7 +708,7 @@ func TestProductService_ListProducts(t *testing.T) {
 			ID:       uuid.New(),
 			SKU:      "P-2",
 			Name:     "Product 2",
-			BrandID:  uuid.New(),
+			BrandID:  uuidPtr(uuid.New()),
 			GroupIDs: []uuid.UUID{uuid.New()},
 			IsActive: false,
 		},

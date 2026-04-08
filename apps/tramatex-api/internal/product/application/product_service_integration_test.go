@@ -150,7 +150,7 @@ func TestProductService_GetApplicableAttributesForProduct_Integration(t *testing
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -357,7 +357,7 @@ func TestProductService_AddDirectAttributeToProduct_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -484,7 +484,7 @@ func TestProductService_UpdateProductSKU_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -811,7 +811,7 @@ func TestProductService_GetProductByID_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -868,7 +868,7 @@ func TestProductService_ListProducts_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -920,7 +920,7 @@ func TestProductService_GenerateProductVariants_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -994,7 +994,7 @@ func TestProductService_FindOrCreateProductVariant_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -1117,7 +1117,7 @@ func TestProductService_ListProductVariantsByProductID_Integration(t *testing.T)
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -1210,7 +1210,7 @@ func TestProductService_GetProductVariantByID_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -1295,7 +1295,7 @@ func TestProductService_GetProductVariantBySKU_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)
@@ -1381,7 +1381,7 @@ func TestProductService_UpdateProductVariant_Integration(t *testing.T) {
 			Barcode:     &barcode,
 			Description: "Description",
 			ProductType: domain.ProductTypeTangible,
-			BrandID:     brandID,
+			BrandID: uuidPtr(brandID),
 			GroupIDs:    groupIDs,
 		}
 		productDTO, err := ts.ProductService.CreateProduct(ctx, cmd)

@@ -40,9 +40,52 @@ metadata:
 
 active_tasks:
   title: "🔄 Active/Open Tasks"
-  count: 0
+  count: 3
   note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
-  tasks: {}
+  tasks:
+    task_16_01:
+      id: "16-01"
+      sprint: "16"
+      filename: "01-ui-ux-design-system-definition.md"
+      title: "TramaTex Design System: Átomos y Estilo Global"
+      status: "✅ Completado (AI)"
+      dates:
+        started: "2026-03-26"
+        completed: "2026-03-28"
+      context_focus: "UI/UX - Colors, Buttons, Material Symbols"
+      facilitator: "Gemini CLI"
+      key_outcomes:
+        - "Estandarización de botones (6 tipos semánticos)"
+        - "Iconografía inamovible (Material Symbols Outlined)"
+        - "Variables CSS de color y espaciado sincronizadas"
+    task_16_02:
+      id: "16-02"
+      sprint: "16"
+      filename: "02-base-entity-page-standard.md"
+      title: "Arquitectura de Pantalla Completa: BaseEntityPage"
+      status: "🔄 En Progreso"
+      dates:
+        started: "2026-03-28"
+      context_focus: "UI/UX - Layout Master Template, 3-Layer Design"
+      facilitator: "Gemini CLI"
+      key_outcomes:
+        - "Implementación de BaseEntityPage (Identity, Context, Main)"
+        - "Migración completa del módulo Sales (Quote, Order, Invoice, DeliveryNote)"
+        - "Consola de Trazabilidad integrada"
+    task_16_03:
+      id: "16-03"
+      sprint: "16"
+      filename: "03-developer-design-center.md"
+      title: "Herramientas de Desarrollo y Documentación de Diseño"
+      status: "🔄 En Progreso"
+      dates:
+        started: "2026-03-28"
+      context_focus: "DevTools - /dev/design-system route and standard guides"
+      facilitator: "Gemini CLI"
+      key_outcomes:
+        - "Ruta oculta /dev/design-system operativa"
+        - "Guía técnica de BaseEntityPage redactada"
+        - "Sección de diseño añadida al README principal"
   structure: |
     # Example task structure:
     # task_XX_YY:

@@ -135,7 +135,13 @@ func (h *PartyHandler) GetParty(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, MapPartyToDTO(party))
+	dto := MapPartyToDTO(party)
+	canDelete, err := h.deleteHandler.CanDelete(c.Request.Context(), party.ID().String())
+	if err != nil {
+		canDelete = false
+	}
+	dto.CanDelete = canDelete
+	c.JSON(http.StatusOK, dto)
 }
 
 // GetPartiesBatch handles GET /parties/batch?ids=uuid1,uuid2,uuid3
@@ -211,8 +217,9 @@ func (h *PartyHandler) ListParties(c *gin.Context) {
 		dto := MapPartyToDTO(party)
 		canDelete, err := h.deleteHandler.CanDelete(c.Request.Context(), party.ID().String())
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to evaluate party deletability"})
-			return
+			// Do not fail the whole list if one entity's deletability check fails
+			// Log the error (could be improved with a logger)
+			canDelete = false
 		}
 		dto.CanDelete = canDelete
 		dtos[i] = dto

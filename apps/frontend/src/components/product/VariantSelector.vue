@@ -8,7 +8,7 @@
 
     <!-- Error Display -->
     <div v-if="error" class="error-banner">
-      ⚠️ {{ error }}
+      <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle">warning</span> {{ error }}
     </div>
 
     <!-- Search Section -->
@@ -32,7 +32,7 @@
             class="btn btn-search"
             :disabled="isProcessing || !quickSearchQuery"
           >
-            🔍
+            <span class="material-symbols-outlined" style="font-size: 18px">search</span>
           </button>
         </div>
         <small class="form-text">
@@ -69,7 +69,7 @@
             </p>
             <div class="card-footer">
               <button @click="confirmSelection" class="btn btn-success btn-add">
-                ✓ Agregar
+                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle">check</span> Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -150,7 +150,7 @@
           :disabled="isProcessing"
         >
           <span v-if="isProcessing">Cargando...</span>
-          <span v-else>✓ Agregar</span>
+          <span v-else><span class="material-symbols-outlined" style="font-size: 16px">check</span> Agregar</span>
         </button>
       </div>
 
@@ -168,7 +168,7 @@
             </p>
             <div class="card-footer">
               <button @click="confirmSelection" class="btn btn-success btn-add">
-                ✓ Agregar
+                <Check :size="16" /> Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -497,7 +497,7 @@ async function performSmartSearch() {
     
     switch (result.type) {
       case 'exact_variant':
-        // Variant found directly → show card with "Agregar"
+        // Variant found directly → Auto-select and confirm immediately
         if (result.variant) {
           selectedVariant.value = {
             ...result.variant,
@@ -506,8 +506,11 @@ async function performSmartSearch() {
             product_base_price: result.product?.base_price ?? null,
             product_tax_rate: result.product?.tax_rate ?? null,
           }
+          // Emit the event right away to close modal and add line
+          confirmSelection()
         }
         break
+
         
       case 'exact_product':
         // Product found → load its attribute selectors

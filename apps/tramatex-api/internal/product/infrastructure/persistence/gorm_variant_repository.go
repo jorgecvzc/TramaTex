@@ -17,6 +17,8 @@ type GORMVariantRepository struct {
 
 // NewGORMVariantRepository creates a new GORMVariantRepository
 func NewGORMVariantRepository(db *gorm.DB) *GORMVariantRepository {
+	// Force automigrate to ensure table exists in current environment
+	_ = db.AutoMigrate(&VariantDataModel{})
 	return &GORMVariantRepository{db: db}
 }
 
@@ -89,7 +91,7 @@ func (r *GORMVariantRepository) FindByBarcode(ctx context.Context, barcode strin
 // FindBySKUPrefix finds product variants whose SKU starts with the given prefix
 func (r *GORMVariantRepository) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.ProductVariant, error) {
 	var dataModels []VariantDataModel
-	err := r.db.WithContext(ctx).Where("LOWER(sku) LIKE LOWER(?)", prefix+"%").Order("sku asc").Limit(20).Find(&dataModels).Error
+	err := r.db.WithContext(ctx).Where("sku ILIKE ?", prefix+"%").Order("sku asc").Limit(20).Find(&dataModels).Error
 	if err != nil {
 		return nil, err
 	}

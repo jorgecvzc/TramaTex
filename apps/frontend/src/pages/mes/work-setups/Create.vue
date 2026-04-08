@@ -1,6 +1,5 @@
 <template>
   <div class="dashboard">
-    <Navbar />
     <div class="dashboard-content">
       <header class="page-header">
         <div>
@@ -88,7 +87,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
 import { productApi } from '@/services/productApi'
@@ -204,8 +202,6 @@ onMounted(loadOptions)
 .btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
 .btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
 .btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
-.btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-.lines-block { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
 .lines-header { display: flex; justify-content: space-between; align-items: center; }
 .lines-header h3 { margin: 0; font-size: .95rem; color: #1e293b; }
 .line-row { display: grid; grid-template-columns: 1fr 1fr 70px 1fr auto auto auto; gap: .5rem; align-items: center; }

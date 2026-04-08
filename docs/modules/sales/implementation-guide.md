@@ -48,6 +48,8 @@ if err != nil {
 baseCost := variant.BaseCost
 
 // 3. Pasar baseCost al módulo Pricing para obtener el precio de venta
+// Si el producto no tiene marca, BrandID debe viajar como nil/null y Pricing
+// simplemente omite reglas o márgenes específicos de marca.
 calculatedPrice, err := pricingService.CalculatePrice(ctx, PriceCalculationParams{
     BaseCost: baseCost,
     BrandID: product.BrandID,

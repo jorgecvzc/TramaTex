@@ -52,11 +52,11 @@ Este documento describe los casos de uso para el módulo de `product`, alineado 
      - `SKU` (SKU base para la composición de variantes)
      - `Barcode` (opcional)
      - `ProductType` (`TANGIBLE`/`SERVICE`)
-     - `BrandID` y `GroupIDs`.
+     - `BrandID` (opcional) y `GroupIDs`.
      - `BasePrice` (Precio de coste base para cálculo de variantes).
      - `TaxRate` (Tipo de IVA aplicable, ej: 21.0).
   2. El sistema crea la entidad `Product`.
-- **Postcondiciones:** El producto hereda automáticamente todos los `Attribute`s que coincidan con su marca y grupos, además de los genéricos.
+- **Postcondiciones:** El producto hereda automáticamente todos los `Attribute`s que coincidan con su marca y grupos, además de los genéricos. Si no tiene marca, la herencia se resuelve solo con grupos, atributos directos y atributos genéricos.
 
 ### UC-P-004: Asignar un Atributo Directo a un Producto
 

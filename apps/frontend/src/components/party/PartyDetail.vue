@@ -1,1024 +1,397 @@
 <template>
-  <div class="party-detail">
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading">
+  <BaseEntityPage v-if="isLoading">
+    <template #header>
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Cargando' }]" />
+    </template>
+    <div class="loading-state card">
       <div class="spinner"></div>
-      <p>Cargando entidad...</p>
+      <p>Consultando ficha de entidad...</p>
     </div>
+  </BaseEntityPage>
 
-    <!-- Error State -->
-    <div v-if="error" class="error-message">
-      <span>✗ {{ error }}</span>
-      <router-link to="/parties" class="btn btn-secondary">
-        ← Volver a Entidades
-      </router-link>
-    </div>
-
-    <!-- Party Detail -->
-    <div v-if="!isLoading && party" class="detail-container">
-      <!-- Header -->
-      <div class="detail-header card">
-        <div class="header-content">
-          <h2>{{ party.name }}</h2>
-          <div class="header-badges">
-            <span class="badge" :class="`role-${party.role.toLowerCase()}`">
-              {{ formatRole(party.role) }}
-            </span>
-            <span class="badge" :class="`status-${party.status.toLowerCase()}`">
-              {{ party.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
-            </span>
-          </div>
-        </div>
+  <BaseEntityPage v-else-if="error">
+    <template #header>
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Error' }]" />
+    </template>
+    <div class="alert-card card">
+      <div class="alert-icon-wrapper error">
+        <span class="material-symbols-outlined">error</span>
       </div>
+      <div class="alert-content">
+        <h3>Error al cargar</h3>
+        <p>{{ error }}</p>
+        <button class="btn btn-outline btn-sm mt-4" @click="router.push('/parties')">Volver al catálogo</button>
+      </div>
+    </div>
+  </BaseEntityPage>
 
-      <!-- Información de la parte -->
-      <div class="info-section card">
-        <h3>Información de la entidad</h3>
-        
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Nombre</label>
-            <p>{{ party.name }}</p>
-          </div>
-          
-          <div class="info-item">
-            <label>Rol</label>
-            <p>{{ formatRole(party.role) }}</p>
-          </div>
-          
-          <div class="info-item">
-            <label>Estado</label>
-            <p>
-              {{ party.status }}
-              <button
-                @click="toggleStatus"
-                :disabled="isUpdating"
-                class="btn btn-small"
-              >
-                {{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}
-              </button>
-            </p>
-          </div>
+  <BaseEntityPage v-else-if="party || mode === 'create'">
+    <!-- 1. IDENTITY HEADER -->
+    <template #header>
+      <BasePageHeader 
+        :title="mode === 'create' ? 'Nueva Entidad' : (mode === 'edit' ? `Editando ${party?.name}` : party?.name)" 
+        :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: mode === 'create' ? 'Crear' : party?.name }]"
+        show-back
+      >
+        <template #icon>
+          <span class="material-symbols-outlined">{{ (party?.has_person || formData.hasPerson) ? 'person' : 'domain' }}</span>
+        </template>
+        <template #actions>
+          <template v-if="mode === 'detail'">
+            <button class="btn btn-primary btn-sm" @click="enterEditMode">
+              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
+            </button>
+          </template>
+          <template v-else>
+            <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
+            <button class="btn btn-primary btn-sm" @click="saveParty" :disabled="isSaving">
+              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
+            </button>
+          </template>
+        </template>
+      </BasePageHeader>
+    </template>
 
-          <div v-if="party.tax_id" class="info-item">
-            <label>NIF/CIF</label>
-            <p>{{ party.tax_id }}</p>
-          </div>
-
-          <div v-if="party.website" class="info-item">
-            <label>Sitio web</label>
-            <p>
-              <a :href="party.website" target="_blank" rel="noopener">
-                {{ party.website }}
-              </a>
-            </p>
-          </div>
-          
-          <div v-if="party.phone" class="info-item">
-            <label>Teléfono</label>
-            <p>{{ party.phone }}</p>
-          </div>
-          
-          <div v-if="party.email" class="info-item">
-            <label>Email</label>
-            <p>
-              <a :href="`mailto:${party.email}`">
-                {{ party.email }}
-              </a>
-            </p>
-          </div>
-
-          <div v-if="party.notes" class="info-item info-item-full">
-            <label>Notas</label>
-            <p>{{ party.notes }}</p>
-          </div>
-
-          <div v-if="party.role === 'CLIENT' || party.role === 'BOTH'" class="info-item">
-            <label>Bonificación por defecto</label>
-            <p>{{ party.default_discount_percentage != null ? party.default_discount_percentage + '%' : '0%' }}</p>
-          </div>
-
-          <div class="info-item">
-            <label>Creado</label>
-            <p>{{ formatDate(party.created_at) }}</p>
-          </div>
-
-          <div v-if="party.modified_at" class="info-item">
-            <label>Última modificación</label>
-            <p>{{ formatDate(party.modified_at) }}</p>
-          </div>
+    <!-- 2. TOOLBAR -->
+    <template #toolbar v-if="mode === 'detail' && party">
+      <div class="action-toolbar card">
+        <div class="toolbar-info">
+          <span :class="['status-badge', party.status === 'ACTIVE' ? 'status-success' : 'status-secondary']">
+            {{ party.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+          </span>
+          <span class="type-badge-inline">{{ formatRole(party.role) }}</span>
         </div>
-
-        <!-- Edit Button -->
-        <div class="info-actions">
-          <button v-if="!isEditing" @click="isEditing = true" class="btn btn-primary">
-            ✎ Editar entidad
+        <div class="toolbar-buttons">
+          <button class="btn btn-outline btn-sm" @click="toggleStatus">
+            <span class="material-symbols-outlined">{{ party.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
+            <span>{{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</span>
           </button>
+          <button v-if="party.can_delete" class="btn btn-outline btn-sm btn-danger" @click="deletePartyConfirm">
+            <span class="material-symbols-outlined">delete</span>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      </div>
+    </template>
 
-          <div v-if="isEditing" class="edit-form">
-            <div class="form-group">
-              <label for="editName">Nombre</label>
-              <input
-                id="editName"
-                v-model="editForm.name"
-                type="text"
-              />
-            </div>
+    <!-- 3. SUMMARY -->
+    <template #summary v-if="mode === 'detail' && party">
+      <div class="overview-tags-row">
+        <div class="summary-tag">
+          <div class="icon blue"><span class="material-symbols-outlined">fingerprint</span></div>
+          <div class="tag-content"><label>Identificación</label><strong>{{ party.tax_id || 'Sin NIF/CIF' }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon green"><span class="material-symbols-outlined">percent</span></div>
+          <div class="tag-content"><label>Dto. Comercial</label><strong>{{ party.default_discount_percentage || 0 }}%</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon purple"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="tag-content"><label>Fecha Alta</label><strong>{{ formatDate(party.created_at) }}</strong></div>
+        </div>
+      </div>
+    </template>
 
-            <div class="form-group">
-              <label for="editRole">Rol</label>
-              <select
-                id="editRole"
-                v-model="editForm.role"
-              >
-                <option value="CLIENT">Cliente</option>
-                <option value="SUPPLIER">Proveedor</option>
-                <option value="BOTH">Cliente y proveedor</option>
-                <option value="CONTACT">Contacto</option>
-              </select>
-            </div>
+    <!-- 4. RELATED (Solo para contactos) -->
+    <template #related v-if="mode === 'detail' && party?.role === 'CONTACT' && relatedEntities.length > 0">
+      <div class="related-history-grid">
+        <router-link v-for="entity in relatedEntities" :key="entity.id" :to="`/parties/${entity.id}`" class="related-tag-card highlight-info">
+          <div class="tag-icon"><span class="material-symbols-outlined">{{ entity.role === 'SUPPLIER' ? 'factory' : 'person' }}</span></div>
+          <div class="tag-content">
+            <label>Empresa Vinculada</label>
+            <strong>{{ entity.name }}</strong>
+          </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
+      </div>
+    </template>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editTaxId">NIF/CIF</label>
-                <input
-                  id="editTaxId"
-                  v-model="editForm.taxId"
-                  type="text"
-                  @blur="validateEditField('taxId')"
-                />
-                <span v-if="editErrors.taxId" class="error">{{ editErrors.taxId }}</span>
-              </div>
-
-              <div class="form-group">
-                <label for="editTaxIdType">Tipo de NIF/CIF</label>
-                <select
-                  id="editTaxIdType"
-                  v-model="editForm.taxIdType"
-                >
-                  <option value="NIF">NIF</option>
-                  <option value="CIF">CIF</option>
-                  <option value="VAT">VAT</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="editWebsite">Sitio web</label>
-              <input
-                id="editWebsite"
-                v-model="editForm.website"
-                type="text"
-                placeholder="example.com"
-                @blur="validateEditField('website')"
-              />
-              <span v-if="editErrors.website" class="error">{{ editErrors.website }}</span>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editPhone">Teléfono</label>
-                <input
-                  id="editPhone"
-                  v-model="editForm.phone"
-                  type="tel"
-                  @blur="validateEditField('phone')"
-                />
-                <span v-if="editErrors.phone" class="error">{{ editErrors.phone }}</span>
-              </div>
-              
-              <div class="form-group">
-                <label for="editEmail">Email</label>
-                <input
-                  id="editEmail"
-                  v-model="editForm.email"
-                  type="email"
-                  @blur="validateEditField('email')"
-                />
-                <span v-if="editErrors.email" class="error">{{ editErrors.email }}</span>
-              </div>
-            </div>
-
-            <div v-if="editForm.role === 'CLIENT' || editForm.role === 'BOTH'" class="form-group">
-              <label for="editDiscount">Bonificación por defecto (%)</label>
-              <input
-                id="editDiscount"
-                v-model.number="editForm.defaultDiscountPercentage"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="0.00"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="editNotes">Notas</label>
-              <textarea
-                id="editNotes"
-                v-model="editForm.notes"
-                rows="3"
-              />
-            </div>
-
-            <div class="edit-actions">
-              <button
-                @click="submitEdit"
-                :disabled="isUpdating"
-                class="btn btn-primary"
-              >
-                {{ isUpdating ? 'Guardando...' : 'Guardar cambios' }}
-              </button>
-              <button
-                @click="isEditing = false"
-                class="btn btn-secondary"
-              >
-                Cancelar
-              </button>
-            </div>
+    <!-- 5. MAIN CONTENT -->
+    <FormSection title="Información Básica" icon="info">
+      <div v-if="mode === 'detail'">
+        <DataRow label="Nombre / Razón Social" :value="party?.name" icon="person" />
+        <DataRow label="Tipo de Entidad" :value="party?.has_person ? 'Persona Física' : 'Organización / Empresa'" icon="category" />
+        <DataRow label="Identificación Fiscal" icon="fingerprint">
+          <code class="code-badge">{{ party?.tax_id || 'No proporcionado' }}</code>
+          <span class="text-xs text-muted ml-2">({{ party?.tax_id_type || 'NIF' }})</span>
+        </DataRow>
+      </div>
+      <div v-else>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre o Razón Social *</label>
+            <input v-model="formData.name" type="text" class="form-input" required placeholder="Ej: Textil del Norte S.L." />
+          </div>
+          <div class="form-group">
+            <label>Tipo de Entidad *</label>
+            <select v-model="formData.hasPerson" class="form-input" :disabled="mode === 'edit'">
+              <option :value="false">Organización / Empresa</option>
+              <option :value="true">Persona Física</option>
+            </select>
+            <span v-if="mode === 'edit'" class="text-xs text-muted mt-1">No modificable tras la creación</span>
+          </div>
+        </div>
+        <div class="form-row mt-4">
+          <div class="form-group">
+            <label>Identificación Fiscal (NIF/CIF)</label>
+            <input v-model="formData.taxId" type="text" class="form-input" placeholder="B12345678" />
+          </div>
+          <div class="form-group">
+            <label>Rol de Negocio *</label>
+            <select v-model="formData.role" class="form-input">
+              <option value="CLIENT">Cliente</option>
+              <option value="SUPPLIER">Proveedor</option>
+              <option value="BOTH">Ambos (Cliente/Prov)</option>
+              <option value="CONTACT">Solo Contacto</option>
+            </select>
           </div>
         </div>
       </div>
+    </FormSection>
 
-      <!-- Related Entities Section (for CONTACT role only) -->
-      <div v-if="party.role === 'CONTACT'" class="card related-entities-section">
-        <h3>Entidades Vinculadas</h3>
-        
-        <div v-if="isLoadingRelations" class="loading-relations">
-          <div class="spinner-small"></div>
-          <p>Cargando entidades...</p>
-        </div>
-
-        <div v-else-if="relatedEntities.length > 0" class="related-entities-list">
-          <div 
-            v-for="entity in relatedEntities" 
-            :key="entity.id" 
-            class="entity-card"
-          >
-            <div class="entity-header">
-              <div class="entity-info">
-                <div class="info-header">
-                  <h4>{{ entity.name }}</h4>
-                  <span class="badge" :class="`role-${entity.role.toLowerCase()}`">
-                    {{ formatRole(entity.role) }}
-                  </span>
-                </div>
-                <p v-if="entity.email" class="email">📧 {{ entity.email }}</p>
-                <p v-if="entity.phone" class="phone">📞 {{ entity.phone }}</p>
-                <p v-if="entity.tax_id" class="tax-id">🆔 {{ entity.tax_id }}</p>
-              </div>
-              <div class="entity-badges">
-                <button 
-                  type="button"
-                  class="btn btn-primary" 
-                  @click="navigateToEntity(entity.id)"
-                >
-                  Ver detalles
-                </button>
-              </div>
-            </div>
+    <FormSection title="Datos de Contacto" icon="contact_mail">
+      <div v-if="mode === 'detail'">
+        <DataRow label="Teléfono" :value="party?.phone" icon="call" />
+        <DataRow label="Email" icon="mail">
+          <a v-if="party?.email" :href="`mailto:${party.email}`" class="link-primary">{{ party.email }}</a>
+          <span v-else>—</span>
+        </DataRow>
+        <DataRow label="Sitio Web" icon="language">
+          <a v-if="party?.website" :href="party.website" target="_blank" class="link-primary">{{ party.website }}</a>
+          <span v-else>—</span>
+        </DataRow>
+      </div>
+      <div v-else>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Teléfono Principal</label>
+            <input v-model="formData.phone" type="tel" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input v-model="formData.email" type="email" class="form-input" />
           </div>
         </div>
-
-        <div v-else class="empty-state">
-          <p>Este contacto no está vinculado a ninguna entidad aún.</p>
-        </div>
-
-        <div v-if="relationError" class="error-message-inline">
-          <span>⚠️ {{ relationError }}</span>
+        <div class="form-group mt-4">
+          <label>Sitio Web</label>
+          <input v-model="formData.website" type="url" class="form-input" placeholder="https://..." />
         </div>
       </div>
+    </FormSection>
 
-      <!-- Contacts Section -->
-      <person-manager
-        v-if="party.role !== 'CONTACT'"
-        :party-id="partyId"
-      />
+    <FormSection title="Configuración Comercial" icon="settings_suggest">
+      <div v-if="mode === 'detail'">
+        <DataRow label="Descuento Comercial" icon="percent">
+          <strong class="text-primary" style="font-size: 1.25rem">{{ party?.default_discount_percentage || 0 }}%</strong>
+          <span class="text-xs text-muted ml-2">Aplicado por defecto en ventas</span>
+        </DataRow>
+        <DataRow label="Observaciones Internas" icon="notes">
+          <p class="notes-text">{{ party?.notes || 'Sin observaciones.' }}</p>
+        </DataRow>
+      </div>
+      <div v-else>
+        <div class="form-group">
+          <label>Descuento Comercial (%)</label>
+          <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" class="form-input w-32" />
+        </div>
+        <div class="form-group mt-4">
+          <label>Observaciones e Instrucciones Internas</label>
+          <textarea v-model="formData.notes" class="form-textarea" rows="3"></textarea>
+        </div>
+      </div>
+    </FormSection>
 
-      <!-- Addresses Section -->
-      <address-manager :party-id="partyId" />
+    <!-- GESTORES DINÁMICOS (Solo en Detalle/Edición) -->
+    <div v-if="mode !== 'create' && party?.id" class="mt-8">
+      <PersonManager v-if="party.role !== 'CONTACT'" :party-id="party.id" />
+      <AddressManager :party-id="party.id" class="mt-8" />
     </div>
-  </div>
+
+    <template #footer v-if="mode === 'detail' && party">
+      <div class="audit-info">
+        <p>Entidad registrada en el sistema el {{ formatDate(party.created_at) }}.</p>
+        <p>UUID único: <code>{{ party.id }}</code></p>
+      </div>
+    </template>
+  </BaseEntityPage>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
+import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
+import FormSection from '@/components/shared/FormSection.vue';
+import DataRow from '@/components/shared/DataRow.vue';
 import PersonManager from './PersonManager.vue';
 import AddressManager from './AddressManager.vue';
 
 const route = useRoute();
 const router = useRouter();
 
-const partyId = ref(route.params.id);
+const mode = ref('detail');
+const isLoading = ref(true);
+const isSaving = ref(false);
+const error = ref('');
 
 const party = ref(null);
-const isLoading = ref(false);
-const isUpdating = ref(false);
-const error = ref('');
-const isEditing = ref(false);
-
-// Related entities (for CONTACT role)
 const relatedEntities = ref([]);
-const isLoadingRelations = ref(false);
-const relationError = ref('');
 
-const editForm = reactive({
-  name: '',
-  role: 'CLIENT',
-  taxId: '',
-  taxIdType: 'NIF',
-  website: '',
-  phone: '',
-  email: '',
-  notes: '',
-  defaultDiscountPercentage: 0,
+const formData = reactive({
+  name: '', role: 'CLIENT', hasPerson: false, taxId: '', taxIdType: 'NIF',
+  website: '', phone: '', email: '', notes: '', defaultDiscountPercentage: 0,
 });
 
-const editErrors = reactive({
-  taxId: '',
-  phone: '',
-  email: '',
-  website: '',
-});
+watch(() => route.params.id, async (newId) => {
+  if (newId && newId !== 'new') {
+    mode.value = 'detail';
+    await fetchParty();
+  } else {
+    mode.value = 'create';
+    resetForm();
+    isLoading.value = false;
+  }
+}, { immediate: true });
 
-onMounted(() => {
-  fetchParty();
+onMounted(async () => {
+  if (route.params.id !== 'new') await fetchParty();
+  else isLoading.value = false;
 });
 
 async function fetchParty() {
-  isLoading.value = true;
-  error.value = '';
-
+  const id = route.params.id;
+  if (!id || id === 'new') return;
+  isLoading.value = true; error.value = '';
   try {
-    const data = await partyApi.getParty(partyId.value);
+    const data = await partyApi.getParty(id);
     party.value = data;
-    
-    // Initialize edit form
-    editForm.name = data.name;
-    editForm.role = data.role || 'CLIENT';
-    editForm.taxId = data.tax_id || '';
-    editForm.taxIdType = data.tax_id_type || 'NIF';
-    editForm.website = data.website || '';
-    editForm.phone = data.phone || '';
-    editForm.email = data.email || '';
-    editForm.notes = data.notes || '';
-    editForm.defaultDiscountPercentage = data.default_discount_percentage ?? 0;
-
-    // Load related entities if this is a CONTACT
-    if (data.role === 'CONTACT') {
-      await fetchRelatedEntities();
-    }
-  } catch (err) {
-    error.value = err?.message || 'Entidad no encontrada';
-  } finally {
-    isLoading.value = false;
-  }
+    if (data.role === 'CONTACT') fetchRelatedEntities(id);
+  } catch (err) { error.value = err?.message || 'Error al cargar'; }
+  finally { isLoading.value = false; }
 }
 
-async function fetchRelatedEntities() {
-  isLoadingRelations.value = true;
-  relationError.value = '';
-  
+async function fetchRelatedEntities(id) {
   try {
-    // Get relationships for the contact
-    const relationships = await partyApi.listRelationships(partyId.value);
-    
-    if (!relationships || relationships.length === 0) {
-      relatedEntities.value = [];
-      return;
-    }
-
-    // Extract entity IDs (from_party_id where contact is to_party_id, or vice versa)
-    const entityIds = relationships
-      .map(rel => {
-        // If this contact is to_party_id, get from_party_id
-        if (rel.to_party_id === partyId.value) {
-          return rel.from_party_id;
-        }
-        // If this contact is from_party_id, get to_party_id
-        if (rel.from_party_id === partyId.value) {
-          return rel.to_party_id;
-        }
-        return null;
-      })
-      .filter(id => id !== null);
-
-    // Fetch details for each related entity
-    const entityPromises = entityIds.map(entityId => 
-      partyApi.getParty(entityId).catch(() => null)
-    );
-    
-    const entities = await Promise.all(entityPromises);
+    const relationships = await partyApi.listRelationships(id);
+    const entityIds = (relationships || []).map(rel => rel.to_party_id === id ? rel.from_party_id : rel.to_party_id);
+    const entities = await Promise.all(entityIds.map(id => partyApi.getParty(id).catch(() => null)));
     relatedEntities.value = entities.filter(e => e !== null);
-  } catch (err) {
-    relationError.value = err?.message || 'No se pudieron cargar las entidades vinculadas';
-  } finally {
-    isLoadingRelations.value = false;
-  }
+  } catch (err) {}
 }
 
-function navigateToEntity(entityId) {
-  partyId.value = entityId;
-  router.push({ name: 'PartyDetail', params: { id: entityId } });
+function resetForm() {
+  Object.assign(formData, {
+    name: '', role: 'CLIENT', hasPerson: false, taxId: '', taxIdType: 'NIF',
+    website: '', phone: '', email: '', notes: '', defaultDiscountPercentage: 0,
+  });
+  party.value = null;
 }
 
-// Watch for route changes to reload data
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    partyId.value = newId;
-    fetchParty();
-  }
-});
+function enterEditMode() {
+  Object.assign(formData, {
+    name: party.value.name,
+    role: party.value.role,
+    hasPerson: party.value.has_person,
+    taxId: party.value.tax_id,
+    taxIdType: party.value.tax_id_type || 'NIF',
+    website: party.value.website,
+    phone: party.value.phone,
+    email: party.value.email,
+    notes: party.value.notes,
+    defaultDiscountPercentage: party.value.default_discount_percentage || 0
+  });
+  mode.value = 'edit';
+}
 
-async function submitEdit() {
-  if (!editForm.name.trim()) {
-    alert('El nombre es obligatorio');
-    return;
-  }
+function exitEditMode() {
+  if (mode.value === 'edit') mode.value = 'detail';
+  else router.push('/parties');
+}
 
-  // Validar todos los campos
-  validateEditField('taxId');
-  validateEditField('email');
-  validateEditField('phone');
-  validateEditField('website');
-
-  // Verificar si hay errores
-  if (editErrors.taxId || editErrors.email || editErrors.phone || editErrors.website) {
-    alert('Por favor, corrija los errores en el formulario antes de guardar');
-    return;
-  }
-
-  // Normalizar URL si se proporciona
-  if (editForm.website && editForm.website.trim()) {
-    editForm.website = normalizeUrl(editForm.website);
-  }
-
-  isUpdating.value = true;
-
+async function saveParty() {
+  if (!formData.name) { alert('El nombre es obligatorio'); return; }
+  isSaving.value = true;
   try {
-    const updatePayload = {
-      name: editForm.name,
-      role: editForm.role,
-      taxId: editForm.taxId,
-      taxIdType: editForm.taxIdType,
-      website: editForm.website || '',
-      phone: editForm.phone,
-      email: editForm.email,
-      notes: editForm.notes,
+    const payload = { 
+      ...formData, 
+      default_discount_percentage: Number(formData.defaultDiscountPercentage),
+      has_person: formData.hasPerson,
+      tax_id: formData.taxId,
+      tax_id_type: formData.taxIdType
     };
-    if (editForm.role === 'CLIENT' || editForm.role === 'BOTH') {
-      updatePayload.default_discount_percentage = editForm.defaultDiscountPercentage || 0;
-    }
-    const updated = await partyApi.updateParty(partyId.value, updatePayload);
 
-    party.value = updated;
-    isEditing.value = false;
-  } catch (err) {
-    error.value = err?.message || 'No se pudo actualizar la entidad';
-  } finally {
-    isUpdating.value = false;
-  }
+    if (mode.value === 'create') {
+      const newParty = await partyApi.createParty(payload);
+      await router.push(`/parties/${newParty.id}`);
+    } else {
+      await partyApi.updateParty(party.value.id, payload);
+      await fetchParty();
+      mode.value = 'detail';
+    }
+  } catch (err) { alert('Error al guardar: ' + err.message); }
+  finally { isSaving.value = false; }
 }
 
 async function toggleStatus() {
-  if (!party.value) return;
-
-  isUpdating.value = true;
-
+  const newStatus = party.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
   try {
-    const newStatus = party.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const updated = await partyApi.changePartyStatus(partyId.value, newStatus);
+    const updated = await partyApi.changePartyStatus(party.value.id, newStatus);
     party.value = updated;
-  } catch (err) {
-    error.value = err?.message || 'No se pudo actualizar el estado';
-  } finally {
-    isUpdating.value = false;
-  }
+  } catch (err) { alert(err.message); }
 }
 
-function formatRole(role) {
-  const map = {
-    CLIENT: 'Cliente',
-    SUPPLIER: 'Proveedor',
-    BOTH: 'Ambos',
-    CONTACT: 'Contacto',
-  };
-  return map[role] || role;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-function normalizeUrl(url) {
-  if (!url || !url.trim()) return url;
-  
-  const trimmedUrl = url.trim();
-  // Si ya tiene protocolo, devolver tal cual
-  if (/^https?:\/\//i.test(trimmedUrl)) {
-    return trimmedUrl;
-  }
-  
-  // Si no tiene protocolo, añadir https://
-  return `https://${trimmedUrl}`;
-}
-
-function isValidUrl(string) {
-  if (!string || !string.trim()) return true; // Empty is valid
-  
+async function deletePartyConfirm() {
+  if (!confirm(`¿Eliminar "${party.value.name}"? Esta acción no se puede deshacer.`)) return;
   try {
-    const url = new URL(string);
-    
-    // Validar que el hostname tenga al menos un punto (dominio válido)
-    // Esto rechaza casos como "https://asdf" y acepta "https://example.com"
-    if (!url.hostname.includes('.')) {
-      return false;
-    }
-    
-    return true;
-  } catch (_) {
-    return false;
-  }
+    await partyApi.deleteParty(party.value.id);
+    router.push('/parties');
+  } catch (err) { alert('No se pudo eliminar: ' + (err?.message || 'Error desconocido')); }
 }
 
-function isValidEmail(string) {
-  const emailRegex = /^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(string.trim());
-}
-
-function isValidPhone(string) {
-  const phoneRegex = /^[\+]?[\d\s\-()]{8,}$/;
-  return phoneRegex.test(string.trim());
-}
-
-function isValidTaxId(taxId, taxIdType) {
-  if (!taxId || !taxId.trim()) return true; // Empty is valid
-  
-  const trimmed = taxId.trim().toUpperCase();
-  
-  if (taxIdType === 'NIF') {
-    // NIF español: 8 dígitos + letra
-    const nifRegex = /^[0-9]{8}[A-Z]$/;
-    return nifRegex.test(trimmed);
-  } else if (taxIdType === 'CIF') {
-    // CIF español: letra + 7 dígitos + dígito o letra
-    const cifRegex = /^[A-Z][0-9]{7}[0-9A-Z]$/;
-    return cifRegex.test(trimmed);
-  } else if (taxIdType === 'VAT') {
-    // VAT genérico: al menos 2 caracteres
-    return trimmed.length >= 2;
-  }
-  
-  return true;
-}
-
-const editValidationRules = {
-  taxId: (value) => {
-    if (value && !isValidTaxId(value, editForm.taxIdType)) {
-      if (editForm.taxIdType === 'NIF') {
-        return 'Formato de NIF inválido (debe ser 8 dígitos seguidos de una letra)';
-      } else if (editForm.taxIdType === 'CIF') {
-        return 'Formato de CIF inválido (debe ser letra + 7 dígitos + dígito o letra)';
-      }
-      return 'Formato inválido';
-    }
-    return '';
-  },
-  website: (value) => {
-    if (value && value.trim()) {
-      const normalized = normalizeUrl(value);
-      if (!isValidUrl(normalized)) {
-        return 'Formato de URL inválido';
-      }
-    }
-    return '';
-  },
-  phone: (value) => {
-    if (value && value.trim() && !isValidPhone(value)) {
-      return 'Formato inválido. Debe tener al menos 8 dígitos y puede incluir +, espacios, guiones y paréntesis';
-    }
-    return '';
-  },
-  email: (value) => {
-    if (value && value.trim() && !isValidEmail(value)) {
-      return 'Formato de email inválido';
-    }
-    return '';
-  },
-};
-
-function validateEditField(fieldName) {
-  const validator = editValidationRules[fieldName];
-  if (validator) {
-    editErrors[fieldName] = validator(editForm[fieldName]);
-  }
-}
+function formatRole(r) { const map = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Cliente/Prov.', CONTACT: 'Contacto' }; return map[r] || r; }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'; }
 </script>
 
 <style scoped>
-.party-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+@import "@/design-system/_sections.css";
 
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  gap: 1rem;
-}
+.overview-tags-row, .related-history-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
+.related-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(0, 35, 149, 0.12);
-  border-top-color: #002395;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
+.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
+.related-tag-card { padding: 0.6rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-left: 4px solid var(--color-secondary); border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; position: relative; transition: all 0.2s ease; }
+.related-tag-card.highlight-info { border-left-color: #2563eb; }
+.related-tag-card:hover { background: white; transform: translateX(2px) translateY(-1px); box-shadow: var(--box-shadow-md); }
+.related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+.tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
+.tag-icon .material-symbols-outlined { font-size: 22px; }
 
-.error-message {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 1rem;
-  text-align: center;
-  color: #991b1b;
-}
+.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
+.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+.icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 
-.detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+.tag-content { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; }
+.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
+.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
 
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
+.action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); }
+.status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; }
+.toolbar-buttons { display: flex; gap: 0.75rem; }
 
-.card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
+.type-badge-inline { margin-left: 1rem; padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 800; border-radius: 6px; background: var(--color-background); color: var(--color-text-secondary); border: 1px solid var(--color-border); text-transform: uppercase; }
 
-.info-note h3 {
-  margin: 0 0 0.5rem;
-  color: #1b3a6b;
-}
+.notes-text { background: var(--color-background); padding: 1rem; border-radius: 8px; font-style: italic; color: var(--color-text-secondary); line-height: 1.6; }
+.code-badge { background: var(--color-background); padding: 0.2rem 0.5rem; border-radius: 4px; font-family: var(--font-family-mono); font-weight: 700; }
 
-.info-note p {
-  margin: 0;
-  color: #64748b;
-}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group label { display: block; font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+.form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
 
-.header-content h2 {
-  color: #1b3a6b;
-  margin: 0 0 1rem 0;
-  font-size: 1.6rem;
-}
-
-.header-badges {
-  display: flex;
-  gap: 1rem;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.75rem;
-}
-
-.badge.role-client {
-  background-color: rgba(33, 150, 243, 0.1);
-  color: #2196f3;
-}
-
-.badge.role-supplier {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4caf50;
-}
-
-.badge.role-both {
-  background-color: rgba(230, 184, 0, 0.1);
-  color: var(--primary-color);
-}
-
-.badge.status-active {
-  background-color: rgba(76, 175, 80, 0.1);
-  color: #4caf50;
-}
-
-.badge.status-inactive {
-  background-color: rgba(158, 158, 158, 0.1);
-  color: #9e9e9e;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
-
-.btn-primary {
-  background: #eac54f;
-  color: #1e293b;
-  border: none;
-  font-weight: 600;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a41d;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-secondary:hover {
-  background: #f8fafc;
-}
-
-.btn-small {
-  padding: 0.4rem 0.75rem;
-  font-size: 0.75rem;
-  margin-left: 0.5rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.info-section h3 {
-  color: #1b3a6b;
-  margin: 0;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.info-item label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
-}
-
-.info-item p {
-  color: #1e293b;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.info-item-full {
-  grid-column: 1 / -1;
-}
-
-.info-item a {
-  color: #002395;
-  text-decoration: none;
-}
-
-.info-item a:hover {
-  text-decoration: underline;
-}
-
-.info-actions {
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-.edit-form {
-  background: #f8fafc;
-  padding: 1.5rem;
-  border-radius: 10px;
-  margin-top: 1rem;
-  border: 1px solid #e2e8f0;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-  font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-group .error {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-/* Related Entities Section */
-.related-entities-section {
-  margin-top: 1.5rem;
-}
-
-.related-entities-section h3 {
-  color: #1b3a6b;
-  margin: 0 0 1rem 0;
-}
-
-.loading-relations {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 2rem;
-  justify-content: center;
-  color: #64748b;
-}
-
-.spinner-small {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(230, 184, 0, 0.2);
-  border-top-color: #e6b800;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.related-entities-list {
-  display: grid;
-  gap: 1rem;
-}
-
-.entity-card {
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-}
-
-.entity-card:hover {
-  border-color: #002395;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-}
-
-.entity-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.entity-info h4 {
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
-}
-
-.entity-info {
-  flex: 1;
-}
-
-.info-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.info-header h4 {
-  margin: 0;
-}
-
-.entity-info p {
-  color: #64748b;
-  margin: 0.25rem 0;
-  font-size: 0.9rem;
-}
-
-.entity-badges {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.error-message-inline {
-  color: #991b1b;
-  background-color: #fee2e2;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  border: 1px solid #ef4444;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #64748b;
-}
-
-@media (max-width: 768px) {
-  .detail-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .edit-actions {
-    flex-direction: column;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .entity-info {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .entity-meta {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
+.link-primary { color: var(--color-secondary); font-weight: 600; text-decoration: none; }
+.link-primary:hover { text-decoration: underline; }
+.w-32 { width: 8rem; }
 </style>

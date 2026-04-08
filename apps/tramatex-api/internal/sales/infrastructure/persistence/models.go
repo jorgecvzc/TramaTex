@@ -28,7 +28,7 @@ type QuoteDataModel struct {
 }
 
 func (QuoteDataModel) TableName() string {
-	return "quotes"
+	return "\"quotes\""
 }
 
 type QuoteLineItemDataModel struct {
@@ -51,7 +51,7 @@ type QuoteLineItemDataModel struct {
 }
 
 func (QuoteLineItemDataModel) TableName() string {
-	return "quote_line_items"
+	return "\"quote_line_items\""
 }
 
 type SalesOrderDataModel struct {
@@ -73,7 +73,7 @@ type SalesOrderDataModel struct {
 }
 
 func (SalesOrderDataModel) TableName() string {
-	return "sales_orders"
+	return "\"sales_orders\""
 }
 
 type OrderLineItemDataModel struct {
@@ -96,7 +96,7 @@ type OrderLineItemDataModel struct {
 }
 
 func (OrderLineItemDataModel) TableName() string {
-	return "order_line_items"
+	return "\"order_line_items\""
 }
 
 type DeliveryNoteDataModel struct {
@@ -111,7 +111,7 @@ type DeliveryNoteDataModel struct {
 }
 
 func (DeliveryNoteDataModel) TableName() string {
-	return "delivery_notes"
+	return "\"delivery_notes\""
 }
 
 type DeliveryNoteLineItemDataModel struct {
@@ -125,7 +125,7 @@ type DeliveryNoteLineItemDataModel struct {
 }
 
 func (DeliveryNoteLineItemDataModel) TableName() string {
-	return "delivery_note_line_items"
+	return "\"delivery_note_line_items\""
 }
 
 type InvoiceDataModel struct {
@@ -150,7 +150,7 @@ type InvoiceDataModel struct {
 }
 
 func (InvoiceDataModel) TableName() string {
-	return "invoices"
+	return "\"invoices\""
 }
 
 type InvoiceLineItemDataModel struct {
@@ -174,7 +174,7 @@ type InvoiceLineItemDataModel struct {
 }
 
 func (InvoiceLineItemDataModel) TableName() string {
-	return "invoice_line_items"
+	return "\"invoice_line_items\""
 }
 
 func quoteFromDomain(quote *domain.Quote) (*QuoteDataModel, error) {

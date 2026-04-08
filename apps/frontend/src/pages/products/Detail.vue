@@ -1,615 +1,445 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">Operaciones / Productos</p>
-          <h1>Detalle de producto</h1>
-          <p class="subtitle">Información completa, variantes, atributos y precios.</p>
-        </div>
-        <RouterLink to="/products" class="btn btn-secondary">
-          Volver al catálogo
-        </RouterLink>
-      </header>
+  
+  <BaseEntityPage v-if="isLoading" class="no-print">
+    <template #header>
+      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
+    </template>
+    <div class="loading-state card">
+      <div class="spinner"></div>
+      <p>Consultando ficha técnica...</p>
+    </div>
+  </BaseEntityPage>
 
-      <!-- Loading State -->
-      <div v-if="isLoading" class="loading">
-        <div class="spinner"></div>
-        <p>Cargando producto...</p>
+  <BaseEntityPage v-else-if="error" class="no-print">
+    <template #header>
+      <PageHeader title="Error" :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
+    </template>
+    <div class="alert-card card">
+      <div class="alert-icon-wrapper error">
+        <span class="material-symbols-outlined">error</span>
       </div>
-
-      <!-- Error State -->
-      <div v-if="error" class="alert-error">
-        {{ error }}
-        <RouterLink to="/products" class="btn btn-outline">
-          ← Volver al catálogo
-        </RouterLink>
-      </div>
-
-      <!-- Product Detail -->
-      <div v-if="!isLoading && product" class="detail-container">
-        <!-- Header Card -->
-        <div class="detail-header card">
-          <div class="header-content">
-            <div>
-              <div class="header-title">
-                <h2>{{ product.name }}</h2>
-                <code v-if="product.sku" class="sku-badge">{{ product.sku }}</code>
-              </div>
-              <p v-if="product.long_name" class="long-name">{{ product.long_name }}</p>
-            </div>
-            <div class="header-badges">
-              <span class="pill" :class="`type-${product.product_type.toLowerCase()}`">
-                {{ product.product_type === 'TANGIBLE' ? 'Tangible' : 'Servicio' }}
-              </span>
-              <span class="pill" :class="product.is_active ? 'active' : 'inactive'">
-                {{ product.is_active ? 'Activo' : 'Inactivo' }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabs Navigation -->
-        <div class="tabs-container card">
-          <div class="tabs-nav">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="['tab-button', { active: activeTab === tab.id }]"
-            >
-              <component :is="tab.icon" :size="20" class="tab-icon" />
-              <span class="tab-label">{{ tab.label }}</span>
-              <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
-            </button>
-          </div>
-
-          <!-- Tab Content -->
-          <div class="tab-content">
-            <!-- Tab 1: General Information -->
-            <ProductDetailInfo
-              v-if="activeTab === 'info'"
-              :product="product"
-              :brand="brand"
-              :groups="groups"
-              @update="handleProductUpdate"
-              @toggle-status="handleToggleStatus"
-            />
-
-            <!-- Tab 2: Variants -->
-            <VariantTable
-              v-if="activeTab === 'variants'"
-              :product-id="productId"
-              :product-sku="product?.sku || ''"
-              :variants="variants"
-              :is-loading="isLoadingVariants"
-              @refresh="fetchVariants"
-            />
-
-            <!-- Tab 3: Attributes -->
-            <AttributesPanel
-              v-if="activeTab === 'attributes'"
-              :product="product"
-              :calculated-attributes="calculatedAttributes"
-              :is-loading="isLoadingAttributes"
-              @refresh="fetchCalculatedAttributes"
-            />
-
-            <!-- Tab 4: History -->
-            <div v-if="activeTab === 'history'" class="history-tab">
-              <h3>Historial de Cambios</h3>
-              <div class="empty-state">
-                <ClipboardList :size="48" class="empty-icon" />
-                <p>El historial de auditoría estará disponible próximamente.</p>
-                <p class="empty-hint">
-                  Aquí podrás ver todos los cambios realizados en este producto,
-                  incluyendo quién y cuándo se modificó.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="alert-content">
+        <h3>Error al cargar</h3>
+        <p>{{ error }}</p>
+        <button class="btn btn-outline btn-sm mt-4" @click="router.push('/products')">Volver al catálogo</button>
       </div>
     </div>
-  </div>
+  </BaseEntityPage>
+
+  <BaseEntityPage v-else-if="product || mode === 'create'" class="no-print">
+    <!-- CAPA 1: IDENTIDAD -->
+    <template #header>
+      <div class="sticky-header-container">
+        <PageHeader
+          :title="mode === 'create' ? 'Nuevo Producto' : (mode === 'edit' ? `Editando ${product?.name}` : product?.name)"
+          :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Productos', to: '/products' }, { label: mode === 'create' ? 'Alta' : product?.sku }]"
+          show-back
+        >
+
+          <template #icon>
+            <span class="material-symbols-outlined">{{ (product?.product_type === 'SERVICE' || formData.productType === 'SERVICE') ? 'precision_manufacturing' : 'inventory_2' }}</span>
+          </template>
+          <template #actions>
+            <template v-if="mode === 'detail'">
+              <button class="btn btn-primary" @click="enterEditMode">
+                <span class="material-symbols-outlined">edit</span> <span>Editar Producto</span>
+              </button>
+            </template>
+            <template v-else>
+              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
+                <span class="material-symbols-outlined">close</span>
+                <span>Cancelar</span>
+              </button>
+              <button class="btn btn-secondary" @click="saveProduct" :disabled="isSaving">
+                <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+                <span>{{ isSaving ? 'Guardar Producto' : 'Guardar Producto' }}</span>
+              </button>
+            </template>
+          </template>
+        </PageHeader>
+
+        <!-- NAVEGACIÓN POR PESTAÑAS -->
+        <nav v-if="mode !== 'create'" class="entity-tabs">
+          <button 
+            v-for="tab in availableTabs" 
+            :key="tab.id" 
+            @click="activeTab = tab.id"
+            :class="['tab-btn', { active: activeTab === tab.id }]"
+          >
+            <span class="material-symbols-outlined">{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+            <span v-if="tab.count !== undefined" class="tab-badge">{{ tab.count }}</span>
+          </button>
+        </nav>
+      </div>
+    </template>
+
+    <!-- CAPA 2: CONTEXTO (Resumen) -->
+    <template #summary v-if="mode !== 'create' && product">
+      <div class="overview-tags-row">
+        <div class="summary-tag">
+          <div class="icon blue"><span class="material-symbols-outlined">payments</span></div>
+          <div class="tag-content"><label>Precio Base</label><strong>{{ formatPrice(product.base_price) }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon green"><span class="material-symbols-outlined">layers</span></div>
+          <div class="tag-content"><label>Variantes</label><strong>{{ variants.length }} activas</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon purple"><span class="material-symbols-outlined">category</span></div>
+          <div class="tag-content"><label>Marca</label><strong>{{ brand?.name || 'Genérica' }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon yellow"><span class="material-symbols-outlined">verified</span></div>
+          <div class="tag-content">
+            <label>Estado</label>
+            <strong :class="product.is_active ? 'text-success' : 'text-secondary'">{{ product.is_active ? 'Activo' : 'Inactivo' }}</strong>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- CAPA 3: TRABAJO (Contenido) -->
+    <div class="product-master-content">
+      <div v-if="activeTab === 'info'" class="tab-fade-in">
+        <!-- SECCIÓN: BÁSICO -->
+        <FormSection title="Información Básica" icon="description">
+          <div v-if="mode === 'detail'">
+            <DataRow label="Nombre Comercial" :value="product?.name" icon="label" />
+            <DataRow label="Referencia (SKU)" icon="fingerprint">
+              <code class="code-badge">{{ product?.sku }}</code>
+            </DataRow>
+            <DataRow label="Descripción Larga" icon="notes">
+              <p class="notes-text">{{ product?.long_name || 'Sin descripción adicional.' }}</p>
+            </DataRow>
+          </div>
+          <div v-else>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nombre del Producto *</label>
+                <input v-model="formData.name" type="text" class="form-input" required placeholder="Nombre comercial" />
+              </div>
+              <div class="form-group">
+                <label>SKU / Referencia *</label>
+                <input v-model="formData.sku" type="text" class="form-input" required placeholder="Código único" />
+              </div>
+            </div>
+            <div class="form-group mt-4">
+              <label>Descripción Larga (Catálogo)</label>
+              <textarea v-model="formData.longName" class="form-textarea" rows="2" placeholder="Detalles técnicos..."></textarea>
+            </div>
+          </div>
+        </FormSection>
+
+        <!-- SECCIÓN: CLASIFICACIÓN (Multi-grupo) -->
+        <FormSection title="Clasificación y Familias" icon="category" class="mt-8">
+          <div v-if="mode === 'detail'">
+            <DataRow label="Tipo de Producto" :value="product?.product_type === 'TANGIBLE' ? 'Tangible / Stock' : 'Servicio / Taller'" icon="inventory" />
+            <DataRow label="Marca / Fabricante" :value="brand?.name || 'Genérica'" icon="branding_watermark" />
+            <DataRow label="Familias / Categorías" icon="account_tree">
+              <div class="tags-cloud">
+                <span v-for="g in groups" :key="g.id" class="status-badge status-secondary">{{ g.name }}</span>
+                <span v-if="groups.length === 0" class="text-muted italic">Sin categorías asignadas</span>
+              </div>
+            </DataRow>
+          </div>
+          <div v-else>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Tipo de Producto</label>
+                <select v-model="formData.productType" class="form-input" :disabled="mode === 'edit'">
+                  <option value="TANGIBLE">Tangible (Ropa, EPIs, etc.)</option>
+                  <option value="SERVICE">Servicio (Bordado, Arreglo, etc.)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Marca</label>
+                <select v-model="formData.brandId" class="form-input">
+                  <option :value="null">-- Ninguna / Genérica --</option>
+                  <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group mt-6">
+              <label class="mb-3 block">Familias / Grupos de Producto (Seleccione uno o más)</label>
+              <div class="selection-grid-container">
+                <label v-for="group in productGroups" :key="group.id" class="selection-card">
+                  <input type="checkbox" :value="group.id" v-model="formData.groupIds" />
+                  <div class="card-content">
+                    <strong>{{ group.name }}</strong>
+                    <p class="text-xs text-muted">{{ group.description || 'Sin descripción' }}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </FormSection>
+
+        <!-- SECCIÓN: ATRIBUTOS (Solo en creación/edición) -->
+        <FormSection title="Atributos de Configuración" icon="tune" class="mt-8">
+          <div v-if="mode === 'detail'">
+            <DataRow label="Atributos Vinculados" icon="settings_input_component">
+              <div class="tags-cloud">
+                <span v-for="attrId in product?.attribute_ids" :key="attrId" class="status-badge status-info">
+                  {{ allAttributes.find(a => a.id === attrId)?.name || attrId }}
+                </span>
+                <span v-if="!product?.attribute_ids?.length" class="text-muted italic">No define atributos (Producto único)</span>
+              </div>
+            </DataRow>
+          </div>
+          <div v-else>
+            <p class="help-text mb-4">Seleccione qué atributos definen las variantes de este producto (ej: Talla, Color).</p>
+            <div class="selection-grid-container">
+              <label v-for="attr in allAttributes" :key="attr.id" class="selection-card">
+                <input type="checkbox" :value="attr.id" v-model="formData.attributeIds" />
+                <div class="card-content">
+                  <strong>{{ attr.name }}</strong>
+                  <code class="text-xs">{{ attr.code }}</code>
+                </div>
+              </label>
+            </div>
+          </div>
+        </FormSection>
+
+        <!-- SECCIÓN: PRECIOS -->
+        <FormSection title="Estrategia de Precios" icon="payments" class="mt-8">
+          <div v-if="mode === 'detail'">
+            <DataRow label="Precio Base de Venta" icon="sell">
+              <strong class="text-primary" style="font-size: 1.25rem">{{ formatPrice(product?.base_price) }}</strong>
+              <span class="text-xs text-muted ml-2">PVP base para variantes</span>
+            </DataRow>
+          </div>
+          <div v-else>
+            <div class="form-group">
+              <label>Precio Base de Venta (€) *</label>
+              <input v-model.number="formData.basePrice" type="number" step="0.01" class="form-input w-48" required />
+            </div>
+          </div>
+        </FormSection>
+      </div>
+
+      <!-- RESTO DE PESTAÑAS (Solo en modo detalle) -->
+      <div v-if="activeTab === 'variants' && product" class="tab-fade-in">
+        <VariantTable :product-id="product.id" :product-sku="product.sku" :variants="variants" :is-loading="isLoadingVariants" @refresh="fetchVariants" />
+      </div>
+      <div v-if="activeTab === 'attributes' && product" class="tab-fade-in">
+        <AttributesPanel :product="product" :calculated-attributes="calculatedAttributes" :is-loading="isLoadingAttributes" @refresh="fetchCalculatedAttributes" />
+      </div>
+      <div v-if="activeTab === 'pricing' && product" class="tab-fade-in">
+        <PricingPanel
+          :product-id="product.id"
+          :product-name="product.name"
+          :variants="variants"
+          :is-loading-variants="isLoadingVariants"
+          @refresh="fetchProduct"
+        />
+      </div>
+    </div>
+
+    <template #footer v-if="mode === 'detail' && product">
+      <div class="audit-info">
+        <p>Producto registrado el {{ formatDate(product.created_at) }}.</p>
+        <p>UUID: <code>{{ product.id }}</code></p>
+      </div>
+    </template>
+  </BaseEntityPage>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { RouterLink } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
-import ProductDetailInfo from '@/components/product/ProductDetailInfo.vue'
-import VariantTable from '@/components/product/VariantTable.vue'
-import AttributesPanel from '@/components/product/AttributesPanel.vue'
-import { productApi } from '@/services/productApi'
-import { FileText, Hash, Tag, ClipboardList } from 'lucide-vue-next'
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
+import PageHeader from '@/components/layout/PageHeader.vue';
+import FormSection from '@/components/shared/FormSection.vue';
+import DataRow from '@/components/shared/DataRow.vue';
+import VariantTable from '@/components/product/VariantTable.vue';
+import AttributesPanel from '@/components/product/AttributesPanel.vue';
+import PricingPanel from '@/components/product/PricingPanel.vue';
+import { productApi } from '@/services/productApi';
 
-const route = useRoute()
-const productId = route.params.id
+const router = useRouter();
+const route = useRoute();
 
-// State
-const product = ref(null)
-const brand = ref(null)
-const groups = ref([])
-const variants = ref([])
-const calculatedAttributes = ref([])
-const isLoading = ref(false)
-const isLoadingVariants = ref(false)
-const isLoadingAttributes = ref(false)
-const error = ref('')
-const activeTab = ref('info')
+const mode = ref('detail');
+const activeTab = ref('info');
+const isLoading = ref(true);
+const isSaving = ref(false);
+const error = ref('');
 
-// Tabs configuration
-const tabs = computed(() => [
-  {
-    id: 'info',
-    label: 'Información',
-    icon: FileText,
-  },
-  {
-    id: 'variants',
-    label: 'Variantes',
-    icon: Hash,
-    count: variants.value.length,
-  },
-  {
-    id: 'attributes',
-    label: 'Atributos',
-    icon: Tag,
-    count: calculatedAttributes.value.length,
-  },
-  {
-    id: 'history',
-    label: 'Historial',
-    icon: ClipboardList,
-  },
-])
+const product = ref(null);
+const brand = ref(null);
+const groups = ref([]);
+const variants = ref([]);
+const calculatedAttributes = ref([]);
+const brands = ref([]);
+const productGroups = ref([]);
+const allAttributes = ref([]);
 
-// Lifecycle
-onMounted(async () => {
-  await fetchProduct()
-  await Promise.all([
-    fetchVariants(),
-    fetchCalculatedAttributes(),
-  ])
-})
+const isLoadingVariants = ref(false);
+const isLoadingAttributes = ref(false);
 
-// Methods
-async function fetchProduct() {
-  isLoading.value = true
-  error.value = ''
+const formData = reactive({
+  name: '', sku: '', longName: '', productType: 'TANGIBLE', brandId: null, basePrice: 0,
+  groupIds: [], attributeIds: []
+});
 
-  try {
-    const data = await productApi.getProduct(productId)
-    product.value = data
+const availableTabs = computed(() => {
+  if (mode.value === 'create') return [{ id: 'info', label: 'Alta de Producto', icon: 'add_box' }];
+  return [
+    { id: 'info', label: 'Ficha Técnica', icon: 'description' },
+    { id: 'variants', label: 'Variantes (JIT)', icon: 'layers', count: variants.value.length },
+    { id: 'attributes', label: 'Matriz Atributos', icon: 'settings_input_component' },
+    { id: 'pricing', label: 'Precios y Costes', icon: 'payments' }
+  ];
+});
 
-    // Fetch related data
-    if (data.brand_id) {
-      brand.value = await productApi.getBrand(data.brand_id)
-    }
-
-    if (data.group_ids && data.group_ids.length > 0) {
-      const groupPromises = data.group_ids.map(id =>
-        productApi.getProductGroup(id).catch(() => null)
-      )
-      const fetchedGroups = await Promise.all(groupPromises)
-      groups.value = fetchedGroups.filter(g => g !== null)
-    }
-  } catch (err) {
-    error.value = err?.message || 'No se pudo cargar el producto'
-  } finally {
-    isLoading.value = false
+watch(() => route.params.id, async (newId) => {
+  if (newId && newId !== 'new') {
+    mode.value = 'detail';
+    await fetchProduct();
+    await Promise.all([fetchVariants(), fetchCalculatedAttributes(), loadMasters()]);
+  } else {
+    mode.value = 'create';
+    resetForm();
+    await loadMasters();
+    isLoading.value = false;
   }
+}, { immediate: true });
+
+async function fetchProduct() {
+  const id = route.params.id;
+  if (!id || id === 'new') return;
+  isLoading.value = true; error.value = '';
+  try {
+    const data = await productApi.getProduct(id);
+    product.value = data;
+    if (data.brand_id) brand.value = await productApi.getBrand(data.brand_id);
+    if (data.group_ids?.length > 0) {
+      const fetched = await Promise.all(data.group_ids.map(gid => productApi.getProductGroup(gid).catch(() => null)));
+      groups.value = fetched.filter(g => g !== null);
+    }
+  } catch (err) { error.value = 'No se ha podido cargar el producto.'; }
+  finally { isLoading.value = false; }
 }
 
 async function fetchVariants() {
-  isLoadingVariants.value = true
-
-  try {
-    const data = await productApi.listProductVariants(productId)
-    variants.value = data.variants || data || []
-  } catch (err) {
-    console.error('Error fetching variants:', err)
-    variants.value = []
-  } finally {
-    isLoadingVariants.value = false
-  }
+  if (!product.value) return;
+  isLoadingVariants.value = true;
+  try { const data = await productApi.listProductVariants(product.value.id); variants.value = data.variants || data || []; }
+  catch (err) { variants.value = []; } finally { isLoadingVariants.value = false; }
 }
 
 async function fetchCalculatedAttributes() {
-  isLoadingAttributes.value = true
-
-  try {
-    const data = await productApi.getCalculatedAttributes(productId)
-    calculatedAttributes.value = data.attributes || data || []
-  } catch (err) {
-    console.error('Error fetching attributes:', err)
-    calculatedAttributes.value = []
-  } finally {
-    isLoadingAttributes.value = false
-  }
+  if (!product.value) return;
+  isLoadingAttributes.value = true;
+  try { const data = await productApi.getCalculatedAttributes(product.value.id); calculatedAttributes.value = data.attributes || data || []; }
+  catch (err) { calculatedAttributes.value = []; } finally { isLoadingAttributes.value = false; }
 }
 
-async function handleProductUpdate(updatedData) {
+async function loadMasters() {
   try {
-    const updated = await productApi.updateProduct(productId, updatedData)
-    product.value = { ...product.value, ...updated }
+    const [bRes, gRes, aRes] = await Promise.all([
+      productApi.listBrands({ isActive: true }),
+      productApi.listProductGroups({ isActive: true }),
+      productApi.listAttributes({})
+    ]);
+    brands.value = bRes.data || [];
+    productGroups.value = gRes.data || [];
+    allAttributes.value = aRes.data || aRes || [];
+  } catch (err) { console.error('Error maestros', err); }
+}
 
-    // Re-fetch brand and groups if they changed
-    if (updated.brand_id) {
-      brand.value = await productApi.getBrand(updated.brand_id).catch(() => null)
-    }
-    if (updated.group_ids && updated.group_ids.length > 0) {
-      const groupPromises = updated.group_ids.map(id =>
-        productApi.getProductGroup(id).catch(() => null)
-      )
-      groups.value = (await Promise.all(groupPromises)).filter(g => g !== null)
+function resetForm() {
+  Object.assign(formData, { name: '', sku: '', longName: '', productType: 'TANGIBLE', brandId: null, basePrice: 0, groupIds: [], attributeIds: [] });
+  product.value = null;
+}
+
+function enterEditMode() {
+  Object.assign(formData, {
+    name: product.value.name,
+    sku: product.value.sku,
+    longName: product.value.long_name,
+    productType: product.value.product_type,
+    brandId: product.value.brand_id,
+    basePrice: product.value.base_price,
+    groupIds: product.value.group_ids || [],
+    attributeIds: product.value.attribute_ids || []
+  });
+  mode.value = 'edit';
+}
+
+function exitEditMode() {
+  if (mode.value === 'edit') mode.value = 'detail';
+  else router.push('/products');
+}
+
+async function saveProduct() {
+  if (!formData.name || !formData.sku) { alert('Nombre y SKU son obligatorios'); return; }
+  isSaving.value = true;
+  try {
+    const payload = {
+      name: formData.name, sku: formData.sku, long_name: formData.longName,
+      product_type: formData.productType, 
+      brand_id: formData.brandId || null,
+      base_price: Number(formData.basePrice),
+      group_ids: formData.groupIds,
+      attribute_ids: formData.attributeIds
+    };
+
+    if (mode.value === 'create') {
+      const newProd = await productApi.createProduct(payload);
+      await router.push(`/products/${newProd.id}`);
     } else {
-      groups.value = []
+      await productApi.updateProduct(product.value.id, payload);
+      await fetchProduct();
+      mode.value = 'detail';
     }
-  } catch (err) {
-    alert(err?.message || 'No se pudo actualizar el producto')
-  }
+  } catch (err) { alert('Error al guardar: ' + err.message); }
+  finally { isSaving.value = false; }
 }
 
-async function handleToggleStatus() {
-  if (!product.value) return
-
-  try {
-    const newStatus = !product.value.is_active
-    await productApi.changeProductStatus(productId, newStatus)
-    product.value.is_active = newStatus
-  } catch (err) {
-    alert(err?.message || 'No se pudo cambiar el estado del producto')
-  }
-}
+function formatPrice(v) { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v || 0); }
+function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'; }
 </script>
 
 <style scoped>
-.dashboard {
-  min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
-}
+@import "@/design-system/_sections.css";
 
-.dashboard-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+.sticky-header-container { background: white; margin-top: -1.5rem; padding-top: 1.5rem; border-bottom: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
+.entity-tabs { display: flex; max-width: 1300px; margin: 0 auto; padding: 0 2rem; gap: 0.25rem; }
+.tab-btn { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 1.25rem; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--color-text-secondary); font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: -1px; }
+.tab-btn:hover { color: var(--color-primary); background: rgba(0,0,0,0.02); }
+.tab-btn.active { border-bottom-color: var(--color-secondary); color: var(--color-secondary); background: rgba(0, 35, 149, 0.03); }
+.tab-btn .material-symbols-outlined { font-size: 18px; }
+.tab-badge { background: var(--color-background); color: var(--color-text-secondary); padding: 0.1rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+.tab-btn.active .tab-badge { background: var(--color-secondary); color: white; }
 
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
+.overview-tags-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.summary-tag { flex: 1; min-width: 220px; padding: 0.75rem 1.25rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 1rem; box-shadow: var(--box-shadow-sm); }
+.summary-tag .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.summary-tag .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.summary-tag .icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+.summary-tag .icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+.summary-tag .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
+.tag-content { display: flex; flex-direction: column; line-height: 1.2; }
+.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+.tag-content strong { font-size: 1rem; color: var(--color-text-primary); }
 
-.page-header h1 {
-  color: #1b3a6b;
-  margin: 0.25rem 0 0;
-}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group label { display: block; font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+.form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
 
-.breadcrumb {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin: 0;
-}
+/* Selection Grid */
+.selection-grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.selection-card { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+.selection-card:hover { background: white; border-color: var(--color-primary); }
+.selection-card input[type="checkbox"] { width: 18px; height: 18px; margin-top: 0.2rem; cursor: pointer; }
+.selection-card .card-content { display: flex; flex-direction: column; gap: 0.2rem; }
+.selection-card strong { font-size: 0.85rem; color: var(--color-text-primary); }
 
-.subtitle {
-  color: #64748b;
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-secondary:hover {
-  background: #f8fafc;
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(27, 58, 107, 0.12);
-  border-top-color: #1b3a6b;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 1rem;
-  text-align: center;
-  color: #991b1b;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-}
-
-.detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-  gap: 2rem;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.header-title h2 {
-  color: #1b3a6b;
-  margin: 0;
-  font-size: 1.6rem;
-}
-
-.sku-badge {
-  background: #f1f5f9;
-  color: #475569;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-family: 'Monaco', 'Menlo', monospace;
-  font-weight: 600;
-}
-
-.long-name {
-  color: #64748b;
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-
-.header-badges {
-  display: flex;
-  gap: 0.75rem;
-  flex-shrink: 0;
-}
-
-.pill {
-  display: inline-block;
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.pill.type-tangible {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.pill.type-service {
-  background-color: rgba(139, 92, 246, 0.1);
-  color: #8b5cf6;
-}
-
-.pill.active {
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-}
-
-.pill.inactive {
-  background-color: rgba(148, 163, 184, 0.1);
-  color: #94a3b8;
-}
-
-.tabs-container {
-  padding: 0;
-  overflow: hidden;
-}
-
-.tabs-nav {
-  display: flex;
-  gap: 0;
-  border-bottom: 2px solid #e2e8f0;
-  padding: 0 1.5rem;
-  background: #f8fafc;
-}
-
-.tab-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  color: #64748b;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  margin-bottom: -2px;
-}
-
-.tab-button:hover {
-  color: #1b3a6b;
-  background: rgba(27, 58, 107, 0.05);
-}
-
-.tab-button.active {
-  color: #1b3a6b;
-  border-bottom-color: #f4d03f;
-  background: #ffffff;
-}
-
-.tab-icon {
-  font-size: 1.1rem;
-}
-
-.tab-label {
-  white-space: nowrap;
-}
-
-.tab-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  height: 1.5rem;
-  padding: 0 0.4rem;
-  background: #e2e8f0;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #475569;
-}
-
-.tab-button.active .tab-count {
-  background: #f4d03f;
-  color: #1e293b;
-}
-
-.tab-content {
-  padding: 1.5rem;
-  min-height: 400px;
-}
-
-.history-tab {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.history-tab h3 {
-  color: #1b3a6b;
-  margin: 0;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  text-align: center;
-  color: #64748b;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  margin: 0.5rem 0;
-  font-size: 0.95rem;
-}
-
-.empty-hint {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  max-width: 500px;
-}
-
-@media (max-width: 768px) {
-  .dashboard-content {
-    padding: 1.5rem;
-  }
-
-  .header-content {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .header-badges {
-    width: 100%;
-  }
-
-  .tabs-nav {
-    overflow-x: auto;
-    padding: 0 1rem;
-  }
-
-  .tab-button {
-    padding: 1rem;
-    font-size: 0.85rem;
-  }
-
-  .tab-label {
-    display: none;
-  }
-
-  .tab-icon {
-    font-size: 1.3rem;
-  }
-}
+.tags-cloud { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.w-48 { width: 12rem; }
+.tab-fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>

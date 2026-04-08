@@ -1,632 +1,241 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">Administración / Usuarios</p>
-          <h1>Gestión de usuarios</h1>
-          <p class="subtitle">Administración de usuarios, roles y accesos.</p>
+  <div class="page-layout">
+    <BaseCatalog
+      title="Gestión de Usuarios"
+      icon="manage_accounts"
+      :breadcrumbs="[{ label: 'Administración', to: '/admin/users' }, { label: 'Usuarios' }]"
+      :items="filteredUsers"
+      :is-loading="isLoading"
+      :error="error || undefined"
+      create-text="Nuevo Usuario"
+      @refresh="loadUsers"
+    >
+      <!-- CAPA 2: CONTEXTO (Filtros y Alta Rápida) -->
+      <template #filters>
+        <div class="filter-group">
+          <label>Búsqueda</label>
+          <input v-model.trim="search" type="text" placeholder="Email..." />
         </div>
-        <button class="btn btn-secondary" @click="loadUsers" :disabled="isLoading">
-          {{ isLoading ? 'Cargando...' : 'Refrescar' }}
-        </button>
-      </header>
-
-      <div v-if="!isAdmin" class="alert-warning">
-        Solo el rol admin puede gestionar usuarios.
-      </div>
-
-      <div v-else class="cards-grid">
-        <section class="card">
-          <div class="card-header">
-            <div>
-              <h2>Alta de usuario</h2>
-              <p>Crea cuentas con roles predefinidos.</p>
-            </div>
-            <span class="badge">Admin</span>
-          </div>
-
-          <form class="form-grid" @submit.prevent="createUser">
-            <div>
-              <label>Email</label>
-              <input
-                v-model.trim="newUser.email"
-                type="email"
-                placeholder="usuario@tramatex.local"
-                required
-              />
-            </div>
-            <div>
-              <label>Contraseña</label>
-              <input
-                v-model="newUser.password"
-                type="password"
-                placeholder="Mínimo 8 caracteres"
-                required
-                minlength="8"
-              />
-            </div>
-            <div>
-              <label>Rol</label>
-              <select v-model="newUser.role">
-                <option value="admin">admin</option>
-                <option value="commercial">commercial</option>
-                <option value="designer">designer</option>
-                <option value="workshop">workshop</option>
-              </select>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="isCreating">
-                {{ isCreating ? 'Creando...' : 'Crear usuario' }}
-              </button>
-              <button type="button" class="btn btn-secondary" @click="resetNewUser">
-                Limpiar
-              </button>
-            </div>
-            <p class="helper-text">
-              Las contraseñas se almacenan con hash bcrypt. El acceso se controla por rol.
-            </p>
-          </form>
-        </section>
-
-        <section class="card">
-          <h2>Roles disponibles</h2>
-          <p class="card-subtitle">Referencia rápida de permisos (MVP).</p>
-          <ul class="roles-list">
-            <li>
-              <strong>admin</strong>
-              <span>Acceso total y administración.</span>
-            </li>
-            <li>
-              <strong>commercial</strong>
-              <span>Gestión comercial y clientes.</span>
-            </li>
-            <li>
-              <strong>designer</strong>
-              <span>Diseño de pedidos.</span>
-            </li>
-            <li>
-              <strong>workshop</strong>
-              <span>Operaciones de taller.</span>
-            </li>
-          </ul>
-        </section>
-      </div>
-
-      <section v-if="isAdmin" class="card card-full">
-        <div class="filters">
-          <div>
-            <label>Buscar por nombre o email</label>
-            <input
-              v-model.trim="search"
-              type="text"
-              placeholder="Buscar por email"
-            />
-          </div>
-          <div>
-            <label>Filtrar por rol</label>
-            <select v-model="roleFilter">
-              <option value="">Todos</option>
-              <option value="admin">admin</option>
-              <option value="commercial">commercial</option>
-              <option value="designer">designer</option>
-              <option value="workshop">workshop</option>
-            </select>
-          </div>
+        <div class="filter-group">
+          <label>Rol</label>
+          <select v-model="roleFilter">
+            <option value="">Todos los roles</option>
+            <option value="admin">Administrador</option>
+            <option value="commercial">Comercial</option>
+            <option value="designer">Diseñador</option>
+            <option value="workshop">Taller</option>
+          </select>
         </div>
-
-        <div v-if="error" class="alert-error">
-          {{ error }}
-        </div>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Email</th>
-                <th>Rol</th>
-                <th class="align-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="user in filteredUsers" :key="user.id">
-                <td>{{ user.email }}</td>
-                <td>
-                  <span class="role-pill">{{ user.role }}</span>
-                </td>
-                <td class="align-right">
-                  <div class="action-buttons">
-                    <button class="btn btn-outline" @click="openRoleModal(user)">
-                      Asignar rol
-                    </button>
-                    <button class="btn btn-danger" @click="confirmDelete(user)">
-                      Eliminar
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="!isLoading && filteredUsers.length === 0">
-                <td colspan="3" class="empty-state">No hay usuarios para mostrar.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
-
-    <div v-if="showModal" class="modal-backdrop">
-      <div class="modal">
-        <h2>Asignar rol</h2>
-        <p>
-          Usuario: <strong>{{ selectedUser?.email }}</strong>
-        </p>
-
-        <label>Rol</label>
-        <select v-model="selectedRole">
-          <option value="admin">admin</option>
-          <option value="commercial">commercial</option>
-          <option value="designer">designer</option>
-          <option value="workshop">workshop</option>
-        </select>
-
-        <div class="modal-actions">
-          <button class="btn btn-secondary" @click="closeModal">Cancelar</button>
-          <button class="btn btn-primary" @click="saveRole" :disabled="isSaving">
-            {{ isSaving ? 'Guardando...' : 'Guardar' }}
+        <div class="filter-actions-inline ml-auto">
+          <button class="btn btn-primary btn-sm" @click="showCreateDialog = true">
+            <span class="material-symbols-outlined">person_add</span>
+            Nuevo Usuario
           </button>
         </div>
+      </template>
+
+      <!-- CAPA 3: TRABAJO (Tabla) -->
+      <template #table-header>
+        <th>Usuario</th>
+        <th>Rol Asignado</th>
+        <th>Estado</th>
+        <th class="align-right">Acciones</th>
+      </template>
+
+      <template #item="{ item: user }">
+        <td>
+          <div class="user-cell">
+            <span class="material-symbols-outlined avatar">account_circle</span>
+            <strong>{{ user.email }}</strong>
+          </div>
+        </td>
+        <td>
+          <span :class="['role-pill', `role-${user.role}`]">{{ user.role }}</span>
+        </td>
+        <td><span class="status-badge status-success">Activo</span></td>
+        <td class="align-right" @click.stop>
+          <div class="action-buttons">
+            <button class="btn-icon" @click="openEditModal(user)" title="Editar datos básicos">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn-icon" @click="openRoleModal(user)" title="Cambiar permisos">
+              <span class="material-symbols-outlined">key</span>
+            </button>
+            <button class="btn-icon text-danger" @click="confirmDelete(user)" title="Eliminar cuenta">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+        </td>
+      </template>
+
+      <!-- Sidebar Informativo (Inyectado vía slot si el componente lo permite o mantenido en el layout) -->
+    </BaseCatalog>
+
+    <!-- DIÁLOGOS DE GESTIÓN -->
+    <BaseDialog :show="showCreateDialog" title="Registrar Nuevo Usuario" icon="person_add" confirm-text="Crear Usuario" :is-confirming="isCreating" @close="showCreateDialog = false" @confirm="createUser">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Email Corporativo</label>
+          <input v-model.trim="newUser.email" type="email" placeholder="ejemplo@tramatex.com" />
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input v-model="newUser.password" type="password" placeholder="Mínimo 8 caracteres" />
+        </div>
+        <div class="form-group">
+          <label>Rol Inicial</label>
+          <select v-model="newUser.role">
+            <option value="admin">Administrador</option>
+            <option value="commercial">Comercial</option>
+            <option value="designer">Diseñador</option>
+            <option value="workshop">Taller</option>
+          </select>
+        </div>
       </div>
-    </div>
+    </BaseDialog>
+
+    <BaseDialog :show="showModal" title="Modificar Permisos" icon="key" confirm-text="Actualizar" :is-confirming="isSaving" @close="closeModal" @confirm="saveRole">
+      <p class="mb-4">Cambiando permisos para: <strong>{{ selectedUser?.email }}</strong></p>
+      <div class="form-group">
+        <label>Nuevo Rol</label>
+        <select v-model="selectedRole">
+          <option value="admin">Administrador</option>
+          <option value="commercial">Comercial</option>
+          <option value="designer">Diseñador</option>
+          <option value="workshop">Taller</option>
+        </select>
+      </div>
+    </BaseDialog>
+
+    <BaseDialog :show="showEditModal" title="Editar Usuario" icon="edit" confirm-text="Guardar Cambios" :is-confirming="isSaving" @close="showEditModal = false" @confirm="updateUser">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Email Corporativo</label>
+          <input v-model.trim="editUserForm.email" type="email" />
+        </div>
+        <div class="form-group">
+          <label>Nueva Contraseña (dejar en blanco para mantener)</label>
+          <input v-model="editUserForm.password" type="password" placeholder="Opcional" />
+        </div>
+      </div>
+    </BaseDialog>
+
+    <BaseDialog :show="showDeleteConfirm" title="Eliminar Usuario" icon="warning" confirm-text="Eliminar" confirm-class="btn-danger" :is-confirming="isDeleting" @close="showDeleteConfirm = false" @confirm="executeDelete">
+      <p>¿Seguro que deseas eliminar permanentemente a <strong>{{ userToDelete?.email }}</strong>?</p>
+    </BaseDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import Navbar from '@/components/layout/Navbar.vue'
+import { onMounted, ref, reactive, computed } from 'vue'
+import BaseCatalog from '@/components/shared/BaseCatalog.vue'
+import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { Usuario, UserRole } from '@/types/auth'
 import { iamService } from '@/services/iam'
 
 const authStore = useAuthStore()
-
 const users = ref<Usuario[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const search = ref('')
 const roleFilter = ref<UserRole | ''>('')
-
 const showModal = ref(false)
+const showEditModal = ref(false)
+const showCreateDialog = ref(false)
+const showDeleteConfirm = ref(false)
 const selectedUser = ref<Usuario | null>(null)
+const userToDelete = ref<Usuario | null>(null)
 const selectedRole = ref<UserRole>('commercial')
 const isSaving = ref(false)
 const isCreating = ref(false)
 const isDeleting = ref(false)
-
-const newUser = ref({
-  email: '',
-  password: '',
-  role: 'commercial' as UserRole
-})
-
-const isAdmin = computed(() => authStore.isAdmin)
+const newUser = reactive({ email: '', password: '', role: 'commercial' as UserRole })
+const editUserForm = reactive({ email: '', password: '' })
 
 const filteredUsers = computed(() => {
   const term = search.value.toLowerCase()
-  return users.value.filter((user) => {
-    const matchesTerm = !term || user.email.toLowerCase().includes(term)
-    const matchesRole = !roleFilter.value || user.role === roleFilter.value
-    return matchesTerm && matchesRole
-  })
+  return users.value.filter((u) => (!term || u.email.toLowerCase().includes(term)) && (!roleFilter.value || u.role === roleFilter.value))
 })
 
-const loadUsers = async () => {
-  if (!isAdmin.value) return
-
-  isLoading.value = true
-  error.value = null
-
-  try {
-    users.value = await iamService.listUsers()
-  } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo cargar el listado.'
-  } finally {
-    isLoading.value = false
-  }
+async function loadUsers() {
+  isLoading.value = true; error.value = null
+  try { users.value = await iamService.listUsers() }
+  catch (err: any) { error.value = err.message }
+  finally { isLoading.value = false }
 }
 
-const openRoleModal = (user: Usuario) => {
+function openRoleModal(user: Usuario) { selectedUser.value = user; selectedRole.value = user.role; showModal.value = true; }
+function closeModal() { showModal.value = false; selectedUser.value = null; }
+
+function openEditModal(user: Usuario) {
   selectedUser.value = user
-  selectedRole.value = user.role
-  showModal.value = true
+  editUserForm.email = user.email
+  editUserForm.password = ''
+  showEditModal.value = true
 }
 
-const closeModal = () => {
-  showModal.value = false
-  selectedUser.value = null
-}
-
-const saveRole = async () => {
+async function updateUser() {
   if (!selectedUser.value) return
+  isSaving.value = true
+  try {
+    const result = await iamService.updateUser(selectedUser.value.id, {
+      email: editUserForm.email,
+      password: editUserForm.password || undefined
+    })
+    users.value = users.value.map((u) => u.id === result.id ? { ...u, email: result.email } : u)
+    showEditModal.value = false
+  } catch (err: any) { alert(err.message) }
+  finally { isSaving.value = false }
+}
 
+async function saveRole() {
+  if (!selectedUser.value) return
   isSaving.value = true
   try {
     const result = await iamService.assignRole(selectedUser.value.id, selectedRole.value)
-    users.value = users.value.map((user) =>
-      user.id === result.userId ? { ...user, role: result.role } : user
-    )
+    users.value = users.value.map((u) => u.id === result.userId ? { ...u, role: result.role } : u)
     closeModal()
-  } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo asignar el rol.'
-  } finally {
-    isSaving.value = false
-  }
+  } catch (err: any) { alert(err.message) }
+  finally { isSaving.value = false }
 }
 
-const resetNewUser = () => {
-  newUser.value = {
-    email: '',
-    password: '',
-    role: 'commercial'
-  }
-}
-
-const createUser = async () => {
-  if (!isAdmin.value) return
-
+async function createUser() {
   isCreating.value = true
-  error.value = null
-
   try {
-    const created = await iamService.createUser({
-      email: newUser.value.email,
-      password: newUser.value.password,
-      role: newUser.value.role
-    })
+    const created = await iamService.createUser(newUser)
     users.value = [created, ...users.value]
-    resetNewUser()
-  } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo crear el usuario.'
-  } finally {
-    isCreating.value = false
-  }
+    showCreateDialog.value = false
+    Object.assign(newUser, { email: '', password: '', role: 'commercial' })
+  } catch (err: any) { alert(err.message) }
+  finally { isCreating.value = false }
 }
 
-const confirmDelete = async (user: Usuario) => {
-  if (!isAdmin.value || isDeleting.value) return
-
-  const confirmed = window.confirm(`¿Eliminar al usuario ${user.email}?`)
-  if (!confirmed) return
-
+function confirmDelete(user: Usuario) { userToDelete.value = user; showDeleteConfirm.value = true; }
+async function executeDelete() {
+  if (!userToDelete.value) return
   isDeleting.value = true
-  error.value = null
-
   try {
-    await iamService.deleteUser(user.id)
-    users.value = users.value.filter((item) => item.id !== user.id)
-  } catch (err: any) {
-    error.value = err?.response?.data?.error || err?.message || 'No se pudo eliminar el usuario.'
-  } finally {
-    isDeleting.value = false
-  }
+    await iamService.deleteUser(userToDelete.value.id)
+    users.value = users.value.filter((item) => item.id !== userToDelete.value!.id)
+    showDeleteConfirm.value = false
+  } catch (err: any) { alert(err.message) }
+  finally { isDeleting.value = false }
 }
 
-onMounted(() => {
-  loadUsers()
-})
+onMounted(loadUsers)
 </script>
 
 <style scoped>
-.dashboard {
-  min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
-}
-
-.dashboard-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.page-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.page-header h1 {
-  color: #1b3a6b;
-  margin: 0.25rem 0 0;
-}
-
-.breadcrumb {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin: 0;
-}
-
-.subtitle {
-  color: #64748b;
-  margin: 0.5rem 0 0;
-  font-size: 0.95rem;
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.card {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.card-full {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.card h2 {
-  color: #1b3a6b;
-  margin-bottom: 0.5rem;
-}
-
-.card p {
-  color: #64748b;
-  font-size: 0.9rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.badge {
-  background-color: #002395;
-  color: #ffffff;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.form-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
-}
-
-input,
-select {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  padding: 0.6rem 0.8rem;
-  font-size: 0.9rem;
-  color: #1e293b;
-}
-
-input:focus,
-select:focus {
-  outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
-}
-
-.form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.helper-text {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.roles-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.roles-list li {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.roles-list strong {
-  color: #002395;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filters > div {
-  flex: 1;
-  min-width: 220px;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-thead {
-  background: #f8fafc;
-  color: #64748b;
-}
-
-th,
-td {
-  padding: 0.85rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.align-right {
-  text-align: right;
-}
-
-.role-pill {
-  display: inline-block;
-  background-color: #e2e8f0;
-  color: #1e293b;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #e6b800;
-  color: #1e293b;
-  font-weight: 700;
-}
-
-.btn-primary:hover {
-  background: #d6aa00;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-danger {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-
-.alert-warning {
-  background: #fef3c7;
-  border: 1px solid #f59e0b;
-  color: #92400e;
-  padding: 1rem;
-  border-radius: 8px;
-}
-
-.alert-error {
-  background: #fee2e2;
-  border: 1px solid #ef4444;
-  color: #991b1b;
-  padding: 0.8rem 1rem;
-  border-radius: 8px;
-}
-
-.empty-state {
-  text-align: center;
-  color: #64748b;
-  padding: 1.5rem;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  z-index: 50;
-}
-
-.modal {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
-  display: grid;
-  gap: 1rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-@media (max-width: 768px) {
-  .dashboard-content {
-    padding: 1.5rem;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
+.page-layout { background-color: var(--color-background); min-height: 100vh; }
+.user-cell { display: flex; align-items: center; gap: 0.75rem; }
+.avatar { color: var(--color-border); font-size: 24px; }
+.role-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--color-background-soft); border: 1px solid var(--color-border); }
+.role-admin { border-left: 3px solid var(--color-error); color: var(--color-error); }
+.role-commercial { border-left: 3px solid #2563eb; color: #2563eb; }
+.role-designer { border-left: 3px solid #9333ea; color: #9333ea; }
+.role-workshop { border-left: 3px solid #d97706; color: #d97706; }
+.align-right { text-align: right; }
+.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; transition: 0.2s; }
+.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 </style>

@@ -31,7 +31,7 @@ func TestProductService_SmartSearch(t *testing.T) {
 		Name:        "Test Fabric",
 		LongName:    "Test Fabric Long Name",
 		ProductType: domain.ProductTypeTangible,
-		BrandID:     brandID,
+		BrandID: uuidPtr(brandID),
 		GroupIDs:    []uuid.UUID{uuid.New()},
 		BasePrice:   10.0,
 		IsActive:    true,
@@ -175,7 +175,7 @@ func TestProductService_SmartSearch(t *testing.T) {
 	t.Run("should return product_list for multiple prefix matches", func(t *testing.T) {
 		svc, mockProductRepo, _, _, _, mockVariantRepo, _ := newSmartSearchService()
 
-		product2 := &domain.Product{ID: uuid.New(), SKU: "FY9999", Name: "Another Fabric", BrandID: brandID, IsActive: true}
+		product2 := &domain.Product{ID: uuid.New(), SKU: "FY9999", Name: "Another Fabric", BrandID: uuidPtr(brandID), IsActive: true}
 
 		mockVariantRepo.On("FindBySKU", ctx, "FY").Return(nil, nil).Once()
 		mockVariantRepo.On("FindByBarcode", ctx, "FY").Return(nil, nil).Once()
@@ -245,7 +245,7 @@ func TestProductService_SmartSearch(t *testing.T) {
 		// variant prefix lookup
 		mockVariantRepo.On("FindBySKUPrefix", ctx, "ABC-SIZE.L").Return([]*domain.ProductVariant{}, nil).Once()
 		// extractProductSKUFromPartialRef("ABC-SIZE.L") → "ABC"
-		abcProduct := &domain.Product{ID: uuid.New(), SKU: "ABC", Name: "ABC Product", BrandID: brandID, IsActive: true}
+		abcProduct := &domain.Product{ID: uuid.New(), SKU: "ABC", Name: "ABC Product", BrandID: uuidPtr(brandID), IsActive: true}
 		mockProductRepo.On("FindBySKU", ctx, "ABC").Return(abcProduct, nil).Once()
 		// buildPartialMatchResult → GetApplicableAttributesForProduct
 		mockProductRepo.On("FindByID", ctx, abcProduct.ID).Return(abcProduct, nil).Once()
@@ -274,7 +274,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 		SKU:                "FY5678",
 		Name:               "Test Fabric",
 		ProductType:        domain.ProductTypeTangible,
-		BrandID:            uuid.New(),
+		BrandID: uuidPtr(uuid.New()),
 		GroupIDs:           []uuid.UUID{uuid.New()},
 		DirectAttributeIDs: []uuid.UUID{},
 		BasePrice:          10.0,
@@ -334,7 +334,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 			SKU:                "FY5678",
 			Name:               "Test Fabric",
 			ProductType:        domain.ProductTypeTangible,
-			BrandID:            uuid.New(),
+			BrandID: uuidPtr(uuid.New()),
 			GroupIDs:           []uuid.UUID{uuid.New()},
 			DirectAttributeIDs: []uuid.UUID{sizeAttrID},
 			BasePrice:          10.0,
@@ -374,7 +374,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 			SKU:                "FY5678",
 			Name:               "Test Fabric",
 			ProductType:        domain.ProductTypeTangible,
-			BrandID:            uuid.New(),
+			BrandID: uuidPtr(uuid.New()),
 			GroupIDs:           []uuid.UUID{uuid.New()},
 			DirectAttributeIDs: []uuid.UUID{sizeAttrID},
 			BasePrice:          10.0,
@@ -416,7 +416,7 @@ func TestProductService_GenerateProductVariants(t *testing.T) {
 			ID:                 productID,
 			SKU:                "FY5678",
 			ProductType:        domain.ProductTypeTangible,
-			BrandID:            uuid.New(),
+			BrandID: uuidPtr(uuid.New()),
 			GroupIDs:           []uuid.UUID{uuid.New()},
 			DirectAttributeIDs: []uuid.UUID{emptyAttrID},
 			BasePrice:          10.0,

@@ -116,7 +116,7 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 			OR EXISTS (
 				SELECT 1
 				FROM organization_profiles op
-				WHERE op.party_id = CAST(quotes.party_id AS TEXT)
+				WHERE op.party_id = CAST("quotes".party_id AS TEXT)
 				  AND op.name ILIKE ?
 			)
 			OR EXISTS (

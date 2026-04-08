@@ -373,13 +373,17 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 	for i, item := range items {
 		calcItem := pricing.CalculatedItems[i]
 
-		listUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
+		// Tariff/list price: base cost plus variant attribute modifiers, without brand markup.
+		listUnitPrice, err := toDomainMoney(calcItem.BaseCost)
 		if err != nil {
 			return nil, err
 		}
 
-		// Effective unit price: user override or pricing engine's baseSalesPrice
-		effectiveUnitPrice := listUnitPrice
+		// Sale price: pricing engine base sales price (includes brand margin/rules), unless user overrides it.
+		effectiveUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
+		if err != nil {
+			return nil, err
+		}
 		if item.UnitPrice != nil {
 			effectiveUnitPrice, err = domain.NewMoney(item.UnitPrice.Amount, item.UnitPrice.Currency)
 			if err != nil {

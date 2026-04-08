@@ -1,454 +1,318 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <h1>Bienvenido, {{ usuario?.email || 'Usuario' }}</h1>
-          <p class="subtitle">Panel de control del sistema TramaTex ERP/MES</p>
-        </div>
-      </header>
-
-      <div class="areas-grid">
-        <!-- Área de Entidades -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Users :size="40" />
-            </div>
-            <h2>Entidades</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestiona clientes y proveedores</p>
-          <div class="area-links">
-            <RouterLink to="/parties" class="link-primary">
-              <span class="link-icon">
-                <Users :size="24" />
-              </span>
-              <span>Entidades</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Productos - Con enlaces completos -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Package :size="40" />
-            </div>
-            <h2>Productos</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestiona el catálogo de productos, atributos, marcas y categorías</p>
-          <div class="area-links">
-            <RouterLink to="/products" class="link-primary">
-              <span class="link-icon">
-                <Package :size="24" />
-              </span>
-              <span>Catálogo de Productos</span>
-            </RouterLink>
-            <RouterLink to="/master-data/attributes" class="link-secondary">
-              <span class="link-icon">
-                <Zap :size="24" />
-              </span>
-              <span>Atributos</span>
-            </RouterLink>
-            <RouterLink to="/master-data/brands" class="link-secondary">
-              <span class="link-icon">
-                <Tag :size="24" />
-              </span>
-              <span>Marcas</span>
-            </RouterLink>
-            <RouterLink to="/master-data/product-groups" class="link-secondary">
-              <span class="link-icon">
-                <Folder :size="24" />
-              </span>
-              <span>Categorías</span>
-            </RouterLink>
-            <RouterLink to="/products/pricing" class="link-secondary">
-              <span class="link-icon">
-                <Calculator :size="24" />
-              </span>
-              <span>Calculadora de Precios</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Ventas -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <DollarSign :size="40" />
-            </div>
-            <h2>Ventas</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Gestión de cotizaciones, pedidos y facturación</p>
-          <div class="area-links">
-            <RouterLink to="/sales/quotes" class="link-primary">
-              <span class="link-icon">
-                <Clipboard :size="24" />
-              </span>
-              <span>Presupuestos</span>
-            </RouterLink>
-            <RouterLink to="/sales/orders" class="link-secondary">
-              <span class="link-icon">
-                <ShoppingCart :size="24" />
-              </span>
-              <span>Pedidos</span>
-            </RouterLink>
-            <RouterLink to="/sales/delivery-notes" class="link-secondary">
-              <span class="link-icon">
-                <ScrollText :size="24" />
-              </span>
-              <span>Albaranes</span>
-            </RouterLink>
-            <RouterLink to="/sales/invoices" class="link-secondary">
-              <span class="link-icon">
-                <Receipt :size="24" />
-              </span>
-              <span>Facturas</span>
-            </RouterLink>
-            <RouterLink to="/sales/tickets/new" class="link-secondary">
-              <span class="link-icon">
-                <Ticket :size="24" />
-              </span>
-              <span>Nuevo Ticket</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Producción/MES -->
-        <div class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <Factory :size="40" />
-            </div>
-            <h2>Producción</h2>
-            <span class="area-badge">Disponible</span>
-          </div>
-          <p class="area-description">Manufacturing Execution System - Control de producción</p>
-          <div class="area-links">
-            <RouterLink to="/mes/dashboard" class="link-primary">
-              <span class="link-icon">
-                <Home :size="24" />
-              </span>
-              <span>Panel de control</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-orders" class="link-secondary">
-              <span class="link-icon">
-                <ShoppingCart :size="24" />
-              </span>
-              <span>Órdenes de trabajo</span>
-            </RouterLink>
-            <RouterLink to="/mes/tasks" class="link-secondary">
-              <span class="link-icon">
-                <Clipboard :size="24" />
-              </span>
-              <span>Tareas</span>
-            </RouterLink>
-            <RouterLink to="/mes/positions" class="link-secondary">
-              <span class="link-icon">
-                <Users :size="24" />
-              </span>
-              <span>Posiciones</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-types" class="link-secondary">
-              <span class="link-icon">
-                <Folder :size="24" />
-              </span>
-              <span>Tipos de trabajo</span>
-            </RouterLink>
-            <RouterLink to="/mes/work-setups" class="link-secondary">
-              <span class="link-icon">
-                <Settings :size="24" />
-              </span>
-              <span>Configuraciones</span>
-            </RouterLink>
-            <RouterLink to="/mes/terminal" class="link-secondary">
-              <span class="link-icon">
-                <Wrench :size="24" />
-              </span>
-              <span>Terminal de taller</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Área de Informes -->
-        <div class="area-card area-disabled">
-          <div class="area-header">
-            <div class="area-icon">
-              <BarChart :size="40" />
-            </div>
-            <h2>Informes</h2>
-            <span class="area-badge disabled">Post-MVP</span>
-          </div>
-          <p class="area-description">Reportes, análisis y estadísticas del sistema</p>
-          <div class="area-links">
-            <div class="link-primary link-disabled">
-              <span class="link-icon">
-                <LineChart :size="24" />
-              </span>
-              <span>Dashboard Analítico</span>
-            </div>
-            <div class="link-secondary link-disabled">
-              <span class="link-icon">
-                <FileText :size="24" />
-              </span>
-              <span>Reportes</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Área de Administración -->
-        <div v-if="isAdmin" class="area-card">
-          <div class="area-header">
-            <div class="area-icon">
-              <UserCog :size="40" />
-            </div>
-            <h2>Administración</h2>
-            <span class="area-badge admin">Admin</span>
-          </div>
-          <p class="area-description">Gestión de usuarios, roles y configuración del sistema</p>
-          <div class="area-links">
-            <RouterLink to="/admin/users" class="link-primary">
-              <span class="link-icon">
-                <User :size="24" />
-              </span>
-              <span>Gestión de Usuarios</span>
-            </RouterLink>
-            <RouterLink to="/admin/print-profile" class="link-secondary">
-              <span class="link-icon">
-                <FileText :size="24" />
-              </span>
-              <span>Perfil Fiscal de Impresión</span>
-            </RouterLink>
-          </div>
+  <div class="dashboard-page">
+    <!-- CABECERA: Bienvenida y Fecha -->
+    <header class="dashboard-header">
+      <div class="welcome-text">
+        <h1 class="font-brand">Panel de Control</h1>
+        <p class="text-muted">Bienvenido, <strong>{{ userName }}</strong>. Gestión de TramaTex para el {{ todayDate }}.</p>
+        <div class="context-tags">
+          <span class="context-tag">Vista Ejecutiva</span>
+          <span class="context-tag">Operaciones</span>
+          <span class="context-tag" :class="{ loading: isLoading }">Datos en tiempo real</span>
         </div>
       </div>
+      <div class="header-actions">
+        <button @click="loadStats" class="btn-refresh" :disabled="isLoading" title="Actualizar datos">
+          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">sync</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- KPIs INTERACTIVOS -->
+    <section class="kpi-grid section-spacing">
+      <div class="kpi-card clickable" @click="navigateTo('/sales/dashboard')">
+        <div class="kpi-icon blue"><span class="material-symbols-outlined">payments</span></div>
+        <div class="kpi-data">
+          <label>Ventas Mes</label>
+          <strong>{{ salesStats.monthlyTotal }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDIENTE')">
+        <div class="kpi-icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
+        <div class="kpi-data">
+          <label>Pedidos Pendientes</label>
+          <strong>{{ salesStats.pendingOrders }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card clickable" @click="navigateTo('/mes/work-orders?status=IN_PROGRESS')">
+        <div class="kpi-icon yellow"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+        <div class="kpi-data">
+          <label>Órdenes en Taller</label>
+          <strong>{{ mesStats.activeWorkOrders }}</strong>
+        </div>
+      </div>
+      <div class="kpi-card clickable" @click="navigateTo('/parties')">
+        <div class="kpi-icon purple"><span class="material-symbols-outlined">groups</span></div>
+        <div class="kpi-data">
+          <label>Entidades</label>
+          <strong>{{ partyStats.totalParties }}</strong>
+        </div>
+      </div>
+    </section>
+    
+    <div class="dashboard-main-layout section-spacing">
+      <!-- COLUMNA PRINCIPAL -->
+      <main class="main-column">
+        <!-- ACCESOS DIRECTOS -->
+        <section class="ops-section section-block">
+          <div class="section-title-alt">
+            <span class="material-symbols-outlined">rocket_launch</span>
+            <h2>Accesos Directos</h2>
+            <span class="section-tag">Atajos de operación</span>
+          </div>
+          <div class="ops-grid">
+            <RouterLink to="/sales/orders/new" class="op-item">
+              <div class="op-icon"><span class="material-symbols-outlined">add_shopping_cart</span></div>
+              <span>Nuevo Pedido</span>
+            </RouterLink>
+            <RouterLink to="/sales/tickets/new" class="op-item highlight">
+              <div class="op-icon"><span class="material-symbols-outlined">point_of_sale</span></div>
+              <span>Venta Directa</span>
+            </RouterLink>
+            <RouterLink to="/products/new" class="op-item">
+              <div class="op-icon"><span class="material-symbols-outlined">add_box</span></div>
+              <span>Nuevo Producto</span>
+            </RouterLink>
+            <RouterLink to="/parties/new" class="op-item">
+              <div class="op-icon"><span class="material-symbols-outlined">person_add</span></div>
+              <span>Nueva Entidad</span>
+            </RouterLink>
+          </div>
+        </section>
+
+        <!-- DASHBOARDS DE MÓDULO -->
+        <section class="modules-section section-block">
+          <div class="section-title-alt">
+            <span class="material-symbols-outlined">grid_view</span>
+            <h2>Módulos Principales</h2>
+            <span class="section-tag">Gestión por dominio</span>
+          </div>
+          <div class="modules-grid">
+            <RouterLink to="/sales/dashboard" class="module-link-card">
+              <div class="m-icon blue"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+              <div class="m-info">
+                <strong>Ventas</strong>
+                <p>Gestión de presupuestos, pedidos y facturación.</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </RouterLink>
+            <RouterLink to="/products/dashboard" class="module-link-card">
+              <div class="m-icon yellow"><span class="material-symbols-outlined">inventory_2</span></div>
+              <div class="m-info">
+                <strong>Catálogo</strong>
+                <p>Control de productos, stock y atributos.</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </RouterLink>
+            <RouterLink to="/parties/dashboard" class="module-link-card">
+              <div class="m-icon green"><span class="material-symbols-outlined">groups</span></div>
+              <div class="m-info">
+                <strong>Entidades</strong>
+                <p>Base de datos de clientes y proveedores.</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </RouterLink>
+            <RouterLink to="/mes/dashboard" class="module-link-card">
+              <div class="m-icon purple"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+              <div class="m-info">
+                <strong>Taller (MES)</strong>
+                <p>Monitorización de producción y órdenes de trabajo.</p>
+              </div>
+              <span class="material-symbols-outlined arrow">chevron_right</span>
+            </RouterLink>
+          </div>
+        </section>
+      </main>
+      
+      <!-- COLUMNA LATERAL -->
+      <aside class="side-column">
+        <section v-if="isAdmin" class="card admin-side-card section-block sticky-admin">
+          <div class="ops-header">
+            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <h2>Sistema</h2>
+            <span class="section-tag">Administración</span>
+          </div>
+          <div class="side-links">
+            <RouterLink to="/admin/users" class="side-link-item">
+              <span class="material-symbols-outlined">manage_accounts</span>
+              <span>Gestión de Usuarios</span>
+            </RouterLink>
+            <RouterLink to="/admin/print-profile" class="side-link-item mt-2">
+              <span class="material-symbols-outlined">receipt_long</span>
+              <span>Perfil de Impresión</span>
+            </RouterLink>
+            <RouterLink to="/dev/design-system" class="side-link-item mt-2 dev-link">
+              <span class="material-symbols-outlined">architecture</span>
+              <span>Design System</span>
+            </RouterLink>
+          </div>
+        </section>
+      </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
-import { useAuth } from '@/composables'
+import { ref, computed, onMounted } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { Users, Package, DollarSign, Factory, BarChart, UserCog, Zap, Tag, Folder, Clipboard, ShoppingCart, ScrollText, Receipt, Ticket, Settings, Wrench, Home, LineChart, FileText, User, Calculator } from 'lucide-vue-next';
+import salesApi from '@/services/salesApi'
+import { mesApi } from '@/services/mesApi'
+import { partyApi } from '@/services/partyApi'
 
-const { usuario } = useAuth()
+const router = useRouter()
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
+const userName = computed(() => authStore.user?.email.split('@')[0] || 'Usuario')
+const todayDate = computed(() => new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
+const isLoading = ref(true)
+const salesStats = ref({ monthlyTotal: '0,00 €', pendingOrders: 0 })
+const mesStats = ref({ activeWorkOrders: 0 })
+const partyStats = ref({ totalParties: 0 })
+
+async function loadStats() {
+  isLoading.value = true
+  try {
+    const [orders, workOrders, parties] = await Promise.all([
+      salesApi.listOrders({ status: 'PENDIENTE' }),
+      mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
+      partyApi.listParties({ limit: 1 })
+    ])
+    salesStats.value.pendingOrders = orders.total || 0
+    mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
+    partyStats.value.totalParties = parties.total || 0
+  } catch (err) { console.error('Error dashboard:', err) }
+  finally { isLoading.value = false }
+}
+function navigateTo(path: string) { router.push(path) }
+onMounted(loadStats)
 </script>
 
 <style scoped>
-.dashboard {
-  min-height: 100vh;
-  background-color: #f1f5f9;
-  font-family: 'Inter', sans-serif;
+.dashboard-page { 
+  max-width: 1300px; 
+  margin: 0 auto; 
+  padding: 1rem;
+  
+  /* Variables de espaciado locales equilibradas */
+  --dashboard-section-gap: 1.5rem;
+  --dashboard-column-gap: 1.5rem;
+  --dashboard-tag-gap: 0.5rem;
+  --dashboard-card-gap: 0.75rem;
 }
 
-.dashboard-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-}
+.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; }
+.dashboard-header h1 { font-size: clamp(1.8rem, 2.5vw, 2.25rem); color: var(--color-text-primary); margin: 0; font-weight: 800; }
+.btn-refresh { background: white; border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 8px; cursor: pointer; color: var(--color-text-secondary); transition: 0.2s; }
+.btn-refresh:hover { color: var(--color-primary); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 
-.page-header {
-  margin-bottom: 2.5rem;
-}
+.section-spacing { margin-top: var(--dashboard-section-gap); }
 
-.page-header h1 {
-  color: #1b3a6b;
-  font-size: 2rem;
-  margin: 0 0 0.5rem;
-}
-
-.subtitle {
-  color: #64748b;
-  font-size: 1rem;
-  margin: 0;
-}
-
-/* Areas Grid */
-.areas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-}
-
-/* Area Card */
-.area-card {
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-.area-card:not(.area-disabled):hover {
-  border-color: #f4c430;
-  box-shadow: 0 8px 20px rgba(244, 196, 48, 0.15);
-  transform: translateY(-2px);
-}
-
-.area-disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Area Header */
-.area-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.area-icon :deep(svg) {
-  width: 2.5rem; /* Equivalent to 40px */
-  height: 2.5rem; /* Equivalent to 40px */
-}
-
-.area-header h2 {
-  color: #1b3a6b;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-  flex: 1;
-}
-
-.area-badge {
+.context-tags { display: flex; flex-wrap: wrap; gap: var(--dashboard-tag-gap); margin-top: 0.7rem; }
+.context-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.4rem 0.875rem;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  border-radius: 16px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+}
+.context-tag.loading { background: #dbeafe; color: #1d4ed8; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.1rem; }
+.kpi-card { background: white; padding: 1.25rem; border-radius: 12px; display: flex; align-items: center; gap: 1rem; border: 1px solid var(--color-border); }
+.kpi-card.clickable { cursor: pointer; transition: 0.2s; }
+.kpi-card.clickable:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
+.kpi-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.kpi-icon .material-symbols-outlined { font-size: 24px; }
+.kpi-icon.blue { background: rgba(37, 99, 235, 0.08); color: #2563eb; }
+.kpi-icon.green { background: rgba(22, 163, 74, 0.08); color: #16a34a; }
+.kpi-icon.yellow { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+.kpi-icon.purple { background: rgba(147, 51, 234, 0.08); color: #9333ea; }
+.kpi-data { display: flex; flex-direction: column; }
+.kpi-data label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
+.kpi-data strong { font-size: 1.4rem; color: var(--color-text-primary); font-weight: 800; }
+
+.dashboard-main-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--dashboard-column-gap); align-items: start; }
+.main-column, .side-column { display: flex; flex-direction: column; gap: var(--dashboard-section-gap); }
+.section-block {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--box-shadow-sm);
+}
+.section-title-alt { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
+.section-title-alt h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
+.section-title-alt .material-symbols-outlined { color: var(--color-text-secondary); }
+.section-tag {
+  margin-left: auto;
+  font-size: 0.66rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ops-section,
+.modules-section { padding: clamp(1rem, 2vw, 1.35rem); }
+.ops-header { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
+.ops-header h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); }
+.ops-header .material-symbols-outlined { color: var(--color-primary); }
+.ops-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
+.op-item { display: flex; flex-direction: column; align-items: center; padding: 1.25rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; font-size: 0.8rem; transition: 0.2s; text-align: center; gap: 0.75rem; border: 1px solid var(--color-border); }
+.op-item:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); color: var(--color-primary); }
+.op-icon { color: var(--color-primary); }
+.op-icon .material-symbols-outlined { font-size: 28px; }
+.op-item.highlight { background: rgba(230, 184, 0, 0.05); }
+
+.modules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
+.module-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.1rem; background: white; border-radius: 12px; border: 1px solid var(--color-border); text-decoration: none; transition: 0.2s; }
+.module-link-card:hover { transform: translateX(5px); border-color: var(--color-secondary); box-shadow: var(--box-shadow-sm); }
+.m-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.m-icon .material-symbols-outlined { font-size: 22px; }
+.m-icon.blue { background: rgba(37, 99, 235, 0.05); color: #2563eb; }
+.m-icon.yellow { background: rgba(217, 119, 6, 0.05); color: #d97706; }
+.m-icon.green { background: rgba(22, 163, 74, 0.05); color: #16a34a; }
+.m-icon.purple { background: rgba(147, 51, 234, 0.05); color: #9333ea; }
+.m-info { min-width: 0; }
+.m-info strong { display: block; font-size: 0.9rem; color: var(--color-text-primary); }
+.m-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0.1rem 0 0; }
+.module-link-card .arrow { margin-left: auto; color: var(--color-border); font-size: 18px; }
+
+.admin-side-card { padding: 1.2rem; }
+.sticky-admin { position: sticky; top: 88px; }
+.side-links { display: flex; flex-direction: column; gap: var(--dashboard-tag-gap); }
+.side-link-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
+.side-link-item:hover { background: white; border-color: var(--color-primary); color: var(--color-primary); transform: translateX(3px); }
+.side-link-item .material-symbols-outlined { font-size: 20px; color: var(--color-text-secondary); }
+.side-links .mt-2,
+.dev-link { margin-top: 0; }
+.dev-link { opacity: 0.7; }
+
+@media (max-width: 1180px) {
+  .dashboard-main-layout { grid-template-columns: 1fr; }
+  .sticky-admin { position: static; top: auto; }
+  .ops-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.area-badge:not(.disabled):not(.admin) {
-  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-  color: #166534;
-}
-
-.area-badge.disabled {
-  background: #f1f5f9;
-  color: #94a3b8;
-}
-
-.area-badge.admin {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #78350f;
-}
-
-/* Area Description */
-.area-description {
-  color: #64748b;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* Area Links */
-.area-links {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* Primary Link (más grande y destacado) */
-.link-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: #1b3a6b;
-  background: linear-gradient(135deg, #f4c430 0%, #f4d03f 100%);
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.link-primary:not(.link-disabled):hover {
-  background: linear-gradient(135deg, #f4d03f 0%, #fde68a 100%);
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(244, 196, 48, 0.3);
-}
-
-.link-primary .link-icon :deep(svg) {
-  width: 1.5rem; /* Equivalent to 24px */
-  height: 1.5rem; /* Equivalent to 24px */
-}
-
-/* Secondary Links (más pequeños) */
-.link-secondary {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: #475569;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-  border: 1px solid #e2e8f0;
-}
-
-.link-secondary:not(.link-disabled):hover {
-  background: #f1f5f9;
-  color: #1b3a6b;
-  border-color: #cbd5e1;
-  transform: translateX(4px);
-}
-
-.link-secondary .link-icon :deep(svg) {
-  width: 1.25rem; /* Equivalent to 20px */
-  height: 1.25rem; /* Equivalent to 20px */
-}
-
-/* Disabled Links */
-.link-disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-  background: #f1f5f9 !important;
-}
-
-.link-disabled:hover {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .areas-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 760px) {
+  :root {
+    --dashboard-section-gap: 2rem;
   }
-  
-  .area-card {
-    padding: 1.5rem;
-  }
-  
-  .area-icon :deep(svg) {
-    width: 2rem;
-    height: 2rem;
-  }
-  
-  .area-header h2 {
-    font-size: 1.25rem;
-  }
+  .dashboard-header { flex-direction: column; align-items: flex-start; }
+  .ops-grid { grid-template-columns: 1fr; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .section-title-alt { flex-wrap: wrap; }
+  .section-tag { margin-left: 0; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

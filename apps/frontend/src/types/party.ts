@@ -21,12 +21,16 @@ export interface OrganizationProfile {
   tax_id: string | null
   tax_id_type: TaxIdType | null
   website: string | null
+  phone?: string | null
+  email?: string | null
   notes?: string | null
 }
 
 export interface PersonProfile {
   first_name: string
   last_name: string
+  phone?: string | null
+  email?: string | null
 }
 
 // ============================================================================
@@ -76,6 +80,7 @@ export interface PartyUI {
 
 export interface Contact {
   id: string
+  contact_details_id?: string
   first_name: string
   last_name: string
   email: string
@@ -86,10 +91,11 @@ export interface Contact {
 }
 
 export interface ContactDetails {
+  id?: string
   email: string
   phone: string
   type_description: string
-  related_party_id?: string  // Added for backend responses
+  related_party_id?: string
 }
 
 // ============================================================================
@@ -131,6 +137,7 @@ export interface CreatePartyRequest {
 export interface UpdatePartyRequest {
   name: string
   role?: PartyRole
+  hasPerson?: boolean
   taxId?: string | null
   taxIdType?: TaxIdType | null
   website?: string | null

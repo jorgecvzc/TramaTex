@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
+
 func TestNewProduct(t *testing.T) {
 	brandID := uuid.New()
 	barcode := "1234567890123"
@@ -19,7 +21,7 @@ func TestNewProduct(t *testing.T) {
 		longName      string
 		description   string
 		productType   domain.ProductType
-		brandID       uuid.UUID
+		brandID       *uuid.UUID
 		barcode       *string
 		expectError   bool
 		expectedError string
@@ -31,7 +33,7 @@ func TestNewProduct(t *testing.T) {
 			longName:    "Camiseta de Algodón",
 			description: "Una camiseta cómoda",
 			productType: domain.ProductTypeTangible,
-			brandID:     brandID,
+			brandID:     uuidPtr(brandID),
 			barcode:     &barcode,
 			expectError: false,
 		},
@@ -40,7 +42,7 @@ func TestNewProduct(t *testing.T) {
 			sku:           "",
 			productName:   "Camiseta",
 			productType:   domain.ProductTypeTangible,
-			brandID:       brandID,
+			brandID:       uuidPtr(brandID),
 			expectError:   true,
 			expectedError: "product SKU cannot be empty",
 		},
@@ -49,7 +51,7 @@ func TestNewProduct(t *testing.T) {
 			sku:           "FYR2040",
 			productName:   "",
 			productType:   domain.ProductTypeTangible,
-			brandID:       brandID,
+			brandID:       uuidPtr(brandID),
 			expectError:   true,
 			expectedError: "product name cannot be empty",
 		},
@@ -58,25 +60,24 @@ func TestNewProduct(t *testing.T) {
 			sku:           "FYR2040",
 			productName:   "Camiseta",
 			productType:   "INVALID",
-			brandID:       brandID,
+			brandID:       uuidPtr(brandID),
 			expectError:   true,
 			expectedError: "invalid ProductType: INVALID",
 		},
 		{
-			name:          "Missing BrandID",
-			sku:           "FYR2040",
-			productName:   "Camiseta",
-			productType:   domain.ProductTypeTangible,
-			brandID:       uuid.Nil,
-			expectError:   true,
-			expectedError: "product must be associated with a brand",
+			name:        "Missing BrandID",
+			sku:         "FYR2040",
+			productName: "Camiseta",
+			productType: domain.ProductTypeTangible,
+			brandID:     nil,
+			expectError: false,
 		},
 		{
 			name:        "Product without barcode",
 			sku:         "FYR2041",
 			productName: "Servicio de Diseño",
 			productType: domain.ProductTypeService,
-			brandID:     brandID,
+			brandID:     uuidPtr(brandID),
 			barcode:     nil,
 			expectError: false,
 		},
@@ -113,7 +114,7 @@ func TestNewProduct(t *testing.T) {
 }
 
 func TestProduct_AddGroup(t *testing.T) {
-	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil, 0, 21)
+	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuidPtr(uuid.New()), nil, 0, 21)
 	groupID1 := uuid.New()
 	groupID2 := uuid.New()
 
@@ -131,7 +132,7 @@ func TestProduct_AddGroup(t *testing.T) {
 }
 
 func TestProduct_AddDirectAttribute(t *testing.T) {
-	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuid.New(), nil, 0, 21)
+	p, _ := domain.NewProduct("SKU1", "Name1", "", "", domain.ProductTypeTangible, uuidPtr(uuid.New()), nil, 0, 21)
 	attrID1 := uuid.New()
 	attrID2 := uuid.New()
 

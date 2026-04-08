@@ -1,822 +1,312 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">MES / Panel</p>
-          <h1>Monitoreo de producción</h1>
-          <p class="subtitle">Resumen de trabajos, estados y vencimientos.</p>
-        </div>
-        <div class="header-actions">
-          <RouterLink to="/mes/terminal" class="btn btn-primary">Terminal de taller</RouterLink>
-          <RouterLink to="/mes/work-orders" class="btn btn-secondary">Ver órdenes</RouterLink>
-        </div>
-      </header>
+  <BaseDashboardPage :is-loading="isLoading" class="no-print">
+    <template #header>
+      <PageHeader title="Monitor de Producción (MES)">
+        <template #icon><span class="material-symbols-outlined">precision_manufacturing</span></template>
+        <template #actions>
+          <button @click="loadDashboard" class="btn btn-outline btn-sm" :disabled="isLoading">
+            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            Actualizar
+          </button>
+        </template>
+      </PageHeader>
+    </template>
 
+    <div class="module-dashboard-content">
+      <!-- 1. KPIs de Resumen -->
       <section class="stats-grid">
-        <RouterLink to="/mes/work-orders" class="card stat-card stat-card-link">
-          <p class="stat-label">Total trabajos</p>
-          <p class="stat-value">{{ stats?.total ?? 0 }}</p>
-        </RouterLink>
-        <RouterLink to="/mes/work-orders" class="card stat-card stat-card-link">
-          <p class="stat-label">Vencidos</p>
-          <p class="stat-value danger">{{ stats?.overdue ?? 0 }}</p>
-        </RouterLink>
-        <RouterLink to="/mes/work-orders" class="card stat-card stat-card-link">
-          <p class="stat-label">Vencen hoy</p>
-          <p class="stat-value warning">{{ stats?.due_today ?? 0 }}</p>
-        </RouterLink>
-        <RouterLink to="/mes/work-orders?status=IN_PROGRESS" class="card stat-card stat-card-link">
-          <p class="stat-label">En progreso</p>
-          <p class="stat-value">{{ stats?.by_status?.IN_PROGRESS ?? 0 }}</p>
-        </RouterLink>
-        <RouterLink to="/mes/terminal?status=PENDING" class="card stat-card stat-card-link">
-          <p class="stat-label">Tareas en cola</p>
-          <p class="stat-value" :class="pendingTasksCount > 0 ? 'warning' : ''">{{ pendingTasksCount }}</p>
-        </RouterLink>
-        <a class="card stat-card stat-card-link" @click.prevent="openCompletedDialog">
-          <p class="stat-label">Terminadas</p>
-          <p class="stat-value success">{{ stats?.by_status?.COMPLETED ?? 0 }}</p>
-        </a>
-        <a class="card stat-card stat-card-link" @click.prevent="openCancelledDialog">
-          <p class="stat-label">Canceladas</p>
-          <p class="stat-value muted">{{ stats?.by_status?.CANCELLED ?? 0 }}</p>
-        </a>
+        <div class="stat-card clickable" @click="router.push('/mes/work-orders')">
+          <div class="stat-icon blue"><span class="material-symbols-outlined">factory</span></div>
+          <div class="stat-info">
+            <span class="stat-label">Total Trabajos</span>
+            <span class="stat-value">{{ stats?.total ?? 0 }}</span>
+          </div>
+        </div>
+        <div class="stat-card clickable" @click="router.push('/mes/work-orders?status=OVERDUE')">
+          <div class="stat-icon red"><span class="material-symbols-outlined">history</span></div>
+          <div class="stat-info">
+            <span class="stat-label">Vencidos</span>
+            <span class="stat-value text-danger">{{ stats?.overdue ?? 0 }}</span>
+          </div>
+        </div>
+        <div class="stat-card clickable" @click="router.push('/mes/work-orders?status=IN_PROGRESS')">
+          <div class="stat-icon yellow"><span class="material-symbols-outlined">running_with_errors</span></div>
+          <div class="stat-info">
+            <span class="stat-label">En Producción</span>
+            <span class="stat-value text-warning">{{ inProgressOrders.length }}</span>
+          </div>
+        </div>
+        <div class="stat-card clickable" @click="router.push('/mes/terminal')">
+          <div class="stat-icon purple"><span class="material-symbols-outlined">assignment</span></div>
+          <div class="stat-info">
+            <span class="stat-label">Tareas Taller</span>
+            <span class="stat-value">{{ pendingTasksCount }}</span>
+          </div>
+        </div>
       </section>
 
-      <!-- Dedicated PENDING section with conditional actions -->
-      <section class="card">
+      <!-- 2. Accesos a Listados -->
+      <section class="listings-grid">
+        <RouterLink to="/mes/work-orders" class="listing-link">
+          <span class="material-symbols-outlined">format_list_bulleted</span>
+          <span>Órdenes de Trabajo</span>
+        </RouterLink>
+        <RouterLink to="/mes/tasks" class="listing-link">
+          <span class="material-symbols-outlined">checklist</span>
+          <span>Tareas de Taller</span>
+        </RouterLink>
+        <RouterLink to="/mes/positions" class="listing-link">
+          <span class="material-symbols-outlined">location_on</span>
+          <span>Mapa de Posiciones</span>
+        </RouterLink>
+        <RouterLink to="/mes/terminal" class="listing-link highlight-subtle">
+          <span class="material-symbols-outlined">tablet_mac</span>
+          <span>Terminal Taller</span>
+        </RouterLink>
+      </section>
+
+      <!-- 3. Solicitudes de Ventas -->
+      <section class="dashboard-section">
         <div class="section-header">
-          <h2>Pendientes <span class="status-badge badge-pending">{{ pendingOrders.length }}</span></h2>
-          <RouterLink to="/mes/work-orders?status=PENDING" class="btn-link section-link">Ver todas →</RouterLink>
+          <span class="material-symbols-outlined text-primary">add_shopping_cart</span>
+          <h2>Solicitudes de Ventas</h2>
+          <span class="header-tag">{{ pendingSalesWork.length }}</span>
         </div>
-        <div v-if="isLoadingByStatus" class="empty-state">Cargando órdenes...</div>
-        <div v-else-if="pendingOrders.length === 0" class="empty-state">No hay órdenes pendientes.</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Nombre</th>
-              <th>Pedido</th>
-              <th>Prioridad</th>
-              <th>Vencimiento</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="wo in pendingOrders" :key="wo.id">
-              <td>
-                <RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link"><strong>{{ wo.work_number }}</strong></RouterLink>
-              </td>
-              <td>{{ wo.work_name }}</td>
-              <td>
-                <RouterLink v-if="wo.sales_order_id" :to="`/sales/orders/${wo.sales_order_id}`" class="btn-link">{{ wo.sales_order_number }}</RouterLink>
-                <span v-else class="text-muted">—</span>
-              </td>
-              <td>{{ mesApi.getPriorityLabel(wo.priority) }}</td>
-              <td :class="{ 'date-urgent': isDeliveryUrgent(wo.due_date) }">{{ formatDate(wo.due_date) }}</td>
-              <td class="actions-cell">
-                <template v-if="!wo.work_setup_id">
-                  <button class="btn btn-sm btn-primary" @click="openSetupDialog(wo)">Definir configuración</button>
-                </template>
-                <template v-else>
-                  <button class="btn btn-sm btn-success" @click="startWorkOrder(wo)">Iniciar</button>
-                  <button class="btn btn-sm btn-warning" @click="suspendWorkOrder(wo)">Suspender</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="card">
-        <div class="section-header">
-          <h2>Órdenes vencidas</h2>
-          <RouterLink to="/mes/work-orders" class="btn-link section-link">Ver todas →</RouterLink>
-        </div>
-        <div v-if="isLoading" class="empty-state">Cargando panel...</div>
-        <div v-else-if="error" class="alert">{{ error }}</div>
-        <div v-else-if="overdueWorks.length === 0" class="empty-state">No hay órdenes vencidas.</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Nombre</th>
-              <th>Pedido</th>
-              <th>Estado</th>
-              <th>Vencimiento</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="work in overdueWorks" :key="work.id">
-              <td>
-                <RouterLink :to="`/mes/work-orders/${work.id}`" class="btn-link"><strong>{{ work.work_number }}</strong></RouterLink>
-              </td>
-              <td>{{ work.work_name }}</td>
-              <td>
-                <RouterLink v-if="work.sales_order_id" :to="`/sales/orders/${work.sales_order_id}`" class="btn-link">{{ work.sales_order_number }}</RouterLink>
-                <span v-else class="text-muted">—</span>
-              </td>
-              <td>{{ mesApi.getWorkStatusLabel(work.status) }}</td>
-              <td>{{ formatDate(work.due_date) }}</td>
-              <td>
-                <RouterLink :to="`/mes/work-orders/${work.id}`" class="btn-link">Ver detalle</RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section v-for="section in statusSections" :key="section.status" class="card">
-        <div class="section-header">
-          <h2>{{ section.title }} <span class="status-badge" :class="section.badgeClass">{{ section.orders.length }}</span></h2>
-          <RouterLink :to="`/mes/work-orders?status=${section.status}`" class="btn-link section-link">Ver todas →</RouterLink>
-        </div>
-        <div v-if="isLoadingByStatus" class="empty-state">Cargando órdenes...</div>
-        <div v-else-if="section.orders.length === 0" class="empty-state">No hay órdenes {{ section.emptyLabel }}.</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Nombre</th>
-              <th>Pedido</th>
-              <th>Prioridad</th>
-              <th>Vencimiento</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="wo in section.orders" :key="wo.id">
-              <td>
-                <RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link"><strong>{{ wo.work_number }}</strong></RouterLink>
-              </td>
-              <td>{{ wo.work_name }}</td>
-              <td>
-                <RouterLink v-if="wo.sales_order_id" :to="`/sales/orders/${wo.sales_order_id}`" class="btn-link">{{ wo.sales_order_number }}</RouterLink>
-                <span v-else class="text-muted">—</span>
-              </td>
-              <td>{{ mesApi.getPriorityLabel(wo.priority) }}</td>
-              <td :class="{ 'date-urgent': isDeliveryUrgent(wo.due_date) }">{{ formatDate(wo.due_date) }}</td>
-              <td>
-                <RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link">Ver detalle</RouterLink>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
-      <!-- Dedicated SUSPENDED section with cancel action -->
-      <section class="card">
-        <div class="section-header">
-          <h2>Suspendidas <span class="status-badge badge-suspended">{{ suspendedOrders.length }}</span></h2>
-          <RouterLink to="/mes/work-orders?status=SUSPENDED" class="btn-link section-link">Ver todas →</RouterLink>
-        </div>
-        <div v-if="isLoadingByStatus" class="empty-state">Cargando órdenes...</div>
-        <div v-else-if="suspendedOrders.length === 0" class="empty-state">No hay órdenes suspendidas.</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>Número</th>
-              <th>Nombre</th>
-              <th>Pedido</th>
-              <th>Prioridad</th>
-              <th>Vencimiento</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="wo in suspendedOrders" :key="wo.id">
-              <td>
-                <RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link"><strong>{{ wo.work_number }}</strong></RouterLink>
-              </td>
-              <td>{{ wo.work_name }}</td>
-              <td>
-                <RouterLink v-if="wo.sales_order_id" :to="`/sales/orders/${wo.sales_order_id}`" class="btn-link">{{ wo.sales_order_number }}</RouterLink>
-                <span v-else class="text-muted">—</span>
-              </td>
-              <td>{{ mesApi.getPriorityLabel(wo.priority) }}</td>
-              <td :class="{ 'date-urgent': isDeliveryUrgent(wo.due_date) }">{{ formatDate(wo.due_date) }}</td>
-              <td class="actions-cell">
-                <button class="btn btn-sm btn-pending" @click="reactivateWorkOrder(wo)">Reactivar</button>
-                <button class="btn btn-sm btn-danger" @click="cancelWorkOrder(wo)">Cancelar</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-    </div>
-
-    <!-- Completed Orders Dialog -->
-    <div v-if="showCompletedDialog" class="modal-overlay" @click.self="showCompletedDialog = false">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Órdenes terminadas</h3>
-          <button @click="showCompletedDialog = false" class="btn-close">✕</button>
-        </div>
-        <div class="modal-body">
-          <div v-if="isLoadingCompleted" class="empty-state">Cargando órdenes terminadas...</div>
-          <div v-else-if="completedOrders.length === 0" class="empty-state">No hay órdenes terminadas.</div>
-          <table v-else class="data-table">
+        <div class="table-wrapper">
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Número</th>
-                <th>Nombre</th>
                 <th>Pedido</th>
-                <th>Completada</th>
+                <th>Cliente</th>
+                <th>Descripción del Trabajo</th>
+                <th>Entrega Prevista</th>
+                <th class="align-right">Acción</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="wo in completedOrders" :key="wo.id">
-                <td><RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link"><strong>{{ wo.work_number }}</strong></RouterLink></td>
-                <td>{{ wo.work_name }}</td>
-                <td>
-                  <RouterLink v-if="wo.sales_order_id" :to="`/sales/orders/${wo.sales_order_id}`" class="btn-link">{{ wo.sales_order_number }}</RouterLink>
-                  <span v-else class="text-muted">—</span>
+              <tr v-for="setup in pendingSalesWork" :key="setup.id" class="row-hover">
+                <td><strong>#{{ setup.order_number }}</strong></td>
+                <td>{{ setup.party_name || setup.party_id?.substring(0,8) || 'Desconocido' }}</td>
+                <td>{{ setup.description }}</td>
+                <td><span class="text-muted">{{ formatDate(setup.delivery_date) }}</span></td>
+                <td class="align-right">
+                  <button class="btn btn-secondary btn-sm" @click="configurePending(setup)">
+                    <span class="material-symbols-outlined">settings_suggest</span>
+                    Crear Orden
+                  </button>
                 </td>
-                <td>{{ formatDate(wo.completed_date) }}</td>
+              </tr>
+              <tr v-if="pendingSalesWork.length === 0">
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay solicitudes de trabajo pendientes de Ventas.</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Cancelled Orders Dialog -->
-    <div v-if="showCancelledDialog" class="modal-overlay" @click.self="showCancelledDialog = false">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Órdenes canceladas</h3>
-          <button @click="showCancelledDialog = false" class="btn-close">✕</button>
+      <!-- 4. Actividad (Órdenes Pendientes en MES) -->
+      <section class="dashboard-section mt-6">
+        <div class="section-header">
+          <span class="material-symbols-outlined text-info">pending_actions</span>
+          <h2>Pendientes de Inicio (MES)</h2>
+          <span class="header-tag">{{ pendingOrders.length }}</span>
         </div>
-        <div class="modal-body">
-          <div v-if="isLoadingCancelled" class="empty-state">Cargando órdenes canceladas...</div>
-          <div v-else-if="cancelledOrders.length === 0" class="empty-state">No hay órdenes canceladas.</div>
-          <table v-else class="data-table">
+        <div class="table-wrapper">
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Número</th>
-                <th>Nombre</th>
+                <th>Nº</th>
+                <th>Descripción</th>
                 <th>Pedido</th>
-                <th>Acciones</th>
+                <th>Prioridad</th>
+                <th class="align-right">Acción</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="wo in cancelledOrders" :key="wo.id">
-                <td><RouterLink :to="`/mes/work-orders/${wo.id}`" class="btn-link"><strong>{{ wo.work_number }}</strong></RouterLink></td>
-                <td>{{ wo.work_name }}</td>
-                <td>
-                  <RouterLink v-if="wo.sales_order_id" :to="`/sales/orders/${wo.sales_order_id}`" class="btn-link">{{ wo.sales_order_number }}</RouterLink>
-                  <span v-else class="text-muted">—</span>
+              <tr v-for="wo in pendingOrders" :key="wo.id" class="row-hover">
+                <td><code class="code-badge">{{ wo.work_number }}</code></td>
+                <td><strong>{{ wo.work_name }}</strong></td>
+                <td>#{{ wo.sales_order_number || 'Interno' }}</td>
+                <td><span :class="['priority-pill', `prio-${wo.priority}`]">{{ wo.priority }}</span></td>
+                <td class="align-right">
+                  <button class="btn btn-primary btn-sm" @click="configureOrder(wo)">Configurar</button>
                 </td>
-                <td class="actions-cell">
-                  <button class="btn btn-sm btn-pending" @click="reactivateCancelledOrder(wo)">Reactivar</button>
-                </td>
+              </tr>
+              <tr v-if="pendingOrders.length === 0">
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay órdenes pendientes de configuración interna.</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
 
-    <!-- WorkSetup Assignment Dialog -->
-    <div v-if="showSetupDialog" class="modal-overlay" @click.self="closeSetupDialog">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Configuración de trabajo — {{ setupDialogOrder?.work_number }}</h3>
-          <button @click="closeSetupDialog" class="btn-close">✕</button>
+    <!-- Diálogo de Configuración -->
+    <WorkSetupSelectorDialog
+      :show="showSetupDialog"
+      :work-order="selectedWorkOrder"
+      @close="showSetupDialog = false"
+      @assigned="handleSetupAssigned"
+    />
+
+    <template #sidebar>
+      <section class="sidebar-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined">bolt</span>
+          <h2>Mantenimiento</h2>
         </div>
-
-        <div class="modal-body">
-          <div v-if="setupDialogError" class="alert">{{ setupDialogError }}</div>
-
-          <!-- WorkOrder notes as reference -->
-          <div v-if="setupDialogOrder?.work_name" class="info-banner">
-            <strong>Descripción del encargo:</strong> {{ setupDialogOrder.work_name }}
-          </div>
-          <div v-if="setupDialogOrder?.notes" class="info-banner">
-            <strong>Observaciones del pedido:</strong> {{ setupDialogOrder.notes }}
-          </div>
-
-          <!-- Mode tabs -->
-          <div class="tab-bar">
-            <button :class="['tab-btn', { active: setupDialogMode === 'assign' }]" @click="setupDialogMode = 'assign'">Asignar existente</button>
-            <button :class="['tab-btn', { active: setupDialogMode === 'create' }]" @click="switchToCreateMode">Crear nueva</button>
-          </div>
-
-          <!-- Assign existing mode -->
-          <div v-if="setupDialogMode === 'assign'">
-            <div v-if="isLoadingSetups" class="empty-state">Cargando configuraciones...</div>
-            <div v-else-if="existingWorkSetups.length === 0" class="empty-state">No hay configuraciones activas para este cliente.</div>
-            <div v-else class="setup-list">
-              <label v-for="ws in existingWorkSetups" :key="ws.id" class="setup-option" :class="{ selected: selectedWorkSetupId === ws.id }">
-                <input type="radio" v-model="selectedWorkSetupId" :value="ws.id" name="work_setup" />
-                <div class="setup-info">
-                  <strong>{{ ws.name }}</strong>
-                  <span v-if="ws.description" class="setup-desc">{{ ws.description }}</span>
-                  <span class="setup-lines">{{ ws.lines.length }} línea(s)</span>
-                </div>
-              </label>
+        <div class="quick-actions-list">
+          <RouterLink to="/mes/work-setups" class="admin-card clickable">
+            <span class="material-symbols-outlined text-primary">settings_input_component</span>
+            <div class="admin-card-info">
+              <strong>Setups Técnicos</strong>
+              <p>Configuraciones base</p>
             </div>
-            <div class="modal-footer">
-              <button class="btn btn-secondary" @click="closeSetupDialog">Cancelar</button>
-              <button class="btn btn-primary" :disabled="!selectedWorkSetupId || setupDialogSaving" @click="assignExistingSetup">
-                {{ setupDialogSaving ? 'Asignando...' : 'Asignar' }}
-              </button>
+          </RouterLink>
+          <RouterLink to="/mes/tasks" class="admin-card clickable mt-2">
+            <span class="material-symbols-outlined text-secondary">tune</span>
+            <div class="admin-card-info">
+              <strong>Maestro de Tareas</strong>
+              <p>Definición de procesos</p>
             </div>
-          </div>
-
-          <!-- Create new mode -->
-          <div v-if="setupDialogMode === 'create'" class="create-form">
-            <label class="label">Nombre *</label>
-            <input v-model="newSetupForm.name" type="text" class="input" placeholder="Ej: Uniformes Empresa XYZ" />
-
-            <PartySelector
-              v-model="newSetupForm.party_id"
-              label="Cliente *"
-              placeholder="Buscar cliente por nombre..."
-              role-filter="CLIENT"
-              :required="true"
-            />
-
-            <label class="label">Categoría tangible *</label>
-            <select v-model="newSetupForm.tangible_group_id" class="input">
-              <option value="">Seleccionar categoría tangible</option>
-              <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">
-                {{ group.name }}
-              </option>
-            </select>
-
-            <label class="label">Descripción</label>
-            <textarea v-model="newSetupForm.description" class="input" rows="2" placeholder="Descripción opcional" />
-
-            <div class="lines-block">
-              <div class="lines-header">
-                <h4>Líneas de configuración</h4>
-                <button @click="addSetupLine" type="button" class="btn btn-secondary btn-sm">+ Añadir línea</button>
-              </div>
-              <div v-for="(line, index) in newSetupForm.lines" :key="index" class="line-row">
-                <select v-model="line.work_type_id" class="input">
-                  <option value="">Tipo de trabajo</option>
-                  <option v-for="wt in workTypes" :key="wt.id" :value="wt.id">{{ wt.name }}</option>
-                </select>
-                <select v-model="line.position_id" class="input">
-                  <option value="">Posición</option>
-                  <option v-for="pos in positions" :key="pos.id" :value="pos.id">{{ pos.name }} ({{ pos.code }})</option>
-                </select>
-                <input v-model.number="line.sequence" type="number" min="1" class="input seq" placeholder="Seq" />
-                <input v-model="line.design_file_path" type="text" class="input file-path-input" placeholder="Ruta del archivo (opcional)" title="Ruta completa del archivo de diseño" />
-                <button type="button" class="btn btn-secondary btn-sm file-pick-btn" title="Seleccionar archivo" @click="pickFile(index)">📂</button>
-                <input :ref="el => { fileInputRefs[index] = el as HTMLInputElement }" type="file" class="file-input-hidden" @change="onFileSelected($event, index)" />
-                <button @click="removeSetupLine(index)" type="button" class="btn btn-danger btn-sm">Quitar</button>
-              </div>
-              <p v-if="newSetupForm.lines.length === 0" class="empty-state">Sin líneas. Añade al menos una.</p>
-            </div>
-
-            <div class="modal-footer">
-              <button class="btn btn-secondary" @click="closeSetupDialog">Cancelar</button>
-              <button class="btn btn-primary" :disabled="setupDialogSaving" @click="createAndAssignSetup">
-                {{ setupDialogSaving ? 'Creando...' : 'Crear y asignar' }}
-              </button>
-            </div>
-          </div>
+          </RouterLink>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+    </template>
+  </BaseDashboardPage>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
-import PartySelector from '@/components/party/PartySelector.vue'
+import { RouterLink, useRouter } from 'vue-router'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
+import WorkSetupSelectorDialog from '@/components/mes/WorkSetupSelectorDialog.vue'
 import { mesApi } from '@/services/mesApi'
-import { productApi } from '@/services/productApi'
-import type { WorkOrder, WorkOrderDashboardStats, WorkSetup, MESWorkType, MESPosition } from '@/types/mes'
+import { partyApi } from '@/services/partyApi'
+import type { WorkOrder, WorkOrderDashboardStats } from '@/types/mes'
 
-const isLoading = ref(false)
-const isLoadingByStatus = ref(false)
-const error = ref('')
+const router = useRouter()
+const isLoading = ref(true)
 const stats = ref<WorkOrderDashboardStats | null>(null)
-const overdueWorks = ref<WorkOrder[]>([])
-
-const suspendedOrders = ref<WorkOrder[]>([])
 const pendingOrders = ref<WorkOrder[]>([])
 const inProgressOrders = ref<WorkOrder[]>([])
-const onHoldOrders = ref<WorkOrder[]>([])
+const pendingSalesWork = ref<any[]>([])
 
-const statusSections = computed(() => [
-  { status: 'IN_PROGRESS', title: 'En progreso', emptyLabel: 'en progreso', badgeClass: 'badge-progress', orders: inProgressOrders.value },
-  { status: 'ON_HOLD', title: 'En espera', emptyLabel: 'en espera', badgeClass: 'badge-hold', orders: onHoldOrders.value },
-])
+// Dialog state
+const showSetupDialog = ref(false)
+const selectedWorkOrder = ref<any | null>(null)
 
-// Count of PENDING tasks across all IN_PROGRESS work orders (visible in the terminal)
 const pendingTasksCount = computed(() => {
   let count = 0
-  for (const wo of inProgressOrders.value) {
-    for (const line of wo.lines || []) {
-      for (const task of line.tasks || []) {
-        if (task.status === 'PENDING') count++
-      }
-    }
+  for (const wo of inProgressOrders.value) { 
+    for (const line of wo.lines || []) { 
+      for (const task of line.tasks || []) { 
+        if (task.status === 'PENDING') count++ 
+      } 
+    } 
   }
   return count
 })
 
-// --- Completed / Cancelled dialog state ---
-const showCompletedDialog = ref(false)
-const showCancelledDialog = ref(false)
-const completedOrders = ref<WorkOrder[]>([])
-const cancelledOrders = ref<WorkOrder[]>([])
-const isLoadingCompleted = ref(false)
-const isLoadingCancelled = ref(false)
-
-async function openCompletedDialog() {
-  showCompletedDialog.value = true
-  isLoadingCompleted.value = true
-  try {
-    completedOrders.value = await mesApi.listWorkOrders({ status: 'COMPLETED' })
-  } catch (err: any) {
-    console.error('Error loading completed orders:', err)
-    completedOrders.value = []
-  } finally {
-    isLoadingCompleted.value = false
-  }
-}
-
-async function openCancelledDialog() {
-  showCancelledDialog.value = true
-  isLoadingCancelled.value = true
-  try {
-    cancelledOrders.value = await mesApi.listWorkOrders({ status: 'CANCELLED' })
-  } catch (err: any) {
-    console.error('Error loading cancelled orders:', err)
-    cancelledOrders.value = []
-  } finally {
-    isLoadingCancelled.value = false
-  }
-}
-
-async function reactivateWorkOrder(wo: WorkOrder) {
-  try {
-    await mesApi.updateWorkOrder(wo.id, { status: 'PENDING' })
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    console.error('Error reactivating work order:', err)
-  }
-}
-
-async function reactivateCancelledOrder(wo: WorkOrder) {
-  try {
-    await mesApi.updateWorkOrder(wo.id, { status: 'PENDING' })
-    cancelledOrders.value = cancelledOrders.value.filter(o => o.id !== wo.id)
-    await Promise.all([loadOrdersByStatus(), loadDashboard()])
-  } catch (err: any) {
-    console.error('Error reactivating cancelled order:', err)
-  }
-}
-
-// --- WorkSetup assignment dialog state ---
-type ProductGroupOption = { id: string; name: string; type: string }
-
-const showSetupDialog = ref(false)
-const setupDialogOrder = ref<WorkOrder | null>(null)
-const setupDialogMode = ref<'assign' | 'create'>('assign')
-const setupDialogError = ref('')
-const setupDialogSaving = ref(false)
-
-// Assign mode state
-const existingWorkSetups = ref<WorkSetup[]>([])
-const selectedWorkSetupId = ref('')
-const isLoadingSetups = ref(false)
-
-// Create mode state
-const workTypes = ref<MESWorkType[]>([])
-const positions = ref<MESPosition[]>([])
-const productGroups = ref<ProductGroupOption[]>([])
-const tangibleGroups = computed(() => productGroups.value.filter(g => g.type === 'TANGIBLE'))
-const newSetupForm = ref({
-  name: '',
-  party_id: '',
-  tangible_group_id: '',
-  description: '',
-  is_active: true,
-  lines: [] as Array<{ work_type_id: string; position_id: string; sequence: number; design_file_path: string }>,
-})
-
-function openSetupDialog(wo: WorkOrder) {
-  setupDialogOrder.value = wo
-  setupDialogMode.value = 'assign'
-  setupDialogError.value = ''
-  setupDialogSaving.value = false
-  selectedWorkSetupId.value = ''
-  existingWorkSetups.value = []
-  showSetupDialog.value = true
-  loadExistingSetups(wo.party_id)
-}
-
-function closeSetupDialog() {
-  showSetupDialog.value = false
-  setupDialogOrder.value = null
-}
-
-async function loadExistingSetups(partyId: string) {
-  isLoadingSetups.value = true
-  try {
-    existingWorkSetups.value = await mesApi.listWorkSetups({ party_id: partyId, is_active: true })
-  } catch (err: any) {
-    console.error('Error loading work setups:', err)
-    existingWorkSetups.value = []
-  } finally {
-    isLoadingSetups.value = false
-  }
-}
-
-async function loadCreateFormOptions() {
-  try {
-    const [wt, pos, groups] = await Promise.all([
-      mesApi.listWorkTypes({ is_active: true }),
-      mesApi.listPositions({ is_active: true }),
-      productApi.listProductGroups({ isActive: true }),
-    ])
-    workTypes.value = wt
-    positions.value = pos
-    productGroups.value = groups.data
-  } catch (err: any) {
-    setupDialogError.value = err.message || 'Error cargando opciones del formulario'
-  }
-}
-
-function switchToCreateMode() {
-  setupDialogMode.value = 'create'
-  const wo = setupDialogOrder.value
-  newSetupForm.value = {
-    name: '',
-    party_id: wo?.party_id || '',
-    tangible_group_id: '',
-    description: '',
-    is_active: true,
-    lines: [],
-  }
-  if (workTypes.value.length === 0) {
-    loadCreateFormOptions()
-  }
-}
-
-function addSetupLine() {
-  newSetupForm.value.lines.push({ work_type_id: '', position_id: '', sequence: newSetupForm.value.lines.length + 1, design_file_path: '' })
-}
-
-function removeSetupLine(index: number) {
-  newSetupForm.value.lines.splice(index, 1)
-}
-
-const fileInputRefs = ref<HTMLInputElement[]>([])
-
-function pickFile(index: number) {
-  fileInputRefs.value[index]?.click()
-}
-
-function onFileSelected(event: Event, index: number) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    newSetupForm.value.lines[index].design_file_path = file.name
-  }
-}
-
-async function assignExistingSetup() {
-  if (!selectedWorkSetupId.value || !setupDialogOrder.value) return
-  setupDialogError.value = ''
-  setupDialogSaving.value = true
-  try {
-    await mesApi.updateWorkOrder(setupDialogOrder.value.id, { work_setup_id: selectedWorkSetupId.value })
-    closeSetupDialog()
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    setupDialogError.value = err.message || 'Error al asignar configuración'
-  } finally {
-    setupDialogSaving.value = false
-  }
-}
-
-async function createAndAssignSetup() {
-  const wo = setupDialogOrder.value
-  if (!wo) return
-  setupDialogError.value = ''
-
-  const f = newSetupForm.value
-  if (!f.name.trim()) { setupDialogError.value = 'El nombre es obligatorio'; return }
-  if (!f.party_id.trim()) { setupDialogError.value = 'El cliente es obligatorio'; return }
-  if (!f.tangible_group_id.trim()) { setupDialogError.value = 'La categoría tangible es obligatoria'; return }
-  const invalidLine = f.lines.find(l => !l.work_type_id || !l.position_id || l.sequence < 1)
-  if (invalidLine) { setupDialogError.value = 'Todas las líneas deben tener tipo de trabajo, posición y secuencia válida'; return }
-  if (f.lines.length === 0) { setupDialogError.value = 'Debe añadir al menos una línea'; return }
-
-  setupDialogSaving.value = true
-  try {
-    const created = await mesApi.createWorkSetup({
-      name: f.name.trim(),
-      party_id: f.party_id.trim(),
-      tangible_group_id: f.tangible_group_id.trim(),
-      description: f.description.trim() || undefined,
-      is_active: f.is_active,
-      lines: f.lines.map(l => ({
-        work_type_id: l.work_type_id,
-        position_id: l.position_id,
-        sequence: l.sequence,
-        design_file_path: l.design_file_path || undefined,
-      })),
-    })
-    await mesApi.updateWorkOrder(wo.id, { work_setup_id: created.id })
-    closeSetupDialog()
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    setupDialogError.value = err.message || 'Error al crear y asignar configuración'
-  } finally {
-    setupDialogSaving.value = false
-  }
-}
-
-async function startWorkOrder(wo: WorkOrder) {
-  try {
-    await mesApi.updateWorkOrder(wo.id, { status: 'IN_PROGRESS' })
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    console.error('Error starting work order:', err)
-  }
-}
-
-async function suspendWorkOrder(wo: WorkOrder) {
-  try {
-    await mesApi.updateWorkOrder(wo.id, { status: 'SUSPENDED' })
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    console.error('Error suspending work order:', err)
-  }
-}
-
-async function cancelWorkOrder(wo: WorkOrder) {
-  try {
-    await mesApi.updateWorkOrder(wo.id, { status: 'CANCELLED' })
-    await loadOrdersByStatus()
-  } catch (err: any) {
-    console.error('Error cancelling work order:', err)
-  }
-}
-
-function formatDate(value?: string) {
-  if (!value) {
-    return '—'
-  }
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-  return date.toLocaleDateString('es-ES')
-}
-
-function isDeliveryUrgent(dateStr?: string): boolean {
-  if (!dateStr) return false
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffDays = (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  return diffDays <= 3
-}
-
 async function loadDashboard() {
   isLoading.value = true
-  error.value = ''
-
   try {
-    const [statsResult, overdueResult] = await Promise.all([
+    const [s, p, i, sw] = await Promise.all([
       mesApi.getWorkOrderDashboardStats(),
-      mesApi.listOverdueWorkOrders(20),
-    ])
-
-    stats.value = statsResult
-    overdueWorks.value = overdueResult
-  } catch (err: any) {
-    error.value = err.message || 'No se pudo cargar el panel'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-async function loadOrdersByStatus() {
-  isLoadingByStatus.value = true
-  try {
-    const [suspended, pending, inProgress, onHold] = await Promise.all([
-      mesApi.listWorkOrders({ status: 'SUSPENDED' }),
       mesApi.listWorkOrders({ status: 'PENDING' }),
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
-      mesApi.listWorkOrders({ status: 'ON_HOLD' }),
+      mesApi.listPendingWorkSetups()
     ])
-    suspendedOrders.value = suspended
-    pendingOrders.value = pending
-    inProgressOrders.value = inProgress
-    onHoldOrders.value = onHold
-  } catch (err: any) {
-    console.error('Error loading orders by status:', err)
-  } finally {
-    isLoadingByStatus.value = false
+    stats.value = s
+    pendingOrders.value = p
+    inProgressOrders.value = i
+    
+    // Enriquecer solicitudes de ventas con nombres de clientes
+    const enrichedSW = await Promise.all(sw.map(async (item: any) => {
+      if (item.party_id || item.partyId) {
+        try {
+          const party = await partyApi.getParty(item.party_id || item.partyId)
+          return { ...item, party_name: party?.name || party?.displayName }
+        } catch (e) {
+          return item
+        }
+      }
+      return item
+    }))
+    pendingSalesWork.value = enrichedSW
+  } catch (err) {
+    console.error('Error loading dashboard:', err)
   }
+  finally { isLoading.value = false }
 }
 
-onMounted(() => {
-  loadDashboard()
-  loadOrdersByStatus()
-})
+function configureOrder(wo: WorkOrder) {
+  selectedWorkOrder.value = wo
+  showSetupDialog.value = true
+}
+
+function configurePending(setup: any) {
+  // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
+  selectedWorkOrder.value = {
+    id: setup.id,
+    work_number: setup.order_number,
+    work_name: setup.description,
+    party_id: setup.party_id || setup.partyId,
+    party_name: setup.party_name,
+    order_work_setup_id: setup.id // Referencia crucial para vincular al crear la orden
+  }
+  showSetupDialog.value = true
+}
+
+async function handleSetupAssigned() {
+  await loadDashboard()
+}
+
+function formatDate(d: any) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
+
+onMounted(loadDashboard)
 </script>
 
 <style scoped>
-.dashboard { min-height: 100vh; background-color: #f1f5f9; }
-.dashboard-content { max-width: 1200px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.header-actions { display: flex; gap: .5rem; }
-.breadcrumb { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin: 0; }
-.subtitle { color: #64748b; margin: .5rem 0 0; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.stat-card { display: flex; flex-direction: column; gap: .25rem; }
-.stat-label { margin: 0; color: #64748b; font-size: .85rem; }
-.stat-value { margin: 0; font-size: 1.8rem; font-weight: 700; color: #1e293b; }
-.stat-value.danger { color: #b91c1c; }
-.stat-value.warning { color: #b45309; }
-.stat-value.success { color: #065f46; }
-.stat-value.muted { color: #94a3b8; }
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
-.btn { border: none; border-radius: 8px; padding: .6rem 1rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
-.btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
-.btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
-.btn-sm { padding: .35rem .75rem; font-size: .8rem; }
-.btn-disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; pointer-events: none; }
-.btn-link { color: #1d4ed8; text-decoration: none; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { padding: .75rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
-.empty-state { text-align: center; color: #64748b; padding: 1rem; }
-.alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
-.section-subtitle { color: #64748b; font-size: .85rem; margin: 0 0 .75rem; }
-.pending-badge { display: inline-block; padding: .15rem .5rem; border-radius: 9999px; font-size: .75rem; font-weight: 500; background: #fef3c7; color: #92400e; }
-.date-urgent { color: #b91c1c; font-weight: 600; }
-.text-muted { color: #94a3b8; }
-.observations-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; font-size: .85rem; }
-.stat-card-link { text-decoration: none; transition: box-shadow .15s, transform .15s; }
-.stat-card-link:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); transform: translateY(-2px); }
-.section-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .5rem; }
-.section-header h2 { margin: 0; display: flex; align-items: center; gap: .5rem; }
-.section-link { font-size: .85rem; white-space: nowrap; padding-top: .25rem; }
-.status-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.6rem; height: 1.6rem; border-radius: 9999px; font-size: .75rem; font-weight: 600; }
-.badge-suspended { background: #fef3c7; color: #92400e; }
-.badge-pending { background: #e0e7ff; color: #3730a3; }
-.badge-progress { background: #d1fae5; color: #065f46; }
-.badge-hold { background: #fee2e2; color: #991b1b; }
-@media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.module-dashboard-content { display: flex; flex-direction: column; gap: 1.5rem; }
 
-/* Action buttons */
-.actions-cell { display: flex; gap: .4rem; flex-wrap: wrap; }
-.btn-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; font-weight: 600; }
-.btn-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; font-weight: 600; }
-.btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-.btn-pending { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; font-weight: 600; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.stat-card { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; position: relative; transition: 0.2s; cursor: pointer; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--box-shadow-md); border-color: var(--color-primary); }
+.stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.stat-icon .material-symbols-outlined { font-size: 22px; }
+.stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.stat-icon.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
+.stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.stat-info { display: flex; flex-direction: column; gap: 0.25rem; }
+.stat-label { font-size: 0.65rem; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; }
+.stat-value { font-size: 1.25rem; font-weight: 700; }
 
-/* Modal */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-content { background: #fff; border-radius: 12px; width: 90vw; max-width: 1400px; max-height: 88vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.15); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid #e2e8f0; }
-.modal-header h3 { margin: 0; font-size: 1.05rem; }
-.btn-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; padding: .25rem .5rem; }
-.modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
-.modal-footer { display: flex; justify-content: flex-end; gap: .5rem; padding-top: .75rem; border-top: 1px solid #e2e8f0; margin-top: .5rem; }
+.listings-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+.listing-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+.listing-link:hover { background: var(--color-background); border-color: var(--color-secondary); color: var(--color-secondary); }
+.listing-link .material-symbols-outlined { color: var(--color-secondary); font-size: 1.25rem; }
+.listing-link.highlight-subtle { border-left: 3px solid var(--color-primary); }
 
-/* Info banner */
-.info-banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: .75rem; color: #1e40af; font-size: .85rem; }
+.dashboard-section { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
+.section-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-background); }
+.section-header h2 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin: 0; flex: 1; }
+.header-tag { font-size: 0.6rem; font-weight: 800; padding: 0.1rem 0.5rem; background: var(--color-background); color: var(--color-secondary); border-radius: 20px; }
 
-/* Tab bar */
-.tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; }
-.tab-btn { background: none; border: none; padding: .5rem 1rem; font: inherit; cursor: pointer; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px; }
-.tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; font-weight: 600; }
+.quick-actions-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.admin-card { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--color-background); border-radius: 8px; border: 1px solid transparent; text-decoration: none; color: var(--color-text-primary); transition: 0.2s; }
+.admin-card:hover { background: white; border-color: var(--color-primary); transform: translateX(4px); box-shadow: var(--box-shadow-sm); }
+.admin-card-info strong { font-size: 0.8rem; display: block; }
+.admin-card-info p { font-size: 0.65rem; color: var(--color-text-secondary); margin: 0; }
 
-/* Setup list (assign mode) */
-.setup-list { display: flex; flex-direction: column; gap: .5rem; }
-.setup-option { display: flex; align-items: flex-start; gap: .75rem; padding: .75rem; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: border-color .15s; }
-.setup-option.selected { border-color: #1d4ed8; background: #eff6ff; }
-.setup-option input[type="radio"] { margin-top: .15rem; }
-.setup-info { display: flex; flex-direction: column; gap: .15rem; }
-.setup-desc { font-size: .8rem; color: #64748b; }
-.setup-lines { font-size: .75rem; color: #94a3b8; }
-
-/* Create form */
-.create-form { display: flex; flex-direction: column; gap: .75rem; }
-.create-form .label { font-size: .85rem; color: #334155; font-weight: 600; margin: 0; }
-.create-form .input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .5rem .75rem; font: inherit; }
-
-/* Lines block */
-.lines-block { border: 1px solid #e2e8f0; border-radius: 8px; padding: .75rem; display: flex; flex-direction: column; gap: .5rem; }
-.lines-header { display: flex; justify-content: space-between; align-items: center; }
-.lines-header h4 { margin: 0; font-size: .9rem; color: #1e293b; }
-.line-row { display: grid; grid-template-columns: 1fr 1fr 70px 1fr auto auto auto; gap: .4rem; align-items: center; }
-.file-pick-btn { padding: .4rem .6rem; font-size: .85rem; }
-.file-input-hidden { display: none; }
-.seq { text-align: center; }
+.code-badge { background: var(--color-background); padding: 0.15rem 0.35rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.75rem; }
+.priority-pill { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 0.15rem 0.4rem; border-radius: 4px; }
+.prio-HIGH, .prio-URGENT { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+.align-right { text-align: right; }
+.mt-6 { margin-top: 1.5rem; }
 </style>

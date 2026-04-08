@@ -1,124 +1,197 @@
 <template>
-  <div class="dashboard">
-    <Navbar />
-    <div class="dashboard-content">
-      <header class="page-header">
-        <div>
-          <p class="breadcrumb">MES / Órdenes de Trabajo</p>
-          <h1>{{ work?.work_name || 'Detalle de orden' }}</h1>
-          <p class="subtitle subtitle-ref">{{ work?.work_number || '—' }}</p>
-          <p class="subtitle subtitle-setup">{{ workSetupName || work?.work_setup_id || '—' }}<span v-if="work" class="status-pill status-pill-header" :class="work.status.toLowerCase()">{{ mesApi.getWorkStatusLabel(work.status) }}</span></p>
-        </div>
-        <div class="header-actions" v-if="work && !isEditing">
-          <button class="btn btn-primary" @click="startEdit">Editar</button>
-          <RouterLink to="/mes/work-orders" class="btn btn-secondary">Volver</RouterLink>
-        </div>
-        <div class="header-actions" v-else>
-          <RouterLink to="/mes/work-orders" class="btn btn-secondary">Volver</RouterLink>
-        </div>
-      </header>
-
-      <section class="card" v-if="isLoading">
-        <div class="empty-state">Cargando detalle...</div>
-      </section>
-
-      <section class="card" v-else-if="error">
-        <div class="alert">{{ error }}</div>
-      </section>
-
-      <template v-else-if="work">
-        <section class="card" v-if="isEditing">
-          <h3>Editar orden de trabajo</h3>
-          <div class="edit-grid">
-            <div>
-              <label class="label">Nombre</label>
-              <input v-model="editForm.work_name" class="input" type="text" />
-            </div>
-            <div>
-              <label class="label">Estado</label>
-              <select v-model="editForm.status" class="input">
-                <option value="PENDING">Pendiente</option>
-                <option value="IN_PROGRESS">En progreso</option>
-                <option value="ON_HOLD">En espera</option>
-                <option value="COMPLETED">Completado</option>
-                <option value="CANCELLED">Cancelado</option>
-              </select>
-            </div>
-            <div>
-              <label class="label">Prioridad</label>
-              <select v-model="editForm.priority" class="input">
-                <option value="LOW">Baja</option>
-                <option value="NORMAL">Normal</option>
-                <option value="HIGH">Alta</option>
-                <option value="URGENT">Urgente</option>
-              </select>
-            </div>
-            <div>
-              <label class="label">Fecha de vencimiento</label>
-              <input v-model="editForm.due_date" class="input" type="date" />
-            </div>
-            <div class="full">
-              <label class="label">Notas</label>
-              <textarea v-model="editForm.notes" class="input" rows="3" />
-            </div>
-          </div>
-          <div class="edit-actions">
-            <button class="btn btn-secondary" @click="cancelEdit" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-primary" @click="saveChanges" :disabled="isSaving">
-              {{ isSaving ? 'Guardando...' : 'Guardar cambios' }}
+  <BaseEntityPage :is-loading="isLoading" :error="error">
+    <!-- 1. IDENTITY HEADER -->
+    <template #header>
+      <BasePageHeader 
+        :title="work?.work_name || 'Detalle de Orden'" 
+        :subtitle="work?.work_number"
+        :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Órdenes', to: '/mes/work-orders' }, { label: work?.work_number || 'Detalle' }]"
+        show-back
+      >
+        <template #icon>
+          <span class="material-symbols-outlined">precision_manufacturing</span>
+        </template>
+        <template #actions>
+          <button v-if="!isEditing" class="btn btn-primary" @click="startEdit">
+            <span class="material-symbols-outlined">edit</span>
+            <span>Editar Orden</span>
+          </button>
+          <template v-else>
+            <button class="btn btn-outline" @click="cancelEdit" :disabled="isSaving">Cancelar</button>
+            <button class="btn btn-secondary" @click="saveChanges" :disabled="isSaving">
+              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}</span>
             </button>
+          </template>
+        </template>
+      </BasePageHeader>
+    </template>
+
+    <!-- 2. TOOLBAR (Summary state) -->
+    <template #toolbar v-if="work && !isEditing">
+      <div class="action-toolbar card">
+        <div class="toolbar-info">
+          <span :class="['status-badge', `status-${getStatusClass(work.status)}`]">
+            {{ mesApi.getWorkStatusLabel(work.status) }}
+          </span>
+          <span :class="['priority-pill', `prio-${work.priority}`]">{{ mesApi.getPriorityLabel(work.priority) }}</span>
+        </div>
+        <div class="toolbar-actions">
+          <button v-if="work.status === 'PENDING' && work.work_setup_id" class="btn btn-success btn-sm" @click="startWorkOrder">
+            <span class="material-symbols-outlined">play_arrow</span> Iniciar Producción
+          </button>
+          <button v-if="work.status === 'IN_PROGRESS'" class="btn btn-outline btn-sm" @click="router.push('/mes/terminal')">
+            <span class="material-symbols-outlined">tablet_mac</span> Ir a Terminal
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- 3. SUMMARY TAGS -->
+    <template #summary v-if="work && !isEditing">
+      <div class="overview-tags-row">
+        <div class="summary-tag">
+          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="tag-content"><label>Cliente</label><strong>{{ partyName || '—' }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon yellow"><span class="material-symbols-outlined">settings_suggest</span></div>
+          <div class="tag-content"><label>Configuración</label><strong>{{ workSetupName || 'No configurada' }}</strong></div>
+        </div>
+        <div class="summary-tag">
+          <div class="icon purple"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="tag-content"><label>Vencimiento</label><strong :class="{'text-danger': isOverdue}">{{ formatDate(work.due_date) }}</strong></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 4. MAIN CONTENT -->
+    <div v-if="work" class="work-detail-content">
+      
+      <!-- Edit Form -->
+      <FormSection v-if="isEditing" title="Información de la Orden" icon="edit_note">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="form-group">
+            <label class="form-label">Nombre del Trabajo</label>
+            <input v-model="editForm.work_name" class="form-input" type="text" />
           </div>
-        </section>
+          <div class="form-group">
+            <label class="form-label">Prioridad</label>
+            <select v-model="editForm.priority" class="form-input">
+              <option value="LOW">Baja</option>
+              <option value="NORMAL">Normal</option>
+              <option value="HIGH">Alta</option>
+              <option value="URGENT">Urgente</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado de Producción</label>
+            <select v-model="editForm.status" class="form-input">
+              <option value="PENDING">Pendiente</option>
+              <option value="IN_PROGRESS">En progreso</option>
+              <option value="ON_HOLD">En espera</option>
+              <option value="COMPLETED">Completado</option>
+              <option value="CANCELLED">Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha de Vencimiento</label>
+            <input v-model="editForm.due_date" class="form-input" type="date" />
+          </div>
+          <div class="form-group md:col-span-2">
+            <label class="form-label">Notas / Instrucciones</label>
+            <textarea v-model="editForm.notes" class="form-textarea" rows="3" />
+          </div>
+        </div>
+      </FormSection>
 
-        <section class="card details-grid">
-          <div><strong>Prioridad:</strong> {{ mesApi.getPriorityLabel(work.priority) }}</div>
-          <div><strong>Cliente:</strong> {{ partyName || work.party_id }}</div>
-          <div><strong>Configuración:</strong> {{ workSetupName || work.work_setup_id }}</div>
-          <div v-if="work.due_date"><strong>Vencimiento:</strong> {{ formatDate(work.due_date) }}</div>
-          <div class="full"><strong>Notas:</strong> {{ work.notes || '—' }}</div>
-        </section>
+      <!-- Read Only Details -->
+      <template v-else>
+        <FormSection title="Información General" icon="info">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DataRow label="Cliente" :value="partyName" icon="person" />
+            <DataRow label="Configuración Técnica" :value="workSetupName || 'Sin asignar'" icon="settings_suggest" />
+            <DataRow label="Referencia de Pedido" :value="work.sales_order_number ? `#${work.sales_order_number}` : 'Venta Directa'" icon="shopping_cart" />
+            <DataRow label="Fecha de Vencimiento" :value="formatDate(work.due_date)" icon="calendar_today" :class="{'text-danger font-bold': isOverdue}" />
+            <DataRow label="Notas Técnicas" icon="notes" class="md:col-span-2">
+              <p class="notes-text">{{ work.notes || 'Sin observaciones.' }}</p>
+            </DataRow>
+          </div>
+        </FormSection>
 
-        <section class="card">
-          <h3>Asignaciones de tipo de trabajo</h3>
-          <div v-if="work.lines.length === 0" class="empty-state">Sin asignaciones</div>
-          <div v-for="line in work.lines" :key="line.id" class="group-box">
-            <p><strong>Tipo de trabajo:</strong> {{ workTypeNames[line.work_type_id] || line.work_type_id }}</p>
-            <p><strong>Posición:</strong> {{ positionNames[line.position_id] || line.position_id }}</p>
-            <p><strong>Secuencia:</strong> {{ line.sequence }}</p>
-            <p><strong>Notas:</strong> {{ line.notes || '—' }}</p>
-            <table v-if="line.tasks.length > 0" class="tasks-table">
-              <thead>
-                <tr><th>#</th><th>Tarea</th><th>Estado</th><th>Notas</th></tr>
-              </thead>
-              <tbody>
-                <tr v-for="task in line.tasks" :key="task.id">
-                  <td>{{ task.sequence }}</td>
-                  <td>{{ taskNames[task.task_id] || task.task_id }}</td>
-                  <td><span class="status-pill" :class="task.status.toLowerCase()">{{ taskStatusLabel(task.status) }}</span></td>
-                  <td class="task-notes">{{ task.notes || '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-if="line.design_file_path" class="file-ref">
-              <span class="file-ref-label">Archivo:</span>
-              <button class="file-ref-path" :title="'Copiar ruta: ' + line.design_file_path" @click="copyPath(line.design_file_path!)">{{ line.design_file_path }}</button>
+        <FormSection title="Ruta de Producción" icon="account_tree">
+          <div v-if="work.lines.length === 0" class="empty-state p-8">
+            <span class="material-symbols-outlined text-muted" style="font-size: 3rem">route</span>
+            <p>No se han definido pasos para esta orden.</p>
+          </div>
+          
+          <div v-for="line in work.lines" :key="line.id" class="production-line-card border rounded-lg p-4 mb-4">
+            <div class="line-header flex justify-between items-center mb-4">
+              <div class="line-identity flex items-center gap-3">
+                <span class="line-seq">{{ line.sequence }}</span>
+                <div class="line-title">
+                  <h4 class="m-0 text-primary">{{ workTypeNames[line.work_type_id] || 'Cargando...' }}</h4>
+                  <p class="text-xs text-muted uppercase font-bold">{{ positionNames[line.position_id] || 'Cargando...' }}</p>
+                </div>
+              </div>
+              <div class="line-meta">
+                <p v-if="line.notes" class="text-sm italic text-muted m-0">"{{ line.notes }}"</p>
+              </div>
+            </div>
+
+            <div v-if="line.tasks.length > 0" class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px">#</th>
+                    <th>Tarea de Taller</th>
+                    <th>Estado</th>
+                    <th>Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="task in line.tasks" :key="task.id">
+                    <td class="text-center font-mono">{{ task.sequence }}</td>
+                    <td><strong>{{ taskNames[task.task_id] || task.task_id }}</strong></td>
+                    <td>
+                      <span :class="['status-badge', `status-${getTaskStatusClass(task.status)}`]">
+                        {{ taskStatusLabel(task.status) }}
+                      </span>
+                    </td>
+                    <td class="text-xs text-muted italic">{{ task.notes || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div v-if="line.design_file_path" class="design-file-row flex items-center gap-2 mt-4 p-2 bg-light rounded">
+              <span class="material-symbols-outlined text-secondary">draft</span>
+              <span class="text-xs font-bold text-muted">ARCHIVO:</span>
+              <code class="text-xs flex-1 truncate">{{ line.design_file_path }}</code>
+              <button class="btn btn-ghost btn-sm" @click="copyPath(line.design_file_path)">
+                <span class="material-symbols-outlined">content_copy</span>
+              </button>
             </div>
           </div>
-        </section>
+        </FormSection>
       </template>
     </div>
-  </div>
+  </BaseEntityPage>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
-import Navbar from '@/components/layout/Navbar.vue'
+import { onMounted, ref, computed } from 'vue'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
+import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
+import FormSection from '@/components/shared/FormSection.vue'
+import DataRow from '@/components/shared/DataRow.vue'
 import { mesApi } from '@/services/mesApi'
 import { partyApi } from '@/services/partyApi'
 import type { MESPosition, MESWorkType, WorkOrder } from '@/types/mes'
 
 const route = useRoute()
+const router = useRouter()
 const isLoading = ref(false)
 const error = ref('')
 const work = ref<WorkOrder | null>(null)
@@ -127,6 +200,31 @@ const workSetupName = ref('')
 const workTypeNames = ref<Record<string, string>>({})
 const positionNames = ref<Record<string, string>>({})
 const taskNames = ref<Record<string, string>>({})
+
+const isEditing = ref(false)
+const isSaving = ref(false)
+const editForm = ref({
+  work_name: '',
+  status: 'PENDING',
+  priority: 'NORMAL',
+  due_date: '',
+  notes: '',
+})
+
+const isOverdue = computed(() => {
+  if (!work.value?.due_date || work.value.status === 'COMPLETED') return false
+  return new Date(work.value.due_date) < new Date()
+})
+
+function getStatusClass(status: string) {
+  const map: Record<string, string> = { PENDING: 'warning', IN_PROGRESS: 'info', COMPLETED: 'success', CANCELLED: 'danger', ON_HOLD: 'secondary' }
+  return map[status] || 'secondary'
+}
+
+function getTaskStatusClass(status: string) {
+  const map: Record<string, string> = { PENDING: 'secondary', IN_PROGRESS: 'info', COMPLETED: 'success', BLOCKED: 'danger', SKIPPED: 'muted' }
+  return map[status] || 'secondary'
+}
 
 function taskStatusLabel(status: string) {
   const map: Record<string, string> = {
@@ -138,15 +236,6 @@ function taskStatusLabel(status: string) {
   }
   return map[status] ?? status
 }
-const isEditing = ref(false)
-const isSaving = ref(false)
-const editForm = ref({
-  work_name: '',
-  status: 'PENDING',
-  priority: 'NORMAL',
-  due_date: '',
-  notes: '',
-})
 
 function dateToInput(value?: string) {
   if (!value) return ''
@@ -192,6 +281,14 @@ async function saveChanges() {
   }
 }
 
+async function startWorkOrder() {
+  if (!work.value) return
+  try {
+    await mesApi.updateWorkOrder(work.value.id, { status: 'IN_PROGRESS' })
+    await loadDetail()
+  } catch (err) {}
+}
+
 async function loadLookupData(currentWork: WorkOrder) {
   const [partyResult, wsResult, templates, positions, tasks] = await Promise.all([
     partyApi.getParty(currentWork.party_id),
@@ -227,7 +324,7 @@ function formatDate(value?: string) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return date.toLocaleDateString('es-ES')
+  return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 async function loadDetail() {
@@ -243,54 +340,47 @@ async function loadDetail() {
   }
 }
 
-onMounted(loadDetail)
-
 function copyPath(path: string) {
   navigator.clipboard.writeText(path)
 }
+
+onMounted(loadDetail)
 </script>
 
 <style scoped>
-.dashboard { min-height: 100vh; background-color: #f1f5f9; }
-.dashboard-content { max-width: 1100px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-.page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.header-actions { display: flex; gap: .5rem; }
-.breadcrumb { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin: 0 0 .6rem; }
-.subtitle { color: #64748b; margin: 0; }
-.page-header h1 { margin: 0; line-height: 1.2; }
-.subtitle-ref { font-size: 1rem; font-weight: 600; color: #334155; margin-top: 0; }
-.subtitle-setup { font-size: .875rem; margin-top: 1rem; }
-.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
-.details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.details-grid .full { grid-column: 1 / -1; }
-.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-.edit-grid .full { grid-column: 1 / -1; }
-.label { display: block; font-size: .85rem; color: #334155; margin-bottom: .35rem; font-weight: 600; }
-.input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .6rem .75rem; font: inherit; width: 100%; }
-.edit-actions { margin-top: .75rem; display: flex; justify-content: flex-end; gap: .5rem; }
-.group-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: .75rem; margin-top: .75rem; }
-.group-box p { margin: .25rem 0; }
-.tasks-table { width: 100%; border-collapse: collapse; margin-top: .6rem; font-size: .875rem; }
-.tasks-table th { text-align: left; padding: .35rem .5rem; border-bottom: 2px solid #e2e8f0; color: #64748b; font-weight: 600; font-size: .8rem; }
-.tasks-table td { padding: .35rem .5rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
-.tasks-table tr:last-child td { border-bottom: none; }
-.task-notes { color: #475569; font-size: .82rem; max-width: 320px; }
-.file-ref { display: flex; align-items: center; gap: .4rem; margin-top: .4rem; flex-wrap: wrap; }
-.file-ref-label { font-size: .85rem; font-weight: 600; color: #334155; white-space: nowrap; }
-.file-ref-path { font-size: .8rem; font-family: monospace; color: #1d4ed8; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: .15rem .4rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: left; }
-.file-ref-path:hover { background: #eff6ff; border-color: #93c5fd; }
-.btn { border: none; border-radius: 8px; padding: .6rem 1rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width: fit-content; }
-.btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
-.btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
-.empty-state { text-align: center; color: #64748b; padding: 1rem; }
-.alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
-.status-pill { display: inline-flex; align-items: center; padding: .2rem .65rem; border-radius: 999px; font-size: .78rem; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
-.status-pill.pending { background: #fef9c3; color: #854d0e; }
-.status-pill.in_progress { background: #dbeafe; color: #1d4ed8; }
-.status-pill.completed { background: #dcfce7; color: #166534; }
-.status-pill.cancelled { background: #fee2e2; color: #b91c1c; }
-.status-pill.on_hold { background: #f3f4f6; color: #374151; }
-.status-pill.overdue { background: #fee2e2; color: #b91c1c; }
-.status-pill.suspended { background: #fef3c7; color: #92400e; }
-.status-pill-header { margin-left: .75rem; vertical-align: middle; font-size: .82rem; }
+@import "@/design-system/_sections.css";
+
+.overview-tags-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
+
+.icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.icon .material-symbols-outlined { font-size: 22px; }
+.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
+.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+
+.tag-content { display: flex; flex-direction: column; gap: 0.15rem; }
+.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
+
+.action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); }
+.toolbar-info { display: flex; align-items: center; gap: 1rem; }
+.status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; }
+.priority-pill { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; }
+.prio-HIGH, .prio-URGENT { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+.prio-NORMAL { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+.prio-LOW { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+
+.work-detail-content { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-label { font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+.form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
+
+.line-seq { width: 28px; height: 28px; background: var(--color-primary); color: var(--color-text-on-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; }
+.production-line-card { background: white; transition: 0.2s; }
+.production-line-card:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
+
+.bg-light { background-color: var(--color-background); }
+.notes-text { color: var(--color-text-primary); line-height: 1.5; margin: 0; }
 </style>

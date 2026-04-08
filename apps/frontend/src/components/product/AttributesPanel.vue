@@ -8,7 +8,7 @@
         </p>
       </div>
       <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-        <RefreshCw :size="16" />
+        <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
         Actualizar
       </button>
     </div>
@@ -21,7 +21,7 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && calculatedAttributes.length === 0" class="empty-state">
-      <Tag :size="64" class="empty-icon" />
+      <span class="material-symbols-outlined empty-icon" style="font-size: 64px">sell</span>
       <p>No hay atributos configurados para este producto.</p>
       <p class="empty-hint">
         Los atributos definen las características configurables del producto (talla, color, etc.)
@@ -35,7 +35,7 @@
       <div v-if="directAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <Pin :size="18" style="vertical-align: middle; margin-right: 6px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">push_pin</span>
             Atributos Directos
           </h4>
           <span class="section-badge">{{ directAttributes.length }}</span>
@@ -58,7 +58,7 @@
       <div v-if="brandGroupAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <Building :size="18" style="vertical-align: middle; margin-right: 6px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">corporate_fare</span>
             Marca + Categoría
           </h4>
           <span class="section-badge">{{ brandGroupAttributes.length }}</span>
@@ -80,7 +80,7 @@
       <div v-if="groupAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <Folder :size="18" style="vertical-align: middle; margin-right: 6px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">folder</span>
             Categoría
           </h4>
           <span class="section-badge">{{ groupAttributes.length }}</span>
@@ -102,7 +102,7 @@
       <div v-if="brandAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <Tag :size="18" style="vertical-align: middle; margin-right: 6px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">sell</span>
             Marca
           </h4>
           <span class="section-badge">{{ brandAttributes.length }}</span>
@@ -124,7 +124,7 @@
       <div v-if="genericAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <Globe :size="18" style="vertical-align: middle; margin-right: 6px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">public</span>
             Genéricos
           </h4>
           <span class="section-badge">{{ genericAttributes.length }}</span>
@@ -145,7 +145,7 @@
       <!-- Info Box -->
       <div class="info-box">
         <div class="info-icon">
-          <Info :size="20" />
+          <span class="material-symbols-outlined" style="font-size: 20px">info</span>
         </div>
         <div>
           <strong>Jerarquía de Atributos</strong>
@@ -163,7 +163,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { RefreshCw, Tag, Pin, Building, Folder, Globe, Info } from 'lucide-vue-next'
 import AttributeCard from './AttributeCard.vue'
 
 const props = defineProps({
