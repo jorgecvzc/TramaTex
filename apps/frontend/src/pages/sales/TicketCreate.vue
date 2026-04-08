@@ -17,6 +17,7 @@
           <div class="terminal-search-row">
             <span class="material-symbols-outlined search-icon">barcode_scanner</span>
             <input 
+              ref="productSearchInput"
               v-model="productSearch" 
               type="text" 
               class="terminal-input-giant" 
@@ -115,7 +116,7 @@
         </section>
 
         <!-- PANEL DE TOTALES Y COBRO -->
-        <section class="terminal-card checkout-panel">
+        <section class="terminal-card checkout-panel mb-4">
           <div class="totals-area">
             <div class="total-line">
               <label>Subtotal</label>
@@ -138,12 +139,29 @@
               @click="processTicket"
             >
               <span class="material-symbols-outlined">print</span>
-              <span>COBRAR E IMPRIMIR</span>
+              <span>COBRAR E IMPRIMIR (F12)</span>
             </button>
             <button class="btn-giant-checkout danger mt-4" @click="clearTicketPrompt">
               <span class="material-symbols-outlined">delete_sweep</span>
               <span>ANULAR TICKET</span>
             </button>
+          </div>
+        </section>
+
+        <!-- LEYENDA DE ATAJOS -->
+        <section class="terminal-card shortcut-legend">
+          <header class="card-header">
+            <span class="material-symbols-outlined">keyboard</span>
+            <h2>Atajos de Teclado</h2>
+          </header>
+          <div class="shortcuts-grid">
+            <div class="shortcut-item"><kbd>F3</kbd> <span>Buscar Producto</span></div>
+            <div class="shortcut-item"><kbd>F4</kbd> <span>Seleccionar Cliente</span></div>
+            <div class="shortcut-item"><kbd>F12</kbd> <span>Cobrar e Imprimir</span></div>
+            <div class="shortcut-item"><kbd>Esc</kbd> <span>Cerrar / Limpiar</span></div>
+            <div class="shortcut-item"><kbd>Num +</kbd> <span>Más Cantidad</span></div>
+            <div class="shortcut-item"><kbd>Num -</kbd> <span>Menos Cantidad</span></div>
+            <div class="shortcut-item"><kbd>Supr</kbd> <span>Eliminar ítem</span></div>
           </div>
         </section>
       </aside>
@@ -156,7 +174,7 @@
       icon="search"
       size="xl"
       hide-actions
-      @close="showVariantSelector = false"
+      @close="closeVariantSelector"
     >
       <div class="terminal-dialog-fix">
         <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
@@ -179,7 +197,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -192,6 +210,7 @@ import { productApi } from '@/services/productApi';
 import { pricingApi } from '@/services/pricingApi';
 
 const router = useRouter();
+const productSearchInput = ref(null);
 const productSearch = ref('');
 const CONSUMIDOR_FINAL_ID = '00000000-0000-0000-0000-000000000001';
 const partyId = ref(CONSUMIDOR_FINAL_ID);
@@ -227,12 +246,90 @@ watch(partyId, async (newId) => {
   } else {
     customerDiscount.value = 0;
   }
+  focusSearch();
 });
 
+function focusSearch() {
+  nextTick(() => {
+    productSearchInput.value?.focus();
+  });
+}
+
+function handleGlobalKeydown(e) {
+  // Solo procesar si no estamos en un input que no sea el de búsqueda principal
+  // a menos que sean teclas de función específicas.
+  const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+  const isSearchInput = document.activeElement === productSearchInput.value;
+
+  // F3: Buscar Producto
+  if (e.key === 'F3') {
+    e.preventDefault();
+    focusSearch();
+  }
+  
+  // F4: Seleccionar Cliente
+  if (e.key === 'F4') {
+    e.preventDefault();
+    const partyInput = document.querySelector('.party-selector input');
+    partyInput?.focus();
+  }
+
+  // F12: Cobrar
+  if (e.key === 'F12') {
+    e.preventDefault();
+    if (lineItems.value.length > 0 && !isSubmitting.value) {
+      processTicket();
+    }
+  }
+
+  // Esc: Cerrar diálogos o limpiar búsqueda
+  if (e.key === 'Escape') {
+    if (showVariantSelector.value) {
+      closeVariantSelector();
+    } else {
+      productSearch.value = '';
+      focusSearch();
+    }
+  }
+
+  // Atajos para el carrito (solo si no estamos escribiendo en un input de datos)
+  if (!isInput || isSearchInput) {
+    // Num + : Incrementar última línea
+    if (e.key === '+' || e.key === 'Add') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        updateQtyByItem(lineItems.value[lineItems.value.length - 1], 1);
+      }
+    }
+
+    // Num - : Decrementar última línea
+    if (e.key === '-' || e.key === 'Subtract') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        updateQtyByItem(lineItems.value[lineItems.value.length - 1], -1);
+      }
+    }
+
+    // Supr : Eliminar última línea
+    if (e.key === 'Delete') {
+      if (lineItems.value.length > 0) {
+        e.preventDefault();
+        removeLine(lineItems.value[lineItems.value.length - 1]);
+      }
+    }
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', handleGlobalKeydown);
   // Aseguramos que cargue consumidor final al inicio
   if (!partyId.value) partyId.value = CONSUMIDOR_FINAL_ID;
   await loadDefaultCustomer();
+  focusSearch();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown);
 });
 
 async function loadDefaultCustomer() {
@@ -303,6 +400,12 @@ async function handleVariantSelected(v) {
   }
   productSearch.value = '';
   showVariantSelector.value = false;
+  focusSearch();
+}
+
+function closeVariantSelector() {
+  showVariantSelector.value = false;
+  focusSearch();
 }
 
 async function refreshLinePrice(item) {
@@ -348,6 +451,7 @@ function clearTicket() {
   lineItems.value = []; 
   productSearch.value = ''; 
   partyId.value = CONSUMIDOR_FINAL_ID;
+  focusSearch();
 }
 function clearTicketPrompt() { if (confirm('¿Vaciar el ticket actual?')) clearTicket(); }
 
@@ -405,6 +509,7 @@ async function processTicket() {
     lineItems.value = [];
     productSearch.value = '';
     lastProcessedTicket.value = null;
+    focusSearch();
     
   } catch (err) {
     console.error('Error al procesar la venta:', err);
@@ -645,6 +750,38 @@ input[type=number] {
 
 .terminal-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.3; }
 .terminal-empty-state .material-symbols-outlined { font-size: 5rem; margin-bottom: 1rem; }
+
+/* Shortcut Legend */
+.shortcut-legend {
+  margin-top: auto;
+}
+
+.shortcuts-grid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.shortcut-item kbd {
+  background: #334155;
+  color: var(--color-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 800;
+  min-width: 40px;
+  text-align: center;
+  border-bottom: 2px solid #0f172a;
+}
 
 /* Utils */
 .bg-dark-alt { background: #0f172a; }
