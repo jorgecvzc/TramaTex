@@ -148,10 +148,10 @@ type WorkOrderProgressDTO struct {
 // (Sales infrastructure) and returned through MES API.
 type PendingWorkSetupDTO struct {
 	ID           uuid.UUID  `json:"id"`
-	WorkSetupID  *uuid.UUID `json:"workSetupId,omitempty"`
+	WorkSetupID  *uuid.UUID `json:"work_setup_id,omitempty"`
 	Description  string     `json:"description"`
-	OrderID      uuid.UUID  `json:"orderId"`
-	OrderNumber  string     `json:"orderNumber"`
-	DeliveryDate time.Time  `json:"deliveryDate"`
-	PartyID      uuid.UUID  `json:"partyId"`
+	OrderID      uuid.UUID  `json:"order_id"`
+	OrderNumber  string     `json:"order_number"`
+	DeliveryDate time.Time  `json:"delivery_date"`
+	PartyID      uuid.UUID  `json:"party_id"`
 }

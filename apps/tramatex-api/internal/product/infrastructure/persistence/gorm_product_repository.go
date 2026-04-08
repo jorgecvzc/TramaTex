@@ -85,7 +85,7 @@ func (r *GORMProductRepository) FindByBarcode(ctx context.Context, barcode strin
 // FindBySKUPrefix finds products whose SKU starts with the given prefix
 func (r *GORMProductRepository) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.Product, error) {
 	var dataModels []ProductDataModel
-	err := r.db.WithContext(ctx).Where("LOWER(sku) LIKE LOWER(?)", prefix+"%").Order("sku asc").Limit(20).Find(&dataModels).Error
+	err := r.db.WithContext(ctx).Where("sku ILIKE ?", prefix+"%").Order("sku asc").Limit(20).Find(&dataModels).Error
 	if err != nil {
 		return nil, err
 	}

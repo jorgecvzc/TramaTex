@@ -20,7 +20,7 @@ Definición y estandarización de los componentes básicos (átomos) de la inter
 ## 🛠️ Implementación
 
 ### Iconografía
-Se ha prohibido el uso de Lucide Icons y Emojis en la interfaz profesional. Se ha configurado la carga de **Material Symbols Outlined** y se ha actualizado el sistema de botones para gestionar correctamente el tamaño de estos iconos (`20px` base, `18px` en compactos).
+Se ha prohibido el uso de Material Symbols Icons y Emojis en la interfaz profesional. Se ha configurado la carga de **Material Symbols Outlined** y se ha actualizado el sistema de botones para gestionar correctamente el tamaño de estos iconos (`20px` base, `18px` en compactos).
 
 ### Botones Semánticos
 Se han centralizado los estilos en `_buttons.css`, eliminando definiciones locales redundantes.

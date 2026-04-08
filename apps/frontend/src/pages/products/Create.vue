@@ -52,7 +52,7 @@
             <div class="form-group">
               <label>Marca</label>
               <select v-model="formData.brand_id">
-                <option value="">Sin marca específica</option>
+                <option :value="null">Sin marca específica</option>
                 <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
               </select>
             </div>
@@ -161,7 +161,7 @@ const formData = reactive({
   sku: '',
   long_name: '',
   product_type: 'TANGIBLE',
-  brand_id: '',
+  brand_id: null,
   group_ids: [],
   is_active: true
 })

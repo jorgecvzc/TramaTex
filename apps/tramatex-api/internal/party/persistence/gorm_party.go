@@ -313,55 +313,42 @@ func (r *GORMPartyRepository) HasMESWorkReferences(ctx context.Context, partyID 
 
 // HasSalesReferences checks if a party is referenced in sales tables (quotes, orders, invoices, delivery_notes)
 func (r *GORMPartyRepository) HasSalesReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
-	// party_id in sales tables is UUID type, need to check compatibility
 	partyIDStr := partyID.Value()
 
-	// Check quotes table
-	var quotesCount int64
-	err := r.db.WithContext(ctx).Table("quotes").
-		Where("party_id::text = ?", partyIDStr).
-		Count(&quotesCount).Error
-	if err != nil {
-		return false, domain.WrapPersistence("failed to check quotes references", err)
-	}
-	if quotesCount > 0 {
-		return true, nil
+	salesTables := []struct {
+		name   string
+		errMsg string
+	}{
+		{"quotes", "failed to check quotes references"},
+		{"sales_orders", "failed to check sales orders references"},
+		{"invoices", "failed to check invoices references"},
+		{"delivery_notes", "failed to check delivery notes references"},
 	}
 
-	// Check sales_orders table
-	var ordersCount int64
-	err = r.db.WithContext(ctx).Table("sales_orders").
-		Where("party_id::text = ?", partyIDStr).
-		Count(&ordersCount).Error
-	if err != nil {
-		return false, domain.WrapPersistence("failed to check sales orders references", err)
-	}
-	if ordersCount > 0 {
-		return true, nil
+	for _, t := range salesTables {
+		var tableExists bool
+		if err := r.db.WithContext(ctx).Raw(
+			"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = ?)",
+			t.name,
+		).Scan(&tableExists).Error; err != nil {
+			return false, domain.WrapPersistence("failed to check "+t.name+" table existence", err)
+		}
+		if !tableExists {
+			continue
+		}
+
+		var count int64
+		if err := r.db.WithContext(ctx).Table(t.name).
+			Where("party_id::text = ?", partyIDStr).
+			Count(&count).Error; err != nil {
+			return false, domain.WrapPersistence(t.errMsg, err)
+		}
+		if count > 0 {
+			return true, nil
+		}
 	}
 
-	// Check invoices table
-	var invoicesCount int64
-	err = r.db.WithContext(ctx).Table("invoices").
-		Where("party_id::text = ?", partyIDStr).
-		Count(&invoicesCount).Error
-	if err != nil {
-		return false, domain.WrapPersistence("failed to check invoices references", err)
-	}
-	if invoicesCount > 0 {
-		return true, nil
-	}
-
-	// Check delivery_notes table
-	var deliveryNotesCount int64
-	err = r.db.WithContext(ctx).Table("delivery_notes").
-		Where("party_id::text = ?", partyIDStr).
-		Count(&deliveryNotesCount).Error
-	if err != nil {
-		return false, domain.WrapPersistence("failed to check delivery notes references", err)
-	}
-
-	return deliveryNotesCount > 0, nil
+	return false, nil
 }
 
 func (r *GORMPartyRepository) loadPersonProfile(ctx context.Context, partyID string) (*domain.PersonProfile, error) {

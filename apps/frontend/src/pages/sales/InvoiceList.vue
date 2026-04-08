@@ -4,7 +4,8 @@
     
     <BaseCatalog
       title="Gestión de Facturas"
-      :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Facturas' }]"
+      icon="receipt_long"
+      :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas' }]"
       :items="invoices"
       :is-loading="isLoading"
       :error="error"

@@ -71,7 +71,7 @@
           <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
             {{ isSubmitting 
               ? (isEditing ? 'Actualizando...' : 'Agregando...') 
-              : (isEditing ? 'Actualizar dirección' : 'Agregar dirección') 
+              : (isEditing ? 'Actualizar' : 'Agregar') 
             }}
           </button>
           <button type="button" @click="resetForm" class="btn btn-secondary">
@@ -91,29 +91,37 @@
         <div class="address-header">
           <div class="address-info">
             <h4>{{ address.street }}</h4>
-            <p class="location">📍 {{ address.city }}, {{ address.province }} {{ address.postal_code }}</p>
-            <p v-if="address.country" class="country">🌍 {{ address.country }}</p>
+            <p class="location">
+              <span class="material-symbols-outlined icon-sm">location_on</span>
+              {{ address.city }}, {{ address.province }} {{ address.postal_code }}
+            </p>
+            <p v-if="address.country" class="country">
+              <span class="material-symbols-outlined icon-sm">public</span>
+              {{ address.country }}
+            </p>
           </div>
-          <div class="address-badges">
-            <span v-if="address.is_primary" class="badge primary">Principal</span>
-            <span class="badge date">{{ formatDate(address.created_at) }}</span>
+          <div class="address-badges-group">
+            <div class="address-badges">
+              <span v-if="address.is_primary" class="badge status-success">Principal</span>
+              <span class="badge status-secondary">{{ formatDate(address.created_at) }}</span>
+            </div>
+            <div class="action-buttons">
+              <button 
+                @click="editAddress(address)" 
+                class="btn-icon"
+                title="Editar dirección"
+              >
+                <span class="material-symbols-outlined">edit</span>
+              </button>
+              <button 
+                @click="deleteAddress(address.id)" 
+                class="btn-icon text-danger"
+                title="Eliminar dirección"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="address-actions">
-          <button 
-            @click="editAddress(address)" 
-            class="btn btn-edit"
-            title="Editar dirección"
-          >
-            Editar
-          </button>
-          <button 
-            @click="deleteAddress(address.id)" 
-            class="btn btn-delete"
-            title="Eliminar dirección"
-          >
-            Eliminar
-          </button>
         </div>
       </div>
     </div>
@@ -266,217 +274,193 @@ function formatDate(dateString) {
 
 <style scoped>
 .address-manager {
-  padding: 1.5rem;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--box-shadow-sm);
 }
 
 .manager-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .manager-header h3 {
-  color: #1b3a6b;
+  color: var(--color-secondary);
   margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
 }
 
 .form-section {
-  background: #f8fafc;
-  padding: 1.5rem;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  border: 1px solid #e2e8f0;
+  background: var(--color-background);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border);
 }
 
 .form-title {
-  color: #1e293b;
-  margin: 0 0 1rem 0;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
 }
 
 .form-group input {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: white;
+  transition: all 0.2s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  font-weight: 600;
-}
-
-.btn-primary {
-  background: #e6b800;
-  color: #1e293b;
-  font-weight: 700;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d6aa00;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
 
 .error-message {
-  color: #991b1b;
-  background-color: #fee2e2;
+  color: var(--color-error);
+  background-color: var(--color-background);
   padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  border: 1px solid #ef4444;
+  border-radius: var(--border-radius-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid var(--color-error);
+  font-size: var(--font-size-sm);
 }
 
 .addresses-list {
   display: grid;
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .address-card {
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: white;
   transition: all 0.2s ease;
 }
 
 .address-card:hover {
-  border-color: #002395;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--box-shadow-md);
 }
 
 .address-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.address-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e2e8f0;
-}
-
-.btn-edit {
-  background: #ffffff;
-  color: #1e293b;
-  border: 1px solid #cbd5e1;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.8rem;
-}
-
-.btn-edit:hover:not(:disabled) {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.btn-delete {
-  background: #ffffff;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  font-size: 0.8rem;
-  padding: 0.4rem 0.8rem;
-}
-
-.btn-delete:hover:not(:disabled) {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  gap: var(--spacing-md);
 }
 
 .address-info h4 {
-  color: #1e293b;
+  color: var(--color-text-primary);
   margin: 0 0 0.5rem 0;
+  font-weight: 700;
 }
 
 .address-info p {
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin: 0.25rem 0;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-sm { font-size: 18px; color: var(--color-text-secondary); }
+
+.address-badges-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-sm);
 }
 
 .address-badges {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0.4rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.text-danger { color: var(--color-error); }
+.text-danger:hover { background: var(--color-primary-light); }
 
 .badge {
-  display: inline-block;
   padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.badge.primary {
-  background-color: rgba(230, 184, 0, 0.2);
-  color: #1e293b;
-}
-
-.badge.date {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #64748b;
-}
+.status-success { background: rgba(22, 163, 74, 0.1); color: var(--color-success); }
+.status-secondary { background: var(--color-background); color: var(--color-text-secondary); }
 
 .empty-state {
   text-align: center;
   padding: 2rem 1rem;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 .loading {
@@ -489,32 +473,17 @@ function formatDate(dateString) {
 }
 
 .spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(230, 184, 0, 0.2);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
+  width: 24px; height: 24px; border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary); border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .address-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
+  .form-row { grid-template-columns: 1fr; }
+  .address-header { flex-direction: column; }
+  .address-badges-group { align-items: flex-start; }
+  .form-actions { flex-direction: column; }
 }
 </style>

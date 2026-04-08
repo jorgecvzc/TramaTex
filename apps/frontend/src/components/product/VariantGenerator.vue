@@ -8,7 +8,7 @@
     <form @submit.prevent="handleNext" class="step-form">
       <!-- Info Box -->
       <div class="info-box">
-        <Info :size="20" class="info-icon" />
+        <span class="material-symbols-outlined info-icon" style="font-size: 20px">info</span>
         <div class="info-content">
           <p>
             <strong>¿Qué son las variantes?</strong> Una variante es una combinación específica de valores de atributos.
@@ -20,7 +20,7 @@
       <!-- Scenario: Product with NO attributes -->
       <div v-if="!hasAttributes" class="strategy-info-card simple-product">
         <div class="info-card-header">
-          <Package :size="24" class="info-card-icon" />
+          <span class="material-symbols-outlined info-card-icon" style="font-size: 24px">inventory_2</span>
           <div>
             <strong class="info-card-title">Producto Simple (Sin Variantes)</strong>
             <p class="info-card-description">
@@ -43,7 +43,7 @@
       <!-- Scenario: Product WITH attributes -->
       <div v-else class="strategy-info-card jit-product">
         <div class="info-card-header">
-          <Zap :size="24" class="info-card-icon" />
+          <span class="material-symbols-outlined info-card-icon" style="font-size: 24px">bolt</span>
           <div>
             <strong class="info-card-title">Producto Configurable (Variantes JIT + Manual)</strong>
             <p class="info-card-description">
@@ -68,7 +68,7 @@
           </ul>
         </div>
         <div class="info-card-note">
-          <span class="note-icon">💡</span>
+          <span class="note-icon material-symbols-outlined">lightbulb</span>
           <span><strong>Nota:</strong> Solo se crearán las variantes que realmente se utilicen, evitando generar combinaciones innecesarias.</span>
         </div>
       </div>
@@ -76,7 +76,7 @@
       <!-- Architecture Note -->
       <div class="architecture-note">
         <p>
-          <Triangle :size="18" style="vertical-align: middle; margin-right: 4px" />
+          <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px; font-size: 18px">change_history</span>
           <strong>Según la arquitectura:</strong> La estrategia de generación de variantes no es configurable por el usuario.
           Se determina automáticamente según el tipo de producto y sus atributos.
         </p>
@@ -104,7 +104,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Info, Package, Zap, Triangle } from 'lucide-vue-next'
 
 const props = defineProps({
   attributeCount: {

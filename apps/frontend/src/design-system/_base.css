@@ -209,7 +209,11 @@ body {
 .status-inactive, .status-secondary { background: #f1f5f9; color: #64748b; }
 .status-warning { background: #fef3c7; color: #92400e; }
 .status-info, .status-primary { background: #dbeafe; color: #1e40af; }
-.status-danger { background: #fee2e2; color: #991b1b; }
+.status-danger { background: rgba(190, 18, 60, 0.1); color: var(--color-error); }
+
+.text-danger { color: var(--color-error) !important; }
+.text-success { color: #16a34a !important; }
+.text-warning { color: #d97706 !important; }
 
 /* Generic States */
 .loading-state, .empty-state {

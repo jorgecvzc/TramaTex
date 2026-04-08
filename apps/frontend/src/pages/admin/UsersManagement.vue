@@ -55,6 +55,9 @@
         <td><span class="status-badge status-success">Activo</span></td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
+            <button class="btn-icon" @click="openEditModal(user)" title="Editar datos básicos">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
             <button class="btn-icon" @click="openRoleModal(user)" title="Cambiar permisos">
               <span class="material-symbols-outlined">key</span>
             </button>
@@ -104,6 +107,19 @@
       </div>
     </BaseDialog>
 
+    <BaseDialog :show="showEditModal" title="Editar Usuario" icon="edit" confirm-text="Guardar Cambios" :is-confirming="isSaving" @close="showEditModal = false" @confirm="updateUser">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Email Corporativo</label>
+          <input v-model.trim="editUserForm.email" type="email" />
+        </div>
+        <div class="form-group">
+          <label>Nueva Contraseña (dejar en blanco para mantener)</label>
+          <input v-model="editUserForm.password" type="password" placeholder="Opcional" />
+        </div>
+      </div>
+    </BaseDialog>
+
     <BaseDialog :show="showDeleteConfirm" title="Eliminar Usuario" icon="warning" confirm-text="Eliminar" confirm-class="btn-danger" :is-confirming="isDeleting" @close="showDeleteConfirm = false" @confirm="executeDelete">
       <p>¿Seguro que deseas eliminar permanentemente a <strong>{{ userToDelete?.email }}</strong>?</p>
     </BaseDialog>
@@ -125,6 +141,7 @@ const error = ref<string | null>(null)
 const search = ref('')
 const roleFilter = ref<UserRole | ''>('')
 const showModal = ref(false)
+const showEditModal = ref(false)
 const showCreateDialog = ref(false)
 const showDeleteConfirm = ref(false)
 const selectedUser = ref<Usuario | null>(null)
@@ -134,6 +151,7 @@ const isSaving = ref(false)
 const isCreating = ref(false)
 const isDeleting = ref(false)
 const newUser = reactive({ email: '', password: '', role: 'commercial' as UserRole })
+const editUserForm = reactive({ email: '', password: '' })
 
 const filteredUsers = computed(() => {
   const term = search.value.toLowerCase()
@@ -149,6 +167,27 @@ async function loadUsers() {
 
 function openRoleModal(user: Usuario) { selectedUser.value = user; selectedRole.value = user.role; showModal.value = true; }
 function closeModal() { showModal.value = false; selectedUser.value = null; }
+
+function openEditModal(user: Usuario) {
+  selectedUser.value = user
+  editUserForm.email = user.email
+  editUserForm.password = ''
+  showEditModal.value = true
+}
+
+async function updateUser() {
+  if (!selectedUser.value) return
+  isSaving.value = true
+  try {
+    const result = await iamService.updateUser(selectedUser.value.id, {
+      email: editUserForm.email,
+      password: editUserForm.password || undefined
+    })
+    users.value = users.value.map((u) => u.id === result.id ? { ...u, email: result.email } : u)
+    showEditModal.value = false
+  } catch (err: any) { alert(err.message) }
+  finally { isSaving.value = false }
+}
 
 async function saveRole() {
   if (!selectedUser.value) return

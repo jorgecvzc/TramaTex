@@ -5,24 +5,32 @@
  * Implementa el estándar BaseCatalog con Arquitectura de 3 Capas.
  */
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { partyApi } from '@/services/partyApi'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 
 const router = useRouter()
+const route = useRoute()
 const parties = ref<any[]>([])
 const isLoading = ref(false)
 const error = ref('')
 
 const filters = reactive({ 
-  name: '', 
-  role: '', 
-  status: '' 
+  name: (route.query.name as string) || '',
+  role: (route.query.role as string) || '', 
+  status: (route.query.status as string) || '' 
 })
 
 const hasFilters = computed(() => 
   filters.name.trim() !== '' || filters.role !== '' || filters.status !== ''
 )
+
+// Sync filters when navigating to this page from another route (e.g. dashboard KPI cards)
+watch(() => route.query, (newQuery) => {
+  filters.name = (newQuery.name as string) || ''
+  filters.role = (newQuery.role as string) || ''
+  filters.status = (newQuery.status as string) || ''
+}, { deep: true })
 
 // Lógica de filtrado con debounce
 let debounceTimer: any = null
@@ -36,10 +44,10 @@ async function fetchParties() {
   error.value = ''
   try {
     const res = await partyApi.listParties({ 
-      searchText: filters.name,
+      name: filters.name,
       role: filters.role,
       status: filters.status,
-      limit: 100
+      pageSize: 100
     })
     parties.value = res.data || (Array.isArray(res) ? res : [])
   } catch (err: any) { 
@@ -84,6 +92,16 @@ async function toggleStatus(party: any) {
   }
 }
 
+async function deleteParty(party: any) {
+  if (!confirm(`¿Eliminar "${party.name}"? Esta acción no se puede deshacer.`)) return
+  try {
+    await partyApi.deleteParty(party.id)
+    await fetchParties()
+  } catch (err: any) {
+    alert('No se pudo eliminar la entidad: ' + (err.message || 'Error desconocido'))
+  }
+}
+
 onMounted(fetchParties)
 onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 </script>
@@ -91,7 +109,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 <template>
   <BaseCatalog
     title="Base de Datos de Entidades"
-    :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Entidades' }]"
+    :breadcrumbs="[{ label: 'Entidades', to: '/parties/dashboard' }, { label: 'Clientes y Proveedores' }]"
     :items="parties"
     :is-loading="isLoading"
     :error="error"
@@ -162,14 +180,19 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
       <td class="align-right" @click.stop>
         <div class="action-buttons">
           <button 
-            class="btn-icon" 
+            class="btn btn-ghost" 
             @click="toggleStatus(item)" 
             :title="item.status === 'ACTIVE' ? 'Desactivar' : 'Activar'"
           >
             <span class="material-symbols-outlined">{{ item.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
           </button>
-          <button class="btn-icon" @click="navigateToDetail(item)" title="Ver detalle">
-            <span class="material-symbols-outlined">visibility</span>
+          <button 
+            v-if="item.can_delete"
+            class="btn btn-ghost btn-danger"
+            @click.stop="deleteParty(item)"
+            title="Eliminar entidad"
+          >
+            <span class="material-symbols-outlined">delete</span>
           </button>
         </div>
       </td>
@@ -183,7 +206,5 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 .type-info { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-secondary); }
 .role-badge { font-weight: 600; font-size: 0.85rem; color: var(--color-text-primary); }
 .action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
-.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 .align-right { text-align: right; }
 </style>

@@ -1,168 +1,220 @@
 <template>
-  <BaseCatalog
-    title="Gestión de Categorías"
-    icon="category"
-    :breadcrumbs="[{ label: 'Datos Maestros', to: '/master-data/product-groups' }, { label: 'Categorías' }]"
-    :items="productGroups"
-    :is-loading="isLoading"
-    :error="error"
-    create-text="Nueva Categoría"
-    empty-icon="folder_off"
-    empty-text="No hay categorías registradas en el sistema"
-    @clear-filters="loadGroups"
-    @refresh="loadGroups"
-    @click-item="editGroup"
-  >
-    <template #filters>
-      <div class="filter-group">
-        <label>Búsqueda rápida</label>
-        <input 
-          v-model="search" 
-          type="text" 
-          placeholder="Filtrar por nombre de categoría..." 
-          @input="onSearchInput"
-        />
-      </div>
+  <div class="page-layout">
+    <BaseCatalog
+      title="Gestión de Categorías"
+      icon="category"
+      :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Categorías' }]"
+      :items="productGroups"
+      :is-loading="isLoading"
+      :error="error"
+      create-text="Nueva Categoría"
+      empty-icon="folder_off"
+      empty-text="No hay categorías registradas en el sistema"
+      @clear-filters="clearFilters"
+      @refresh="loadGroups"
+      @click-item="openGroupDetail"
+    >
+      <template #header-actions>
+        <button @click="openCreateModal" class="btn btn-primary">
+          <span class="material-symbols-outlined">add_box</span>
+          <span>Nueva Categoría</span>
+        </button>
+      </template>
 
-      <div class="filter-group">
-        <label>Estado</label>
-        <select v-model="statusFilter" @change="onSearchInput">
-          <option value="">Cualquier estado</option>
-          <option value="true">Activas</option>
-          <option value="false">Inactivas</option>
+      <template #filters>
+        <div class="filter-group">
+          <label>Búsqueda rápida</label>
+          <input 
+            v-model="filters.search" 
+            type="text" 
+            placeholder="Nombre de categoría..." 
+          />
+        </div>
+
+        <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.isActive">
+            <option value="">Cualquier estado</option>
+            <option value="true">Activas</option>
+            <option value="false">Inactivas</option>
+          </select>
+        </div>
+      </template>
+
+      <template #table-header>
+        <th>Nombre de la Categoría</th>
+        <th>Categoría Padre</th>
+        <th class="text-center">Tipo</th>
+        <th class="text-center">Estado</th>
+        <th class="align-right">Acciones</th>
+      </template>
+
+      <template #item="{ item }">
+        <td><strong>{{ item.name }}</strong></td>
+        <td class="parent-cell">
+          <span v-if="item.parent_group_id" class="parent-badge">
+            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">subdirectory_arrow_right</span>
+            {{ getParentName(item.parent_group_id) }}
+          </span>
+          <span v-else class="text-muted">—</span>
+        </td>
+        <td class="text-center">
+          <span class="status-badge-sm">{{ formatType(item.type) }}</span>
+        </td>
+        <td class="text-center">
+          <span :class="['status-badge', item.is_active ? 'status-success' : 'status-secondary']">
+            {{ item.is_active ? 'Activa' : 'Inactiva' }}
+          </span>
+        </td>
+        <td class="align-right" @click.stop>
+          <div class="action-buttons">
+            <button @click="editGroup(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button 
+              @click="toggleActive(item)" 
+              class="btn-icon" 
+              :title="item.is_active ? 'Desactivar' : 'Activar'"
+            >
+              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+            </button>
+            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+          </div>
+        </td>
+      </template>
+    </BaseCatalog>
+
+    <!-- MODAL: CREAR/EDITAR CATEGORÍA -->
+    <BaseDialog
+      :show="showModal"
+      :title="modalMode === 'create' ? 'Nueva Categoría' : 'Editar Categoría'"
+      icon="category"
+      confirm-text="Guardar Cambios"
+      :is-confirming="isSaving"
+      @close="showModal = false"
+      @confirm="saveGroup"
+    >
+      <div class="form-group">
+        <label>Nombre de la Categoría</label>
+        <input v-model="currentGroup.name" type="text" class="form-input" placeholder="Ej: Hilos, Tejidos..." required @keyup.enter="saveGroup" />
+      </div>
+      <div class="form-group mt-4">
+        <label>Categoría Padre</label>
+        <select v-model="currentGroup.parentGroupId" class="form-input">
+          <option value="">Sin categoría padre (nivel raíz)</option>
+          <option v-for="g in availableParents" :key="g.id" :value="g.id">{{ g.name }}</option>
         </select>
       </div>
-    </template>
-
-    <template #header-actions>
-      <button @click="openCreateModal" class="btn btn-primary">
-        <span class="material-symbols-outlined">add_box</span>
-        Nueva Categoría
-      </button>
-    </template>
-
-    <template #table-header>
-      <th>Nombre de la Categoría</th>
-      <th class="text-center">Tipo</th>
-      <th class="text-center">Estado</th>
-      <th class="align-right">Acciones</th>
-    </template>
-
-    <template #item="{ item }">
-      <td><strong>{{ item.name }}</strong></td>
-      <td class="text-center">
-        <span class="status-badge-sm">{{ formatType(item.type) }}</span>
-      </td>
-      <td class="text-center">
-        <span :class="['status-pill', item.is_active ? 'status-active' : 'status-inactive']">
-          {{ item.is_active ? 'Activa' : 'Inactiva' }}
-        </span>
-      </td>
-      <td class="align-right" @click.stop>
-        <div class="action-buttons">
-          <button @click="editGroup(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
-          <button 
-            @click="toggleActive(item)" 
-            class="btn-icon" 
-            :title="item.is_active ? 'Desactivar' : 'Activar'"
-            :class="{ 'text-warning': item.is_active }"
-          >
-            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
-          </button>
-          <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+      <div class="form-row mt-4">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select v-model="currentGroup.type" class="form-input">
+            <option value="TANGIBLE">Producto Físico</option>
+            <option value="SERVICE">Servicio</option>
+          </select>
         </div>
-      </td>
-    </template>
-  </BaseCatalog>
-
-  <!-- Modals (Standardized) -->
-  <Transition name="fade">
-    <div v-if="showModal" class="modal-backdrop">
-      <div class="modal card">
-        <div class="modal-header">
-          <span class="material-symbols-outlined">edit_square</span>
-          <h2>{{ modalMode === 'create' ? 'Nueva Categoría' : 'Editar Categoría' }}</h2>
-        </div>
-        
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Nombre de la Categoría</label>
-            <input v-model="currentGroup.name" type="text" placeholder="Ej: Hilos, Tejidos..." required @keyup.enter="saveGroup" />
-          </div>
-          <div class="form-row mt-4">
-            <div class="form-group">
-              <label>Tipo</label>
-              <select v-model="currentGroup.type">
-                <option value="TANGIBLE">Producto Físico</option>
-                <option value="SERVICE">Servicio</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="checkbox-label mt-8">
-                <input v-model="currentGroup.isActive" type="checkbox" />
-                <span>Categoría activa</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal-actions">
-          <button @click="showModal = false" class="btn btn-outline">Cancelar</button>
-          <button @click="saveGroup" class="btn btn-primary" :disabled="isSaving">
-            <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-            <span>Confirmar</span>
-          </button>
+        <div class="form-group">
+          <label class="checkbox-label mt-8">
+            <input v-model="currentGroup.isActive" type="checkbox" />
+            <span>Categoría activa</span>
+          </label>
         </div>
       </div>
-    </div>
-  </Transition>
+    </BaseDialog>
+
+    <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
+    <BaseDialog
+      :show="showDeleteConfirm"
+      title="Eliminar Categoría"
+      icon="warning"
+      confirm-text="Eliminar Definitivamente"
+      confirm-class="btn-danger"
+      @close="showDeleteConfirm = false"
+      @confirm="deleteGroup"
+    >
+      <p>¿Está seguro de que desea eliminar la categoría <strong>{{ groupToDelete?.name }}</strong>?</p>
+      <p class="mt-2 text-muted">Esta acción solo se completará si la categoría no tiene productos asociados.</p>
+    </BaseDialog>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
+import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { productApi } from '@/services/productApi'
 
-const productGroups = ref([])
 const allGroups = ref([])
 const isLoading = ref(false)
 const error = ref('')
-const search = ref('')
-const statusFilter = ref('')
+const filters = reactive({
+  search: '',
+  isActive: ''
+})
+
+const productGroups = computed(() => {
+  let result = allGroups.value;
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    result = result.filter(g => g.name.toLowerCase().includes(q));
+  }
+  if (filters.isActive !== '') {
+    const active = filters.isActive === 'true';
+    result = result.filter(g => g.is_active === active);
+  }
+  return result;
+});
+
 const showModal = ref(false)
 const modalMode = ref('create')
 const isSaving = ref(false)
-const currentGroup = ref({ name: '', type: 'TANGIBLE', isActive: true })
+const showDeleteConfirm = ref(false)
+const groupToDelete = ref(null)
+const currentGroup = ref({ name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' })
+
+const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
+
+const availableParents = computed(() => {
+  if (modalMode.value === 'edit') {
+    return allGroups.value.filter(g => g.id !== currentGroup.value.id)
+  }
+  return allGroups.value
+})
+
+function getParentName(parentId) {
+  const parent = allGroups.value.find(g => g.id === parentId)
+  return parent ? parent.name : '—'
+}
 
 async function loadGroups() {
   isLoading.value = true; error.value = '';
   try { 
     const res = await productApi.listProductGroups({}); 
     allGroups.value = res.data || [];
-    productGroups.value = allGroups.value;
   }
   catch (err) { error.value = err.message; } 
   finally { isLoading.value = false }
 }
 
-function onSearchInput() {
-  const query = search.value.toLowerCase();
-  productGroups.value = allGroups.value.filter(g => {
-    const matchesSearch = g.name.toLowerCase().includes(query);
-    const matchesStatus = statusFilter.value === '' || String(g.is_active) === statusFilter.value;
-    return matchesSearch && matchesStatus;
-  });
+function clearFilters() {
+  filters.search = '';
+  filters.isActive = '';
 }
 
-function openCreateModal() { modalMode.value = 'create'; currentGroup.value = { name: '', type: 'TANGIBLE', isActive: true }; showModal.value = true; }
-function editGroup(group) { modalMode.value = 'edit'; currentGroup.value = { ...group, isActive: group.is_active }; showModal.value = true; }
+function openCreateModal() { modalMode.value = 'create'; currentGroup.value = { name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' }; showModal.value = true; }
+function editGroup(group) { modalMode.value = 'edit'; currentGroup.value = { id: group.id, name: group.name, type: group.type, isActive: group.is_active, parentGroupId: group.parent_group_id || '' }; showModal.value = true; }
+function openGroupDetail(group) { editGroup(group); }
 
 async function saveGroup() {
   if (!currentGroup.value.name) return;
   isSaving.value = true;
+  const payload = {
+    name: currentGroup.value.name,
+    type: currentGroup.value.type,
+    isActive: currentGroup.value.isActive,
+    parentGroupId: currentGroup.value.parentGroupId || null,
+  };
   try {
-    if (modalMode.value === 'create') await productApi.createProductGroup(currentGroup.value);
-    else await productApi.updateProductGroup(currentGroup.value.id, currentGroup.value);
+    if (modalMode.value === 'create') await productApi.createProductGroup(payload);
+    else await productApi.updateProductGroup(currentGroup.value.id, payload);
     showModal.value = false; await loadGroups();
   } catch (err) { alert(err.message); } finally { isSaving.value = false }
 }
@@ -174,9 +226,20 @@ async function toggleActive(group) {
   } catch (err) { alert(err.message); }
 }
 
-async function confirmDelete(group) {
-  if (!confirm(`¿Eliminar la categoría ${group.name}?`)) return;
-  try { await productApi.deleteProductGroup(group.id); await loadGroups(); } catch (err) { alert(err.message); }
+function confirmDelete(group) { 
+  groupToDelete.value = group; 
+  showDeleteConfirm.value = true; 
+}
+
+async function deleteGroup() {
+  if (!groupToDelete.value) return;
+  try { 
+    await productApi.deleteProductGroup(groupToDelete.value.id); 
+    await loadGroups(); 
+    showDeleteConfirm.value = false;
+  } catch (err) { 
+    alert('No se puede eliminar: ' + (err.message || 'La categoría tiene productos asociados.')); 
+  }
 }
 
 function formatType(t) { return t === 'TANGIBLE' ? 'Producto' : 'Servicio'; }
@@ -185,20 +248,23 @@ onMounted(() => loadGroups())
 </script>
 
 <style scoped>
+.page-layout { background-color: var(--color-background); min-height: 100vh; }
 .action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
-.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }
+
+.parent-cell { color: var(--color-text-secondary); font-size: 0.875rem; }
+.parent-badge { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-secondary); opacity: 0.5; }
+.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
 .btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
-.text-danger:hover { color: var(--color-error); }
-.text-warning:hover { color: #d97706; }
 
 .status-badge-sm { background: var(--color-background); padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); }
 
 .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
 .form-group label { font-size: var(--font-size-xs); font-weight: 600; text-transform: uppercase; color: var(--color-text-secondary); }
-input[type="text"], select { width: 100%; padding: 0.75rem 1rem; border-radius: var(--border-radius-md); border: 1px solid var(--color-border); font-size: var(--font-size-sm); }
+.form-input { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
-.checkbox-label { flex-direction: row; align-items: center; gap: 0.75rem; cursor: pointer; }
+.checkbox-label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.9rem; }
 .mt-8 { margin-top: 2rem; }
 .text-center { text-align: center; }
 .align-right { text-align: right; }

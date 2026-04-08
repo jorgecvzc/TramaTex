@@ -95,15 +95,15 @@ func NewAttributeDTOFromDomain(a *domain.Attribute) *AttributeDTO {
 // ProductVariantDTO represents the data transfer object for a ProductVariant.
 type ProductVariantDTO struct {
 	ID                  uuid.UUID            `json:"id"`
-	ProductID           uuid.UUID            `json:"productId"`
+	ProductID           uuid.UUID            `json:"product_id"`
 	SKU                 string               `json:"sku"`
 	Barcode             *string              `json:"barcode,omitempty"`
-	BaseCost            float64              `json:"baseCost"` // Calculated: Product.BasePrice + AttributeValue modifiers (NOT stored)
+	BaseCost            float64              `json:"base_cost"` // Calculated: Product.BasePrice + AttributeValue modifiers (NOT stored)
 	Price               float64              `json:"price"`    // Final sales price from pricing module
 	Status              domain.VariantStatus `json:"status"`
-	OptionConfiguration map[string]string    `json:"optionConfiguration"` // AttributeName -> Value
-	IsActive            bool                 `json:"isActive"`
-	ProductName         string               `json:"productName,omitempty"` // Enriched field for smart search results
+	OptionConfiguration map[string]string    `json:"option_configuration"` // AttributeName -> Value
+	IsActive            bool                 `json:"is_active"`
+	ProductName         string               `json:"product_name,omitempty"` // Enriched field for smart search results
 }
 
 // NewProductVariantDTOFromDomain creates a ProductVariantDTO from a domain.ProductVariant entity.

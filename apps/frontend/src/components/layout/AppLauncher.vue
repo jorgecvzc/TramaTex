@@ -49,8 +49,9 @@
           </h3>
           <div class="section-links">
             <RouterLink to="/parties" class="launcher-link" @click="$emit('close')">Clientes y Proveedores</RouterLink>
-            <RouterLink to="/parties/dashboard" class="launcher-link" @click="$emit('close')">Grupos de Entidad</RouterLink>
+            <RouterLink to="/parties#groups" class="launcher-link" @click="$emit('close')">Grupos de Entidad</RouterLink>
           </div>
+
         </section>
 
         <!-- SECCIÓN: CATÁLOGO (Movida aquí) -->
@@ -133,8 +134,8 @@ watch(() => props.isOpen, (val) => {
 .app-launcher-overlay {
   position: fixed;
   top: 76px;
-  left: 64px; /* Empieza después de la barra lateral colapsada */
-  width: calc(100vw - 64px); /* Ajuste de ancho restante */
+  left: 64px;
+  width: calc(100vw - 64px);
   height: calc(100vh - 76px);
   background-color: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
@@ -142,18 +143,18 @@ watch(() => props.isOpen, (val) => {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 1.5rem; /* Un poco más de padding interno */
+  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Añadido padding superior */
 }
 
 .app-launcher-card {
   background: white;
   width: 100%;
   max-width: 900px;
-  border-radius: 16px;
+  border-radius: 16px; /* Bordes redondeados en todas las esquinas */
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 82vh;
   overflow: hidden;
   animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

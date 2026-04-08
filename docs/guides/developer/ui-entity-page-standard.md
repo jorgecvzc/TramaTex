@@ -33,7 +33,7 @@ El diseño se organiza en tres profundidades visuales para maximizar la claridad
 
 **REGLA INAMOVIBLE:** Se utiliza exclusivamente **Material Symbols Outlined**.
 * **Formato:** `<span class="material-symbols-outlined">icon_name</span>`
-* **Prohibición:** No utilizar Lucide Icons ni emojis.
+* **Prohibición:** No utilizar Material Symbols Icons ni emojis.
 
 ## 3. Ejemplo de Estructura de Código
 

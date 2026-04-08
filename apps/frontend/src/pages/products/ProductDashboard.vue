@@ -1,12 +1,12 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Catálogo y Almacén" :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Panel' }]">
+      <PageHeader title="Catálogo y Almacén">
         <template #icon><span class="material-symbols-outlined">inventory_2</span></template>
         <template #actions>
-          <button class="btn btn-primary btn-sm" @click="router.push('/products/new')">
-            <span class="material-symbols-outlined">add_box</span>
-            <span>Nuevo Producto</span>
+          <button class="btn btn-outline btn-sm" @click="loadProductData" :disabled="isLoading">
+            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <span>Actualizar</span>
           </button>
         </template>
       </PageHeader>
@@ -178,6 +178,7 @@ onMounted(loadProductData);
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.stat-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
 .stat-value { font-size: 1.25rem; font-weight: 700; }
 

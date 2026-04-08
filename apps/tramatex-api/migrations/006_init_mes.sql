@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Migration: 006_init_mes.sql
 -- Description: Initialize MES module (consolidated)
--- Absorbs: 006, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
+-- Absorbs: 006, 008, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
 -- Date: 2026-03-21
 -- Note: Also creates quote_work_setups and order_work_setups (Sales join tables
 --       that depend on MES work_setups and work_orders).
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     
     CONSTRAINT fk_work_orders_party FOREIGN KEY (party_id) REFERENCES parties(id) ON DELETE RESTRICT,
     CONSTRAINT fk_work_orders_work_setup FOREIGN KEY (work_setup_id) REFERENCES work_setups(id) ON DELETE SET NULL,
-    CONSTRAINT chk_work_orders_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED')),
+    CONSTRAINT chk_work_orders_status CHECK (status IN ('PENDING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'SUSPENDED')),
     CONSTRAINT chk_work_orders_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT'))
 );
 
@@ -265,5 +265,5 @@ COMMIT;
 
 -- ============================================================================
 -- END OF MIGRATION: 006_init_mes.sql (consolidated)
--- Absorbs: 006, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
+-- Absorbs: 006, 008, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
 -- ============================================================================

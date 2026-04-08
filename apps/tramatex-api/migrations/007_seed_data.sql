@@ -92,7 +92,7 @@ INSERT INTO attribute_values (id, attribute_id, value, code, has_price_modifier,
     ('2dd7dcb5-55bc-4f29-a8bc-222395ac615f', 'd1cff03a-b8b2-4027-b310-755dae65f2c0', 'XL',  'XL',  false, NULL,         NULL),
     ('1158a4b7-0e08-4b36-9a97-373a4c15b0a0', 'd1cff03a-b8b2-4027-b310-755dae65f2c0', '2XL', '2XL', false, NULL,         NULL),
     ('e1f77b4d-6204-465c-ab7e-64a12bbd6375', 'd1cff03a-b8b2-4027-b310-755dae65f2c0', '3XL', '3XL', true,  'PERCENTAGE', 5.00),
-    ('887f0897-fdcb-4054-b162-12aa9b6476b5', 'd1cff03a-b8b2-4027-b310-755dae65f2c0', '4XL', '4XL', true,  'FIXED',      8.00)
+    ('887f0897-fdcb-4054-b162-12aa9b6476b5', 'd1cff03a-b8b2-4027-b310-755dae65f2c0', '4XL', '4XL', true,  'FIXED',      0.75)
 ON CONFLICT DO NOTHING;
 
 -- Tipo Tejido values
@@ -115,11 +115,26 @@ VALUES
     ('d4a5e6f7-0003-0003-0003-000000000003', 'ACTIVE',  0.00, 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479')
 ON CONFLICT DO NOTHING;
 
+-- Clean up stale person_profiles for parties defined as organizations
+DELETE FROM person_profiles WHERE party_id IN (
+    '00000000-0000-0000-0000-000000000001',
+    'd4a5e6f7-0002-0002-0002-000000000002'
+);
+
+-- Clean up stale organization_profiles for parties defined as persons
+DELETE FROM organization_profiles WHERE party_id IN (
+    'd4a5e6f7-0001-0001-0001-000000000001',
+    'd4a5e6f7-0003-0003-0003-000000000003'
+);
+
 INSERT INTO organization_profiles (party_id, name, tax_id, tax_id_type, website, phone, email, notes) VALUES
     ('00000000-0000-0000-0000-000000000001', 'CONSUMIDOR FINAL',             NULL,        NULL,  '',                    NULL, NULL, ''),
-    ('d4a5e6f7-0001-0001-0001-000000000001', 'Juan Ramón Orzola',            '19230061N', 'NIF', '',                    NULL, NULL, ''),
-    ('d4a5e6f7-0002-0002-0002-000000000002', 'TexPrendar SL',                'B12345768', 'CIF', 'https://texprendar.com', NULL, NULL, 'Cliente Principal'),
-    ('d4a5e6f7-0003-0003-0003-000000000003', 'Pedro Ramón',                  '19652658M', 'NIF', '',                    NULL, NULL, '')
+    ('d4a5e6f7-0002-0002-0002-000000000002', 'TexPrendar SL',                'B12345768', 'CIF', 'https://texprendar.com', NULL, NULL, 'Cliente Principal')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO person_profiles (party_id, first_name, last_name, phone, email) VALUES
+    ('d4a5e6f7-0001-0001-0001-000000000001', 'Juan Ramón', 'Orzola', NULL, NULL),
+    ('d4a5e6f7-0003-0003-0003-000000000003', 'Pedro',      'Ramón',  NULL, NULL)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO party_roles (party_id, role) VALUES

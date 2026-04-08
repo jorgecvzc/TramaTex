@@ -50,6 +50,21 @@ function goBack() {
 </template>
 
 <style scoped>
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: inherit; /* Hereda la altura centrada del padre */
+}
+
+.page-header-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px; /* Pequeño ajuste para cuando hay subtítulo */
+}
+
 .title-with-back {
   display: flex;
   align-items: center;

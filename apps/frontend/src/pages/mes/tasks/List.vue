@@ -1,19 +1,18 @@
 <template>
-  <div class="page-layout">
-    
-    <BaseCatalog
-      title="Catálogo de Tareas Básicas"
-      icon="assignment"
-      :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Tareas' }]"
-      :items="tasks"
-      :is-loading="isLoading"
-      :error="error"
-      :has-filters="hasFilters"
-      empty-icon="assignment_late"
-      empty-text="No hay tareas básicas registradas"
-      @clear-filters="clearFilters"
-      @refresh="loadTasks"
-    >
+  <BaseCatalog
+    title="Catálogo de Tareas Básicas"
+    icon="assignment"
+    :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Tareas' }]"
+    :items="tasks"
+    :is-loading="isLoading"
+    :error="error"
+    :has-filters="hasFilters"
+    empty-icon="assignment_late"
+    empty-text="No hay tareas básicas registradas"
+    @clear-filters="clearFilters"
+    @refresh="loadTasks"
+    @click-item="editTask"
+  >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
           <span class="material-symbols-outlined">add</span>

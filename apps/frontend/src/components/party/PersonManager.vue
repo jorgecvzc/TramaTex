@@ -147,28 +147,55 @@
         <div class="person-header">
           <div class="person-info">
             <h4>{{ person.first_name }} {{ person.last_name }}</h4>
-            <p class="email">📧 {{ person.email }}</p>
-            <p v-if="person.phone" class="phone">📞 {{ person.phone }}</p>
-            <p v-if="person.job_title" class="job">💼 {{ person.job_title }}</p>
+            <p class="email">
+              <span class="material-symbols-outlined icon-sm">mail</span>
+              {{ person.email }}
+            </p>
+            <p v-if="person.phone" class="phone">
+              <span class="material-symbols-outlined icon-sm">call</span>
+              {{ person.phone }}
+            </p>
+            <button v-if="editingJobTitleId !== person.id" type="button" class="editable-chip" @click="startEditJobTitle(person)" :title="person.job_title ? 'Clic para editar cargo' : 'Clic para añadir cargo'">
+              <span class="material-symbols-outlined chip-icon">work</span>
+              <span :class="person.job_title ? '' : 'chip-placeholder'">{{ person.job_title || 'Añadir cargo...' }}</span>
+              <span class="material-symbols-outlined chip-edit">edit</span>
+            </button>
+            <div v-else class="inline-edit">
+              <span class="material-symbols-outlined chip-icon">work</span>
+              <input
+                ref="jobTitleInput"
+                v-model="editingJobTitleValue"
+                type="text"
+                placeholder="p. ej., Gerente"
+                class="inline-input"
+                @keydown.enter="saveJobTitle(person)"
+                @keydown.escape="cancelEditJobTitle"
+                @blur="saveJobTitle(person)"
+              />
+            </div>
           </div>
           <div class="person-badges">
-            <span v-if="person.is_primary" class="badge primary">Principal</span>
-            <span class="badge date">{{ formatDate(person.created_at) }}</span>
-            <button
-              type="button"
-              class="btn btn-primary"
-              @click="navigateToContact(person.id)"
-            >
-              Ver detalles
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger"
-              :disabled="isRemovingId === person.id"
-              @click="handleRemoveContact(person)"
-            >
-              {{ isRemovingId === person.id ? 'Eliminando...' : 'Eliminar' }}
-            </button>
+            <span v-if="person.is_primary" class="badge status-success">Principal</span>
+            <span class="badge status-secondary">{{ formatDate(person.created_at) }}</span>
+            <div class="action-buttons">
+              <button
+                type="button"
+                class="btn-icon"
+                @click="navigateToContact(person.id)"
+                title="Ver detalles"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+              <button
+                type="button"
+                class="btn-icon text-danger"
+                :disabled="isRemovingId === person.id"
+                @click="handleRemoveContact(person)"
+                title="Eliminar"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -188,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
 
@@ -210,6 +237,10 @@ const formError = ref('');
 const formMode = ref('new');
 const availableContacts = ref([]);
 const selectedContactId = ref('');
+const editingJobTitleId = ref('');
+const editingJobTitleValue = ref('');
+const jobTitleInput = ref(null);
+const isSavingJobTitle = ref(false);
 
 const form = reactive({
   firstName: '',
@@ -415,6 +446,83 @@ async function handleRemoveContact(person) {
   }
 }
 
+function startEditJobTitle(person) {
+  editingJobTitleId.value = person.id;
+  editingJobTitleValue.value = person.job_title || '';
+  nextTick(() => {
+    if (jobTitleInput.value) {
+      const el = Array.isArray(jobTitleInput.value) ? jobTitleInput.value[0] : jobTitleInput.value;
+      el?.focus();
+    }
+  });
+}
+
+function cancelEditJobTitle() {
+  editingJobTitleId.value = '';
+  editingJobTitleValue.value = '';
+}
+
+async function saveJobTitle(person) {
+  if (isSavingJobTitle.value) return;
+  if (editingJobTitleId.value !== person.id) return;
+
+  const newValue = editingJobTitleValue.value.trim();
+  if (newValue === (person.job_title || '')) {
+    cancelEditJobTitle();
+    return;
+  }
+
+  let contactDetailsId = person.contact_details_id;
+
+  // If contact_details_id is not cached, look it up from the API
+  if (!contactDetailsId) {
+    try {
+      const contacts = await partyApi.listContactDetails(props.partyId);
+      const match = contacts.find((c) => c.related_party_id === person.id);
+      if (match?.id) {
+        contactDetailsId = match.id;
+        person.contact_details_id = match.id;
+      }
+    } catch {
+      // ignore lookup failure
+    }
+  }
+
+  if (!contactDetailsId) {
+    // No contact-details record exists yet — create one
+    isSavingJobTitle.value = true;
+    try {
+      const created = await partyApi.createContactDetails(props.partyId, {
+        type_description: newValue || 'Contacto',
+        related_party_id: person.id,
+      });
+      if (created?.id) {
+        person.contact_details_id = created.id;
+      }
+      person.job_title = newValue || 'Contacto';
+      cancelEditJobTitle();
+    } catch (error) {
+      formError.value = error?.message || 'No se pudo crear el cargo';
+      cancelEditJobTitle();
+    } finally {
+      isSavingJobTitle.value = false;
+    }
+    return;
+  }
+
+  isSavingJobTitle.value = true;
+  try {
+    await partyApi.updateContactJobTitle(props.partyId, contactDetailsId, newValue || 'Contacto');
+    person.job_title = newValue || 'Contacto';
+    cancelEditJobTitle();
+  } catch (error) {
+    formError.value = error?.message || 'No se pudo actualizar el cargo';
+    cancelEditJobTitle();
+  } finally {
+    isSavingJobTitle.value = false;
+  }
+}
+
 function resetForm() {
   form.firstName = '';
   form.lastName = '';
@@ -442,282 +550,256 @@ function formatDate(dateString) {
 
 <style scoped>
 .person-manager {
-  padding: 1.5rem;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: var(--spacing-lg);
+  background: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--box-shadow-sm);
 }
 
 .manager-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .manager-header h3 {
-  color: #1b3a6b;
+  color: var(--color-secondary);
   margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
 }
 
 .form-section {
-  background: #f8fafc;
-  padding: 1.5rem;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  border: 1px solid #e2e8f0;
+  background: var(--color-background);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border);
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
 }
 
 .form-group label {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin-bottom: 0.4rem;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
 }
 
-.form-group input:not([type="checkbox"]) {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
+.form-group input:not([type="checkbox"]), .form-group select {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: white;
+  transition: all 0.2s;
 }
 
-.form-group select {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
-  background: #ffffff;
-}
-
-.form-group input:focus {
+.form-group input:focus, .form-group select:focus {
   outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
-}
-
-.form-group select:focus {
-  outline: none;
-  border-color: #002395;
-  box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
 }
 
 .form-group.checkbox {
   flex-direction: row;
   align-items: center;
-  margin: 1rem 0;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) 0;
 }
 
 .form-group.checkbox input {
-  width: 20px;
-  height: 20px;
-  margin-right: 0.5rem;
-}
-
-.form-group.checkbox label {
-  margin: 0;
+  width: 18px;
+  height: 18px;
 }
 
 .form-group .error {
-  color: #ef4444;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
 
 .form-mode {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.form-mode .btn.active {
-  border-color: #002395;
-  box-shadow: 0 0 0 2px rgba(0, 35, 149, 0.12);
-}
-
-.hint {
-  margin-top: 0.5rem;
-  color: #64748b;
-  font-size: 0.85rem;
-}
-
-.btn {
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  font-weight: 600;
-}
-
-.btn-primary {
-  background: #eac54f;
-  color: #1e293b;
-  border: none;
-  font-weight: 600;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #d4a41d;
-}
-
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #1e293b;
-}
-
-.btn-danger {
-  background: #ffffff;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #fef2f2;
-}
-
-.error-message {
-  color: #991b1b;
-  background-color: #fee2e2;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  border: 1px solid #ef4444;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .persons-list {
   display: grid;
-  gap: 1rem;
+  gap: var(--spacing-md);
 }
 
 .person-card {
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: white;
   transition: all 0.2s ease;
 }
 
 .person-card:hover {
-  border-color: #002395;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border-color: var(--color-border-strong);
+  box-shadow: var(--box-shadow-md);
 }
 
 .person-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: var(--spacing-md);
 }
 
 .person-info h4 {
-  color: #1e293b;
+  color: var(--color-text-primary);
   margin: 0 0 0.5rem 0;
-}
-
-.person-info {
-  flex: 1;
+  font-weight: 700;
 }
 
 .person-info p {
-  color: #64748b;
+  color: var(--color-text-secondary);
   margin: 0.25rem 0;
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.icon-sm { font-size: 18px; color: var(--color-text-secondary); }
 
 .person-badges {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.badge.primary {
-  background-color: rgba(230, 184, 0, 0.2);
-  color: #1e293b;
-}
-
-.badge.date {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #64748b;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #64748b;
-}
-
-.loading {
+.action-buttons {
   display: flex;
-  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0.4rem;
+  border-radius: 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  gap: 1rem;
+  transition: all 0.2s;
 }
 
+.btn-icon:hover {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.text-danger { color: var(--color-error); }
+.text-danger:hover { background: var(--color-primary-light); }
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-success { background: rgba(22, 163, 74, 0.1); color: var(--color-success); }
+.status-secondary { background: var(--color-background); color: var(--color-text-secondary); }
+
 .spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid rgba(230, 184, 0, 0.2);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
+  width: 24px; height: 24px; border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary); border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
+  .form-row { grid-template-columns: 1fr; }
+  .person-header { flex-direction: column; }
+  .form-actions { flex-direction: column; }
+}
 
-  .person-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
+.editable-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  margin: 0.25rem 0;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--border-radius-md);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
 
-  .form-actions {
-    flex-direction: column;
-  }
+.editable-chip:hover {
+  border-color: var(--color-primary);
+  background: rgba(230, 184, 0, 0.06);
+  color: var(--color-text-primary);
+}
+
+.chip-icon {
+  font-size: 16px;
+}
+
+.chip-edit {
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.editable-chip:hover .chip-edit {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+.chip-placeholder {
+  font-style: italic;
+}
+
+.inline-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.inline-input {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: white;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
+  width: 200px;
 }
 </style>

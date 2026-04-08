@@ -64,14 +64,15 @@
 
 /* Danger - Acciones destructivas (Eliminar, Borrar) */
 .btn-danger {
-  background-color: white;
-  border-color: #fca5a5; /* Red 300 */
-  color: #dc2626; /* Red 600 */
+  background-color: var(--color-error);
+  color: white;
+  box-shadow: var(--box-shadow-sm);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #fef2f2;
-  border-color: #dc2626;
+  filter: brightness(1.1);
+  box-shadow: var(--box-shadow-md);
+  transform: translateY(-1px);
 }
 
 /* Success - Acciones positivas (Aprobar, Completar) */

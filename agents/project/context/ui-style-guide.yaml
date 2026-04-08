@@ -1,0 +1,85 @@
+# UI Style Guide Context Agent
+# Version: 1.0
+# Purpose: UI/UX design system, styling rules, and visual identity for TramaTex.
+
+---
+
+metadata:
+  filename: "ui-style-guide.yaml"
+  version: "1.0"
+  location: "/agents/context/"
+  last_updated: "2026-04-06"
+  references:
+    - "docs/guides/code-and-style-standards.md"
+    - "docs/architecture/design-system/"
+
+design_philosophy:
+  title: "🎨 Industrial Refined"
+  principles:
+    - "Professional, high-contrast, and vibrant."
+    - "Hierarchy-driven: Secondary Blue for structure, Primary Gold for action."
+    - "Efficiency over decoration: Optimized for data-intensive desktop/tablet use."
+    - "Consistency: Sidebar + Header + Card-based Content area."
+
+visual_identity:
+  colors:
+    primary:
+      hex: "#E6B800"
+      variable: "var(--color-primary)"
+      name: "Old Gold"
+      usage: "CTAs, main action buttons, important accents."
+    secondary:
+      hex: "#1b3a6b"
+      variable: "var(--color-secondary)"
+      name: "Deep Blue"
+      usage: "Top nav, sidebar, headers, primary brand color."
+    status:
+      success: "#16a34a"
+      warning: "#f97316"
+      error: "#be123c"
+      info: "#2563eb"
+  typography:
+    family_sans: "'Inter', sans-serif (Main UI font)"
+    family_brand: "'Calibri', sans-serif (Logo only)"
+    family_mono: "'Fira Code', monospace (Technical IDs)"
+  iconography:
+    library: "Material Symbols Outlined"
+    rule: "Emojis are strictly FORBIDDEN in the final UI."
+
+styling_rules:
+  framework:
+    rule: "NO Tailwind CSS. NO inline styles."
+    approach: "Vanilla CSS with global variables and modular architecture."
+  modular_css:
+    files:
+      - "_variables.css: Global design tokens (colors, spacing, fonts)."
+      - "_base.css: Reset and base element styles."
+      - "_buttons.css: Standard button classes (.btn-primary, .btn-secondary, .btn-ghost)."
+      - "_forms.css: Input, textarea, and select styles (.form-input, .form-textarea)."
+      - "_sections.css: Layout grouping (FormSection, DataRow)."
+
+component_standards:
+  forms:
+    inputs: "Always use .form-input class."
+    textareas: "Always use .form-textarea class."
+    selectors: "Prefer specialized components like PartySelector.vue."
+    validation: "Must show clear error states (border-color: var(--color-error))."
+  layout:
+    header: "Use BasePageHeader.vue for titles and breadcrumbs."
+    cards: "Use .card class for content grouping (background: var(--color-surface))."
+    spacing: "Follow defined spacing scale (rem-based)."
+
+business_logic_rule:
+  principle: "CALCULATIONS ONLY IN BACKEND"
+  frontend_role:
+    - "Display pre-calculated values from API."
+    - "Format values using Intl.NumberFormat (Euro € only for MVP)."
+    - "Call /preview endpoints for real-time updates during editing."
+  forbidden_in_frontend:
+    - "Business formulas (margins, taxes, discounts)."
+    - "Rounding monetary values (backend is the authority)."
+
+language_and_i18n:
+  ui_language: "Spanish (Castellano)"
+  code_language: "English (Source, comments, API keys)"
+  status_mapping: "API returns English keys (e.g., 'pending'); Frontend maps to Spanish ('Pendiente')."

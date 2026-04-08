@@ -1,6 +1,4 @@
 <template>
-  
-  
   <BaseEntityPage v-if="isLoading">
     <template #header>
       <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
@@ -71,6 +69,9 @@
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired" class="btn btn-success btn-sm" @click="showConvertModal = true">
             <span class="material-symbols-outlined">check_circle</span> <span>Aceptar y Crear Pedido</span>
+          </button>
+          <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired" class="btn btn-success btn-sm" @click="showConvertModal = true">
+            <span class="material-symbols-outlined">shopping_cart</span> <span>Crear Pedido</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="rejectQuote">
             <span class="material-symbols-outlined">cancel</span> <span>Rechazar</span>
@@ -273,10 +274,10 @@
                 <template v-if="mode === 'detail'">{{ item.quantity }}</template>
                 <input v-else v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" />
               </td>
-              <td class="align-right">{{ salesApi.formatMoney(mode === 'detail' ? item.listUnitPrice : { amount: item.listPrice || item.unitPrice, currency: 'EUR' }) }}</td>
+              <td class="align-right">{{ salesApi.formatMoney(mode === 'detail' ? item.listUnitPrice : { amount: item.listPrice || 0, currency: 'EUR' }) }}</td>
               <td class="align-right">
                 <template v-if="mode === 'detail'">{{ salesApi.formatMoney(item.unitPrice) }}</template>
-                <input v-else v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" />
+                <input v-else v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" @input="item._autoPrice = false" />
               </td>
               <td class="text-center">
                 <template v-if="mode === 'detail'">{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</template>
@@ -301,10 +302,22 @@
         <DataRow label="TOTAL PRESUPUESTO" :value="salesApi.formatMoney(quote.total)" highlight />
       </div>
       <div v-else class="totals-checkout-layout">
-        <section class="totals-checkout-card">
-          <div class="total-row"><label>Subtotal:</label><span>{{ salesApi.formatMoney(liveTotals.subtotal) }}</span></div>
-          <div class="total-row"><label>IVA (21%):</label><span>{{ salesApi.formatMoney(liveTotals.taxAmount) }}</span></div>
-          <div class="total-row final"><label>TOTAL ESTIMADO:</label><span class="total-value">{{ salesApi.formatMoney(liveTotals.total) }}</span></div>
+        <section class="totals-checkout-card" :class="{ 'is-loading-overlay': isPreviewLoading }">
+          <div class="total-row">
+            <label>Subtotal:</label>
+            <span>{{ salesApi.formatMoney(liveTotals.subtotal) }}</span>
+          </div>
+          <div class="total-row">
+            <label>IVA (21%):</label>
+            <span>{{ salesApi.formatMoney(liveTotals.taxAmount) }}</span>
+          </div>
+          <div class="total-row final">
+            <label>TOTAL ESTIMADO:</label>
+            <span class="total-value">{{ salesApi.formatMoney(liveTotals.total) }}</span>
+          </div>
+          <div v-if="isPreviewLoading" class="mini-spinner-overlay">
+            <div class="mini-spinner"></div>
+          </div>
         </section>
       </div>
     </FormSection>
@@ -356,6 +369,9 @@
     <p>¿Está seguro de que desea convertir este presupuesto en un pedido en firme?</p>
     <p class="mt-2 text-muted italic">Esta acción no se puede deshacer y el presupuesto quedará marcado como convertido.</p>
   </BaseDialog>
+
+  <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
+  <PrintDocument v-if="quote" :data="printData" />
 </template>
 
 <script setup>
@@ -368,6 +384,7 @@ import DataRow from '@/components/shared/DataRow.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
+import PrintDocument from '@/components/shared/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
@@ -400,14 +417,12 @@ const showVariantSelector = ref(false);
 const showConvertModal = ref(false);
 const isConverting = ref(false);
 
-const lineItemsFingerprint = computed(() =>
-  mode.value !== 'detail'
-    ? formData.lineItems.map(i => `${i.productVariantId}|${i.quantity}|${i.unitPrice}|${i.discountPercent}`).join('§')
-    : ''
-);
-watch(lineItemsFingerprint, (val) => {
-  if (val && !isSaving.value) calculateTotals();
-});
+// Watcher para cambios en el formulario que requieran recalcular totales
+watch(() => [formData.partyId, formData.lineItems], () => {
+  if (mode.value !== 'detail' && !isSaving.value) {
+    calculateTotals();
+  }
+}, { deep: true });
 
 watch(() => route.params.id, async (newId) => {
   if (newId && newId !== 'new') {
@@ -507,7 +522,16 @@ async function enterEditMode() {
     expirationDate: quote.value.expirationDate ? new Date(quote.value.expirationDate).toISOString().split('T')[0] : '',
     notes: quote.value.notes || '',
     mesWorkRefs: (quote.value.mesWorkRefs || []).map(r => ({ id: r.id, workSetupId: r.workSetupId || null, description: r.description || '' })),
-    lineItems: (quote.value.lineItems || []).map(i => ({ productVariantId: i.productVariantId || i.productVariantID, variantSku: i.variantSku, displayName: buildDisplayName(i), quantity: i.quantity, unitPrice: i.listUnitPrice?.amount ?? i.unitPrice?.amount ?? 0, discountPercent: i.discountPercent || 0 }))
+    lineItems: (quote.value.lineItems || []).map(i => ({
+      productVariantId: i.productVariantId || i.productVariantID,
+      variantSku: i.variantSku,
+      displayName: buildDisplayName(i),
+      quantity: i.quantity,
+      listPrice: i.listUnitPrice?.amount ?? i.unitPrice?.amount ?? 0,
+      unitPrice: i.unitPrice?.amount ?? i.listUnitPrice?.amount ?? 0,
+      _autoPrice: false,
+      discountPercent: i.discountPercent || 0,
+    }))
   };
   Object.assign(formData, data);
   mode.value = 'edit';
@@ -542,7 +566,9 @@ function handleVariantSelected(payload) {
     variantSku: variant.sku,
     displayName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
+    listPrice: variant.product_base_price || 0,
     unitPrice: variant.product_base_price || 0,
+    _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   });
   showVariantSelector.value = false;
@@ -554,22 +580,73 @@ function removeMesWorkRef(idx) { formData.mesWorkRefs.splice(idx, 1); }
 
 function calculateTotals() {
   clearTimeout(previewTimer);
+  // Reset preview so UI falls back to instant local totals while new preview is fetched.
+  previewResult.value = null;
   previewTimer = setTimeout(fetchPreviewCalculation, 400);
 }
 
 async function fetchPreviewCalculation() {
-  const partyId = mode.value === 'create' ? formData.partyId : quote.value?.partyId;
-  const items = formData.lineItems.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity, unitPrice: { amount: i.unitPrice, currency: 'EUR' }, discountPercent: i.discountPercent }));
-  if (!partyId || !items.length) { previewResult.value = null; return; }
+  const partyId = formData.partyId || quote.value?.partyId;
+  const items = formData.lineItems.map(i => ({ 
+    productVariantId: i.productVariantId, 
+    quantity: Number(i.quantity || 0), 
+    ...(!i._autoPrice ? { unitPrice: { amount: Number(i.unitPrice || 0), currency: 'EUR' } } : {}),
+    discountPercent: Number(i.discountPercent || 0) 
+  }));
+  
+  if (!partyId || !items.length) { 
+    previewResult.value = null; 
+    return; 
+  }
+  
   isPreviewLoading.value = true;
-  try { previewResult.value = await salesApi.previewQuoteCalculation(partyId, items); } catch (err) {}
-  finally { isPreviewLoading.value = false; }
+  try { 
+    const res = await salesApi.previewQuoteCalculation(partyId, items);
+    if (res) {
+      previewResult.value = res;
+      // Populate unit prices from pricing engine for auto-priced items
+      formData.lineItems.forEach((item, idx) => {
+        if (item._autoPrice && res.lineItems?.[idx]) {
+          item.unitPrice = res.lineItems[idx].unitPrice.amount;
+          item.listPrice = res.lineItems[idx].listUnitPrice?.amount ?? item.listPrice;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Error en vista previa de cálculos:', err);
+    previewResult.value = null;
+  } finally { 
+    isPreviewLoading.value = false; 
+  }
 }
+
+function calculateLineSubtotalLocal(item) {
+  if (!item) return 0;
+  const quantity = Number(item.quantity || 0);
+  const unitPrice = Number(item.unitPrice || 0);
+  const discountPercent = Number(item.discountPercent || 0);
+  return quantity * unitPrice * (1 - discountPercent / 100);
+}
+
+const localDraftTotals = computed(() => {
+  const subtotalAmount = formData.lineItems.reduce((acc, item) => acc + calculateLineSubtotalLocal(item), 0);
+  const taxAmount = formData.lineItems.reduce((acc, item) => {
+    const lineSubtotal = calculateLineSubtotalLocal(item);
+    const taxRate = Number(item.taxRate ?? 21);
+    return acc + (lineSubtotal * taxRate / 100);
+  }, 0);
+
+  return {
+    subtotal: { amount: subtotalAmount, currency: 'EUR' },
+    taxAmount: { amount: taxAmount, currency: 'EUR' },
+    total: { amount: subtotalAmount + taxAmount, currency: 'EUR' },
+  };
+});
 
 const liveTotals = computed(() => {
   if (mode.value === 'detail' && quote.value) return { subtotal: quote.value.subtotal, taxAmount: quote.value.taxAmount, total: quote.value.total };
-  if (previewResult.value) return { subtotal: previewResult.value.subtotal, taxAmount: previewResult.value.taxAmount, total: previewResult.value.total };
-  return { subtotal: { amount: 0, currency: 'EUR' }, taxAmount: { amount: 0, currency: 'EUR' }, total: { amount: 0, currency: 'EUR' } };
+  if (previewResult.value && !isPreviewLoading.value) return { subtotal: previewResult.value.subtotal, taxAmount: previewResult.value.taxAmount, total: previewResult.value.total };
+  return localDraftTotals.value;
 });
 
 function calculateLineSubtotal(idx) {
@@ -579,7 +656,7 @@ function calculateLineSubtotal(idx) {
     const calculated = previewResult.value.lineItems[idx];
     if (calculated?.subtotal?.amount !== undefined) return calculated.subtotal.amount;
   }
-  return item.quantity * item.unitPrice * (1 - (item.discountPercent || 0) / 100);
+  return calculateLineSubtotalLocal(item);
 }
 
 async function saveQuote() {
@@ -597,7 +674,7 @@ async function saveQuote() {
       partyId: formData.partyId,
       expirationDate: isoExpiration,
       notes: formData.notes || '',
-      items: formData.lineItems.map(i => ({ productVariantId: i.productVariantId, quantity: Number(i.quantity), unitPrice: { amount: Number(i.unitPrice), currency: 'EUR' }, discountPercent: Number(i.discountPercent || 0) })),
+      items: formData.lineItems.map(i => ({ productVariantId: i.productVariantId, quantity: Number(i.quantity), ...(!i._autoPrice ? { unitPrice: { amount: Number(i.unitPrice || 0), currency: 'EUR' } } : {}), discountPercent: Number(i.discountPercent || 0) })),
       mesWorkRefs: formData.mesWorkRefs.filter(r => r.workSetupId || r.description).map(r => ({ workSetupId: r.workSetupId || undefined, description: r.description || '' }))
     };
     if (mode.value === 'create') {
@@ -633,11 +710,50 @@ async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.
 async function convertToOrder() {
   isConverting.value = true;
   try {
-    const order = await salesApi.createOrderFromQuote(quote.value.id);
+    // Aseguramos que el presupuesto está aceptado antes de convertirlo.
+    if (!['ACEPTADA', 'ACCEPTED', 'APROBADA', 'APPROVED'].includes(quote.value.status)) {
+      await salesApi.changeQuoteStatus(quote.value.id, 'ACCEPTED');
+    }
+    
+    // Establecemos fecha de entrega por defecto: 15 días a partir de hoy
+    const deliveryDateObj = new Date();
+    deliveryDateObj.setDate(deliveryDateObj.getDate() + 15);
+    const deliveryDate = deliveryDateObj.toISOString().split('T')[0];
+    
+    const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
     router.push(`/sales/orders/${order.id}`);
-  } catch (err) { alert(err.message); }
+  } catch (err) { 
+    alert('Error al convertir presupuesto: ' + err.message); 
+  }
   finally { isConverting.value = false; }
 }
+
+const printData = computed(() => {
+  if (!quote.value) return null;
+  return {
+    type: 'PRESUPUESTO',
+    number: quote.value.quoteNumber || '—',
+    date: quote.value.quoteDate,
+    expiryDate: quote.value.expirationDate,
+    party: {
+      name: partyName.value,
+      taxId: quote.value.taxId,
+      address: quote.value.address, // Si estuviera disponible
+    },
+    items: (quote.value.lineItems || []).map(i => ({
+      sku: i.variantSku,
+      name: buildDisplayName(i),
+      quantity: i.quantity,
+      unitPrice: i.unitPrice?.amount || 0,
+      discount: i.discountPercent,
+      subtotal: i.subtotal?.amount || 0
+    })),
+    subtotal: quote.value.subtotal?.amount || 0,
+    taxAmount: quote.value.taxAmount?.amount || 0,
+    total: quote.value.total?.amount || 0,
+    notes: quote.value.notes
+  }
+});
 
 function printQuote() { window.print(); }
 </script>
@@ -689,6 +805,13 @@ function printQuote() { window.print(); }
 .total-row { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
 .total-row.final { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-border); font-weight: 800; font-size: 1.25rem; }
 .total-value { color: var(--color-secondary); }
+
+/* Totals Loading State */
+.totals-checkout-card { position: relative; transition: opacity 0.3s ease; }
+.is-loading-overlay { opacity: 0.7; pointer-events: none; }
+.mini-spinner-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.4); border-radius: 12px; z-index: 5; }
+.mini-spinner { width: 24px; height: 24px; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .w-64 { width: 16rem; } .w-16 { width: 4rem; } .w-24 { width: 6rem; }
 .w-full { width: 100%; } .fixed-layout { table-layout: fixed; }

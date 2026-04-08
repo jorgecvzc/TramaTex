@@ -32,18 +32,18 @@
 **Referencia:** Auditoría UI/UX completada en sesión `ui-ux-improvement-post-mvp-21-03-2026`  
 **Contexto:**
 
-Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Lucide, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
+Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Material Symbols, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
 
 **Hallazgos clave:**
 - Patrones de navegación mixtos: Sales usa `clickable-row`, Party/Product usan botones explícitos, MES usa enlaces "Ver".
 - No existe una definición `.btn` global — cada módulo redefine estilos en `<style scoped>`.
 - Radios de borde varían entre 2px, 4px y 8px. El amarillo primario varía entre `#E6B800` y `#f4c430`.
-- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Lucide.
+- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Material Symbols.
 
 **Tareas:**
 
 - [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
-- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Lucide Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
+- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Material Symbols Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
 - [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
 - [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
 - [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.

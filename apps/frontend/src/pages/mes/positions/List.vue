@@ -1,75 +1,74 @@
 <template>
-  <div class="page-layout">
-    
-    <BaseCatalog
-      title="Catálogo de Posiciones de Marcaje"
-      icon="location_on"
-      :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Posiciones' }]"
-      :items="positions"
-      :is-loading="isLoading"
-      :error="error"
-      :has-filters="hasFilters"
-      empty-icon="location_off"
-      empty-text="No hay posiciones registradas"
-      @clear-filters="clearFilters"
-      @refresh="loadPositions"
-    >
-      <template #header-actions>
-        <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add</span>
-          <span>Nueva Posición</span>
-        </button>
-      </template>
+  <BaseCatalog
+    title="Catálogo de Posiciones de Marcaje"
+    icon="location_on"
+    :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Posiciones' }]"
+    :items="positions"
+    :is-loading="isLoading"
+    :error="error"
+    :has-filters="hasFilters"
+    empty-icon="location_off"
+    empty-text="No hay posiciones registradas"
+    @clear-filters="clearFilters"
+    @refresh="loadPositions"
+    @click-item="editPosition"
+  >
+    <template #header-actions>
+      <button @click="openCreateModal" class="btn btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        <span>Nueva Posición</span>
+      </button>
+    </template>
 
-      <template #filters>
-        <div class="filter-group">
-          <label>Búsqueda</label>
-          <input v-model="filters.search" type="text" placeholder="Nombre o código..." />
+    <template #filters>
+      <div class="filter-group">
+        <label>Búsqueda</label>
+        <input v-model="filters.search" type="text" placeholder="Nombre o código..." />
+      </div>
+
+      <div class="filter-group">
+        <label>Estado</label>
+        <select v-model="filters.isActive">
+          <option value="">Cualquier estado</option>
+          <option value="true">Activas</option>
+          <option value="false">Inactivas</option>
+        </select>
+      </div>
+    </template>
+
+    <template #table-header>
+      <th>Nombre de la Posición</th>
+      <th>Código</th>
+      <th>Descripción</th>
+      <th class="text-center">Estado</th>
+      <th class="align-right">Acciones</th>
+    </template>
+
+    <template #item="{ item }">
+      <td><strong>{{ item.name }}</strong></td>
+      <td><code class="code-badge">{{ item.code || '—' }}</code></td>
+      <td><span class="text-muted">{{ item.description || '—' }}</span></td>
+      <td class="text-center">
+        <span :class="['status-badge', item.is_active ? 'status-success' : 'status-secondary']">
+          {{ item.is_active ? 'Activa' : 'Inactiva' }}
+        </span>
+      </td>
+      <td class="align-right" @click.stop>
+        <div class="action-buttons">
+          <button @click="editPosition(item)" class="btn btn-ghost" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+          <button 
+            @click="toggleActive(item)" 
+            class="btn btn-ghost" 
+            :title="item.is_active ? 'Desactivar' : 'Activar'"
+          >
+            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+          </button>
         </div>
+      </td>
+    </template>
+  </BaseCatalog>
 
-        <div class="filter-group">
-          <label>Estado</label>
-          <select v-model="filters.isActive">
-            <option value="">Cualquier estado</option>
-            <option value="true">Activas</option>
-            <option value="false">Inactivas</option>
-          </select>
-        </div>
-      </template>
-
-      <template #table-header>
-        <th>Nombre de la Posición</th>
-        <th>Código</th>
-        <th>Descripción</th>
-        <th class="text-center">Estado</th>
-        <th class="align-right">Acciones</th>
-      </template>
-
-      <template #item="{ item }">
-        <td><strong>{{ item.name }}</strong></td>
-        <td><code class="code-badge">{{ item.code || '—' }}</code></td>
-        <td><span class="text-muted">{{ item.description || '—' }}</span></td>
-        <td class="text-center">
-          <span :class="['status-badge', item.is_active ? 'status-success' : 'status-secondary']">
-            {{ item.is_active ? 'Activa' : 'Inactiva' }}
-          </span>
-        </td>
-        <td class="align-right" @click.stop>
-          <div class="action-buttons">
-            <button @click="editPosition(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
-            <button 
-              @click="toggleActive(item)" 
-              class="btn-icon" 
-              :title="item.is_active ? 'Desactivar' : 'Activar'"
-            >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
-            </button>
-          </div>
-        </td>
-      </template>
-    </BaseCatalog>
-
-    <!-- MODAL: CREAR/EDITAR POSICIÓN -->
+  <!-- MODAL: CREAR/EDITAR POSICIÓN -->
     <BaseDialog
       :show="showModal"
       :title="modalMode === 'create' ? 'Nueva Posición de Marcaje' : 'Editar Posición'"
@@ -101,7 +100,6 @@
         <textarea v-model="formData.description" class="form-textarea" rows="3"></textarea>
       </div>
     </BaseDialog>
-  </div>
 </template>
 
 <script setup lang="ts">

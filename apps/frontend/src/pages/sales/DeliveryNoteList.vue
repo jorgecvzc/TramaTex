@@ -2,7 +2,8 @@
   <div class="page-layout">
     <BaseCatalog
       title="Gestión de Albaranes"
-      :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Albaranes' }]"
+      icon="local_shipping"
+      :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes' }]"
       :items="deliveryNotes"
       :is-loading="isLoading"
       :has-filters="hasFilters"

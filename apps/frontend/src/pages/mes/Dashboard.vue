@@ -1,16 +1,12 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading" class="no-print">
     <template #header>
-      <PageHeader title="Monitor de Producción (MES)" :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Monitor' }]">
+      <PageHeader title="Monitor de Producción (MES)">
         <template #icon><span class="material-symbols-outlined">precision_manufacturing</span></template>
         <template #actions>
           <button @click="loadDashboard" class="btn btn-outline btn-sm" :disabled="isLoading">
             <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
             Actualizar
-          </button>
-          <button class="btn btn-primary btn-sm ml-2" @click="router.push('/mes/terminal')">
-            <span class="material-symbols-outlined">tablet_mac</span>
-            <span>Terminal Operario</span>
           </button>
         </template>
       </PageHeader>
@@ -69,11 +65,50 @@
         </RouterLink>
       </section>
 
-      <!-- 3. Actividad (Órdenes Pendientes) -->
+      <!-- 3. Solicitudes de Ventas -->
       <section class="dashboard-section">
         <div class="section-header">
+          <span class="material-symbols-outlined text-primary">add_shopping_cart</span>
+          <h2>Solicitudes de Ventas</h2>
+          <span class="header-tag">{{ pendingSalesWork.length }}</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Pedido</th>
+                <th>Cliente</th>
+                <th>Descripción del Trabajo</th>
+                <th>Entrega Prevista</th>
+                <th class="align-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="setup in pendingSalesWork" :key="setup.id" class="row-hover">
+                <td><strong>#{{ setup.order_number }}</strong></td>
+                <td>{{ setup.party_name || setup.party_id?.substring(0,8) || 'Desconocido' }}</td>
+                <td>{{ setup.description }}</td>
+                <td><span class="text-muted">{{ formatDate(setup.delivery_date) }}</span></td>
+                <td class="align-right">
+                  <button class="btn btn-secondary btn-sm" @click="configurePending(setup)">
+                    <span class="material-symbols-outlined">settings_suggest</span>
+                    Crear Orden
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="pendingSalesWork.length === 0">
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay solicitudes de trabajo pendientes de Ventas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Actividad (Órdenes Pendientes en MES) -->
+      <section class="dashboard-section mt-6">
+        <div class="section-header">
           <span class="material-symbols-outlined text-info">pending_actions</span>
-          <h2>Pendientes de Inicio</h2>
+          <h2>Pendientes de Inicio (MES)</h2>
           <span class="header-tag">{{ pendingOrders.length }}</span>
         </div>
         <div class="table-wrapper">
@@ -91,17 +126,28 @@
               <tr v-for="wo in pendingOrders" :key="wo.id" class="row-hover">
                 <td><code class="code-badge">{{ wo.work_number }}</code></td>
                 <td><strong>{{ wo.work_name }}</strong></td>
-                <td>#{{ wo.sales_order_number }}</td>
+                <td>#{{ wo.sales_order_number || 'Interno' }}</td>
                 <td><span :class="['priority-pill', `prio-${wo.priority}`]">{{ wo.priority }}</span></td>
                 <td class="align-right">
                   <button class="btn btn-primary btn-sm" @click="configureOrder(wo)">Configurar</button>
                 </td>
+              </tr>
+              <tr v-if="pendingOrders.length === 0">
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay órdenes pendientes de configuración interna.</td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
     </div>
+
+    <!-- Diálogo de Configuración -->
+    <WorkSetupSelectorDialog
+      :show="showSetupDialog"
+      :work-order="selectedWorkOrder"
+      @close="showSetupDialog = false"
+      @assigned="handleSetupAssigned"
+    />
 
     <template #sidebar>
       <section class="sidebar-section">
@@ -131,37 +177,97 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, reactive } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
+import WorkSetupSelectorDialog from '@/components/mes/WorkSetupSelectorDialog.vue'
 import { mesApi } from '@/services/mesApi'
-import type { WorkOrder, WorkOrderDashboardStats, WorkSetup } from '@/types/mes'
+import { partyApi } from '@/services/partyApi'
+import type { WorkOrder, WorkOrderDashboardStats } from '@/types/mes'
+
 const router = useRouter()
 const isLoading = ref(true)
 const stats = ref<WorkOrderDashboardStats | null>(null)
 const pendingOrders = ref<WorkOrder[]>([])
 const inProgressOrders = ref<WorkOrder[]>([])
+const pendingSalesWork = ref<any[]>([])
+
+// Dialog state
+const showSetupDialog = ref(false)
+const selectedWorkOrder = ref<any | null>(null)
+
 const pendingTasksCount = computed(() => {
   let count = 0
-  for (const wo of inProgressOrders.value) { for (const line of wo.lines || []) { for (const task of line.tasks || []) { if (task.status === 'PENDING') count++ } } }
+  for (const wo of inProgressOrders.value) { 
+    for (const line of wo.lines || []) { 
+      for (const task of line.tasks || []) { 
+        if (task.status === 'PENDING') count++ 
+      } 
+    } 
+  }
   return count
 })
+
 async function loadDashboard() {
   isLoading.value = true
   try {
-    const [s, p, i] = await Promise.all([
+    const [s, p, i, sw] = await Promise.all([
       mesApi.getWorkOrderDashboardStats(),
       mesApi.listWorkOrders({ status: 'PENDING' }),
-      mesApi.listWorkOrders({ status: 'IN_PROGRESS' })
+      mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
+      mesApi.listPendingWorkSetups()
     ])
     stats.value = s
     pendingOrders.value = p
     inProgressOrders.value = i
-  } catch (err) {}
+    
+    // Enriquecer solicitudes de ventas con nombres de clientes
+    const enrichedSW = await Promise.all(sw.map(async (item: any) => {
+      if (item.party_id || item.partyId) {
+        try {
+          const party = await partyApi.getParty(item.party_id || item.partyId)
+          return { ...item, party_name: party?.name || party?.displayName }
+        } catch (e) {
+          return item
+        }
+      }
+      return item
+    }))
+    pendingSalesWork.value = enrichedSW
+  } catch (err) {
+    console.error('Error loading dashboard:', err)
+  }
   finally { isLoading.value = false }
 }
-function configureOrder(wo: any) { router.push(`/mes/work-orders/${wo.id}`) }
+
+function configureOrder(wo: WorkOrder) {
+  selectedWorkOrder.value = wo
+  showSetupDialog.value = true
+}
+
+function configurePending(setup: any) {
+  // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
+  selectedWorkOrder.value = {
+    id: setup.id,
+    work_number: setup.order_number,
+    work_name: setup.description,
+    party_id: setup.party_id || setup.partyId,
+    party_name: setup.party_name,
+    order_work_setup_id: setup.id // Referencia crucial para vincular al crear la orden
+  }
+  showSetupDialog.value = true
+}
+
+async function handleSetupAssigned() {
+  await loadDashboard()
+}
+
+function formatDate(d: any) {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
+
 onMounted(loadDashboard)
 </script>
 
@@ -177,6 +283,7 @@ onMounted(loadDashboard)
 .stat-icon.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
 .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.stat-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .stat-label { font-size: 0.65rem; color: var(--color-text-secondary); font-weight: 600; text-transform: uppercase; }
 .stat-value { font-size: 1.25rem; font-weight: 700; }
 
@@ -201,4 +308,5 @@ onMounted(loadDashboard)
 .priority-pill { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 0.15rem 0.4rem; border-radius: 4px; }
 .prio-HIGH, .prio-URGENT { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
 .align-right { text-align: right; }
+.mt-6 { margin-top: 1.5rem; }
 </style>

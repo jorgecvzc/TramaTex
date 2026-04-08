@@ -30,10 +30,12 @@
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
       <div class="sticky-header-container">
-        <PageHeader 
-          :title="mode === 'create' ? 'Nuevo Producto' : (mode === 'edit' ? `Editando ${product?.name}` : product?.name)" 
-          :breadcrumbs="[{ label: 'Operaciones', to: '/products' }, { label: 'Productos', to: '/products' }, { label: mode === 'create' ? 'Alta' : product?.sku }]"
+        <PageHeader
+          :title="mode === 'create' ? 'Nuevo Producto' : (mode === 'edit' ? `Editando ${product?.name}` : product?.name)"
+          :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Productos', to: '/products' }, { label: mode === 'create' ? 'Alta' : product?.sku }]"
+          show-back
         >
+
           <template #icon>
             <span class="material-symbols-outlined">{{ (product?.product_type === 'SERVICE' || formData.productType === 'SERVICE') ? 'precision_manufacturing' : 'inventory_2' }}</span>
           </template>
@@ -44,7 +46,10 @@
               </button>
             </template>
             <template v-else>
-              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
+              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
+                <span class="material-symbols-outlined">close</span>
+                <span>Cancelar</span>
+              </button>
               <button class="btn btn-secondary" @click="saveProduct" :disabled="isSaving">
                 <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
                 <span>{{ isSaving ? 'Guardar Producto' : 'Guardar Producto' }}</span>
@@ -222,7 +227,13 @@
         <AttributesPanel :product="product" :calculated-attributes="calculatedAttributes" :is-loading="isLoadingAttributes" @refresh="fetchCalculatedAttributes" />
       </div>
       <div v-if="activeTab === 'pricing' && product" class="tab-fade-in">
-        <PricingPanel :product="product" @refresh="fetchProduct" />
+        <PricingPanel
+          :product-id="product.id"
+          :product-name="product.name"
+          :variants="variants"
+          :is-loading-variants="isLoadingVariants"
+          @refresh="fetchProduct"
+        />
       </div>
     </div>
 
@@ -369,7 +380,8 @@ async function saveProduct() {
   try {
     const payload = {
       name: formData.name, sku: formData.sku, long_name: formData.longName,
-      product_type: formData.productType, brand_id: formData.brandId || undefined,
+      product_type: formData.productType, 
+      brand_id: formData.brandId || null,
       base_price: Number(formData.basePrice),
       group_ids: formData.groupIds,
       attribute_ids: formData.attributeIds

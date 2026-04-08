@@ -390,6 +390,16 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 		if err := party.SetOrganizationProfile(profile); err != nil {
 			return nil, err
 		}
+
+		// Switching to organization type: clear any stale person profile
+		if cmd.PersonProfile == nil {
+			party.SetPersonProfile(nil)
+		}
+	}
+
+	if cmd.PersonProfile != nil && cmd.OrganizationProfile == nil {
+		// Switching to person type: clear any stale organization profile
+		party.SetOrganizationProfile(nil)
 	}
 
 	if cmd.DefaultDiscountPercentage != nil {

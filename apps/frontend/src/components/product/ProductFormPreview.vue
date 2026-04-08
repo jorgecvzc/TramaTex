@@ -10,7 +10,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <FileText :size="20" class="section-icon" />
+            <span class="material-symbols-outlined section-icon">description</span>
             Información básica
           </h4>
           <button
@@ -53,7 +53,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <Tag :size="20" class="section-icon" />
+            <span class="material-symbols-outlined section-icon">sell</span>
             Clasificación
           </h4>
           <button
@@ -85,7 +85,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <Settings :size="20" class="section-icon" />
+            <span class="material-symbols-outlined section-icon">settings</span>
             Atributos configurables
           </h4>
           <button
@@ -107,7 +107,7 @@
             <span v-else class="value empty">(Ninguno seleccionado)</span>
           </div>
           <div v-if="attributeNames.length === 0" class="info-note">
-            <span class="note-icon">💡</span>
+            <span class="note-icon material-symbols-outlined">lightbulb</span>
             <span>
               Este producto heredará atributos de su marca y categorías.
             </span>
@@ -119,7 +119,7 @@
       <div class="preview-section">
         <div class="section-header">
           <h4 class="section-title">
-            <Hash :size="20" class="section-icon" />
+            <span class="material-symbols-outlined section-icon">numbers</span>
             Gestión de variantes
           </h4>
           <span class="auto-badge">Automático</span>
@@ -134,7 +134,7 @@
             </span>
           </div>
           <div v-if="formData.strategy === 'jit'" class="info-note">
-            <Zap :size="18" class="note-icon" />
+            <span class="material-symbols-outlined note-icon" style="font-size: 18px">bolt</span>
             <div>
               <strong>Producto configurable con variantes JIT + Manual:</strong>
               <ul>
@@ -145,7 +145,7 @@
             </div>
           </div>
           <div v-else-if="formData.strategy === 'none'" class="info-note">
-            <Package :size="18" class="note-icon" />
+            <span class="material-symbols-outlined note-icon" style="font-size: 18px">inventory_2</span>
             <div>
               <strong>Producto simple sin variantes:</strong>
               <ul>
@@ -156,7 +156,7 @@
             </div>
           </div>
           <div class="architecture-info">
-            <Triangle :size="18" class="info-icon" />
+            <span class="material-symbols-outlined info-icon" style="font-size: 18px">change_history</span>
             <span>
               La estrategia se determina automáticamente según la arquitectura del sistema y los atributos del producto.
             </span>
@@ -182,7 +182,7 @@
         >
           <span v-if="isSubmitting">Creando producto...</span>
           <span v-else>
-            <Check :size="16" />
+            <span class="material-symbols-outlined" style="font-size: 16px">check</span>
             Crear producto
           </span>
         </button>
@@ -193,7 +193,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { FileText, Tag, Settings, Lightbulb, Hash, Zap, Package, Triangle, Check } from 'lucide-vue-next'
 
 const props = defineProps({
   formData: {

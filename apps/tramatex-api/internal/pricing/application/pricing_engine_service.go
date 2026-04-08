@@ -432,6 +432,7 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 }
 
 func (s *PricingEngineService) calculateBaseSalesPriceFromInfo(ctx context.Context, variantID uuid.UUID, info *ProductPricingInfo) (domain.Money, error) {
+	// 1. Empezamos con el coste base de la variante (ya incluye modificadores de atributos desde el provider)
 	baseCost, err := domain.NewMoney(info.BaseCost, info.Currency)
 	if err != nil {
 		return domain.Money{}, err

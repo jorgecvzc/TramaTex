@@ -1,29 +1,48 @@
 <template>
-  <div class="main-container">
-    <PageHeader 
-      title="Nueva Entidad" 
-      :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Crear nueva' }]"
-    >
-      <template #actions>
-        <button @click="router.push('/parties')" class="btn btn-outline">
-          <span class="material-symbols-outlined">list_alt</span>
-          <span>Ir al catálogo</span>
-        </button>
-      </template>
-    </PageHeader>
+  <BaseEntityPage>
+    <template #header>
+      <BasePageHeader 
+        title="Nueva Entidad" 
+        :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Crear nueva' }]"
+        show-back
+      >
+        <template #icon>
+          <span class="material-symbols-outlined">person_add</span>
+        </template>
+        <template #actions>
+          <button @click="triggerSubmit" class="btn btn-primary btn-sm">
+            <span class="material-symbols-outlined">save</span>
+            <span>Crear Entidad</span>
+          </button>
+          <button @click="router.push('/parties')" class="btn btn-outline btn-sm">
+            <span class="material-symbols-outlined">close</span>
+            <span>Cancelar</span>
+          </button>
+        </template>
+      </BasePageHeader>
+    </template>
 
     <div class="form-wrapper">
-      <PartyForm @submit="handleSubmit" />
+      <PartyForm ref="partyFormRef" hide-actions hide-header @submit="handleSubmit" />
     </div>
-  </div>
+  </BaseEntityPage>
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import PartyForm from '@/components/party/PartyForm.vue'
 
 const router = useRouter()
+const partyFormRef = ref(null)
+
+function triggerSubmit() {
+  if (partyFormRef.value) {
+    partyFormRef.value.submitForm()
+  }
+}
 
 async function handleSubmit(party) {
   await router.push(`/parties/${party.id}`)

@@ -231,6 +231,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Configuraciones de Cliente - TramaTex" },
   },
   {
+    path: "/mes/work-setups/new",
+    name: "MESCreateWorkSetup",
+    component: () => import("@/pages/mes/work-setups/Create.vue"),
+    meta: { requiresAuth: true, title: "Nueva Configuración - TramaTex" },
+  },
+  {
     path: "/mes/work-setups/:id/edit",
     name: "MESEditWorkSetup",
     component: () => import("@/pages/mes/work-setups/Edit.vue"),

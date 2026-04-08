@@ -32,10 +32,10 @@ import type {
 import { getApiBase } from './apiBase'
 
 // ============================================================================
-// STATUS MAPPING: Backend (Spanish) ↔ Frontend (English)
+// STATUS & TYPE MAPPING: Backend (Spanish) â†” Frontend (English)
 // ============================================================================
 
-const backendToFrontendStatus: Record<string, string> = {
+export const backendToFrontendStatus: Record<string, string> = {
   // Quote statuses
   'BORRADOR': 'DRAFT',
   'EMITIDA': 'ISSUED',
@@ -51,30 +51,55 @@ const backendToFrontendStatus: Record<string, string> = {
   'CANCELADO': 'CANCELLED',
   'FACTURADO_PARCIALMENTE': 'PARTIALLY_INVOICED',
   'FACTURADO_COMPLETAMENTE': 'INVOICED',
-  // Delivery note statuses
+  // Invoice statuses
   'PAGADA': 'PAID',
   'VENCIDA': 'OVERDUE',
   'ANULADA': 'VOID',
 }
 
-const frontendToBackendStatus: Record<string, string> = Object.fromEntries(
+export const frontendToBackendStatus: Record<string, string> = Object.fromEntries(
   Object.entries(backendToFrontendStatus).map(([k, v]) => [v, k])
 )
 
+export const backendToFrontendType: Record<string, string> = {
+  'SIMPLIFICADA': 'SIMPLIFIED',
+  'COMPLETA': 'STANDARD',
+}
+
 function normalizeStatus(status: string): string {
   return backendToFrontendStatus[status] || status
+}
+
+function normalizeType(type: string): string {
+  return backendToFrontendType[type] || type
 }
 
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
   if (obj.status) obj.status = normalizeStatus(obj.status);
   
-  if ('invoiceType' in obj) {
-    obj.type = obj.invoiceType;
-    obj.issueDate = obj.invoiceDate;
-    obj.salesOrderIds = obj.relatedOrderIds || [];
-    obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || [];
+  // NormalizaciÃ³n de Facturas
+  if ('invoiceType' in obj || 'invoice_type' in obj) {
+    const rawType = obj.invoiceType || obj.invoice_type;
+    obj.type = normalizeType(rawType);
+    obj.invoiceNumber = obj.invoiceNumber || obj.invoice_number;
+    obj.invoiceDate = obj.invoiceDate || obj.invoice_date;
+    obj.issueDate = obj.invoiceDate || obj.invoice_date;
+    obj.partyId = obj.partyId || obj.party_id;
+    obj.salesOrderIds = obj.relatedOrderIds || obj.related_order_ids || [];
+    obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || obj.related_delivery_note_ids || [];
   }
+
+  // NormalizaciÃ³n de Pedidos / Presupuestos
+  if ('quoteNumber' in obj || 'quote_number' in obj) {
+    obj.quoteNumber = obj.quoteNumber || obj.quote_number;
+    obj.partyId = obj.partyId || obj.party_id;
+  }
+  if ('orderNumber' in obj || 'order_number' in obj) {
+    obj.orderNumber = obj.orderNumber || obj.order_number;
+    obj.partyId = obj.partyId || obj.party_id;
+  }
+
   return obj;
 }
 
@@ -129,7 +154,10 @@ class SalesApi {
   async listQuotes(filters: ListQuotesFilters = {}): Promise<{ data: Quote[], total: number }> {
     const params = new URLSearchParams()
     if (filters.partyId) params.append('partyId', filters.partyId)
-    if (filters.status) params.append('status', filters.status)
+    if ((filters as any).searchText) params.append('search', (filters as any).searchText)
+    if ((filters as any).fromDate) params.append('fromDate', (filters as any).fromDate)
+    if ((filters as any).toDate) params.append('toDate', (filters as any).toDate)
+    if (filters.status) params.append('status', frontendToBackendStatus[filters.status] || filters.status)
     if (filters.limit) params.append('limit', filters.limit.toString())
 
     const response = await this.safeFetch(`${this.baseUrl}/quotes?${params}`, { method: 'GET', headers: this.getHeaders() })
@@ -163,18 +191,27 @@ class SalesApi {
     return normalizeEntity(await response.json())
   }
 
-  async createOrderFromQuote(id: string): Promise<Order> {
+  async createOrderFromQuote(id: string, deliveryDate?: string): Promise<Order> {
+    const body: Record<string, string> = {}
+    if (deliveryDate) {
+      body.deliveryDate = deliveryDate.includes('T') ? deliveryDate : `${deliveryDate}T00:00:00Z`
+    }
     const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}/convert`, { 
       method: 'POST', 
       headers: this.getHeaders(),
-      body: JSON.stringify({}) // Enviar body vacío para evitar errores de parseo en el backend
+      body: JSON.stringify(body),
     })
     if (!response.ok) await this.handleError(response, 'No se pudo convertir el presupuesto en pedido')
     return normalizeEntity(await response.json())
   }
 
+  // Backward compatible alias used by older tests/callers.
+  async convertQuoteToOrder(id: string, deliveryDate?: string): Promise<Order> {
+    return this.createOrderFromQuote(id, deliveryDate)
+  }
+
   async previewQuoteCalculation(partyId: string, items: any[]): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/preview-calculation`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
+    const response = await this.safeFetch(`${this.baseUrl}/quotes/preview`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
     if (!response.ok) return null
     return await response.json()
   }
@@ -189,7 +226,8 @@ class SalesApi {
   async listOrders(filters: ListOrdersFilters = {}): Promise<{ data: Order[], total: number }> {
     const params = new URLSearchParams()
     if (filters.partyId) params.append('partyId', filters.partyId)
-    if (filters.status) params.append('status', filters.status)
+    if ((filters as any).searchText) params.append('search', (filters as any).searchText)
+    if (filters.status) params.append('status', frontendToBackendStatus[filters.status] || filters.status)
     if (filters.fromDate) params.append('fromDate', filters.fromDate)
     if (filters.toDate) params.append('toDate', filters.toDate)
     if (filters.limit) params.append('limit', filters.limit.toString())
@@ -202,16 +240,17 @@ class SalesApi {
   }
 
   async createOrder(data: CreateOrderRequest): Promise<Order> {
+    const payload: any = data as any
     const response = await this.safeFetch(`${this.baseUrl}/orders`, { 
       method: 'POST', 
       headers: this.getHeaders(), 
       body: JSON.stringify({
-        partyId: data.partyId,
-        quoteId: data.quoteId || undefined,
-        deliveryDate: data.deliveryDate,
-        notes: data.notes || '',
-        mesWorkRefs: data.mesWorkRefs || [],
-        items: data.items || []
+        partyId: payload.partyId ?? payload.party_id,
+        quoteId: payload.quoteId ?? payload.quote_id ?? undefined,
+        deliveryDate: payload.deliveryDate ?? payload.delivery_date,
+        notes: payload.notes || '',
+        mesWorkRefs: payload.mesWorkRefs ?? payload.mes_work_refs ?? [],
+        items: payload.items ?? payload.line_items ?? []
       }) 
     })
     if (!response.ok) await this.handleError(response, 'No se pudo crear el pedido')
@@ -219,29 +258,59 @@ class SalesApi {
   }
 
   async updateOrder(id: string, data: UpdateOrderRequest): Promise<Order> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${id}`, { method: 'PUT', headers: this.getHeaders(), body: JSON.stringify(data) })
+    const payload: any = data as any
+    const response = await this.safeFetch(`${this.baseUrl}/orders/${id}`, { 
+      method: 'PUT', 
+      headers: this.getHeaders(), 
+      body: JSON.stringify({
+        partyId: payload.partyId ?? payload.party_id,
+        deliveryDate: payload.deliveryDate ?? payload.delivery_date,
+        notes: payload.notes || '',
+        mesWorkRefs: payload.mesWorkRefs ?? payload.mes_work_refs ?? []
+      }) 
+    })
     if (!response.ok) await this.handleError(response, 'No se pudo actualizar el pedido')
     return normalizeEntity(await response.json())
   }
 
-  async changeOrderStatus(id: string, status: string): Promise<void> {
+  async changeOrderStatus(id: string, status: string): Promise<any> {
     const response = await this.safeFetch(`${this.baseUrl}/orders/${id}/status`, { method: 'PATCH', headers: this.getHeaders(), body: JSON.stringify({ newStatus: frontendToBackendStatus[status] || status }) })
     if (!response.ok) await this.handleError(response, 'No se pudo cambiar el estado del pedido')
+    try {
+      return normalizeEntity(await response.json())
+    } catch {
+      return undefined
+    }
   }
 
-  async addOrderLineItem(orderId: string, item: any): Promise<void> {
+  async addOrderLineItem(orderId: string, item: any): Promise<any> {
     const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ item }) })
     if (!response.ok) await this.handleError(response, 'No se pudo añadir la línea')
+    try {
+      return normalizeEntity(await response.json())
+    } catch {
+      return undefined
+    }
   }
 
-  async updateOrderLineItem(orderId: string, itemId: string, item: any): Promise<void> {
+  async updateOrderLineItem(orderId: string, itemId: string, item: any): Promise<any> {
     const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items/${itemId}`, { method: 'PUT', headers: this.getHeaders(), body: JSON.stringify(item) })
     if (!response.ok) await this.handleError(response, 'No se pudo actualizar la línea')
+    try {
+      return normalizeEntity(await response.json())
+    } catch {
+      return undefined
+    }
   }
 
-  async removeOrderLineItem(orderId: string, itemId: string): Promise<void> {
+  async removeOrderLineItem(orderId: string, itemId: string): Promise<any> {
     const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items/${itemId}`, { method: 'DELETE', headers: this.getHeaders() })
     if (!response.ok) await this.handleError(response, 'No se pudo eliminar la línea')
+    try {
+      return normalizeEntity(await response.json())
+    } catch {
+      return undefined
+    }
   }
 
   // --- Delivery Notes ---
@@ -254,7 +323,10 @@ class SalesApi {
   async listDeliveryNotes(filters: ListDeliveryNotesFilters = {}): Promise<{ data: DeliveryNote[], total: number }> {
     const params = new URLSearchParams()
     if (filters.orderId) params.append('salesOrderId', filters.orderId)
-    if (filters.searchText) params.append('searchText', filters.searchText)
+    if (filters.searchText) {
+      params.append('search', filters.searchText)
+      params.append('searchText', filters.searchText)
+    }
     const response = await this.safeFetch(`${this.baseUrl}/delivery-notes?${params}`, { method: 'GET', headers: this.getHeaders() })
     if (!response.ok) await this.handleError(response, 'No se pudieron cargar los albaranes')
     const res = await response.json()
@@ -288,8 +360,12 @@ class SalesApi {
   async listInvoices(filters: ListInvoicesFilters = {}): Promise<{ data: Invoice[], total: number }> {
     const params = new URLSearchParams()
     if (filters.orderId) params.append('orderId', filters.orderId)
+    if ((filters as any).partyId) params.append('partyId', (filters as any).partyId)
     if (filters.deliveryNoteId) params.append('deliveryNoteId', filters.deliveryNoteId)
-    if (filters.searchText) params.append('searchText', filters.searchText)
+    if (filters.searchText) {
+      params.append('search', filters.searchText)
+      params.append('searchText', filters.searchText)
+    }
     if (filters.status) params.append('status', filters.status)
     if (filters.type) params.append('type', filters.type)
     
@@ -303,6 +379,13 @@ class SalesApi {
   async createInvoice(data: CreateInvoiceRequest): Promise<Invoice> {
     const response = await this.safeFetch(`${this.baseUrl}/invoices`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
     if (!response.ok) await this.handleError(response, 'No se pudo crear la factura')
+    return normalizeEntity(await response.json())
+  }
+
+  // Backward compatible endpoint for simplified invoices used in legacy flows/tests.
+  async createSimplifiedInvoice(data: CreateSimplifiedInvoiceRequest): Promise<Invoice> {
+    const response = await this.safeFetch(`${this.baseUrl}/invoices/simplified`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
+    if (!response.ok) await this.handleError(response, 'No se pudo crear la factura simplificada')
     return normalizeEntity(await response.json())
   }
 
@@ -331,7 +414,7 @@ class SalesApi {
   }
 
   async previewOrderCalculation(partyId: string, items: any[]): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/preview-calculation`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
+    const response = await this.safeFetch(`${this.baseUrl}/orders/preview`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
     if (!response.ok) return null
     return await response.json()
   }
@@ -343,7 +426,7 @@ class SalesApi {
       'ISSUED': 'info', 'EMITIDA': 'info',
       'ACCEPTED': 'success', 'APPROVED': 'success', 'APROBADA': 'success',
       'REJECTED': 'danger', 'RECHAZADA': 'danger',
-      'CONVERTED': 'primary', 'CONVERTIDA_A_PEDIDO': 'primary',
+      'CONVERTED': 'success', 'CONVERTIDA_A_PEDIDO': 'success',
       'EXPIRED': 'secondary', 'EXPIRADA': 'secondary',
       // Orders & Delivery Notes
       'PENDING': 'warning', 'PENDIENTE': 'warning',
@@ -367,7 +450,7 @@ class SalesApi {
       'ISSUED': 'Emitido', 'EMITIDA': 'Emitido',
       'ACCEPTED': 'Aprobado', 'APPROVED': 'Aprobado', 'APROBADA': 'Aprobado',
       'REJECTED': 'Rechazado', 'RECHAZADA': 'Rechazado',
-      'CONVERTED': 'Convertido', 'CONVERTIDA_A_PEDIDO': 'Convertido',
+      'CONVERTED': 'Aprobado', 'CONVERTIDA_A_PEDIDO': 'Aprobado',
       'EXPIRED': 'Expirado', 'EXPIRADA': 'Expirado',
       // Orders & Delivery Notes
       'PENDING': 'Pendiente', 'PENDIENTE': 'Pendiente',

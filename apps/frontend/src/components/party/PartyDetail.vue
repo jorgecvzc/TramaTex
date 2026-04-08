@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage v-if="isLoading">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Operaciones', to: '/parties' }, { label: 'Entidades' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Cargando' }]" />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,7 +11,7 @@
 
   <BaseEntityPage v-else-if="error">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Operaciones', to: '/parties' }, { label: 'Entidades' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Error' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -28,28 +28,29 @@
   <BaseEntityPage v-else-if="party || mode === 'create'">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="mode === 'create' ? 'Nueva Entidad' : (mode === 'edit' ? `Editando ${party?.name}` : party?.name)" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Entidades', to: '/parties' }, { label: mode === 'create' ? 'Crear' : party?.name }]"
+        :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: mode === 'create' ? 'Crear' : party?.name }]"
+        show-back
       >
         <template #icon>
           <span class="material-symbols-outlined">{{ (party?.has_person || formData.hasPerson) ? 'person' : 'domain' }}</span>
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
-            <button class="btn btn-primary" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar Entidad</span>
+            <button class="btn btn-primary btn-sm" @click="enterEditMode">
+              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
             </button>
           </template>
           <template v-else>
-            <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-secondary" @click="saveParty" :disabled="isSaving">
+            <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
+            <button class="btn btn-primary btn-sm" @click="saveParty" :disabled="isSaving">
               <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar Entidad' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
             </button>
           </template>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
@@ -65,6 +66,10 @@
           <button class="btn btn-outline btn-sm" @click="toggleStatus">
             <span class="material-symbols-outlined">{{ party.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
             <span>{{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</span>
+          </button>
+          <button v-if="party.can_delete" class="btn btn-outline btn-sm btn-danger" @click="deletePartyConfirm">
+            <span class="material-symbols-outlined">delete</span>
+            <span>Eliminar</span>
           </button>
         </div>
       </div>
@@ -120,10 +125,11 @@
           </div>
           <div class="form-group">
             <label>Tipo de Entidad *</label>
-            <select v-model="formData.hasPerson" class="form-input">
+            <select v-model="formData.hasPerson" class="form-input" :disabled="mode === 'edit'">
               <option :value="false">Organización / Empresa</option>
               <option :value="true">Persona Física</option>
             </select>
+            <span v-if="mode === 'edit'" class="text-xs text-muted mt-1">No modificable tras la creación</span>
           </div>
         </div>
         <div class="form-row mt-4">
@@ -216,7 +222,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import PersonManager from './PersonManager.vue';
@@ -334,6 +340,14 @@ async function toggleStatus() {
     const updated = await partyApi.changePartyStatus(party.value.id, newStatus);
     party.value = updated;
   } catch (err) { alert(err.message); }
+}
+
+async function deletePartyConfirm() {
+  if (!confirm(`¿Eliminar "${party.value.name}"? Esta acción no se puede deshacer.`)) return;
+  try {
+    await partyApi.deleteParty(party.value.id);
+    router.push('/parties');
+  } catch (err) { alert('No se pudo eliminar: ' + (err?.message || 'Error desconocido')); }
 }
 
 function formatRole(r) { const map = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Cliente/Prov.', CONTACT: 'Contacto' }; return map[r] || r; }

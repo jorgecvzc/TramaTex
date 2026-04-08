@@ -186,17 +186,20 @@ onBeforeUnmount(() => {
 .navbar {
   background-color: var(--color-secondary);
   color: white;
-  padding: 0.5rem 0;
+  height: 76px; /* Altura fija para alineación exacta */
+  display: flex;
+  align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  z-index: 2100; /* Mantenemos el predominio visual */
+  z-index: 2100;
 }
 
 .navbar-container {
+  width: 100%;
   max-width: 1300px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;

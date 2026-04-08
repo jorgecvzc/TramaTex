@@ -135,6 +135,8 @@ class PartyApiService {
     let tax_id_type = null
     let website: string | null = null
     let notes: string | null = null
+    let phone: string | null = null
+    let email: string | null = null
 
     if (party.organization_profile) {
       name = party.organization_profile.name
@@ -142,8 +144,12 @@ class PartyApiService {
       tax_id_type = party.organization_profile.tax_id_type
       website = party.organization_profile.website
       notes = party.organization_profile.notes || null
+      phone = party.organization_profile.phone || null
+      email = party.organization_profile.email || null
     } else if (party.person_profile) {
       name = `${party.person_profile.first_name} ${party.person_profile.last_name}`
+      phone = party.person_profile.phone || null
+      email = party.person_profile.email || null
     }
 
     return {
@@ -156,11 +162,13 @@ class PartyApiService {
       tax_id,
       tax_id_type,
       website,
+      phone,
+      email,
       default_discount_percentage: party.default_discount_percentage ?? 0,
       created_at: party.created_at,
       modified_at: party.modified_at,
       has_organization: !!party.organization_profile,
-      has_person: !!party.person_profile,
+      has_person: !!party.person_profile && !party.organization_profile,
     }
   }
 
@@ -402,21 +410,38 @@ class PartyApiService {
    * Update party
    */
   async updateParty(id: string, data: UpdatePartyRequest): Promise<PartyUI | null> {
+    const body: Record<string, unknown> = {
+      default_discount_percentage: data.default_discount_percentage ?? 0,
+    }
+
+    if (data.hasPerson) {
+      // Person entity: split combined name into first/last
+      const nameParts = (data.name || '').trim().split(/\s+/)
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || '-'
+      body.person_profile = {
+        first_name: firstName,
+        last_name: lastName,
+        phone: data.phone || '',
+        email: data.email || '',
+      }
+    } else {
+      // Organization entity
+      body.organization_profile = {
+        name: data.name,
+        tax_id: data.taxId,
+        tax_id_type: data.taxIdType,
+        website: data.website,
+        phone: data.phone || '',
+        email: data.email || '',
+        notes: data.notes || '',
+      }
+    }
+
     const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: this.getHeaders(),
-      body: JSON.stringify({
-        default_discount_percentage: data.default_discount_percentage ?? 0,
-        organization_profile: {
-          name: data.name,
-          tax_id: data.taxId,
-          tax_id_type: data.taxIdType,
-          website: data.website,
-          phone: data.phone || '',
-          email: data.email || '',
-          notes: data.notes || '',
-        },
-      }),
+      body: JSON.stringify(body),
     })
 
     if (!response.ok) {
@@ -497,6 +522,7 @@ class PartyApiService {
 
     return {
       id: party.id,
+      contact_details_id: contactDetails?.id,
       first_name: party.person_profile.first_name,
       last_name: party.person_profile.last_name,
       email: contactDetails?.email || '',
@@ -758,6 +784,64 @@ class PartyApiService {
       return null
     }
     return { ...persons[0], is_primary: true }
+  }
+
+  /**
+   * Update contact job title (cargo)
+   */
+  async updateContactJobTitle(partyId: string, contactDetailsId: string, jobTitle: string): Promise<void> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details/${contactDetailsId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ type_description: jobTitle }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar el cargo del contacto')
+    }
+  }
+
+  /**
+   * List contact-details for a party (raw)
+   */
+  async listContactDetails(partyId: string): Promise<Array<ContactDetails & { related_party_id: string }>> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    if (!response.ok) {
+      return []
+    }
+
+    const payload: { data: Array<ContactDetails & { related_party_id: string }> } = await response.json()
+    return payload.data || []
+  }
+
+  /**
+   * Create contact-details for a party
+   */
+  async createContactDetails(
+    partyId: string,
+    data: { type_description: string; related_party_id: string; phone?: string; email?: string },
+  ): Promise<ContactDetails | null> {
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        id: this.generateId(),
+        type_description: data.type_description,
+        phone: data.phone || '',
+        email: data.email || '',
+        related_party_id: data.related_party_id,
+      }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo crear el detalle de contacto')
+    }
+
+    return await response.json()
   }
 
   /**

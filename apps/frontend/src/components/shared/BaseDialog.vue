@@ -101,7 +101,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 6000;
 }
 
 .fade-enter-active,
@@ -195,8 +195,6 @@ onUnmounted(() => {
 .btn-primary:hover { background: var(--color-primary-dark); }
 .btn-secondary { background: var(--color-secondary); color: white; }
 .btn-secondary:hover { background: var(--color-secondary-dark); }
-.btn-danger { background: var(--color-danger); color: white; }
-.btn-danger:hover { background: var(--color-danger-dark); }
 
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .spinner {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 const props = defineProps<{
   title: string
@@ -29,8 +29,10 @@ function handleRowClick(item: any) {
     <!-- CAPA 1: IDENTIDAD (STICKY) -->
     <div class="catalog-header-shell">
       <div class="catalog-header">
-        <PageHeader :title="title" :breadcrumbs="breadcrumbs">
-          <template #icon><span class="material-symbols-outlined">{{ icon || 'list_alt' }}</span></template>
+        <BasePageHeader :title="title" :breadcrumbs="breadcrumbs">
+          <template #icon>
+            <span class="material-symbols-outlined">{{ icon || 'list_alt' }}</span>
+          </template>
           <template #actions>
             <div class="header-actions">
               <button v-if="hasFilters" class="btn btn-outline btn-sm" @click="$emit('clear-filters')">
@@ -45,7 +47,7 @@ function handleRowClick(item: any) {
               <slot name="header-actions"></slot>
             </div>
           </template>
-        </PageHeader>
+        </BasePageHeader>
       </div>
     </div>
 

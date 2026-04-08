@@ -44,11 +44,19 @@ const formatDate = (d: string) => d ? new Date(d).toLocaleString('es-ES') : '—
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, idx) in items" :key="idx">
-          <td>{{ item.productName }}</td>
-          <td style="text-align: center">{{ item.quantity }}</td>
-          <td style="text-align: right">{{ salesApi.formatMoney({ amount: item.unitPrice * item.quantity, currency: 'EUR' }) }}</td>
-        </tr>
+        <template v-for="(item, idx) in items" :key="idx">
+          <tr>
+            <td colspan="3" style="padding-bottom: 0"><strong>{{ item.productName }}</strong></td>
+          </tr>
+          <tr>
+            <td style="font-size: 9px; color: #444; padding-top: 0">
+              {{ salesApi.formatMoney({ amount: item.unitPrice, currency: 'EUR' }) }}
+              <span v-if="item.discountPercent > 0"> (-{{ item.discountPercent }}%)</span>
+            </td>
+            <td style="text-align: center; padding-top: 0">{{ item.quantity }}</td>
+            <td style="text-align: right; padding-top: 0">{{ salesApi.formatMoney({ amount: item.subtotal, currency: 'EUR' }) }}</td>
+          </tr>
+        </template>
       </tbody>
     </table>
 
@@ -57,15 +65,15 @@ const formatDate = (d: string) => d ? new Date(d).toLocaleString('es-ES') : '—
     <div class="ticket-totals">
       <div class="total-row">
         <span>SUBTOTAL:</span>
-        <span>{{ salesApi.formatMoney(totals.subtotal) }}</span>
+        <span>{{ salesApi.formatMoney({ amount: totals.subtotal, currency: 'EUR' }) }}</span>
       </div>
       <div class="total-row">
         <span>IVA (21%):</span>
-        <span>{{ salesApi.formatMoney(totals.taxAmount) }}</span>
+        <span>{{ salesApi.formatMoney({ amount: totals.taxAmount, currency: 'EUR' }) }}</span>
       </div>
       <div class="total-row grand-total">
         <span>TOTAL:</span>
-        <span>{{ salesApi.formatMoney(totals.total) }}</span>
+        <span>{{ salesApi.formatMoney({ amount: totals.total, currency: 'EUR' }) }}</span>
       </div>
     </div>
 

@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Migration: 003_init_product.sql
 -- Description: Initialize Product module (consolidated)
--- Absorbs: 003, 009 (drop sort_order), 018 (backfill default variants)
+-- Absorbs: 003, 009 (brand_id nullable), 018 (backfill default variants)
 -- Date: 2026-03-21
 -- ============================================================================
 
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS products (
     barcode VARCHAR(255) UNIQUE,
     description TEXT,
     product_type product_type NOT NULL,
-    brand_id UUID NOT NULL,
+    brand_id UUID,
     base_price NUMERIC(12,2) NOT NULL DEFAULT 0,
     tax_rate NUMERIC(5,2) NOT NULL DEFAULT 21.00,
     group_ids UUID[],
@@ -159,6 +159,21 @@ CREATE TABLE IF NOT EXISTS products (
 );
 
 CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id);
+
+-- Keep compatibility with legacy databases where products.brand_id may exist as NOT NULL.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'products'
+          AND column_name = 'brand_id'
+          AND is_nullable = 'NO'
+    ) THEN
+        ALTER TABLE products ALTER COLUMN brand_id DROP NOT NULL;
+    END IF;
+END $$;
 
 COMMENT ON TABLE products IS 'Products catalog (templates for variants)';
 COMMENT ON COLUMN products.base_price IS 'Base cost/price - source of truth for variant pricing';

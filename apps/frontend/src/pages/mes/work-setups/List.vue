@@ -98,10 +98,11 @@ async function loadSetups() {
   error.value = ''
   try {
     const isActive = statusFilter.value === '' ? undefined : statusFilter.value === 'true'
-    setups.value = await mesApi.listWorkSetups({
+    const res = await mesApi.listWorkSetups({
       search: search.value.trim() || undefined,
       is_active: isActive,
     })
+    setups.value = res.data || res || []
   } catch (err: any) {
     error.value = 'Error al cargar las configuraciones técnicas.'
   } finally {

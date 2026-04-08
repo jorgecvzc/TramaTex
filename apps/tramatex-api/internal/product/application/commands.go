@@ -160,8 +160,8 @@ type DeletePartyServiceConfigurationCommand struct {
 type CreateBrandCommand struct {
 	ActorID                 string
 	Name                    string  `json:"name"`
-	DefaultMarkupPercentage float64 `json:"defaultMarkupPercentage"`
-	IsActive                bool    `json:"isActive"`
+	DefaultMarkupPercentage float64 `json:"default_markup_percentage"`
+	IsActive                bool    `json:"is_active"`
 }
 
 // UpdateBrandCommand is the input DTO for updating a brand.
@@ -169,8 +169,8 @@ type UpdateBrandCommand struct {
 	ActorID                 string
 	ID                      uuid.UUID
 	Name                    *string  `json:"name,omitempty"`
-	DefaultMarkupPercentage *float64 `json:"defaultMarkupPercentage,omitempty"`
-	IsActive                *bool    `json:"isActive,omitempty"`
+	DefaultMarkupPercentage *float64 `json:"default_markup_percentage,omitempty"`
+	IsActive                *bool    `json:"is_active,omitempty"`
 }
 
 // DeleteBrandCommand is the input DTO for deleting a brand.
@@ -194,12 +194,13 @@ type CreateProductGroupCommand struct {
 
 // UpdateProductGroupCommand is the input DTO for updating a product group.
 type UpdateProductGroupCommand struct {
-	ActorID  string     `json:"-"`
-	ID       uuid.UUID  `json:"-"`
-	Name     *string    `json:"name,omitempty"`
-	Type     *string    `json:"type,omitempty"` // TANGIBLE or SERVICE
-	ParentID *uuid.UUID `json:"parent_id,omitempty"`
-	IsActive *bool      `json:"isActive,omitempty"`
+	ActorID     string     `json:"-"`
+	ID          uuid.UUID  `json:"-"`
+	Name        *string    `json:"name,omitempty"`
+	Type        *string    `json:"type,omitempty"` // TANGIBLE or SERVICE
+	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
+	ClearParent bool       `json:"clear_parent,omitempty"`
+	IsActive    *bool      `json:"isActive,omitempty"`
 }
 
 // DeleteProductGroupCommand is the input DTO for deleting a product group.

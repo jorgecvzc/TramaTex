@@ -1,12 +1,12 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Entidades y CRM" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Panel' }]">
+      <PageHeader title="Entidades y CRM">
         <template #icon><span class="material-symbols-outlined">groups</span></template>
         <template #actions>
-          <button class="btn btn-primary btn-sm" @click="router.push('/parties/new')">
-            <span class="material-symbols-outlined">person_add</span>
-            <span>Nueva Entidad</span>
+          <button class="btn btn-outline btn-sm" @click="loadPartyData" :disabled="isLoading">
+            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <span>Actualizar</span>
           </button>
         </template>
       </PageHeader>
@@ -59,9 +59,9 @@
           <span class="material-symbols-outlined">precision_manufacturing</span>
           <span>Filtro Proveedores</span>
         </RouterLink>
-        <RouterLink to="/parties/dashboard" class="listing-link highlight-subtle">
-          <span class="material-symbols-outlined">category</span>
-          <span>Grupos de Entidad</span>
+        <RouterLink to="/parties?status=ACTIVE" class="listing-link highlight-subtle">
+          <span class="material-symbols-outlined">person_check</span>
+          <span>Entidades Activas</span>
         </RouterLink>
       </section>
 
@@ -166,6 +166,7 @@ onMounted(loadPartyData);
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
 .stat-icon.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.stat-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
 .stat-value { font-size: 1.25rem; font-weight: 700; }
 

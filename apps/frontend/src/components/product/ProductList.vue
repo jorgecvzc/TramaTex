@@ -39,7 +39,7 @@ async function fetchProducts() {
   error.value = ''
   try {
     const res = await productApi.listProducts({ 
-      searchText: filters.search,
+      search: filters.search,
       brandId: filters.brandId,
       groupId: filters.groupId,
       isActive: filters.isActive === '' ? undefined : filters.isActive === 'true',
@@ -105,8 +105,9 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 <template>
   <BaseCatalog
     title="Catálogo de Productos"
-    :breadcrumbs="[{ label: 'Ventas', to: '/sales/orders' }, { label: 'Productos' }]"
+    :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Productos' }]"
     :items="products"
+
     :is-loading="isLoading"
     :error="error"
     :has-filters="hasFilters"
@@ -179,14 +180,11 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
       <td class="align-right" @click.stop>
         <div class="action-buttons">
           <button 
-            class="btn-icon" 
+            class="btn btn-ghost" 
             @click="toggleStatus(item)" 
             :title="item.is_active ? 'Desactivar' : 'Activar'"
           >
             <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
-          </button>
-          <button class="btn-icon" @click="navigateToDetail(item)" title="Ver detalle">
-            <span class="material-symbols-outlined">visibility</span>
           </button>
         </div>
       </td>
@@ -199,7 +197,5 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 .product-subtitle { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 0.1rem; }
 .price-text { color: #16a34a; font-weight: 700; }
 .action-buttons { display: flex; justify-content: flex-end; gap: 0.25rem; }
-.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
-.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 .align-right { text-align: right; }
 </style>

@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="modal-header">
         <h3>{{ isEditMode ? 'Editar Variante' : 'Crear Variante' }}</h3>
-        <button @click="$emit('close')" class="btn-close"><X :size="16" /></button>
+        <button @click="$emit('close')" class="btn-close"><span class="material-symbols-outlined" style="font-size: 16px">close</span></button>
       </div>
 
       <!-- Body -->
@@ -128,7 +128,7 @@
 
           <!-- Error Display -->
           <div v-if="error" class="error-message">
-            <AlertTriangle :size="16" /> {{ error }}
+            <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle">warning</span> {{ error }}
           </div>
 
           <!-- Actions -->
@@ -158,7 +158,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { X, AlertTriangle } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

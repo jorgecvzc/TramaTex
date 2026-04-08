@@ -1,12 +1,12 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Ventas y Facturación" :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Panel' }]">
+      <PageHeader title="Ventas y Facturación">
         <template #icon><span class="material-symbols-outlined">payments</span></template>
         <template #actions>
-          <button class="btn btn-primary btn-sm" @click="router.push('/sales/orders/new')">
-            <span class="material-symbols-outlined">add_shopping_cart</span>
-            <span>Nuevo Pedido</span>
+          <button class="btn btn-outline btn-sm" @click="loadSalesData" :disabled="isLoading">
+            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <span>Actualizar</span>
           </button>
         </template>
       </PageHeader>
@@ -15,18 +15,18 @@
     <div class="module-dashboard-content">
       <!-- 1. KPIs de Resumen -->
       <section class="stats-grid">
-        <div class="stat-card clickable" @click="router.push('/sales/orders')">
-          <div class="stat-icon blue"><span class="material-symbols-outlined">shopping_cart</span></div>
-          <div class="stat-info">
-            <span class="stat-label">Pedidos Activos</span>
-            <span class="stat-value">{{ counts.activeOrders }}</span>
-          </div>
-        </div>
         <div class="stat-card clickable" @click="router.push('/sales/quotes')">
           <div class="stat-icon yellow"><span class="material-symbols-outlined">description</span></div>
           <div class="stat-info">
             <span class="stat-label">Presupuestos</span>
             <span class="stat-value">{{ counts.pendingQuotes }}</span>
+          </div>
+        </div>
+        <div class="stat-card clickable" @click="router.push('/sales/orders')">
+          <div class="stat-icon blue"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="stat-info">
+            <span class="stat-label">Pedidos Activos</span>
+            <span class="stat-value">{{ counts.activeOrders }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/sales/delivery-notes')">
@@ -112,18 +112,18 @@
               <p>TPV mostrador</p>
             </div>
           </RouterLink>
-          <RouterLink to="/sales/orders/new" class="admin-card clickable">
-            <span class="material-symbols-outlined">add_shopping_cart</span>
-            <div class="admin-card-info">
-              <strong>Crear Pedido</strong>
-              <p>Nuevo pedido de venta</p>
-            </div>
-          </RouterLink>
           <RouterLink to="/sales/quotes/new" class="admin-card clickable">
             <span class="material-symbols-outlined text-secondary">add_notes</span>
             <div class="admin-card-info">
               <strong>Crear Presupuesto</strong>
               <p>Nueva oferta comercial</p>
+            </div>
+          </RouterLink>
+          <RouterLink to="/sales/orders/new" class="admin-card clickable">
+            <span class="material-symbols-outlined">add_shopping_cart</span>
+            <div class="admin-card-info">
+              <strong>Crear Pedido</strong>
+              <p>Nuevo pedido de venta</p>
             </div>
           </RouterLink>
         </div>
@@ -150,7 +150,9 @@ async function loadSalesData() {
   try {
     const [orders, quotes, dnotes, invoices] = await Promise.all([
       salesApi.listOrders({ limit: 5 }),
-      salesApi.listQuotes({ limit: 1 }),
+      // Do not request quotes with limit=1: when backend returns array (without total),
+      // salesApi falls back to rawData.length and the counter becomes incorrectly 1.
+      salesApi.listQuotes({}),
       salesApi.listDeliveryNotes({ status: 'PENDIENTE', limit: 1 }),
       salesApi.listInvoices({ limit: 1 })
     ]);
@@ -190,6 +192,7 @@ onMounted(loadSalesData);
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 .stat-icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.stat-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
 .stat-value { font-size: 1.25rem; font-weight: 700; }
 

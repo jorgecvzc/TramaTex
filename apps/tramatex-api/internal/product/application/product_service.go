@@ -1181,8 +1181,8 @@ func (s *ProductService) DeletePartyServiceConfiguration(ctx context.Context, cm
 type BrandDTO struct {
 	ID                      uuid.UUID `json:"id"`
 	Name                    string    `json:"name"`
-	DefaultMarkupPercentage float64   `json:"defaultMarkupPercentage"`
-	IsActive                bool      `json:"isActive"`
+	DefaultMarkupPercentage float64   `json:"default_markup_percentage"`
+	IsActive                bool      `json:"is_active"`
 }
 
 // ListBrands retrieves all brands
@@ -1444,7 +1444,9 @@ func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProdu
 		}
 	}
 
-	if cmd.ParentID != nil {
+	if cmd.ClearParent {
+		group.ParentGroupID = nil
+	} else if cmd.ParentID != nil {
 		// Validate parent exists
 		parent, err := s.groupRepo.FindByID(ctx, *cmd.ParentID)
 		if err != nil {
@@ -1454,10 +1456,6 @@ func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProdu
 			return nil, domain.NewNotFoundErrorf("parent group with ID %s does not exist", *cmd.ParentID)
 		}
 		group.ParentGroupID = cmd.ParentID
-	}
-
-	if cmd.IsActive != nil {
-		group.IsActive = *cmd.IsActive
 	}
 
 	if err := s.groupRepo.Save(ctx, group); err != nil {

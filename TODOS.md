@@ -1,3 +1,9 @@
+Pasemos a la documentación.
+Tiene que haber enlace a http://localhost:5173/dev/design-system desde el README principal. Además hay que comprobar que la guía de estilos está documentada y que en http://localhost:5173/dev/design-system aparecen todos los colores, estilos, campos, etc necesarios para visualizar la guía de estilos. Es importante que cuando se desee implementar una nueva interfaz se cargue dicha guía de estilos y el http://localhost:5173/dev/design-system como contexto para el LLM.
+
+Realiza comprobación de que todas las UIs de la aplicación cumplen con la guía de estilos. Si crees que hay que modificcar algo indícalo y propón soluciones.
+
+
 Nos hemos centrado en UI. Ahora toca UX. La aplicación ha de ser Keyboard Accessible. Analiza cambios. Pon atención a las ventanas con líneas de datos. Cuando se termine una línea hay que saltar al botón de agregar línea y si se pulsa automáticamente pasar al primer campo de la nueva línea. Estudia este tema en profundidad y propón los cambios necesarios. Esto se tendrá que aplicar a todo el front.
 
 Tenemos que hacer un nuevo control y ajuste de Documentación. Abre sesión y rama de git para ello.

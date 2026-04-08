@@ -55,13 +55,18 @@ defineProps<{
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--box-shadow-sm);
   z-index: 100;
-  padding: 0.75rem 0;
+  display: flex;
+  align-items: stretch;
+  min-height: 88px;
 }
 
 .header-content-wrapper {
+  display: flex;
+  align-items: stretch;
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 2rem;
+  width: 100%;
 }
 
 .dashboard-body-layout {
@@ -83,7 +88,7 @@ defineProps<{
 }
 
 .dashboard-sidebar {
-  width: 420px;
+  width: 320px;
   background: white;
   border-left: 1px solid var(--color-border);
   overflow-y: auto;

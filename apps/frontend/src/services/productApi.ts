@@ -182,13 +182,13 @@ class ProductApiService {
     return {
       id: v.id,
       sku: v.sku,
-      product_id: v.productId,
+      product_id: v.productId || v.product_id,
       barcode: v.barcode,
-      base_cost: v.baseCost,
+      base_cost: v.baseCost !== undefined ? v.baseCost : v.base_cost,
       price: v.price,
-      option_configuration: v.optionConfiguration || {},
+      option_configuration: v.optionConfiguration || v.option_configuration || {},
       status: v.status,
-      is_active: v.isActive,
+      is_active: v.isActive !== undefined ? v.isActive : (v.is_active !== undefined ? v.is_active : true),
     }
   }
 
@@ -305,17 +305,29 @@ class ProductApiService {
   async createProduct(data: {
     id?: string
     sku: string
-    name: string
-    longName: string
-    description: string
-    productType: string
-    basePrice: number
+    name?: string
+    longName?: string
+    long_name?: string
+    description?: string
+    productType?: string
+    product_type?: string
+    basePrice?: number
+    base_price?: number
     taxRate?: number
+    tax_rate?: number
     brandId?: string
+    brand_id?: string | null
     groupIds?: string[]
+    group_ids?: string[]
     directAttributeIds?: string[]
+    direct_attribute_ids?: string[]
+    attribute_ids?: string[]
     isActive?: boolean
+    is_active?: boolean
   }): Promise<any> {
+    const brandId = data.brandId ?? data.brand_id ?? null
+    const normalizedBrandID = brandId === '' ? null : brandId
+
     const response = await this.safeFetch(this.baseUrl, {
       method: 'POST',
       headers: this.getHeaders(),
@@ -323,15 +335,15 @@ class ProductApiService {
         id: data.id,
         sku: data.sku,
         name: data.name,
-        long_name: data.longName,
+        long_name: data.longName ?? data.long_name ?? '',
         description: data.description,
-        product_type: data.productType,
-        base_price: data.basePrice,
-        tax_rate: data.taxRate !== undefined ? data.taxRate : 21.0,
-        brand_id: data.brandId,
-        group_ids: data.groupIds || [],
-        direct_attribute_ids: data.directAttributeIds || [],
-        is_active: data.isActive !== undefined ? data.isActive : true,
+        product_type: data.productType ?? data.product_type ?? 'TANGIBLE',
+        base_price: data.basePrice ?? data.base_price ?? 0,
+        tax_rate: data.taxRate ?? data.tax_rate ?? 21.0,
+        brand_id: normalizedBrandID,
+        group_ids: data.groupIds ?? data.group_ids ?? [],
+        direct_attribute_ids: data.directAttributeIds ?? data.direct_attribute_ids ?? data.attribute_ids ?? [],
+        is_active: data.isActive ?? data.is_active ?? true,
       }),
     })
 
@@ -348,33 +360,45 @@ class ProductApiService {
   async updateProduct(id: string, data: {
     name?: string
     longName?: string
+    long_name?: string
     sku?: string
     barcode?: string
     basePrice?: number
+    base_price?: number
     taxRate?: number
+    tax_rate?: number
     productType?: string
+    product_type?: string
     description?: string
     brandId?: string
+    brand_id?: string | null
     groupIds?: string[]
+    group_ids?: string[]
     directAttributeIds?: string[]
+    direct_attribute_ids?: string[]
+    attribute_ids?: string[]
     isActive?: boolean
+    is_active?: boolean
   }): Promise<ProductUI> {
+    const brandId = data.brandId ?? data.brand_id
+    const normalizedBrandID = brandId === '' ? null : brandId
+
     const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: JSON.stringify({
         name: data.name,
-        long_name: data.longName,
+        long_name: data.longName ?? data.long_name,
         sku: data.sku,
         barcode: data.barcode,
-        base_price: data.basePrice,
-        tax_rate: data.taxRate,
-        product_type: data.productType,
+        base_price: data.basePrice ?? data.base_price,
+        tax_rate: data.taxRate ?? data.tax_rate,
+        product_type: data.productType ?? data.product_type,
         description: data.description,
-        brand_id: data.brandId,
-        group_ids: data.groupIds,
-        direct_attribute_ids: data.directAttributeIds,
-        is_active: data.isActive,
+        brand_id: normalizedBrandID,
+        group_ids: data.groupIds ?? data.group_ids,
+        direct_attribute_ids: data.directAttributeIds ?? data.direct_attribute_ids ?? data.attribute_ids,
+        is_active: data.isActive ?? data.is_active,
       }),
     })
 
@@ -741,9 +765,9 @@ class ProductApiService {
     const brands: BrandUI[] = rawBrands.map((b: any) => ({
       id: b.id,
       name: b.name,
-      defaultMarkupPercentage: b.defaultMarkupPercentage ?? 0,
-      is_active: b.isActive,
-      logo_url: b.logoUrl,
+      defaultMarkupPercentage: b.default_markup_percentage ?? b.defaultMarkupPercentage ?? 0,
+      is_active: b.is_active ?? b.isActive,
+      logo_url: b.logo_url ?? b.logoUrl,
     }))
     
     return {
@@ -765,13 +789,13 @@ class ProductApiService {
       await this.handleError(response, 'Marca no encontrada')
     }
 
-    const data = await response.json()
+    const b = await response.json()
     return {
-      id: data.id,
-      name: data.name,
-      defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
-      is_active: data.isActive,
-      logo_url: data.logoUrl,
+      id: b.id,
+      name: b.name,
+      defaultMarkupPercentage: b.default_markup_percentage ?? b.defaultMarkupPercentage ?? 0,
+      is_active: b.is_active ?? b.isActive,
+      logo_url: b.logo_url ?? b.logoUrl,
     }
   }
 
@@ -917,7 +941,7 @@ class ProductApiService {
         id: data.id,
         name: data.name,
         type: data.type || 'TANGIBLE',
-        parentID: data.parentGroupId || null,
+        parent_id: data.parentGroupId || null,
         isActive: data.isActive !== undefined ? data.isActive : true,
       }),
     })
@@ -944,7 +968,8 @@ class ProductApiService {
       body: JSON.stringify({
         name: data.name,
         type: data.type,
-        parentID: data.parentGroupId !== undefined ? data.parentGroupId : undefined,
+        parent_id: data.parentGroupId || undefined,
+        clear_parent: data.parentGroupId === null ? true : undefined,
         isActive: data.isActive !== undefined ? data.isActive : undefined,
       }),
     })

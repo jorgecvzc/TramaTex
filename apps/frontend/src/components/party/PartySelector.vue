@@ -1,5 +1,5 @@
 <template>
-  <div class="party-selector">
+  <div :class="['party-selector', { 'dark-mode': darkMode }]">
     <label v-if="label" :for="inputId" class="form-label">
       {{ label }}
       <span v-if="required" class="required">*</span>
@@ -25,28 +25,30 @@
         />
         
         <!-- Dropdown Results -->
-        <div v-if="showDropdown && (filteredParties.length > 0 || isSearching)" class="dropdown-results">
+        <div v-if="showDropdown && searchTerm" class="dropdown-results">
           <div v-if="isSearching" class="dropdown-item loading">
             <span class="spinner-small"></span>
             Buscando...
           </div>
-          <div
-            v-for="(party, index) in filteredParties"
-            :key="party.id"
-            :class="['dropdown-item', { active: index === activeIndex, selected: party.id === modelValue }]"
-            @mousedown.prevent="selectParty(party)"
-            @mouseenter="activeIndex = index"
-          >
-            <div class="party-info">
-              <span class="party-name">{{ party.name }}</span>
-              <div class="party-meta">
-                <span v-if="party.tax_id" class="party-tax">{{ party.tax_id }}</span>
-                <span class="party-role-badge">{{ getRoleLabel(party.role) }}</span>
+          <template v-else-if="filteredParties.length > 0">
+            <div
+              v-for="(party, index) in filteredParties"
+              :key="party.id"
+              :class="['dropdown-item', { active: index === activeIndex, selected: party.id === modelValue }]"
+              @mousedown.prevent="selectParty(party)"
+              @mouseenter="activeIndex = index"
+            >
+              <div class="party-info">
+                <span class="party-name">{{ party.name }}</span>
+                <div class="party-meta">
+                  <span v-if="party.tax_id" class="party-tax">{{ party.tax_id }}</span>
+                  <span class="party-role-badge">{{ getRoleLabel(party.role) }}</span>
+                </div>
               </div>
+              <span v-if="party.id === modelValue" class="selected-indicator">✓</span>
             </div>
-            <span v-if="party.id === modelValue" class="selected-indicator">✓</span>
-          </div>
-          <div v-if="!isSearching && filteredParties.length === 0" class="dropdown-item empty">
+          </template>
+          <div v-else class="dropdown-item empty">
             No se encontraron resultados para "{{ searchTerm }}"
           </div>
         </div>
@@ -86,12 +88,14 @@ const props = defineProps({
   roleFilter: { type: String, default: null },
   name: { type: String, default: 'partyId' },
   helpText: { type: String, default: '' },
+  darkMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'select']);
 
 const searchTerm = ref('');
 const allParties = ref<any[]>([]);
+const externalParty = ref<any | null>(null);
 const showDropdown = ref(false);
 const isSearching = ref(false);
 const activeIndex = ref(0);
@@ -101,27 +105,31 @@ let searchTimer: any = null;
 
 const selectedParty = computed(() => {
   if (!props.modelValue) return null;
-  return allParties.value.find(p => p.id === props.modelValue) || null;
+  return allParties.value.find(p => p.id === props.modelValue) || externalParty.value || null;
 });
 
 const filteredParties = computed(() => {
-  // Siempre devolvemos lo que hay en allParties (ya viene filtrado del servidor o de la carga inicial)
   return allParties.value.slice(0, 50);
 });
 
 async function loadParties(name = '') {
   isSearching.value = true;
   try {
-    const filters: any = { pageSize: 100 };
+    const filters: any = { limit: 100 };
     if (props.roleFilter) filters.role = props.roleFilter;
     if (name) filters.name = name;
     
     const response = await partyApi.listParties(filters);
-    allParties.value = response.data || [];
+    allParties.value = response.data || (Array.isArray(response) ? response : []);
     
-    if (props.modelValue && !name) {
-      const selected = allParties.value.find(p => p.id === props.modelValue);
-      if (selected) searchTerm.value = selected.name;
+    if (props.modelValue && !name && !selectedParty.value) {
+      // Si tenemos un ID pero no lo encontramos en la lista, traerlo específicamente
+      try {
+        externalParty.value = await partyApi.getParty(props.modelValue);
+        if (externalParty.value) searchTerm.value = externalParty.value.name;
+      } catch (e) { console.error("Error trayendo entidad seleccionada", e); }
+    } else if (selectedParty.value) {
+      searchTerm.value = selectedParty.value.name;
     }
   } catch (error) {
     console.error('Error loading parties:', error);
@@ -180,9 +188,14 @@ function getRoleLabel(role: string) {
 }
 
 watch(() => props.modelValue, (newVal) => {
-  if (newVal && !searchTerm.value) {
-    // Si cambia el valor externamente y no tenemos nombre, buscarlo
-    loadParties();
+  if (newVal) {
+    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
+    if (!selectedParty.value || selectedParty.value.id !== newVal) {
+      loadParties();
+    }
+  } else {
+    searchTerm.value = '';
+    externalParty.value = null;
   }
 });
 
@@ -203,6 +216,14 @@ onMounted(() => {
   background: white; box-shadow: var(--box-shadow-sm);
 }
 .form-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(0, 35, 149, 0.1); }
+
+/* Dark Mode Styles */
+.party-selector.dark-mode .form-input { background: #0f172a; border-color: #334155; color: white; }
+.party-selector.dark-mode .dropdown-results { background: #1e293b; border-color: #334155; }
+.party-selector.dark-mode .dropdown-item { border-bottom-color: #334155; color: #e2e8f0; }
+.party-selector.dark-mode .dropdown-item:hover, .party-selector.dark-mode .dropdown-item.active { background-color: #0f172a; }
+.party-selector.dark-mode .party-name { color: white; }
+.party-selector.dark-mode .selected-party { background-color: #0f172a; border-color: var(--color-primary); }
 
 .dropdown-results {
   position: absolute; top: 100%; left: 0; right: 0; margin-top: 0.5rem; background: white; border: 1px solid var(--color-border-strong);

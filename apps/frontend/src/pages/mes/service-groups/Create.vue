@@ -154,6 +154,4 @@ onMounted(loadTasks)
 .btn-sm { padding: .4rem .75rem; font-size: .8rem; }
 .btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
 .btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
-.btn-danger { background: #ef4444; color: #fff; }
-.alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
 </style>

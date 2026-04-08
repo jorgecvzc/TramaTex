@@ -129,7 +129,7 @@
   font-size: 0.85rem;
 }
 
-:deep(.page-header) {
+:deep(.base-page-header) {
   margin-bottom: 0;
   padding: 0.5rem 0;
 }

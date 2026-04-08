@@ -3,15 +3,18 @@
     
     <BaseCatalog
       title="Atributos de Producto"
-      :breadcrumbs="[{ label: 'Operaciones', to: '/products' }, { label: 'Atributos' }]"
+      icon="tune"
+      :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Atributos' }]"
       :items="attributes"
       :is-loading="isLoading"
       :error="error"
+      :has-filters="hasFilters"
       create-text="Nuevo Atributo"
       empty-icon="tune"
       empty-text="No hay atributos registrados"
       @clear-filters="resetFilters"
       @refresh="loadAttributes"
+      @click-item="openAttributeDetail"
     >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
@@ -82,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import AttributeForm from '@/components/master-data/AttributeForm.vue'
@@ -102,12 +105,14 @@ const isSaving = ref(false)
 const isDeleting = ref(false)
 const attributeFormRef = ref(null)
 
+const hasFilters = computed(() => search.value.trim() !== '')
+
 async function loadAttributes() {
   isLoading.value = true; error.value = '';
   try { 
     const res = await productApi.listAttributes({}); 
     allAttributes.value = res.data || (Array.isArray(res) ? res : []);
-    attributes.value = allAttributes.value;
+    onSearchInput();
   }
   catch (err) { 
     error.value = 'Error al cargar atributos.'; 
@@ -125,6 +130,7 @@ function onSearchInput() {
 function resetFilters() { search.value = ''; attributes.value = allAttributes.value; }
 function openCreateModal() { modalMode.value = 'create'; selectedAttribute.value = null; showCreateModal.value = true; }
 function editAttribute(attr) { modalMode.value = 'edit'; selectedAttribute.value = attr; showCreateModal.value = true; }
+function openAttributeDetail(attr) { editAttribute(attr); }
 function confirmDelete(attr) { attributeToDelete.value = attr; showDeleteModal.value = true; }
 function closeModal() { showCreateModal.value = false; selectedAttribute.value = null; }
 function submitForm() { if (attributeFormRef.value) attributeFormRef.value.handleSubmit() }

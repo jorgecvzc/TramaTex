@@ -8,7 +8,7 @@
     <form @submit.prevent="handleNext" class="step-form">
       <!-- Info Box -->
       <div class="info-box">
-        <Info :size="20" class="info-icon" />
+        <span class="material-symbols-outlined info-icon" style="font-size: 20px">info</span>
         <div class="info-content">
           <p>
             <strong>¿Qué son los atributos?</strong> Los atributos definen las características configurables
@@ -80,7 +80,7 @@
               :key="attr.id"
               class="inherited-item"
             >
-              <span class="inherited-icon">🔗</span>
+              <span class="inherited-icon">link</span>
               <span class="inherited-text">
                 <strong>{{ attr.name }}</strong>
                 <code class="attr-code">{{ attr.code }}</code>
@@ -107,7 +107,7 @@
               :key="attr.id"
               class="inherited-item"
             >
-              <span class="inherited-icon">🔗</span>
+              <span class="inherited-icon">link</span>
               <span class="inherited-text">
                 <strong>{{ attr.name }}</strong>
                 <code class="attr-code">{{ attr.code }}</code>
@@ -121,7 +121,7 @@
 
         <!-- Empty State -->
         <div v-if="allAttributes.length === 0" class="empty-state">
-          <Package :size="64" class="empty-icon" />
+          <span class="material-symbols-outlined empty-icon" style="font-size: 64px">inventory_2</span>
           <p>No hay atributos disponibles.</p>
           <p class="empty-hint">
             Puedes crear atributos en la sección de "Gestión de Atributos" y luego asignarlos a este producto.
@@ -146,12 +146,12 @@
       <!-- Variant Strategy Info -->
       <div class="variant-info-box">
         <div class="variant-info-header">
-          <RefreshCw :size="18" class="variant-info-icon" />
+          <span class="material-symbols-outlined variant-info-icon" style="font-size: 18px">refresh</span>
           <strong>Gestión de Variantes</strong>
         </div>
         <div v-if="hasAttributes" class="variant-info-content jit">
           <p>
-            <Zap :size="16" style="vertical-align: middle; margin-right: 4px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px; font-size: 16px">bolt</span>
             <strong>Producto Configurable:</strong> Este producto tendrá variantes que se gestionarán automáticamente.
           </p>
           <ul>
@@ -162,7 +162,7 @@
         </div>
         <div v-else class="variant-info-content simple">
           <p>
-            <Package :size="16" style="vertical-align: middle; margin-right: 4px" />
+            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px; font-size: 16px">inventory_2</span>
             <strong>Producto Simple:</strong> Sin atributos configurables, este producto no tendrá variantes.
           </p>
           <ul>
@@ -194,7 +194,6 @@
 
 <script setup>
 import { reactive, computed, onMounted, watch, ref } from 'vue'
-import { Info, Link, Package, RefreshCw, Zap } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

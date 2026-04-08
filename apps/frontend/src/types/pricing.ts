@@ -59,6 +59,8 @@ export interface CalculatedSaleItem {
   baseCost: MoneyResult
   baseSalesPrice: MoneyResult
   finalPrice: MoneyResult
+  discountPercent: number
+  discountAmount: MoneyResult
   taxRate: number
   finalPriceWithTax: MoneyResult
 }

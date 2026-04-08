@@ -1,271 +1,269 @@
 <template>
   <div class="party-form">
-    <div class="form-container">
-      <header class="form-header">
-        <span class="material-symbols-outlined header-icon">{{ isEditing ? 'edit_note' : 'person_add' }}</span>
-        <div>
-          <h1>{{ isEditing ? 'Editar entidad' : 'Nueva entidad' }}</h1>
-          <p class="subtitle">{{ isEditing ? `ID: ${props.partyId}` : 'Completa los datos para dar de alta una nueva entidad' }}</p>
+    <header v-if="!hideHeader" class="form-header">
+      <span class="material-symbols-outlined header-icon">{{ isEditing ? 'edit_note' : 'person_add' }}</span>
+      <div>
+        <h1>{{ isEditing ? 'Editar entidad' : 'Crear entidad' }}</h1>
+        <p class="subtitle">{{ isEditing ? `ID: ${props.partyId}` : 'Completa los datos para dar de alta una nueva entidad' }}</p>
+      </div>
+    </header>
+
+    <form @submit.prevent="submitForm" class="form-layout">
+      <!-- Card: Basic Identification -->
+      <section class="card form-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined">badge</span>
+          <h2>Identificación y Rol</h2>
         </div>
-      </header>
-      
-      <form @submit.prevent="submitForm" class="form-layout">
-        <!-- Card: Basic Identification -->
-        <section class="card form-section">
-          <div class="section-header">
-            <span class="material-symbols-outlined">badge</span>
-            <h2>Identificación y Rol</h2>
-          </div>
-          
-          <div class="section-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="role">
-                  Rol de la entidad *
-                </label>
-                <select
-                  id="role"
-                  v-model="form.role"
-                  required
-                  @change="onRoleChange"
-                >
-                  <option value="">-- Selecciona rol --</option>
-                  <option value="CLIENT">Cliente</option>
-                  <option value="SUPPLIER">Proveedor</option>
-                  <option value="BOTH">Cliente y proveedor</option>
-                  <option value="CONTACT">Contacto</option>
-                </select>
-                <span v-if="errors.role" class="error-msg">{{ errors.role }}</span>
-              </div>
-
-              <div class="form-group">
-                <label for="entityType">
-                  Tipo de entidad *
-                </label>
-                <select
-                  id="entityType"
-                  v-model="form.entityType"
-                  required
-                  @change="onEntityTypeChange"
-                  :disabled="form.role === 'CONTACT'"
-                >
-                  <option value="">-- Selecciona tipo --</option>
-                  <option value="PERSON">Persona Física</option>
-                  <option value="ORGANIZATION" :disabled="form.role === 'CONTACT'">
-                    Persona Jurídica (Organización)
-                  </option>
-                </select>
-                <span v-if="errors.entityType" class="error-msg">{{ errors.entityType }}</span>
-              </div>
-            </div>
-
-            <div v-if="form.role === 'CONTACT' || (form.role === 'CONTACT' && form.entityType !== 'PERSON')" class="alert-info">
-              <span class="material-symbols-outlined">info</span>
-              <p>Los contactos deben ser únicamente <strong>personas físicas</strong>.</p>
-            </div>
-
-            <!-- Conditional fields based on entityType -->
-            <div v-if="form.entityType === 'PERSON'" class="form-row mt-4">
-              <div class="form-group">
-                <label for="firstName">Nombre *</label>
-                <input
-                  id="firstName"
-                  v-model="form.firstName"
-                  type="text"
-                  placeholder="Ej: Juan"
-                  required
-                  @blur="validateField('firstName')"
-                />
-                <span v-if="errors.firstName" class="error-msg">{{ errors.firstName }}</span>
-              </div>
-
-              <div class="form-group">
-                <label for="lastName">Apellido(s) *</label>
-                <input
-                  id="lastName"
-                  v-model="form.lastName"
-                  type="text"
-                  placeholder="Ej: García López"
-                  required
-                  @blur="validateField('lastName')"
-                />
-                <span v-if="errors.lastName" class="error-msg">{{ errors.lastName }}</span>
-              </div>
-            </div>
-
-            <div v-else-if="form.entityType === 'ORGANIZATION'" class="form-group mt-4">
-              <label for="name">Nombre de la organización *</label>
-              <input
-                id="name"
-                v-model="form.name"
-                type="text"
-                placeholder="Ej: Acme Corporation S.L."
+        
+        <div class="section-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="role">
+                Rol de la entidad *
+              </label>
+              <select
+                id="role"
+                v-model="form.role"
                 required
-                @blur="validateField('name')"
-              />
-              <span v-if="errors.name" class="error-msg">{{ errors.name }}</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Card: Legal and Contact -->
-        <section class="card form-section">
-          <div class="section-header">
-            <span class="material-symbols-outlined">contact_mail</span>
-            <h2>Datos Legales y Contacto</h2>
-          </div>
-          
-          <div class="section-body">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="taxIdType">Tipo de identificación</label>
-                <select id="taxIdType" v-model="form.taxIdType" @change="validateField('taxId')">
-                  <option value="NIF">NIF (Persona Física)</option>
-                  <option value="CIF">CIF (Organización)</option>
-                  <option value="VAT">VAT (Intracomunitario)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="taxId">Número de identificación</label>
-                <input
-                  id="taxId"
-                  v-model="form.taxId"
-                  type="text"
-                  placeholder="p. ej., 12345678A"
-                  class="text-mono"
-                  @blur="validateField('taxId')"
-                />
-                <span v-if="errors.taxId" class="error-msg">{{ errors.taxId }}</span>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label for="phone">Teléfono de contacto</label>
-                <div class="input-with-icon">
-                  <span class="material-symbols-outlined icon-start">call</span>
-                  <input
-                    id="phone"
-                    v-model="form.phone"
-                    type="tel"
-                    placeholder="+34 000 000 000"
-                    @blur="validateField('phone')"
-                  />
-                </div>
-                <span v-if="errors.phone" class="error-msg">{{ errors.phone }}</span>
-              </div>
-              
-              <div class="form-group">
-                <label for="email">Correo electrónico</label>
-                <div class="input-with-icon">
-                  <span class="material-symbols-outlined icon-start">mail</span>
-                  <input
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    @blur="validateField('email')"
-                  />
-                </div>
-                <span v-if="errors.email" class="error-msg">{{ errors.email }}</span>
-              </div>
+                @change="onRoleChange"
+              >
+                <option value="">-- Selecciona rol --</option>
+                <option value="CLIENT">Cliente</option>
+                <option value="SUPPLIER">Proveedor</option>
+                <option value="BOTH">Cliente y proveedor</option>
+                <option value="CONTACT">Contacto</option>
+              </select>
+              <span v-if="errors.role" class="error-msg">{{ errors.role }}</span>
             </div>
 
             <div class="form-group">
-              <label for="website">Sitio web / URL</label>
-              <div class="input-with-icon">
-                <span class="material-symbols-outlined icon-start">language</span>
-                <input
-                  id="website"
-                  v-model="form.website"
-                  type="text"
-                  placeholder="www.empresa.com"
-                  @blur="validateField('website')"
-                />
-              </div>
-              <span v-if="errors.website" class="error-msg">{{ errors.website }}</span>
+              <label for="entityType">
+                Tipo de entidad *
+              </label>
+              <select
+                id="entityType"
+                v-model="form.entityType"
+                required
+                @change="onEntityTypeChange"
+                :disabled="form.role === 'CONTACT'"
+              >
+                <option value="">-- Selecciona tipo --</option>
+                <option value="PERSON">Persona Física</option>
+                <option value="ORGANIZATION" :disabled="form.role === 'CONTACT'">
+                  Persona Jurídica (Organización)
+                </option>
+              </select>
+              <span v-if="errors.entityType" class="error-msg">{{ errors.entityType }}</span>
             </div>
           </div>
-        </section>
 
-        <!-- Card: Configuration and Notes -->
-        <section class="card form-section">
-          <div class="section-header">
-            <span class="material-symbols-outlined">settings_suggest</span>
-            <h2>Configuración y Notas</h2>
+          <div v-if="form.role === 'CONTACT' || (form.role === 'CONTACT' && form.entityType !== 'PERSON')" class="alert-info">
+            <span class="material-symbols-outlined">info</span>
+            <p>Los contactos deben ser únicamente <strong>personas físicas</strong>.</p>
           </div>
-          
-          <div class="section-body">
-            <div v-if="form.role === 'CLIENT' || form.role === 'BOTH'" class="form-group">
-              <label for="defaultDiscount">Bonificación comercial por defecto (%)</label>
-              <div class="input-with-icon">
-                <span class="material-symbols-outlined icon-start">percent</span>
-                <input
-                  id="defaultDiscount"
-                  v-model.number="form.defaultDiscountPercentage"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  placeholder="0.00"
-                />
-              </div>
-              <p class="help-text">Descuento automático que se aplicará en presupuestos y pedidos.</p>
+
+          <!-- Conditional fields based on entityType -->
+          <div v-if="form.entityType === 'PERSON'" class="form-row mt-4">
+            <div class="form-group">
+              <label for="firstName">Nombre *</label>
+              <input
+                id="firstName"
+                v-model="form.firstName"
+                type="text"
+                placeholder="Ej: Juan"
+                required
+                @blur="validateField('firstName')"
+              />
+              <span v-if="errors.firstName" class="error-msg">{{ errors.firstName }}</span>
             </div>
 
             <div class="form-group">
-              <label for="notes">Observaciones internas</label>
-              <textarea
-                id="notes"
-                v-model="form.notes"
-                placeholder="Notas privadas sobre la entidad..."
-                rows="4"
+              <label for="lastName">Apellido(s) *</label>
+              <input
+                id="lastName"
+                v-model="form.lastName"
+                type="text"
+                placeholder="Ej: García López"
+                required
+                @blur="validateField('lastName')"
               />
+              <span v-if="errors.lastName" class="error-msg">{{ errors.lastName }}</span>
             </div>
           </div>
-        </section>
 
-        <!-- Form Actions -->
-        <footer class="form-footer">
-          <button
-            type="button"
-            @click="resetForm"
-            class="btn btn-secondary"
-            :disabled="isSubmitting"
-          >
-            <span class="material-symbols-outlined">restart_alt</span>
-            Reiniciar
-          </button>
-          
-          <button
-            type="submit"
-            :disabled="isSubmitting"
-            class="btn btn-primary"
-          >
-            <span class="material-symbols-outlined">{{ isSubmitting ? 'sync' : 'save' }}</span>
-            <span>{{ isSubmitting ? (isEditing ? 'Actualizando...' : 'Creando...') : (isEditing ? 'Guardar Cambios' : 'Crear Entidad') }}</span>
-          </button>
-        </footer>
-      </form>
+          <div v-else-if="form.entityType === 'ORGANIZATION'" class="form-group mt-4">
+            <label for="name">Nombre de la organización *</label>
+            <input
+              id="name"
+              v-model="form.name"
+              type="text"
+              placeholder="Ej: Acme Corporation S.L."
+              required
+              @blur="validateField('name')"
+            />
+            <span v-if="errors.name" class="error-msg">{{ errors.name }}</span>
+          </div>
+        </div>
+      </section>
 
-      <!-- Feedback Messages -->
-      <Transition name="fade">
-        <div v-if="successMessage" class="feedback-toast success">
-          <span class="material-symbols-outlined">check_circle</span>
-          <p>{{ successMessage }}</p>
-          <button @click="successMessage = ''" class="toast-close">&times;</button>
+      <!-- Card: Legal and Contact -->
+      <section class="card form-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined">contact_mail</span>
+          <h2>Datos Legales y Contacto</h2>
         </div>
-      </Transition>
-      
-      <Transition name="fade">
-        <div v-if="errorMessage" class="feedback-toast error">
-          <span class="material-symbols-outlined">error</span>
-          <p>{{ errorMessage }}</p>
-          <button @click="errorMessage = ''" class="toast-close">&times;</button>
+        
+        <div class="section-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taxIdType">Tipo de NIF/CIF</label>
+              <select id="taxIdType" v-model="form.taxIdType" @change="validateField('taxId')">
+                <option value="NIF">NIF</option>
+                <option value="CIF">CIF</option>
+                <option value="VAT">VAT</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="taxId">Número de identificación</label>
+              <input
+                id="taxId"
+                v-model="form.taxId"
+                type="text"
+                placeholder="p. ej., 12345678A"
+                class="text-mono"
+                @blur="validateField('taxId')"
+              />
+              <span v-if="errors.taxId" class="error-msg">{{ errors.taxId }}</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone">Teléfono de contacto</label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined icon-start">call</span>
+                <input
+                  id="phone"
+                  v-model="form.phone"
+                  type="tel"
+                  placeholder="+34 000 000 000"
+                  @blur="validateField('phone')"
+                />
+              </div>
+              <span v-if="errors.phone" class="error-msg">{{ errors.phone }}</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="email">Correo electrónico</label>
+              <div class="input-with-icon">
+                <span class="material-symbols-outlined icon-start">mail</span>
+                <input
+                  id="email"
+                  v-model="form.email"
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  @blur="validateField('email')"
+                />
+              </div>
+              <span v-if="errors.email" class="error-msg">{{ errors.email }}</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="website">Sitio web / URL</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined icon-start">language</span>
+              <input
+                id="website"
+                v-model="form.website"
+                type="text"
+                placeholder="www.empresa.com"
+                @blur="validateField('website')"
+              />
+            </div>
+            <span v-if="errors.website" class="error-msg">{{ errors.website }}</span>
+          </div>
         </div>
-      </Transition>
-    </div>
+      </section>
+
+      <!-- Card: Configuration and Notes -->
+      <section class="card form-section">
+        <div class="section-header">
+          <span class="material-symbols-outlined">settings_suggest</span>
+          <h2>Configuración y Notas</h2>
+        </div>
+        
+        <div class="section-body">
+          <div v-if="form.role === 'CLIENT' || form.role === 'BOTH'" class="form-group">
+            <label for="defaultDiscount">Bonificación comercial por defecto (%)</label>
+            <div class="input-with-icon">
+              <span class="material-symbols-outlined icon-start">percent</span>
+              <input
+                id="defaultDiscount"
+                v-model.number="form.defaultDiscountPercentage"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="0.00"
+              />
+            </div>
+            <p class="help-text">Descuento automático que se aplicará en presupuestos y pedidos.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">Notas internas</label>
+            <textarea
+              id="notes"
+              v-model="form.notes"
+              placeholder="Notas privadas sobre la entidad..."
+              rows="4"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- Form Actions -->
+      <footer v-if="!hideActions" class="form-footer">
+        <button
+          type="button"
+          @click="resetForm"
+          class="btn btn-outline"
+          :disabled="isSubmitting"
+        >
+          <span class="material-symbols-outlined">restart_alt</span>
+          Reiniciar
+        </button>
+        
+        <button
+          type="submit"
+          :disabled="isSubmitting"
+          class="btn btn-primary btn-grow"
+        >
+          <span class="material-symbols-outlined">{{ isSubmitting ? 'sync' : 'save' }}</span>
+          <span>{{ isSubmitting ? (isEditing ? 'Actualizando...' : 'Creando...') : (isEditing ? 'Actualizar Entidad' : 'Crear Entidad') }}</span>
+        </button>
+      </footer>
+    </form>
+
+    <!-- Feedback Messages -->
+    <Transition name="fade">
+      <div v-if="successMessage" class="feedback-toast success">
+        <span class="material-symbols-outlined">check_circle</span>
+        <p>{{ successMessage }}</p>
+        <button @click="successMessage = ''" class="toast-close">&times;</button>
+      </div>
+    </Transition>
+    
+    <Transition name="fade">
+      <div v-if="errorMessage" class="feedback-toast error">
+        <span class="material-symbols-outlined">error</span>
+        <p>{{ errorMessage }}</p>
+        <button @click="errorMessage = ''" class="toast-close">&times;</button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -282,9 +280,23 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  hideActions: {
+    type: Boolean,
+    default: false,
+  },
+  hideHeader: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['submit', 'update']);
+
+// Expose methods for parent components (like header buttons)
+defineExpose({
+  submitForm,
+  resetForm
+});
 
 // Form state
 const form = reactive({
@@ -337,7 +349,7 @@ const validationRules = {
   firstName: (value) => {
     if (form.entityType === 'PERSON') {
       if (!value || value.trim().length === 0) return 'El nombre es obligatorio';
-      if (value.length < 2) return 'Demasiado corto (mín. 2)';
+      if (value.length < 2) return 'El nombre debe tener al menos 2 caracteres';
     }
     return '';
   },
@@ -350,6 +362,7 @@ const validationRules = {
   name: (value) => {
     if (form.entityType === 'ORGANIZATION') {
       if (!value || value.trim().length === 0) return 'El nombre es obligatorio';
+      if (value.trim().length < 3) return 'El nombre debe tener al menos 3 caracteres';
     }
     return '';
   },
@@ -359,12 +372,12 @@ const validationRules = {
   },
   taxId: (value) => {
     if (value && !isValidTaxId(value, form.taxIdType)) {
-      return 'Formato de identificación inválido para el tipo seleccionado';
+			return 'Formato inválido de NIF/CIF/VAT';
     }
     return '';
   },
   website: (value) => {
-    if (value && !isValidUrl(value)) return 'URL no válida';
+    if (value && !isValidUrl(value)) return 'URL inválido';
     return '';
   },
   phone: (value) => {
@@ -698,45 +711,15 @@ textarea { resize: vertical; }
   margin-top: 1rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-md);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.btn .material-symbols-outlined { font-size: 22px; }
-
-.btn-primary { 
-  background: var(--color-primary); 
-  color: var(--color-text-on-primary);
-  box-shadow: var(--box-shadow-sm);
+.btn-grow {
   flex: 2;
-  justify-content: center;
 }
 
-.btn-primary:hover:not(:disabled) { 
-  transform: translateY(-1px); 
-  box-shadow: var(--box-shadow-md);
-  filter: brightness(1.05);
+@media (max-width: 768px) {
+  .form-row { grid-template-columns: 1fr; }
+  .form-footer { flex-direction: column-reverse; }
+  .btn { width: 100%; }
 }
-
-.btn-secondary { 
-  background: white; 
-  border-color: var(--color-border); 
-  color: var(--color-text-primary);
-  flex: 1;
-  justify-content: center;
-}
-
-.btn-secondary:hover:not(:disabled) { background: var(--color-background); }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Toasts */
 .feedback-toast {
