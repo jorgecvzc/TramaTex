@@ -7,10 +7,10 @@
 | **ID de Tarea** | 06 |
 | **ID de Sprint** | sprint-17 |
 | **Título** | Implementar mapeo correcto de DomainError.Code a HTTP Status en handlers |
-| **Estado** | ⏳ Planificado |
+| **Estado** | ✅ Completado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Opus 4.6 |
-| **Fecha de Inicio** | pendiente |
-| **Fecha de Fin** | pendiente |
+| **Fecha de Inicio** | 2026-04-12 |
+| **Fecha de Fin** | 2026-04-12 |
 | **Duración Estimada** | 1 hora |
 | **Prioridad** | P2 — Medio |
 | **Dependencia** | Independiente (paralelizable) |

@@ -21,11 +21,12 @@ func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
 type stubProductRepo struct {
 	saveFn            func(context.Context, *domain.Product) error
 	findByIDFn        func(context.Context, uuid.UUID) (*domain.Product, error)
+	findByIDsFn       func(context.Context, []uuid.UUID) ([]*domain.Product, error)
 	findBySKFn        func(context.Context, string) (*domain.Product, error)
 	findByBarcodeFn   func(context.Context, string) (*domain.Product, error)
 	findBySKUPrefixFn func(context.Context, string) ([]*domain.Product, error)
 	findAllFn         func(context.Context) ([]*domain.Product, error)
-	updateSKFn        func(context.Context, uuid.UUID, string) error
+	updateSKUsFn      func(context.Context, uuid.UUID, string) error
 }
 
 func (s *stubProductRepo) Save(ctx context.Context, product *domain.Product) error {
@@ -42,25 +43,18 @@ func (s *stubProductRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.P
 	return nil, nil
 }
 
+func (s *stubProductRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Product, error) {
+	if s.findByIDsFn != nil {
+		return s.findByIDsFn(ctx, ids)
+	}
+	return nil, nil
+}
+
 func (s *stubProductRepo) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
 	if s.findBySKFn != nil {
 		return s.findBySKFn(ctx, sku)
 	}
 	return nil, nil
-}
-
-func (s *stubProductRepo) FindAll(ctx context.Context) ([]*domain.Product, error) {
-	if s.findAllFn != nil {
-		return s.findAllFn(ctx)
-	}
-	return nil, nil
-}
-
-func (s *stubProductRepo) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
-	if s.updateSKFn != nil {
-		return s.updateSKFn(ctx, productID, newSKU)
-	}
-	return nil
 }
 
 func (s *stubProductRepo) FindByBarcode(ctx context.Context, barcode string) (*domain.Product, error) {
@@ -77,11 +71,26 @@ func (s *stubProductRepo) FindBySKUPrefix(ctx context.Context, prefix string) ([
 	return nil, nil
 }
 
+func (s *stubProductRepo) FindAll(ctx context.Context) ([]*domain.Product, error) {
+	if s.findAllFn != nil {
+		return s.findAllFn(ctx)
+	}
+	return nil, nil
+}
+
+func (s *stubProductRepo) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
+	if s.updateSKUsFn != nil {
+		return s.updateSKUsFn(ctx, productID, newSKU)
+	}
+	return nil
+}
+
 type stubBrandRepo struct {
-	findByIDFn func(context.Context, uuid.UUID) (*domain.Brand, error)
-	deleteFn   func(context.Context, uuid.UUID) error
-	saveFn     func(context.Context, *domain.Brand) error
-	findAllFn  func(context.Context) ([]*domain.Brand, error)
+	saveFn      func(context.Context, *domain.Brand) error
+	findByIDFn  func(context.Context, uuid.UUID) (*domain.Brand, error)
+	findByIDsFn func(context.Context, []uuid.UUID) ([]*domain.Brand, error)
+	findAllFn   func(context.Context) ([]*domain.Brand, error)
+	deleteFn    func(context.Context, uuid.UUID) error
 }
 
 func (s *stubBrandRepo) Save(ctx context.Context, brand *domain.Brand) error {
@@ -89,6 +98,20 @@ func (s *stubBrandRepo) Save(ctx context.Context, brand *domain.Brand) error {
 		return s.saveFn(ctx, brand)
 	}
 	return nil
+}
+
+func (s *stubBrandRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.Brand, error) {
+	if s.findByIDFn != nil {
+		return s.findByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (s *stubBrandRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Brand, error) {
+	if s.findByIDsFn != nil {
+		return s.findByIDsFn(ctx, ids)
+	}
+	return nil, nil
 }
 
 func (s *stubBrandRepo) FindAll(ctx context.Context) ([]*domain.Brand, error) {
@@ -106,10 +129,10 @@ func (s *stubBrandRepo) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 type stubGroupRepo struct {
-	findByIDFn func(context.Context, uuid.UUID) (*domain.ProductGroup, error)
-	deleteFn   func(context.Context, uuid.UUID) error
 	saveFn     func(context.Context, *domain.ProductGroup) error
+	findByIDFn func(context.Context, uuid.UUID) (*domain.ProductGroup, error)
 	findAllFn  func(context.Context) ([]*domain.ProductGroup, error)
+	deleteFn   func(context.Context, uuid.UUID) error
 }
 
 func (s *stubGroupRepo) Save(ctx context.Context, group *domain.ProductGroup) error {
@@ -117,6 +140,13 @@ func (s *stubGroupRepo) Save(ctx context.Context, group *domain.ProductGroup) er
 		return s.saveFn(ctx, group)
 	}
 	return nil
+}
+
+func (s *stubGroupRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.ProductGroup, error) {
+	if s.findByIDFn != nil {
+		return s.findByIDFn(ctx, id)
+	}
+	return nil, nil
 }
 
 func (s *stubGroupRepo) FindAll(ctx context.Context) ([]*domain.ProductGroup, error) {
@@ -142,51 +172,6 @@ type stubAttributeRepo struct {
 	deleteFn     func(context.Context, uuid.UUID) error
 }
 
-func (s *stubAttributeRepo) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
-	if s.findByCodeFn != nil {
-		return s.findByCodeFn(ctx, code)
-	}
-	return nil, nil
-}
-
-func (s *stubAttributeRepo) Delete(ctx context.Context, id uuid.UUID) error {
-	if s.deleteFn != nil {
-		return s.deleteFn(ctx, id)
-	}
-	return nil
-}
-
-type stubVariantRepo struct {
-	saveFn                     func(context.Context, *domain.ProductVariant) error
-	findByIDFn                 func(context.Context, uuid.UUID) (*domain.ProductVariant, error)
-	findBySKFn                 func(context.Context, string) (*domain.ProductVariant, error)
-	findByBarcodeFn            func(context.Context, string) (*domain.ProductVariant, error)
-	findBySKUPrefixFn          func(context.Context, string) ([]*domain.ProductVariant, error)
-	findByProductIDFn          func(context.Context, uuid.UUID) ([]*domain.ProductVariant, error)
-	findByProductIDAndValuesFn func(context.Context, uuid.UUID, []uuid.UUID) (*domain.ProductVariant, error)
-}
-
-type stubPartyServiceConfigRepo struct {
-	saveFn        func(context.Context, *domain.PartyServiceConfiguration) error
-	findByIDFn    func(context.Context, uuid.UUID, uuid.UUID) (*domain.PartyServiceConfiguration, error)
-	findByPartyFn func(context.Context, uuid.UUID) ([]*domain.PartyServiceConfiguration, error)
-	deleteFn      func(context.Context, uuid.UUID, uuid.UUID) error
-}
-
-func (s *stubBrandRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.Brand, error) {
-	if s.findByIDFn != nil {
-		return s.findByIDFn(ctx, id)
-	}
-	return nil, nil
-}
-
-func (s *stubGroupRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.ProductGroup, error) {
-	if s.findByIDFn != nil {
-		return s.findByIDFn(ctx, id)
-	}
-	return nil, nil
-}
-
 func (s *stubAttributeRepo) Save(ctx context.Context, attribute *domain.Attribute) error {
 	if s.saveFn != nil {
 		return s.saveFn(ctx, attribute)
@@ -197,6 +182,13 @@ func (s *stubAttributeRepo) Save(ctx context.Context, attribute *domain.Attribut
 func (s *stubAttributeRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.Attribute, error) {
 	if s.findByIDFn != nil {
 		return s.findByIDFn(ctx, id)
+	}
+	return nil, nil
+}
+
+func (s *stubAttributeRepo) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
+	if s.findByCodeFn != nil {
+		return s.findByCodeFn(ctx, code)
 	}
 	return nil, nil
 }
@@ -215,6 +207,24 @@ func (s *stubAttributeRepo) FindByScope(ctx context.Context, brandID *uuid.UUID,
 	return nil, nil
 }
 
+func (s *stubAttributeRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	if s.deleteFn != nil {
+		return s.deleteFn(ctx, id)
+	}
+	return nil
+}
+
+type stubVariantRepo struct {
+	saveFn                     func(context.Context, *domain.ProductVariant) error
+	findByIDFn                 func(context.Context, uuid.UUID) (*domain.ProductVariant, error)
+	findByIDsFn                func(context.Context, []uuid.UUID) ([]*domain.ProductVariant, error)
+	findBySKFn                 func(context.Context, string) (*domain.ProductVariant, error)
+	findByBarcodeFn            func(context.Context, string) (*domain.ProductVariant, error)
+	findBySKUPrefixFn          func(context.Context, string) ([]*domain.ProductVariant, error)
+	findByProductIDFn          func(context.Context, uuid.UUID) ([]*domain.ProductVariant, error)
+	findByProductIDAndValuesFn func(context.Context, uuid.UUID, []uuid.UUID) (*domain.ProductVariant, error)
+}
+
 func (s *stubVariantRepo) Save(ctx context.Context, variant *domain.ProductVariant) error {
 	if s.saveFn != nil {
 		return s.saveFn(ctx, variant)
@@ -229,9 +239,30 @@ func (s *stubVariantRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.P
 	return nil, nil
 }
 
+func (s *stubVariantRepo) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.ProductVariant, error) {
+	if s.findByIDsFn != nil {
+		return s.findByIDsFn(ctx, ids)
+	}
+	return nil, nil
+}
+
 func (s *stubVariantRepo) FindBySKU(ctx context.Context, sku string) (*domain.ProductVariant, error) {
 	if s.findBySKFn != nil {
 		return s.findBySKFn(ctx, sku)
+	}
+	return nil, nil
+}
+
+func (s *stubVariantRepo) FindByBarcode(ctx context.Context, barcode string) (*domain.ProductVariant, error) {
+	if s.findByBarcodeFn != nil {
+		return s.findByBarcodeFn(ctx, barcode)
+	}
+	return nil, nil
+}
+
+func (s *stubVariantRepo) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.ProductVariant, error) {
+	if s.findBySKUPrefixFn != nil {
+		return s.findBySKUPrefixFn(ctx, prefix)
 	}
 	return nil, nil
 }
@@ -250,18 +281,11 @@ func (s *stubVariantRepo) FindByProductIDAndAttributeValues(ctx context.Context,
 	return nil, nil
 }
 
-func (s *stubVariantRepo) FindByBarcode(ctx context.Context, barcode string) (*domain.ProductVariant, error) {
-	if s.findByBarcodeFn != nil {
-		return s.findByBarcodeFn(ctx, barcode)
-	}
-	return nil, nil
-}
-
-func (s *stubVariantRepo) FindBySKUPrefix(ctx context.Context, prefix string) ([]*domain.ProductVariant, error) {
-	if s.findBySKUPrefixFn != nil {
-		return s.findBySKUPrefixFn(ctx, prefix)
-	}
-	return nil, nil
+type stubPartyServiceConfigRepo struct {
+	saveFn        func(context.Context, *domain.PartyServiceConfiguration) error
+	findByIDFn    func(context.Context, uuid.UUID, uuid.UUID) (*domain.PartyServiceConfiguration, error)
+	findByPartyFn func(context.Context, uuid.UUID) ([]*domain.PartyServiceConfiguration, error)
+	deleteFn      func(context.Context, uuid.UUID, uuid.UUID) error
 }
 
 func (s *stubPartyServiceConfigRepo) Save(ctx context.Context, config *domain.PartyServiceConfiguration) error {
@@ -524,8 +548,6 @@ func TestProductHandler_AddGroupToProduct_Success(t *testing.T) {
 		&stubBrandRepo{},
 		&stubGroupRepo{findByIDFn: func(context.Context, uuid.UUID) (*domain.ProductGroup, error) {
 			return &domain.ProductGroup{ID: groupID, Name: "Group"}, nil
-		}, deleteFn: func(ctx context.Context, id uuid.UUID) error {
-			return nil
 		}},
 		&stubAttributeRepo{},
 		&stubVariantRepo{},
@@ -579,8 +601,6 @@ func TestProductHandler_AddDirectAttributeToProduct_Success(t *testing.T) {
 		&stubGroupRepo{},
 		&stubAttributeRepo{findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.Attribute, error) {
 			return attribute, nil
-		}, deleteFn: func(ctx context.Context, id uuid.UUID) error {
-			return nil
 		}},
 		&stubVariantRepo{},
 		&stubPartyServiceConfigRepo{},
@@ -915,25 +935,6 @@ func TestProductHandler_PartyServiceConfigurationEndpoints_Success(t *testing.T)
 	assert.Equal(t, http.StatusNoContent, deleteRec.Code)
 }
 
-// TestProductHandler_ListAttributes_InvalidBrandID - DISABLED (obsolete)
-// Reason: Scope-based filtering (brandId) was removed for MVP simplicity.
-// ListAttributes no longer validates brandId parameter.
-// Test caused panic when handler created with nil service.
-/*
-func TestProductHandler_ListAttributes_InvalidBrandID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	handler := NewProductHandler(nil)
-	router := newTestRouter(handler)
-
-	req := httptest.NewRequest(http.MethodGet, "/attributes?brandId=invalid", nil)
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-*/
-
 func TestProductHandler_GetAttributeByID_InvalidID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	handler := NewProductHandler(nil)
@@ -972,25 +973,6 @@ func TestProductHandler_GenerateProductVariants_InvalidID(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
-
-// TestProductHandler_ListAttributes_InvalidGroupID - DISABLED (obsolete)
-// Reason: Scope-based filtering (productGroupId) was removed for MVP simplicity.
-// ListAttributes no longer validates groupId parameter.
-// Test caused panic when handler created with nil service.
-/*
-func TestProductHandler_ListAttributes_InvalidGroupID(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	handler := NewProductHandler(nil)
-	router := newTestRouter(handler)
-
-	req := httptest.NewRequest(http.MethodGet, "/attributes?productGroupId=invalid", nil)
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-}
-*/
 
 func TestProductHandler_ListProducts_InvalidGroupID(t *testing.T) {
 	gin.SetMode(gin.TestMode)

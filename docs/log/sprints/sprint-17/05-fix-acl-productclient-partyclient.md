@@ -7,10 +7,10 @@
 | **ID de Tarea** | 05 |
 | **ID de Sprint** | sprint-17 |
 | **Título** | Corregir Anti-Corruption Layer: ProductClient y PartyClient |
-| **Estado** | ⏳ Planificado |
+| **Estado** | ✅ Completado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Opus 4.6 |
-| **Fecha de Inicio** | pendiente |
-| **Fecha de Fin** | pendiente |
+| **Fecha de Inicio** | 2026-04-11 |
+| **Fecha de Fin** | 2026-04-12 |
 | **Duración Estimada** | 2-3 horas |
 | **Prioridad** | P2 — Medio |
 | **Dependencia** | Independiente (paralelizable) |

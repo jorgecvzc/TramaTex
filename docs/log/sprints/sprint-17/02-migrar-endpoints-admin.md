@@ -7,10 +7,10 @@
 | **ID de Tarea** | 02 |
 | **ID de Sprint** | sprint-17 |
 | **Título** | Migrar endpoints admin del PricingHandler al PricingEngineHandler |
-| **Estado** | ⏳ Planificado |
+| **Estado** | ✅ Completado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Opus 4.6 |
-| **Fecha de Inicio** | pendiente |
-| **Fecha de Fin** | pendiente |
+| **Fecha de Inicio** | 2026-04-10 |
+| **Fecha de Fin** | 2026-04-12 |
 | **Duración Estimada** | 2-3 horas |
 | **Prioridad** | P1 — Alto |
 | **Dependencia** | Requiere 17-01 completada |

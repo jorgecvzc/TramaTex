@@ -7,10 +7,10 @@
 | **ID de Tarea** | 01 |
 | **ID de Sprint** | sprint-17 |
 | **Título** | Completar PricingEngineService: ClientPricing Overrides + Audit Trail |
-| **Estado** | ⏳ Planificado |
+| **Estado** | ✅ Completado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Opus 4.6 |
-| **Fecha de Inicio** | pendiente |
-| **Fecha de Fin** | pendiente |
+| **Fecha de Inicio** | 2026-04-08 |
+| **Fecha de Fin** | 2026-04-10 |
 | **Duración Estimada** | 3-4 horas |
 | **Prioridad** | P0 — Crítico |
 
@@ -18,9 +18,9 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **Inyectar `ClientPricingRepository` en `PricingEngineService`** y consultar overrides como paso prioritario en `CalculateFinalSalePrice`
-2. [ ] **Inyectar `PriceCalculationRepository` en `PricingEngineService`** y generar registros de auditoría inmutables al final de cada cálculo
-3. [ ] **Tests unitarios** para ambas funcionalidades nuevas (≥85% cobertura, módulo STRICT)
+1. [x] **Inyectar `ClientPricingRepository` en `PricingEngineService`** y consultar overrides como paso prioritario en `CalculateFinalSalePrice`
+2. [x] **Inyectar `PriceCalculationRepository` en `PricingEngineService`** y generar registros de auditoría inmutables al final de cada cálculo
+3. [x] **Tests unitarios** para ambas funcionalidades nuevas (≥85% cobertura, módulo STRICT)
 
 ---
 

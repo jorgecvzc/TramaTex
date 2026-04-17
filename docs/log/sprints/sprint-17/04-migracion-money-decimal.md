@@ -7,10 +7,10 @@
 | **ID de Tarea** | 04 |
 | **ID de Sprint** | sprint-17 |
 | **Título** | Migrar Value Object Money de float64 a decimal.Decimal |
-| **Estado** | ⏳ Planificado |
+| **Estado** | ✅ Completado |
 | **Facilitador/LLM** | GitHub Copilot / Claude Opus 4.6 |
-| **Fecha de Inicio** | pendiente |
-| **Fecha de Fin** | pendiente |
+| **Fecha de Inicio** | 2026-04-11 |
+| **Fecha de Fin** | 2026-04-12 |
 | **Duración Estimada** | 3-4 horas |
 | **Prioridad** | P1 — Alto |
 | **Dependencia** | Preferible tras 17-03 (menos código que migrar) |

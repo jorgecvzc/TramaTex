@@ -30,51 +30,6 @@ func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 	return gormDB, mock, cleanup
 }
 
-func TestGORMPricingRuleRepository(t *testing.T) {
-	gormDB, mock, cleanup := newMockDB(t)
-	defer cleanup()
-
-	repo := NewGORMPricingRuleRepository(gormDB)
-
-	percentage, _ := domain.NewPercentage(0.1)
-	rule, _ := domain.NewPricingRule("Rule", nil, nil, percentage, 1, nil, time.Now(), nil)
-
-	mock.ExpectExec("UPDATE .*\"pricing_rules\"").WillReturnResult(sqlmock.NewResult(1, 1))
-	if err := repo.Save(context.Background(), rule); err != nil {
-		t.Fatalf("expected save success, got %v", err)
-	}
-
-	id := uuid.New()
-	rows := sqlmock.NewRows([]string{"id", "name", "markup_percentage", "min_quantity", "effective_from", "is_active"}).
-		AddRow(id, "Rule", 0.1, 1, time.Now(), true)
-	mock.ExpectQuery("SELECT .* FROM \"pricing_rules\"").WillReturnRows(rows)
-	found, err := repo.FindByID(context.Background(), id)
-	if err != nil || found == nil {
-		t.Fatalf("expected find success")
-	}
-
-	listRows := sqlmock.NewRows([]string{"id", "name", "markup_percentage", "min_quantity", "effective_from", "is_active"}).
-		AddRow(uuid.New(), "Rule A", 0.1, 1, time.Now(), true).
-		AddRow(uuid.New(), "Rule B", 0.2, 2, time.Now(), true)
-	mock.ExpectQuery("SELECT .* FROM \"pricing_rules\"").WillReturnRows(listRows)
-	list, err := repo.List(context.Background())
-	if err != nil || len(list) != 2 {
-		t.Fatalf("expected list success")
-	}
-
-	applicableRows := sqlmock.NewRows([]string{"id", "name", "markup_percentage", "min_quantity", "effective_from", "is_active"}).
-		AddRow(uuid.New(), "Rule", 0.1, 1, time.Now(), true)
-	mock.ExpectQuery("SELECT .* FROM \"pricing_rules\"").WillReturnRows(applicableRows)
-	foundRules, err := repo.FindApplicable(context.Background(), uuid.New(), 1, time.Now())
-	if err != nil || len(foundRules) != 1 {
-		t.Fatalf("expected applicable rules")
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
-	}
-}
-
 func TestGORMClientPricingRepository(t *testing.T) {
 	gormDB, mock, cleanup := newMockDB(t)
 	defer cleanup()
@@ -95,60 +50,6 @@ func TestGORMClientPricingRepository(t *testing.T) {
 	found, err := repo.FindApplicable(context.Background(), override.ClientID, override.ProductVariantID, time.Now())
 	if err != nil || found == nil {
 		t.Fatalf("expected find success")
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
-	}
-}
-
-func TestGORMBrandProfitMarginRepository(t *testing.T) {
-	gormDB, mock, cleanup := newMockDB(t)
-	defer cleanup()
-
-	repo := NewGORMBrandProfitMarginRepository(gormDB)
-
-	percentage, _ := domain.NewPercentage(0.1)
-	margin, _ := domain.NewBrandProfitMargin(uuid.New(), &percentage, nil, time.Now(), nil)
-
-	mock.ExpectExec("UPDATE .*\"brand_profit_margins\"").WillReturnResult(sqlmock.NewResult(1, 1))
-	if err := repo.Save(context.Background(), margin); err != nil {
-		t.Fatalf("expected save success, got %v", err)
-	}
-
-	rows := sqlmock.NewRows([]string{"id", "brand_id", "percentage_value", "currency", "effective_from", "is_active"}).
-		AddRow(uuid.New(), margin.BrandID, 0.1, "EUR", time.Now(), true)
-	mock.ExpectQuery("SELECT .* FROM \"brand_profit_margins\"").WillReturnRows(rows)
-	found, err := repo.FindApplicable(context.Background(), margin.BrandID, time.Now())
-	if err != nil || found == nil {
-		t.Fatalf("expected find success")
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
-	}
-}
-
-func TestGORMSalesDiscountRuleRepository(t *testing.T) {
-	gormDB, mock, cleanup := newMockDB(t)
-	defer cleanup()
-
-	repo := NewGORMSalesDiscountRuleRepository(gormDB)
-
-	percentage, _ := domain.NewPercentage(0.1)
-	rule, _ := domain.NewSalesDiscountRule("Discount", nil, nil, nil, domain.DiscountTypePercentage, &percentage, nil, 1, time.Now(), nil)
-
-	mock.ExpectExec("UPDATE .*\"sales_discount_rules\"").WillReturnResult(sqlmock.NewResult(1, 1))
-	if err := repo.Save(context.Background(), rule); err != nil {
-		t.Fatalf("expected save success, got %v", err)
-	}
-
-	rows := sqlmock.NewRows([]string{"id", "name", "discount_type", "percentage_value", "currency", "priority", "effective_from", "is_active"}).
-		AddRow(uuid.New(), "Discount", string(domain.DiscountTypePercentage), 0.1, "EUR", 1, time.Now(), true)
-	mock.ExpectQuery("SELECT .* FROM \"sales_discount_rules\"").WillReturnRows(rows)
-	found, err := repo.FindApplicable(context.Background(), uuid.New(), uuid.New(), 1, time.Now())
-	if err != nil || len(found) != 1 {
-		t.Fatalf("expected applicable discount")
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {

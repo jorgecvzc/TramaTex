@@ -10,6 +10,7 @@ import (
 type BrandRepository interface {
 	Save(ctx context.Context, brand *Brand) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Brand, error)
+	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*Brand, error)
 	FindAll(ctx context.Context) ([]*Brand, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -38,6 +39,7 @@ type AttributeRepository interface {
 type ProductRepository interface {
 	Save(ctx context.Context, product *Product) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Product, error)
+	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*Product, error)
 	FindBySKU(ctx context.Context, sku string) (*Product, error)
 	FindByBarcode(ctx context.Context, barcode string) (*Product, error)
 	FindBySKUPrefix(ctx context.Context, prefix string) ([]*Product, error)
@@ -49,6 +51,7 @@ type ProductRepository interface {
 type ProductVariantRepository interface {
 	Save(ctx context.Context, variant *ProductVariant) error
 	FindByID(ctx context.Context, id uuid.UUID) (*ProductVariant, error)
+	FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*ProductVariant, error)
 	FindBySKU(ctx context.Context, sku string) (*ProductVariant, error)
 	FindByBarcode(ctx context.Context, barcode string) (*ProductVariant, error)
 	FindBySKUPrefix(ctx context.Context, prefix string) ([]*ProductVariant, error)
