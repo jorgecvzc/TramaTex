@@ -431,9 +431,16 @@ function reactivateInvoice() {
 async function executeStatusChange() {
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, pendingStatus.value);
+    const invoiceId = invoice.value.id;
+    const requestedStatus = pendingStatus.value;
+    invoice.value = await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
+
+    // Always rehydrate from GET to keep related entities and enriched fields in sync.
+    invoice.value = await salesApi.getInvoice(invoiceId);
+    await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
+
     showStatusConfirm.value = false;
-    if (pendingStatus.value === 'ISSUED') {
+    if (requestedStatus === 'ISSUED') {
       showPostIssueModal.value = true;
     }
   } catch (err) {
