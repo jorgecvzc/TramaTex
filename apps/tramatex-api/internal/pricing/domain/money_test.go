@@ -3,6 +3,7 @@ package domain
 import (
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,9 +45,19 @@ func TestMoneyOperations(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestMoneyDecimal(t *testing.T) {
+	money, err := NewMoney(10.50, DefaultCurrency)
+	require.NoError(t, err)
+	require.True(t, money.Decimal().Equal(decimal.NewFromFloat(10.50)))
+
+	fromDec, err := NewMoneyFromDecimal(decimal.NewFromFloat(99.99), DefaultCurrency)
+	require.NoError(t, err)
+	require.Equal(t, 99.99, fromDec.Amount())
+}
+
 func TestMoneyCurrencyMismatch(t *testing.T) {
-	moneyEUR := Money{amount: 10, currency: "EUR"}
-	moneyUSD := Money{amount: 5, currency: "USD"}
+	moneyEUR := Money{amount: decimal.NewFromInt(10), currency: "EUR"}
+	moneyUSD := Money{amount: decimal.NewFromInt(5), currency: "USD"}
 
 	_, err := moneyEUR.Add(moneyUSD)
 	require.Error(t, err)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,11 +37,11 @@ func TestSaleModificationRuleAppliesTo(t *testing.T) {
 	rule, err := NewSaleModificationRule("rule", []string{clientID}, &groupID, &minOrder, value, 1, start, &end)
 	require.NoError(t, err)
 
-	orderTotal := Money{amount: 200, currency: DefaultCurrency}
+	orderTotal := Money{amount: decimal.NewFromInt(200), currency: DefaultCurrency}
 	require.False(t, rule.AppliesTo(uuid.New().String(), &groupID, orderTotal, time.Now()))
 	require.False(t, rule.AppliesTo(clientID, nil, orderTotal, time.Now()))
 
-	lowOrder := Money{amount: 50, currency: DefaultCurrency}
+	lowOrder := Money{amount: decimal.NewFromInt(50), currency: DefaultCurrency}
 	require.False(t, rule.AppliesTo(clientID, &groupID, lowOrder, time.Now()))
 	require.False(t, rule.AppliesTo(clientID, &groupID, orderTotal, start.Add(-time.Minute)))
 	require.False(t, rule.AppliesTo(clientID, &groupID, orderTotal, end.Add(time.Minute)))
@@ -53,14 +54,14 @@ func TestSaleModificationRuleAppliesTo(t *testing.T) {
 func TestSaleModificationRuleAppliesToCurrencyMismatch(t *testing.T) {
 	p, _ := NewPercentage(0.1)
 	value, _ := NewRuleValue(RuleValuePercentageMarkup, &p, nil)
-	minOrder := Money{amount: 100, currency: DefaultCurrency}
+	minOrder := Money{amount: decimal.NewFromInt(100), currency: DefaultCurrency}
 	start := time.Now().Add(-time.Hour)
 	end := time.Now().Add(time.Hour)
 
 	rule, err := NewSaleModificationRule("rule", nil, nil, &minOrder, value, 1, start, &end)
 	require.NoError(t, err)
 
-	orderTotal := Money{amount: 200, currency: "USD"}
+	orderTotal := Money{amount: decimal.NewFromInt(200), currency: "USD"}
 	require.False(t, rule.AppliesTo(uuid.New().String(), nil, orderTotal, time.Now()))
 }
 
@@ -73,6 +74,6 @@ func TestSaleModificationRuleAppliesToNoFilters(t *testing.T) {
 	rule, err := NewSaleModificationRule("rule", nil, nil, nil, value, 1, start, &end)
 	require.NoError(t, err)
 
-	orderTotal := Money{amount: 1, currency: DefaultCurrency}
+	orderTotal := Money{amount: decimal.NewFromInt(1), currency: DefaultCurrency}
 	require.True(t, rule.AppliesTo(uuid.New().String(), nil, orderTotal, time.Now()))
 }

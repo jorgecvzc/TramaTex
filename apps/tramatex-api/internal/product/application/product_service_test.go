@@ -33,17 +33,8 @@ func (m *MockProductRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 	return product, args.Error(1)
 }
 
-func (m *MockProductRepository) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
-	args := m.Called(ctx, sku)
-	var product *domain.Product
-	if args.Get(0) != nil {
-		product = args.Get(0).(*domain.Product)
-	}
-	return product, args.Error(1)
-}
-
-func (m *MockProductRepository) FindAll(ctx context.Context) ([]*domain.Product, error) {
-	args := m.Called(ctx)
+func (m *MockProductRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Product, error) {
+	args := m.Called(ctx, ids)
 	var products []*domain.Product
 	if args.Get(0) != nil {
 		products = args.Get(0).([]*domain.Product)
@@ -51,9 +42,13 @@ func (m *MockProductRepository) FindAll(ctx context.Context) ([]*domain.Product,
 	return products, args.Error(1)
 }
 
-func (m *MockProductRepository) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
-	args := m.Called(ctx, productID, newSKU)
-	return args.Error(0)
+func (m *MockProductRepository) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
+	args := m.Called(ctx, sku)
+	var product *domain.Product
+	if args.Get(0) != nil {
+		product = args.Get(0).(*domain.Product)
+	}
+	return product, args.Error(1)
 }
 
 func (m *MockProductRepository) FindByBarcode(ctx context.Context, barcode string) (*domain.Product, error) {
@@ -74,9 +69,28 @@ func (m *MockProductRepository) FindBySKUPrefix(ctx context.Context, prefix stri
 	return products, args.Error(1)
 }
 
+func (m *MockProductRepository) FindAll(ctx context.Context) ([]*domain.Product, error) {
+	args := m.Called(ctx)
+	var products []*domain.Product
+	if args.Get(0) != nil {
+		products = args.Get(0).([]*domain.Product)
+	}
+	return products, args.Error(1)
+}
+
+func (m *MockProductRepository) UpdateSKUs(ctx context.Context, productID uuid.UUID, newSKU string) error {
+	args := m.Called(ctx, productID, newSKU)
+	return args.Error(0)
+}
+
 // MockBrandRepository is a mock implementation of domain.BrandRepository
 type MockBrandRepository struct {
 	mock.Mock
+}
+
+func (m *MockBrandRepository) Save(ctx context.Context, brand *domain.Brand) error {
+	args := m.Called(ctx, brand)
+	return args.Error(0)
 }
 
 func (m *MockBrandRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Brand, error) {
@@ -88,9 +102,13 @@ func (m *MockBrandRepository) FindByID(ctx context.Context, id uuid.UUID) (*doma
 	return brand, args.Error(1)
 }
 
-func (m *MockBrandRepository) Save(ctx context.Context, brand *domain.Brand) error {
-	args := m.Called(ctx, brand)
-	return args.Error(0)
+func (m *MockBrandRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Brand, error) {
+	args := m.Called(ctx, ids)
+	var brands []*domain.Brand
+	if args.Get(0) != nil {
+		brands = args.Get(0).([]*domain.Brand)
+	}
+	return brands, args.Error(1)
 }
 
 func (m *MockBrandRepository) FindAll(ctx context.Context) ([]*domain.Brand, error) {
@@ -112,6 +130,11 @@ type MockProductGroupRepository struct {
 	mock.Mock
 }
 
+func (m *MockProductGroupRepository) Save(ctx context.Context, group *domain.ProductGroup) error {
+	args := m.Called(ctx, group)
+	return args.Error(0)
+}
+
 func (m *MockProductGroupRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.ProductGroup, error) {
 	args := m.Called(ctx, id)
 	var group *domain.ProductGroup
@@ -119,11 +142,6 @@ func (m *MockProductGroupRepository) FindByID(ctx context.Context, id uuid.UUID)
 		group = args.Get(0).(*domain.ProductGroup)
 	}
 	return group, args.Error(1)
-}
-
-func (m *MockProductGroupRepository) Save(ctx context.Context, group *domain.ProductGroup) error {
-	args := m.Called(ctx, group)
-	return args.Error(0)
 }
 
 func (m *MockProductGroupRepository) FindAll(ctx context.Context) ([]*domain.ProductGroup, error) {
@@ -159,6 +177,15 @@ func (m *MockAttributeRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 	return attribute, args.Error(1)
 }
 
+func (m *MockAttributeRepository) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
+	args := m.Called(ctx, code)
+	var attribute *domain.Attribute
+	if args.Get(0) != nil {
+		attribute = args.Get(0).(*domain.Attribute)
+	}
+	return attribute, args.Error(1)
+}
+
 func (m *MockAttributeRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Attribute, error) {
 	args := m.Called(ctx, ids)
 	var attributes []domain.Attribute
@@ -175,15 +202,6 @@ func (m *MockAttributeRepository) FindByScope(ctx context.Context, brandID *uuid
 		attributes = args.Get(0).([]*domain.Attribute)
 	}
 	return attributes, args.Error(1)
-}
-
-func (m *MockAttributeRepository) FindByCode(ctx context.Context, code string) (*domain.Attribute, error) {
-	args := m.Called(ctx, code)
-	var attribute *domain.Attribute
-	if args.Get(0) != nil {
-		attribute = args.Get(0).(*domain.Attribute)
-	}
-	return attribute, args.Error(1)
 }
 
 func (m *MockAttributeRepository) Delete(ctx context.Context, id uuid.UUID) error {
@@ -210,17 +228,8 @@ func (m *MockProductVariantRepository) FindByID(ctx context.Context, id uuid.UUI
 	return variant, args.Error(1)
 }
 
-func (m *MockProductVariantRepository) FindBySKU(ctx context.Context, sku string) (*domain.ProductVariant, error) {
-	args := m.Called(ctx, sku)
-	var variant *domain.ProductVariant
-	if args.Get(0) != nil {
-		variant = args.Get(0).(*domain.ProductVariant)
-	}
-	return variant, args.Error(1)
-}
-
-func (m *MockProductVariantRepository) FindByProductID(ctx context.Context, productID uuid.UUID) ([]*domain.ProductVariant, error) {
-	args := m.Called(ctx, productID)
+func (m *MockProductVariantRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.ProductVariant, error) {
+	args := m.Called(ctx, ids)
 	var variants []*domain.ProductVariant
 	if args.Get(0) != nil {
 		variants = args.Get(0).([]*domain.ProductVariant)
@@ -228,8 +237,8 @@ func (m *MockProductVariantRepository) FindByProductID(ctx context.Context, prod
 	return variants, args.Error(1)
 }
 
-func (m *MockProductVariantRepository) FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*domain.ProductVariant, error) {
-	args := m.Called(ctx, productID, attributeValueIDs)
+func (m *MockProductVariantRepository) FindBySKU(ctx context.Context, sku string) (*domain.ProductVariant, error) {
+	args := m.Called(ctx, sku)
 	var variant *domain.ProductVariant
 	if args.Get(0) != nil {
 		variant = args.Get(0).(*domain.ProductVariant)
@@ -253,6 +262,24 @@ func (m *MockProductVariantRepository) FindBySKUPrefix(ctx context.Context, pref
 		variants = args.Get(0).([]*domain.ProductVariant)
 	}
 	return variants, args.Error(1)
+}
+
+func (m *MockProductVariantRepository) FindByProductID(ctx context.Context, productID uuid.UUID) ([]*domain.ProductVariant, error) {
+	args := m.Called(ctx, productID)
+	var variants []*domain.ProductVariant
+	if args.Get(0) != nil {
+		variants = args.Get(0).([]*domain.ProductVariant)
+	}
+	return variants, args.Error(1)
+}
+
+func (m *MockProductVariantRepository) FindByProductIDAndAttributeValues(ctx context.Context, productID uuid.UUID, attributeValueIDs []uuid.UUID) (*domain.ProductVariant, error) {
+	args := m.Called(ctx, productID, attributeValueIDs)
+	var variant *domain.ProductVariant
+	if args.Get(0) != nil {
+		variant = args.Get(0).(*domain.ProductVariant)
+	}
+	return variant, args.Error(1)
 }
 
 // MockPartyServiceConfigurationRepository is a mock implementation of domain.PartyServiceConfigurationRepository
@@ -838,3 +865,5 @@ func TestProductService_ListProductVariantsByProductID(t *testing.T) {
 		mockVariantRepo.AssertExpectations(t)
 	})
 }
+
+

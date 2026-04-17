@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 
 	"github.com/joran-cortez/tramatex/internal/pricing/application"
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
@@ -62,6 +64,13 @@ func (f *fakeSaleRuleRepo) FindByID(ctx context.Context, id uuid.UUID) (*domain.
 	return f.rule, nil
 }
 
+func (f *fakeSaleRuleRepo) ListActive(ctx context.Context, at time.Time) ([]*domain.SaleModificationRule, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.rules, nil
+}
+
 func (f *fakeSaleRuleRepo) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {
 	if f.listErr != nil {
 		return nil, f.listErr
@@ -114,13 +123,80 @@ func (f *fakeProductProvider) GetVariantPricingInfo(ctx context.Context, variant
 	return f.info, nil
 }
 
+func (f *fakeProductProvider) GetVariantsPricingInfo(ctx context.Context, variantIDs []uuid.UUID) ([]*application.ProductPricingInfo, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.infos != nil {
+		return f.infos, nil
+	}
+	if f.info != nil {
+		// Fallback for tests that only provide a single info
+		return []*application.ProductPricingInfo{f.info}, nil
+	}
+	return nil, nil
+}
+
 func (f *fakeProductProvider) ListVariantsPricingInfo(ctx context.Context, productID uuid.UUID) ([]*application.ProductPricingInfo, error) {
 	return f.infos, nil
 }
 
+type fakeClientPricingRepo struct {
+	override    *domain.ClientPricing
+	overrideErr error
+	saved       *domain.ClientPricing
+}
+
+func (f *fakeClientPricingRepo) Save(_ context.Context, o *domain.ClientPricing) error {
+	f.saved = o
+	return f.overrideErr
+}
+
+func (f *fakeClientPricingRepo) FindApplicable(_ context.Context, _ uuid.UUID, _ uuid.UUID, _ time.Time) (*domain.ClientPricing, error) {
+	return f.override, f.overrideErr
+}
+
+func (f *fakeClientPricingRepo) FindApplicableBulk(_ context.Context, _ uuid.UUID, _ []uuid.UUID, _ time.Time) (map[uuid.UUID]*domain.ClientPricing, error) {
+	if f.overrideErr != nil {
+		return nil, f.overrideErr
+	}
+	res := make(map[uuid.UUID]*domain.ClientPricing)
+	if f.override != nil {
+		res[f.override.ProductVariantID] = f.override
+	}
+	return res, nil
+}
+
+type fakeCalculationRepo struct {
+	mu      sync.Mutex
+	calcs   []*domain.PriceCalculation
+	saved   []*domain.PriceCalculation
+	saveErr error
+}
+
+func (f *fakeCalculationRepo) Save(_ context.Context, calc *domain.PriceCalculation) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.saveErr != nil {
+		return f.saveErr
+	}
+	f.saved = append(f.saved, calc)
+	return nil
+}
+
+func (f *fakeCalculationRepo) GetSaved() []*domain.PriceCalculation {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.saved
+}
+
+func (f *fakeCalculationRepo) ListByProductVariantID(_ context.Context, _ uuid.UUID) ([]*domain.PriceCalculation, error) {
+	return f.calcs, nil
+}
+
 func TestPricingEngineService_CreateBaseSalesPriceRule(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.1}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{Name: "Rule", Value: value})
@@ -134,7 +210,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule(t *testing.T) {
 
 func TestPricingEngineService_UpdateBaseSalesPriceRule_NotFound(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	_, err := service.UpdateBaseSalesPriceRule(context.Background(), application.UpdateBaseSalesPriceRuleCommand{ID: uuid.New()})
 	if err == nil {
@@ -146,7 +222,7 @@ func TestPricingEngineService_CalculateBaseSalesPrice_CacheSet(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, cache, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, cache, nil, nil, nil)
 
 	brandID := uuid.New()
 	variantID := uuid.New()
@@ -159,7 +235,7 @@ func TestPricingEngineService_CalculateBaseSalesPrice_CacheSet(t *testing.T) {
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: productID,
-		BaseCost:  100,
+		BaseCost:  decimal.NewFromInt(100),
 		Currency:  "EUR",
 		BrandID:   brandID,
 	}
@@ -179,7 +255,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil, nil, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -197,7 +273,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: productID,
-		BaseCost:  100,
+		BaseCost:  decimal.NewFromInt(100),
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 		GroupIDs:  []uuid.UUID{groupID},
@@ -222,7 +298,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_UsesRule(t *testing.T) {
 }
 
 func TestPricingEngineService_CalculateFinalSalePrice_Validation(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	_, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{})
 	if err == nil {
@@ -239,7 +315,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_Success(t *testing.T) {
 	existingRule.ID = ruleID
 
 	repo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	newPercentage := application.PercentageDTO{Value: 0.3}
 	newValue := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &newPercentage}
@@ -262,7 +338,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_Success(t *testing.T) {
 
 func TestPricingEngineService_CreateSaleModificationRule_PercentageDiscount(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	clientID := uuid.New().String()
 	groupID := uuid.New()
@@ -289,7 +365,7 @@ func TestPricingEngineService_CreateSaleModificationRule_PercentageDiscount(t *t
 
 func TestPricingEngineService_CreateSaleModificationRule_FixedDiscount(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	money := application.MoneyDTO{Amount: 25, Currency: "EUR"}
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyFixedAmountDiscount), MoneyValue: &money}
@@ -312,7 +388,7 @@ func TestPricingEngineService_CreateSaleModificationRule_FixedDiscount(t *testin
 
 func TestPricingEngineService_CreateSaleModificationRule_WithEffectiveDates(t *testing.T) {
 	repo := &fakeSaleRuleRepo{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	effectiveFrom := time.Now().Add(-24 * time.Hour)
 	effectiveTo := time.Now().Add(7 * 24 * time.Hour)
@@ -341,7 +417,7 @@ func TestPricingEngineService_CreateSaleModificationRule_WithEffectiveDates(t *t
 }
 
 func TestPricingEngineService_UpdateSaleModificationRule_NotFound(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	percentage := application.PercentageDTO{Value: 0.1}
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &percentage}
@@ -360,13 +436,13 @@ func TestPricingEngineService_UpdateSaleModificationRule_NotFound(t *testing.T) 
 func TestPricingEngineService_CalculateBaseSalesPrice_NoRules(t *testing.T) {
 	repo := &fakeBaseRuleRepo{rules: []*domain.BaseSalesPriceRule{}}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, provider, nil, nil, nil, nil)
 
 	variantID := uuid.New()
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: uuid.New(),
-		BaseCost:  50,
+		BaseCost:  decimal.NewFromInt(50),
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 	}
@@ -385,7 +461,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_CacheHit(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{rules: []*domain.SaleModificationRule{}}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil, nil, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -395,7 +471,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_CacheHit(t *testing.T) {
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: productID,
-		BaseCost:  100,
+		BaseCost:  decimal.NewFromInt(100),
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 	}
@@ -420,7 +496,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 	saleRepo := &fakeSaleRuleRepo{rules: []*domain.SaleModificationRule{}}
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil)
+	service := application.NewPricingEngineService(repo, saleRepo, provider, cache, nil, nil, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -431,7 +507,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: productID,
-		BaseCost:  100,
+		BaseCost:  decimal.NewFromInt(100),
 		Currency:  "EUR",
 		BrandID:   uuid.New(),
 	}
@@ -453,7 +529,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_NoRules(t *testing.T) {
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_RepositoryError(t *testing.T) {
 	baseRepo := &fakeBaseRuleRepo{saveErr: domain.NewValidationError("db error")}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.2}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{
@@ -466,7 +542,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_RepositoryError(t *testin
 }
 
 func TestPricingEngineService_CreateSaleModificationRule_InvalidValue(t *testing.T) {
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, nil, nil, nil, nil, nil)
 
 	discountPercent := -0.5
 	clientID := uuid.New().String()
@@ -486,32 +562,28 @@ func TestPricingEngineService_CalculateFinalSalePrice_MultipleItems(t *testing.T
 	modRepo := &fakeSaleRuleRepo{}
 	provider := &fakeProductProvider{}
 
-	service := application.NewPricingEngineService(baseRepo, modRepo, provider, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, modRepo, provider, nil, nil, nil, nil)
 
 	variantID1 := uuid.New()
 	variantID2 := uuid.New()
 	productID1 := uuid.New()
 	productID2 := uuid.New()
 
-	calls := 0
-	provider.infoFunc = func(ctx context.Context, vid uuid.UUID) (*application.ProductPricingInfo, error) {
-		calls++
-		if calls == 1 {
-			return &application.ProductPricingInfo{
-				VariantID: variantID1,
-				ProductID: productID1,
-				BaseCost:  50,
-				Currency:  "EUR",
-				BrandID:   uuid.New(),
-			}, nil
-		}
-		return &application.ProductPricingInfo{
-			VariantID: variantID2,
-			ProductID: productID2,
-			BaseCost:  100,
+	provider.infos = []*application.ProductPricingInfo{
+		{
+			VariantID: variantID1,
+			ProductID: productID1,
+			BaseCost:  decimal.NewFromInt(50),
 			Currency:  "EUR",
 			BrandID:   uuid.New(),
-		}, nil
+		},
+		{
+			VariantID: variantID2,
+			ProductID: productID2,
+			BaseCost:  decimal.NewFromInt(100),
+			Currency:  "EUR",
+			BrandID:   uuid.New(),
+		},
 	}
 
 	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
@@ -535,7 +607,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_MultipleItems(t *testing.T
 
 func TestPricingEngineService_CalculateFinalSalePrice_ProductInfoError(t *testing.T) {
 	provider := &fakeProductProvider{err: domain.NewNotFoundError("product not found")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil, nil, nil)
 
 	_, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
 		ClientID: uuid.New().String(),
@@ -666,7 +738,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_AllFields(t *testing.T)
 	)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil, nil, nil)
 
 	newName := "Updated Name"
 	newPercentage := &application.PercentageDTO{Value: 0.2}
@@ -723,7 +795,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_PartialUpdate(t *testin
 	)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil, nil, nil)
 
 	newName := "Partially Updated"
 
@@ -754,7 +826,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_MultipleFields(t *testing
 	existingRule, _ := domain.NewBaseSalesPriceRule("Original Rule", &brandID, nil, nil, nil, ruleValue)
 
 	baseRepo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil, nil, nil)
 
 	newName := "Updated Base Rule"
 	newPercentage := &application.PercentageDTO{Value: 0.3}
@@ -782,7 +854,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_MultipleFields(t *testing
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_WithProductGroup(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, nil, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, nil, nil, nil, nil, nil)
 
 	groupID := uuid.New()
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.25}}
@@ -804,7 +876,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_WithProductGroup(t *testi
 func TestPricingEngineService_CalculateFinalSalePrice_WithCache(t *testing.T) {
 	cache := &fakeBasePriceCache{}
 	provider := &fakeProductProvider{}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil, nil, nil)
 
 	variantID := uuid.New()
 	productID := uuid.New()
@@ -819,7 +891,7 @@ func TestPricingEngineService_CalculateFinalSalePrice_WithCache(t *testing.T) {
 	provider.info = &application.ProductPricingInfo{
 		VariantID: variantID,
 		ProductID: productID,
-		BaseCost:  100,
+		BaseCost:  decimal.NewFromInt(100),
 		Currency:  "EUR",
 		BrandID:   brandID,
 	}
@@ -852,7 +924,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_InvalidPercentage(t *te
 	existingRule, _ := domain.NewSaleModificationRule("Rule", []string{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil, nil, nil)
 
 	invalidValue := &application.RuleValueDTO{
 		Type:            string(domain.RuleValueApplyPercentageDiscount),
@@ -878,7 +950,7 @@ func TestPricingEngineService_UpdateSaleModificationRule_InvalidMoney(t *testing
 	existingRule, _ := domain.NewSaleModificationRule("Rule", []string{clientID}, nil, nil, ruleValue, 1, time.Now(), nil)
 
 	modRepo := &fakeSaleRuleRepo{rule: existingRule}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, modRepo, nil, nil, nil, nil, nil)
 
 	invalidMinOrder := &application.MoneyDTO{Amount: -100, Currency: "EUR"}
 
@@ -901,7 +973,7 @@ func TestPricingEngineService_UpdateBaseSalesPriceRule_InvalidValue(t *testing.T
 	existingRule, _ := domain.NewBaseSalesPriceRule("Rule", &brandID, nil, nil, nil, ruleValue)
 
 	baseRepo := &fakeBaseRuleRepo{find: map[uuid.UUID]*domain.BaseSalesPriceRule{ruleID: existingRule}}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, nil, nil, nil, nil, nil)
 
 	invalidValue := &application.RuleValueDTO{
 		Type:            string(domain.RuleValuePercentageMarkup),
@@ -936,13 +1008,13 @@ func TestPricingEngineService_SelectBaseRule_WithNonMatchingProductGroup(t *test
 		info: &application.ProductPricingInfo{
 			VariantID: variantID,
 			ProductID: productID,
-			BaseCost:  100,
+			BaseCost:  decimal.NewFromInt(100),
 			Currency:  "EUR",
 			BrandID:   brandID,
 			GroupIDs:  []uuid.UUID{groupID1},
 		},
 	}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil, nil, nil)
 
 	resp, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: variantID,
@@ -975,13 +1047,13 @@ func TestPricingEngineService_SelectBaseRule_WithMatchingProductGroup(t *testing
 		info: &application.ProductPricingInfo{
 			VariantID: variantID,
 			ProductID: productID,
-			BaseCost:  100,
+			BaseCost:  decimal.NewFromInt(100),
 			Currency:  "EUR",
 			BrandID:   brandID,
 			GroupIDs:  []uuid.UUID{groupID},
 		},
 	}
-	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil)
+	service := application.NewPricingEngineService(baseRepo, &fakeSaleRuleRepo{}, provider, nil, nil, nil, nil)
 
 	resp, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: variantID,
@@ -997,7 +1069,7 @@ func TestPricingEngineService_SelectBaseRule_WithMatchingProductGroup(t *testing
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_SaveError(t *testing.T) {
 	repo := &fakeBaseRuleRepo{saveErr: fmt.Errorf("save failed")}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.2}}
 	_, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{Name: "Rule", Value: value})
@@ -1009,7 +1081,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_SaveError(t *testing.T) {
 
 func TestPricingEngineService_CreateBaseSalesPriceRule_NoIsActive(t *testing.T) {
 	repo := &fakeBaseRuleRepo{}
-	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil)
+	service := application.NewPricingEngineService(repo, &fakeSaleRuleRepo{}, &fakeProductProvider{}, nil, nil, nil, nil)
 
 	value := application.RuleValueDTO{Type: string(domain.RuleValuePercentageMarkup), PercentageValue: &application.PercentageDTO{Value: 0.15}}
 	resp, err := service.CreateBaseSalesPriceRule(context.Background(), application.CreateBaseSalesPriceRuleCommand{
@@ -1027,7 +1099,7 @@ func TestPricingEngineService_CreateBaseSalesPriceRule_NoIsActive(t *testing.T) 
 
 func TestPricingEngineService_CalculateBaseSalesPrice_ProductInfoError(t *testing.T) {
 	provider := &fakeProductProvider{err: fmt.Errorf("product lookup failed")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, nil, nil, nil, nil)
 
 	_, err := service.CalculateBaseSalesPrice(context.Background(), application.CalculateBaseSalesPriceRequest{
 		VariantID: uuid.New(),
@@ -1040,7 +1112,7 @@ func TestPricingEngineService_CalculateBaseSalesPrice_ProductInfoError(t *testin
 
 func TestPricingEngineService_CreateSaleModificationRule_SaveError(t *testing.T) {
 	repo := &fakeSaleRuleRepo{saveErr: fmt.Errorf("save failed")}
-	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, nil, nil, nil)
+	service := application.NewPricingEngineService(&fakeBaseRuleRepo{}, repo, nil, nil, nil, nil, nil)
 
 	clientID := uuid.New().String()
 	value := application.RuleValueDTO{Type: string(domain.RuleValueApplyPercentageDiscount), PercentageValue: &application.PercentageDTO{Value: 0.1}}
@@ -1054,5 +1126,245 @@ func TestPricingEngineService_CreateSaleModificationRule_SaveError(t *testing.T)
 
 	if err == nil {
 		t.Fatalf("expected save error")
+	}
+}
+
+// --- Tests for Client Pricing Override (G1) and Audit Trail (G2) ---
+
+func TestPricingEngineService_CalculateFinalSalePrice_ClientOverrideFound(t *testing.T) {
+	cache := &fakeBasePriceCache{}
+	provider := &fakeProductProvider{}
+
+	variantID := uuid.New()
+	productID := uuid.New()
+	clientID := uuid.New()
+
+	basePrice, _ := domain.NewMoney(100, "EUR")
+	cache.SetBasePrice(context.Background(), productID, variantID, basePrice)
+
+	provider.info = &application.ProductPricingInfo{
+		VariantID: variantID,
+		ProductID: productID,
+		BaseCost:  decimal.NewFromInt(80),
+		Currency:  "EUR",
+		BrandID:   uuid.New(),
+	}
+
+	fixedPrice, _ := domain.NewMoney(75, "EUR")
+	override, _ := domain.NewClientPricing(clientID, variantID, fixedPrice, time.Now().Add(-time.Hour), nil)
+
+	clientPricingRepo := &fakeClientPricingRepo{override: override}
+	calcRepo := &fakeCalculationRepo{}
+
+	service := application.NewPricingEngineService(
+		&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil,
+		clientPricingRepo, calcRepo,
+	)
+
+	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
+		ClientID: clientID.String(),
+		SaleItems: []application.SaleItemRequest{{
+			ProductVariantID: variantID,
+			Quantity:         2,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.CalculatedItems[0].FinalPrice.Amount != 75 {
+		t.Fatalf("expected override price 75, got %.2f", resp.CalculatedItems[0].FinalPrice.Amount)
+	}
+	if resp.SaleTotal.Amount != 150 {
+		t.Fatalf("expected total 150, got %.2f", resp.SaleTotal.Amount)
+	}
+}
+
+func TestPricingEngineService_CalculateFinalSalePrice_ClientOverrideNotFound(t *testing.T) {
+	cache := &fakeBasePriceCache{}
+	provider := &fakeProductProvider{}
+
+	variantID := uuid.New()
+	productID := uuid.New()
+	clientID := uuid.New()
+	groupID := uuid.New()
+
+	basePrice, _ := domain.NewMoney(100, "EUR")
+	cache.SetBasePrice(context.Background(), productID, variantID, basePrice)
+
+	provider.info = &application.ProductPricingInfo{
+		VariantID: variantID,
+		ProductID: productID,
+		BaseCost:  decimal.NewFromInt(80),
+		Currency:  "EUR",
+		BrandID:   uuid.New(),
+		GroupIDs:  []uuid.UUID{groupID},
+	}
+
+	// No override â†’ nil
+	clientPricingRepo := &fakeClientPricingRepo{override: nil}
+
+	discount, _ := domain.NewMoney(10, "EUR")
+	value, _ := domain.NewRuleValue(domain.RuleValueApplyFixedAmountDiscount, nil, &discount)
+	rule, _ := domain.NewSaleModificationRule("Promo", []string{clientID.String()}, &groupID, nil, value, 1, time.Now().Add(-time.Hour), nil)
+	saleRepo := &fakeSaleRuleRepo{rules: []*domain.SaleModificationRule{rule}}
+
+	service := application.NewPricingEngineService(
+		&fakeBaseRuleRepo{}, saleRepo, provider, cache, nil,
+		clientPricingRepo, nil,
+	)
+
+	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
+		ClientID: clientID.String(),
+		SaleItems: []application.SaleItemRequest{{
+			ProductVariantID: variantID,
+			Quantity:         1,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should fall through to SaleModificationRule: 100 - 10 = 90
+	if resp.CalculatedItems[0].FinalPrice.Amount != 90 {
+		t.Fatalf("expected rule-discounted price 90, got %.2f", resp.CalculatedItems[0].FinalPrice.Amount)
+	}
+}
+
+func TestPricingEngineService_CalculateFinalSalePrice_ClientOverrideRepoError(t *testing.T) {
+	cache := &fakeBasePriceCache{}
+	provider := &fakeProductProvider{}
+
+	variantID := uuid.New()
+	productID := uuid.New()
+	clientID := uuid.New()
+
+	basePrice, _ := domain.NewMoney(100, "EUR")
+	cache.SetBasePrice(context.Background(), productID, variantID, basePrice)
+
+	provider.info = &application.ProductPricingInfo{
+		VariantID: variantID,
+		ProductID: productID,
+		BaseCost:  decimal.NewFromInt(80),
+		Currency:  "EUR",
+		BrandID:   uuid.New(),
+	}
+
+	// Repository error â†’ should log warning and fall through to normal flow
+	clientPricingRepo := &fakeClientPricingRepo{overrideErr: fmt.Errorf("db connection error")}
+
+	service := application.NewPricingEngineService(
+		&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil,
+		clientPricingRepo, nil,
+	)
+
+	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
+		ClientID: clientID.String(),
+		SaleItems: []application.SaleItemRequest{{
+			ProductVariantID: variantID,
+			Quantity:         1,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Falls through to normal flow (no rules, no discount) â†’ base price
+	if resp.CalculatedItems[0].FinalPrice.Amount != 100 {
+		t.Fatalf("expected base price 100, got %.2f", resp.CalculatedItems[0].FinalPrice.Amount)
+	}
+}
+
+func TestPricingEngineService_CalculateFinalSalePrice_AuditTrailSaved(t *testing.T) {
+	cache := &fakeBasePriceCache{}
+	provider := &fakeProductProvider{}
+
+	variantID := uuid.New()
+	productID := uuid.New()
+	clientID := uuid.New()
+
+	basePrice, _ := domain.NewMoney(100, "EUR")
+	cache.SetBasePrice(context.Background(), productID, variantID, basePrice)
+
+	provider.info = &application.ProductPricingInfo{
+		VariantID: variantID,
+		ProductID: productID,
+		BaseCost:  decimal.NewFromInt(80),
+		Currency:  "EUR",
+		BrandID:   uuid.New(),
+	}
+
+	calcRepo := &fakeCalculationRepo{}
+
+	service := application.NewPricingEngineService(
+		&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil,
+		nil, calcRepo,
+	)
+
+	_, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
+		ClientID: clientID.String(),
+		SaleItems: []application.SaleItemRequest{{
+			ProductVariantID: variantID,
+			Quantity:         3,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Wait for async audit
+	time.Sleep(200 * time.Millisecond)
+
+	savedCalculations := calcRepo.GetSaved()
+	if len(savedCalculations) != 1 {
+		t.Fatalf("expected 1 audit record, got %d", len(savedCalculations))
+	}
+	saved := savedCalculations[0]
+	if saved.ProductVariantID != variantID {
+		t.Fatalf("expected variantID %s, got %s", variantID, saved.ProductVariantID)
+	}
+	if saved.ClientID != clientID {
+		t.Fatalf("expected clientID %s, got %s", clientID, saved.ClientID)
+	}
+	if saved.Quantity != 3 {
+		t.Fatalf("expected quantity 3, got %d", saved.Quantity)
+	}
+}
+
+func TestPricingEngineService_CalculateFinalSalePrice_AuditTrailSaveErrorDoesNotBreakCalculation(t *testing.T) {
+	cache := &fakeBasePriceCache{}
+	provider := &fakeProductProvider{}
+
+	variantID := uuid.New()
+	productID := uuid.New()
+	clientID := uuid.New()
+
+	basePrice, _ := domain.NewMoney(100, "EUR")
+	cache.SetBasePrice(context.Background(), productID, variantID, basePrice)
+
+	provider.info = &application.ProductPricingInfo{
+		VariantID: variantID,
+		ProductID: productID,
+		BaseCost:  decimal.NewFromInt(80),
+		Currency:  "EUR",
+		BrandID:   uuid.New(),
+	}
+
+	calcRepo := &fakeCalculationRepo{saveErr: fmt.Errorf("audit save failed")}
+
+	service := application.NewPricingEngineService(
+		&fakeBaseRuleRepo{}, &fakeSaleRuleRepo{}, provider, cache, nil,
+		nil, calcRepo,
+	)
+
+	resp, err := service.CalculateFinalSalePrice(context.Background(), application.CalculateFinalSalePriceRequest{
+		ClientID: clientID.String(),
+		SaleItems: []application.SaleItemRequest{{
+			ProductVariantID: variantID,
+			Quantity:         1,
+		}},
+	})
+	if err != nil {
+		t.Fatalf("expected no error despite audit save failure, got: %v", err)
+	}
+	if resp.SaleTotal.Amount != 100 {
+		t.Fatalf("expected total 100, got %.2f", resp.SaleTotal.Amount)
 	}
 }

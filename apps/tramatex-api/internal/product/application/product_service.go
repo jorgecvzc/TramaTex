@@ -651,6 +651,201 @@ func (s *ProductService) GetProductVariantBySKU(ctx context.Context, query GetPr
 	return NewProductVariantDTOFromDomain(variant, product, allAttributes), nil
 }
 
+// GetVariantPricingData returns pricing-relevant data for a variant.
+// This is the public API consumed by the Pricing module's ACL (ProductPricingClient).
+func (s *ProductService) GetVariantPricingData(ctx context.Context, variantID uuid.UUID) (*VariantPricingDataDTO, error) {
+	variant, err := s.variantRepo.FindByID(ctx, variantID)
+	if err != nil {
+		return nil, err
+	}
+	if variant == nil {
+		return nil, nil
+	}
+	return s.buildVariantPricingData(ctx, variant)
+}
+
+// ListVariantsPricingData returns pricing-relevant data for all variants of a product.
+func (s *ProductService) ListVariantsPricingData(ctx context.Context, productID uuid.UUID) ([]*VariantPricingDataDTO, error) {
+	product, err := s.productRepo.FindByID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+	if product == nil {
+		return nil, nil
+	}
+	variants, err := s.variantRepo.FindByProductID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*VariantPricingDataDTO, 0, len(variants))
+	for _, v := range variants {
+		dto, err := s.buildVariantPricingData(ctx, v)
+		if err != nil {
+			return nil, err
+		}
+		if dto != nil {
+			result = append(result, dto)
+		}
+	}
+	return result, nil
+}
+
+// GetVariantsPricingData returns pricing-relevant data for a list of variants.
+// Optimized for bulk fetching to reduce N+1 queries.
+func (s *ProductService) GetVariantsPricingData(ctx context.Context, variantIDs []uuid.UUID) ([]*VariantPricingDataDTO, error) {
+	if len(variantIDs) == 0 {
+		return nil, nil
+	}
+
+	// 1. Bulk fetch all variants
+	variants, err := s.variantRepo.FindByIDs(ctx, variantIDs)
+	if err != nil {
+		return nil, err
+	}
+	if len(variants) == 0 {
+		return nil, nil
+	}
+
+	// 2. Extract unique product IDs and bulk fetch products
+	productIDMap := make(map[uuid.UUID]bool)
+	for _, v := range variants {
+		productIDMap[v.ProductID] = true
+	}
+	productIDs := make([]uuid.UUID, 0, len(productIDMap))
+	for id := range productIDMap {
+		productIDs = append(productIDs, id)
+	}
+
+	productList, err := s.productRepo.FindByIDs(ctx, productIDs)
+	if err != nil {
+		return nil, err
+	}
+	products := make(map[uuid.UUID]*domain.Product)
+	for _, p := range productList {
+		products[p.ID] = p
+	}
+
+	// 3. Extract unique brand IDs and bulk fetch brands
+	brandIDMap := make(map[uuid.UUID]bool)
+	for _, p := range products {
+		if p.BrandID != nil {
+			brandIDMap[*p.BrandID] = true
+		}
+	}
+	brandIDs := make([]uuid.UUID, 0, len(brandIDMap))
+	for id := range brandIDMap {
+		brandIDs = append(brandIDs, id)
+	}
+
+	brandList, err := s.brandRepo.FindByIDs(ctx, brandIDs)
+	if err != nil {
+		return nil, err
+	}
+	brands := make(map[uuid.UUID]*domain.Brand)
+	for _, b := range brandList {
+		brands[b.ID] = b
+	}
+
+	// 4. Fetch all attributes once for base cost calculation
+	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	attrValueMap := make(map[uuid.UUID]domain.AttributeValue)
+	for _, attr := range allAttributes {
+		for _, val := range attr.Values {
+			attrValueMap[val.ID] = val
+		}
+	}
+
+	// 5. Build DTOs
+	result := make([]*VariantPricingDataDTO, 0, len(variants))
+	for _, v := range variants {
+		product, found := products[v.ProductID]
+		if !found {
+			continue
+		}
+
+		var variantAttrValues []domain.AttributeValue
+		for _, avID := range v.AttributeValues {
+			if av, found := attrValueMap[avID]; found {
+				variantAttrValues = append(variantAttrValues, av)
+			}
+		}
+		baseCost := domain.CalculateBaseCost(product.BasePrice, variantAttrValues)
+
+		var brandID uuid.UUID
+		var brandMarkup float64
+		if product.BrandID != nil {
+			brandID = *product.BrandID
+			if brand, found := brands[brandID]; found {
+				brandMarkup = brand.DefaultMarkupPercentage
+			}
+		}
+
+		result = append(result, &VariantPricingDataDTO{
+			VariantID:             v.ID,
+			ProductID:             v.ProductID,
+			BaseCost:              baseCost,
+			Currency:              "EUR",
+			BrandID:               brandID,
+			BrandMarkupPercentage: brandMarkup,
+			GroupIDs:              product.GroupIDs,
+			TaxRate:               product.TaxRate,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *ProductService) buildVariantPricingData(ctx context.Context, variant *domain.ProductVariant) (*VariantPricingDataDTO, error) {
+	product, err := s.productRepo.FindByID(ctx, variant.ProductID)
+	if err != nil || product == nil {
+		return nil, err
+	}
+
+	// Calculate BaseCost from attribute modifiers
+	allAttributes, err := s.attributeRepo.FindByScope(ctx, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	attrValueMap := make(map[uuid.UUID]domain.AttributeValue)
+	for _, attr := range allAttributes {
+		for _, val := range attr.Values {
+			attrValueMap[val.ID] = val
+		}
+	}
+	var variantAttrValues []domain.AttributeValue
+	for _, avID := range variant.AttributeValues {
+		if av, found := attrValueMap[avID]; found {
+			variantAttrValues = append(variantAttrValues, av)
+		}
+	}
+	baseCost := domain.CalculateBaseCost(product.BasePrice, variantAttrValues)
+
+	// Get brand markup
+	var brandID uuid.UUID
+	var brandMarkup float64
+	if product.BrandID != nil {
+		brandID = *product.BrandID
+		brand, err := s.brandRepo.FindByID(ctx, brandID)
+		if err == nil && brand != nil {
+			brandMarkup = brand.DefaultMarkupPercentage
+		}
+	}
+
+	return &VariantPricingDataDTO{
+		VariantID:             variant.ID,
+		ProductID:             variant.ProductID,
+		BaseCost:              baseCost,
+		Currency:              "EUR",
+		BrandID:               brandID,
+		BrandMarkupPercentage: brandMarkup,
+		GroupIDs:              product.GroupIDs,
+		TaxRate:               product.TaxRate,
+	}, nil
+}
+
 // GenerateProductVariants handles UC-P-007: Pre-generate Variants for a Product.
 func (s *ProductService) GenerateProductVariants(ctx context.Context, cmd GenerateProductVariantsCommand) error {
 	product, err := s.productRepo.FindByID(ctx, cmd.ProductID)
@@ -1456,6 +1651,10 @@ func (s *ProductService) UpdateProductGroup(ctx context.Context, cmd UpdateProdu
 			return nil, domain.NewNotFoundErrorf("parent group with ID %s does not exist", *cmd.ParentID)
 		}
 		group.ParentGroupID = cmd.ParentID
+	}
+
+	if cmd.IsActive != nil {
+		group.IsActive = *cmd.IsActive
 	}
 
 	if err := s.groupRepo.Save(ctx, group); err != nil {

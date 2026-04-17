@@ -1,5 +1,7 @@
 package domain
 
+import "net/http"
+
 const (
 	ErrCodeValidation = "VALIDATION_ERROR"
 	ErrCodeNotFound   = "NOT_FOUND"
@@ -14,6 +16,23 @@ type DomainError struct {
 
 func (e DomainError) Error() string {
 	return e.Message
+}
+
+// HTTPStatus returns the HTTP status code corresponding to this error.
+// Implements shared/domain.HTTPStatuser for global middleware handling.
+func (e DomainError) HTTPStatus() int {
+	switch e.Code {
+	case ErrCodeValidation:
+		return http.StatusBadRequest
+	case ErrCodeNotFound:
+		return http.StatusNotFound
+	case ErrCodeConflict:
+		return http.StatusConflict
+	case ErrCodeRule:
+		return http.StatusUnprocessableEntity
+	default:
+		return http.StatusBadRequest
+	}
 }
 
 func NewValidationError(message string) error {

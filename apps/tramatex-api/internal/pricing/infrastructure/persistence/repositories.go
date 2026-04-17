@@ -11,74 +11,6 @@ import (
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
 
-type GORMPricingRuleRepository struct {
-	db *gorm.DB
-}
-
-func NewGORMPricingRuleRepository(db *gorm.DB) *GORMPricingRuleRepository {
-	return &GORMPricingRuleRepository{db: db}
-}
-
-func (r *GORMPricingRuleRepository) Save(ctx context.Context, rule *domain.PricingRule) error {
-	data := PricingRuleFromDomain(rule)
-	return r.db.WithContext(ctx).Save(data).Error
-}
-
-func (r *GORMPricingRuleRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.PricingRule, error) {
-	var data PricingRuleDataModel
-	err := r.db.WithContext(ctx).First(&data, "id = ?", id).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return data.ToDomain()
-}
-
-func (r *GORMPricingRuleRepository) List(ctx context.Context) ([]*domain.PricingRule, error) {
-	var data []PricingRuleDataModel
-	err := r.db.WithContext(ctx).Order("created_at desc").Find(&data).Error
-	if err != nil {
-		return nil, err
-	}
-
-	rules := make([]*domain.PricingRule, 0, len(data))
-	for i := range data {
-		rule, err := data[i].ToDomain()
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, rule)
-	}
-	return rules, nil
-}
-
-func (r *GORMPricingRuleRepository) FindApplicable(ctx context.Context, variantID uuid.UUID, quantity int, at time.Time) ([]*domain.PricingRule, error) {
-	var data []PricingRuleDataModel
-	query := r.db.WithContext(ctx).
-		Where("is_active = true").
-		Where("effective_from <= ?", at).
-		Where("effective_to IS NULL OR effective_to >= ?", at).
-		Where("(product_variant_id IS NULL OR product_variant_id = ?)", variantID).
-		Where("min_quantity <= ?", quantity).
-		Where("max_quantity IS NULL OR max_quantity >= ?", quantity)
-
-	if err := query.Find(&data).Error; err != nil {
-		return nil, err
-	}
-
-	rules := make([]*domain.PricingRule, 0, len(data))
-	for i := range data {
-		rule, err := data[i].ToDomain()
-		if err != nil {
-			return nil, err
-		}
-		rules = append(rules, rule)
-	}
-	return rules, nil
-}
-
 type GORMClientPricingRepository struct {
 	db *gorm.DB
 }
@@ -110,73 +42,35 @@ func (r *GORMClientPricingRepository) FindApplicable(ctx context.Context, client
 	return data.ToDomain()
 }
 
-type GORMBrandProfitMarginRepository struct {
-	db *gorm.DB
-}
-
-func NewGORMBrandProfitMarginRepository(db *gorm.DB) *GORMBrandProfitMarginRepository {
-	return &GORMBrandProfitMarginRepository{db: db}
-}
-
-func (r *GORMBrandProfitMarginRepository) Save(ctx context.Context, margin *domain.BrandProfitMargin) error {
-	data := BrandProfitMarginFromDomain(margin)
-	return r.db.WithContext(ctx).Save(data).Error
-}
-
-func (r *GORMBrandProfitMarginRepository) FindApplicable(ctx context.Context, brandID uuid.UUID, at time.Time) (*domain.BrandProfitMargin, error) {
-	var data BrandProfitMarginDataModel
+func (r *GORMClientPricingRepository) FindApplicableBulk(ctx context.Context, clientID uuid.UUID, variantIDs []uuid.UUID, at time.Time) (map[uuid.UUID]*domain.ClientPricing, error) {
+	if len(variantIDs) == 0 {
+		return make(map[uuid.UUID]*domain.ClientPricing), nil
+	}
+	var data []ClientPricingDataModel
 	err := r.db.WithContext(ctx).
 		Where("is_active = true").
-		Where("brand_id = ?", brandID).
+		Where("client_id = ? AND product_variant_id IN ?", clientID, variantIDs).
 		Where("effective_from <= ?", at).
 		Where("effective_to IS NULL OR effective_to >= ?", at).
 		Order("created_at desc").
-		First(&data).Error
+		Find(&data).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
 		return nil, err
 	}
-	return data.ToDomain()
-}
-
-type GORMSalesDiscountRuleRepository struct {
-	db *gorm.DB
-}
-
-func NewGORMSalesDiscountRuleRepository(db *gorm.DB) *GORMSalesDiscountRuleRepository {
-	return &GORMSalesDiscountRuleRepository{db: db}
-}
-
-func (r *GORMSalesDiscountRuleRepository) Save(ctx context.Context, rule *domain.SalesDiscountRule) error {
-	data := SalesDiscountRuleFromDomain(rule)
-	return r.db.WithContext(ctx).Save(data).Error
-}
-
-func (r *GORMSalesDiscountRuleRepository) FindApplicable(ctx context.Context, clientID uuid.UUID, variantID uuid.UUID, quantity int, at time.Time) ([]*domain.SalesDiscountRule, error) {
-	var data []SalesDiscountRuleDataModel
-	query := r.db.WithContext(ctx).
-		Where("is_active = true").
-		Where("effective_from <= ?", at).
-		Where("effective_to IS NULL OR effective_to >= ?", at).
-		Where("(client_id IS NULL OR client_id = ?)", clientID).
-		Where("(product_variant_id IS NULL OR product_variant_id = ?)", variantID).
-		Where("min_quantity IS NULL OR min_quantity <= ?", quantity)
-
-	if err := query.Find(&data).Error; err != nil {
-		return nil, err
-	}
-
-	rules := make([]*domain.SalesDiscountRule, 0, len(data))
+	results := make(map[uuid.UUID]*domain.ClientPricing)
 	for i := range data {
-		rule, err := data[i].ToDomain()
+		override, err := data[i].ToDomain()
 		if err != nil {
 			return nil, err
 		}
-		rules = append(rules, rule)
+		// If multiple exist (though unlikely given constraints), the creation order (desc) 
+		// means the first one processed per variantID wins if we iterate normally, 
+		// but since we want the LATEST created, we use the map to store only the first seen if we sorted desc.
+		if _, exists := results[override.ProductVariantID]; !exists {
+			results[override.ProductVariantID] = override
+		}
 	}
-	return rules, nil
+	return results, nil
 }
 
 type GORMPriceCalculationRepository struct {
@@ -280,6 +174,29 @@ func (r *GORMSaleModificationRuleRepository) FindByID(ctx context.Context, id uu
 		return nil, err
 	}
 	return data.ToDomain()
+}
+
+func (r *GORMSaleModificationRuleRepository) ListActive(ctx context.Context, at time.Time) ([]*domain.SaleModificationRule, error) {
+	var data []SaleModificationRuleDataModel
+	err := r.db.WithContext(ctx).
+		Where("is_active = true").
+		Where("effective_from <= ?", at).
+		Where("effective_to IS NULL OR effective_to >= ?", at).
+		Order("priority desc").
+		Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]*domain.SaleModificationRule, 0, len(data))
+	for i := range data {
+		rule, err := data[i].ToDomain()
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
 }
 
 func (r *GORMSaleModificationRuleRepository) ListApplicable(ctx context.Context, clientID string, productGroupID *uuid.UUID, orderTotal domain.Money, at time.Time) ([]*domain.SaleModificationRule, error) {

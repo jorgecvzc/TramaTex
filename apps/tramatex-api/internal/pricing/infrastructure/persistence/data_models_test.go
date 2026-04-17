@@ -11,35 +11,13 @@ import (
 )
 
 func TestPricingDataModels_ToDomainAndFromDomain(t *testing.T) {
-	percentage, _ := domain.NewPercentage(0.1)
 	money, _ := domain.NewMoney(5, "EUR")
-
-	pricingRule, _ := domain.NewPricingRule("Rule", nil, nil, percentage, 1, nil, time.Now(), nil)
-	pricingModel := PricingRuleFromDomain(pricingRule)
-	mappedRule, err := pricingModel.ToDomain()
-	if err != nil || mappedRule.Name != pricingRule.Name {
-		t.Fatalf("expected pricing rule mapping")
-	}
 
 	clientPricing, _ := domain.NewClientPricing(uuid.New(), uuid.New(), money, time.Now(), nil)
 	clientModel := ClientPricingFromDomain(clientPricing)
 	mappedClient, err := clientModel.ToDomain()
 	if err != nil || mappedClient.ClientID != clientPricing.ClientID {
 		t.Fatalf("expected client pricing mapping")
-	}
-
-	margin, _ := domain.NewBrandProfitMargin(uuid.New(), &percentage, &money, time.Now(), nil)
-	marginModel := BrandProfitMarginFromDomain(margin)
-	mappedMargin, err := marginModel.ToDomain()
-	if err != nil || mappedMargin.BrandID != margin.BrandID {
-		t.Fatalf("expected margin mapping")
-	}
-
-	discount, _ := domain.NewSalesDiscountRule("Discount", nil, nil, nil, domain.DiscountTypeFixed, nil, &money, 1, time.Now(), nil)
-	discountModel := SalesDiscountRuleFromDomain(discount)
-	mappedDiscount, err := discountModel.ToDomain()
-	if err != nil || mappedDiscount.Name != discount.Name {
-		t.Fatalf("expected discount mapping")
 	}
 
 	value, _ := domain.NewRuleValue(domain.RuleValueFixedAmountIncrease, nil, &money)
