@@ -1,11 +1,9 @@
 -- ============================================================================
 -- Migration: 002_init_party.sql
--- Description: Initialize Party module (consolidated)
--- Absorbs: 002, 007 (phone/email + notes), 008 (discount), 012 (CONSUMIDOR FINAL seed), 016 (role fix)
--- Date: 2026-03-21
+-- Module: Party (Parties, Profiles, Roles, Addresses, Contacts)
+-- Date: 2026-04-14
 -- ============================================================================
 
-BEGIN;
 
 -- ============================================================================
 -- PARTIES TABLE (Aggregate Root)
@@ -26,7 +24,6 @@ CREATE TABLE IF NOT EXISTS parties (
 CREATE INDEX IF NOT EXISTS idx_parties_status ON parties(status);
 
 COMMENT ON TABLE parties IS 'Parties aggregate root - represents any entity (person or organization)';
-COMMENT ON COLUMN parties.status IS 'Party status: ACTIVE, INACTIVE';
 COMMENT ON COLUMN parties.default_discount_percentage IS 'Default discount percentage applied when this party acts as a client (0-100)';
 
 -- ============================================================================
@@ -43,8 +40,6 @@ CREATE TABLE IF NOT EXISTS person_profiles (
 );
 
 COMMENT ON TABLE person_profiles IS 'Person-specific profile data (1:1 with party)';
-COMMENT ON COLUMN person_profiles.phone IS 'Contact phone number for person';
-COMMENT ON COLUMN person_profiles.email IS 'Contact email address for person';
 
 -- ============================================================================
 -- ORGANIZATION PROFILE (Optional, 1:1 with party)
@@ -65,8 +60,6 @@ CREATE TABLE IF NOT EXISTS organization_profiles (
 CREATE INDEX IF NOT EXISTS idx_organization_profiles_tax_id ON organization_profiles(tax_id);
 
 COMMENT ON TABLE organization_profiles IS 'Organization-specific profile data (1:1 with party)';
-COMMENT ON COLUMN organization_profiles.phone IS 'Primary contact phone number for organization';
-COMMENT ON COLUMN organization_profiles.email IS 'Primary contact email address for organization';
 
 -- ============================================================================
 -- PARTY ROLES (Many per party)
@@ -83,7 +76,6 @@ CREATE TABLE IF NOT EXISTS party_roles (
 CREATE INDEX IF NOT EXISTS idx_party_roles_role ON party_roles(role);
 
 COMMENT ON TABLE party_roles IS 'Party roles (CLIENT, SUPPLIER, EMPLOYEE, etc.)';
-COMMENT ON COLUMN party_roles.creation_identifier IS 'Identifier from the source system that created this role';
 
 -- ============================================================================
 -- PARTY RELATIONSHIPS
@@ -179,8 +171,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 COMMENT ON TABLE party_service_configurations IS 'Service-specific configurations for parties';
 
 -- ============================================================================
--- SEED DATA: CONSUMIDOR FINAL (for simplified invoices/tickets)
--- UUID: 00000000-0000-0000-0000-000000000001
+-- SEED: CONSUMIDOR FINAL (for simplified invoices/tickets)
 -- ============================================================================
 INSERT INTO parties (id, status, created_by, modified_by, default_discount_percentage)
 VALUES ('00000000-0000-0000-0000-000000000001', 'ACTIVE', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 'f47ac10b-58cc-4372-a567-0e02b2c3d479', 0)
@@ -194,8 +185,3 @@ INSERT INTO party_roles (party_id, role)
 VALUES ('00000000-0000-0000-0000-000000000001', 'CLIENT')
 ON CONFLICT (party_id, role) DO NOTHING;
 
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: 002_init_party.sql
--- ============================================================================
