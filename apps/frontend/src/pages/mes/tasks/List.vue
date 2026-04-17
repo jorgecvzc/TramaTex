@@ -100,7 +100,6 @@
         <textarea v-model="formData.description" class="form-textarea" rows="3"></textarea>
       </div>
     </BaseDialog>
-  </div>
 </template>
 
 <script setup lang="ts">

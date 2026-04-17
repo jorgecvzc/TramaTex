@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
@@ -39,11 +39,12 @@ const newSetupForm = ref({
 const tangibleGroups = computed(() => productGroups.value.filter(g => g.type === 'TANGIBLE'))
 
 async function loadExistingSetups() {
-  if (!props.workOrder?.party_id) return
+  const partyId = props.workOrder?.party_id || (props.workOrder as any)?.partyId
+  if (!partyId) return
   isLoading.value = true
   try {
     existingWorkSetups.value = await mesApi.listWorkSetups({ 
-      party_id: props.workOrder.party_id, 
+      party_id: partyId, 
       is_active: true 
     })
   } catch (err: any) {
@@ -140,17 +141,45 @@ async function handleConfirm() {
   }
 }
 
-onMounted(() => {
+function initializeState() {
   const wo = props.workOrder
+  error.value = ''
+  mode.value = 'assign'
+  selectedWorkSetupId.value = ''
+  
   if (wo) {
-    const partyId = wo.party_id || wo.partyId
+    const partyId = wo.party_id || (wo as any).partyId
     if (partyId) {
-      newSetupForm.value.party_id = partyId
-      newSetupForm.value.name = `Configuración para ${wo.work_name || wo.description || 'nueva orden'}`
+      newSetupForm.value = {
+        name: `Configuración para ${wo.work_name || (wo as any).description || 'nueva orden'}`,
+        party_id: partyId,
+        tangible_group_id: '',
+        description: '',
+        is_active: true,
+        lines: []
+      }
       loadExistingSetups()
     } else {
       console.warn('[WorkSetupSelectorDialog] La orden de trabajo no tiene party_id identificado:', wo)
     }
+  }
+}
+
+watch(() => props.show, (newVal) => {
+  if (newVal) {
+    initializeState()
+  }
+})
+
+watch(() => props.workOrder, () => {
+  if (props.show) {
+    initializeState()
+  }
+})
+
+onMounted(() => {
+  if (props.show) {
+    initializeState()
   }
 })
 </script>
