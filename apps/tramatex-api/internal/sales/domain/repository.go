@@ -66,6 +66,7 @@ type DeliveryNoteRepository interface {
 	List(ctx context.Context, filter DeliveryNoteFilter) ([]*DeliveryNote, error)
 	ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*DeliveryNote, error)
 	LinkLineItemsToInvoice(ctx context.Context, links map[uuid.UUID]uuid.UUID) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type InvoiceRepository interface {

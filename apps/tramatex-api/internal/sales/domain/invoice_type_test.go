@@ -32,8 +32,8 @@ func TestInvoiceType_String(t *testing.T) {
 		it   InvoiceType
 		want string
 	}{
-		{"complete", InvoiceTypeComplete, "COMPLETA"},
-		{"simplified", InvoiceTypeSimplified, "SIMPLIFICADA"},
+		{"complete", InvoiceTypeComplete, "COMPLETE"},
+		{"simplified", InvoiceTypeSimplified, "SIMPLIFIED"},
 	}
 
 	for _, tt := range tests {

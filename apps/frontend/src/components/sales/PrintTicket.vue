@@ -6,6 +6,8 @@
  * Formato compacto, fuentes optimizadas para impresoras térmicas.
  */
 import salesApi from '@/services/salesApi'
+import { computed } from 'vue'
+import { getPrintIssuerProfile } from '@/services/printIssuerProfile'
 
 const props = defineProps<{
   number: string
@@ -15,16 +17,19 @@ const props = defineProps<{
   customerName?: string
 }>()
 
+const issuer = computed(() => getPrintIssuerProfile())
+
 const formatDate = (d: string) => d ? new Date(d).toLocaleString('es-ES') : '—'
 </script>
 
 <template>
   <div class="ticket-container">
     <header class="ticket-header">
-      <h1>TRAMATEX</h1>
-      <p>CIF: B-12345678</p>
-      <p>C/ Industria, 42</p>
-      <p>Tel: 912 345 678</p>
+      <h1>{{ issuer.displayName }}</h1>
+      <p>{{ issuer.taxLabel }}: {{ issuer.taxId }}</p>
+      <p>{{ issuer.addressLine }}</p>
+      <p>{{ issuer.cityLine }}</p>
+      <p>{{ issuer.contactLine }}</p>
     </header>
 
     <div class="ticket-info">

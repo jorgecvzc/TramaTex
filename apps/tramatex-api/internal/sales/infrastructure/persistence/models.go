@@ -177,6 +177,86 @@ func (InvoiceLineItemDataModel) TableName() string {
 	return "\"invoice_line_items\""
 }
 
+// normalizeQuoteStatus maps legacy Spanish DB enum values to English domain constants.
+func normalizeQuoteStatus(raw string) domain.QuoteStatus {
+	u := strings.ToUpper(strings.TrimSpace(raw))
+	switch u {
+	case "BORRADOR":
+		return domain.QuoteStatusDraft
+	case "EMITIDA", "ENVIADA", "EMITIDO", "ENVIADO":
+		return domain.QuoteStatusIssued
+	case "APROBADA", "APROBADO":
+		return domain.QuoteStatusApproved
+	case "RECHAZADA", "RECHAZADO":
+		return domain.QuoteStatusRejected
+	case "EXPIRADA", "EXPIRADO":
+		return domain.QuoteStatusExpired
+	case "CONVERTIDA_A_PEDIDO", "CONVERTIDO_A_PEDIDO":
+		return domain.QuoteStatusConverted
+	default:
+		return domain.QuoteStatus(u)
+	}
+}
+
+// normalizeOrderStatus maps legacy Spanish DB enum values to English domain constants.
+func normalizeOrderStatus(raw string) domain.SalesOrderStatus {
+	u := strings.ToUpper(strings.TrimSpace(raw))
+	switch u {
+	case "PENDIENTE":
+		return domain.SalesOrderStatusPending
+	case "EN_PREPARACION", "EN_PREPARACIÓN":
+		return domain.SalesOrderStatusInPreparation
+	case "LANZADO_A_PRODUCCION", "LANZADO_A_PRODUCCIÓN":
+		return domain.SalesOrderStatusReadyForProduction
+	case "ENTREGADO_PARCIALMENTE", "ENTREGADA_PARCIALMENTE":
+		return domain.SalesOrderStatusPartiallyDelivered
+	case "ENTREGADO", "ENTREGADA":
+		return domain.SalesOrderStatusDelivered
+	case "CANCELADO", "CANCELADA":
+		return domain.SalesOrderStatusCancelled
+	case "FACTURADO_PARCIALMENTE", "FACTURADA_PARCIALMENTE":
+		return domain.SalesOrderStatusPartiallyInvoiced
+	case "FACTURADO_COMPLETAMENTE", "FACTURADA_COMPLETAMENTE", "FACTURADO", "FACTURADA":
+		return domain.SalesOrderStatusInvoiced
+	default:
+		return domain.SalesOrderStatus(u)
+	}
+}
+
+// normalizeDeliveryNoteStatus maps legacy Spanish DB enum values to English domain constants.
+func normalizeDeliveryNoteStatus(raw string) domain.DeliveryNoteStatus {
+	u := strings.ToUpper(strings.TrimSpace(raw))
+	switch u {
+	case "PENDIENTE":
+		return domain.DeliveryNoteStatusPending
+	case "ENTREGADO", "ENTREGADA":
+		return domain.DeliveryNoteStatusDelivered
+	case "CANCELADO", "ANULADO", "CANCELADA", "ANULADA":
+		return domain.DeliveryNoteStatusCancelled
+	default:
+		return domain.DeliveryNoteStatus(u)
+	}
+}
+
+// normalizeInvoiceStatus maps legacy Spanish DB enum values to English domain constants.
+func normalizeInvoiceStatus(raw string) domain.InvoiceStatus {
+	u := strings.ToUpper(strings.TrimSpace(raw))
+	switch u {
+	case "BORRADOR":
+		return domain.InvoiceStatusDraft
+	case "EMITIDA", "EMITIDO":
+		return domain.InvoiceStatusIssued
+	case "PAGADA", "PAGADO":
+		return domain.InvoiceStatusPaid
+	case "VENCIDA", "VENCIDO":
+		return domain.InvoiceStatusOverdue
+	case "ANULADA", "ANULADO":
+		return domain.InvoiceStatusVoid
+	default:
+		return domain.InvoiceStatus(u)
+	}
+}
+
 func quoteFromDomain(quote *domain.Quote) (*QuoteDataModel, error) {
 	notes := toOptionalString(quote.Notes)
 	return &QuoteDataModel{
@@ -390,7 +470,7 @@ func quoteToDomain(quote *QuoteDataModel, items []QuoteLineItemDataModel) (*doma
 		PartyID:        quote.PartyID,
 		QuoteDate:      quote.QuoteDate,
 		ExpirationDate: quote.ExpirationDate,
-		Status:         domain.QuoteStatus(quote.Status),
+		Status:         normalizeQuoteStatus(quote.Status),
 		LineItems:      lineItems,
 		Subtotal:       subtotal,
 		TaxAmount:      tax,
@@ -470,7 +550,7 @@ func salesOrderToDomain(order *SalesOrderDataModel, items []OrderLineItemDataMod
 		PartyID:      order.PartyID,
 		OrderDate:    order.OrderDate,
 		DeliveryDate: order.DeliveryDate,
-		Status:       domain.SalesOrderStatus(order.Status),
+		Status:       normalizeOrderStatus(order.Status),
 		LineItems:    lineItems,
 		Subtotal:     subtotal,
 		TaxAmount:    tax,
@@ -538,7 +618,7 @@ func deliveryNoteToDomain(note *DeliveryNoteDataModel, items []DeliveryNoteLineI
 		SalesOrderID:       note.SalesOrderID,
 		PartyID:            note.PartyID,
 		DeliveryDate:       note.DeliveryDate,
-		Status:             domain.DeliveryNoteStatus(note.Status),
+		Status:             normalizeDeliveryNoteStatus(note.Status),
 		LineItems:          lineItems,
 		Notes:              optionalStringValue(note.Notes),
 	}, nil
@@ -590,7 +670,7 @@ func invoiceToDomain(invoice *InvoiceDataModel, items []InvoiceLineItemDataModel
 		PartyID:       invoice.PartyID,
 		InvoiceDate:   invoice.InvoiceDate,
 		DueDate:       invoice.DueDate,
-		Status:        domain.InvoiceStatus(invoice.Status),
+		Status:        normalizeInvoiceStatus(invoice.Status),
 		LineItems:     lineItems,
 		Subtotal:      subtotal,
 		TaxAmount:     tax,

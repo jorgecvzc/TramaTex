@@ -379,24 +379,25 @@ async function handleVariantSelected(v) {
 
   if (existing) {
     existing.quantity++;
+    existing.unitPrice = null; // Reset para mostrar carga
     await refreshLinePrice(existing);
   } else {
-    // Creamos el item pero CON PRECIO CERO inicialmente para forzar la carga
+    // Creamos el item con PRECIO NULO inicialmente
     const newItem = {
       productVariantId: variant.id, 
       variantSku: variant.sku,
       productName: variant.product_name || variant.productName || 'Producto', 
       optionDescription: optionDescription,
       quantity: 1,
-      unitPrice: 0, 
+      unitPrice: null, 
       discountPercent: customerDiscount.value 
     };
     
-    // CARGA CRÃTICA: Esperamos a que el motor de pricing nos dÃ© el "Precio Venta" (PVP con margen)
-    await refreshLinePrice(newItem);
-    
-    // Solo lo aÃ±adimos cuando tenemos el precio real del motor
+    // Lo añadimos inmediatamente para dar feedback visual de que el producto se ha seleccionado
     lineItems.value.push(newItem);
+    
+    // Y cargamos el precio real
+    await refreshLinePrice(newItem);
   }
   productSearch.value = '';
   showVariantSelector.value = false;
@@ -421,20 +422,17 @@ async function refreshLinePrice(item) {
       const calc = result.calculatedItems[0];
       
       // PRECIO VENTA = BaseSalesPrice (Coste + Suplementos + Margen)
-      // Usamos parentheses para evitar el error de mezcla de operadores ?? y ||
       item.unitPrice = (calc.baseSalesPrice?.amount ?? calc.baseSalesPrice) || 0;
       
-      // DESCUENTO: Prioridad al del cliente, salvo que el motor traiga una regla mÃ¡s fuerte
-      const engineDiscount = calc.discountPercent || 0;
-      if (Math.abs(engineDiscount - customerDiscount.value) < 0.5) {
-        item.discountPercent = customerDiscount.value;
-      } else {
-        item.discountPercent = Math.round(engineDiscount * 100) / 100;
+      // DESCUENTO: Sincronizar con el motor si no ha sido modificado manualmente
+      // Si el motor trae un descuento específico (regla), lo usamos. 
+      // Si no, mantenemos el del cliente.
+      if (calc.discountPercent > 0) {
+        item.discountPercent = Math.round(calc.discountPercent * 100) / 100;
       }
     }
   } catch (err) {
     console.error("Error en motor de pricing:", err);
-    item.discountPercent = customerDiscount.value;
   }
 }
 

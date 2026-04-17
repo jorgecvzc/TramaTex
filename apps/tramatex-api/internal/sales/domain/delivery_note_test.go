@@ -242,10 +242,10 @@ func TestDeliveryNote_ChangeStatus_PendingToCanceled_Success(t *testing.T) {
 		"",
 	)
 
-	err := dn.ChangeStatus(DeliveryNoteStatusCanceled)
+	err := dn.ChangeStatus(DeliveryNoteStatusCancelled)
 
 	assert.NoError(t, err)
-	assert.Equal(t, DeliveryNoteStatusCanceled, dn.Status)
+	assert.Equal(t, DeliveryNoteStatusCancelled, dn.Status)
 }
 
 func TestDeliveryNote_ChangeStatus_DeliveredToAnything_Fail(t *testing.T) {
@@ -269,7 +269,7 @@ func TestDeliveryNote_ChangeStatus_DeliveredToAnything_Fail(t *testing.T) {
 	_ = dn.ChangeStatus(DeliveryNoteStatusDelivered)
 
 	// Try to transition to Canceled (should fail)
-	err := dn.ChangeStatus(DeliveryNoteStatusCanceled)
+	err := dn.ChangeStatus(DeliveryNoteStatusCancelled)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid delivery note status transition")
@@ -294,14 +294,14 @@ func TestDeliveryNote_ChangeStatus_CanceledToAnything_Fail(t *testing.T) {
 	)
 
 	// First transition to Canceled
-	_ = dn.ChangeStatus(DeliveryNoteStatusCanceled)
+	_ = dn.ChangeStatus(DeliveryNoteStatusCancelled)
 
 	// Try to transition to Delivered (should fail)
 	err := dn.ChangeStatus(DeliveryNoteStatusDelivered)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid delivery note status transition")
-	assert.Equal(t, DeliveryNoteStatusCanceled, dn.Status) // Status remains unchanged
+	assert.Equal(t, DeliveryNoteStatusCancelled, dn.Status) // Status remains unchanged
 }
 
 func TestDeliveryNote_ChangeStatus_InvalidStatus_Fail(t *testing.T) {
@@ -328,7 +328,7 @@ func TestDeliveryNote_ChangeStatus_InvalidStatus_Fail(t *testing.T) {
 	assert.Equal(t, DeliveryNoteStatusPending, dn.Status) // Status remains unchanged
 }
 
-func TestDeliveryNote_ChangeStatus_PendingToPending_Fail(t *testing.T) {
+func TestDeliveryNote_ChangeStatus_PendingToPending_Success(t *testing.T) {
 	number, _ := NewDeliveryNoteNumber("DN/2026/0001")
 	salesOrderID := uuid.New()
 	partyID := uuid.New()
@@ -347,7 +347,6 @@ func TestDeliveryNote_ChangeStatus_PendingToPending_Fail(t *testing.T) {
 
 	err := dn.ChangeStatus(DeliveryNoteStatusPending)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid delivery note status transition")
+	assert.NoError(t, err)
 	assert.Equal(t, DeliveryNoteStatusPending, dn.Status)
 }

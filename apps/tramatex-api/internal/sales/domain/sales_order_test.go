@@ -249,10 +249,10 @@ func TestSalesOrder_ChangeStatus_PendingToInPreparation(t *testing.T) {
 func TestSalesOrder_ChangeStatus_PendingToCanceled(t *testing.T) {
 	order := createValidOrder(t)
 
-	err := order.ChangeStatus(SalesOrderStatusCanceled)
+	err := order.ChangeStatus(SalesOrderStatusCancelled)
 
 	assert.NoError(t, err)
-	assert.Equal(t, SalesOrderStatusCanceled, order.Status)
+	assert.Equal(t, SalesOrderStatusCancelled, order.Status)
 }
 
 func TestSalesOrder_ChangeStatus_InPreparationToPartiallyDelivered(t *testing.T) {
@@ -337,12 +337,27 @@ func TestSalesOrder_ChangeStatus_InvalidTransition_DeliveredToPending(t *testing
 
 func TestSalesOrder_ChangeStatus_ValidTransition_CanceledToPending(t *testing.T) {
 	order := createValidOrder(t)
-	order.Status = SalesOrderStatusCanceled
+	order.Status = SalesOrderStatusCancelled
 
 	err := order.ChangeStatus(SalesOrderStatusPending)
 
 	assert.NoError(t, err)
 	assert.Equal(t, SalesOrderStatusPending, order.Status)
+}
+
+func TestSalesOrder_ChangeStatus_ReadyForProduction(t *testing.T) {
+	order := createValidOrder(t)
+
+	// From Pending to ReadyForProduction
+	err := order.ChangeStatus(SalesOrderStatusReadyForProduction)
+	assert.NoError(t, err)
+	assert.Equal(t, SalesOrderStatusReadyForProduction, order.Status)
+
+	// Reset to InPreparation
+	order.Status = SalesOrderStatusInPreparation
+	err = order.ChangeStatus(SalesOrderStatusReadyForProduction)
+	assert.NoError(t, err)
+	assert.Equal(t, SalesOrderStatusReadyForProduction, order.Status)
 }
 
 func TestSalesOrder_ChangeStatus_InvalidStatus(t *testing.T) {

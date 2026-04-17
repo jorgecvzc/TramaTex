@@ -576,18 +576,19 @@ func TestCreateInvoice_Success(t *testing.T) {
 	orderID := uuid.New()
 	partyID := uuid.New()
 	variantID := uuid.New()
+	deliveryNoteID := uuid.New()
+	orderLineItemID := uuid.New()
 
-	// Create a valid order with line items using struct literals
 	money, _ := domain.NewMoney(100.0, "EUR")
 	order := &domain.SalesOrder{
 		ID:           orderID,
 		PartyID:      partyID,
 		OrderDate:    time.Now(),
 		DeliveryDate: time.Now().Add(7 * 24 * time.Hour),
-		Status:       domain.SalesOrderStatusDelivered, // Status must be Delivered for invoicing
+		Status:       domain.SalesOrderStatusDelivered,
 		LineItems: []domain.OrderLineItem{
 			{
-				ID:               uuid.New(),
+				ID:               orderLineItemID,
 				ProductVariantID: variantID,
 				Quantity:         10,
 				ListUnitPrice:    money,
@@ -601,6 +602,22 @@ func TestCreateInvoice_Success(t *testing.T) {
 		Total:     money,
 	}
 
+	deliveryNote := &domain.DeliveryNote{
+		ID:           deliveryNoteID,
+		SalesOrderID: orderID,
+		PartyID:      partyID,
+		DeliveryDate: time.Now(),
+		Status:       domain.DeliveryNoteStatusDelivered,
+		LineItems: []domain.DeliveryNoteLineItem{
+			{
+				ID:                   uuid.New(),
+				SalesOrderLineItemID: orderLineItemID,
+				ProductVariantID:     variantID,
+				DeliveredQuantity:    10,
+			},
+		},
+	}
+
 	orderRepo := &stubOrderRepo{
 		findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
 			if id == orderID {
@@ -610,15 +627,30 @@ func TestCreateInvoice_Success(t *testing.T) {
 		},
 	}
 
+	deliveryRepo := &stubDeliveryNoteRepo{
+		findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.DeliveryNote, error) {
+			if id == deliveryNoteID {
+				return deliveryNote, nil
+			}
+			return nil, domain.NewNotFoundError("delivery note not found")
+		},
+		linkLineItemsFn: func(ctx context.Context, links map[uuid.UUID]uuid.UUID) error {
+			return nil
+		},
+	}
+
 	invoiceRepo := &stubInvoiceRepo{
 		saveFn: func(ctx context.Context, invoice *domain.Invoice) error {
 			return nil
+		},
+		listBySalesOrderIDFn: func(ctx context.Context, orderID uuid.UUID) ([]*domain.Invoice, error) {
+			return []*domain.Invoice{}, nil
 		},
 	}
 	numberGen := &stubDocumentNumberGenerator{}
 
 	service := application.NewSalesService(
-		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
+		&stubQuoteRepo{}, orderRepo, deliveryRepo, invoiceRepo,
 		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
@@ -629,8 +661,7 @@ func TestCreateInvoice_Success(t *testing.T) {
 	paymentTerms := "Net 30"
 	reqBody := map[string]interface{}{
 		"partyId":         partyID.String(),
-		"salesOrderIds":   []string{orderID.String()},
-		"deliveryNoteIds": []string{},
+		"deliveryNoteIds": []string{deliveryNoteID.String()},
 		"invoiceDate":     time.Now().Format(time.RFC3339),
 		"dueDate":         time.Now().Add(30 * 24 * time.Hour).Format(time.RFC3339),
 		"paymentTerms":    &paymentTerms,
@@ -850,7 +881,7 @@ func TestChangeQuoteStatus_Success(t *testing.T) {
 	router.POST("/quotes/:id/status", handler.ChangeQuoteStatus)
 
 	reqBody := map[string]interface{}{
-		"newStatus": "EMITIDA",
+		"newStatus": "ISSUED",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -1015,7 +1046,7 @@ func TestChangeOrderStatus_Success(t *testing.T) {
 	router.POST("/orders/:id/status", handler.ChangeOrderStatus)
 
 	reqBody := map[string]interface{}{
-		"newStatus": "EN_PREPARACION",
+		"newStatus": "IN_PREPARATION",
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -1385,41 +1416,8 @@ func TestListDeliveryNotes_Success(t *testing.T) {
 // ===== ADDITIONAL INVOICE HANDLER TESTS =====
 
 func TestCreateSimplifiedInvoice_Success(t *testing.T) {
-	orderID := uuid.New()
 	partyID := uuid.New()
 	variantID := uuid.New()
-
-	money, _ := domain.NewMoney(100.0, "EUR")
-	order := &domain.SalesOrder{
-		ID:           orderID,
-		PartyID:      partyID,
-		OrderDate:    time.Now(),
-		DeliveryDate: time.Now().Add(7 * 24 * time.Hour),
-		Status:       domain.SalesOrderStatusDelivered,
-		LineItems: []domain.OrderLineItem{
-			{
-				ID:               uuid.New(),
-				ProductVariantID: variantID,
-				Quantity:         10,
-				ListUnitPrice:    money,
-				UnitPrice:        money,
-				DiscountPerUnit:  money,
-				Subtotal:         money,
-			},
-		},
-		Subtotal:  money,
-		TaxAmount: money,
-		Total:     money,
-	}
-
-	orderRepo := &stubOrderRepo{
-		findByIDFn: func(ctx context.Context, id uuid.UUID) (*domain.SalesOrder, error) {
-			if id == orderID {
-				return order, nil
-			}
-			return nil, domain.NewNotFoundError("order not found")
-		},
-	}
 
 	invoiceRepo := &stubInvoiceRepo{
 		saveFn: func(ctx context.Context, invoice *domain.Invoice) error {
@@ -1429,7 +1427,7 @@ func TestCreateSimplifiedInvoice_Success(t *testing.T) {
 	numberGen := &stubDocumentNumberGenerator{}
 
 	service := application.NewSalesService(
-		&stubQuoteRepo{}, orderRepo, &stubDeliveryNoteRepo{}, invoiceRepo,
+		&stubQuoteRepo{}, &stubOrderRepo{}, &stubDeliveryNoteRepo{}, invoiceRepo,
 		numberGen, &stubPricingEngine{}, &stubPartyLookup{}, nil, nil,
 	)
 	handler := NewSalesHandler(service)
@@ -1438,11 +1436,15 @@ func TestCreateSimplifiedInvoice_Success(t *testing.T) {
 	router.POST("/invoices/simplified", handler.CreateSimplifiedInvoice)
 
 	reqBody := map[string]interface{}{
-		"partyId":         partyID.String(),
-		"salesOrderIds":   []string{orderID.String()},
-		"deliveryNoteIds": []string{},
-		"invoiceDate":     time.Now().Format(time.RFC3339),
-		"dueDate":         time.Now().Add(30 * 24 * time.Hour).Format(time.RFC3339),
+		"partyId":     partyID.String(),
+		"invoiceDate": time.Now().Format(time.RFC3339),
+		"items": []map[string]interface{}{
+			{
+				"productVariantId": variantID.String(),
+				"quantity":         5,
+				"discountPercent":  0,
+			},
+		},
 	}
 	body, _ := json.Marshal(reqBody)
 

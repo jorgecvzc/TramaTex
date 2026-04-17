@@ -1,5 +1,5 @@
 <template>
-  <BaseEntityPage v-if="isLoading">
+  <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
       <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
@@ -9,7 +9,7 @@
     </div>
   </BaseEntityPage>
 
-  <BaseEntityPage v-else-if="error">
+  <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
       <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
@@ -25,7 +25,7 @@
     </div>
   </BaseEntityPage>
 
-  <BaseEntityPage v-else-if="quote || mode === 'create'">
+  <BaseEntityPage class="no-print" v-else-if="quote || mode === 'create'">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <PageHeader 
@@ -67,10 +67,10 @@
           <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="confirmIssueQuote">
             <span class="material-symbols-outlined">send</span> <span>Emitir a Cliente</span>
           </button>
-          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired" class="btn btn-success btn-sm" @click="showConvertModal = true">
+          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
             <span class="material-symbols-outlined">check_circle</span> <span>Aceptar y Crear Pedido</span>
           </button>
-          <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired" class="btn btn-success btn-sm" @click="showConvertModal = true">
+          <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
             <span class="material-symbols-outlined">shopping_cart</span> <span>Crear Pedido</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="rejectQuote">
@@ -296,26 +296,23 @@
     </FormSection>
 
     <FormSection title="Resumen Económico" icon="payments">
-      <div v-if="mode === 'detail'">
-        <DataRow label="Subtotal" :value="salesApi.formatMoney(quote.subtotal)" />
-        <DataRow label="Impuestos" :value="salesApi.formatMoney(quote.taxAmount)" />
-        <DataRow label="TOTAL PRESUPUESTO" :value="salesApi.formatMoney(quote.total)" highlight />
-      </div>
-      <div v-else class="totals-checkout-layout">
-        <section class="totals-checkout-card" :class="{ 'is-loading-overlay': isPreviewLoading }">
-          <div class="total-row">
+      <div class="totals-summary-container">
+        <section class="totals-summary-card" :class="{ 'is-loading-overlay': isPreviewLoading }">
+          <div class="summary-row">
             <label>Subtotal:</label>
             <span>{{ salesApi.formatMoney(liveTotals.subtotal) }}</span>
           </div>
-          <div class="total-row">
-            <label>IVA (21%):</label>
+          <div class="summary-row">
+            <label>Impuestos (IVA 21%):</label>
             <span>{{ salesApi.formatMoney(liveTotals.taxAmount) }}</span>
           </div>
-          <div class="total-row final">
-            <label>TOTAL ESTIMADO:</label>
-            <span class="total-value">{{ salesApi.formatMoney(liveTotals.total) }}</span>
+          <div class="summary-row grand-total">
+            <label>{{ mode === 'detail' ? 'TOTAL PRESUPUESTO:' : 'TOTAL ESTIMADO:' }}</label>
+            <span>{{ salesApi.formatMoney(liveTotals.total) }}</span>
           </div>
-          <div v-if="isPreviewLoading" class="mini-spinner-overlay">
+          
+          <!-- Overlay de carga solo en edición -->
+          <div v-if="isPreviewLoading && mode !== 'detail'" class="mini-spinner-overlay">
             <div class="mini-spinner"></div>
           </div>
         </section>
@@ -330,7 +327,7 @@
     </template>
   </BaseEntityPage>
 
-  <BaseEntityPage v-else>
+  <BaseEntityPage class="no-print" v-else>
     <template #header>
       <PageHeader title="Estado Indeterminado" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
@@ -371,7 +368,47 @@
   </BaseDialog>
 
   <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
-  <PrintDocument v-if="quote" :data="printData" />
+  <div class="print-container">
+    <PrintDocument
+      v-if="quote"
+      type="QUOTE"
+      :number="quote.quoteNumber"
+      :date="quote.quoteDate"
+      :expiry-date="quote.expirationDate"
+      :customer-name="partyName"
+      :customer-tax-id="quote.taxId"
+      :items="quote.lineItems"
+      :totals="{ subtotal: quote.subtotal, taxAmount: quote.taxAmount, total: quote.total }"
+      :notes="quote.notes"
+    />
+  </div>
+
+  <!-- Post-Issue Actions Modal -->
+  <Transition name="fade">
+    <div v-if="showPostIssueModal" class="modal-backdrop no-print">
+      <div class="modal card w-modal-md animate-fade-in">
+        <div class="modal-header border-none pb-0">
+          <div class="icon-circle success">
+            <span class="material-symbols-outlined">check_circle</span>
+          </div>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="modal-body text-center p-6 pt-2">
+          <h2 class="mb-2">¡Presupuesto Emitido!</h2>
+          <p class="text-secondary mb-6">El presupuesto <strong>{{ quote?.quoteNumber }}</strong> se ha emitido correctamente. ¿Qué desea hacer ahora?</p>
+          
+          <div class="post-issue-actions">
+            <button class="btn btn-primary w-full justify-center mb-3 py-3" @click="postIssuePrint">
+              <span class="material-symbols-outlined">print</span> <span>Imprimir Presupuesto</span>
+            </button>
+            <button class="btn btn-outline w-full justify-center" @click="showPostIssueModal = false">
+              <span>Continuar trabajando</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -384,10 +421,11 @@ import DataRow from '@/components/shared/DataRow.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
-import PrintDocument from '@/components/shared/PrintDocument.vue';
+import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -416,6 +454,7 @@ let previewTimer = null;
 const showVariantSelector = ref(false);
 const showConvertModal = ref(false);
 const isConverting = ref(false);
+const showPostIssueModal = ref(false);
 
 // Watcher para cambios en el formulario que requieran recalcular totales
 watch(() => [formData.partyId, formData.lineItems], () => {
@@ -561,17 +600,24 @@ function openVariantSelector() {
 
 function handleVariantSelected(payload) {
   const variant = payload.variant || payload;
-  formData.lineItems.push({
+  const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
     displayName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    listPrice: variant.product_base_price || 0,
-    unitPrice: variant.product_base_price || 0,
+    listPrice: null, // No mostrar nada inicialmente
+    unitPrice: null, // No mostrar nada inicialmente
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
-  });
+  };
+  
+  formData.lineItems.push(newItem);
   showVariantSelector.value = false;
+  
+  // Trigger immediate calculation
+  nextTick(() => {
+    fetchPreviewCalculation();
+  });
 }
 
 function removeLineItem(idx) { formData.lineItems.splice(idx, 1); }
@@ -703,23 +749,32 @@ function buildDisplayName(i) { return (i.productName || i.displayName || 'Produc
 function formatVariantId(id) { return id ? id.substring(0, 8) : '—'; }
 function formatMesWorkId(id) { return id ? (mesWorksCache.value[id]?.name || id.substring(0, 8)) : 'Sin config.'; }
 
-async function confirmIssueQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'EMITIDA'); await fetchQuote(); } catch (err) { alert(err.message); } }
-async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'RECHAZADA'); await fetchQuote(); } catch (err) { alert(err.message); } } }
-async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'BORRADOR'); await fetchQuote(); } catch (err) { alert(err.message); } }
+async function confirmIssueQuote() { 
+  try { 
+    await salesApi.changeQuoteStatus(quote.value.id, 'ISSUED'); 
+    await fetchQuote();
+    showPostIssueModal.value = true;
+  } catch (err) { 
+    alert(err.message); 
+  } 
+}
+
+function postIssuePrint() { 
+  showPostIssueModal.value = false; 
+  window.print(); 
+}
+async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); } catch (err) { alert(err.message); } } }
+async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); } catch (err) { alert(err.message); } }
 
 async function convertToOrder() {
   isConverting.value = true;
   try {
-    // Aseguramos que el presupuesto está aceptado antes de convertirlo.
-    if (!['ACEPTADA', 'ACCEPTED', 'APROBADA', 'APPROVED'].includes(quote.value.status)) {
-      await salesApi.changeQuoteStatus(quote.value.id, 'ACCEPTED');
-    }
-    
     // Establecemos fecha de entrega por defecto: 15 días a partir de hoy
     const deliveryDateObj = new Date();
     deliveryDateObj.setDate(deliveryDateObj.getDate() + 15);
     const deliveryDate = deliveryDateObj.toISOString().split('T')[0];
     
+    // El backend auto-aprueba el presupuesto (DRAFT→ISSUED→APPROVED→CONVERTED)
     const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
     router.push(`/sales/orders/${order.id}`);
   } catch (err) { 
@@ -728,61 +783,11 @@ async function convertToOrder() {
   finally { isConverting.value = false; }
 }
 
-const printData = computed(() => {
-  if (!quote.value) return null;
-  return {
-    type: 'PRESUPUESTO',
-    number: quote.value.quoteNumber || '—',
-    date: quote.value.quoteDate,
-    expiryDate: quote.value.expirationDate,
-    party: {
-      name: partyName.value,
-      taxId: quote.value.taxId,
-      address: quote.value.address, // Si estuviera disponible
-    },
-    items: (quote.value.lineItems || []).map(i => ({
-      sku: i.variantSku,
-      name: buildDisplayName(i),
-      quantity: i.quantity,
-      unitPrice: i.unitPrice?.amount || 0,
-      discount: i.discountPercent,
-      subtotal: i.subtotal?.amount || 0
-    })),
-    subtotal: quote.value.subtotal?.amount || 0,
-    taxAmount: quote.value.taxAmount?.amount || 0,
-    total: quote.value.total?.amount || 0,
-    notes: quote.value.notes
-  }
-});
-
 function printQuote() { window.print(); }
 </script>
 
 <style scoped>
 @import "@/design-system/_sections.css";
-
-.overview-tags-row, .related-history-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
-.related-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-
-.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
-.related-tag-card { padding: 0.6rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-left: 4px solid var(--color-secondary); border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; position: relative; transition: all 0.2s ease; }
-.related-tag-card.highlight-info { border-left-color: #2563eb; }
-.related-tag-card:hover { background: white; transform: translateX(2px) translateY(-1px); box-shadow: var(--box-shadow-md); }
-.related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
-
-.tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
-.tag-icon .material-symbols-outlined { font-size: 22px; }
-
-.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
-.icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-
-.tag-content { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; }
-.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
-.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
-.amount { color: #16a34a !important; font-size: 1.15rem !important; }
-.jump-icon { font-size: 18px; color: var(--color-text-secondary); opacity: 0.5; margin-left: auto; }
 
 .action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); }
 .status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; }
@@ -819,4 +824,12 @@ function printQuote() { window.print(); }
 .audit-info { color: var(--color-text-secondary); font-size: 0.8rem; }
 .code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; }
 .btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }
+
+/* ESTILOS DE IMPRESIÓN PROFESIONAL */
+.print-container { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+}
 </style>
