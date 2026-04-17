@@ -61,7 +61,8 @@
             v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status)"
             class="btn btn-success btn-sm"
             @click="markAsPaid"
-            :disabled="isChangingStatus"
+            :disabled="isChangingStatus || !canManageInvoiceStatus"
+            :title="!canManageInvoiceStatus ? 'Requiere rol admin o commercial' : ''"
           >
             <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
           </button>
@@ -282,20 +283,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
+import { useAuthStore } from '@/stores/auth';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const mode = ref('detail');
 const invoice = ref(null);
@@ -316,6 +320,7 @@ const statusConfirmIcon = ref('');
 const statusConfirmText = ref('');
 const statusConfirmClass = ref('');
 const pendingStatus = ref('');
+const canManageInvoiceStatus = computed(() => ['admin', 'commercial'].includes((authStore.userRole || '').toLowerCase()));
 
 const formData = reactive({
   dueDate: '',
@@ -437,6 +442,11 @@ async function executeStatusChange() {
       showPostIssueModal.value = true;
     }
   } catch (err) {
+    const statusCode = err?.response?.status;
+    if (statusCode === 403) {
+      alert('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
+      return;
+    }
     alert(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
