@@ -59,7 +59,7 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
         1.  Validar que `Quote.Status` es `APROBADA`.
         2.  Crear un `SalesOrder` copiando los datos relevantes de la `Quote` (cliente, ítems, precios finales).
         3.  Asignar el `QuoteID` al `SalesOrder`.
-        4.  Establecer `SalesOrder.Status` a `PENDIENTE`.
+        4.  Establecer `SalesOrder.Status` a `EN_PREPARACION` (Confirmado por defecto).
         5.  Persistir `SalesOrder` y sus `OrderLineItem`s.
         6.  Cambiar `Quote.Status` a `CONVERTIDA_A_PEDIDO`.
     *   **Salida:** `SalesOrder` recién creado.
@@ -70,7 +70,7 @@ Este documento detalla los casos de uso para el módulo de Ventas, abarcando la 
     *   **Propósito:** Crear un nuevo pedido de venta directamente (sin cotización previa).
     *   **Actores:** Vendedor.
     *   **Entradas:** `PartyID` del cliente, lista de `{ ProductVariantID, Quantity, UnitPrice (opcional), DiscountPerUnit (opcional) }` para los ítems, `DeliveryDate`, `Notes`.
-    *   **Flujo:** Similar a `CreateQuote`, pero establece `SalesOrder.Status` a `PENDIENTE` y genera `OrderNumber`.
+    *   **Flujo:** Similar a `CreateQuote`, pero establece `SalesOrder.Status` a `EN_PREPARACION` (Confirmado) y genera `OrderNumber`.
     *   **Salida:** `SalesOrder`.
 
 *   **CU-S-008: GetOrder**

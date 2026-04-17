@@ -20,11 +20,8 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 	if cmd.DueDate.IsZero() {
 		return nil, domain.NewValidationError("dueDate is required")
 	}
-	if len(cmd.SalesOrderIDs) == 0 && len(cmd.DeliveryNoteIDs) == 0 {
-		return nil, domain.NewValidationError("salesOrderIds or deliveryNoteIds must be provided")
-	}
-	if len(cmd.SalesOrderIDs) > 0 && len(cmd.DeliveryNoteIDs) > 0 {
-		return nil, domain.NewValidationError("provide either salesOrderIds or deliveryNoteIds, not both")
+	if len(cmd.DeliveryNoteIDs) == 0 {
+		return nil, domain.NewValidationError("deliveryNoteIds must be provided")
 	}
 	if s.numberGen == nil {
 		return nil, domain.NewConfigurationError("invoice number generator not configured")
@@ -36,53 +33,18 @@ func (s *SalesService) CreateInvoice(ctx context.Context, cmd CreateInvoiceComma
 		relatedOrders := make(map[uuid.UUID]struct{})
 		dnToInvoiceLinks := make(map[uuid.UUID]uuid.UUID)
 
-		orders, err := s.fetchOrdersForInvoice(txCtx, cmd.PartyID, cmd.SalesOrderIDs)
+		noteItems, noteOrders, noteLinks, err := s.buildInvoiceItemsFromDeliveryNotes(txCtx, cmd.PartyID, cmd.DeliveryNoteIDs)
 		if err != nil {
 			return err
 		}
-		for _, order := range orders {
-			// Calculate already-invoiced quantities to avoid double-invoicing
-			// when some delivery notes for this order have already been invoiced.
-			existingInvoices, err := s.invoiceRepo.ListBySalesOrderID(txCtx, order.ID)
-			if err != nil {
-				return err
-			}
-			alreadyInvoiced := make(map[uuid.UUID]int)
-			for _, inv := range existingInvoices {
-				for _, invItem := range inv.LineItems {
-					if invItem.SalesOrderLineItemID != nil {
-						alreadyInvoiced[*invItem.SalesOrderLineItemID] += invItem.Quantity
-					}
-				}
-			}
-
-			for _, item := range order.LineItems {
-				remaining := item.Quantity - alreadyInvoiced[item.ID]
-				if remaining <= 0 {
-					continue // This line item is already fully invoiced
-				}
-				lineItem, err := buildInvoiceLineItemFromOrder(item, remaining)
-				if err != nil {
-					return err
-				}
-				lineItems = append(lineItems, lineItem)
-			}
-			relatedOrders[order.ID] = struct{}{}
+		lineItems = append(lineItems, noteItems...)
+		for _, orderID := range noteOrders {
+			relatedOrders[orderID] = struct{}{}
+		}
+		for k, v := range noteLinks {
+			dnToInvoiceLinks[k] = v
 		}
 
-		if len(cmd.DeliveryNoteIDs) > 0 {
-			noteItems, noteOrders, noteLinks, err := s.buildInvoiceItemsFromDeliveryNotes(txCtx, cmd.PartyID, cmd.DeliveryNoteIDs)
-			if err != nil {
-				return err
-			}
-			lineItems = append(lineItems, noteItems...)
-			for _, orderID := range noteOrders {
-				relatedOrders[orderID] = struct{}{}
-			}
-			for k, v := range noteLinks {
-				dnToInvoiceLinks[k] = v
-			}
-		}
 		if len(lineItems) == 0 {
 			return domain.NewValidationError("invoice must have at least one line item")
 		}
@@ -268,8 +230,27 @@ func sumInvoiceLineItemTaxes(items []domain.InvoiceLineItem) (domain.Money, erro
 }
 
 func parseInvoiceStatus(input string) (domain.InvoiceStatus, error) {
-	value := domain.InvoiceStatus(strings.ToUpper(strings.TrimSpace(input)))
-	return value, value.IsValid()
+	u := strings.ToUpper(strings.TrimSpace(input))
+
+	switch u {
+	case "DRAFT", "BORRADOR":
+		return domain.InvoiceStatusDraft, nil
+	case "ISSUED", "EMITIDO", "EMITIDA", "SENT", "ENVIADO", "ENVIADA":
+		return domain.InvoiceStatusIssued, nil
+	case "PAID", "PAGADO", "PAGADA", "COBRADO", "COBRADA":
+		return domain.InvoiceStatusPaid, nil
+	case "OVERDUE", "VENCIDO", "VENCIDA", "CADUCADO", "CADUCADA":
+		return domain.InvoiceStatusOverdue, nil
+	case "VOID", "ANULADO", "ANULADA":
+		return domain.InvoiceStatusVoid, nil
+	default:
+		// Fallback to direct cast and validation
+		val := domain.InvoiceStatus(u)
+		if err := val.IsValid(); err != nil {
+			return "", err
+		}
+		return val, nil
+	}
 }
 
 func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (domain.InvoiceLineItem, error) {
@@ -291,30 +272,6 @@ func buildInvoiceLineItemFromOrder(item domain.OrderLineItem, quantity int) (dom
 	}
 	lineItem.SalesOrderLineItemID = &item.ID
 	return lineItem, nil
-}
-
-func (s *SalesService) fetchOrdersForInvoice(ctx context.Context, partyID uuid.UUID, orderIDs []uuid.UUID) ([]*domain.SalesOrder, error) {
-	orders := make([]*domain.SalesOrder, 0, len(orderIDs))
-	for _, orderID := range orderIDs {
-		order, err := s.orderRepo.FindByIDForUpdate(ctx, orderID)
-		if err != nil {
-			return nil, err
-		}
-		if order == nil {
-			return nil, domain.NewNotFoundError("order not found")
-		}
-		if order.PartyID != partyID {
-			return nil, domain.NewValidationError("order party mismatch")
-		}
-		if order.Status == domain.SalesOrderStatusCanceled {
-			return nil, domain.NewConflictError("cannot invoice canceled order")
-		}
-		if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {
-			return nil, domain.NewConflictError("order must be delivered before invoicing")
-		}
-		orders = append(orders, order)
-	}
-	return orders, nil
 }
 
 func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, partyID uuid.UUID, noteIDs []uuid.UUID) ([]domain.InvoiceLineItem, []uuid.UUID, map[uuid.UUID]uuid.UUID, error) {
@@ -367,7 +324,7 @@ func (s *SalesService) buildInvoiceItemsFromDeliveryNotes(ctx context.Context, p
 }
 
 func (s *SalesService) updateOrderInvoiceStatus(ctx context.Context, order *domain.SalesOrder) error {
-	if order.Status == domain.SalesOrderStatusCanceled {
+	if order.Status == domain.SalesOrderStatusCancelled {
 		return domain.NewConflictError("cannot update invoice status for canceled order")
 	}
 	if order.Status != domain.SalesOrderStatusDelivered && order.Status != domain.SalesOrderStatusPartiallyDelivered && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusInvoiced {

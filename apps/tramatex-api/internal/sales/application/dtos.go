@@ -74,6 +74,7 @@ type OrderLineItemDTO struct {
 	VariantSKU          string            `json:"variantSku,omitempty"`
 	OptionConfiguration map[string]string `json:"optionConfiguration,omitempty"`
 	Quantity            int               `json:"quantity"`
+	DeliveredQuantity   int               `json:"deliveredQuantity"`
 	ListUnitPrice       MoneyDTO          `json:"listUnitPrice"`
 	UnitPrice           MoneyDTO          `json:"unitPrice"`
 	TaxRate             float64           `json:"taxRate"`
@@ -159,6 +160,7 @@ type InvoiceDTO struct {
 	SeriesCode             string               `json:"seriesCode"`
 	PartyID                uuid.UUID            `json:"partyId"`
 	InvoiceDate            time.Time            `json:"invoiceDate"`
+	IssueDate              time.Time            `json:"issueDate"` // Alias for frontend compatibility
 	DueDate                time.Time            `json:"dueDate"`
 	Status                 string               `json:"status"`
 	LineItems              []InvoiceLineItemDTO `json:"lineItems"`
@@ -318,6 +320,7 @@ func NewInvoiceDTO(invoice *domain.Invoice, relatedOrderIDs []uuid.UUID, related
 		SeriesCode:             invoice.Series.Code(),
 		PartyID:                invoice.PartyID,
 		InvoiceDate:            invoice.InvoiceDate,
+		IssueDate:              invoice.InvoiceDate, // Map same date for IssueDate
 		DueDate:                invoice.DueDate,
 		Status:                 string(invoice.Status),
 		LineItems:              items,

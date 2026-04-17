@@ -22,6 +22,7 @@
             <option value="">Todos los roles</option>
             <option value="admin">Administrador</option>
             <option value="commercial">Comercial</option>
+            <option value="cashier">Cajero TPV</option>
             <option value="designer">Diseñador</option>
             <option value="workshop">Taller</option>
           </select>
@@ -87,6 +88,7 @@
           <select v-model="newUser.role">
             <option value="admin">Administrador</option>
             <option value="commercial">Comercial</option>
+            <option value="cashier">Cajero TPV</option>
             <option value="designer">Diseñador</option>
             <option value="workshop">Taller</option>
           </select>
@@ -101,6 +103,7 @@
         <select v-model="selectedRole">
           <option value="admin">Administrador</option>
           <option value="commercial">Comercial</option>
+          <option value="cashier">Cajero TPV</option>
           <option value="designer">Diseñador</option>
           <option value="workshop">Taller</option>
         </select>
@@ -115,7 +118,7 @@
         </div>
         <div class="form-group">
           <label>Nueva Contraseña (dejar en blanco para mantener)</label>
-          <input v-model="editUserForm.password" type="password" placeholder="Opcional" />
+          <input v-model="editUserForm.password" type="password" placeholder="Opcional (8-72 caracteres)" minlength="8" maxlength="72" />
         </div>
       </div>
     </BaseDialog>
@@ -177,11 +180,22 @@ function openEditModal(user: Usuario) {
 
 async function updateUser() {
   if (!selectedUser.value) return
+
+  const candidatePassword = editUserForm.password || ''
+  if (candidatePassword && candidatePassword.length < 8) {
+    alert('La nueva contraseña debe tener al menos 8 caracteres.')
+    return
+  }
+  if (candidatePassword.length > 72) {
+    alert('La nueva contraseña no puede superar 72 caracteres.')
+    return
+  }
+
   isSaving.value = true
   try {
     const result = await iamService.updateUser(selectedUser.value.id, {
       email: editUserForm.email,
-      password: editUserForm.password || undefined
+      password: candidatePassword || undefined
     })
     users.value = users.value.map((u) => u.id === result.id ? { ...u, email: result.email } : u)
     showEditModal.value = false
@@ -233,6 +247,7 @@ onMounted(loadUsers)
 .role-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--color-background-soft); border: 1px solid var(--color-border); }
 .role-admin { border-left: 3px solid var(--color-error); color: var(--color-error); }
 .role-commercial { border-left: 3px solid #2563eb; color: #2563eb; }
+.role-cashier { border-left: 3px solid #0ea5e9; color: #0ea5e9; }
 .role-designer { border-left: 3px solid #9333ea; color: #9333ea; }
 .role-workshop { border-left: 3px solid #d97706; color: #d97706; }
 .align-right { text-align: right; }

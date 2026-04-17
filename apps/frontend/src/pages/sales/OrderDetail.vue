@@ -1,5 +1,5 @@
 <template>
-  <BaseEntityPage :is-loading="isLoading" :error="error">
+  <BaseEntityPage class="no-print" :is-loading="isLoading" :error="error">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
       <PageHeader 
@@ -11,17 +11,19 @@
         </template>
         <template #actions>
           <div v-if="order || mode === 'create'" class="header-actions-group">
-            <button v-if="mode === 'detail'" class="btn btn-outline btn-sm" @click="printOrder">
-              <span class="material-symbols-outlined">print</span>
-              <span>Imprimir</span>
-            </button>
-            <button v-if="mode === 'detail'" class="btn btn-primary btn-sm" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span>
-              <span>Editar</span>
-            </button>
+            <template v-if="mode === 'detail'">
+              <button class="btn btn-outline btn-sm" @click="printOrder">
+                <span class="material-symbols-outlined">print</span>
+                <span>Imprimir</span>
+              </button>
+              <button v-if="!hasActiveDeliveryNotes" class="btn btn-primary btn-sm" @click="enterEditMode">
+                <span class="material-symbols-outlined">edit</span>
+                <span>Editar Pedido</span>
+              </button>
+            </template>
             <template v-else>
               <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
-              <button class="btn btn-primary btn-sm ml-2" @click="saveOrder" :disabled="isSaving">
+              <button class="btn btn-secondary btn-sm" @click="saveOrder" :disabled="isSaving">
                 <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
                 <span>{{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}</span>
               </button>
@@ -29,6 +31,58 @@
           </div>
         </template>
       </PageHeader>
+    </template>
+
+    <!-- 2. TOOLBAR: ACCIONES DE FLUJO -->
+    <template #toolbar v-if="mode === 'detail' && order">
+      <div class="action-toolbar card">
+        <div class="toolbar-info">
+          <span :class="['status-badge', `status-${statusClass}`]">
+            {{ statusLabel }}
+          </span>
+        </div>
+        <div class="toolbar-buttons">
+          <!-- Lanzar a Producción (Solo si está pendiente Y tiene trabajos MES definidos) -->
+          <button 
+            v-if="order.status === 'PENDING' && (order.mes_work_refs || order.mesWorkRefs || []).length > 0" 
+            class="btn btn-primary btn-sm" 
+            @click="launchOrderToProduction"
+          >
+            <span class="material-symbols-outlined">rocket_launch</span>
+            <span>Lanzar a Producción</span>
+          </button>
+
+          <!-- Albaranar (de Confirmado a Albaranado) -->
+          <button 
+            v-if="['PENDING', 'IN_PREPARATION', 'READY_FOR_PRODUCTION', 'PARTIALLY_DELIVERED'].includes(order.status)" 
+            class="btn btn-success btn-sm" 
+            @click="createDeliveryNote"
+          >
+            <span class="material-symbols-outlined">local_shipping</span>
+            <span>Albaranar</span>
+          </button>
+          
+          <!-- Reactivar (Si está anulado) -->
+          <button 
+            v-if="order.status === 'CANCELLED'" 
+            class="btn btn-primary btn-sm" 
+            @click="reactivateOrder"
+          >
+            <span class="material-symbols-outlined">refresh</span>
+            <span>Reactivar Pedido</span>
+          </button>
+
+          <!-- Anular (Solo si no está entregado ni facturado ni ya anulado) -->
+          <button 
+            v-if="!hasActiveDeliveryNotes && !['DELIVERED', 'PARTIALLY_DELIVERED', 'INVOICED', 'PARTIALLY_INVOICED', 'CANCELLED'].includes(order.status)" 
+            class="btn btn-danger btn-sm" 
+            @click="cancelOrder"
+          >
+            <span class="material-symbols-outlined">block</span>
+            <span>Anular Pedido</span>
+          </button>
+        </div>
+      </div>
     </template>
     
     <!-- CAPA 2: CONTEXTO -->
@@ -62,6 +116,40 @@
             <strong class="amount">{{ formatMoney(totalAmount) }}</strong>
           </div>
         </div>
+      </div>
+    </template>
+
+    <template #related v-if="mode === 'detail' && order">
+      <div class="related-history-grid">
+        <!-- 1. Presupuesto Origen -->
+        <router-link v-if="relatedQuote" :to="`/sales/quotes/${relatedQuote.id}`" class="related-tag-card highlight-info">
+          <div class="tag-icon"><span class="material-symbols-outlined">request_quote</span></div>
+          <div class="tag-content">
+            <label>Presupuesto Origen</label>
+            <strong>{{ relatedQuote.quoteNumber || relatedQuote.quote_number }}</strong>
+          </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
+
+        <!-- 2. Albaranes -->
+        <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
+          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-content">
+            <label>Albarán Generado</label>
+            <strong>{{ dn.deliveryNoteNumber || dn.delivery_note_number }}</strong>
+          </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
+
+        <!-- 3. Factura -->
+        <router-link v-if="relatedInvoice" :to="`/sales/invoices/${relatedInvoice.id}`" class="related-tag-card">
+          <div class="tag-icon success"><span class="material-symbols-outlined">receipt</span></div>
+          <div class="tag-content">
+            <label>Factura Vinculada</label>
+            <strong>{{ relatedInvoice.invoiceNumber || relatedInvoice.invoice_number }}</strong>
+          </div>
+          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+        </router-link>
       </div>
     </template>
     
@@ -120,6 +208,14 @@
 
       <!-- SECCIÓN MES -->
       <FormSection title="Configuración Técnica (MES)" icon="precision_manufacturing">
+        <div v-if="mode === 'detail' && ['PENDING', 'PENDIENTE', 'CONFIRMED', 'CONFIRMADO', 'EN_PREPARACION'].includes(order.status)" class="info-notice mb-4">
+          <span class="material-symbols-outlined">info</span>
+          <div>
+            <strong>A la espera de lanzamiento operativo.</strong>
+            <p class="m-0 text-xs">El taller no visualizará este pedido hasta que se pulse el botón "Lanzar a Producción".</p>
+          </div>
+        </div>
+
         <div v-if="mode === 'detail'" class="table-wrapper">
           <table v-if="(order.mes_work_refs || order.mesWorkRefs || []).length > 0" class="data-table">
             <thead>
@@ -206,19 +302,24 @@
       
       <!-- Sección de Totales -->
       <FormSection title="Resumen Económico" icon="payments">
-        <div class="totals-checkout-layout">
-          <section class="totals-checkout-card">
-            <div class="total-row">
+        <div class="totals-summary-container">
+          <section class="totals-summary-card" :class="{ 'is-loading-overlay': isPreviewLoading }">
+            <div class="summary-row">
               <label>Subtotal:</label>
               <span>{{ formatMoney(subtotal) }}</span>
             </div>
-            <div class="total-row">
-              <label>IVA (21%):</label>
+            <div class="summary-row">
+              <label>Impuestos (IVA 21%):</label>
               <span>{{ formatMoney(taxAmount) }}</span>
             </div>
-            <div class="total-row grand-total">
-              <label>TOTAL PEDIDO:</label>
-              <span class="total-value">{{ formatMoney(totalAmount) }}</span>
+            <div class="summary-row grand-total">
+              <label>{{ mode === 'detail' ? 'TOTAL PEDIDO:' : 'TOTAL ESTIMADO:' }}</label>
+              <span>{{ formatMoney(totalAmount) }}</span>
+            </div>
+
+            <!-- Overlay de carga solo en edición -->
+            <div v-if="isPreviewLoading && mode !== 'detail'" class="mini-spinner-overlay">
+              <div class="mini-spinner"></div>
             </div>
           </section>
         </div>
@@ -232,6 +333,76 @@
     </div>
   </BaseEntityPage>
   
+  <!-- MODAL: ALBARANADO PARCIAL -->
+  <BaseDialog
+    :show="showDnDialog"
+    title="Generar Albarán de Salida"
+    icon="local_shipping"
+    size="xl"
+    :is-loading="isSaving"
+    confirm-text="Generar Albarán"
+    @close="showDnDialog = false"
+    @confirm="submitDeliveryNote"
+  >
+    <div class="dn-dialog-content">
+      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="form-group">
+          <label>Fecha de Entrega / Salida</label>
+          <input type="date" v-model="dnForm.deliveryDate" class="form-input" />
+        </div>
+        <div class="flex items-end gap-2">
+          <button class="btn btn-outline-secondary btn-sm" @click="deliverAll">Albaranar Todo</button>
+          <button class="btn btn-outline-secondary btn-sm" @click="deliverNone">Limpiar Cantidades</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper border rounded-lg overflow-hidden">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto / Variante</th>
+              <th class="text-center">Total Pedido</th>
+              <th class="text-center">Ya Albaranado</th>
+              <th class="text-center">Pendiente</th>
+              <th class="text-center" style="width: 150px">A Entregar Ahora</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in dnForm.items" :key="item.orderLineItemId">
+              <td>
+                <div class="flex flex-col">
+                  <strong>{{ item.productName }}</strong>
+                  <small class="text-muted">{{ item.variantSku }}</small>
+                </div>
+              </td>
+              <td class="text-center">{{ item.totalQuantity }}</td>
+              <td class="text-center">
+                <span :class="{'text-success': item.alreadyDelivered > 0}">{{ item.alreadyDelivered }}</span>
+              </td>
+              <td class="text-center font-bold text-primary">{{ item.pendingQuantity }}</td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <input 
+                    type="number" 
+                    v-model.number="item.quantityToDeliver" 
+                    min="0" 
+                    :max="item.pendingQuantity"
+                    class="form-input text-center" 
+                    style="width: 80px"
+                  />
+                  <span class="text-xs text-muted">/ {{ item.pendingQuantity }}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-4 text-sm text-muted italic">
+        * Solo se muestran los ítems que tienen cantidades pendientes de entrega.
+      </p>
+    </div>
+  </BaseDialog>
+
   <!-- MODAL: SELECCIÓN DE PRODUCTO -->
   <BaseDialog
     :show="showVariantSelector"
@@ -245,7 +416,19 @@
   </BaseDialog>
 
   <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
-  <PrintDocument v-if="order" :data="printData" />
+  <div class="print-container">
+    <PrintDocument
+      v-if="order"
+      type="ORDER"
+      :number="order.order_number || order.orderNumber"
+      :date="order.order_date || order.orderDate"
+      :customer-name="order.party_name || order.partyName"
+      :customer-tax-id="order.tax_id || order.taxId"
+      :items="order.line_items || order.lineItems"
+      :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
+      :notes="order.notes"
+    />
+  </div>
 </template>
 
 <script setup>
@@ -259,10 +442,11 @@ import PartySelector from '@/components/party/PartySelector.vue'
 import OrderLines from '@/components/sales/OrderLines.vue'
 import VariantSelector from '@/components/product/VariantSelector.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
-import PrintDocument from '@/components/shared/PrintDocument.vue'
+import PrintDocument from '@/components/sales/PrintDocument.vue'
 import salesApi from '@/services/salesApi'
 import { partyApi } from '@/services/partyApi'
 import { mesApi } from '@/services/mesApi'
+import '@/assets/sales-print.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -275,11 +459,107 @@ const mode = ref('detail')
 const showVariantSelector = ref(false)
 const printComponent = ref(null)
 
+const showDnDialog = ref(false)
+const dnForm = ref({
+  deliveryDate: new Date().toISOString().split('T')[0],
+  items: []
+})
+
 const availableMesSetups = ref([])
 const mesWorksCache = ref({})
+const partyDefaultDiscount = ref(0)
+const relatedQuote = ref(null)
+const relatedDeliveryNotes = ref([])
+const relatedInvoice = ref(null)
+
+const hasActiveDeliveryNotes = computed(() =>
+  relatedDeliveryNotes.value.some(dn => dn.status !== 'CANCELLED')
+)
+
+const previewResult = ref(null);
+const isPreviewLoading = ref(false);
+let previewTimer = null;
 
 const orderId = computed(() => route.params.id)
 const isCreateMode = computed(() => !orderId.value || orderId.value === 'new')
+
+// Watcher para cambios en el formulario que requieran recalcular totales
+watch(() => [editableOrder.value.party_id, editableOrder.value.line_items], () => {
+  if (mode.value !== 'detail' && !isSaving.value) {
+    calculateTotals();
+  }
+}, { deep: true });
+
+function calculateTotals() {
+  clearTimeout(previewTimer);
+  // Reseteamos el resultado previo para que los computados usen el fallback local 
+  // instantáneo mientras se espera la respuesta del servidor (evita valores congelados).
+  previewResult.value = null;
+  previewTimer = setTimeout(fetchPreviewCalculation, 400);
+}
+
+async function fetchPreviewCalculation() {
+  const partyId = editableOrder.value.party_id;
+  const items = (editableOrder.value.line_items || []).map(i => ({ 
+    productVariantId: i.product_variant_id || i.productVariantId, 
+    quantity: Number(i.quantity ?? 0), 
+    ...(i._autoPrice === false ? { manualUnitPrice: { amount: Number(i.unit_price ?? 0), currency: 'EUR' } } : {}),
+    manualDiscountPercent: Number(i.discount_percent ?? 0) 
+  }));
+  
+  if (!partyId || !items.length) { 
+    previewResult.value = null; 
+    return; 
+  }
+  
+  isPreviewLoading.value = true;
+  try { 
+    const res = await salesApi.previewOrderCalculation(partyId, items);
+    if (res) {
+      previewResult.value = res;
+      // Populate unit prices from pricing engine for auto-priced items
+      const serverItems = res.lineItems || res.line_items || [];
+      editableOrder.value.line_items.forEach((item, idx) => {
+        if (item._autoPrice !== false && serverItems[idx]) {
+          const sItem = serverItems[idx];
+          item.unit_price = sItem.unitPrice?.amount ?? sItem.unit_price?.amount ?? sItem.unit_price ?? 0;
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Error en vista previa de cálculos:', err);
+    previewResult.value = null;
+  } finally { 
+    isPreviewLoading.value = false; 
+  }
+}
+
+async function loadRelatedDocs(data) {
+  if (!data.id) return;
+  try {
+    // 1. Presupuesto origen
+    const qId = data.quoteId || data.quote_id;
+    if (qId) {
+      relatedQuote.value = await salesApi.getQuote(qId);
+    } else {
+      relatedQuote.value = null;
+    }
+
+    // 2. Albaranes relacionados
+    const dns = await salesApi.listDeliveryNotes({ orderId: data.id });
+    relatedDeliveryNotes.value = dns.data || dns || [];
+    
+    // 3. Factura relacionada (si hay albaranes, buscamos la del primero)
+    const firstDnWithInvoice = relatedDeliveryNotes.value.find(dn => dn.invoiceId || dn.invoice_id);
+    if (firstDnWithInvoice) {
+      relatedInvoice.value = await salesApi.getInvoice(firstDnWithInvoice.invoiceId || firstDnWithInvoice.invoice_id);
+    } else {
+      relatedInvoice.value = null;
+    }
+  } catch (err) {
+    console.error('Error cargando documentos relacionados:', err);
+  }
+}
 
 const pageTitle = computed(() => {
   if (isCreateMode.value) return 'Nuevo Pedido'
@@ -297,23 +577,39 @@ const statusClass = computed(() => salesApi.getStatusClass(order.value?.status))
 
 const subtotal = computed(() => {
   if (mode.value === 'detail' && order.value) {
-    return order.value.subtotal?.amount ?? order.value.subtotal ?? 0
+    const val = order.value.subtotal || order.value.subTotal;
+    return val?.amount ?? val ?? 0;
+  }
+  if (previewResult.value && !isPreviewLoading.value) {
+    return previewResult.value.subtotal?.amount ?? 0;
   }
   return (editableOrder.value.line_items || []).reduce((acc, line) => {
-    return acc + (Number(line.quantity || 0) * Number(line.unit_price || 0)) * (1 - (Number(line.discount_percent || 0) / 100))
+    // Usamos ?? para que el 0 no sea ignorado en el cálculo local
+    const price = Number(line.unit_price ?? line.unitPrice ?? 0);
+    const qty = Number(line.quantity ?? 0);
+    const disc = Number(line.discount_percent ?? line.discountPercent ?? 0);
+    return acc + (qty * price) * (1 - (disc / 100))
   }, 0)
 })
 
 const taxAmount = computed(() => {
   if (mode.value === 'detail' && order.value) {
-    return order.value.tax_total?.amount ?? order.value.tax_amount?.amount ?? order.value.tax_amount ?? 0
+    const val = order.value.taxAmount || order.value.tax_amount || order.value.tax_total;
+    return val?.amount ?? val ?? 0;
+  }
+  if (previewResult.value && !isPreviewLoading.value) {
+    return previewResult.value.taxAmount?.amount ?? 0;
   }
   return subtotal.value * 0.21
 })
 
 const totalAmount = computed(() => {
   if (mode.value === 'detail' && order.value) {
-    return order.value.total?.amount ?? order.value.total ?? 0
+    const val = order.value.total;
+    return val?.amount ?? val ?? 0;
+  }
+  if (previewResult.value && !isPreviewLoading.value) {
+    return previewResult.value.total?.amount ?? 0;
   }
   return subtotal.value + taxAmount.value
 })
@@ -331,8 +627,13 @@ async function loadOrder() {
     const data = await salesApi.getOrder(orderId.value)
     order.value = data
     syncEditableOrder(data)
-    if (data.party_id || data.partyId) {
-      loadAvailableSetups(data.party_id || data.partyId)
+    const pId = data.party_id || data.partyId
+    if (pId) {
+      loadAvailableSetups(pId)
+      loadRelatedDocs(data)
+      partyApi.getParty(pId).then(p => {
+        partyDefaultDiscount.value = p?.default_discount_percentage || 0
+      })
     }
     mode.value = 'detail'
   } catch (e) {
@@ -372,7 +673,8 @@ function syncEditableOrder(data) {
       unit_price: li.unit_price?.amount ?? li.unit_price ?? li.unitPrice?.amount ?? li.unitPrice ?? 0,
       quantity: li.quantity || 0,
       discount_percent: li.discount_percent || li.discountPercent || 0,
-      product_variant_id: li.product_variant_id || li.productVariantId
+      product_variant_id: li.product_variant_id || li.productVariantId,
+      _autoPrice: false
     })),
     notes: data.notes || ''
   }
@@ -393,6 +695,7 @@ function exitEditMode() {
 function handlePartyChange(party) {
   if (party) {
     editableOrder.value.party_id = party.id
+    partyDefaultDiscount.value = party.default_discount_percentage || 0
     loadAvailableSetups(party.id)
   }
 }
@@ -423,15 +726,22 @@ function formatMesWorkId(id) {
 
 function handleVariantSelected(payload) {
   const variant = payload.variant || payload
-  editableOrder.value.line_items.push({
+  const newItem = {
     product_variant_id: variant.id,
     variant_sku: variant.sku,
     product_name: variant.product_name || variant.name,
     quantity: 1,
-    unit_price: variant.product_base_price || variant.basePrice || variant.price || 0,
-    discount_percent: 0
-  })
+    unit_price: null,
+    discount_percent: partyDefaultDiscount.value || 0,
+    _autoPrice: true
+  }
+  editableOrder.value.line_items.push(newItem)
   showVariantSelector.value = false
+  
+  // Trigger immediate calculation
+  nextTick(() => {
+    fetchPreviewCalculation();
+  })
 }
 
 async function saveOrder() {
@@ -511,6 +821,130 @@ async function saveOrder() {
   }
 }
 
+async function confirmOrder() {
+  if (!confirm('¿Estás seguro de que deseas confirmar este pedido? Pasará a gestión de almacén/producción.')) return
+  isSaving.value = true
+  try {
+    await salesApi.confirmOrder(order.value.id)
+    await loadOrder()
+  } catch (e) {
+    alert('Error al confirmar: ' + (e.message || 'Error desconocido'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function cancelOrder() {
+  if (!confirm('¿Realmente deseas ANULAR este pedido? Esta acción es irreversible.')) return
+  isSaving.value = true
+  try {
+    await salesApi.cancelOrder(order.value.id)
+    await loadOrder()
+  } catch (e) {
+    alert('Error al anular: ' + (e.message || 'Error desconocido'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function reactivateOrder() {
+  if (!confirm('¿Deseas reactivar este pedido y devolverlo al estado borrador?')) return
+  isSaving.value = true
+  try {
+    await salesApi.reactivateOrder(order.value.id)
+    await loadOrder()
+  } catch (e) {
+    alert('Error al reactivar: ' + (e.message || 'Error desconocido'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function launchOrderToProduction() {
+  if (!confirm('¿Lanzar este pedido a producción? Esta acción notificará al taller y permitirá iniciar los trabajos.')) return
+  isSaving.value = true
+  try {
+    await salesApi.changeOrderStatus(order.value.id, 'READY_FOR_PRODUCTION')
+    await loadOrder()
+  } catch (e) {
+    alert('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function createDeliveryNote() {
+  // Preparamos los ítems para el diálogo basándonos en lo pendiente
+  dnForm.value.items = (order.value.line_items || order.value.lineItems).map(li => {
+    const delivered = li.delivered_quantity || li.deliveredQuantity || 0;
+    const pending = li.quantity - delivered;
+    return {
+      orderLineItemId: li.id,
+      productName: li.product_name || li.productName,
+      variantSku: li.variant_sku || li.variantSku,
+      totalQuantity: li.quantity,
+      alreadyDelivered: delivered,
+      pendingQuantity: pending,
+      quantityToDeliver: pending // Por defecto proponemos entregar todo lo pendiente
+    };
+  }).filter(item => item.pendingQuantity > 0);
+
+  if (dnForm.value.items.length === 0) {
+    alert('No hay ítems pendientes de albaranar en este pedido.');
+    return;
+  }
+
+  showDnDialog.value = true;
+}
+
+async function submitDeliveryNote() {
+  const itemsToDeliver = dnForm.value.items.filter(i => i.quantityToDeliver > 0);
+  if (itemsToDeliver.length === 0) {
+    alert('Debes indicar al menos una cantidad a entregar.');
+    return;
+  }
+
+  // Validación de cantidades
+  for (const item of itemsToDeliver) {
+    if (item.quantityToDeliver > item.pendingQuantity) {
+      alert(`La cantidad a entregar de ${item.productName} no puede superar la pendiente (${item.pendingQuantity}).`);
+      return;
+    }
+  }
+
+  isSaving.value = true;
+  try {
+    const payload = {
+      salesOrderId: order.value.id,
+      deliveryDate: new Date(dnForm.value.deliveryDate).toISOString(),
+      items: itemsToDeliver.map(li => ({
+        salesOrderLineItemId: li.orderLineItemId,
+        deliveredQuantity: Number(li.quantityToDeliver)
+      }))
+    };
+    const newDn = await salesApi.createDeliveryNote(payload);
+    showDnDialog.value = false;
+    router.push(`/sales/delivery-notes/${newDn.id}`);
+  } catch (e) {
+    console.error('Error al generar albarán:', e);
+    alert('Error al generar albarán: ' + (e.message || 'Error desconocido'));
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+function deliverAll() {
+  dnForm.value.items.forEach(item => {
+    item.quantityToDeliver = item.pendingQuantity;
+  });
+}
+
+function deliverNone() {
+  dnForm.value.items.forEach(item => {
+    item.quantityToDeliver = 0;
+  });
+}
+
 function updateLines(newLines) {
   editableOrder.value.line_items = newLines
 }
@@ -518,33 +952,6 @@ function updateLines(newLines) {
 function printOrder() {
   window.print()
 }
-
-const printData = computed(() => {
-  if (!order.value) return null;
-  return {
-    type: 'PEDIDO',
-    number: order.value.order_number || order.value.orderNumber || '—',
-    date: order.value.order_date || order.value.orderDate,
-    expiryDate: order.value.delivery_date || order.value.deliveryDate,
-    party: {
-      name: order.value.party_name || order.value.partyName,
-      taxId: order.value.tax_id || order.value.taxId,
-      address: order.value.address,
-    },
-    items: (order.value.line_items || order.value.lineItems || []).map(li => ({
-      sku: li.variant_sku || li.variantSku,
-      name: li.product_name || li.productName,
-      quantity: li.quantity,
-      unitPrice: li.unit_price?.amount || li.unitPrice?.amount || li.unit_price || 0,
-      discount: li.discount_percent || li.discountPercent,
-      subtotal: li.subtotal?.amount || li.subtotal || 0
-    })),
-    subtotal: subtotal.value,
-    taxAmount: taxAmount.value,
-    total: totalAmount.value,
-    notes: order.value.notes
-  }
-});
 
 function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '' }
 function formatMoney(amount) { return salesApi.formatMoney(amount) }
@@ -581,21 +988,13 @@ watch(() => route.params.id, loadOrder, { immediate: true })
 .tag-content strong { font-size: 1rem; color: var(--color-text-primary); font-weight: 700; }
 .amount { color: var(--color-success) !important; font-size: 1.25rem !important; font-family: var(--font-family-mono); }
 
-.totals-checkout-layout { display: flex; justify-content: flex-end; }
-.totals-checkout-card { 
-  background: white; border: 1px solid var(--color-border-strong); border-radius: 12px; padding: 1.5rem; 
-  width: 100%; max-width: 400px; box-shadow: var(--box-shadow-md); 
-}
-.total-row { display: flex; justify-content: space-between; padding: 0.5rem 0; font-size: 0.95rem; }
-.total-row label { color: var(--color-text-secondary); font-weight: 600; }
-.total-row.grand-total { margin-top: 1rem; padding-top: 1rem; border-top: 2px solid var(--color-border); font-weight: 800; font-size: 1.25rem; }
-.total-row.grand-total span { color: var(--color-secondary); }
-
 .status-badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
 
-.print-only { display: none; }
+/* ESTILOS DE IMPRESIÓN PROFESIONAL */
+.print-container { display: none; }
+
 @media print {
-  .print-only { display: block !important; }
-  :deep(.page-layout), :deep(.navbar), :deep(.side-navbar), :deep(.app-header), :deep(header) { display: none !important; }
+  .no-print { display: none !important; }
+  .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
 </style>

@@ -445,7 +445,7 @@ func (r *GORMWorkOrderRepository) FindByID(ctx context.Context, id uuid.UUID) (*
 }
 
 func (r *GORMWorkOrderRepository) FindAll(ctx context.Context, filters *domain.WorkOrderFilters) ([]*domain.WorkOrder, error) {
-	query := r.db.WithContext(ctx).Model(&WorkOrderDataModel{}).Order("created_at DESC")
+	query := r.db.WithContext(ctx).Model(&WorkOrderDataModel{}).Order("work_number DESC")
 	if filters != nil {
 		if filters.Status != nil {
 			query = query.Where("status = ?", string(*filters.Status))

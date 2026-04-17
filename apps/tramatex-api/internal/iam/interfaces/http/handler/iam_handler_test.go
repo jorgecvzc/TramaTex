@@ -115,6 +115,7 @@ func newIAMHandler(repo *fakeUserRepo, jwt *fakeJWTService, blacklist security.T
 		usecase.NewCheckAuthorizationUseCase(repo),
 		usecase.NewListUsersUseCase(repo),
 		usecase.NewDeleteUserUseCase(repo),
+		usecase.NewUpdateUserUseCase(repo),
 	)
 }
 
@@ -423,5 +424,75 @@ func TestIAMHandler_Health(t *testing.T) {
 	response := performRequest(t, h.Health, http.MethodGet, "/health", nil, nil, nil)
 	if response.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", response.Code)
+	}
+}
+
+func TestIAMHandler_CreateUser_AllRoles(t *testing.T) {
+	repo := &fakeUserRepo{}
+	jwt := &fakeJWTService{}
+	h := newIAMHandler(repo, jwt, nil)
+
+	roles := []string{"admin", "commercial", "designer", "workshop"}
+
+	for _, role := range roles {
+		t.Run("Role_"+role, func(t *testing.T) {
+			repo.byEmailFunc = func(ctx context.Context, email *model.Email) (*model.User, error) {
+				return nil, model.ErrUserNotFound
+			}
+			response := performRequest(t, h.CreateUser, http.MethodPost, "/auth/users", usecase.CreateUserInput{
+				Email:    "user_" + role + "@example.com",
+				Password: "password123",
+				Role:     role,
+			}, nil, nil)
+
+			if response.Code != http.StatusCreated {
+				t.Errorf("expected 201 for role %s, got %d", role, response.Code)
+			}
+		})
+	}
+
+	t.Run("InvalidRole", func(t *testing.T) {
+		response := performRequest(t, h.CreateUser, http.MethodPost, "/auth/users", usecase.CreateUserInput{
+			Email:    "invalid@example.com",
+			Password: "password123",
+			Role:     "invalid_role",
+		}, nil, nil)
+
+		if response.Code != http.StatusBadRequest {
+			t.Errorf("expected 400 for invalid role, got %d", response.Code)
+		}
+	})
+}
+
+func TestIAMHandler_UpdateUser(t *testing.T) {
+	repo := &fakeUserRepo{}
+	jwt := &fakeJWTService{}
+	h := newIAMHandler(repo, jwt, nil)
+
+	user := newUser(t, "original@example.com", "oldpassword", model.RoleCommercial)
+	repo.byIDFunc = func(ctx context.Context, id uuid.UUID) (*model.User, error) {
+		if id == user.ID() {
+			return user, nil
+		}
+		return nil, model.ErrUserNotFound
+	}
+
+	// Update email
+	newEmail := "new@example.com"
+	repo.byEmailFunc = func(ctx context.Context, email *model.Email) (*model.User, error) {
+		return nil, model.ErrUserNotFound
+	}
+	
+	response := performRequest(t, h.UpdateUser, http.MethodPut, "/auth/users/"+user.ID().String(), 
+		usecase.UpdateUserInput{Email: &newEmail}, nil, func(c *gin.Context) {
+			c.Params = []gin.Param{{Key: "id", Value: user.ID().String()}}
+		})
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", response.Code)
+	}
+
+	if user.Email().Value() != newEmail {
+		t.Fatalf("expected email to be %s, got %s", newEmail, user.Email().Value())
 	}
 }

@@ -8,7 +8,7 @@
 // ============================================================================
 
 export type QuoteStatus = 'DRAFT' | 'ISSUED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PARTIALLY_DELIVERED' | 'DELIVERED' | 'CANCELLED' | 'PARTIALLY_INVOICED' | 'INVOICED'
+export type OrderStatus = 'PENDING' | 'IN_PREPARATION' | 'READY_FOR_PRODUCTION' | 'PARTIALLY_DELIVERED' | 'DELIVERED' | 'CANCELLED' | 'PARTIALLY_INVOICED' | 'INVOICED'
 export type DeliveryNoteStatus = 'PENDING' | 'DELIVERED' | 'CANCELLED'
 export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'VOID'
 export type InvoiceType = 'STANDARD' | 'SIMPLIFIED'
@@ -243,7 +243,6 @@ export interface CreateDeliveryLineItemRequest {
 
 export interface CreateInvoiceRequest {
   partyId: string
-  salesOrderIds: string[]
   deliveryNoteIds: string[]
   invoiceDate: string
   dueDate: string

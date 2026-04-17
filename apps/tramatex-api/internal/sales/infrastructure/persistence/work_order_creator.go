@@ -26,11 +26,13 @@ func (a *WorkOrderCreatorAdapter) CreateWorkOrder(
 	workSetupID *uuid.UUID,
 	orderWorkSetupID uuid.UUID,
 ) (uuid.UUID, error) {
+	status := "PENDING"
 	cmd := mes_app.CreateWorkOrderCommand{
 		WorkName:         workName,
 		PartyID:          partyID,
 		WorkSetupID:      workSetupID,
 		Notes:            &notes,
+		Status:           &status,
 		OrderWorkSetupID: &orderWorkSetupID,
 	}
 	result, err := a.mesService.CreateWorkOrder(ctx, cmd)

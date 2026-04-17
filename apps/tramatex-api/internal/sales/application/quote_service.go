@@ -234,6 +234,19 @@ func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuote
 	if quote == nil {
 		return nil, domain.NewNotFoundError("quote not found")
 	}
+
+	// Auto-approve quote if it's in a valid pre-approval state
+	if quote.Status == domain.QuoteStatusDraft {
+		if err := quote.ChangeStatus(domain.QuoteStatusIssued); err != nil {
+			return nil, err
+		}
+	}
+	if quote.Status == domain.QuoteStatusIssued {
+		if err := quote.ChangeStatus(domain.QuoteStatusApproved); err != nil {
+			return nil, err
+		}
+	}
+
 	if s.numberGen == nil {
 		return nil, domain.NewConfigurationError("order number generator not configured")
 	}
@@ -267,12 +280,19 @@ func (s *SalesService) AcceptAndConvertQuote(ctx context.Context, cmd AcceptAndC
 		return nil, domain.NewNotFoundError("quote not found")
 	}
 
-	// Step 1: Accept the quote (EMITIDA â†’ APROBADA)
-	if err := quote.ChangeStatus(domain.QuoteStatusApproved); err != nil {
-		return nil, err
+	// Step 1: Accept the quote, handling DRAFT -> ISSUED -> APPROVED if necessary
+	if quote.Status == domain.QuoteStatusDraft {
+		if err := quote.ChangeStatus(domain.QuoteStatusIssued); err != nil {
+			return nil, err
+		}
+	}
+	if quote.Status == domain.QuoteStatusIssued {
+		if err := quote.ChangeStatus(domain.QuoteStatusApproved); err != nil {
+			return nil, err
+		}
 	}
 
-	// Step 2: Convert to order (APROBADA â†’ CONVERTIDA_A_PEDIDO + new order)
+	// Step 2: Convert to order (APPROVED -> CONVERTED_TO_ORDER + new order)
 	if s.numberGen == nil {
 		return nil, domain.NewConfigurationError("order number generator not configured")
 	}
@@ -373,17 +393,14 @@ func (s *SalesService) buildQuoteLineItems(ctx context.Context, partyID uuid.UUI
 	for i, item := range items {
 		calcItem := pricing.CalculatedItems[i]
 
-		// Tariff/list price: base cost plus variant attribute modifiers, without brand markup.
-		listUnitPrice, err := toDomainMoney(calcItem.BaseCost)
+		// Tariff/list price: includes brand margin/markup (BaseSalesPrice from pricing engine).
+		listUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
 		if err != nil {
 			return nil, err
 		}
 
-		// Sale price: pricing engine base sales price (includes brand margin/rules), unless user overrides it.
-		effectiveUnitPrice, err := toDomainMoney(calcItem.BaseSalesPrice)
-		if err != nil {
-			return nil, err
-		}
+		// Sale price: defaults to the base sales price (tariff). Discounts are applied on top of this.
+		effectiveUnitPrice := listUnitPrice
 		if item.UnitPrice != nil {
 			effectiveUnitPrice, err = domain.NewMoney(item.UnitPrice.Amount, item.UnitPrice.Currency)
 			if err != nil {
@@ -462,8 +479,29 @@ func sumQuoteLineItemTaxes(items []domain.QuoteLineItem) (domain.Money, error) {
 }
 
 func parseQuoteStatus(input string) (domain.QuoteStatus, error) {
-	value := domain.QuoteStatus(strings.ToUpper(strings.TrimSpace(input)))
-	return value, value.IsValid()
+	u := strings.ToUpper(strings.TrimSpace(input))
+
+	switch u {
+	case "DRAFT", "BORRADOR":
+		return domain.QuoteStatusDraft, nil
+	case "ISSUED", "EMITIDO", "EMITIDA", "SENT", "ENVIADO":
+		return domain.QuoteStatusIssued, nil
+	case "APPROVED", "APROBADO", "ACEPTADO", "ACCEPTED":
+		return domain.QuoteStatusApproved, nil
+	case "REJECTED", "RECHAZADO":
+		return domain.QuoteStatusRejected, nil
+	case "EXPIRED", "EXPIRADO", "CADUCADO":
+		return domain.QuoteStatusExpired, nil
+	case "CONVERTED_TO_ORDER", "CONVERTIDO", "PEDIDO":
+		return domain.QuoteStatusConverted, nil
+	default:
+		// Fallback to direct cast and validation
+		val := domain.QuoteStatus(u)
+		if err := val.IsValid(); err != nil {
+			return "", err
+		}
+		return val, nil
+	}
 }
 
 func (s *SalesService) enrichQuoteLineItems(ctx context.Context, items []QuoteLineItemDTO) {

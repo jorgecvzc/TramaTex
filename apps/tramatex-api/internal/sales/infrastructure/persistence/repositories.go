@@ -561,6 +561,15 @@ func (r *GORMDeliveryNoteRepository) ListBySalesOrderID(ctx context.Context, ord
 	return r.List(ctx, filter)
 }
 
+func (r *GORMDeliveryNoteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("delivery_note_id = ?", id).Delete(&DeliveryNoteLineItemDataModel{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&DeliveryNoteDataModel{}, "id = ?", id).Error
+	})
+}
+
 func (r *GORMDeliveryNoteRepository) loadDeliveryNoteLineItems(ctx context.Context, noteID uuid.UUID) ([]DeliveryNoteLineItemDataModel, error) {
 	var items []DeliveryNoteLineItemDataModel
 	if err := getDB(ctx, r.db).Where("delivery_note_id = ?", noteID).Order("created_at asc").Find(&items).Error; err != nil {

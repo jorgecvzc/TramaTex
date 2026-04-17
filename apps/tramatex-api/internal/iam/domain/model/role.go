@@ -8,6 +8,7 @@ type Role string
 const (
 	RoleAdmin      Role = "admin"
 	RoleCommercial Role = "commercial"
+	RoleCashier    Role = "cashier"
 	RoleDesigner   Role = "designer"
 	RoleWorkshop   Role = "workshop"
 )
@@ -15,7 +16,7 @@ const (
 // IsValid validates if a role is one of the allowed roles.
 func (r Role) IsValid() bool {
 	switch r {
-	case RoleAdmin, RoleCommercial, RoleDesigner, RoleWorkshop:
+	case RoleAdmin, RoleCommercial, RoleCashier, RoleDesigner, RoleWorkshop:
 		return true
 	default:
 		return false

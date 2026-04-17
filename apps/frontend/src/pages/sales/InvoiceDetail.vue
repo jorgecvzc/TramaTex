@@ -30,25 +30,15 @@
     <template #header>
       <PageHeader 
         :title="mode === 'edit' ? `Editando Factura ${invoice.invoiceNumber}` : `Factura ${invoice.invoiceNumber}`" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
       >
         <template #icon>
           <span class="material-symbols-outlined">receipt</span>
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
-            <button class="btn btn-outline" @click="printInvoice">
+            <button class="btn btn-outline btn-sm" @click="printInvoice">
               <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
-            </button>
-            <button v-if="invoice.status === 'BORRADOR'" class="btn btn-primary" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
-            </button>
-          </template>
-          <template v-else>
-            <button class="btn btn-outline" @click="mode = 'detail'" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-secondary" @click="saveInvoice" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}</span>
             </button>
           </template>
         </template>
@@ -68,21 +58,24 @@
         </div>
         <div class="toolbar-buttons">
           <button
-            v-if="invoice.status === 'BORRADOR'"
-            class="btn btn-success btn-sm"
-            @click="emitInvoice"
-            :disabled="isChangingStatus"
-          >
-            <span class="material-symbols-outlined">send</span> <span>Emitir Factura</span>
-          </button>
-          <button
-            v-if="invoice.status === 'EMITIDA' || invoice.status === 'VENCIDA'"
+            v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status)"
             class="btn btn-success btn-sm"
             @click="markAsPaid"
             :disabled="isChangingStatus"
           >
             <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Draft Warning -->
+      <div v-if="invoice.status === 'DRAFT'" class="alert-card card warning mt-4 mb-0 no-print">
+        <div class="alert-icon-wrapper warning">
+          <span class="material-symbols-outlined">warning</span>
+        </div>
+        <div class="alert-content">
+          <h4>Factura en estado Borrador</h4>
+          <p>Esta factura fue generada en una versión anterior. Para que tenga validez legal y número oficial, el sistema la marcará como <strong>Emitida</strong> al registrar el primer cobro.</p>
         </div>
       </div>
     </template>
@@ -206,9 +199,22 @@
       </FormSection>
 
       <FormSection title="Resumen Económico" icon="payments">
-        <DataRow label="Base Imponible" :value="salesApi.formatMoney(invoice.subtotal)" />
-        <DataRow label="Impuestos (IVA)" :value="salesApi.formatMoney(invoice.taxAmount)" />
-        <DataRow label="TOTAL FACTURA" :value="salesApi.formatMoney(invoice.total)" highlight />
+        <div class="totals-summary-container">
+          <section class="totals-summary-card">
+            <div class="summary-row">
+              <label>Base Imponible:</label>
+              <span>{{ salesApi.formatMoney(invoice.subtotal) }}</span>
+            </div>
+            <div class="summary-row">
+              <label>Impuestos (IVA 21%):</label>
+              <span>{{ salesApi.formatMoney(invoice.taxAmount) }}</span>
+            </div>
+            <div class="summary-row grand-total">
+              <label>TOTAL FACTURA:</label>
+              <span>{{ salesApi.formatMoney(invoice.total) }}</span>
+            </div>
+          </section>
+        </div>
       </FormSection>
     </div>
 
@@ -220,6 +226,20 @@
       </div>
     </template>
   </BaseEntityPage>
+
+  <!-- DIÁLOGOS DE CONFIRMACIÓN -->
+  <BaseDialog
+    :show="showStatusConfirm"
+    :title="statusConfirmTitle"
+    :icon="statusConfirmIcon"
+    :confirm-text="statusConfirmText"
+    :confirm-class="statusConfirmClass"
+    :is-confirming="isChangingStatus"
+    @close="showStatusConfirm = false"
+    @confirm="executeStatusChange"
+  >
+    <p v-html="statusConfirmMessage"></p>
+  </BaseDialog>
 
   <!-- CAPA DE IMPRESIÓN (SOLO VISIBLE AL IMPRIMIR) -->
   <div class="print-container">
@@ -272,6 +292,7 @@ import DataRow from '@/components/shared/DataRow.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -286,6 +307,15 @@ const partyName = ref('');
 const relatedOrders = ref([]);
 const relatedDeliveryNotes = ref([]);
 const showPostIssueModal = ref(false);
+
+// Status change confirm dialog state
+const showStatusConfirm = ref(false);
+const statusConfirmTitle = ref('');
+const statusConfirmMessage = ref('');
+const statusConfirmIcon = ref('');
+const statusConfirmText = ref('');
+const statusConfirmClass = ref('');
+const pendingStatus = ref('');
 
 const formData = reactive({
   dueDate: '',
@@ -346,7 +376,9 @@ async function saveInvoice() {
       paymentTerms: formData.paymentTerms,
       notes: formData.notes
     };
-    alert('Función de actualización de factura en desarrollo (Backend MVP limitado)');
+    // Note: Backend might have limited support for updates in current MVP iteration
+    // but we proceed to allow saving basic metadata if implemented.
+    await salesApi.updateInvoice(invoice.value.id, payload);
     mode.value = 'detail';
     await fetchInvoice();
   } catch (err) {
@@ -356,23 +388,59 @@ async function saveInvoice() {
   }
 }
 
-async function emitInvoice() {
-  if (!confirm('¿Emitir esta factura? Esta acción generará el número de factura definitivo.')) return;
-  isChangingStatus.value = true;
-  try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'EMITIDA');
-    showPostIssueModal.value = true;
-  } catch (err) { alert(err?.message); }
-  finally { isChangingStatus.value = false; }
+function emitInvoice() {
+  statusConfirmTitle.value = 'Emitir Factura';
+  statusConfirmMessage.value = '¿Desea <strong>EMITIR</strong> esta factura? Esta acción generará el número de factura definitivo y bloqueará cambios estructurales.';
+  statusConfirmIcon.value = 'send';
+  statusConfirmText.value = 'Emitir Factura';
+  statusConfirmClass.value = 'btn-success';
+  pendingStatus.value = 'ISSUED';
+  showStatusConfirm.value = true;
 }
 
-async function markAsPaid() {
-  if (!confirm('¿Registrar el cobro de esta factura?')) return;
+function markAsPaid() {
+  statusConfirmTitle.value = 'Registrar Cobro';
+  statusConfirmMessage.value = '¿Desea marcar esta factura como <strong>PAGADA</strong>?';
+  statusConfirmIcon.value = 'payments';
+  statusConfirmText.value = 'Confirmar Cobro';
+  statusConfirmClass.value = 'btn-success';
+  pendingStatus.value = 'PAID';
+  showStatusConfirm.value = true;
+}
+
+function cancelInvoice() {
+  statusConfirmTitle.value = 'Anular Factura';
+  statusConfirmMessage.value = '¿Realmente desea <strong>ANULAR</strong> esta factura? Esta acción es irreversible en términos contables.';
+  statusConfirmIcon.value = 'block';
+  statusConfirmText.value = 'Anular Factura';
+  statusConfirmClass.value = 'btn-danger';
+  pendingStatus.value = 'VOID';
+  showStatusConfirm.value = true;
+}
+
+function reactivateInvoice() {
+  statusConfirmTitle.value = 'Reactivar Factura';
+  statusConfirmMessage.value = '¿Desea devolver esta factura al estado <strong>borrador</strong>?';
+  statusConfirmIcon.value = 'refresh';
+  statusConfirmText.value = 'Reactivar';
+  statusConfirmClass.value = 'btn-primary';
+  pendingStatus.value = 'DRAFT';
+  showStatusConfirm.value = true;
+}
+
+async function executeStatusChange() {
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, 'PAGADA');
-  } catch (err) { alert(err?.message); }
-  finally { isChangingStatus.value = false; }
+    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, pendingStatus.value);
+    showStatusConfirm.value = false;
+    if (pendingStatus.value === 'ISSUED') {
+      showPostIssueModal.value = true;
+    }
+  } catch (err) {
+    alert(err?.message || 'Error al cambiar estado');
+  } finally {
+    isChangingStatus.value = false;
+  }
 }
 
 function printInvoice() { window.print(); }
@@ -405,31 +473,6 @@ function buildDisplayName(item) { return (item.productName || item.displayName |
 
 <style scoped>
 @import "@/design-system/_sections.css";
-
-.overview-tags-row, .related-history-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
-.related-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-
-.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
-.related-tag-card { padding: 0.6rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-left: 4px solid var(--color-secondary); border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; position: relative; transition: all 0.2s ease; }
-.related-tag-card.highlight-info { border-left-color: #2563eb; }
-.related-tag-card:hover { background: white; transform: translateX(2px) translateY(-1px); box-shadow: var(--box-shadow-md); }
-.related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
-
-.tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
-.tag-icon .material-symbols-outlined { font-size: 22px; }
-
-.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
-.icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-
-.tag-content { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; }
-.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
-.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
-.amount { color: #16a34a !important; font-size: 1.15rem !important; }
-
-.jump-icon { font-size: 18px; color: var(--color-text-secondary); opacity: 0.5; margin-left: auto; transition: all 0.2s; }
-.related-tag-card:hover .jump-icon { opacity: 1; color: var(--color-primary); transform: scale(1.1); }
 
 .action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); margin-bottom: 0; }
 .status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; }

@@ -29,59 +29,17 @@ import type {
   InvoiceStatus,
   UpdateOrderLineItemRequest,
 } from '../types/sales'
-import { getApiBase } from './apiBase'
+import { api } from './api'
 
 // ============================================================================
-// STATUS & TYPE MAPPING: Backend (Spanish) â†” Frontend (English)
+// STATUS & TYPE HELPERS
 // ============================================================================
-
-export const backendToFrontendStatus: Record<string, string> = {
-  // Quote statuses
-  'BORRADOR': 'DRAFT',
-  'EMITIDA': 'ISSUED',
-  'APROBADA': 'ACCEPTED',
-  'RECHAZADA': 'REJECTED',
-  'EXPIRADA': 'EXPIRED',
-  'CONVERTIDA_A_PEDIDO': 'CONVERTED',
-  // Order statuses
-  'PENDIENTE': 'PENDING',
-  'EN_PREPARACION': 'CONFIRMED',
-  'ENTREGADO_PARCIALMENTE': 'PARTIALLY_DELIVERED',
-  'ENTREGADO': 'DELIVERED',
-  'CANCELADO': 'CANCELLED',
-  'FACTURADO_PARCIALMENTE': 'PARTIALLY_INVOICED',
-  'FACTURADO_COMPLETAMENTE': 'INVOICED',
-  // Invoice statuses
-  'PAGADA': 'PAID',
-  'VENCIDA': 'OVERDUE',
-  'ANULADA': 'VOID',
-}
-
-export const frontendToBackendStatus: Record<string, string> = Object.fromEntries(
-  Object.entries(backendToFrontendStatus).map(([k, v]) => [v, k])
-)
-
-export const backendToFrontendType: Record<string, string> = {
-  'SIMPLIFICADA': 'SIMPLIFIED',
-  'COMPLETA': 'STANDARD',
-}
-
-function normalizeStatus(status: string): string {
-  return backendToFrontendStatus[status] || status
-}
-
-function normalizeType(type: string): string {
-  return backendToFrontendType[type] || type
-}
 
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
-  if (obj.status) obj.status = normalizeStatus(obj.status);
   
-  // NormalizaciÃ³n de Facturas
+  // Normalización de Facturas
   if ('invoiceType' in obj || 'invoice_type' in obj) {
-    const rawType = obj.invoiceType || obj.invoice_type;
-    obj.type = normalizeType(rawType);
     obj.invoiceNumber = obj.invoiceNumber || obj.invoice_number;
     obj.invoiceDate = obj.invoiceDate || obj.invoice_date;
     obj.issueDate = obj.invoiceDate || obj.invoice_date;
@@ -90,7 +48,7 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
     obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || obj.related_delivery_note_ids || [];
   }
 
-  // NormalizaciÃ³n de Pedidos / Presupuestos
+  // Normalización de Pedidos / Presupuestos
   if ('quoteNumber' in obj || 'quote_number' in obj) {
     obj.quoteNumber = obj.quoteNumber || obj.quote_number;
     obj.partyId = obj.partyId || obj.party_id;
@@ -103,92 +61,69 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   return obj;
 }
 
-interface SalesApiError extends Error {
-  cause?: Error
-}
-
 class SalesApi {
-  private baseUrl: string
+  private readonly moduleBase = '/sales'
 
-  constructor() {
-    this.baseUrl = getApiBase() + '/sales'
-  }
-
-  private getHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
-    const token = localStorage.getItem('tramatex_auth_token')
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...additionalHeaders,
-    }
-  }
-
-  private async safeFetch(url: string, options: RequestInit, fallbackMessage: string | null = null): Promise<Response> {
-    try {
-      return await fetch(url, options)
-    } catch (error) {
-      const message = fallbackMessage || `No se pudo conectar con el servidor. (URL: ${url})`
-      const err = new Error(message) as SalesApiError
-      err.cause = error as Error
-      throw err
-    }
-  }
-
-  private async handleError(response: Response, defaultMessage: string): Promise<never> {
-    let errorData: { error?: string; message?: string } | undefined
-    try {
-      errorData = await response.json()
-    } catch {
-      throw new Error(defaultMessage)
-    }
-    throw new Error(errorData?.error || errorData?.message || defaultMessage)
+  private async handleError(error: any, defaultMessage: string): Promise<never> {
+    const errorData = error.response?.data
+    const message = errorData?.error || errorData?.message || error.message || defaultMessage
+    throw new Error(message)
   }
 
   // --- Quotes ---
   async getQuote(id: string): Promise<Quote> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudo obtener el presupuesto')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.get(`${this.moduleBase}/quotes/${id}`)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo obtener el presupuesto')
+    }
   }
 
   async listQuotes(filters: ListQuotesFilters = {}): Promise<{ data: Quote[], total: number }> {
-    const params = new URLSearchParams()
-    if (filters.partyId) params.append('partyId', filters.partyId)
-    if ((filters as any).searchText) params.append('search', (filters as any).searchText)
-    if ((filters as any).fromDate) params.append('fromDate', (filters as any).fromDate)
-    if ((filters as any).toDate) params.append('toDate', (filters as any).toDate)
-    if (filters.status) params.append('status', frontendToBackendStatus[filters.status] || filters.status)
-    if (filters.limit) params.append('limit', filters.limit.toString())
+    const params: any = {}
+    if (filters.partyId) params.partyId = filters.partyId
+    if ((filters as any).searchText) params.search = (filters as any).searchText
+    if ((filters as any).fromDate) params.fromDate = (filters as any).fromDate
+    if ((filters as any).toDate) params.toDate = (filters as any).toDate
+    if (filters.status) params.status = filters.status
+    if (filters.limit) params.limit = filters.limit
 
-    const response = await this.safeFetch(`${this.baseUrl}/quotes?${params}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudieron cargar los presupuestos')
-
-    const res = await response.json()
-    // Normalización idéntica a la de Pedidos (soporta array directo o envuelto)
-    const rawData = Array.isArray(res) ? res : (res.data || [])
-    return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+    try {
+      const response = await api.get(`${this.moduleBase}/quotes`, { params })
+      const res = response.data
+      const rawData = Array.isArray(res) ? res : (res.data || [])
+      return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los presupuestos')
+    }
   }
 
   async createQuote(data: CreateQuoteRequest): Promise<Quote> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
-    if (!response.ok) await this.handleError(response, 'No se pudo crear el presupuesto')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.post(`${this.moduleBase}/quotes`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear el presupuesto')
+    }
   }
 
   async updateQuote(id: string, data: UpdateQuoteRequest): Promise<Quote> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}`, { method: 'PUT', headers: this.getHeaders(), body: JSON.stringify(data) })
-    if (!response.ok) await this.handleError(response, 'No se pudo actualizar el presupuesto')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.put(`${this.moduleBase}/quotes/${id}`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar el presupuesto')
+    }
   }
 
   async changeQuoteStatus(id: string, status: string): Promise<Quote> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}/status`, { 
-      method: 'PATCH', 
-      headers: this.getHeaders(), 
-      body: JSON.stringify({ newStatus: frontendToBackendStatus[status] || status }) 
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo cambiar el estado del presupuesto')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.patch(`${this.moduleBase}/quotes/${id}/status`, { newStatus: status })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo cambiar el estado del presupuesto')
+    }
   }
 
   async createOrderFromQuote(id: string, deliveryDate?: string): Promise<Order> {
@@ -196,207 +131,251 @@ class SalesApi {
     if (deliveryDate) {
       body.deliveryDate = deliveryDate.includes('T') ? deliveryDate : `${deliveryDate}T00:00:00Z`
     }
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/${id}/convert`, { 
-      method: 'POST', 
-      headers: this.getHeaders(),
-      body: JSON.stringify(body),
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo convertir el presupuesto en pedido')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.post(`${this.moduleBase}/quotes/${id}/convert`, body)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo convertir el presupuesto en pedido')
+    }
   }
 
-  // Backward compatible alias used by older tests/callers.
   async convertQuoteToOrder(id: string, deliveryDate?: string): Promise<Order> {
     return this.createOrderFromQuote(id, deliveryDate)
   }
 
   async previewQuoteCalculation(partyId: string, items: any[]): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/quotes/preview`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
-    if (!response.ok) return null
-    return await response.json()
+    try {
+      const response = await api.post(`${this.moduleBase}/quotes/preview`, { partyId, items })
+      return response.data
+    } catch (e) {
+      return null
+    }
   }
 
   // --- Orders ---
   async getOrder(id: string): Promise<Order> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${id}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudo obtener el pedido')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.get(`${this.moduleBase}/orders/${id}`)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo obtener el pedido')
+    }
   }
 
   async listOrders(filters: ListOrdersFilters = {}): Promise<{ data: Order[], total: number }> {
-    const params = new URLSearchParams()
-    if (filters.partyId) params.append('partyId', filters.partyId)
-    if ((filters as any).searchText) params.append('search', (filters as any).searchText)
-    if (filters.status) params.append('status', frontendToBackendStatus[filters.status] || filters.status)
-    if (filters.fromDate) params.append('fromDate', filters.fromDate)
-    if (filters.toDate) params.append('toDate', filters.toDate)
-    if (filters.limit) params.append('limit', filters.limit.toString())
+    const params: any = {}
+    if (filters.partyId) params.partyId = filters.partyId
+    if ((filters as any).searchText) params.search = (filters as any).searchText
+    if (filters.status) params.status = filters.status
+    if (filters.fromDate) params.fromDate = filters.fromDate
+    if (filters.toDate) params.toDate = filters.toDate
+    if (filters.limit) params.limit = filters.limit
     
-    const response = await this.safeFetch(`${this.baseUrl}/orders?${params}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudieron cargar los pedidos')
-    const res = await response.json()
-    const rawData = Array.isArray(res) ? res : (res.data || [])
-    return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+    try {
+      const response = await api.get(`${this.moduleBase}/orders`, { params })
+      const res = response.data
+      const rawData = Array.isArray(res) ? res : (res.data || [])
+      return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los pedidos')
+    }
   }
 
   async createOrder(data: CreateOrderRequest): Promise<Order> {
     const payload: any = data as any
-    const response = await this.safeFetch(`${this.baseUrl}/orders`, { 
-      method: 'POST', 
-      headers: this.getHeaders(), 
-      body: JSON.stringify({
+    try {
+      const response = await api.post(`${this.moduleBase}/orders`, {
         partyId: payload.partyId ?? payload.party_id,
         quoteId: payload.quoteId ?? payload.quote_id ?? undefined,
         deliveryDate: payload.deliveryDate ?? payload.delivery_date,
         notes: payload.notes || '',
         mesWorkRefs: payload.mesWorkRefs ?? payload.mes_work_refs ?? [],
         items: payload.items ?? payload.line_items ?? []
-      }) 
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo crear el pedido')
-    return normalizeEntity(await response.json())
+      })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear el pedido')
+    }
   }
 
   async updateOrder(id: string, data: UpdateOrderRequest): Promise<Order> {
     const payload: any = data as any
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${id}`, { 
-      method: 'PUT', 
-      headers: this.getHeaders(), 
-      body: JSON.stringify({
+    try {
+      const response = await api.put(`${this.moduleBase}/orders/${id}`, {
         partyId: payload.partyId ?? payload.party_id,
         deliveryDate: payload.deliveryDate ?? payload.delivery_date,
         notes: payload.notes || '',
         mesWorkRefs: payload.mesWorkRefs ?? payload.mes_work_refs ?? []
-      }) 
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo actualizar el pedido')
-    return normalizeEntity(await response.json())
-  }
-
-  async changeOrderStatus(id: string, status: string): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${id}/status`, { method: 'PATCH', headers: this.getHeaders(), body: JSON.stringify({ newStatus: frontendToBackendStatus[status] || status }) })
-    if (!response.ok) await this.handleError(response, 'No se pudo cambiar el estado del pedido')
-    try {
-      return normalizeEntity(await response.json())
-    } catch {
-      return undefined
+      })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar el pedido')
     }
   }
 
-  async addOrderLineItem(orderId: string, item: any): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ item }) })
-    if (!response.ok) await this.handleError(response, 'No se pudo añadir la línea')
+  async changeOrderStatus(id: string, status: string): Promise<any> {
     try {
-      return normalizeEntity(await response.json())
-    } catch {
-      return undefined
+      const response = await api.patch(`${this.moduleBase}/orders/${id}/status`, { newStatus: status })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo cambiar el estado del pedido')
+    }
+  }
+
+  async confirmOrder(id: string): Promise<any> {
+    return this.changeOrderStatus(id, 'IN_PREPARATION')
+  }
+
+  async cancelOrder(id: string): Promise<any> {
+    return this.changeOrderStatus(id, 'CANCELLED')
+  }
+
+  async reactivateOrder(id: string): Promise<any> {
+    return this.changeOrderStatus(id, 'PENDING')
+  }
+
+  async addOrderLineItem(orderId: string, item: any): Promise<any> {
+    try {
+      const response = await api.post(`${this.moduleBase}/orders/${orderId}/line-items`, { item })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo añadir la línea')
     }
   }
 
   async updateOrderLineItem(orderId: string, itemId: string, item: any): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items/${itemId}`, { method: 'PUT', headers: this.getHeaders(), body: JSON.stringify(item) })
-    if (!response.ok) await this.handleError(response, 'No se pudo actualizar la línea')
     try {
-      return normalizeEntity(await response.json())
-    } catch {
-      return undefined
+      const response = await api.put(`${this.moduleBase}/orders/${orderId}/line-items/${itemId}`, item)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar la línea')
     }
   }
 
   async removeOrderLineItem(orderId: string, itemId: string): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/${orderId}/line-items/${itemId}`, { method: 'DELETE', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudo eliminar la línea')
     try {
-      return normalizeEntity(await response.json())
-    } catch {
-      return undefined
+      const response = await api.delete(`${this.moduleBase}/orders/${orderId}/line-items/${itemId}`)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo eliminar la línea')
     }
   }
 
   // --- Delivery Notes ---
   async getDeliveryNote(id: string): Promise<DeliveryNote> {
-    const response = await this.safeFetch(`${this.baseUrl}/delivery-notes/${id}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudo obtener el albarán')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.get(`${this.moduleBase}/delivery-notes/${id}`)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo obtener el albarán')
+    }
   }
 
   async listDeliveryNotes(filters: ListDeliveryNotesFilters = {}): Promise<{ data: DeliveryNote[], total: number }> {
-    const params = new URLSearchParams()
-    if (filters.orderId) params.append('salesOrderId', filters.orderId)
-    if (filters.searchText) {
-      params.append('search', filters.searchText)
-      params.append('searchText', filters.searchText)
+    const params: any = {}
+    if (filters.orderId) params.salesOrderId = filters.orderId
+    if (filters.searchText) params.search = filters.searchText
+    if (filters.status) params.status = filters.status
+    
+    try {
+      const response = await api.get(`${this.moduleBase}/delivery-notes`, { params })
+      const res = response.data
+      const rawDN = Array.isArray(res) ? res : (res.data || [])
+      return { data: rawDN.map(normalizeEntity), total: res.total ?? rawDN.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los albaranes')
     }
-    const response = await this.safeFetch(`${this.baseUrl}/delivery-notes?${params}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudieron cargar los albaranes')
-    const res = await response.json()
-    const rawDN = Array.isArray(res) ? res : (res.data || [])
-    return { data: rawDN.map(normalizeEntity), total: res.total ?? rawDN.length }
   }
 
   async createDeliveryNote(data: CreateDeliveryNoteRequest): Promise<DeliveryNote> {
-    const response = await this.safeFetch(`${this.baseUrl}/delivery-notes`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
-    if (!response.ok) await this.handleError(response, 'No se pudo crear el albarán')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.post(`${this.moduleBase}/delivery-notes`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear el albarán')
+    }
   }
 
   async changeDeliveryNoteStatus(id: string, status: string): Promise<DeliveryNote> {
-    const response = await this.safeFetch(`${this.baseUrl}/delivery-notes/${id}/status`, { 
-      method: 'PATCH', 
-      headers: this.getHeaders(), 
-      body: JSON.stringify({ newStatus: frontendToBackendStatus[status] || status }) 
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo cambiar el estado del albarán')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.patch(`${this.moduleBase}/delivery-notes/${id}/status`, { newStatus: status })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo cambiar el estado del albarán')
+    }
+  }
+
+  async deleteDeliveryNote(id: string): Promise<void> {
+    try {
+      await api.delete(`${this.moduleBase}/delivery-notes/${id}`)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo eliminar el albarán')
+    }
   }
 
   // --- Invoices ---
   async getInvoice(id: string): Promise<Invoice> {
-    const response = await this.safeFetch(`${this.baseUrl}/invoices/${id}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudo obtener la factura')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.get(`${this.moduleBase}/invoices/${id}`)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo obtener la factura')
+    }
   }
 
   async listInvoices(filters: ListInvoicesFilters = {}): Promise<{ data: Invoice[], total: number }> {
-    const params = new URLSearchParams()
-    if (filters.orderId) params.append('orderId', filters.orderId)
-    if ((filters as any).partyId) params.append('partyId', (filters as any).partyId)
-    if (filters.deliveryNoteId) params.append('deliveryNoteId', filters.deliveryNoteId)
-    if (filters.searchText) {
-      params.append('search', filters.searchText)
-      params.append('searchText', filters.searchText)
-    }
-    if (filters.status) params.append('status', filters.status)
-    if (filters.type) params.append('type', filters.type)
+    const params: any = {}
+    if (filters.orderId) params.orderId = filters.orderId
+    if ((filters as any).partyId) params.partyId = (filters as any).partyId
+    if (filters.deliveryNoteId) params.deliveryNoteId = filters.deliveryNoteId
+    if (filters.searchText) params.search = filters.searchText
+    if (filters.status) params.status = filters.status
+    if (filters.type) params.type = filters.type
     
-    const response = await this.safeFetch(`${this.baseUrl}/invoices?${params}`, { method: 'GET', headers: this.getHeaders() })
-    if (!response.ok) await this.handleError(response, 'No se pudieron cargar las facturas')
-    const res = await response.json()
-    const rawInv = Array.isArray(res) ? res : (res.data || [])
-    return { data: rawInv.map(normalizeEntity), total: res.total ?? rawInv.length }
+    try {
+      const response = await api.get(`${this.moduleBase}/invoices`, { params })
+      const res = response.data
+      const rawInv = Array.isArray(res) ? res : (res.data || [])
+      return { data: rawInv.map(normalizeEntity), total: res.total ?? rawInv.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar las facturas')
+    }
   }
 
   async createInvoice(data: CreateInvoiceRequest): Promise<Invoice> {
-    const response = await this.safeFetch(`${this.baseUrl}/invoices`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
-    if (!response.ok) await this.handleError(response, 'No se pudo crear la factura')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.post(`${this.moduleBase}/invoices`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear la factura')
+    }
   }
 
-  // Backward compatible endpoint for simplified invoices used in legacy flows/tests.
   async createSimplifiedInvoice(data: CreateSimplifiedInvoiceRequest): Promise<Invoice> {
-    const response = await this.safeFetch(`${this.baseUrl}/invoices/simplified`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify(data) })
-    if (!response.ok) await this.handleError(response, 'No se pudo crear la factura simplificada')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.post(`${this.moduleBase}/invoices/simplified`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear la factura simplificada')
+    }
+  }
+
+  async updateInvoice(id: string, data: any): Promise<Invoice> {
+    try {
+      const response = await api.put(`${this.moduleBase}/invoices/${id}`, data)
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar la factura')
+    }
   }
 
   async changeInvoiceStatus(id: string, status: string): Promise<Invoice> {
-    const response = await this.safeFetch(`${this.baseUrl}/invoices/${id}/status`, { 
-      method: 'PATCH', 
-      headers: this.getHeaders(), 
-      body: JSON.stringify({ newStatus: frontendToBackendStatus[status] || status }) 
-    })
-    if (!response.ok) await this.handleError(response, 'No se pudo cambiar el estado de la factura')
-    return normalizeEntity(await response.json())
+    try {
+      const response = await api.patch(`${this.moduleBase}/invoices/${id}/status`, { newStatus: status })
+      return normalizeEntity(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo cambiar el estado de la factura')
+    }
   }
 
   // --- Utils ---
@@ -414,57 +393,61 @@ class SalesApi {
   }
 
   async previewOrderCalculation(partyId: string, items: any[]): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/orders/preview`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ partyId, items }) })
-    if (!response.ok) return null
-    return await response.json()
+    try {
+      const response = await api.post(`${this.moduleBase}/orders/preview`, { partyId, items })
+      return response.data
+    } catch (e) {
+      return null
+    }
   }
 
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
-      // Common & Quotes
-      'DRAFT': 'secondary', 'BORRADOR': 'secondary',
-      'ISSUED': 'info', 'EMITIDA': 'info',
-      'ACCEPTED': 'success', 'APPROVED': 'success', 'APROBADA': 'success',
-      'REJECTED': 'danger', 'RECHAZADA': 'danger',
-      'CONVERTED': 'success', 'CONVERTIDA_A_PEDIDO': 'success',
-      'EXPIRED': 'secondary', 'EXPIRADA': 'secondary',
-      // Orders & Delivery Notes
-      'PENDING': 'warning', 'PENDIENTE': 'warning',
-      'CONFIRMED': 'info', 'CONFIRMADO': 'info', 'EN_PREPARACION': 'info',
-      'PROCESSING': 'primary', 'PROCESANDO': 'primary',
-      'READY': 'success', 'LISTO_PARA_ENTREGA': 'success',
-      'DELIVERED': 'success', 'ENTREGADO': 'success',
-      'CANCELLED': 'danger', 'CANCELADO': 'danger',
-      // Invoices
-      'PAID': 'success', 'PAGADA': 'success',
-      'OVERDUE': 'danger', 'VENCIDA': 'danger',
-      'VOIDED': 'secondary', 'ANULADA': 'secondary'
+      'DRAFT': 'secondary',
+      'ISSUED': 'info',
+      'ACCEPTED': 'success',
+      'APPROVED': 'success',
+      'REJECTED': 'danger',
+      'CONVERTED': 'success',
+      'CONVERTED_TO_ORDER': 'success',
+      'EXPIRED': 'secondary',
+      'PENDING': 'warning',
+      'IN_PREPARATION': 'info',
+      'READY_FOR_PRODUCTION': 'primary',
+      'PROCESSING': 'primary',
+      'READY': 'success',
+      'DELIVERED': 'success',
+      'CANCELLED': 'danger',
+      'PAID': 'success',
+      'OVERDUE': 'danger',
+      'VOID': 'secondary'
     }
     return statusMap[status] || 'secondary'
   }
 
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      // Quotes
-      'DRAFT': 'Borrador', 'BORRADOR': 'Borrador',
-      'ISSUED': 'Emitido', 'EMITIDA': 'Emitido',
-      'ACCEPTED': 'Aprobado', 'APPROVED': 'Aprobado', 'APROBADA': 'Aprobado',
-      'REJECTED': 'Rechazado', 'RECHAZADA': 'Rechazado',
-      'CONVERTED': 'Aprobado', 'CONVERTIDA_A_PEDIDO': 'Aprobado',
-      'EXPIRED': 'Expirado', 'EXPIRADA': 'Expirado',
-      // Orders & Delivery Notes
-      'PENDING': 'Pendiente', 'PENDIENTE': 'Pendiente',
-      'CONFIRMED': 'Confirmado', 'CONFIRMADO': 'Confirmado', 'EN_PREPARACION': 'En Preparación',
-      'PROCESSING': 'En Taller', 'PROCESANDO': 'En Taller',
-      'READY': 'Listo', 'LISTO_PARA_ENTREGA': 'Listo',
-      'DELIVERED': 'Entregado', 'ENTREGADO': 'Entregado',
-      'CANCELLED': 'Anulado', 'CANCELADO': 'Anulado',
-      'PARTIALLY_DELIVERED': 'Entregado Parcial', 'ENTREGADO_PARCIALMENTE': 'Entregado Parcial',
-      // Invoices
-      'PAID': 'Pagada', 'PAGADA': 'Pagada',
-      'OVERDUE': 'Vencida', 'VENCIDA': 'Vencida',
-      'VOIDED': 'Anulada', 'ANULADA': 'Anulada',
-      'INVOICED': 'Facturado', 'FACTURADO_COMPLETAMENTE': 'Facturado'
+      'DRAFT': 'Borrador',
+      'ISSUED': 'Emitido',
+      'ACCEPTED': 'Aprobado',
+      'APPROVED': 'Aprobado',
+      'REJECTED': 'Rechazado',
+      'CONVERTED': 'Aprobado',
+      'CONVERTED_TO_ORDER': 'Aprobado (en Pedido)',
+      'EXPIRED': 'Expirado',
+      'PENDING': 'Pendiente',
+      'IN_PREPARATION': 'En Preparación',
+      'READY_FOR_PRODUCTION': 'Lanzado a Producción',
+      'PROCESSING': 'En Taller',
+      'READY': 'Listo',
+      'DELIVERED': 'Entregado',
+      'CANCELLED': 'Anulado',
+      'PARTIALLY_DELIVERED': 'Entregado Parcial',
+      'PAID': 'Pagada',
+      'OVERDUE': 'Vencida',
+      'VOID': 'Anulada',
+      'PARTIALLY_INVOICED': 'Facturado Parcial',
+      'INVOICED': 'Facturado'
     }
     return labels[status] || status
   }
@@ -478,3 +461,4 @@ class SalesApi {
 }
 
 export default new SalesApi()
+

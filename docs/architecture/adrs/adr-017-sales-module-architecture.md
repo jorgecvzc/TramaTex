@@ -83,6 +83,7 @@ Se ha evolucionado de un cálculo simplificado a un sistema completo:
 ### Otras Consideraciones
 *   **Generación de Números:** Value Objects específicos para `OrderNumber`, `QuoteNumber`, etc.
 *   **Transiciones de Estado:** Gestionadas por lógica de dominio robusta que valida flujos permitidos.
+*   **Simplificación de Flujo (Abril 2026):** Para agilizar la operativa, los Pedidos de Venta nacen directamente en estado `EN_PREPARACION` (Confirmado), eliminando el paso manual de confirmación desde `PENDIENTE` para usuarios autorizados. El estado `PENDIENTE` se reserva como estado de seguridad tras una reactivación.
 
 ---
 

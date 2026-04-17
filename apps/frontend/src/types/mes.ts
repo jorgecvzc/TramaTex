@@ -216,10 +216,10 @@ export interface ListWorkSetupFilters {
 
 export interface PendingWorkSetup {
   id: string
-  workSetupId?: string | null
+  work_setup_id?: string | null
   description: string
-  orderId: string
-  orderNumber: string
-  deliveryDate: string
-  partyId: string
+  order_id: string
+  order_number: string
+  delivery_date: string
+  party_id: string
 }
