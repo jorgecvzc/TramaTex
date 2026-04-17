@@ -5,6 +5,7 @@ export interface PrintIssuerProfile {
   addressLine: string
   cityLine: string
   contactLine: string
+  mercantileRegistry: string
 }
 
 const STORAGE_KEY = 'tramatex_print_issuer_profile'
@@ -12,10 +13,11 @@ const STORAGE_KEY = 'tramatex_print_issuer_profile'
 const DEFAULT_PROFILE: PrintIssuerProfile = {
   displayName: 'TramaTex',
   taxLabel: 'CIF',
-  taxId: '',
-  addressLine: '',
-  cityLine: '',
-  contactLine: '',
+  taxId: 'B-12345678',
+  addressLine: 'C/ Industria, 42 - Pol. Ind. El Trama',
+  cityLine: '28001 Madrid',
+  contactLine: '+34 912 345 678 | info@tramatex.local',
+  mercantileRegistry: 'R.M. Madrid, Tomo 12345, Folio 67, Hoja M-123456',
 }
 
 function getEnvProfile(): Partial<PrintIssuerProfile> {
@@ -28,6 +30,7 @@ function getEnvProfile(): Partial<PrintIssuerProfile> {
     addressLine: env.VITE_PRINT_ISSUER_ADDRESS,
     cityLine: env.VITE_PRINT_ISSUER_CITY,
     contactLine: env.VITE_PRINT_ISSUER_CONTACT,
+    mercantileRegistry: env.VITE_PRINT_ISSUER_MERCANTILE,
   }
 }
 
@@ -46,6 +49,7 @@ function getStorageProfile(): Partial<PrintIssuerProfile> {
       addressLine: typeof parsed.addressLine === 'string' ? parsed.addressLine : undefined,
       cityLine: typeof parsed.cityLine === 'string' ? parsed.cityLine : undefined,
       contactLine: typeof parsed.contactLine === 'string' ? parsed.contactLine : undefined,
+      mercantileRegistry: typeof parsed.mercantileRegistry === 'string' ? parsed.mercantileRegistry : undefined,
     }
   } catch {
     return {}

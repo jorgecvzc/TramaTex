@@ -43,6 +43,16 @@ const calculateLineSubtotal = (item: any) => {
   const discount = item.discountPercent ?? item.discount_percent ?? 0
   return (price * qty) * (1 - (discount / 100))
 }
+
+const getGeneralConditions = computed(() => {
+  const conditions: Record<string, string> = {
+    'QUOTE': 'Este presupuesto tiene una validez de 15 días naturales. Los plazos de entrega indicados son estimativos desde la fecha de aceptación formal y están sujetos a disponibilidad de materias primas y carga de trabajo en el taller de TramaTex.',
+    'ORDER': 'Documento de confirmación de pedido. Los precios y condiciones quedan fijados según lo acordado. La fecha de entrega prevista está sujeta a la aprobación definitiva del diseño y el cumplimiento de los hitos de producción. TramaTex se reserva el derecho de ajustar la planificación ante incidencias técnicas mayores.',
+    'DELIVERY_NOTE': 'Documento de entrega de mercancía. El receptor declara haber recibido los bultos indicados en perfecto estado, salvo anotación expresa en este documento. La firma del albarán supone la aceptación de la mercancía. No se admitirán reclamaciones transcurridos 48 horas desde la recepción.',
+    'INVOICE': 'Factura oficial. El pago deberá realizarse según las condiciones acordadas y en la fecha de vencimiento indicada. En caso de demora, TramaTex se reserva el derecho de aplicar los intereses legales correspondientes según la Ley 3/2004 de lucha contra la morosidad.'
+  }
+  return conditions[props.type] || conditions['QUOTE']
+})
 </script>
 
 <template>
@@ -127,7 +137,7 @@ const calculateLineSubtotal = (item: any) => {
           <p>{{ notes }}</p>
         </div>
         <div class="legal-notice">
-          <p><strong>Condiciones Generales:</strong> Los precios indicados no incluyen IVA salvo que se especifique lo contrario. Este documento tiene una validez de 30 días. Los plazos de entrega son estimativos y están sujetos a disponibilidad de stock y capacidad de producción.</p>
+          <p><strong>Condiciones Generales:</strong> {{ getGeneralConditions }}</p>
           <p>De conformidad con la LOPD, le informamos que sus datos están incorporados en un fichero responsabilidad de TRAMATEX S.L. para la gestión comercial.</p>
         </div>
       </div>
