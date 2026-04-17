@@ -4,163 +4,69 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/shopspring/decimal"
 
 	pricingapp "github.com/joran-cortez/tramatex/internal/pricing/application"
-	productdomain "github.com/joran-cortez/tramatex/internal/product/domain"
-	productpersistence "github.com/joran-cortez/tramatex/internal/product/infrastructure/persistence"
+	productapp "github.com/joran-cortez/tramatex/internal/product/application"
 )
 
-type ProductPricingClient struct {
-	db *gorm.DB
+// ProductDataProvider abstracts the Product module's application layer.
+// Satisfied by *productapp.ProductService.
+type ProductDataProvider interface {
+	GetVariantPricingData(ctx context.Context, variantID uuid.UUID) (*productapp.VariantPricingDataDTO, error)
+	GetVariantsPricingData(ctx context.Context, variantIDs []uuid.UUID) ([]*productapp.VariantPricingDataDTO, error)
+	ListVariantsPricingData(ctx context.Context, productID uuid.UUID) ([]*productapp.VariantPricingDataDTO, error)
 }
 
-func NewProductPricingClient(db *gorm.DB) *ProductPricingClient {
-	return &ProductPricingClient{db: db}
+type ProductPricingClient struct {
+	provider ProductDataProvider
+}
+
+func NewProductPricingClient(provider ProductDataProvider) *ProductPricingClient {
+	return &ProductPricingClient{provider: provider}
 }
 
 func (c *ProductPricingClient) GetVariantPricingInfo(ctx context.Context, variantID uuid.UUID) (*pricingapp.ProductPricingInfo, error) {
-	var variant productpersistence.VariantDataModel
-	if err := c.db.WithContext(ctx).First(&variant, "id = ?", variantID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
+	data, err := c.provider.GetVariantPricingData(ctx, variantID)
+	if err != nil || data == nil {
 		return nil, err
 	}
+	return mapToProductPricingInfo(data), nil
+}
 
-	var product productpersistence.ProductDataModel
-	if err := c.db.WithContext(ctx).First(&product, "id = ?", variant.ProductID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
+func (c *ProductPricingClient) GetVariantsPricingInfo(ctx context.Context, variantIDs []uuid.UUID) ([]*pricingapp.ProductPricingInfo, error) {
+	dataList, err := c.provider.GetVariantsPricingData(ctx, variantIDs)
+	if err != nil || dataList == nil {
 		return nil, err
 	}
-
-	// Calculate BaseCost dynamically from product BasePrice + attribute modifiers
-	baseCost, err := c.calculateVariantBaseCost(ctx, product.BasePrice, variant.AttributeValues)
-	if err != nil {
-		// Log the error, but use BasePrice as fallback
-		baseCost = product.BasePrice
+	result := make([]*pricingapp.ProductPricingInfo, 0, len(dataList))
+	for _, data := range dataList {
+		result = append(result, mapToProductPricingInfo(data))
 	}
-
-	// Get brand markup percentage
-	var brand productpersistence.BrandDataModel
-	var brandMarkup float64
-	brandID := uuid.Nil
-	if product.BrandID != nil {
-		brandID = *product.BrandID
-		if err := c.db.WithContext(ctx).First(&brand, "id = ?", brandID).Error; err == nil {
-			brandMarkup = brand.DefaultMarkupPercentage
-		}
-	}
-
-	return &pricingapp.ProductPricingInfo{
-		VariantID:             variant.ID,
-		ProductID:             variant.ProductID,
-		BaseCost:              baseCost,
-		Currency:              "EUR",
-		BrandID:               brandID,
-		BrandMarkupPercentage: brandMarkup,
-		GroupIDs:              parseUUIDs(product.GroupIDs),
-		TaxRate:               product.TaxRate,
-	}, nil
+	return result, nil
 }
 
 func (c *ProductPricingClient) ListVariantsPricingInfo(ctx context.Context, productID uuid.UUID) ([]*pricingapp.ProductPricingInfo, error) {
-	var product productpersistence.ProductDataModel
-	if err := c.db.WithContext(ctx).First(&product, "id = ?", productID).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, nil
-		}
+	dataList, err := c.provider.ListVariantsPricingData(ctx, productID)
+	if err != nil || dataList == nil {
 		return nil, err
 	}
-
-	var variants []productpersistence.VariantDataModel
-	if err := c.db.WithContext(ctx).Where("product_id = ?", productID).Find(&variants).Error; err != nil {
-		return nil, err
+	result := make([]*pricingapp.ProductPricingInfo, 0, len(dataList))
+	for _, data := range dataList {
+		result = append(result, mapToProductPricingInfo(data))
 	}
-
-	// Get brand markup percentage
-	var brand productpersistence.BrandDataModel
-	var brandMarkup float64
-	brandID := uuid.Nil
-	if product.BrandID != nil {
-		brandID = *product.BrandID
-		if err := c.db.WithContext(ctx).First(&brand, "id = ?", brandID).Error; err == nil {
-			brandMarkup = brand.DefaultMarkupPercentage
-		}
-	}
-
-	groupIDs := parseUUIDs(product.GroupIDs)
-	infos := make([]*pricingapp.ProductPricingInfo, 0, len(variants))
-	for _, variant := range variants {
-		// Calculate BaseCost dynamically for each variant
-		baseCost, err := c.calculateVariantBaseCost(ctx, product.BasePrice, variant.AttributeValues)
-		if err != nil {
-			// Log error, use product BasePrice as fallback
-			baseCost = product.BasePrice
-		}
-
-		infos = append(infos, &pricingapp.ProductPricingInfo{
-			VariantID:             variant.ID,
-			ProductID:             variant.ProductID,
-			BaseCost:              baseCost,
-			Currency:              "EUR",
-			BrandID:               brandID,
-			BrandMarkupPercentage: brandMarkup,
-			GroupIDs:              groupIDs,
-			TaxRate:               product.TaxRate,
-		})
-	}
-
-	return infos, nil
+	return result, nil
 }
 
-// calculateVariantBaseCost calculates the base cost for a variant by loading attribute values
-// and applying their price modifiers to the product's base price.
-func (c *ProductPricingClient) calculateVariantBaseCost(ctx context.Context, productBasePrice float64, attributeValueIDStrings []string) (float64, error) {
-	if len(attributeValueIDStrings) == 0 {
-		return productBasePrice, nil
+func mapToProductPricingInfo(data *productapp.VariantPricingDataDTO) *pricingapp.ProductPricingInfo {
+	return &pricingapp.ProductPricingInfo{
+		VariantID:             data.VariantID,
+		ProductID:             data.ProductID,
+		BaseCost:              decimal.NewFromFloat(data.BaseCost),
+		Currency:              data.Currency,
+		BrandID:               data.BrandID,
+		BrandMarkupPercentage: decimal.NewFromFloat(data.BrandMarkupPercentage),
+		GroupIDs:              data.GroupIDs,
+		TaxRate:               decimal.NewFromFloat(data.TaxRate),
 	}
-
-	// Parse attribute value IDs
-	attributeValueIDs := make([]uuid.UUID, 0, len(attributeValueIDStrings))
-	for _, idStr := range attributeValueIDStrings {
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			continue
-		}
-		attributeValueIDs = append(attributeValueIDs, id)
-	}
-
-	if len(attributeValueIDs) == 0 {
-		return productBasePrice, nil
-	}
-
-	// Load attribute values from database
-	var attrValueDataModels []productpersistence.AttributeValueDataModel
-	if err := c.db.WithContext(ctx).Where("id IN ?", attributeValueIDs).Find(&attrValueDataModels).Error; err != nil {
-		return 0, err
-	}
-
-	// Convert to domain models
-	attrValues := make([]productdomain.AttributeValue, 0, len(attrValueDataModels))
-	for _, dm := range attrValueDataModels {
-		attrValues = append(attrValues, *dm.ToDomain())
-	}
-
-	// Calculate base cost using domain logic
-	return productdomain.CalculateBaseCost(productBasePrice, attrValues), nil
-}
-
-func parseUUIDs(values []string) []uuid.UUID {
-	result := make([]uuid.UUID, 0, len(values))
-	for _, value := range values {
-		parsed, err := uuid.Parse(value)
-		if err != nil {
-			continue
-		}
-		result = append(result, parsed)
-	}
-	return result
 }

@@ -2,19 +2,38 @@ package application
 
 import (
 	"context"
-	"sort"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
 
+type ProductPricingInfo struct {
+	VariantID             uuid.UUID
+	ProductID             uuid.UUID
+	BaseCost              decimal.Decimal
+	Currency              string
+	BrandID               uuid.UUID
+	BrandMarkupPercentage decimal.Decimal // Brand's default markup percentage (e.g., 30.0 = 30%)
+	GroupIDs              []uuid.UUID
+	TaxRate               decimal.Decimal // Tax rate as percentage (e.g., 21.0 = 21%)
+}
+
+type ProductInfoProvider interface {
+	GetVariantPricingInfo(ctx context.Context, variantID uuid.UUID) (*ProductPricingInfo, error)
+	GetVariantsPricingInfo(ctx context.Context, variantIDs []uuid.UUID) ([]*ProductPricingInfo, error)
+}
+
 type PricingEngineService struct {
-	baseRuleRepo   domain.BaseSalesPriceRuleRepository
-	saleRuleRepo   domain.SaleModificationRuleRepository
-	productInfo    ProductInfoProvider
-	basePriceCache BasePriceCache
-	clientInfo     ClientInfoProvider
+	baseRuleRepo      domain.BaseSalesPriceRuleRepository
+	saleRuleRepo      domain.SaleModificationRuleRepository
+	productInfo       ProductInfoProvider
+	basePriceCache    BasePriceCache
+	clientInfo        ClientInfoProvider
+	clientPricingRepo domain.ClientPricingRepository
+	calculationRepo   domain.PriceCalculationRepository
 }
 
 type ProductVariantsProvider interface {
@@ -32,13 +51,17 @@ func NewPricingEngineService(
 	productInfo ProductInfoProvider,
 	basePriceCache BasePriceCache,
 	clientInfo ClientInfoProvider,
+	clientPricingRepo domain.ClientPricingRepository,
+	calculationRepo domain.PriceCalculationRepository,
 ) *PricingEngineService {
 	return &PricingEngineService{
-		baseRuleRepo:   baseRuleRepo,
-		saleRuleRepo:   saleRuleRepo,
-		productInfo:    productInfo,
-		basePriceCache: basePriceCache,
-		clientInfo:     clientInfo,
+		baseRuleRepo:      baseRuleRepo,
+		saleRuleRepo:      saleRuleRepo,
+		productInfo:       productInfo,
+		basePriceCache:    basePriceCache,
+		clientInfo:        clientInfo,
+		clientPricingRepo: clientPricingRepo,
+		calculationRepo:   calculationRepo,
 	}
 }
 
@@ -219,12 +242,19 @@ func (s *PricingEngineService) CalculateBaseSalesPrice(ctx context.Context, req 
 	if info == nil {
 		return nil, domain.NewNotFoundError("product variant not found")
 	}
-	baseSalesPrice, err := s.calculateBaseSalesPriceFromInfo(ctx, req.VariantID, info)
+
+	// Fetch all rules once for this calculation
+	rules, err := s.baseRuleRepo.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	baseCost, err := domain.NewMoney(info.BaseCost, info.Currency)
+	baseSalesPrice, err := s.calculateBaseSalesPriceFromInfoWithRules(ctx, req.VariantID, info, rules)
+	if err != nil {
+		return nil, err
+	}
+
+	baseCost, err := domain.NewMoneyFromDecimal(info.BaseCost, info.Currency)
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +264,12 @@ func (s *PricingEngineService) CalculateBaseSalesPrice(ctx context.Context, req 
 		s.primeCacheForProduct(ctx, info.ProductID)
 	}
 
+	tr, _ := info.TaxRate.Float64()
 	return &CalculatedBaseSalesPriceResponse{
 		VariantID:      req.VariantID,
 		BaseCost:       NewMoneyDTO(baseCost),
 		BaseSalesPrice: NewMoneyDTO(baseSalesPrice),
-		TaxRate:        info.TaxRate,
+		TaxRate:        tr,
 	}, nil
 }
 
@@ -252,24 +283,67 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		saleDate = time.Now()
 	}
 
-	items := make([]CalculatedSaleItemResponse, 0, len(req.SaleItems))
-	orderTotal, err := domain.NewMoney(0, domain.DefaultCurrency)
+	// 1. Bulk fetch all product variant info
+	variantIDs := make([]uuid.UUID, len(req.SaleItems))
+	for i, item := range req.SaleItems {
+		variantIDs[i] = item.ProductVariantID
+	}
+	infoList, err := s.productInfo.GetVariantsPricingInfo(ctx, variantIDs)
 	if err != nil {
 		return nil, err
 	}
-	basePrices := make([]domain.Money, 0, len(req.SaleItems))
-	productInfos := make([]*ProductPricingInfo, 0, len(req.SaleItems))
+	infoMap := make(map[uuid.UUID]*ProductPricingInfo)
+	for _, info := range infoList {
+		infoMap[info.VariantID] = info
+	}
 
-	for _, item := range req.SaleItems {
+	// 2. Pre-fetch all base pricing rules once
+	baseRules, err := s.baseRuleRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Parse ClientID if present
+	var clientUUID uuid.UUID
+	if req.ClientID != "" {
+		clientUUID, _ = uuid.Parse(req.ClientID)
+	}
+
+	// 4. Pre-fetch all client pricing overrides (Bulk)
+	clientOverrides := make(map[uuid.UUID]*domain.ClientPricing)
+	if clientUUID != uuid.Nil && s.clientPricingRepo != nil {
+		clientOverrides, err = s.clientPricingRepo.FindApplicableBulk(ctx, clientUUID, variantIDs, saleDate)
+		if err != nil {
+			slog.Warn("failed to bulk query client pricing overrides", "clientID", req.ClientID, "error", err)
+		}
+	}
+
+	// 5. Pre-fetch ALL active sale modification rules once
+	allSaleRules, err := s.saleRuleRepo.ListActive(ctx, saleDate)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]CalculatedSaleItemResponse, 0, len(req.SaleItems))
+	initialOrderTotal, err := domain.NewMoney(0, domain.DefaultCurrency)
+	if err != nil {
+		return nil, err
+	}
+	
+	type itemState struct {
+		basePrice   domain.Money
+		productInfo *ProductPricingInfo
+	}
+	states := make([]itemState, len(req.SaleItems))
+
+	// First pass: Calculate Base Prices and Order Total
+	for i, item := range req.SaleItems {
 		if item.Quantity <= 0 {
 			return nil, domain.NewValidationError("quantity must be greater than zero")
 		}
 
-		productInfo, err := s.productInfo.GetVariantPricingInfo(ctx, item.ProductVariantID)
-		if err != nil {
-			return nil, err
-		}
-		if productInfo == nil {
+		productInfo, found := infoMap[item.ProductVariantID]
+		if !found {
 			return nil, domain.NewNotFoundError("product variant not found")
 		}
 
@@ -282,88 +356,125 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 		}
 
 		if basePrice.Amount() == 0 {
-			basePrice, err = s.calculateBaseSalesPriceFromInfo(ctx, item.ProductVariantID, productInfo)
+			basePrice, err = s.calculateBaseSalesPriceFromInfoWithRules(ctx, item.ProductVariantID, productInfo, baseRules)
 			if err != nil {
 				return nil, err
 			}
 			if s.basePriceCache != nil {
 				_ = s.basePriceCache.SetBasePrice(ctx, productInfo.ProductID, item.ProductVariantID, basePrice)
-				s.primeCacheForProduct(ctx, productInfo.ProductID)
+				// Prime cache as a background task to avoid blocking
+				go s.primeCacheForProduct(context.Background(), productInfo.ProductID)
 			}
 		}
 
-		basePrices = append(basePrices, basePrice)
-		productInfos = append(productInfos, productInfo)
+		states[i] = itemState{basePrice: basePrice, productInfo: productInfo}
 
 		lineTotal, err := basePrice.Multiply(float64(item.Quantity))
 		if err != nil {
 			return nil, err
 		}
-		orderTotal, err = orderTotal.Add(lineTotal)
+		initialOrderTotal, err = initialOrderTotal.Add(lineTotal)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	saleTotal, err := domain.NewMoney(0, orderTotal.Currency())
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch client default discount as fallback when no specific rules apply
+	// Fetch client default discount as fallback
 	var clientDefaultDiscount float64
 	if req.ClientID != "" && s.clientInfo != nil {
 		clientDefaultDiscount, _ = s.clientInfo.GetClientDefaultDiscount(ctx, req.ClientID)
 	}
 
-	for index, item := range req.SaleItems {
-		basePrice := basePrices[index]
-		productInfo := productInfos[index]
-		baseCost, err := domain.NewMoney(productInfo.BaseCost, productInfo.Currency)
-		if err != nil {
-			return nil, err
-		}
-		productGroupID := firstGroupID(productInfo.GroupIDs)
-		rules, err := s.saleRuleRepo.ListApplicable(ctx, req.ClientID, productGroupID, orderTotal, saleDate)
+	saleTotal, err := domain.NewMoney(0, initialOrderTotal.Currency())
+	if err != nil {
+		return nil, err
+	}
+	
+	auditCalculations := make([]*domain.PriceCalculation, 0, len(req.SaleItems))
+
+	// Second pass: Apply overrides and sale rules
+	for i, item := range req.SaleItems {
+		state := states[i]
+		basePrice := state.basePrice
+		productInfo := state.productInfo
+		
+		baseCost, err := domain.NewMoneyFromDecimal(productInfo.BaseCost, productInfo.Currency)
 		if err != nil {
 			return nil, err
 		}
 
 		finalPrice := basePrice
-		if len(rules) > 0 {
-			sort.SliceStable(rules, func(i, j int) bool {
-				return rules[i].Priority > rules[j].Priority
-			})
-			for _, rule := range rules {
-				updated, err := rule.Value.Apply(finalPrice)
-				if err != nil {
-					return nil, err
-				}
-				finalPrice = updated
-			}
-		} else if clientDefaultDiscount > 0 {
-			// Apply client's default discount as fallback when no specific rules exist
-			discountMultiplier := 1 - (clientDefaultDiscount / 100)
-			discounted, err := finalPrice.Multiply(discountMultiplier)
+		var appliedRules []string
+
+		// --- LOGIC FOR MANUAL OVERRIDES ---
+		var manualOverride bool
+		if item.ManualUnitPrice != nil {
+			finalPrice, _ = domain.NewMoney(item.ManualUnitPrice.Amount, item.ManualUnitPrice.Currency)
+			appliedRules = append(appliedRules, "ManualPriceOverride")
+			manualOverride = true
+		} else if item.ManualDiscountPercent != nil {
+			discountMultiplier := 1.0 - (*item.ManualDiscountPercent / 100.0)
+			finalPrice, err = basePrice.Multiply(discountMultiplier)
 			if err != nil {
 				return nil, err
 			}
-			finalPrice = discounted
+			appliedRules = append(appliedRules, "ManualDiscountOverride")
+			manualOverride = true
 		}
 
-		// Calculate discount (baseSalesPrice - finalPrice)
+		// --- AUTOMATIC RULES (Only applied if no manual override exists) ---
+		if !manualOverride {
+			// 1. Client Pricing Override (Highest Priority)
+			if override, exists := clientOverrides[item.ProductVariantID]; exists {
+				finalPrice = override.FixedPrice
+				appliedRules = append(appliedRules, "ClientPricingOverride")
+			} else {
+				// 2. Sale Modification Rules (In-memory filtering)
+				productGroupID := firstGroupID(productInfo.GroupIDs)
+				var applicableRules []*domain.SaleModificationRule
+				for _, rule := range allSaleRules {
+					if rule.AppliesTo(req.ClientID, productGroupID, initialOrderTotal, saleDate) {
+						applicableRules = append(applicableRules, rule)
+					}
+				}
+
+				if len(applicableRules) > 0 {
+					// Rules are already sorted by priority desc from ListActive
+					for _, rule := range applicableRules {
+						updated, err := rule.Value.Apply(finalPrice)
+						if err != nil {
+							return nil, err
+						}
+						finalPrice = updated
+						appliedRules = append(appliedRules, rule.Name)
+					}
+				} else if clientDefaultDiscount > 0 {
+					// 3. Client Default Discount (Fallback)
+					discountMultiplier := 1.0 - (clientDefaultDiscount / 100.0)
+					discounted, err := finalPrice.Multiply(discountMultiplier)
+					if err != nil {
+						return nil, err
+					}
+					finalPrice = discounted
+					appliedRules = append(appliedRules, "ClientDefaultDiscount")
+				}
+			}
+		}
+
 		discountAmount, err := basePrice.Subtract(finalPrice)
 		if err != nil {
-			// finalPrice > basePrice means a markup was applied, no discount
 			discountAmount, _ = domain.NewMoney(0, basePrice.Currency())
 		}
+		
 		var discountPercent float64
 		if basePrice.Amount() > 0 && discountAmount.Amount() > 0 {
-			discountPercent = discountAmount.Amount() / basePrice.Amount() * 100
+			// Precision calculation for percentage
+			dp := discountAmount.Decimal().Div(basePrice.Decimal()).Mul(decimal.NewFromInt(100))
+			discountPercent, _ = dp.Float64()
 		}
 
-		// Tax per unit
-		taxAmountPerUnit, err := finalPrice.Multiply(productInfo.TaxRate / 100)
+		taxRateFactor, _ := productInfo.TaxRate.Div(decimal.NewFromInt(100)).Float64()
+		taxAmountPerUnit, err := finalPrice.Multiply(taxRateFactor)
 		if err != nil {
 			return nil, err
 		}
@@ -373,7 +484,6 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			return nil, err
 		}
 
-		// Line-level totals
 		lineSubtotal, err := finalPrice.Multiply(float64(item.Quantity))
 		if err != nil {
 			return nil, err
@@ -387,6 +497,7 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			return nil, err
 		}
 
+		tr, _ := productInfo.TaxRate.Float64()
 		items = append(items, CalculatedSaleItemResponse{
 			ProductVariantID:  item.ProductVariantID,
 			Quantity:          item.Quantity,
@@ -395,7 +506,7 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			FinalPrice:        NewMoneyDTO(finalPrice),
 			DiscountPercent:   discountPercent,
 			DiscountAmount:    NewMoneyDTO(discountAmount),
-			TaxRate:           productInfo.TaxRate,
+			TaxRate:           tr,
 			TaxAmountPerUnit:  NewMoneyDTO(taxAmountPerUnit),
 			FinalPriceWithTax: NewMoneyDTO(finalPriceWithTax),
 			LineSubtotal:      NewMoneyDTO(lineSubtotal),
@@ -403,10 +514,27 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 			LineTotal:         NewMoneyDTO(lineTotal),
 		})
 
+		// Prepare for async audit trail
+		if s.calculationRepo != nil && clientUUID != uuid.Nil {
+			calc, calcErr := domain.NewPriceCalculation(item.ProductVariantID, clientUUID, item.Quantity, baseCost, finalPrice, appliedRules)
+			if calcErr == nil {
+				auditCalculations = append(auditCalculations, calc)
+			}
+		}
+
 		saleTotal, err = saleTotal.Add(lineSubtotal)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// --- ASYNC AUDIT TRAIL ---
+	if len(auditCalculations) > 0 {
+		go func(calcs []*domain.PriceCalculation, repo domain.PriceCalculationRepository) {
+			for _, calc := range calcs {
+				_ = repo.Save(context.Background(), calc)
+			}
+		}(auditCalculations, s.calculationRepo)
 	}
 
 	saleTotalWithTax, err := domain.NewMoney(0, saleTotal.Currency())
@@ -431,14 +559,53 @@ func (s *PricingEngineService) CalculateFinalSalePrice(ctx context.Context, req 
 	}, nil
 }
 
+func (s *PricingEngineService) CreateClientPricingOverride(ctx context.Context, cmd CreateClientPricingCommand) (*ClientPricingDTO, error) {
+	if cmd.EffectiveFrom.IsZero() {
+		cmd.EffectiveFrom = time.Now()
+	}
+
+	price, err := domain.NewMoney(cmd.FixedPrice, cmd.Currency)
+	if err != nil {
+		return nil, err
+	}
+
+	override, err := domain.NewClientPricing(cmd.ClientID, cmd.ProductVariantID, price, cmd.EffectiveFrom, cmd.EffectiveTo)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.clientPricingRepo.Save(ctx, override); err != nil {
+		return nil, err
+	}
+
+	dto := NewClientPricingDTO(override)
+	return &dto, nil
+}
+
+func (s *PricingEngineService) GetPricingHistory(ctx context.Context, query GetPricingHistoryQuery) ([]*PriceCalculationDTO, error) {
+	calcs, err := s.calculationRepo.ListByProductVariantID(ctx, query.ProductVariantID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*PriceCalculationDTO, 0, len(calcs))
+	for _, calc := range calcs {
+		dto := NewPriceCalculationDTO(calc)
+		result = append(result, &dto)
+	}
+	return result, nil
+}
+
 func (s *PricingEngineService) calculateBaseSalesPriceFromInfo(ctx context.Context, variantID uuid.UUID, info *ProductPricingInfo) (domain.Money, error) {
-	// 1. Empezamos con el coste base de la variante (ya incluye modificadores de atributos desde el provider)
-	baseCost, err := domain.NewMoney(info.BaseCost, info.Currency)
+	rules, err := s.baseRuleRepo.List(ctx)
 	if err != nil {
 		return domain.Money{}, err
 	}
+	return s.calculateBaseSalesPriceFromInfoWithRules(ctx, variantID, info, rules)
+}
 
-	rules, err := s.baseRuleRepo.List(ctx)
+func (s *PricingEngineService) calculateBaseSalesPriceFromInfoWithRules(ctx context.Context, variantID uuid.UUID, info *ProductPricingInfo, rules []*domain.BaseSalesPriceRule) (domain.Money, error) {
+	// 1. Empezamos con el coste base de la variante (ya incluye modificadores de atributos desde el provider)
+	baseCost, err := domain.NewMoneyFromDecimal(info.BaseCost, info.Currency)
 	if err != nil {
 		return domain.Money{}, err
 	}
@@ -451,10 +618,11 @@ func (s *PricingEngineService) calculateBaseSalesPriceFromInfo(ctx context.Conte
 		if err != nil {
 			return domain.Money{}, err
 		}
-	} else if info.BrandMarkupPercentage > 0 {
+	} else if info.BrandMarkupPercentage.IsPositive() {
 		// If no rule, apply brand's default markup percentage
 		// baseSalesPrice = baseCost * (1 + markup/100)
-		multiplier := 1.0 + (info.BrandMarkupPercentage / 100.0)
+		markupFactor, _ := info.BrandMarkupPercentage.Div(decimal.NewFromInt(100)).Float64()
+		multiplier := 1.0 + markupFactor
 		baseSalesPrice, err = baseCost.Multiply(multiplier)
 		if err != nil {
 			return domain.Money{}, err

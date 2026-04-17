@@ -99,7 +99,7 @@ type ProductVariantDTO struct {
 	SKU                 string               `json:"sku"`
 	Barcode             *string              `json:"barcode,omitempty"`
 	BaseCost            float64              `json:"base_cost"` // Calculated: Product.BasePrice + AttributeValue modifiers (NOT stored)
-	Price               float64              `json:"price"`    // Final sales price from pricing module
+	Price               float64              `json:"price"`     // Final sales price from pricing module
 	Status              domain.VariantStatus `json:"status"`
 	OptionConfiguration map[string]string    `json:"option_configuration"` // AttributeName -> Value
 	IsActive            bool                 `json:"is_active"`
@@ -173,6 +173,19 @@ type PartyServiceConfigurationDTO struct {
 	ServiceID            string          `json:"serviceId"`
 	Name                 string          `json:"name"`
 	ConfigurationDetails json.RawMessage `json:"configurationDetails"` // Flexible JSON object
+}
+
+// VariantPricingDataDTO exposes the pricing-relevant data for a variant.
+// Consumed by the Pricing module's ACL (ProductPricingClient) to avoid cross-domain imports.
+type VariantPricingDataDTO struct {
+	VariantID             uuid.UUID
+	ProductID             uuid.UUID
+	BaseCost              float64 // Product.BasePrice + attribute price modifiers
+	Currency              string
+	BrandID               uuid.UUID
+	BrandMarkupPercentage float64
+	GroupIDs              []uuid.UUID
+	TaxRate               float64
 }
 
 // SmartSearchResultDTO represents the result of a smart search for products/variants.

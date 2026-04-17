@@ -33,6 +33,23 @@ func (r *GORMBrandRepository) FindByID(ctx context.Context, id uuid.UUID) (*doma
 	return dataModel.ToDomain(), nil
 }
 
+// FindByIDs finds multiple brands by their IDs
+func (r *GORMBrandRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Brand, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var dataModels []BrandDataModel
+	err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&dataModels).Error
+	if err != nil {
+		return nil, err
+	}
+	brands := make([]*domain.Brand, len(dataModels))
+	for i := range dataModels {
+		brands[i] = dataModels[i].ToDomain()
+	}
+	return brands, nil
+}
+
 // FindAll finds all brands
 func (r *GORMBrandRepository) FindAll(ctx context.Context) ([]*domain.Brand, error) {
 	var dataModels []BrandDataModel

@@ -13,7 +13,7 @@ import (
 type VariantDataModel struct {
 	gorm.Model
 	ID              uuid.UUID      `gorm:"type:uuid;primary_key;"`
-	ProductID       uuid.UUID      `gorm:"not null"`
+	ProductID       uuid.UUID      `gorm:"type:uuid;not null"`
 	SKU             string         `gorm:"uniqueIndex;not null"`
 	Barcode         *string        `gorm:"uniqueIndex"`
 	Status          string         `gorm:"type:variant_status;not null"`

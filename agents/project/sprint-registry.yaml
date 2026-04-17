@@ -40,9 +40,87 @@ metadata:
 
 active_tasks:
   title: "🔄 Active/Open Tasks"
-  count: 3
+  count: 9
   note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
   tasks:
+    task_17_01:
+      id: "17-01"
+      sprint: "17"
+      filename: "01-pricing-engine-completar-paridad.md"
+      title: "Completar PricingEngineService: ClientPricing + Audit Trail"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Engine Functional Parity"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "Inyectar ClientPricingRepository en PricingEngineService"
+        - "Inyectar PriceCalculationRepository para audit trail"
+        - "Tests unitarios ≥85%"
+    task_17_02:
+      id: "17-02"
+      sprint: "17"
+      filename: "02-migrar-endpoints-admin.md"
+      title: "Migrar Endpoints Admin a PricingEngineHandler"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Handler Consolidation"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "CRUD ClientPricing en PricingEngineHandler"
+        - "Historial de cálculos en PricingEngineHandler"
+    task_17_03:
+      id: "17-03"
+      sprint: "17"
+      filename: "03-eliminar-sistema-legacy.md"
+      title: "Eliminar Sistema Legacy de Pricing"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Legacy Removal"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "Eliminar PricingService, PricingHandler, entidades obsoletas"
+        - "Migración SQL para DROP tablas legacy"
+    task_17_04:
+      id: "17-04"
+      sprint: "17"
+      filename: "04-migracion-money-decimal.md"
+      title: "Migración Money VO: float64 → decimal.Decimal"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Financial Precision"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "Money VO usa shopspring/decimal internamente"
+        - "Toda aritmética de precios con precisión decimal"
+    task_17_05:
+      id: "17-05"
+      sprint: "17"
+      filename: "05-fix-acl-productclient-partyclient.md"
+      title: "Fix ACL: ProductClient y PartyClient"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Clean Architecture Compliance"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "ProductClient consume application layer de Product (no domain/infra)"
+        - "PartyClient consume application layer de Party (no SQL directo)"
+    task_17_06:
+      id: "17-06"
+      sprint: "17"
+      filename: "06-fix-domain-error-http-mapping.md"
+      title: "Fix Mapeo DomainError → HTTP Status"
+      status: "⏳ Planificado"
+      dates:
+        started: null
+      context_focus: "Pricing - Error Handling"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
+      key_outcomes:
+        - "VALIDATION→400, NOT_FOUND→404, CONFLICT→409"
     task_16_01:
       id: "16-01"
       sprint: "16"
