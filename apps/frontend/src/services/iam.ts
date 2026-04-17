@@ -55,6 +55,11 @@ class IamService {
     return response.data
   }
 
+  async updateUser(userId: string, payload: { email?: string; password?: string }): Promise<Usuario> {
+    const response = await this.apiClient.put(`/auth/users/${userId}`, payload)
+    return response.data
+  }
+
   async deleteUser(userId: string): Promise<void> {
     await this.apiClient.delete(`/auth/users/${userId}`)
   }
