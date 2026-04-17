@@ -125,6 +125,11 @@ func (m *MockDeliveryNoteRepository) LinkLineItemsToInvoice(ctx context.Context,
 	return args.Error(0)
 }
 
+func (m *MockDeliveryNoteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 type MockInvoiceRepository struct {
 	mock.Mock
 }
@@ -3536,6 +3541,40 @@ func TestSalesService_CreateDeliveryNote_OrderNotFound(t *testing.T) {
 	assert.Nil(t, result)
 	assert.Contains(t, err.Error(), "sales order not found")
 	orderRepo.AssertExpectations(t)
+}
+
+func TestSalesService_DeleteDeliveryNote_RevertsOrderStatusWhenNoDeliveriesRemain(t *testing.T) {
+	orderRepo := &MockSalesOrderRepository{}
+	deliveryRepo := &MockDeliveryNoteRepository{}
+	service := application.NewSalesService(nil, orderRepo, deliveryRepo, nil, nil, nil, nil, nil, nil)
+
+	orderID := uuid.New()
+	lineItemID := uuid.New()
+	variantID := uuid.New()
+	noteID := uuid.New()
+
+	order := createTestSalesOrder(orderID, uuid.New(), lineItemID, variantID, 10)
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusDelivered)
+
+	note := createTestDeliveryNote(noteID, orderID, lineItemID, variantID, 10)
+	_ = note.ChangeStatus(domain.DeliveryNoteStatusDelivered)
+
+	deliveryRepo.On("FindByID", mock.Anything, noteID).Return(note, nil)
+	deliveryRepo.On("Delete", mock.Anything, noteID).Return(nil)
+	orderRepo.On("FindByIDForUpdate", mock.Anything, orderID).Return(order, nil)
+	deliveryRepo.On("ListBySalesOrderID", mock.Anything, orderID).Return([]*domain.DeliveryNote{}, nil)
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Run(func(args mock.Arguments) {
+		savedOrder := args.Get(1).(*domain.SalesOrder)
+		assert.Equal(t, domain.SalesOrderStatusInPreparation, savedOrder.Status)
+	}).Return(nil)
+
+	err := service.DeleteDeliveryNote(context.Background(), application.DeleteDeliveryNoteCommand{DeliveryNoteID: noteID})
+
+	assert.NoError(t, err)
+	assert.Equal(t, domain.SalesOrderStatusInPreparation, order.Status)
+	orderRepo.AssertExpectations(t)
+	deliveryRepo.AssertExpectations(t)
 }
 
 func TestSalesService_CreateDeliveryNote_LineItemNotFound(t *testing.T) {

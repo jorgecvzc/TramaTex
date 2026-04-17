@@ -3,7 +3,7 @@
  * Handles communication with the backend Product module endpoints
  */
 
-import { getApiBase } from './apiBase'
+import { api } from './api'
 import type {
   CalculatedOptionSet,
   ListProductsFilters,
@@ -15,14 +15,6 @@ import type {
   VariantGenerationOptions,
   ProductGroupType,
 } from '../types/product'
-
-const API_BASE = getApiBase()
-
-interface ProductApiError extends Error {
-  status?: number
-  data?: unknown
-  cause?: Error
-}
 
 // Frontend models with snake_case (UI layer compatibility)
 interface ProductUI {
@@ -95,84 +87,16 @@ export interface SmartSearchResult {
 }
 
 class ProductApiService {
-  private baseUrl: string
-  private brandsUrl: string
-  private groupsUrl: string
-  private attributesUrl: string
-  private variantsUrl: string
+  private readonly baseUrl = '/products'
+  private readonly brandsUrl = '/brands'
+  private readonly groupsUrl = '/product-groups'
+  private readonly attributesUrl = '/attributes'
+  private readonly variantsUrl = '/variants'
 
-  constructor() {
-    this.baseUrl = `${API_BASE}/products`
-    this.brandsUrl = `${API_BASE}/brands`
-    this.groupsUrl = `${API_BASE}/product-groups`
-    this.attributesUrl = `${API_BASE}/attributes`
-    this.variantsUrl = `${API_BASE}/variants`
-  }
-
-  /**
-   * Get authorization header with user token
-   */
-  private getHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
-    const token = localStorage.getItem('tramatex_auth_token')
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-User-ID': this.getCurrentUserId(),
-      ...additionalHeaders,
-    }
-    
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
-    
-    return headers
-  }
-
-  /**
-   * Get current user ID from auth context
-   */
-  private getCurrentUserId(): string {
-    try {
-      const userStr = localStorage.getItem('tramatex_user')
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        return user.id || 'anonymous'
-      }
-    } catch (error) {
-      console.error('[ProductApi] Error parsing user:', error)
-    }
-    return 'anonymous'
-  }
-
-  /**
-   * Handle API errors
-   */
-  private async handleError(response: Response, message: string): Promise<never> {
-    let errorData: { error?: string; message?: string } | undefined
-    try {
-      errorData = await response.json()
-    } catch {
-      errorData = { message: 'Ocurrió un error inesperado' }
-    }
-
-    // El backend puede enviar el error en 'error' o 'message'
-    const errorMessage = errorData?.error || errorData?.message || message
-    const error = new Error(errorMessage) as ProductApiError
-    error.status = response.status
-    error.data = errorData
-    throw error
-  }
-
-  private async safeFetch(url: string, options: RequestInit, fallbackMessage?: string): Promise<Response> {
-    try {
-      return await fetch(url, options)
-    } catch (error) {
-      const message =
-        fallbackMessage ||
-        `No se pudo conectar con el servidor. Verifica tu conexión o que la API esté activa. (URL: ${url})`
-      const err = new Error(message) as ProductApiError
-      err.cause = error as Error
-      throw err
-    }
+  private async handleError(error: any, defaultMessage: string): Promise<never> {
+    const errorData = error.response?.data
+    const message = errorData?.error || errorData?.message || error.message || defaultMessage
+    throw new Error(message)
   }
 
   /**
@@ -200,39 +124,21 @@ class ProductApiService {
    * List products with filters and pagination
    */
   async listProducts(filters: ListProductsFilters = {}): Promise<PaginatedResponse<ProductUI>> {
-    const params = new URLSearchParams()
+    try {
+      const params: Record<string, any> = {}
+      if (filters.search) params.search = filters.search
+      if (filters.brandId) params.brandId = filters.brandId
+      if (filters.groupId) params.groupId = filters.groupId
+      if (filters.isActive !== undefined && filters.isActive !== '') params.isActive = String(filters.isActive)
+      if (filters.type) params.productType = filters.type
+      if (filters.productType) params.productType = filters.productType
+      if (filters.pageNumber) params.page = filters.pageNumber
+      if (filters.pageSize) params.page_size = filters.pageSize
 
-    if (filters.search) {
-      params.append('search', filters.search)
-    }
-    if (filters.brandId) params.append('brandId', filters.brandId)
-    if (filters.groupId) params.append('groupId', filters.groupId)
-    if (filters.isActive !== undefined && filters.isActive !== '') {
-      params.append('isActive', String(filters.isActive))
-    }
-    if (filters.type) params.append('productType', filters.type)
-    if (filters.productType) params.append('productType', filters.productType)
-    if (filters.pageNumber) params.append('page', filters.pageNumber.toString())
-    if (filters.pageSize) params.append('page_size', filters.pageSize.toString())
-
-    const url = params.toString() ? `${this.baseUrl}?${params}` : this.baseUrl
-
-    const response = await this.safeFetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar los productos')
-    }
-
-    const payload = await response.json()
-    
-    // Backend devuelve un array directo, no una estructura con data/total
-    const rawProducts = Array.isArray(payload) ? payload : (payload.data || [])
-    
-    // Transformar de camelCase (backend) a snake_case (frontend)
-    const products: ProductUI[] = rawProducts.map((p: any) => ({
+      const response = await api.get(this.baseUrl, { params })
+      const payload = response.data
+      const rawProducts = Array.isArray(payload) ? payload : (payload.data || [])
+      const products: ProductUI[] = rawProducts.map((p: any) => ({
       id: p.id,
       sku: p.sku,
       name: p.name,
@@ -247,13 +153,15 @@ class ProductApiService {
       is_active: p.isActive,
       variants_count: p.variantsCount || 0,
     }))
-    
-    return {
-      data: products,
-      total: products.length,
-      page: filters.pageNumber || 1,
-      pageSize: filters.pageSize || 10,
-      totalPages: Math.ceil(products.length / (filters.pageSize || 10)),
+      return {
+        data: products,
+        total: products.length,
+        page: filters.pageNumber || 1,
+        pageSize: filters.pageSize || 10,
+        totalPages: Math.ceil(products.length / (filters.pageSize || 10)),
+      }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los productos')
     }
   }
 
@@ -261,41 +169,33 @@ class ProductApiService {
    * Get product by ID
    */
   async getProduct(id: string): Promise<ProductUI> {
-    const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'Producto no encontrado')
-    }
-
-    const data = await response.json()
-    
-    // Fetch calculated option sets (attributes)
-    let calculatedOptionSets: CalculatedOptionSet[] = []
     try {
-      const optionsData = await this.getCalculatedOptionSets(id)
-      calculatedOptionSets = optionsData.attributes || []
-    } catch (err) {
-      console.warn('[productApi] Could not load calculated option sets:', err)
-    }
-    
-    return {
-      id: data.id,
-      sku: data.sku,
-      name: data.name,
-      long_name: data.longName,
-      description: data.description,
-      product_type: data.productType,
-      base_price: data.basePrice,
-      tax_rate: data.taxRate !== undefined ? data.taxRate : 21,
-      brand_id: data.brandId,
-      group_ids: data.groupIds || [],
-      direct_attribute_ids: data.directAttributeIds || [],
-      is_active: data.isActive,
-      variants_count: data.variantsCount || 0,
-      calculated_option_sets: calculatedOptionSets,
+      const data = (await api.get(`${this.baseUrl}/${id}`)).data
+      let calculatedOptionSets: CalculatedOptionSet[] = []
+      try {
+        const optionsData = await this.getCalculatedOptionSets(id)
+        calculatedOptionSets = optionsData.attributes || []
+      } catch (err) {
+        console.warn('[productApi] Could not load calculated option sets:', err)
+      }
+      return {
+        id: data.id,
+        sku: data.sku,
+        name: data.name,
+        long_name: data.longName,
+        description: data.description,
+        product_type: data.productType,
+        base_price: data.basePrice,
+        tax_rate: data.taxRate !== undefined ? data.taxRate : 21,
+        brand_id: data.brandId,
+        group_ids: data.groupIds || [],
+        direct_attribute_ids: data.directAttributeIds || [],
+        is_active: data.isActive,
+        variants_count: data.variantsCount || 0,
+        calculated_option_sets: calculatedOptionSets,
+      }
+    } catch (e) {
+      await this.handleError(e, 'Producto no encontrado')
     }
   }
 
@@ -325,13 +225,10 @@ class ProductApiService {
     isActive?: boolean
     is_active?: boolean
   }): Promise<any> {
-    const brandId = data.brandId ?? data.brand_id ?? null
-    const normalizedBrandID = brandId === '' ? null : brandId
-
-    const response = await this.safeFetch(this.baseUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const brandId = data.brandId ?? data.brand_id ?? null
+      const normalizedBrandID = brandId === '' ? null : brandId
+      const response = await api.post(this.baseUrl, {
         id: data.id,
         sku: data.sku,
         name: data.name,
@@ -344,14 +241,11 @@ class ProductApiService {
         group_ids: data.groupIds ?? data.group_ids ?? [],
         direct_attribute_ids: data.directAttributeIds ?? data.direct_attribute_ids ?? data.attribute_ids ?? [],
         is_active: data.isActive ?? data.is_active ?? true,
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear el producto')
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear el producto')
     }
-
-    return response.json()
   }
 
   /**
@@ -380,13 +274,10 @@ class ProductApiService {
     isActive?: boolean
     is_active?: boolean
   }): Promise<ProductUI> {
-    const brandId = data.brandId ?? data.brand_id
-    const normalizedBrandID = brandId === '' ? null : brandId
-
-    const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const brandId = data.brandId ?? data.brand_id
+      const normalizedBrandID = brandId === '' ? null : brandId
+      const response = await api.put(`${this.baseUrl}/${id}`, {
         name: data.name,
         long_name: data.longName ?? data.long_name,
         sku: data.sku,
@@ -399,28 +290,25 @@ class ProductApiService {
         group_ids: data.groupIds ?? data.group_ids,
         direct_attribute_ids: data.directAttributeIds ?? data.direct_attribute_ids ?? data.attribute_ids,
         is_active: data.isActive ?? data.is_active,
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar el producto')
-    }
-
-    const updated = await response.json()
-    return {
-      id: updated.id,
-      sku: updated.sku,
-      name: updated.name,
-      long_name: updated.longName,
-      base_price: updated.basePrice,
-      tax_rate: updated.taxRate,
-      description: updated.description,
-      product_type: updated.productType,
-      brand_id: updated.brandId,
-      group_ids: updated.groupIds || [],
-      direct_attribute_ids: updated.directAttributeIds || [],
-      is_active: updated.isActive,
-      variants_count: updated.variantsCount || 0,
+      })
+      const updated = response.data
+      return {
+        id: updated.id,
+        sku: updated.sku,
+        name: updated.name,
+        long_name: updated.longName,
+        base_price: updated.basePrice,
+        tax_rate: updated.taxRate,
+        description: updated.description,
+        product_type: updated.productType,
+        brand_id: updated.brandId,
+        group_ids: updated.groupIds || [],
+        direct_attribute_ids: updated.directAttributeIds || [],
+        is_active: updated.isActive,
+        variants_count: updated.variantsCount || 0,
+      }
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar el producto')
     }
   }
 
@@ -428,64 +316,40 @@ class ProductApiService {
    * Change product status (activate/deactivate)
    */
   async changeProductStatus(id: string, isActive: boolean): Promise<any> {
-    const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ is_active: isActive }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar el estado')
+    try {
+      const response = await api.put(`${this.baseUrl}/${id}`, { is_active: isActive })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar el estado')
     }
-
-    return response.json()
   }
 
   /**
    * Get calculated option sets for a product (inherited + direct)
    */
   async getCalculatedOptionSets(productId: string): Promise<{ attributes: CalculatedOptionSet[] }> {
-    const response = await this.safeFetch(
-      `${this.baseUrl}/${productId}/calculated-option-sets`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(
-        response,
-        'No se pudieron cargar los atributos del producto',
-      )
+    try {
+      const response = await api.get(`${this.baseUrl}/${productId}/calculated-option-sets`)
+      const data = response.data
+      const attributes = Array.isArray(data) ? data : (data.attributes || [])
+      return { attributes }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los atributos del producto')
     }
-
-    const data = await response.json()
-    const attributes = Array.isArray(data) ? data : (data.attributes || [])
-    return { attributes }
   }
 
   /**
    * Assign option set directly to product
    */
   async assignOptionSetToProduct(productId: string, optionSetId: string): Promise<any> {
-    const response = await this.safeFetch(
-      `${this.baseUrl}/${productId}/direct-option-sets`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ option_set_id: optionSetId }),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(
-        response,
-        'No se pudo asignar el atributo al producto',
-      )
+    try {
+      const response = await api.post(`${this.baseUrl}/${productId}/direct-option-sets`, {
+        option_set_id: optionSetId,
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo asignar el atributo al producto')
     }
-
-    return response.json()
   }
 
   /**
@@ -509,38 +373,25 @@ class ProductApiService {
     page: number
     page_size: number
   }> {
-    const params = new URLSearchParams()
+    try {
+      const params: Record<string, any> = {}
+      if (filters.isActive !== undefined) params.is_active = String(filters.isActive)
+      if (filters.pageNumber) params.page = filters.pageNumber
+      if (filters.pageSize) params.page_size = filters.pageSize
 
-    if (filters.isActive !== undefined) {
-      params.append('is_active', String(filters.isActive))
-    }
-    if (filters.pageNumber) params.append('page', filters.pageNumber.toString())
-    if (filters.pageSize) params.append('page_size', filters.pageSize.toString())
-
-    const url = params.toString()
-      ? `${this.baseUrl}/${productId}/variants?${params}`
-      : `${this.baseUrl}/${productId}/variants`
-
-    const response = await this.safeFetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar las variantes')
-    }
-
-    const payload = await response.json()
-    const rawVariants = Array.isArray(payload) ? payload : (payload.data || [])
-    
-    const variants: VariantUI[] = rawVariants.map((v: any) => this.transformVariantResponse(v))
-    
-    return {
-      data: variants,
-      variants: variants,
-      total: variants.length,
-      page: filters.pageNumber || 1,
-      page_size: filters.pageSize || 10,
+      const response = await api.get(`${this.baseUrl}/${productId}/variants`, { params })
+      const payload = response.data
+      const rawVariants = Array.isArray(payload) ? payload : (payload.data || [])
+      const variants: VariantUI[] = rawVariants.map((v: any) => this.transformVariantResponse(v))
+      return {
+        data: variants,
+        variants: variants,
+        total: variants.length,
+        page: filters.pageNumber || 1,
+        page_size: filters.pageSize || 10,
+      }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar las variantes')
     }
   }
 
@@ -548,40 +399,24 @@ class ProductApiService {
    * Get variant by ID
    */
   async getVariant(variantId: string): Promise<VariantUI> {
-    const response = await this.safeFetch(
-      `${this.variantsUrl}/${variantId}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(response, 'Variante no encontrada')
+    try {
+      const response = await api.get(`${this.variantsUrl}/${variantId}`)
+      return this.transformVariantResponse(response.data)
+    } catch (e) {
+      await this.handleError(e, 'Variante no encontrada')
     }
-
-    const data = await response.json()
-    return this.transformVariantResponse(data)
   }
 
   /**
    * Get variant by SKU
    */
   async getVariantBySku(sku: string): Promise<VariantUI> {
-    const response = await this.safeFetch(
-      `${this.variantsUrl}?sku=${sku}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(response, 'Variante no encontrada')
+    try {
+      const response = await api.get(this.variantsUrl, { params: { sku } })
+      return this.transformVariantResponse(response.data)
+    } catch (e) {
+      await this.handleError(e, 'Variante no encontrada')
     }
-
-    const data = await response.json()
-    return this.transformVariantResponse(data)
   }
 
   /**
@@ -589,20 +424,12 @@ class ProductApiService {
    * Returns typed result for auto-resolution in sales line items.
    */
   async smartSearch(query: string): Promise<SmartSearchResult> {
-    const response = await this.safeFetch(
-      `${this.baseUrl}/smart-search?q=${encodeURIComponent(query)}`,
-      {
-        method: 'GET',
-        headers: this.getHeaders(),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(response, 'Error en búsqueda inteligente')
+    try {
+      const response = await api.get(`${this.baseUrl}/smart-search`, { params: { q: query } })
+      return this.transformSmartSearchResponse(response.data)
+    } catch (e) {
+      await this.handleError(e, 'Error en búsqueda inteligente')
     }
-
-    const data = await response.json()
-    return this.transformSmartSearchResponse(data)
   }
 
   /**
@@ -670,66 +497,40 @@ class ProductApiService {
    * Find or create variant (JIT creation)
    */
   async findOrCreateVariant(productId: string, optionConfiguration: Record<string, string>): Promise<{ variant: VariantUI }> {
-    const response = await this.safeFetch(
-      `${this.baseUrl}/${productId}/variants/find-or-create`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ optionConfiguration: optionConfiguration }),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear/obtener la variante')
+    try {
+      const response = await api.post(`${this.baseUrl}/${productId}/variants/find-or-create`, {
+        optionConfiguration,
+      })
+      const payload = response.data
+      const variantData = payload?.variant || payload
+      return { variant: this.transformVariantResponse(variantData) }
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear/obtener la variante')
     }
-
-    const payload = await response.json()
-    const variantData = payload?.variant || payload
-    return { variant: this.transformVariantResponse(variantData) }
   }
 
   /**
    * Generate variants for product (bulk creation)
    */
   async generateVariants(productId: string, options: VariantGenerationOptions = {}): Promise<any> {
-    const response = await this.safeFetch(
-      `${this.baseUrl}/${productId}/variants/generate`,
-      {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(options),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(
-        response,
-        'No se pudo iniciar la generación de variantes',
-      )
+    try {
+      const response = await api.post(`${this.baseUrl}/${productId}/variants/generate`, options)
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo iniciar la generación de variantes')
     }
-
-    return response.json()
   }
 
   /**
    * Update variant
    */
   async updateVariant(variantId: string, data: any): Promise<VariantUI> {
-    const response = await this.safeFetch(
-      `${this.variantsUrl}/${variantId}`,
-      {
-        method: 'PUT',
-        headers: this.getHeaders(),
-        body: JSON.stringify(data),
-      },
-    )
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar la variante')
+    try {
+      const response = await api.put(`${this.variantsUrl}/${variantId}`, data)
+      return this.transformVariantResponse(response.data)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar la variante')
     }
-
-    const responseData = await response.json()
-    return this.transformVariantResponse(responseData)
   }
 
   // ============================================================================
@@ -740,39 +541,22 @@ class ProductApiService {
    * List all brands
    */
   async listBrands(filters: ListBrandsFilters = {}): Promise<{ data: BrandUI[]; total: number }> {
-    const params = new URLSearchParams()
-
-    if (filters.isActive !== undefined && filters.isActive !== '') {
-      params.append('isActive', String(filters.isActive))
-    }
-
-    const url = params.toString()
-      ? `${this.brandsUrl}?${params}`
-      : this.brandsUrl
-
-    const response = await this.safeFetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar las marcas')
-    }
-
-    const payload = await response.json()
-    const rawBrands = Array.isArray(payload) ? payload : (payload.data || [])
-    
-    const brands: BrandUI[] = rawBrands.map((b: any) => ({
+    try {
+      const params: Record<string, any> = {}
+      if (filters.isActive !== undefined && filters.isActive !== '') params.isActive = String(filters.isActive)
+      const response = await api.get(this.brandsUrl, { params })
+      const payload = response.data
+      const rawBrands = Array.isArray(payload) ? payload : (payload.data || [])
+      const brands: BrandUI[] = rawBrands.map((b: any) => ({
       id: b.id,
       name: b.name,
       defaultMarkupPercentage: b.default_markup_percentage ?? b.defaultMarkupPercentage ?? 0,
       is_active: b.is_active ?? b.isActive,
       logo_url: b.logo_url ?? b.logoUrl,
     }))
-    
-    return {
-      data: brands,
-      total: brands.length,
+      return { data: brands, total: brands.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar las marcas')
     }
   }
 
@@ -780,22 +564,17 @@ class ProductApiService {
    * Get brand by ID
    */
   async getBrand(id: string): Promise<BrandUI> {
-    const response = await this.safeFetch(`${this.brandsUrl}/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'Marca no encontrada')
-    }
-
-    const b = await response.json()
-    return {
-      id: b.id,
-      name: b.name,
-      defaultMarkupPercentage: b.default_markup_percentage ?? b.defaultMarkupPercentage ?? 0,
-      is_active: b.is_active ?? b.isActive,
-      logo_url: b.logo_url ?? b.logoUrl,
+    try {
+      const b = (await api.get(`${this.brandsUrl}/${id}`)).data
+      return {
+        id: b.id,
+        name: b.name,
+        defaultMarkupPercentage: b.default_markup_percentage ?? b.defaultMarkupPercentage ?? 0,
+        is_active: b.is_active ?? b.isActive,
+        logo_url: b.logo_url ?? b.logoUrl,
+      }
+    } catch (e) {
+      await this.handleError(e, 'Marca no encontrada')
     }
   }
 
@@ -803,52 +582,39 @@ class ProductApiService {
    * Create brand
    */
   async createBrand(data: { id?: string; name: string; defaultMarkupPercentage?: number; isActive?: boolean }): Promise<any> {
-    const response = await this.safeFetch(this.brandsUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const response = await api.post(this.brandsUrl, {
         id: data.id,
         name: data.name,
         defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la marca')
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear la marca')
     }
-
-    return response.json()
   }
 
   /**
    * Update brand
    */
   async updateBrand(id: string, data: any): Promise<any> {
-    const response = await this.safeFetch(`${this.brandsUrl}/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar la marca')
+    try {
+      const response = await api.put(`${this.brandsUrl}/${id}`, data)
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar la marca')
     }
-
-    return response.json()
   }
 
   /**
    * Delete brand
    */
   async deleteBrand(id: string): Promise<void> {
-    const response = await this.safeFetch(`${this.brandsUrl}/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo eliminar la marca')
+    try {
+      await api.delete(`${this.brandsUrl}/${id}`)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo eliminar la marca')
     }
   }
 
@@ -860,32 +626,14 @@ class ProductApiService {
    * List all product groups (categories)
    */
   async listProductGroups(filters: ListProductGroupsFilters = {}): Promise<{ data: ProductGroupUI[]; total: number }> {
-    const params = new URLSearchParams()
-
-    if (filters.isActive !== undefined && filters.isActive !== '') {
-      params.append('isActive', String(filters.isActive))
-    }
-    if (filters.parentId) {
-      params.append('parentGroupId', filters.parentId)
-    }
-
-    const url = params.toString()
-      ? `${this.groupsUrl}?${params}`
-      : this.groupsUrl
-
-    const response = await this.safeFetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar las categorías')
-    }
-
-    const payload = await response.json()
-    const rawGroups = Array.isArray(payload) ? payload : (payload.data || [])
-    
-    const groups: ProductGroupUI[] = rawGroups.map((g: any) => ({
+    try {
+      const params: Record<string, any> = {}
+      if (filters.isActive !== undefined && filters.isActive !== '') params.isActive = String(filters.isActive)
+      if (filters.parentId) params.parentGroupId = filters.parentId
+      const response = await api.get(this.groupsUrl, { params })
+      const payload = response.data
+      const rawGroups = Array.isArray(payload) ? payload : (payload.data || [])
+      const groups: ProductGroupUI[] = rawGroups.map((g: any) => ({
       id: g.id,
       name: g.name,
       type: g.type || 'TANGIBLE',
@@ -893,10 +641,9 @@ class ProductApiService {
       parent_group_id: g.parent_group_id,
       description: g.description,
     }))
-    
-    return {
-      data: groups,
-      total: groups.length,
+      return { data: groups, total: groups.length }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar las categorías')
     }
   }
 
@@ -904,23 +651,18 @@ class ProductApiService {
    * Get product group by ID
    */
   async getProductGroup(id: string): Promise<ProductGroupUI> {
-    const response = await this.safeFetch(`${this.groupsUrl}/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'Categoría no encontrada')
-    }
-
-    const data = await response.json()
-    return {
-      id: data.id,
-      name: data.name,
-      type: data.type || 'TANGIBLE',
-      is_active: data.isActive,
-      parent_group_id: data.parent_group_id,
-      description: data.description,
+    try {
+      const data = (await api.get(`${this.groupsUrl}/${id}`)).data
+      return {
+        id: data.id,
+        name: data.name,
+        type: data.type || 'TANGIBLE',
+        is_active: data.isActive,
+        parent_group_id: data.parent_group_id,
+        description: data.description,
+      }
+    } catch (e) {
+      await this.handleError(e, 'Categoría no encontrada')
     }
   }
 
@@ -934,23 +676,18 @@ class ProductApiService {
     parentGroupId?: string
     isActive?: boolean
   }): Promise<any> {
-    const response = await this.safeFetch(this.groupsUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const response = await api.post(this.groupsUrl, {
         id: data.id,
         name: data.name,
         type: data.type || 'TANGIBLE',
         parent_id: data.parentGroupId || null,
         isActive: data.isActive !== undefined ? data.isActive : true,
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo crear la categoría')
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear la categoría')
     }
-
-    return response.json()
   }
 
   /**
@@ -962,36 +699,28 @@ class ProductApiService {
     parentGroupId?: string | null
     isActive?: boolean
   }): Promise<any> {
-    const response = await this.safeFetch(`${this.groupsUrl}/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const response = await api.put(`${this.groupsUrl}/${id}`, {
         name: data.name,
         type: data.type,
         parent_id: data.parentGroupId || undefined,
         clear_parent: data.parentGroupId === null ? true : undefined,
         isActive: data.isActive !== undefined ? data.isActive : undefined,
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar la categoría')
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar la categoría')
     }
-
-    return response.json()
   }
 
   /**
    * Delete product group
    */
   async deleteProductGroup(id: string): Promise<void> {
-    const response = await this.safeFetch(`${this.groupsUrl}/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo eliminar la categoría')
+    try {
+      await api.delete(`${this.groupsUrl}/${id}`)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo eliminar la categoría')
     }
   }
 
@@ -1003,30 +732,15 @@ class ProductApiService {
    * List all attributes
    */
   async listAttributes(filters: ListAttributesFilters = {}): Promise<{ data: any[]; total: number }> {
-    const params = new URLSearchParams()
-
-    if (filters.scope) params.append('scope', filters.scope)
-    if (filters.isConfigurable !== undefined) {
-      params.append('isConfigurable', String(filters.isConfigurable))
-    }
-
-    const url = params.toString()
-      ? `${this.attributesUrl}?${params}`
-      : this.attributesUrl
-
-    const response = await this.safeFetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudieron cargar los atributos')
-    }
-
-    const payload = await response.json()
-    return {
-      data: payload.data || [],
-      total: payload.total || 0,
+    try {
+      const params: Record<string, any> = {}
+      if (filters.scope) params.scope = filters.scope
+      if (filters.isConfigurable !== undefined) params.isConfigurable = String(filters.isConfigurable)
+      const response = await api.get(this.attributesUrl, { params })
+      const payload = response.data
+      return { data: payload.data || [], total: payload.total || 0 }
+    } catch (e) {
+      await this.handleError(e, 'No se pudieron cargar los atributos')
     }
   }
 
@@ -1034,16 +748,12 @@ class ProductApiService {
    * Get attribute by ID
    */
   async getAttribute(id: string): Promise<any> {
-    const response = await this.safeFetch(`${this.attributesUrl}/${id}`, {
-      method: 'GET',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'Atributo no encontrado')
+    try {
+      const response = await api.get(`${this.attributesUrl}/${id}`)
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'Atributo no encontrado')
     }
-
-    return response.json()
   }
 
   /**
@@ -1060,10 +770,8 @@ class ProductApiService {
       modifierAmount?: number
     }>
   }): Promise<any> {
-    const response = await this.safeFetch(this.attributesUrl, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const response = await api.post(this.attributesUrl, {
         name: data.name,
         code: data.code,
         values: (data.values || []).map(v => {
@@ -1071,21 +779,16 @@ class ProductApiService {
           return {
             value: v.value,
             code: v.code,
-            hasPriceModifier: hasPriceModifier,
+            hasPriceModifier,
             modifierType: hasPriceModifier && v.modifierType ? v.modifierType : null,
             modifierAmount: hasPriceModifier ? (v.modifierAmount || 0) : 0,
           }
         }),
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || 'No se pudo crear el atributo'
-      throw new Error(errorMessage)
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo crear el atributo')
     }
-
-    return response.json()
   }
 
   /**
@@ -1103,10 +806,8 @@ class ProductApiService {
       modifierAmount?: number
     }>
   }): Promise<any> {
-    const response = await this.safeFetch(`${this.attributesUrl}/${id}`, {
-      method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
+    try {
+      const response = await api.put(`${this.attributesUrl}/${id}`, {
         name: data.name,
         code: data.code,
         values: (data.values || []).map(v => {
@@ -1115,32 +816,26 @@ class ProductApiService {
             id: v.id || null,
             value: v.value,
             code: v.code,
-            hasPriceModifier: hasPriceModifier,
+            hasPriceModifier,
             modifierType: hasPriceModifier && v.modifierType ? v.modifierType : null,
             modifierAmount: hasPriceModifier ? (v.modifierAmount || 0) : 0,
           }
         }),
-      }),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo actualizar el atributo')
+      })
+      return response.data
+    } catch (e) {
+      await this.handleError(e, 'No se pudo actualizar el atributo')
     }
-
-    return response.json()
   }
 
   /**
    * Delete attribute
    */
   async deleteAttribute(id: string): Promise<void> {
-    const response = await this.safeFetch(`${this.attributesUrl}/${id}`, {
-      method: 'DELETE',
-      headers: this.getHeaders(),
-    })
-
-    if (!response.ok) {
-      await this.handleError(response, 'No se pudo eliminar el atributo')
+    try {
+      await api.delete(`${this.attributesUrl}/${id}`)
+    } catch (e) {
+      await this.handleError(e, 'No se pudo eliminar el atributo')
     }
   }
 }
