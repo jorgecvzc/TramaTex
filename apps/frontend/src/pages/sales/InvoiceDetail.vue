@@ -350,13 +350,19 @@ async function loadPartyName() {
 
 async function loadRelatedOrders() {
   const ids = invoice.value?.salesOrderIds;
-  if (!ids?.length) return;
+  if (!ids?.length) {
+    relatedOrders.value = [];
+    return;
+  }
   relatedOrders.value = await Promise.all(ids.map(id => salesApi.getOrder(id).catch(() => ({ id, orderNumber: null }))));
 }
 
 async function loadRelatedDeliveryNotes() {
   const ids = invoice.value?.deliveryNoteIds;
-  if (!ids?.length) return;
+  if (!ids?.length) {
+    relatedDeliveryNotes.value = [];
+    return;
+  }
   relatedDeliveryNotes.value = await Promise.all(ids.map(id => salesApi.getDeliveryNote(id).catch(() => ({ id, deliveryNoteNumber: null }))));
 }
 
@@ -438,7 +444,6 @@ async function executeStatusChange() {
     // Always rehydrate from GET to keep related entities and enriched fields in sync.
     invoice.value = await salesApi.getInvoice(invoiceId);
     await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
-
     showStatusConfirm.value = false;
     if (requestedStatus === 'ISSUED') {
       showPostIssueModal.value = true;

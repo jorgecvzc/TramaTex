@@ -298,6 +298,7 @@ const calculateLineSubtotal = (item: any) => {
 .print-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   margin-bottom: 40px;
 }
 
@@ -319,6 +320,20 @@ const calculateLineSubtotal = (item: any) => {
   vertical-align: top;
 }
 
+.print-table th,
+.print-table td,
+.product-name,
+.product-desc,
+.address-content p,
+.address-content strong,
+.notes-block p,
+.legal-notice p,
+.footer-col p,
+.footer-col strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .mono { font-family: 'Fira Code', monospace; font-size: 11px; }
 .product-name { font-weight: 600; color: #000; }
 .product-desc { font-size: 11px; color: #666; margin-top: 2px; }
@@ -326,9 +341,14 @@ const calculateLineSubtotal = (item: any) => {
 /* Resumen y Totales */
 .footer-summary {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   gap: 50px;
   page-break-inside: avoid;
+}
+
+.notes-conditions,
+.totals-block {
+  min-width: 0;
 }
 
 .notes-block label {
@@ -446,31 +466,24 @@ const calculateLineSubtotal = (item: any) => {
     min-height: auto;
     overflow: hidden;
   }
-  .print-table {
-    table-layout: fixed;
-    width: 100%;
-  }
-  .print-table th,
-  .print-table td {
-    word-break: break-word;
-    overflow-wrap: break-word;
-  }
   .print-footer {
     position: fixed;
-    bottom: 0;
+    bottom: 8mm;
     left: 12mm;
     right: 12mm;
     width: auto;
     background: white;
-    padding: 5mm 0;
+    padding: 6mm 0 0;
     box-sizing: border-box;
     border-top: 1px solid #eee;
   }
   .print-footer-spacer {
-    display: block;
+    display: block; /* Ocupa el espacio que tapa el footer fixed */
+    height: 36mm;
   }
   .footer-summary {
     margin-bottom: 0;
+    gap: 24px;
   }
 }
 </style>

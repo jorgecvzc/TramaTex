@@ -449,9 +449,9 @@ async function executeStatusChange() {
   isChangingStatus.value = true;
   try {
     if (pendingStatus.value === 'DELETE_ACTION') {
+      const orderId = deliveryNote.value.salesOrderId;
       await salesApi.deleteDeliveryNote(deliveryNote.value.id);
       showStatusConfirm.value = false;
-      const orderId = deliveryNote.value.salesOrderId;
       router.push(orderId ? `/sales/orders/${orderId}` : '/sales/delivery-notes');
     } else {
       deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, pendingStatus.value);

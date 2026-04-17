@@ -116,6 +116,7 @@
   .print-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 2rem;
   }
 
@@ -132,6 +133,18 @@
     padding: 0.75rem;
     border-bottom: 1px solid #eee;
     font-size: 0.9rem;
+  }
+
+  .print-table th,
+  .print-table td,
+  .address-content p,
+  .address-content strong,
+  .notes-block p,
+  .legal-notice p,
+  .footer-col p,
+  .footer-col strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Totales */
@@ -156,8 +169,10 @@
   /* Footer Legal */
   .print-footer {
     position: fixed;
-    bottom: 0;
-    width: 100%;
+    bottom: 8mm;
+    left: 12mm;
+    right: 12mm;
+    width: auto;
     font-size: 0.7rem;
     color: #666;
     text-align: center;

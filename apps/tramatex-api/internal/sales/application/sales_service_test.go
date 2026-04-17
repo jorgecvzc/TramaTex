@@ -531,6 +531,49 @@ func TestSalesService_CreateInvoice_FromDeliveryNote(t *testing.T) {
 	assert.Equal(t, domain.SalesOrderStatusInvoiced, savedOrder.Status)
 }
 
+func TestSalesService_DeleteDeliveryNote_RecalculatesOrderStatusBackToInPreparation(t *testing.T) {
+	ctx := context.Background()
+	partyID := uuid.New()
+	variantID := uuid.New()
+
+	quoteRepo := new(MockQuoteRepository)
+	orderRepo := new(MockSalesOrderRepository)
+	deliveryRepo := new(MockDeliveryNoteRepository)
+	invoiceRepo := new(MockInvoiceRepository)
+
+	money, _ := domain.NewMoney(10, domain.DefaultCurrency)
+	orderNumber, _ := domain.NewOrderNumber("SO-DELETE-001")
+	orderItem, _ := domain.NewOrderLineItem(variantID, 1, money, nil, 0)
+	order, _ := domain.NewSalesOrder(orderNumber, partyID, time.Now(), time.Now().Add(48*time.Hour), []domain.OrderLineItem{orderItem}, money, "")
+	_ = order.ChangeStatus(domain.SalesOrderStatusInPreparation)
+	_ = order.ChangeStatus(domain.SalesOrderStatusDelivered)
+
+	dnNumber, _ := domain.NewDeliveryNoteNumber("ALB-DELETE-001")
+	dnLineItem, _ := domain.NewDeliveryNoteLineItem(orderItem.ID, variantID, 1)
+	deliveryNote, _ := domain.NewDeliveryNote(dnNumber, order.ID, partyID, time.Now(), []domain.DeliveryNoteLineItem{dnLineItem}, "")
+	_ = deliveryNote.ChangeStatus(domain.DeliveryNoteStatusDelivered)
+
+	deliveryRepo.On("FindByID", mock.Anything, deliveryNote.ID).Return(deliveryNote, nil)
+	deliveryRepo.On("Delete", mock.Anything, deliveryNote.ID).Return(nil)
+	deliveryRepo.On("ListBySalesOrderID", mock.Anything, order.ID).Return([]*domain.DeliveryNote{}, nil)
+	orderRepo.On("FindByIDForUpdate", mock.Anything, order.ID).Return(order, nil)
+
+	var savedOrder *domain.SalesOrder
+	orderRepo.On("Save", mock.Anything, mock.AnythingOfType("*domain.SalesOrder")).Run(func(args mock.Arguments) {
+		savedOrder = args.Get(1).(*domain.SalesOrder)
+	}).Return(nil)
+
+	service := application.NewSalesService(quoteRepo, orderRepo, deliveryRepo, invoiceRepo, nil, nil, nil, nil, nil)
+	err := service.DeleteDeliveryNote(ctx, application.DeleteDeliveryNoteCommand{DeliveryNoteID: deliveryNote.ID})
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, savedOrder) {
+		assert.Equal(t, domain.SalesOrderStatusInPreparation, savedOrder.Status)
+	}
+	deliveryRepo.AssertExpectations(t)
+	orderRepo.AssertExpectations(t)
+}
+
 // ===== Query Tests =====
 
 func TestSalesService_GetQuote_Success(t *testing.T) {
