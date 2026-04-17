@@ -442,20 +442,32 @@ const calculateLineSubtotal = (item: any) => {
     padding: 0;
     margin: 0;
     width: 100%;
+    max-width: none;
     min-height: auto;
+    overflow: hidden;
+  }
+  .print-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .print-table th,
+  .print-table td {
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
   .print-footer {
     position: fixed;
     bottom: 0;
-    left: 0;
-    width: 100%;
+    left: 12mm;
+    right: 12mm;
+    width: auto;
     background: white;
-    padding: 15mm 20mm; /* Aumentado para centrar más el contenido visualmente */
+    padding: 5mm 0;
     box-sizing: border-box;
     border-top: 1px solid #eee;
   }
   .print-footer-spacer {
-    display: block; /* Ocupa el espacio que tapa el footer fixed */
+    display: block;
   }
   .footer-summary {
     margin-bottom: 0;
