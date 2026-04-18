@@ -27,7 +27,7 @@
           <strong>{{ salesStats.monthlyTotal }}</strong>
         </div>
       </div>
-      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDIENTE')">
+      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDING')">
         <div class="kpi-icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
         <div class="kpi-data">
           <label>Pedidos Pendientes</label>
@@ -174,13 +174,13 @@ async function loadStats() {
   isLoading.value = true
   try {
     const [orders, workOrders, parties] = await Promise.all([
-      salesApi.listOrders({ status: 'PENDIENTE' }),
+      salesApi.listOrders({ status: 'PENDING' }),
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
-      partyApi.listParties({ limit: 1 })
+      partyApi.listParties({ pageSize: 100000 })
     ])
-    salesStats.value.pendingOrders = orders.total || 0
+    salesStats.value.pendingOrders = orders.total || orders.data?.length || 0
     mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
-    partyStats.value.totalParties = parties.total || 0
+    partyStats.value.totalParties = parties.total || parties.data?.length || 0
   } catch (err) { console.error('Error dashboard:', err) }
   finally { isLoading.value = false }
 }

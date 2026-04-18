@@ -145,6 +145,12 @@ const isLoading = ref(true);
 const counts = ref({ activeOrders: 0, pendingQuotes: 0, pendingDelivery: 0, monthlyInvoices: 0 });
 const recentOrders = ref([]);
 
+function resolveCount(result) {
+  if (result && typeof result.total === 'number') return result.total;
+  if (result && Array.isArray(result.data)) return result.data.length;
+  return 0;
+}
+
 async function loadSalesData() {
   isLoading.value = true;
   try {
@@ -153,15 +159,15 @@ async function loadSalesData() {
       // Do not request quotes with limit=1: when backend returns array (without total),
       // salesApi falls back to rawData.length and the counter becomes incorrectly 1.
       salesApi.listQuotes({}),
-      salesApi.listDeliveryNotes({ status: 'PENDIENTE', limit: 1 }),
+      salesApi.listDeliveryNotes({ status: 'PENDING', limit: 1 }),
       salesApi.listInvoices({ limit: 1 })
     ]);
     
     recentOrders.value = orders.data || [];
-    counts.value.activeOrders = orders.total || 0;
-    counts.value.pendingQuotes = quotes.total || 0;
-    counts.value.pendingDelivery = dnotes.total || 0;
-    counts.value.monthlyInvoices = invoices.total || 0;
+    counts.value.activeOrders = resolveCount(orders);
+    counts.value.pendingQuotes = resolveCount(quotes);
+    counts.value.pendingDelivery = resolveCount(dnotes);
+    counts.value.monthlyInvoices = resolveCount(invoices);
 
     const partyIds = [...new Set(recentOrders.value.map(o => o.partyId))];
     if (partyIds.length > 0) {

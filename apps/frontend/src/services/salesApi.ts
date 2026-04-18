@@ -61,6 +61,33 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   return obj;
 }
 
+function normalizeSalesStatus(status: string): string {
+  const key = String(status || '').trim().toUpperCase()
+  const statusMap: Record<string, string> = {
+    PENDIENTE: 'PENDING',
+    BORRADOR: 'DRAFT',
+    EMITIDA: 'ISSUED',
+    CANCELADO: 'CANCELLED',
+    CANCELADA: 'CANCELLED',
+    ENTREGADO: 'DELIVERED',
+    ENTREGADA: 'DELIVERED',
+    FACTURADO: 'INVOICED',
+    FACTURADA: 'INVOICED',
+    PREPARACION: 'IN_PREPARATION',
+    EN_PREPARACION: 'IN_PREPARATION',
+    EN_PREPARACIÓN: 'IN_PREPARATION',
+  }
+
+  return statusMap[key] || key
+}
+
+function resolveTotal(res: any, rawData: any[]): number {
+  if (typeof res?.total === 'number') return res.total
+  if (typeof res?.count === 'number') return res.count
+  if (typeof res?.total_count === 'number') return res.total_count
+  return rawData.length
+}
+
 class SalesApi {
   private readonly moduleBase = '/sales'
 
@@ -86,14 +113,14 @@ class SalesApi {
     if ((filters as any).searchText) params.search = (filters as any).searchText
     if ((filters as any).fromDate) params.fromDate = (filters as any).fromDate
     if ((filters as any).toDate) params.toDate = (filters as any).toDate
-    if (filters.status) params.status = filters.status
+    if (filters.status) params.status = normalizeSalesStatus(filters.status)
     if (filters.limit) params.limit = filters.limit
 
     try {
       const response = await api.get(`${this.moduleBase}/quotes`, { params })
       const res = response.data
       const rawData = Array.isArray(res) ? res : (res.data || [])
-      return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+      return { data: rawData.map(normalizeEntity), total: resolveTotal(res, rawData) }
     } catch (e) {
       await this.handleError(e, 'No se pudieron cargar los presupuestos')
     }
@@ -166,7 +193,7 @@ class SalesApi {
     const params: any = {}
     if (filters.partyId) params.partyId = filters.partyId
     if ((filters as any).searchText) params.search = (filters as any).searchText
-    if (filters.status) params.status = filters.status
+    if (filters.status) params.status = normalizeSalesStatus(filters.status)
     if (filters.fromDate) params.fromDate = filters.fromDate
     if (filters.toDate) params.toDate = filters.toDate
     if (filters.limit) params.limit = filters.limit
@@ -175,7 +202,7 @@ class SalesApi {
       const response = await api.get(`${this.moduleBase}/orders`, { params })
       const res = response.data
       const rawData = Array.isArray(res) ? res : (res.data || [])
-      return { data: rawData.map(normalizeEntity), total: res.total ?? rawData.length }
+      return { data: rawData.map(normalizeEntity), total: resolveTotal(res, rawData) }
     } catch (e) {
       await this.handleError(e, 'No se pudieron cargar los pedidos')
     }
@@ -215,7 +242,7 @@ class SalesApi {
 
   async changeOrderStatus(id: string, status: string): Promise<any> {
     try {
-      const response = await api.patch(`${this.moduleBase}/orders/${id}/status`, { newStatus: status })
+      const response = await api.patch(`${this.moduleBase}/orders/${id}/status`, { newStatus: normalizeSalesStatus(status) })
       return normalizeEntity(response.data)
     } catch (e) {
       await this.handleError(e, 'No se pudo cambiar el estado del pedido')
@@ -275,13 +302,13 @@ class SalesApi {
     const params: any = {}
     if (filters.orderId) params.salesOrderId = filters.orderId
     if (filters.searchText) params.search = filters.searchText
-    if (filters.status) params.status = filters.status
+    if (filters.status) params.status = normalizeSalesStatus(filters.status)
     
     try {
       const response = await api.get(`${this.moduleBase}/delivery-notes`, { params })
       const res = response.data
       const rawDN = Array.isArray(res) ? res : (res.data || [])
-      return { data: rawDN.map(normalizeEntity), total: res.total ?? rawDN.length }
+      return { data: rawDN.map(normalizeEntity), total: resolveTotal(res, rawDN) }
     } catch (e) {
       await this.handleError(e, 'No se pudieron cargar los albaranes')
     }
@@ -298,7 +325,7 @@ class SalesApi {
 
   async changeDeliveryNoteStatus(id: string, status: string): Promise<DeliveryNote> {
     try {
-      const response = await api.patch(`${this.moduleBase}/delivery-notes/${id}/status`, { newStatus: status })
+      const response = await api.patch(`${this.moduleBase}/delivery-notes/${id}/status`, { newStatus: normalizeSalesStatus(status) })
       return normalizeEntity(response.data)
     } catch (e) {
       await this.handleError(e, 'No se pudo cambiar el estado del albarán')
@@ -329,14 +356,14 @@ class SalesApi {
     if ((filters as any).partyId) params.partyId = (filters as any).partyId
     if (filters.deliveryNoteId) params.deliveryNoteId = filters.deliveryNoteId
     if (filters.searchText) params.search = filters.searchText
-    if (filters.status) params.status = filters.status
+    if (filters.status) params.status = normalizeSalesStatus(filters.status)
     if (filters.type) params.type = filters.type
     
     try {
       const response = await api.get(`${this.moduleBase}/invoices`, { params })
       const res = response.data
       const rawInv = Array.isArray(res) ? res : (res.data || [])
-      return { data: rawInv.map(normalizeEntity), total: res.total ?? rawInv.length }
+      return { data: rawInv.map(normalizeEntity), total: resolveTotal(res, rawInv) }
     } catch (e) {
       await this.handleError(e, 'No se pudieron cargar las facturas')
     }
@@ -371,7 +398,7 @@ class SalesApi {
 
   async changeInvoiceStatus(id: string, status: string): Promise<Invoice> {
     try {
-      const response = await api.patch(`${this.moduleBase}/invoices/${id}/status`, { newStatus: status })
+      const response = await api.patch(`${this.moduleBase}/invoices/${id}/status`, { newStatus: normalizeSalesStatus(status) })
       return normalizeEntity(response.data)
     } catch (e) {
       await this.handleError(e, 'No se pudo cambiar el estado de la factura')
