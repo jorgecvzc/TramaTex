@@ -29,6 +29,35 @@
     - `apps/tramatex-api/internal/pricing/application/pricing_service.go`
     - `apps/tramatex-api/internal/pricing/domain/repository.go`
 
+## Continuidad IAM + Sales — Estado Actual para Retomar (Sprint 18)
+- **Session ID:** `sprint-18-iam-sales-continuidad-2026-04-18`
+- **Status:** En Progreso
+- **Sprint:** Sprint 18
+- **Started:** 2026-04-18
+- **Rama:** `iam-role-alignment`
+- **Contexto:** Se prepara continuidad para retomar mañana con el estado actual consolidado. En `iam-role-alignment` están publicados los commits IAM y la rama está sincronizada con origen. Existen utilidades locales no versionadas de soporte DB/migraciones y un directorio `migrations_new` pendiente de decisión (integrar, mover a rama específica o descartar). Además, hay trabajo reciente en fixes de Sales (impresión, cobro de facturas y recálculo tras borrar albarán) que quedó separado en `fix/sales-bugfixes` y debe decidirse su estrategia de integración.
+- **Checklist de Arranque (mañana):**
+    - [ ] Verificar rama actual y estado limpio de trabajo antes de tocar código
+    - [ ] Decidir tratamiento de `migrations_new` y utilidades locales no versionadas
+    - [ ] Ejecutar smoke rápido IAM + Sales para confirmar punto de partida
+- **Próximos Pasos:**
+    - [ ] Validar si `apps/tramatex-api/migrations_new/` se conserva para una tarea formal o se limpia del working tree
+    - [ ] Revisar y clasificar utilidades locales no versionadas (`*_db.go`, `*_migration.go`, validadores) para evitar ruido en commits
+    - [ ] Confirmar estado de integración de `fix/sales-bugfixes` respecto a `staging`
+    - [ ] Ejecutar validación final de flujo IAM (alta/edición de usuarios) y flujo Sales (cobro factura + borrado albarán)
+    - [ ] Dejar rama objetivo limpia y lista para PR/merge según decisión funcional
+- **Archivos de Contexto:**
+    - `docs/log/sprints/sprint-18/01-iam-role-alignment.md`
+    - `apps/frontend/src/services/iam.ts`
+    - `apps/frontend/src/pages/admin/UsersManagement.vue`
+    - `apps/frontend/src/types/auth.ts`
+    - `apps/tramatex-api/internal/iam/domain/model/role.go`
+    - `apps/frontend/src/assets/sales-print.css`
+    - `apps/frontend/src/components/sales/PrintDocument.vue`
+    - `apps/frontend/src/pages/sales/InvoiceDetail.vue`
+    - `apps/frontend/src/pages/sales/DeliveryNoteDetail.vue`
+    - `apps/tramatex-api/internal/sales/application/sales_service_test.go`
+
 ---
 ## REGISTRO DE SESIONES CERRADAS
 ---
