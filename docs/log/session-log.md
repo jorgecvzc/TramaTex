@@ -99,6 +99,7 @@
 # REGISTRO DE SESIONES CERRADAS
 ---
 
+- **POS Polish & MES Terminal Excellence (Sprint 18)** | Iniciada: 2026-04-18 | Finalizada: 2026-04-18 | ✅ TPV industrial optimizado (sin scroll, atajos en cabecera), Terminal MES tabular con recuperación de cliente y Dashboard con KPIs reales.
 - **Fix Production Launch Errors (Sales/IAM) (Sprint 18)** | Iniciada: 2026-04-11 | Finalizada: 2026-04-18 | ✅ Bug de token corregido y flujo de lanzamiento a producción validado.
 - **Review Sprint 17 Implementation Status (Sprint 17 / 18)** | Iniciada: 2026-04-12 | Finalizada: 2026-04-18 | ✅ Tareas de consolidación de Pricing, Money decimal y ACL clients verificadas y completadas.
 - **IAM Role Alignment — Fix DB↔Domain Role Mismatch (Sprint 18)** | Iniciada: 2026-04-10 | Finalizada: 2026-04-11 | ✅ Roles alineados y bug `updateUser` corregido.
