@@ -204,39 +204,8 @@ func (s *SalesService) ChangeDeliveryNoteStatus(ctx context.Context, cmd ChangeD
 			return err
 		}
 		if order != nil {
-			delivered, err := s.deliveredQuantities(txCtx, order.ID)
-			if err != nil {
+			if err := s.refreshOrderDeliveryStatus(txCtx, order); err != nil {
 				return err
-			}
-
-			allDelivered := true
-			anyDelivered := false
-			for _, li := range order.LineItems {
-				qty := delivered[li.ID]
-				if qty > 0 {
-					anyDelivered = true
-				}
-				if qty < li.Quantity {
-					allDelivered = false
-				}
-			}
-
-			var targetStatus domain.SalesOrderStatus
-			if allDelivered {
-				targetStatus = domain.SalesOrderStatusDelivered
-			} else if anyDelivered {
-				targetStatus = domain.SalesOrderStatusPartiallyDelivered
-			} else {
-				targetStatus = domain.SalesOrderStatusInPreparation
-			}
-
-			if order.Status != targetStatus && order.Status != domain.SalesOrderStatusInvoiced && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusCancelled {
-				if err := order.ChangeStatus(targetStatus); err != nil {
-					// Ignore transition errors if current status is incompatible
-				}
-				if err := s.orderRepo.Save(txCtx, order); err != nil {
-					return err
-				}
 			}
 		}
 
@@ -278,40 +247,8 @@ func (s *SalesService) DeleteDeliveryNote(ctx context.Context, cmd DeleteDeliver
 			return err
 		}
 		if order != nil {
-			delivered, err := s.deliveredQuantities(txCtx, order.ID)
-			if err != nil {
+			if err := s.refreshOrderDeliveryStatus(txCtx, order); err != nil {
 				return err
-			}
-
-			allDelivered := true
-			anyDelivered := false
-			for _, li := range order.LineItems {
-				qty := delivered[li.ID]
-				if qty > 0 {
-					anyDelivered = true
-				}
-				if qty < li.Quantity {
-					allDelivered = false
-				}
-			}
-
-			var targetStatus domain.SalesOrderStatus
-			if allDelivered {
-				targetStatus = domain.SalesOrderStatusDelivered
-			} else if anyDelivered {
-				targetStatus = domain.SalesOrderStatusPartiallyDelivered
-			} else {
-				targetStatus = domain.SalesOrderStatusInPreparation
-			}
-
-			// Do not change status if it is cancelled or invoiced, but allow returning from Delivered/PartiallyDelivered to InPreparation
-			if order.Status != targetStatus && order.Status != domain.SalesOrderStatusInvoiced && order.Status != domain.SalesOrderStatusPartiallyInvoiced && order.Status != domain.SalesOrderStatusCancelled {
-				if err := order.ChangeStatus(targetStatus); err != nil {
-					// Fallback: If domain logic forbids moving back, at least we tried
-				}
-				if err := s.orderRepo.Save(txCtx, order); err != nil {
-					return err
-				}
 			}
 		}
 
@@ -354,6 +291,52 @@ func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUI
 		}
 	}
 	return results, nil
+}
+
+func (s *SalesService) refreshOrderDeliveryStatus(ctx context.Context, order *domain.SalesOrder) error {
+	if order == nil {
+		return nil
+	}
+	if order.Status == domain.SalesOrderStatusInvoiced || order.Status == domain.SalesOrderStatusPartiallyInvoiced || order.Status == domain.SalesOrderStatusCancelled {
+		return nil
+	}
+
+	delivered, err := s.deliveredQuantities(ctx, order.ID)
+	if err != nil {
+		return err
+	}
+
+	targetStatus := calculateOrderDeliveryStatus(order, delivered)
+	if order.Status == targetStatus {
+		return nil
+	}
+
+	// Delivery-note driven status is derived state. It must reflect current delivered quantities
+	// even when that implies moving backwards from DELIVERED/PARTIALLY_DELIVERED.
+	order.Status = targetStatus
+	return s.orderRepo.Save(ctx, order)
+}
+
+func calculateOrderDeliveryStatus(order *domain.SalesOrder, delivered map[uuid.UUID]int) domain.SalesOrderStatus {
+	allDelivered := true
+	anyDelivered := false
+	for _, li := range order.LineItems {
+		qty := delivered[li.ID]
+		if qty > 0 {
+			anyDelivered = true
+		}
+		if qty < li.Quantity {
+			allDelivered = false
+		}
+	}
+
+	if allDelivered {
+		return domain.SalesOrderStatusDelivered
+	}
+	if anyDelivered {
+		return domain.SalesOrderStatusPartiallyDelivered
+	}
+	return domain.SalesOrderStatusInPreparation
 }
 
 func isOrderFullyDelivered(items []domain.OrderLineItem, previous map[uuid.UUID]int, newItems []domain.DeliveryNoteLineItem) bool {

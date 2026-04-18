@@ -244,3 +244,38 @@ func (h *GetPartiesBatchHandler) Handle(ctx context.Context, query *GetPartiesBa
 
 	return parties, nil
 }
+
+// GetClientDefaultDiscountQuery requests the default discount for a party.
+
+type GetClientDefaultDiscountQuery struct {
+	PartyID string
+}
+
+// GetClientDefaultDiscountHandler returns the default discount percentage for a client.
+// Consumed by the Pricing module's ACL (PartyPricingClient).
+
+type GetClientDefaultDiscountHandler struct {
+	partyRepo persistence.PartyRepository
+}
+
+func NewGetClientDefaultDiscountHandler(partyRepo persistence.PartyRepository) *GetClientDefaultDiscountHandler {
+	return &GetClientDefaultDiscountHandler{partyRepo: partyRepo}
+}
+
+func (h *GetClientDefaultDiscountHandler) Handle(ctx context.Context, query *GetClientDefaultDiscountQuery) (float64, error) {
+	if query.PartyID == "" {
+		return 0, nil
+	}
+
+	partyID, err := domain.NewPartyID(query.PartyID)
+	if err != nil {
+		return 0, nil
+	}
+
+	party, err := h.partyRepo.FindByID(ctx, partyID)
+	if err != nil {
+		return 0, nil
+	}
+
+	return party.DefaultDiscountPercentage(), nil
+}

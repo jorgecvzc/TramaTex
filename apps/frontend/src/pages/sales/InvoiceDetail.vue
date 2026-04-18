@@ -61,7 +61,8 @@
             v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status)"
             class="btn btn-success btn-sm"
             @click="markAsPaid"
-            :disabled="isChangingStatus"
+            :disabled="isChangingStatus || !canManageInvoiceStatus"
+            :title="!canManageInvoiceStatus ? 'Requiere rol admin o commercial' : ''"
           >
             <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
           </button>
@@ -282,20 +283,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
+import { useAuthStore } from '@/stores/auth';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 const mode = ref('detail');
 const invoice = ref(null);
@@ -316,6 +320,7 @@ const statusConfirmIcon = ref('');
 const statusConfirmText = ref('');
 const statusConfirmClass = ref('');
 const pendingStatus = ref('');
+const canManageInvoiceStatus = computed(() => ['admin', 'commercial'].includes((authStore.userRole || '').toLowerCase()));
 
 const formData = reactive({
   dueDate: '',
@@ -350,13 +355,19 @@ async function loadPartyName() {
 
 async function loadRelatedOrders() {
   const ids = invoice.value?.salesOrderIds;
-  if (!ids?.length) return;
+  if (!ids?.length) {
+    relatedOrders.value = [];
+    return;
+  }
   relatedOrders.value = await Promise.all(ids.map(id => salesApi.getOrder(id).catch(() => ({ id, orderNumber: null }))));
 }
 
 async function loadRelatedDeliveryNotes() {
   const ids = invoice.value?.deliveryNoteIds;
-  if (!ids?.length) return;
+  if (!ids?.length) {
+    relatedDeliveryNotes.value = [];
+    return;
+  }
   relatedDeliveryNotes.value = await Promise.all(ids.map(id => salesApi.getDeliveryNote(id).catch(() => ({ id, deliveryNoteNumber: null }))));
 }
 
@@ -431,12 +442,23 @@ function reactivateInvoice() {
 async function executeStatusChange() {
   isChangingStatus.value = true;
   try {
-    invoice.value = await salesApi.changeInvoiceStatus(invoice.value.id, pendingStatus.value);
+    const invoiceId = invoice.value.id;
+    const requestedStatus = pendingStatus.value;
+    invoice.value = await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
+
+    // Always rehydrate from GET to keep related entities and enriched fields in sync.
+    invoice.value = await salesApi.getInvoice(invoiceId);
+    await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
     showStatusConfirm.value = false;
-    if (pendingStatus.value === 'ISSUED') {
+    if (requestedStatus === 'ISSUED') {
       showPostIssueModal.value = true;
     }
   } catch (err) {
+    const statusCode = err?.response?.status;
+    if (statusCode === 403) {
+      alert('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
+      return;
+    }
     alert(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
