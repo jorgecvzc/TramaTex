@@ -122,8 +122,22 @@ const formatDate = (d: string) => d ? new Date(d).toLocaleString('es-ES') : '—
 .ticket-footer p { margin: 1mm 0; }
 
 @media print {
-  body * { visibility: hidden; }
-  .ticket-container, .ticket-container * { visibility: visible; }
-  .ticket-container { position: absolute; left: 0; top: 0; margin: 0; padding: 0; width: 80mm; }
+  /* Ocultar absolutamente todo excepto el ticket */
+  :global(body) { background: white !important; padding: 0 !important; margin: 0 !important; }
+  :global(#app), :global(nav), :global(header), :global(footer) { display: none !important; }
+  
+  .ticket-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 2mm;
+    z-index: 999999;
+    visibility: visible !important;
+    display: block !important;
+    background: white !important;
+    color: black !important;
+  }
 }
 </style>
