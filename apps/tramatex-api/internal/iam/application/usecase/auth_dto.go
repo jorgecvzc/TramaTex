@@ -49,6 +49,20 @@ type CreateUserOutput struct {
 	Role  string `json:"role"`
 }
 
+// UpdateUserInput contains input data to update a user's basic info.
+type UpdateUserInput struct {
+	ID       string  `json:"id"` // Usually from URL param
+	Email    *string `json:"email,omitempty" binding:"omitempty,email"`
+	Password *string `json:"password,omitempty" binding:"omitempty,min=8"`
+}
+
+// UpdateUserOutput contains output data for updated user.
+type UpdateUserOutput struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 // RefreshInput contains input data for token refresh.
 type RefreshInput struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`

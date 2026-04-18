@@ -26,7 +26,7 @@ const (
 
 	DeliveryNoteStatusPending   DeliveryNoteStatus = "PENDING"
 	DeliveryNoteStatusDelivered DeliveryNoteStatus = "DELIVERED"
-	DeliveryNoteStatusCancelled  DeliveryNoteStatus = "CANCELLED"
+	DeliveryNoteStatusCancelled DeliveryNoteStatus = "CANCELLED"
 
 	InvoiceStatusDraft   InvoiceStatus = "DRAFT"
 	InvoiceStatusIssued  InvoiceStatus = "ISSUED"
@@ -119,9 +119,9 @@ func canTransitionOrder(from SalesOrderStatus, to SalesOrderStatus) bool {
 	case SalesOrderStatusReadyForProduction:
 		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusDelivered || to == SalesOrderStatusCancelled
 	case SalesOrderStatusPartiallyDelivered:
-		return to == SalesOrderStatusDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced || to == SalesOrderStatusCancelled
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced || to == SalesOrderStatusCancelled
 	case SalesOrderStatusDelivered:
-		return to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced
 	case SalesOrderStatusPartiallyInvoiced:
 		return to == SalesOrderStatusInvoiced
 	case SalesOrderStatusCancelled:

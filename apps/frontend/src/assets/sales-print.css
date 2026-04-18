@@ -36,25 +36,35 @@
     color: black !important;
   }
 
-  /* 
-   * SIMULACIÓN DE MÁRGENES DE PÁGINA
-   * Al usar margin: 0mm en @page para ocultar las cabeceras automáticas del navegador,
-   * el contenido del body se pega a los bordes físicos del papel.
-   * Añadimos un padding robusto para que el texto no se salga de la hoja.
-   */
-  body {
-    padding: 15mm !important; /* El !important es vital para ganar al reset anterior */
-    box-sizing: border-box;
-  }
-
   .print-only {
     display: block !important;
   }
 
-  /* Configuración de página A4 - Eliminar cabeceras de navegador (Título y URL) */
+  /*
+   * A4 sin cabecera/pie automáticos del navegador.
+   * El margen visual se aplica al body para mantener el contenido dentro de hoja.
+   */
   @page {
-    size: A4;
-    margin: 0mm; 
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body {
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 12mm 12mm 18mm !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
+  .print-container * {
+    box-sizing: border-box;
   }
 
   /* Cabecera del Documento */
@@ -106,6 +116,7 @@
   .print-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 2rem;
   }
 
@@ -122,6 +133,18 @@
     padding: 0.75rem;
     border-bottom: 1px solid #eee;
     font-size: 0.9rem;
+  }
+
+  .print-table th,
+  .print-table td,
+  .address-content p,
+  .address-content strong,
+  .notes-block p,
+  .legal-notice p,
+  .footer-col p,
+  .footer-col strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Totales */
@@ -146,8 +169,10 @@
   /* Footer Legal */
   .print-footer {
     position: fixed;
-    bottom: 0;
-    width: 100%;
+    bottom: 8mm;
+    left: 12mm;
+    right: 12mm;
+    width: auto;
     font-size: 0.7rem;
     color: #666;
     text-align: center;

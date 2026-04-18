@@ -47,9 +47,10 @@ import (
 	// Security Service & Middleware Import
 	infra_middleware "github.com/joran-cortez/tramatex/internal/shared/infrastructure/middleware"
 	"github.com/joran-cortez/tramatex/internal/shared/infrastructure/security"
-	"github.com/joran-cortez/tramatex/internal/shared/interfaces/http/middleware"
 	shared_handler "github.com/joran-cortez/tramatex/internal/shared/interfaces/http/handler"
-	)
+	"github.com/joran-cortez/tramatex/internal/shared/interfaces/http/middleware"
+)
+
 func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
@@ -100,9 +101,9 @@ func main() {
 	// =========================================================================
 
 	// --- Search Handler ---
-        searchHandler := shared_handler.NewSearchHandler(db)
+	searchHandler := shared_handler.NewSearchHandler(db)
 
-        // --- IAM Module Dependencies ---
+	// --- IAM Module Dependencies ---
 	// 1. Repository
 	userRepository := iam_repo.NewPostgresUserRepository(db)
 	// 2. Security Service (JWT)
@@ -122,6 +123,7 @@ func main() {
 	checkAuthUseCase := iam_usecase.NewCheckAuthorizationUseCase(userRepository)
 	listUsersUseCase := iam_usecase.NewListUsersUseCase(userRepository)
 	deleteUserUseCase := iam_usecase.NewDeleteUserUseCase(userRepository)
+	updateUserUseCase := iam_usecase.NewUpdateUserUseCase(userRepository)
 	// 4. HTTP Handler
 	iamHandler := iam_handler.NewIAMHandler(
 		loginUseCase,
@@ -133,8 +135,8 @@ func main() {
 		checkAuthUseCase,
 		listUsersUseCase,
 		deleteUserUseCase,
+		updateUserUseCase,
 	)
-
 	// --- Party Module Dependencies ---
 	// 1. Repositories
 	partyRepo := party_repo.NewGORMPartyRepository(db)
@@ -208,21 +210,9 @@ func main() {
 	productHandler := product_handler.NewProductHandler(productService)
 
 	// --- Pricing Module Dependencies ---
-	pricingRuleRepo := pricing_repo.NewGORMPricingRuleRepository(db)
 	clientPricingRepo := pricing_repo.NewGORMClientPricingRepository(db)
-	brandMarginRepo := pricing_repo.NewGORMBrandProfitMarginRepository(db)
-	discountRuleRepo := pricing_repo.NewGORMSalesDiscountRuleRepository(db)
 	calculationRepo := pricing_repo.NewGORMPriceCalculationRepository(db)
-	productPricingClient := pricing_productclient.NewProductPricingClient(db)
-	pricingService := pricing_uc.NewPricingService(
-		pricingRuleRepo,
-		clientPricingRepo,
-		brandMarginRepo,
-		discountRuleRepo,
-		calculationRepo,
-		productPricingClient,
-	)
-	pricingHandler := pricing_handler.NewPricingHandler(pricingService)
+	productPricingClient := pricing_productclient.NewProductPricingClient(productService)
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Port,
@@ -232,13 +222,16 @@ func main() {
 	basePriceCache := pricing_cache.NewRedisBasePriceCache(redisClient, cfg.Redis.TTL)
 	baseRuleRepo := pricing_repo.NewGORMBaseSalesPriceRuleRepository(db)
 	saleRuleRepo := pricing_repo.NewGORMSaleModificationRuleRepository(db)
-	partyPricingClient := pricing_partyclient.NewPartyPricingClient(db)
+	getClientDiscountHandler := party_uc.NewGetClientDefaultDiscountHandler(partyRepo)
+	partyPricingClient := pricing_partyclient.NewPartyPricingClient(getClientDiscountHandler)
 	pricingEngineService := pricing_uc.NewPricingEngineService(
 		baseRuleRepo,
 		saleRuleRepo,
 		productPricingClient,
 		basePriceCache,
 		partyPricingClient,
+		clientPricingRepo,
+		calculationRepo,
 	)
 	pricingEngineHandler := pricing_handler.NewPricingEngineHandler(pricingEngineService)
 
@@ -310,9 +303,10 @@ func main() {
 			protectedAuth.POST("/assign-role", infra_middleware.RequireRole("admin"), iamHandler.AssignRole)
 			// Admin only: list users
 			protectedAuth.GET("/users", infra_middleware.RequireRole("admin"), iamHandler.ListUsers)
+			// Admin only: update user
+			protectedAuth.PUT("/users/:id", infra_middleware.RequireRole("admin"), iamHandler.UpdateUser)
 			// Admin only: delete user
-			protectedAuth.DELETE("/users/:id", infra_middleware.RequireRole("admin"), iamHandler.DeleteUser)
-			// Authorization checks (authenticated)
+			protectedAuth.DELETE("/users/:id", infra_middleware.RequireRole("admin"), iamHandler.DeleteUser) // Authorization checks (authenticated)
 			protectedAuth.POST("/authorize", iamHandler.CheckAuthorization)
 		}
 	}
@@ -326,9 +320,9 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(authMiddleware)
 		{
-		        protected.GET("/search", searchHandler.GlobalSearch)
+			protected.GET("/search", searchHandler.GlobalSearch)
 
-		        parties := protected.Group("/parties")
+			parties := protected.Group("/parties")
 
 			{
 				parties.POST("", infra_middleware.RequireRole("admin", "commercial"), partyHandler.CreateParty)
@@ -433,12 +427,8 @@ func main() {
 
 			pricing := protected.Group("/pricing")
 			{
-				pricing.POST("/calculate", pricingHandler.CalculatePrice)
-				pricing.GET("/rules", pricingHandler.ListPricingRules)
-				pricing.POST("/rules", infra_middleware.RequireRole("admin", "commercial"), pricingHandler.CreatePricingRule)
-				pricing.POST("/client-overrides", infra_middleware.RequireRole("admin", "commercial"), pricingHandler.CreateClientPricingOverride)
-				pricing.GET("/history/:variantId", pricingHandler.GetPricingHistory)
-
+				pricing.POST("/client-overrides", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.CreateClientPricingOverride)
+				pricing.GET("/history/:variantId", pricingEngineHandler.GetPricingHistory)
 				pricing.POST("/base-sales-rules", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.CreateBaseSalesPriceRule)
 				pricing.PUT("/base-sales-rules/:id", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.UpdateBaseSalesPriceRule)
 				pricing.POST("/sale-modification-rules", infra_middleware.RequireRole("admin", "commercial"), pricingEngineHandler.CreateSaleModificationRule)
@@ -482,8 +472,8 @@ func main() {
 					deliveryNotes.GET("", salesHandler.ListDeliveryNotes)
 					deliveryNotes.GET("/:id", salesHandler.GetDeliveryNote)
 					deliveryNotes.PATCH("/:id/status", infra_middleware.RequireRole("admin", "commercial"), salesHandler.ChangeDeliveryNoteStatus)
+					deliveryNotes.DELETE("/:id", infra_middleware.RequireRole("admin", "commercial"), salesHandler.DeleteDeliveryNote)
 				}
-
 				invoices := sales.Group("/invoices")
 				{
 					invoices.POST("", infra_middleware.RequireRole("admin", "commercial"), salesHandler.CreateInvoice)
@@ -498,48 +488,48 @@ func main() {
 			{
 				tasks := mes.Group("/tasks")
 				{
-					tasks.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateTask)
+					tasks.POST("", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.CreateTask)
 					tasks.GET("", mesHandler.ListTasks)
 					tasks.GET("/:id", mesHandler.GetTask)
-					tasks.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateTask)
+					tasks.PUT("/:id", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.UpdateTask)
 					tasks.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteTask)
 				}
 
 				positions := mes.Group("/positions")
 				{
-					positions.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreatePosition)
+					positions.POST("", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.CreatePosition)
 					positions.GET("", mesHandler.ListPositions)
 					positions.GET("/:id", mesHandler.GetPosition)
-					positions.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdatePosition)
+					positions.PUT("/:id", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.UpdatePosition)
 					positions.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeletePosition)
 				}
 
 				workTypes := mes.Group("/work-types")
 				{
-					workTypes.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkType)
+					workTypes.POST("", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.CreateWorkType)
 					workTypes.GET("", mesHandler.ListWorkTypes)
 					workTypes.GET("/:id", mesHandler.GetWorkType)
-					workTypes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkType)
+					workTypes.PUT("/:id", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.UpdateWorkType)
 					workTypes.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteWorkType)
 				}
 
 				workOrders := mes.Group("/work-orders")
 				{
-					workOrders.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkOrder)
+					workOrders.POST("", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.CreateWorkOrder)
 					workOrders.GET("", mesHandler.ListWorkOrders)
 					workOrders.GET("/dashboard/stats", mesHandler.GetWorkOrderDashboardStats)
 					workOrders.GET("/overdue", mesHandler.ListOverdueWorkOrders)
 					workOrders.GET("/:id", mesHandler.GetWorkOrder)
-					workOrders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkOrder)
-					workOrders.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "workshop"), mesHandler.UpdateWorkOrderTaskStatus)
+					workOrders.PUT("/:id", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.UpdateWorkOrder)
+					workOrders.PATCH("/:workId/tasks/:taskId/status", infra_middleware.RequireRole("admin", "commercial", "designer", "workshop"), mesHandler.UpdateWorkOrderTaskStatus)
 				}
 
 				workSetups := mes.Group("/work-setups")
 				{
-					workSetups.POST("", infra_middleware.RequireRole("admin", "commercial"), mesHandler.CreateWorkSetup)
+					workSetups.POST("", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.CreateWorkSetup)
 					workSetups.GET("", mesHandler.ListWorkSetups)
 					workSetups.GET("/:id", mesHandler.GetWorkSetup)
-					workSetups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial"), mesHandler.UpdateWorkSetup)
+					workSetups.PUT("/:id", infra_middleware.RequireRole("admin", "commercial", "designer"), mesHandler.UpdateWorkSetup)
 					workSetups.DELETE("/:id", infra_middleware.RequireRole("admin"), mesHandler.DeleteWorkSetup)
 				}
 
@@ -560,4 +550,3 @@ func main() {
 		logging.Logger.WithError(err).Fatal("Failed to start server")
 	}
 }
-

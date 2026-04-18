@@ -59,6 +59,15 @@ func (u *User) Email() *Email {
 	return u.email
 }
 
+// ChangeEmail updates user's email.
+func (u *User) ChangeEmail(newEmail *Email) error {
+	if newEmail == nil {
+		return fmt.Errorf("new email cannot be nil")
+	}
+	u.email = newEmail
+	return nil
+}
+
 // Password returns the user's password as a value object.
 func (u *User) Password() *Password {
 	return u.password
