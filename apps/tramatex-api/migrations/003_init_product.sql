@@ -1,11 +1,9 @@
 -- ============================================================================
 -- Migration: 003_init_product.sql
--- Description: Initialize Product module (consolidated)
--- Absorbs: 003, 009 (brand_id nullable), 018 (backfill default variants)
--- Date: 2026-03-21
+-- Module: Product (Brands, Groups, Attributes, Products, Variants)
+-- Date: 2026-04-14
 -- ============================================================================
 
-BEGIN;
 
 -- ============================================================================
 -- ENUMS
@@ -72,7 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_product_groups_parent_group_id ON product_groups(
 CREATE INDEX IF NOT EXISTS idx_product_groups_group_type ON product_groups(group_type);
 
 COMMENT ON TABLE product_groups IS 'Hierarchical product groups';
-COMMENT ON COLUMN product_groups.group_type IS 'Classification: TANGIBLE for physical products, SERVICE for service-based products';
 
 -- ============================================================================
 -- ATTRIBUTES TABLE
@@ -97,8 +94,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_attributes_code ON attributes(code);
 CREATE INDEX IF NOT EXISTS idx_attributes_scope ON attributes(scope_brand_id, scope_group_id);
 
 COMMENT ON TABLE attributes IS 'Product attributes (Size, Color, Material, etc.)';
-COMMENT ON COLUMN attributes.scope_brand_id IS 'Optional: restrict attribute to specific brand';
-COMMENT ON COLUMN attributes.scope_group_id IS 'Optional: restrict attribute to specific product group';
 
 -- ============================================================================
 -- ATTRIBUTE VALUES TABLE (with price modifiers)
@@ -128,9 +123,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_attribute_values_attribute_id_code ON attr
 CREATE INDEX IF NOT EXISTS idx_attribute_values_price_modifier ON attribute_values(has_price_modifier) WHERE has_price_modifier = TRUE;
 
 COMMENT ON TABLE attribute_values IS 'Values for product attributes with optional price modifiers';
-COMMENT ON COLUMN attribute_values.has_price_modifier IS 'Whether this value affects product variant price';
-COMMENT ON COLUMN attribute_values.modifier_type IS 'Type: FIXED (absolute ±EUR) or PERCENTAGE (±%)';
-COMMENT ON COLUMN attribute_values.modifier_amount IS 'Modifier value (5.00 = +5 EUR or +5%)';
 
 -- ============================================================================
 -- PRODUCTS TABLE
@@ -160,21 +152,6 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE INDEX IF NOT EXISTS idx_products_brand_id ON products(brand_id);
 
--- Keep compatibility with legacy databases where products.brand_id may exist as NOT NULL.
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND table_name = 'products'
-          AND column_name = 'brand_id'
-          AND is_nullable = 'NO'
-    ) THEN
-        ALTER TABLE products ALTER COLUMN brand_id DROP NOT NULL;
-    END IF;
-END $$;
-
 COMMENT ON TABLE products IS 'Products catalog (templates for variants)';
 COMMENT ON COLUMN products.base_price IS 'Base cost/price - source of truth for variant pricing';
 COMMENT ON COLUMN products.tax_rate IS 'Tax rate (VAT/IVA) percentage (e.g., 21.0 = 21% IVA)';
@@ -203,8 +180,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_sku ON product_variants(s
 CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_barcode ON product_variants(barcode) WHERE barcode IS NOT NULL;
 
 COMMENT ON TABLE product_variants IS 'Product variants - concrete products with specific attributes';
-COMMENT ON COLUMN product_variants.attribute_values IS 'Array of attribute_value IDs that define this variant';
-COMMENT ON COLUMN product_variants.status IS 'PROVISIONAL (JIT-created) or CONFIRMED (pre-generated)';
 
 -- ============================================================================
 -- TRIGGERS
@@ -223,8 +198,3 @@ CREATE TRIGGER trg_attribute_values_updated_at BEFORE UPDATE ON attribute_values
 CREATE TRIGGER trg_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_product_variants_updated_at BEFORE UPDATE ON product_variants FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: 003_init_product.sql (consolidated, absorbs 003 + 009 + 018)
--- ============================================================================

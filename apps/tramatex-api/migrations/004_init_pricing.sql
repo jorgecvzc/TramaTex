@@ -1,11 +1,9 @@
 -- ============================================================================
 -- Migration: 004_init_pricing.sql
--- Description: Initialize Pricing module (consolidated)
--- Absorbs: 004, 012 (pricing_rules + sales_discount_rules tables)
--- Date: 2026-03-21
+-- Module: Pricing (Base Sales Price Rules, Sale Modifications, Client Overrides)
+-- Date: 2026-04-14
 -- ============================================================================
 
-BEGIN;
 
 -- ============================================================================
 -- RULE VALUE TYPES CATALOG
@@ -53,7 +51,6 @@ CREATE INDEX idx_base_sales_price_rules_product_group ON base_sales_price_rules(
 CREATE INDEX idx_base_sales_price_rules_product ON base_sales_price_rules(product_id);
 
 COMMENT ON TABLE base_sales_price_rules IS 'Rules for calculating base sales prices from variant base costs';
-COMMENT ON COLUMN base_sales_price_rules.value_type IS 'Type of pricing rule (PERCENTAGE_MARKUP, SET_TO_FIXED_PRICE, etc.)';
 
 -- ============================================================================
 -- SALE MODIFICATION RULES (ADR-015)
@@ -84,7 +81,6 @@ CREATE INDEX idx_sale_modification_rules_priority ON sale_modification_rules(pri
 CREATE INDEX idx_sale_modification_rules_effective ON sale_modification_rules(effective_from, effective_to);
 
 COMMENT ON TABLE sale_modification_rules IS 'Rules for modifying sales prices (discounts, bulk pricing, etc.)';
-COMMENT ON COLUMN sale_modification_rules.priority IS 'Higher priority rules are applied first';
 
 -- ============================================================================
 -- CLIENT PRICING OVERRIDES
@@ -106,27 +102,6 @@ CREATE INDEX idx_client_pricing_override ON client_pricing_overrides(client_id, 
 CREATE INDEX idx_client_pricing_effective ON client_pricing_overrides(effective_from, effective_to);
 
 COMMENT ON TABLE client_pricing_overrides IS 'Client-specific fixed price overrides for product variants';
-
--- ============================================================================
--- BRAND PROFIT MARGINS
--- ============================================================================
-CREATE TABLE IF NOT EXISTS brand_profit_margins (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id UUID NOT NULL,
-    percentage_value NUMERIC(8,4),
-    fixed_amount NUMERIC(12,2),
-    currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    effective_from TIMESTAMP WITH TIME ZONE NOT NULL,
-    effective_to TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_brand_profit_margin ON brand_profit_margins(brand_id);
-CREATE INDEX idx_brand_profit_effective ON brand_profit_margins(effective_from, effective_to);
-
-COMMENT ON TABLE brand_profit_margins IS 'Brand-level profit margins';
 
 -- ============================================================================
 -- PRICE CALCULATIONS (Audit log)
@@ -157,74 +132,10 @@ COMMENT ON TABLE price_calculations IS 'Audit log of price calculations with app
 DROP TRIGGER IF EXISTS trg_base_sales_price_rules_updated_at ON base_sales_price_rules;
 DROP TRIGGER IF EXISTS trg_sale_modification_rules_updated_at ON sale_modification_rules;
 DROP TRIGGER IF EXISTS trg_client_pricing_overrides_updated_at ON client_pricing_overrides;
-DROP TRIGGER IF EXISTS trg_brand_profit_margins_updated_at ON brand_profit_margins;
 DROP TRIGGER IF EXISTS trg_price_calculations_updated_at ON price_calculations;
 
 CREATE TRIGGER trg_base_sales_price_rules_updated_at BEFORE UPDATE ON base_sales_price_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_sale_modification_rules_updated_at BEFORE UPDATE ON sale_modification_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_client_pricing_overrides_updated_at BEFORE UPDATE ON client_pricing_overrides FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_brand_profit_margins_updated_at BEFORE UPDATE ON brand_profit_margins FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_price_calculations_updated_at BEFORE UPDATE ON price_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- ============================================================================
--- PRICING RULES TABLE (from 012)
--- ============================================================================
-CREATE TABLE IF NOT EXISTS pricing_rules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    product_variant_id UUID,
-    party_category VARCHAR(50),
-    markup_percentage NUMERIC(8,4) NOT NULL,
-    min_quantity INT NOT NULL DEFAULT 0,
-    max_quantity INT,
-    effective_from TIMESTAMP WITH TIME ZONE NOT NULL,
-    effective_to TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_pricing_rules_variant ON pricing_rules(product_variant_id);
-CREATE INDEX IF NOT EXISTS idx_pricing_rules_effective ON pricing_rules(effective_from, effective_to);
-
-COMMENT ON TABLE pricing_rules IS 'Pricing markup rules for product variants (quantity-based)';
-
--- ============================================================================
--- SALES DISCOUNT RULES TABLE (from 012)
--- ============================================================================
-CREATE TABLE IF NOT EXISTS sales_discount_rules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    client_id UUID,
-    product_variant_id UUID,
-    min_quantity INT,
-    discount_type VARCHAR(20) NOT NULL,
-    percentage_value NUMERIC(8,4),
-    fixed_amount NUMERIC(12,2),
-    currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
-    priority INT NOT NULL DEFAULT 0,
-    effective_from TIMESTAMP WITH TIME ZONE NOT NULL,
-    effective_to TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_client ON sales_discount_rules(client_id);
-CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_variant ON sales_discount_rules(product_variant_id);
-CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_priority ON sales_discount_rules(priority);
-CREATE INDEX IF NOT EXISTS idx_sales_discount_rules_effective ON sales_discount_rules(effective_from, effective_to);
-
-COMMENT ON TABLE sales_discount_rules IS 'Sales discount rules for clients/variants';
-
-DROP TRIGGER IF EXISTS trg_pricing_rules_updated_at ON pricing_rules;
-DROP TRIGGER IF EXISTS trg_sales_discount_rules_updated_at ON sales_discount_rules;
-
-CREATE TRIGGER trg_pricing_rules_updated_at BEFORE UPDATE ON pricing_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER trg_sales_discount_rules_updated_at BEFORE UPDATE ON sales_discount_rules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: 004_init_pricing.sql (consolidated, absorbs 004 + 012)
--- ============================================================================
