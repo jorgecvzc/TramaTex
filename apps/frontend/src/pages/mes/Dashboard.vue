@@ -65,59 +65,20 @@
         </RouterLink>
       </section>
 
-      <!-- 3. Solicitudes de Ventas -->
+      <!-- 3. Actividad (Órdenes en Cola de Producción) -->
       <section class="dashboard-section">
         <div class="section-header">
-          <span class="material-symbols-outlined text-primary">add_shopping_cart</span>
-          <h2>Solicitudes de Ventas</h2>
-          <span class="header-tag">{{ pendingSalesWork.length }}</span>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Descripción del Trabajo</th>
-                <th>Entrega Prevista</th>
-                <th class="align-right">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="setup in pendingSalesWork" :key="setup.id" class="row-hover">
-                <td><strong>#{{ setup.order_number }}</strong></td>
-                <td>{{ setup.party_name || setup.party_id?.substring(0,8) || 'Desconocido' }}</td>
-                <td>{{ setup.description }}</td>
-                <td><span class="text-muted">{{ formatDate(setup.delivery_date) }}</span></td>
-                <td class="align-right">
-                  <button class="btn btn-secondary btn-sm" @click="configurePending(setup)">
-                    <span class="material-symbols-outlined">settings_suggest</span>
-                    Crear Orden
-                  </button>
-                </td>
-              </tr>
-              <tr v-if="pendingSalesWork.length === 0">
-                <td colspan="5" class="p-4 text-center text-muted italic">No hay solicitudes de trabajo pendientes de Ventas.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- 4. Actividad (Órdenes Pendientes en MES) -->
-      <section class="dashboard-section mt-6">
-        <div class="section-header">
           <span class="material-symbols-outlined text-info">pending_actions</span>
-          <h2>Pendientes de Inicio (MES)</h2>
+          <h2>Cola de Producción (Sin Lanzar)</h2>
           <span class="header-tag">{{ pendingOrders.length }}</span>
         </div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Nº</th>
-                <th>Descripción</th>
-                <th>Pedido</th>
+                <th>Nº Orden</th>
+                <th>Descripción / Trabajo</th>
+                <th>Pedido Origen</th>
                 <th>Prioridad</th>
                 <th class="align-right">Acción</th>
               </tr>
@@ -129,11 +90,72 @@
                 <td>#{{ wo.sales_order_number || 'Interno' }}</td>
                 <td><span :class="['priority-pill', `prio-${wo.priority}`]">{{ wo.priority }}</span></td>
                 <td class="align-right">
-                  <button class="btn btn-primary btn-sm" @click="configureOrder(wo)">Configurar</button>
+                  <div class="actions-cell">
+                    <button v-if="wo.work_setup_id" class="btn btn-secondary btn-sm" @click="launchToWorkshop(wo)" title="Enviar a la Tablet del taller">
+                      <span class="material-symbols-outlined">rocket_launch</span>
+                      Lanzar
+                    </button>
+                    <button v-else class="btn btn-primary btn-sm" @click="configureOrder(wo)">Configurar</button>
+                    
+                    <button v-if="wo.work_setup_id" class="btn btn-ghost btn-icon btn-sm" @click="configureOrder(wo)" title="Cambiar configuración técnica">
+                      <span class="material-symbols-outlined">settings</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="pendingOrders.length === 0">
-                <td colspan="5" class="p-4 text-center text-muted italic">No hay órdenes pendientes de configuración interna.</td>
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay órdenes esperando en la cola de producción.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Actividad en Curso (Trabajos en el Taller) -->
+      <section class="dashboard-section mt-6">
+        <div class="section-header">
+          <span class="material-symbols-outlined text-success">play_circle</span>
+          <h2>Trabajos en Curso (Taller)</h2>
+          <span class="header-tag success">{{ inProgressOrders.length }}</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Nº Orden</th>
+                <th>Trabajo / Descripción</th>
+                <th>Pedido</th>
+                <th>Progreso Tareas</th>
+                <th class="align-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="wo in inProgressOrders" :key="wo.id" class="row-hover">
+                <td><code class="code-badge">{{ wo.work_number }}</code></td>
+                <td><strong>{{ wo.work_name }}</strong></td>
+                <td>#{{ wo.sales_order_number || 'Interno' }}</td>
+                <td>
+                  <div class="progress-info">
+                    <span class="text-xs font-bold">{{ getCompletedTasksCount(wo) }} / {{ getTotalTasksCount(wo) }}</span>
+                    <div class="progress-bar-mini">
+                      <div class="progress-fill" :style="{ width: getProgressPercentage(wo) + '%' }"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="align-right">
+                  <div class="actions-cell">
+                    <button class="btn btn-outline btn-sm" @click="router.push('/mes/terminal')">
+                      <span class="material-symbols-outlined">tablet_mac</span>
+                      Ver Terminal
+                    </button>
+                    <button class="btn btn-ghost btn-icon btn-sm" @click="router.push(`/mes/work-orders/${wo.id}`)" title="Ver detalle completo">
+                      <span class="material-symbols-outlined">visibility</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="inProgressOrders.length === 0">
+                <td colspan="5" class="p-4 text-center text-muted italic">No hay trabajos activos en el taller en este momento.</td>
               </tr>
             </tbody>
           </table>
@@ -223,7 +245,7 @@ async function loadDashboard() {
     inProgressOrders.value = i
     
     // Enriquecer solicitudes de ventas con nombres de clientes
-    const enrichedSW = await Promise.all(sw.map(async (item: PendingWorkSetup) => {
+    const enrichedSW = await Promise.all(sw.map(async (item: any) => {
       if (item.party_id) {
         try {
           const party = await partyApi.getParty(item.party_id)
@@ -246,7 +268,19 @@ function configureOrder(wo: WorkOrder) {
   showSetupDialog.value = true
 }
 
-function configurePending(setup: PendingWorkSetup & { party_name?: string }) {
+async function launchToWorkshop(wo: WorkOrder) {
+  isLoading.value = true
+  try {
+    await mesApi.updateWorkOrder(wo.id, { status: 'IN_PROGRESS' })
+    await loadDashboard()
+  } catch (err) {
+    console.error('Error launching order:', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function configurePending(setup: any) {
   // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
   selectedWorkOrder.value = {
     id: setup.id,
@@ -261,6 +295,27 @@ function configurePending(setup: PendingWorkSetup & { party_name?: string }) {
 
 async function handleSetupAssigned() {
   await loadDashboard()
+}
+
+// Helpers de progreso
+function getTotalTasksCount(wo: WorkOrder) {
+  let total = 0
+  wo.lines?.forEach(l => { total += l.tasks?.length || 0 })
+  return total
+}
+
+function getCompletedTasksCount(wo: WorkOrder) {
+  let completed = 0
+  wo.lines?.forEach(l => { 
+    l.tasks?.forEach(t => { if (t.status === 'COMPLETED') completed++ })
+  })
+  return completed
+}
+
+function getProgressPercentage(wo: WorkOrder) {
+  const total = getTotalTasksCount(wo)
+  if (total === 0) return 0
+  return Math.round((getCompletedTasksCount(wo) / total) * 100)
 }
 
 function formatDate(d: any) {
@@ -309,4 +364,9 @@ onMounted(loadDashboard)
 .prio-HIGH, .prio-URGENT { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
 .align-right { text-align: right; }
 .mt-6 { margin-top: 1.5rem; }
+
+.actions-cell { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.btn-icon { padding: 0.25rem; min-width: auto; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
+.btn-ghost:hover { color: var(--color-primary); background: var(--color-background); }
 </style>

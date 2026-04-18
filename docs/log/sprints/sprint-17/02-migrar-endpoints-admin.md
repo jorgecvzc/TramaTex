@@ -19,11 +19,11 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **Mover CRUD de ClientPricing overrides** al `PricingEngineHandler`
-2. [ ] **Mover endpoint de historial de cálculos** al `PricingEngineHandler`
-3. [ ] **Mover listado de PricingRules** (o deprecar si ya no aplica con modelo ADR-016)
-4. [ ] **Actualizar rutas** en el router (Gin)
-5. [ ] **Verificar que el frontend** apunta a las nuevas rutas (o mantener compatibilidad)
+1. [x] **Mover CRUD de ClientPricing overrides** al `PricingEngineHandler`
+2. [x] **Mover endpoint de historial de cálculos** al `PricingEngineHandler`
+3. [x] **Mover listado de PricingRules** (o deprecar si ya no aplica con modelo ADR-016)
+4. [x] **Actualizar rutas** en el router (Gin)
+5. [x] **Verificar que el frontend** apunta a las nuevas rutas (o mantener compatibilidad)
 
 ---
 

@@ -60,11 +60,15 @@ type ListPartiesHandler struct {
 	partyRepo persistence.PartyRepository
 }
 
+type partyRepositoryFilteredCounter interface {
+	CountByFilters(ctx context.Context, filters *persistence.PartyFilters) (int64, error)
+}
+
 func NewListPartiesHandler(partyRepo persistence.PartyRepository) *ListPartiesHandler {
 	return &ListPartiesHandler{partyRepo: partyRepo}
 }
 
-func (h *ListPartiesHandler) Handle(ctx context.Context, query *ListPartiesQuery) ([]*domain.Party, error) {
+func (h *ListPartiesHandler) buildFilters(query *ListPartiesQuery) (*persistence.PartyFilters, error) {
 	filters := &persistence.PartyFilters{
 		Name:       query.Name,
 		TaxID:      query.TaxID,
@@ -96,12 +100,43 @@ func (h *ListPartiesHandler) Handle(ctx context.Context, query *ListPartiesQuery
 		filters.Role = &role
 	}
 
+	return filters, nil
+}
+
+func (h *ListPartiesHandler) Handle(ctx context.Context, query *ListPartiesQuery) ([]*domain.Party, error) {
+	filters, err := h.buildFilters(query)
+	if err != nil {
+		return nil, err
+	}
+
 	parties, err := h.partyRepo.FindAll(ctx, filters)
 	if err != nil {
 		return nil, domain.WrapPersistence("failed to list parties", err)
 	}
 
 	return parties, nil
+}
+
+func (h *ListPartiesHandler) Count(ctx context.Context, query *ListPartiesQuery) (int64, error) {
+	filters, err := h.buildFilters(query)
+	if err != nil {
+		return 0, err
+	}
+
+	if counter, ok := h.partyRepo.(partyRepositoryFilteredCounter); ok {
+		count, err := counter.CountByFilters(ctx, filters)
+		if err != nil {
+			return 0, domain.WrapPersistence("failed to count filtered parties", err)
+		}
+		return count, nil
+	}
+
+	parties, err := h.partyRepo.FindAll(ctx, filters)
+	if err != nil {
+		return 0, domain.WrapPersistence("failed to list parties for count", err)
+	}
+
+	return int64(len(parties)), nil
 }
 
 // ListPartyRelationshipsQuery represents a query to list relationships for a party

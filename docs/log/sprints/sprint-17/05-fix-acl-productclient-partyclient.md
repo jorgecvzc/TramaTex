@@ -19,8 +19,8 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **V1 — ProductClient**: Eliminar imports directos de `product/domain` y `product/infrastructure/persistence`. Consumir capa de aplicación de Product.
-2. [ ] **V2 — PartyClient**: Eliminar query SQL directa sobre tabla `parties`. Consumir capa de aplicación de Party.
+1. [x] **V1 — ProductClient**: Eliminar imports directos de `product/domain` y `product/infrastructure/persistence`. Consumir capa de aplicación de Product.
+2. [x] **V2 — PartyClient**: Eliminar query SQL directa sobre tabla `parties`. Consumir capa de aplicación de Party.
 
 ---
 

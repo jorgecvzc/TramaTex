@@ -68,6 +68,17 @@
           <div class="icon purple"><span class="material-symbols-outlined">calendar_today</span></div>
           <div class="tag-content"><label>Vencimiento</label><strong :class="{'text-danger': isOverdue}">{{ formatDate(work.due_date) }}</strong></div>
         </div>
+        <!-- Enlace a Pedido (Sales) -->
+        <div v-if="work.sales_order_id" class="summary-tag highlight">
+          <div class="icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-content">
+            <label>Origen (Ventas)</label>
+            <RouterLink :to="`/sales/orders/${work.sales_order_id}`" class="order-link">
+              <strong>#{{ work.sales_order_number }}</strong>
+              <span class="material-symbols-outlined inline-icon">open_in_new</span>
+            </RouterLink>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -399,6 +410,12 @@ onMounted(loadDetail)
 .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
 .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
 .icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+.icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+
+.summary-tag.highlight { border-color: #bbf7d0; background: #f0fdf4; }
+.order-link { display: flex; align-items: center; gap: 0.25rem; text-decoration: none; color: inherit; transition: 0.2s; }
+.order-link:hover { color: #16a34a; }
+.order-link .inline-icon { font-size: 1rem; opacity: 0.6; }
 
 .tag-content { display: flex; flex-direction: column; gap: 0.15rem; }
 .tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }

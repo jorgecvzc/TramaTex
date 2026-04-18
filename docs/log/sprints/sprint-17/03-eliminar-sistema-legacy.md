@@ -19,13 +19,13 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **Eliminar `PricingService`** y todo código que lo referencia
-2. [ ] **Eliminar `PricingHandler`** y sus rutas
-3. [ ] **Eliminar entidades domain obsoletas**: `PricingRule`, `BrandProfitMargin`, `SalesDiscountRule`, servicios de dominio asociados (`SellingPriceCalculatorService`, `SalesDiscountCalculatorService`)
-4. [ ] **Eliminar repositorios e infra obsoleta**: GORM repos + data models de las entidades viejas
-5. [ ] **Eliminar DTOs obsoletos**: `dtos.go`, `commands.go`, `queries.go` del sistema viejo
-6. [ ] **Limpiar wiring** en `main.go`
-7. [ ] **Evaluar migración SQL** para tablas `pricing_rules` y `sales_discount_rules`
+1. [x] **Eliminar `PricingService`** y todo código que lo referencia
+2. [x] **Eliminar `PricingHandler`** y sus rutas
+3. [x] **Eliminar entidades domain obsoletas**: `PricingRule`, `BrandProfitMargin`, `SalesDiscountRule`, servicios de dominio asociados (`SellingPriceCalculatorService`, `SalesDiscountCalculatorService`)
+4. [x] **Eliminar repositorios e infra obsoleta**: GORM repos + data models de las entidades viejas
+5. [x] **Eliminar DTOs obsoletos**: `dtos.go`, `commands.go`, `queries.go` del sistema viejo
+6. [x] **Limpiar wiring** en `main.go`
+7. [x] **Evaluar migración SQL** para tablas `pricing_rules` y `sales_discount_rules`
 
 ---
 

@@ -19,9 +19,9 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **Implementar función `mapDomainError`** en handlers de Pricing
-2. [ ] **Mapear**: `VALIDATION_ERROR → 400`, `NOT_FOUND → 404`, `CONFLICT → 409`, `RULE_ERROR → 422`
-3. [ ] **Aplicar** a `PricingEngineHandler` (y `PricingHandler` si aún existe en ese momento)
+1. [x] **Implementar función `mapDomainError`** en handlers de Pricing
+2. [x] **Mapear**: `VALIDATION_ERROR → 400`, `NOT_FOUND → 404`, `CONFLICT → 409`, `RULE_ERROR → 422`
+3. [x] **Aplicar** a `PricingEngineHandler` (y `PricingHandler` si aún existe en ese momento)
 
 ---
 

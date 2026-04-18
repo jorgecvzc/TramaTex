@@ -235,7 +235,17 @@
                 </td>
                 <td><p class="text-sm italic m-0">{{ mesRef.description || '—' }}</p></td>
                 <td class="text-right">
-                  <span class="status-badge status-info">Vinculado</span>
+                  <template v-if="mesRef.work_order_id || mesRef.workOrderId">
+                    <button 
+                      class="status-badge clickable-status" 
+                      :class="`status-${getMesStatusClass(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId])}`"
+                      @click="router.push(`/mes/work-orders/${mesRef.work_order_id || mesRef.workOrderId}`)"
+                    >
+                      {{ mesApi.getWorkStatusLabel(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId]) || 'Cargando...' }}
+                      <span class="material-symbols-outlined text-xs">open_in_new</span>
+                    </button>
+                  </template>
+                  <span v-else class="status-badge status-secondary">Sin lanzar</span>
                 </td>
               </tr>
             </tbody>
@@ -467,6 +477,7 @@ const dnForm = ref({
 
 const availableMesSetups = ref([])
 const mesWorksCache = ref({})
+const mesOrdersStatus = ref({}) // Almacena workOrderId -> status
 const partyDefaultDiscount = ref(0)
 const relatedQuote = ref(null)
 const relatedDeliveryNotes = ref([])
@@ -475,6 +486,43 @@ const relatedInvoice = ref(null)
 const hasActiveDeliveryNotes = computed(() =>
   relatedDeliveryNotes.value.some(dn => dn.status !== 'CANCELLED')
 )
+
+function getMesStatusClass(status) {
+  if (!status) return 'secondary'
+  const map = {
+    'PENDING': 'warning',
+    'IN_PROGRESS': 'info',
+    'COMPLETED': 'success',
+    'ON_HOLD': 'secondary',
+    'SUSPENDED': 'secondary',
+    'CANCELLED': 'danger'
+  }
+  return map[status] || 'secondary'
+}
+
+async function fetchMesWorkStatuses(mesRefs) {
+  if (!mesRefs || mesRefs.length === 0) return
+  
+  // Limpiamos estados previos
+  mesOrdersStatus.value = {}
+  
+  // Consultamos el estado de cada orden vinculada
+  const promises = mesRefs
+    .filter(r => r.work_order_id || r.workOrderId)
+    .map(async (r) => {
+      const id = r.work_order_id || r.workOrderId
+      try {
+        const wo = await mesApi.getWorkOrder(id)
+        if (wo) {
+          mesOrdersStatus.value[id] = wo.status
+        }
+      } catch (err) {
+        console.error(`Error cargando estado MES ${id}:`, err)
+      }
+    })
+    
+  await Promise.all(promises)
+}
 
 const previewResult = ref(null);
 const isPreviewLoading = ref(false);
@@ -635,6 +683,13 @@ async function loadOrder() {
         partyDefaultDiscount.value = p?.default_discount_percentage || 0
       })
     }
+    
+    // CARGAR ESTADOS MES (NUEVO)
+    const mesRefs = data.mes_work_refs || data.mesWorkRefs || []
+    if (mesRefs.length > 0) {
+      fetchMesWorkStatuses(mesRefs)
+    }
+
     mode.value = 'detail'
   } catch (e) {
     console.error('Error loading order:', e)
@@ -988,7 +1043,25 @@ watch(() => route.params.id, loadOrder, { immediate: true })
 .tag-content strong { font-size: 1rem; color: var(--color-text-primary); font-weight: 700; }
 .amount { color: var(--color-success) !important; font-size: 1.25rem !important; font-family: var(--font-family-mono); }
 
-.status-badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.status-badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: none; }
+
+.clickable-status {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+.clickable-status:hover {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+  box-shadow: var(--box-shadow-sm);
+}
+.clickable-status .material-symbols-outlined {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
 
 /* ESTILOS DE IMPRESIÓN PROFESIONAL */
 .print-container { display: none; }

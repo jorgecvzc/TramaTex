@@ -212,6 +212,11 @@ func (h *PartyHandler) ListParties(c *gin.Context) {
 		return
 	}
 
+	total := len(parties)
+	if counted, err := h.listHandler.Count(c.Request.Context(), query); err == nil {
+		total = int(counted)
+	}
+
 	dtos := make([]*PartyDTO, len(parties))
 	for i, party := range parties {
 		dto := MapPartyToDTO(party)
@@ -229,7 +234,7 @@ func (h *PartyHandler) ListParties(c *gin.Context) {
 		Data:       dtos,
 		PageNumber: pageNumber,
 		PageSize:   pageSize,
-		Total:      len(parties),
+		Total:      total,
 	}
 	c.JSON(http.StatusOK, response)
 }

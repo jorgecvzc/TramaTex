@@ -27,7 +27,7 @@
           <strong>{{ salesStats.monthlyTotal }}</strong>
         </div>
       </div>
-      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDIENTE')">
+      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDING')">
         <div class="kpi-icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
         <div class="kpi-data">
           <label>Pedidos Pendientes</label>
@@ -172,17 +172,72 @@ const partyStats = ref({ totalParties: 0 })
 
 async function loadStats() {
   isLoading.value = true
+  console.log('[Dashboard] Cargando estadísticas...');
+  
   try {
-    const [orders, workOrders, parties] = await Promise.all([
-      salesApi.listOrders({ status: 'PENDIENTE' }),
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    // Ejecutamos en paralelo con captura individual
+    const [ordersRes, workOrdersRes, partiesRes, invoicesRes] = await Promise.allSettled([
+      salesApi.listOrders({ status: 'PENDING', limit: 1 }),
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
-      partyApi.listParties({ limit: 1 })
+      partyApi.listParties({ pageSize: 1, pageNumber: 1 }),
+      salesApi.listInvoices({}) // Sin filtro de fecha inicial por compatibilidad
     ])
-    salesStats.value.pendingOrders = orders.total || 0
-    mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
-    partyStats.value.totalParties = parties.total || 0
-  } catch (err) { console.error('Error dashboard:', err) }
-  finally { isLoading.value = false }
+    
+    // 1. Pedidos Pendientes
+    if (ordersRes.status === 'fulfilled' && ordersRes.value) {
+      salesStats.value.pendingOrders = ordersRes.value.total || 0
+      console.log('[Dashboard] Pedidos cargados:', salesStats.value.pendingOrders);
+    } else {
+      console.warn('[Dashboard] Fallo al cargar pedidos:', (ordersRes as any).reason);
+    }
+    
+    // 2. Ventas Mes (Facturas del mes actual)
+    if (invoicesRes.status === 'fulfilled' && invoicesRes.value) {
+      const invData = invoicesRes.value.data || []
+      const monthInvoices = invData.filter((inv: any) => {
+        const d = new Date(inv.issueDate || inv.invoiceDate || inv.invoice_date)
+        const isThisMonth = d >= firstDayOfMonth
+        const isActive = inv.status !== 'CANCELLED' && inv.status !== 'VOID'
+        return isThisMonth && isActive
+      })
+
+      const totalAmount = monthInvoices.reduce((acc: number, inv: any) => {
+        const amount = typeof inv.total === 'object' ? inv.total.amount : (inv.totalAmount || 0)
+        return acc + (Number(amount) || 0)
+      }, 0)
+
+      salesStats.value.monthlyTotal = salesApi.formatMoney(totalAmount)
+      console.log('[Dashboard] Ventas mes calculadas:', salesStats.value.monthlyTotal, `(${monthInvoices.length} facturas)`);
+    } else {
+
+      console.warn('[Dashboard] Fallo al cargar facturas:', (invoicesRes as any).reason);
+    }
+
+    // 3. Órdenes en Taller
+    if (workOrdersRes.status === 'fulfilled' && workOrdersRes.value) {
+      const workOrders = workOrdersRes.value
+      mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
+      console.log('[Dashboard] Órdenes MES cargadas:', mesStats.value.activeWorkOrders);
+    } else {
+      console.warn('[Dashboard] Fallo al cargar órdenes MES:', (workOrdersRes as any).reason);
+    }
+    
+    // 4. Entidades
+    if (partiesRes.status === 'fulfilled' && partiesRes.value) {
+      partyStats.value.totalParties = partiesRes.value.total || 0
+      console.log('[Dashboard] Entidades cargadas:', partyStats.value.totalParties);
+    } else {
+      console.warn('[Dashboard] Fallo al cargar entidades:', (partiesRes as any).reason);
+    }
+
+  } catch (err) { 
+    console.error('[Dashboard] Error crítico inesperado:', err) 
+  } finally { 
+    isLoading.value = false 
+  }
 }
 function navigateTo(path: string) { router.push(path) }
 onMounted(loadStats)

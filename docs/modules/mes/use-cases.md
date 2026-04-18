@@ -133,5 +133,17 @@ Este documento describe los casos de uso del módulo MES para la personalizació
 *   **Patrón arquitectónico:** Sales define la interfaz `WorkOrderSuspender`. El adaptador `WorkOrderSuspenderAdapter` (infraestructura de Sales) recibe `MESService` por setter injection y delega la llamada. MES no conoce el concepto de pedido de venta.
 *   **Resultado:** Las `WorkOrder`s afectadas quedan en estado SUSPENDED (o PENDING al reactivar). El Dashboard MES las muestra en la sección correspondiente.
 
+### **CU-M-014: Lanzar Orden de Trabajo a Taller**
+*   **Propósito:** Activar una orden de trabajo ya configurada para que sea visible en el Terminal del Taller.
+*   **Actores:** Jefe de Taller.
+*   **Precondiciones:**
+    - La orden de trabajo está en estado `PENDING`.
+    - La orden tiene asignado un `WorkSetupID` (configuración técnica).
+*   **Flujo:**
+    1. El jefe de taller visualiza la orden en la sección "Pendientes de Inicio" del Dashboard.
+    2. Identifica que la orden ya tiene configuración y pulsa el botón "Lanzar".
+    3. El sistema actualiza el estado de la orden a `IN_PROGRESS`.
+*   **Resultado:** La orden desaparece de la sección de pendientes y sus tareas se vuelven visibles en el Terminal de Taller (Tablet).
+
 ---
 **Última Actualización:** 20 de marzo de 2026

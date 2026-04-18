@@ -278,6 +278,49 @@ func (r *GORMPartyRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
+func (r *GORMPartyRepository) CountByFilters(ctx context.Context, filters *PartyFilters) (int64, error) {
+	query := r.db.WithContext(ctx).Model(&PartyDataModel{}).
+		Joins("LEFT JOIN organization_profiles op ON op.party_id = parties.id").
+		Joins("LEFT JOIN person_profiles pp ON pp.party_id = parties.id").
+		Joins("LEFT JOIN party_roles pr ON pr.party_id = parties.id")
+
+	if filters != nil {
+		if filters.Status != nil {
+			query = query.Where("parties.status = ?", string(*filters.Status))
+		}
+		if filters.Role != nil {
+			if *filters.Role == domain.PartyRoleContact {
+				query = query.Where("pr.role IN ?", []string{string(domain.PartyRoleContact), string(domain.PartyRoleEmployee)})
+			} else {
+				query = query.Where("pr.role = ?", string(*filters.Role))
+			}
+		}
+		if filters.Type != "" {
+			switch filters.Type {
+			case "PERSON":
+				query = query.Where("pp.party_id IS NOT NULL")
+			case "ORGANIZATION":
+				query = query.Where("op.party_id IS NOT NULL")
+			case "BOTH":
+				query = query.Where("pp.party_id IS NOT NULL AND op.party_id IS NOT NULL")
+			}
+		}
+		if filters.Name != "" {
+			query = query.Where("op.name ILIKE ? OR (pp.first_name || ' ' || pp.last_name) ILIKE ?", "%"+filters.Name+"%", "%"+filters.Name+"%")
+		}
+		if filters.TaxID != "" {
+			query = query.Where("op.tax_id ILIKE ?", "%"+filters.TaxID+"%")
+		}
+	}
+
+	var count int64
+	if err := query.Distinct("parties.id").Count(&count).Error; err != nil {
+		return 0, domain.WrapPersistence("failed to count filtered parties", err)
+	}
+
+	return count, nil
+}
+
 // HasContactDetailsReferences checks if a party is referenced in contact_details.related_party_id
 func (r *GORMPartyRepository) HasContactDetailsReferences(ctx context.Context, partyID domain.PartyID) (bool, error) {
 	var count int64

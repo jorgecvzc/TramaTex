@@ -19,11 +19,11 @@
 
 ## 🎯 OBJETIVOS PRINCIPALES
 
-1. [ ] **Reemplazar `float64` por `decimal.Decimal`** en `Money` Value Object
-2. [ ] **Propagar cambio** por domain → application → infrastructure → interfaces
-3. [ ] **Actualizar operaciones**: Add, Subtract, Multiply, comparaciones
-4. [ ] **Actualizar persistencia**: mappers GORM (decimal ↔ float64/numeric)
-5. [ ] **Actualizar tests** existentes al nuevo tipo
+1. [x] **Reemplazar `float64` por `decimal.Decimal`** en `Money` Value Object
+2. [x] **Propagar cambio** por domain → application → infrastructure → interfaces
+3. [x] **Actualizar operaciones**: Add, Subtract, Multiply, comparaciones
+4. [x] **Actualizar persistencia**: mappers GORM (decimal ↔ float64/numeric)
+5. [x] **Actualizar tests** existentes al nuevo tipo
 
 ---
 

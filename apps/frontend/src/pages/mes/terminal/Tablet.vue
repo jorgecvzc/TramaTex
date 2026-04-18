@@ -17,13 +17,25 @@
         <label>En Marcha</label>
         <strong>{{ counts.inProgress }}</strong>
       </div>
+
+      <!-- Filtro de Especialidad (Tipo de Tarea) -->
+      <div class="specialty-filter">
+        <label class="filter-label">Especialidad</label>
+        <select v-model="taskFilter" class="terminal-select">
+          <option value="">TODAS LAS TAREAS</option>
+          <option v-for="type in availableTaskTypes" :key="type.id" :value="type.id">
+            {{ type.name.toUpperCase() }}
+          </option>
+        </select>
+      </div>
+
       <div class="terminal-search-wrap">
         <span class="material-symbols-outlined">search</span>
         <input v-model="search" type="text" placeholder="Escanear código o buscar trabajo..." class="terminal-input" />
       </div>
     </div>
 
-    <!-- LISTADO TÁCTIL -->
+    <!-- LISTADO TÁCTIL (TABULAR ESTRICTO) -->
     <div class="task-list-container">
       <div v-if="filteredRows.length === 0" class="terminal-empty">
         <span class="material-symbols-outlined">checklist</span>
@@ -33,48 +45,68 @@
       <div 
         v-for="row in filteredRows" 
         :key="row.taskId" 
-        class="task-row-card"
+        class="task-row-tabular"
         :class="['status-' + row.taskStatus.toLowerCase()]"
         @click="openDetail(row)"
       >
-        <div class="card-main-info">
-          <div class="work-ref">
-            <code class="terminal-code">{{ row.workNumber }}</code>
-            <strong>{{ row.workName }}</strong>
-          </div>
-          <div class="task-info">
-            <span class="task-name">{{ row.taskName }}</span>
-            <span class="work-type">{{ row.workTypeName }}</span>
+        <!-- COL 1: CÓDIGO -->
+        <div class="col-code">
+          <code class="terminal-code">{{ row.workNumber }}</code>
+        </div>
+
+        <!-- COL 2: TRABAJO Y CLIENTE -->
+        <div class="col-work-client">
+          <strong class="work-title">{{ row.workName }}</strong>
+          <div class="client-info">
+            <span class="material-symbols-outlined">person</span>
+            <span>{{ row.partyName }}</span>
           </div>
         </div>
 
-        <div class="card-meta">
-          <div v-if="row.positionName" class="terminal-pos">
+        <!-- COL 3: TIPO Y POSICIÓN -->
+        <div class="col-context">
+          <span class="work-type-badge">{{ row.workTypeName.toUpperCase() }}</span>
+          <div v-if="row.positionName" class="pos-info-inline">
             <span class="material-symbols-outlined">location_on</span>
-            {{ row.positionName }}
+            <strong>{{ row.positionName }}</strong>
           </div>
-          <span :class="['terminal-status-pill', row.taskStatus.toLowerCase()]">
-            {{ taskStatusLabel(row.taskStatus) }}
-          </span>
         </div>
 
-        <div class="card-quick-actions" @click.stop>
-          <button
-            v-if="['PENDING', 'BLOCKED'].includes(row.taskStatus)"
-            class="btn-action start"
-            @click="runAction(row, 'START')"
-          >
-            <span class="material-symbols-outlined">play_arrow</span>
-            INICIAR
-          </button>
-          <button
-            v-if="row.taskStatus === 'IN_PROGRESS'"
-            class="btn-action complete"
-            @click="runAction(row, 'COMPLETE')"
-          >
-            <span class="material-symbols-outlined">check_circle</span>
-            FINALIZAR
-          </button>
+        <!-- COL 4: TAREA Y ACCIÓN -->
+        <div class="col-task-action">
+          <div class="task-desc">
+            <label>TAREA ACTUAL</label>
+            <span class="task-name">{{ row.taskName }}</span>
+          </div>
+
+          <div class="action-wrap" @click.stop>
+            <!-- Adjuntos -->
+            <button 
+              v-if="row.hasAttachments" 
+              class="btn-terminal-icon attachment"
+              @click="viewAttachments(row)"
+            >
+              <span class="material-symbols-outlined">description</span>
+            </button>
+
+            <!-- Botón de Acción -->
+            <button
+              v-if="['PENDING', 'BLOCKED'].includes(row.taskStatus)"
+              class="btn-terminal-action start"
+              @click="runAction(row, 'START')"
+            >
+              <span class="material-symbols-outlined">play_arrow</span>
+              INICIAR
+            </button>
+            <button
+              v-if="row.taskStatus === 'IN_PROGRESS'"
+              class="btn-terminal-action complete"
+              @click="runAction(row, 'COMPLETE')"
+            >
+              <span class="material-symbols-outlined">check_circle</span>
+              FINALIZAR
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -141,15 +173,19 @@ import { useRouter } from 'vue-router';
 import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import { mesApi } from '@/services/mesApi';
+import { partyApi } from '@/services/partyApi';
 import type { WorkOrder, WorkOrderTaskAction, MESWorkType } from '@/types/mes';
 
 const router = useRouter();
 const isLoading = ref(true);
 const search = ref('');
+const taskFilter = ref('');
 const works = ref<WorkOrder[]>([]);
 const taskNames = ref<Record<string, string>>({});
 const workTypeNames = ref<Record<string, string>>({});
 const positionNames = ref<Record<string, string>>({});
+const partyNames = ref<Record<string, string>>({});
+const setupToPartyMap = ref<Record<string, string>>({}); // Mapeo setupId -> partyId
 
 const goBack = () => router.push('/mes/dashboard');
 
@@ -157,12 +193,20 @@ const goBack = () => router.push('/mes/dashboard');
 const rows = computed(() => {
   const res: any[] = [];
   for (const w of works.value) {
+    // Determinamos el party_id real (directo o via setup)
+    const workSetupId = w.work_setup_id || (w as any).workSetupID || '';
+    const effectivePartyId = w.party_id || (w as any).partyId || setupToPartyMap.value[workSetupId] || '';
+    
     for (const l of w.lines || []) {
       for (const t of l.tasks || []) {
         res.push({
           workId: w.id, workNumber: w.work_number, workName: w.work_name,
+          partyId: effectivePartyId,
+          partyName: partyNames.value[effectivePartyId] || w.party_name || 'Interno',
+          workTypeId: l.work_type_id,
           workTypeName: workTypeNames.value[l.work_type_id] || l.work_type_id,
-          taskId: t.id, taskName: taskNames.value[t.task_id] || t.task_id,
+          taskId: t.id, taskTypeId: t.task_id,
+          taskName: taskNames.value[t.task_id] || t.task_id,
           taskStatus: t.status, sequence: t.sequence,
           positionName: positionNames.value[l.position_id] || '',
         });
@@ -172,30 +216,88 @@ const rows = computed(() => {
   return res;
 });
 
+const availableTaskTypes = computed(() => {
+  const typesMap: Record<string, string> = {};
+  rows.value.forEach(r => {
+    if (r.taskTypeId) typesMap[r.taskTypeId] = r.taskName;
+  });
+  return Object.entries(typesMap).map(([id, name]) => ({ id, name }));
+});
+
 const filteredRows = computed(() => {
   const term = search.value.toLowerCase();
+  const filterId = taskFilter.value;
+  
   return rows.value.filter(r => {
     const matchesStatus = ['PENDING', 'IN_PROGRESS', 'BLOCKED'].includes(r.taskStatus);
     const matchesTerm = !term || r.workNumber.toLowerCase().includes(term) || r.workName.toLowerCase().includes(term);
-    return matchesStatus && matchesTerm;
+    const matchesType = !filterId || r.taskTypeId === filterId;
+    return matchesStatus && matchesTerm && matchesType;
   });
 });
 
 const counts = computed(() => ({
-  pending: rows.value.filter(r => r.taskStatus === 'PENDING').length,
-  inProgress: rows.value.filter(r => r.taskStatus === 'IN_PROGRESS').length
+  pending: filteredRows.value.filter(r => r.taskStatus === 'PENDING').length,
+  inProgress: filteredRows.value.filter(r => r.taskStatus === 'IN_PROGRESS').length
 }));
 
 async function loadData() {
   isLoading.value = true;
+  console.log('[Terminal] Iniciando carga de datos...');
   try {
-    const [worksR, tasksR, typesR, posR] = await Promise.all([
-      mesApi.listWorkOrders({}), mesApi.listTasks({}), mesApi.listWorkTypes({}), mesApi.listPositions({})
+    const [worksR, tasksR, typesR, posR, setupsR] = await Promise.all([
+      mesApi.listWorkOrders({}), 
+      mesApi.listTasks({}), 
+      mesApi.listWorkTypes({}), 
+      mesApi.listPositions({}),
+      mesApi.listWorkSetups({})
     ]);
+
+    console.log(`[Terminal] Cargadas ${worksR.length} órdenes y ${setupsR.length} setups.`);
+    
     works.value = worksR;
     tasksR.forEach(t => taskNames.value[t.id] = t.name);
     (typesR as MESWorkType[]).forEach(wt => workTypeNames.value[wt.id] = wt.name);
     (posR as any[]).forEach(p => positionNames.value[p.id] = p.name);
+
+    // Mapeamos setups a clientes para el fallback
+    setupsR.forEach(s => {
+      const pId = (s as any).party_id || (s as any).partyId;
+      if (s.id && pId) setupToPartyMap.value[s.id] = pId;
+    });
+
+    // Hidratar nombres de clientes de forma robusta
+    const partyIdsToFetch = new Set<string>();
+    
+    worksR.forEach(w => {
+      const workSetupId = w.work_setup_id || (w as any).workSetupID || '';
+      const pId = w.party_id || (w as any).partyId || setupToPartyMap.value[workSetupId];
+      if (pId) {
+        partyIdsToFetch.add(pId);
+      } else {
+        console.warn(`[Terminal] La orden ${w.work_number} no tiene party_id ni setup vinculado.`);
+      }
+    });
+
+    const uniquePartyIds = Array.from(partyIdsToFetch);
+    console.log(`[Terminal] Hidratando ${uniquePartyIds.length} clientes únicos...`);
+
+    if (uniquePartyIds.length > 0) {
+      await Promise.all(uniquePartyIds.map(async (id) => {
+        try {
+          const p = await partyApi.getParty(id);
+          if (p) {
+            partyNames.value[id] = p.name || p.displayName || p.businessName || 'Cliente sin nombre';
+            console.log(`[Terminal] Cliente hidratado: ${id} -> ${partyNames.value[id]}`);
+          }
+        } catch (e) { 
+          console.error(`[Terminal] Error cargando cliente ${id}:`, e); 
+        }
+      }));
+    }
+
+  } catch (err) {
+    console.error('[Terminal] Error crítico en loadData:', err);
   } finally { isLoading.value = false; }
 }
 
@@ -226,47 +328,83 @@ onMounted(loadData);
 
 <style scoped>
 .status-ribbon { 
-  display: flex; gap: 1.5rem; align-items: center; background: #1e293b; 
-  padding: 1rem 2rem; border-radius: 16px; margin-bottom: 1.5rem;
+  display: flex; gap: 2rem; align-items: flex-end; background: #1e293b; 
+  padding: 1.25rem 2rem; border-radius: 16px; margin-bottom: 1.5rem;
 }
-.status-item { display: flex; flex-direction: column; }
-.status-item label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
-.status-item strong { font-size: 2rem; line-height: 1; color: white; }
+.status-item { display: flex; flex-direction: column; gap: 0.25rem; min-width: 100px; }
+.status-item label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-left: 0.25rem; }
+.status-item strong { font-size: 2.25rem; line-height: 1; color: white; }
 .status-item.active strong { color: var(--color-primary); }
 
-.terminal-search-wrap { flex: 1; position: relative; margin-left: 2rem; }
+.specialty-filter { display: flex; flex-direction: column; gap: 0.5rem; min-width: 250px; }
+.filter-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-left: 0.5rem; }
+.terminal-select {
+  background: #0f172a; border: 2px solid #334155; color: white;
+  padding: 0 1rem; border-radius: 12px; font-weight: 700; font-size: 1rem;
+  cursor: pointer; outline: none; transition: 0.2s;
+  height: 54px; 
+}
+.terminal-select:focus { border-color: var(--color-primary); }
+
+.terminal-search-wrap { flex: 1; position: relative; }
 .terminal-search-wrap .material-symbols-outlined { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 2rem; color: #64748b; }
 .terminal-input { 
   width: 100%; background: #0f172a; border: 2px solid #334155; border-radius: 12px;
-  padding: 1rem 1rem 1.25rem 4rem; font-size: 1.25rem; color: white;
+  padding: 0 1rem 0 4rem; font-size: 1.25rem; color: white;
+  height: 54px;
 }
 
-.task-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; }
+.task-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
 
-.task-row-card { 
-  background: #1e293b; border-radius: 16px; padding: 1.5rem; display: flex;
-  align-items: center; justify-content: space-between; border: 2px solid transparent;
+.task-row-tabular { 
+  background: #1e293b; border-radius: 12px; padding: 1rem 1.5rem; 
+  display: grid; grid-template-columns: 120px 2fr 1fr 2.5fr; 
+  align-items: center; gap: 3rem; border: 2px solid transparent;
   transition: 0.2s; cursor: pointer;
 }
-.task-row-card.status-in_progress { border-color: var(--color-primary); box-shadow: 0 0 20px rgba(230, 184, 0, 0.1); }
+.task-row-tabular.status-in_progress { border-color: var(--color-primary); box-shadow: 0 0 15px rgba(230, 184, 0, 0.1); }
 
-.work-ref { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
-.terminal-code { background: var(--color-primary); color: #000; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 900; font-size: 1.1rem; }
-.work-ref strong { font-size: 1.4rem; color: white; }
+/* COL 1: CÓDIGO */
+.col-code { display: flex; justify-content: center; }
+.terminal-code { background: var(--color-primary); color: #000; padding: 0.5rem 0.75rem; border-radius: 8px; font-weight: 900; font-size: 1.1rem; }
 
-.task-info { display: flex; flex-direction: column; }
-.task-name { font-size: 1.2rem; font-weight: 700; color: #e2e8f0; }
-.work-type { font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
+/* COL 2: TRABAJO Y CLIENTE */
+.col-work-client { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
+.work-title { font-size: 1.25rem; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.client-info { display: flex; align-items: center; gap: 0.4rem; color: #94a3b8; font-size: 0.9rem; font-weight: 600; }
+.client-info .material-symbols-outlined { font-size: 1.1rem; opacity: 0.7; }
 
-.card-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
-.terminal-pos { display: flex; align-items: center; gap: 0.4rem; color: #3b82f6; font-weight: 700; font-size: 1.1rem; }
-
-.btn-action { 
-  padding: 1rem 2rem; border-radius: 12px; border: none; font-weight: 800; font-size: 1rem;
-  display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+/* COL 3: TIPO Y POSICIÓN */
+.col-context { display: flex; flex-direction: column; gap: 0.5rem; }
+.work-type-badge {
+  align-self: flex-start; background: #334155; color: white;
+  padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.7rem; font-weight: 900;
+  border: 1px solid #475569; letter-spacing: 0.05em;
 }
-.btn-action.start { background: var(--color-primary); color: black; }
-.btn-action.complete { background: #16a34a; color: white; }
+.pos-info-inline { display: flex; align-items: center; gap: 0.4rem; color: #3b82f6; }
+.pos-info-inline .material-symbols-outlined { font-size: 1.25rem; }
+.pos-info-inline strong { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
+
+/* COL 4: TAREA Y ACCIÓN */
+.col-task-action { display: flex; align-items: center; gap: 1.5rem; justify-content: space-between; }
+.task-desc { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
+.task-desc label { font-size: 0.6rem; color: #64748b; font-weight: 800; text-transform: uppercase; }
+.task-name { font-size: 1.1rem; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+
+.action-wrap { display: flex; align-items: center; gap: 1rem; }
+.btn-terminal-icon {
+  background: rgba(255, 255, 255, 0.05); border: 1px solid #334155; color: #94a3b8;
+  width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.2s;
+}
+.btn-terminal-icon:hover { background: #334155; color: white; }
+
+.btn-terminal-action { 
+  padding: 0 1.5rem; height: 50px; border-radius: 10px; border: none; font-weight: 900; font-size: 1rem;
+  display: flex; align-items: center; gap: 0.5rem; cursor: pointer; min-width: 150px; justify-content: center;
+}
+.btn-terminal-action.start { background: var(--color-primary); color: black; }
+.btn-terminal-action.complete { background: #16a34a; color: white; }
 
 .terminal-status-pill { font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.75rem; border-radius: 20px; text-transform: uppercase; }
 .terminal-status-pill.pending { background: rgba(230, 184, 0, 0.1); color: var(--color-primary); }
