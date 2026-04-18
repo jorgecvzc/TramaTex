@@ -1,25 +1,24 @@
 -- ============================================================================
 -- Migration: 005_init_sales.sql
--- Description: Initialize Sales module (consolidated)
--- Absorbs: 005, 009, 011, 013, 014, 015, 017, 019, 026, 030, 031
--- Date: 2026-03-21
+-- Module: Sales (Quotes, Orders, Delivery Notes, Invoices, Document Sequences)
+-- Date: 2026-04-14
 -- Note: quote_work_setups and order_work_setups depend on work_setups (MES)
 --       so those tables are created in 006_init_mes.sql
 -- ============================================================================
 
-BEGIN;
 
 -- ============================================================================
--- ENUMS
+-- ENUMS (English values — canonical)
 -- ============================================================================
 DO $$ BEGIN
     CREATE TYPE quote_status AS ENUM (
-        'BORRADOR',
-        'EMITIDA',
-        'APROBADA',
-        'RECHAZADA',
-        'EXPIRADA',
-        'CONVERTIDA_A_PEDIDO'
+        'DRAFT',
+        'ISSUED',
+        'APPROVED',
+        'ACCEPTED',
+        'REJECTED',
+        'EXPIRED',
+        'CONVERTED_TO_ORDER'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -27,13 +26,14 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE sales_order_status AS ENUM (
-        'PENDIENTE',
-        'EN_PREPARACION',
-        'ENTREGADO_PARCIALMENTE',
-        'ENTREGADO',
-        'CANCELADO',
-        'FACTURADO_PARCIALMENTE',
-        'FACTURADO_COMPLETAMENTE'
+        'PENDING',
+        'IN_PREPARATION',
+        'READY_FOR_PRODUCTION',
+        'PARTIALLY_DELIVERED',
+        'DELIVERED',
+        'CANCELLED',
+        'PARTIALLY_INVOICED',
+        'INVOICED'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -41,9 +41,9 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE delivery_note_status AS ENUM (
-        'PENDIENTE',
-        'ENTREGADO',
-        'CANCELADO'
+        'PENDING',
+        'DELIVERED',
+        'CANCELLED'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -51,11 +51,11 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE invoice_status AS ENUM (
-        'BORRADOR',
-        'EMITIDA',
-        'PAGADA',
-        'VENCIDA',
-        'ANULADA'
+        'DRAFT',
+        'ISSUED',
+        'PAID',
+        'OVERDUE',
+        'VOID'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -63,8 +63,8 @@ END $$;
 
 DO $$ BEGIN
     CREATE TYPE invoice_type AS ENUM (
-        'COMPLETA',
-        'SIMPLIFICADA'
+        'COMPLETE',
+        'SIMPLIFIED'
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
@@ -101,12 +101,6 @@ COMMENT ON TABLE quotes IS 'Sales quotes (presupuestos)';
 
 -- ============================================================================
 -- QUOTE LINE ITEMS
--- Final column names after consolidation:
---   list_unit_price_* = precio de tarifa (ex calculated_unit_price_*)
---   unit_price_*      = precio de venta (ex final_unit_price_*)
---   discount_per_unit_* = descuento aplicado (ex final_discount_per_unit_*)
---   discount_percent    = porcentaje fuente de verdad
--- No mes_work_id (removed in 014). No manual_* columns (removed in 013).
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS quote_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -171,7 +165,7 @@ CREATE INDEX IF NOT EXISTS idx_sales_orders_order_date ON sales_orders(order_dat
 COMMENT ON TABLE sales_orders IS 'Sales orders (pedidos)';
 
 -- ============================================================================
--- ORDER LINE ITEMS (same final column structure as quote_line_items)
+-- ORDER LINE ITEMS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS order_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -229,7 +223,6 @@ COMMENT ON TABLE delivery_notes IS 'Delivery notes (albaranes)';
 
 -- ============================================================================
 -- DELIVERY NOTE LINE ITEMS
--- Includes invoice_line_item_id for DNâ†”Invoice traceability (from 019)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS delivery_note_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -257,12 +250,11 @@ COMMENT ON TABLE delivery_note_line_items IS 'Line items in delivery notes';
 
 -- ============================================================================
 -- INVOICES
--- series_code uses FV (factura venta) / FT (factura ticket) convention
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_number VARCHAR(50) NOT NULL,
-    type invoice_type NOT NULL DEFAULT 'COMPLETA',
+    type invoice_type NOT NULL DEFAULT 'COMPLETE',
     series_code VARCHAR(10) NOT NULL DEFAULT 'FV',
     series_year INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
     series_prefix VARCHAR(10) NOT NULL DEFAULT 'FV',
@@ -290,7 +282,7 @@ CREATE INDEX IF NOT EXISTS idx_invoices_series ON invoices(series_code, series_y
 CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 
 COMMENT ON TABLE invoices IS 'Sales invoices (facturas)';
-COMMENT ON COLUMN invoices.type IS 'COMPLETA (full B2B invoice) or SIMPLIFICADA (ticket < 3,000 EUR)';
+COMMENT ON COLUMN invoices.type IS 'COMPLETE (full B2B invoice) or SIMPLIFIED (ticket < 3,000 EUR)';
 COMMENT ON COLUMN invoices.series_code IS 'FV (factura venta) or FT (factura ticket)';
 
 -- ============================================================================
@@ -328,7 +320,7 @@ CREATE INDEX IF NOT EXISTS idx_invoice_line_items_tax_rate ON invoice_line_items
 
 COMMENT ON TABLE invoice_line_items IS 'Line items in invoices';
 
--- Now that invoice_line_items exists, add the FK for delivery_note traceability
+-- FK for delivery_note ↔ invoice traceability
 ALTER TABLE delivery_note_line_items
     ADD CONSTRAINT fk_dn_line_items_invoice_line_item
     FOREIGN KEY (invoice_line_item_id) REFERENCES invoice_line_items(id);
@@ -338,7 +330,7 @@ CREATE INDEX IF NOT EXISTS idx_dn_line_items_invoice_line_item_id
     WHERE invoice_line_item_id IS NOT NULL;
 
 -- ============================================================================
--- DOCUMENT SEQUENCES (from 017)
+-- DOCUMENT SEQUENCES
 -- Sequential counters for document numbering per prefix and year.
 -- Format: PREFIX-YEAR-NNNN (PRE, PED, ALB, FV, FT)
 -- ============================================================================
@@ -351,56 +343,6 @@ CREATE TABLE IF NOT EXISTS document_sequences (
 
 COMMENT ON TABLE document_sequences IS 'Sequential counters for document numbering per prefix and year';
 COMMENT ON COLUMN document_sequences.prefix IS 'Document prefix: PRE, PED, ALB, FV, FT';
-COMMENT ON COLUMN document_sequences.year IS 'Fiscal year for the sequence';
-COMMENT ON COLUMN document_sequences.current_value IS 'Last assigned sequential number';
-
--- Seed counters from existing documents (safe no-op in a fresh DB)
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quotes') THEN
-    INSERT INTO document_sequences (prefix, year, current_value)
-    SELECT 'PRE', EXTRACT(YEAR FROM quote_date)::INTEGER, COUNT(*)
-    FROM quotes WHERE deleted_at IS NULL
-    GROUP BY EXTRACT(YEAR FROM quote_date)
-    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sales_orders') THEN
-    INSERT INTO document_sequences (prefix, year, current_value)
-    SELECT 'PED', EXTRACT(YEAR FROM order_date)::INTEGER, COUNT(*)
-    FROM sales_orders WHERE deleted_at IS NULL
-    GROUP BY EXTRACT(YEAR FROM order_date)
-    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'delivery_notes') THEN
-    INSERT INTO document_sequences (prefix, year, current_value)
-    SELECT 'ALB', EXTRACT(YEAR FROM delivery_date)::INTEGER, COUNT(*)
-    FROM delivery_notes WHERE deleted_at IS NULL
-    GROUP BY EXTRACT(YEAR FROM delivery_date)
-    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'invoices') THEN
-    INSERT INTO document_sequences (prefix, year, current_value)
-    SELECT
-        CASE WHEN series_code = 'FT' THEN 'FT' ELSE 'FV' END,
-        EXTRACT(YEAR FROM invoice_date)::INTEGER,
-        COUNT(*)
-    FROM invoices WHERE deleted_at IS NULL
-    GROUP BY CASE WHEN series_code = 'FT' THEN 'FT' ELSE 'FV' END, EXTRACT(YEAR FROM invoice_date)
-    ON CONFLICT (prefix, year) DO UPDATE SET current_value = GREATEST(document_sequences.current_value, EXCLUDED.current_value);
-  END IF;
-END $$;
 
 -- ============================================================================
 -- TRIGGERS
@@ -422,12 +364,4 @@ CREATE TRIGGER trg_delivery_notes_updated_at BEFORE UPDATE ON delivery_notes FOR
 CREATE TRIGGER trg_delivery_note_line_items_updated_at BEFORE UPDATE ON delivery_note_line_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_invoices_updated_at BEFORE UPDATE ON invoices FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_invoice_line_items_updated_at BEFORE UPDATE ON invoice_line_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: 005_init_sales.sql (consolidated)
--- Absorbs: 005, 009, 011, 013, 014, 015, 017, 019
--- Note: quote_work_setups / order_work_setups â†’ see 006_init_mes.sql
--- ============================================================================
 

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE,
     
-    CONSTRAINT chk_role CHECK (role IN ('admin', 'commercial', 'designer', 'workshop')),
+    CONSTRAINT chk_role CHECK (role IN ('admin', 'commercial', 'cashier', 'designer', 'workshop')),
     CONSTRAINT chk_email_not_empty CHECK (email <> ''),
     CONSTRAINT chk_password_not_empty CHECK (password <> '')
 );
@@ -45,7 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 
 COMMENT ON TABLE users IS 'Users table - stores user accounts with authentication data';
-COMMENT ON COLUMN users.role IS 'User role: admin, commercial, designer, workshop';
+COMMENT ON COLUMN users.role IS 'User role: admin, commercial, cashier, designer, workshop';
 
 -- ============================================================================
 -- PERMISSIONS TABLE

@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"sort"
 
 	mes_app "github.com/joran-cortez/tramatex/internal/mes/application"
 	"github.com/joran-cortez/tramatex/internal/sales/domain"
@@ -43,5 +44,10 @@ func (a *PendingSetupProviderAdapter) ListPending(ctx context.Context) ([]mes_ap
 			})
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].OrderNumber > result[j].OrderNumber
+	})
+
 	return result, nil
 }

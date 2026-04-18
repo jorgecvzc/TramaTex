@@ -1,17 +1,14 @@
 -- ============================================================================
 -- Migration: 006_init_mes.sql
--- Description: Initialize MES module (consolidated)
--- Absorbs: 006, 008, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
--- Date: 2026-03-21
--- Note: Also creates quote_work_setups and order_work_setups (Sales join tables
---       that depend on MES work_setups and work_orders).
+-- Module: MES (Tasks, Positions, Work Types, Work Setups, Work Orders)
+-- Also creates quote_work_setups and order_work_setups (Sales join tables
+-- that depend on MES work_setups and work_orders).
+-- Date: 2026-04-14
 -- ============================================================================
 
-BEGIN;
 
 -- ============================================================================
 -- TASKS (master data for manufacturing operations)
--- Includes: reference column (from 020)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -46,8 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_positions_is_active ON positions(is_active);
 COMMENT ON TABLE positions IS 'Work positions/stations in production floor';
 
 -- ============================================================================
--- WORK TYPES (was service_groups; no product_group_id; includes reference)
--- Absorbs: 022 (add reference), 023 (drop product_group_id)
+-- WORK TYPES (workflow templates)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_types (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -64,7 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_work_types_is_active ON work_types(is_active);
 COMMENT ON TABLE work_types IS 'Templates for service workflows (e.g., Embroidery Process)';
 
 -- ============================================================================
--- WORK TYPE TASKS (was service_group_tasks; FK column: work_type_id)
+-- WORK TYPE TASKS (ordered tasks within a work type)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_type_tasks (
     work_type_id UUID NOT NULL,
@@ -83,7 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_work_type_tasks_sequence ON work_type_tasks(work_
 COMMENT ON TABLE work_type_tasks IS 'Ordered tasks within a work type workflow';
 
 -- ============================================================================
--- WORK SETUPS (was introduced in 021; tangible_group_id optional from 024)
+-- WORK SETUPS (predefined work configurations)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_setups (
     id              UUID PRIMARY KEY,
@@ -99,7 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_work_setups_party ON work_setups(party_id);
 COMMENT ON TABLE work_setups IS 'Predefined work configurations (party + product group + lines)';
 
 -- ============================================================================
--- WORK SETUP LINES (references work_types, not service_groups)
+-- WORK SETUP LINES
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_setup_lines (
     id              UUID PRIMARY KEY,
@@ -116,8 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_work_setup_lines_setup ON work_setup_lines(work_s
 COMMENT ON TABLE work_setup_lines IS 'Lines in a work setup (work type + position pairs)';
 
 -- ============================================================================
--- WORK ORDERS (was mes_works)
--- Absorbs: 025 (no DRAFT status), 027 (work_setup_id + notes, drop tangible_group/garment_notes), 029 (work_setup_id nullable)
+-- WORK ORDERS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -150,8 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_work_orders_work_setup_id ON work_orders(work_set
 COMMENT ON TABLE work_orders IS 'Manufacturing work orders (e.g., embroider 50 t-shirts)';
 
 -- ============================================================================
--- WORK ORDER LINES (was mes_work_service_groups)
--- FK columns: work_order_id (was mes_work_id), work_type_id (was service_group_id)
+-- WORK ORDER LINES
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_order_lines (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -176,8 +170,7 @@ CREATE INDEX IF NOT EXISTS idx_work_order_lines_sequence ON work_order_lines(wor
 COMMENT ON TABLE work_order_lines IS 'Service workflows applied to a specific work order';
 
 -- ============================================================================
--- WORK ORDER TASKS (was mes_work_tasks)
--- FK column: work_order_line_id (was mes_work_service_group_id)
+-- WORK ORDER TASKS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS work_order_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -206,8 +199,7 @@ CREATE INDEX IF NOT EXISTS idx_work_order_tasks_assigned_to ON work_order_tasks(
 COMMENT ON TABLE work_order_tasks IS 'Individual task instances with execution tracking';
 
 -- ============================================================================
--- QUOTE WORK SETUPS (Sales join table — depends on work_setups above)
--- Absorbs: 026 (create), 030 (work_setup_id nullable), 031 (add description)
+-- QUOTE WORK SETUPS (Sales join table — depends on work_setups)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS quote_work_setups (
     id            UUID PRIMARY KEY,
@@ -225,8 +217,7 @@ CREATE INDEX IF NOT EXISTS idx_quote_work_setups_quote ON quote_work_setups(quot
 COMMENT ON TABLE quote_work_setups IS 'MES work setup references linked to sales quotes';
 
 -- ============================================================================
--- ORDER WORK SETUPS (Sales join table — depends on work_setups + work_orders above)
--- Absorbs: 026 (create), 030 (work_setup_id nullable), 031 (add description)
+-- ORDER WORK SETUPS (Sales join table — depends on work_setups + work_orders)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS order_work_setups (
     id            UUID PRIMARY KEY,
@@ -261,9 +252,3 @@ CREATE TRIGGER trg_work_orders_updated_at BEFORE UPDATE ON work_orders FOR EACH 
 CREATE TRIGGER trg_work_order_lines_updated_at BEFORE UPDATE ON work_order_lines FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_work_order_tasks_updated_at BEFORE UPDATE ON work_order_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: 006_init_mes.sql (consolidated)
--- Absorbs: 006, 008, 020, 021, 022, 023, 024, 025, 027, 028, 029, 030, 031
--- ============================================================================

@@ -10,6 +10,7 @@
 - **Sprint:** Sprint 18
 - **Started:** 2026-04-17
 - **Contexto:** Revisión integral de la documentación del proyecto para alinearla con los cambios recientes en la arquitectura (Pricing Engine), flujos de venta y estabilización de módulos.
+- **Avance (2026-04-18):** Preservado y versionado el deck HTML de presentación (`docs/presentations/presentation.html`) en la rama `docs-consolidation`.
 - **Próximos Pasos:**
   - [ ] Revisar `docs/architecture/` y actualizar diagramas o visiones obsoletas.
   - [ ] Alinear la documentación de módulos en `docs/modules/` (especialmente Pricing y Sales).
