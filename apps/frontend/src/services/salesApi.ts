@@ -39,13 +39,14 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
   
   // Normalización de Facturas
-  if ('invoiceType' in obj || 'invoice_type' in obj) {
+  if ('invoiceType' in obj || 'invoice_type' in obj || 'type' in obj) {
     obj.invoiceNumber = obj.invoiceNumber || obj.invoice_number;
     obj.invoiceDate = obj.invoiceDate || obj.invoice_date;
     obj.issueDate = obj.invoiceDate || obj.invoice_date;
     obj.partyId = obj.partyId || obj.party_id;
     obj.salesOrderIds = obj.relatedOrderIds || obj.related_order_ids || [];
     obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || obj.related_delivery_note_ids || [];
+    obj.type = obj.type || obj.invoice_type || obj.invoiceType;
   }
 
   // Normalización de Pedidos / Presupuestos

@@ -33,7 +33,7 @@
           <label>Tipo</label>
           <select v-model="filters.type">
             <option value="">Todos los tipos</option>
-            <option value="STANDARD">Estándar</option>
+            <option value="COMPLETE">Estándar</option>
             <option value="SIMPLIFIED">Simplificada</option>
           </select>
         </div>

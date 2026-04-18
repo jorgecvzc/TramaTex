@@ -33,6 +33,9 @@ onUnmounted(() => {
       </div>
 
       <div class="header-actions">
+        <!-- Slot para botones extra (ej. Ayuda, Atajos) -->
+        <slot name="extra-actions"></slot>
+
         <button class="btn-terminal btn-sync" @click="$emit('refresh')" :disabled="isLoading">
           <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
           <span>Sincronizar</span>
