@@ -50,8 +50,10 @@ type CalculatedBaseSalesPriceResponse struct {
 }
 
 type SaleItemRequest struct {
-	ProductVariantID uuid.UUID `json:"productVariantId"`
-	Quantity         int       `json:"quantity"`
+	ProductVariantID      uuid.UUID `json:"productVariantId"`
+	Quantity              int       `json:"quantity"`
+	ManualUnitPrice       *MoneyDTO `json:"manualUnitPrice,omitempty"`
+	ManualDiscountPercent *float64  `json:"manualDiscountPercent,omitempty"`
 }
 
 type CalculateFinalSalePriceRequest struct {

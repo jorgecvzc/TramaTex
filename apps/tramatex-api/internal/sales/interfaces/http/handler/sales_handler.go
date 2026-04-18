@@ -541,6 +541,21 @@ func (h *SalesHandler) ChangeDeliveryNoteStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *SalesHandler) DeleteDeliveryNote(c *gin.Context) {
+	id, ok := parseUUIDParam(c, "id")
+	if !ok {
+		return
+	}
+
+	cmd := application.DeleteDeliveryNoteCommand{DeliveryNoteID: id}
+	if err := h.service.DeleteDeliveryNote(c.Request.Context(), cmd); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 func (h *SalesHandler) GetInvoice(c *gin.Context) {
 	id, ok := parseUUIDParam(c, "id")
 	if !ok {

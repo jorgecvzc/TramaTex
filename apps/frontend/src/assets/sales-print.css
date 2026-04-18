@@ -7,18 +7,27 @@
 }
 
 @media print {
-  /* Ocultar elementos de interfaz */
+  /* Ocultar elementos de interfaz - Selectores agresivos y globales */
   .navbar, 
+  .side-navbar,
+  .app-sidebar,
+  aside,
+  nav,
+  header:not(.print-header),
   .action-toolbar, 
   .header-actions-group, 
   .btn, 
   .breadcrumb-nav,
   .no-print {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
   }
 
   /* Reset de layout para papel */
-  body, .main-container, .detail-standard-layout {
+  body, .main-container, .detail-standard-layout, .app-main {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -27,14 +36,25 @@
     color: black !important;
   }
 
+  /* 
+   * SIMULACIÓN DE MÁRGENES DE PÁGINA
+   * Al usar margin: 0mm en @page para ocultar las cabeceras automáticas del navegador,
+   * el contenido del body se pega a los bordes físicos del papel.
+   * Añadimos un padding robusto para que el texto no se salga de la hoja.
+   */
+  body {
+    padding: 15mm !important; /* El !important es vital para ganar al reset anterior */
+    box-sizing: border-box;
+  }
+
   .print-only {
     display: block !important;
   }
 
-  /* Configuración de página A4 */
+  /* Configuración de página A4 - Eliminar cabeceras de navegador (Título y URL) */
   @page {
     size: A4;
-    margin: 15mm;
+    margin: 0mm; 
   }
 
   /* Cabecera del Documento */

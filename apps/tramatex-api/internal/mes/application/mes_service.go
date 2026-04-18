@@ -506,6 +506,10 @@ func (s *MESService) CreateWorkOrder(ctx context.Context, cmd CreateWorkOrderCom
 		return nil, err
 	}
 
+	if cmd.Status != nil && *cmd.Status != "" {
+		work.Status = domain.ProductionStatus(strings.ToUpper(*cmd.Status))
+	}
+
 	if err := s.workOrderRepo.Save(ctx, work); err != nil {
 		return nil, fmt.Errorf("save work order: %w", err)
 	}
@@ -549,7 +553,7 @@ func (s *MESService) UpdateWorkOrder(ctx context.Context, cmd UpdateWorkOrderCom
 		if status == domain.ProductionStatusCancelled && work.Status != domain.ProductionStatusSuspended {
 			return nil, fmt.Errorf("only suspended work orders can be cancelled")
 		}
-		if status == domain.ProductionStatusPending && work.Status != domain.ProductionStatusSuspended && work.Status != domain.ProductionStatusCancelled {
+		if status == domain.ProductionStatusPending && work.Status != domain.ProductionStatusPending && work.Status != domain.ProductionStatusSuspended && work.Status != domain.ProductionStatusCancelled {
 			return nil, fmt.Errorf("only suspended or cancelled work orders can be reactivated to pending")
 		}
 		work.Status = status
@@ -709,6 +713,13 @@ func (s *MESService) ListWorkOrders(ctx context.Context, query ListWorkOrdersQue
 		Search:  query.Search,
 		PartyID: query.PartyID,
 	}
+
+	// Si no se pide un estado concreto, excluimos DRAFT por defecto
+	if status == nil {
+		excludeDraft := domain.ProductionStatusDraft
+		filters.ExcludeStatus = &excludeDraft
+	}
+
 	if query.WorkSetupID != "" {
 		parsed, err := uuid.Parse(query.WorkSetupID)
 		if err == nil {
@@ -861,7 +872,7 @@ func (s *MESService) ReactivateWorkOrders(ctx context.Context, ids []uuid.UUID) 
 		case domain.ProductionStatusPending:
 			// already pending — no-op
 		default:
-			// SUSPENDED, ON_HOLD, CANCELLED → PENDING
+			// DRAFT, SUSPENDED, ON_HOLD, CANCELLED → PENDING
 			work.Status = domain.ProductionStatusPending
 			if err := s.workOrderRepo.Save(ctx, work); err != nil {
 				return fmt.Errorf("save reactivated work order %s: %w", id, err)

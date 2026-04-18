@@ -104,6 +104,10 @@ type ChangeDeliveryNoteStatusCommand struct {
 	NewStatus      string    `json:"newStatus"`
 }
 
+type DeleteDeliveryNoteCommand struct {
+	DeliveryNoteID uuid.UUID `json:"-"`
+}
+
 type AddOrderLineItemCommand struct {
 	OrderID uuid.UUID          `json:"-"`
 	Item    OrderLineItemInput `json:"item"`
@@ -136,7 +140,6 @@ type CreateDeliveryNoteCommand struct {
 
 type CreateInvoiceCommand struct {
 	PartyID         uuid.UUID   `json:"partyId"`
-	SalesOrderIDs   []uuid.UUID `json:"salesOrderIds"`
 	DeliveryNoteIDs []uuid.UUID `json:"deliveryNoteIds"`
 	InvoiceDate     time.Time   `json:"invoiceDate"`
 	DueDate         time.Time   `json:"dueDate"`

@@ -26,19 +26,42 @@
 
             <!-- Cantidad -->
             <td class="text-center">
-              <input v-if="isEditing" v-model.number="line.quantity" type="number" class="form-input text-center" min="1" @input="emitLines" />
+              <input 
+                v-if="isEditing" 
+                :value="line.quantity" 
+                type="number" 
+                class="form-input text-center" 
+                min="1" 
+                @input="updateLineField(index, 'quantity', $event.target.value)" 
+              />
               <span v-else>{{ line.quantity }}</span>
             </td>
 
             <!-- Precio Unitario -->
             <td class="text-right">
-              <input v-if="isEditing" v-model.number="line.unit_price" type="number" step="0.01" class="form-input text-right" @input="emitLines" />
+              <input 
+                v-if="isEditing" 
+                :value="line.unit_price" 
+                type="number" 
+                step="0.01" 
+                class="form-input text-right" 
+                @input="updateLineField(index, 'unit_price', $event.target.value)" 
+              />
               <span v-else>{{ formatMoney(line.unit_price || line.unitPrice) }}</span>
             </td>
 
             <!-- Descuento -->
             <td class="text-center">
-              <input v-if="isEditing" v-model.number="line.discount_percent" type="number" step="0.01" class="form-input text-center" min="0" max="100" @input="emitLines" />
+              <input 
+                v-if="isEditing" 
+                :value="line.discount_percent" 
+                type="number" 
+                step="0.01" 
+                class="form-input text-center" 
+                min="0" 
+                max="100" 
+                @input="updateLineField(index, 'discount_percent', $event.target.value)" 
+              />
               <span v-else>{{ line.discount_percent || line.discountPercent || 0 }}%</span>
             </td>
 
@@ -81,10 +104,27 @@ function removeLine(index) {
   emit('update:lines', newLines)
 }
 
+function updateLineField(index, field, value) {
+  const newLines = props.lines.map((line, i) => {
+    if (i === index) {
+      return { ...line, [field]: value === '' ? 0 : Number(value) }
+    }
+    return { ...line }
+  })
+  emit('update:lines', newLines)
+}
+
 function calculateSubtotal(line) {
-  const price = Number(line.unit_price || line.unitPrice || 0)
-  const qty = Number(line.quantity || 0)
-  const disc = Number(line.discount_percent || line.discountPercent || 0)
+  // Si ya tenemos el subtotal calculado por el backend (modo detalle), lo usamos.
+  if (!props.isEditing && line.subtotal !== undefined) {
+    return line.subtotal?.amount ?? line.subtotal;
+  }
+  
+  // En modo edición o si no hay subtotal, calculamos localmente.
+  // Usamos ?? en lugar de || para que el 0 no sea ignorado.
+  const price = Number(line.unit_price ?? line.unitPrice ?? 0)
+  const qty = Number(line.quantity ?? 0)
+  const disc = Number(line.discount_percent ?? line.discountPercent ?? 0)
   return (price * qty) * (1 - disc / 100)
 }
 

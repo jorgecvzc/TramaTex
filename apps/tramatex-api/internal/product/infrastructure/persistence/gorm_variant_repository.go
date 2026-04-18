@@ -62,6 +62,23 @@ func (r *GORMVariantRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 	return dataModel.ToDomain(), nil
 }
 
+// FindByIDs finds multiple product variants by their IDs
+func (r *GORMVariantRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.ProductVariant, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var dataModels []VariantDataModel
+	err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&dataModels).Error
+	if err != nil {
+		return nil, err
+	}
+	variants := make([]*domain.ProductVariant, len(dataModels))
+	for i := range dataModels {
+		variants[i] = dataModels[i].ToDomain()
+	}
+	return variants, nil
+}
+
 // FindBySKU finds a product variant by its SKU (case-insensitive)
 func (r *GORMVariantRepository) FindBySKU(ctx context.Context, sku string) (*domain.ProductVariant, error) {
 	var dataModel VariantDataModel

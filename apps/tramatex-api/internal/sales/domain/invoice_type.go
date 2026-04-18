@@ -3,13 +3,13 @@ package domain
 import "fmt"
 
 // InvoiceType represents the type of invoice according to Spanish legislation
-// COMPLETA: Full invoice for B2B transactions (requires complete Party fiscal data)
-// SIMPLIFICADA: Simplified invoice/ticket for retail sales (< 3,000 EUR, can use generic CONSUMIDOR_FINAL)
+// COMPLETE: Full invoice for B2B transactions (requires complete Party fiscal data)
+// SIMPLIFIED: Simplified invoice/ticket for retail sales (< 3,000 EUR, can use generic CONSUMIDOR_FINAL)
 type InvoiceType string
 
 const (
-	InvoiceTypeComplete   InvoiceType = "COMPLETA"
-	InvoiceTypeSimplified InvoiceType = "SIMPLIFICADA"
+	InvoiceTypeComplete   InvoiceType = "COMPLETE"
+	InvoiceTypeSimplified InvoiceType = "SIMPLIFIED"
 )
 
 func (it InvoiceType) IsValid() error {

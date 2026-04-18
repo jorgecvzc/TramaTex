@@ -25,7 +25,7 @@ func (h *PricingEngineHandler) CreateBaseSalesPriceRule(c *gin.Context) {
 
 	rule, err := h.service.CreateBaseSalesPriceRule(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *PricingEngineHandler) UpdateBaseSalesPriceRule(c *gin.Context) {
 
 	rule, err := h.service.UpdateBaseSalesPriceRule(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *PricingEngineHandler) CreateSaleModificationRule(c *gin.Context) {
 
 	rule, err := h.service.CreateSaleModificationRule(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func (h *PricingEngineHandler) UpdateSaleModificationRule(c *gin.Context) {
 
 	rule, err := h.service.UpdateSaleModificationRule(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *PricingEngineHandler) CalculateBaseSalesPrice(c *gin.Context) {
 
 	result, err := h.service.CalculateBaseSalesPrice(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
@@ -127,9 +127,41 @@ func (h *PricingEngineHandler) CalculateFinalSalePrice(c *gin.Context) {
 
 	result, err := h.service.CalculateFinalSalePrice(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		_ = c.Error(err)
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func (h *PricingEngineHandler) CreateClientPricingOverride(c *gin.Context) {
+	var cmd application.CreateClientPricingCommand
+	if err := c.ShouldBindJSON(&cmd); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	override, err := h.service.CreateClientPricingOverride(c.Request.Context(), cmd)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, override)
+}
+
+func (h *PricingEngineHandler) GetPricingHistory(c *gin.Context) {
+	variantID, err := uuid.Parse(c.Param("variantId"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid variant id"})
+		return
+	}
+
+	history, err := h.service.GetPricingHistory(c.Request.Context(), application.GetPricingHistoryQuery{ProductVariantID: variantID})
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
 }

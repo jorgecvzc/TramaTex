@@ -7,8 +7,8 @@
 
 metadata:
   filename: "load-session.yaml"
-  version: "1.1"
-  last_updated: "2026-03-19"
+  version: "1.2"
+  last_updated: "2026-04-08"
   purpose: "Loads and manages development sessions, including loading project context, scanning for active sessions, and updating status to 'En Progreso'."
   applies_to: "Any project using modular agent system"
   dependencies:
@@ -105,17 +105,31 @@ _No hay sesiones abiertas actualmente._
             parts_after_open = re.split(f"({closed_sessions_start_tag})", rest_after_open_tag, maxsplit=1)
             open_sessions_section_content = parts_after_open[0]
         
-        # Pattern to find a full session block
-        session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: .*?\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: .*?\n)*)+)", re.MULTILINE | re.DOTALL)
+        # Pattern to find session blocks: split by ## headers
+        # Each block starts with ## Title and continues until the next ## or end
+        def find_session_blocks(text):
+            blocks = []
+            lines = text.split('\n')
+            current_block = []
+            for line in lines:
+                if line.startswith('## ') and not line.startswith('## SESIONES') and not line.startswith('## REGISTRO'):
+                    if current_block:
+                        blocks.append('\n'.join(current_block))
+                    current_block = [line]
+                elif current_block:
+                    current_block.append(line)
+            if current_block:
+                blocks.append('\n'.join(current_block))
+            return blocks
         
-        # Specific patterns to extract info from the block
-        session_id_pattern = re.compile(r"- \*\*Session ID:\*\* `(.*?)`")
+        # Specific patterns to extract info from the block (flexible: with or without bold)
+        session_id_pattern = re.compile(r"- \*\*Session ID:\*\*\s*`(.*?)`")
         session_title_pattern = re.compile(r"^## (.*?)$", re.MULTILINE)
-        session_status_pattern = re.compile(r"- \*\*Status:\*\* (.*)")
+        session_status_pattern = re.compile(r"- \*\*Status:\*\*\s*(.*)")
 
         user_choices_str = ""
-        for i, match in enumerate(session_block_pattern.finditer(open_sessions_section_content)):
-            block_content = match.group(0)
+        session_blocks = find_session_blocks(open_sessions_section_content)
+        for i, block_content in enumerate(session_blocks):
             id_match = session_id_pattern.search(block_content)
             title_match = session_title_pattern.search(block_content)
             status_match = session_status_pattern.search(block_content)
@@ -193,18 +207,67 @@ _No hay sesiones abiertas actualmente._
         
         # This function will attempt to extract context for the specified session.
         def get_session_context(session_id, log_content):
-            session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+            def find_blocks(text):
+                blocks = []
+                lines = text.split('\n')
+                current_block = []
+                for line in lines:
+                    if line.startswith('## ') and not line.startswith('## SESIONES') and not line.startswith('## REGISTRO'):
+                        if current_block:
+                            blocks.append('\n'.join(current_block))
+                        current_block = [line]
+                    elif current_block:
+                        current_block.append(line)
+                if current_block:
+                    blocks.append('\n'.join(current_block))
+                return blocks
             
-            for match in session_block_pattern.finditer(log_content):
-                block = match.group(0)
-                current_id_match = re.search(r"- \*\*Session ID:\*\* `(.*?)`", block)
+            for block in find_blocks(log_content):
+                current_id_match = re.search(r"- \*\*Session ID:\*\*\s*`(.*?)`", block)
                 if current_id_match and current_id_match.group(1) == session_id:
-                    context_match = re.search(r"- Contexto: (.*?)$", block, re.MULTILINE)
-                    files_match = re.search(r"- Archivos de Contexto: (.*?)$", block, re.MULTILINE)
+                    # Context: try bold and plain variants
+                    context_match = re.search(r"- (?:\*\*)?Contexto:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                    # Files: collect from a line + subsequent indented lines
+                    files_str = ""
+                    files_match = re.search(r"- (?:\*\*)?Archivos de Contexto:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                    if files_match:
+                        first_line = files_match.group(1).strip()
+                        if first_line:
+                            files_str = first_line
+                        # Collect indented continuation lines (    - `file`)
+                        block_after = block[files_match.end():]
+                        for line in block_after.split('\n'):
+                            stripped = line.strip()
+                            if stripped.startswith('- ') or stripped.startswith('`'):
+                                # Extract file path from formats: - `path`, - path, `path`
+                                clean = stripped.lstrip('- ').strip().strip('`').strip()
+                                if clean and not clean.startswith('**'):
+                                    files_str += (', ' if files_str else '') + clean
+                            elif stripped == '' or stripped.startswith('---'):
+                                break
+                            else:
+                                break
+                    # Next steps
+                    next_steps_match = re.search(r"- (?:\*\*)?Próximos Pasos:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                    next_steps = ""
+                    if next_steps_match:
+                        ns_first = next_steps_match.group(1).strip()
+                        if ns_first:
+                            next_steps = ns_first
+                        block_after_ns = block[next_steps_match.end():]
+                        for line in block_after_ns.split('\n'):
+                            stripped = line.strip()
+                            if stripped.startswith('- ['):
+                                next_steps += ('\n' if next_steps else '') + stripped
+                            elif stripped == '' or stripped.startswith('---') or stripped.startswith('- **'):
+                                break
+                            else:
+                                break
                     return {
                         "title": re.search(r"^## (.*?)$", block, re.MULTILINE).group(1).strip(),
                         "context": context_match.group(1).strip() if context_match else "No context found.",
-                        "files": files_match.group(1).strip() if files_match else "No specific files listed."
+                        "files": files_str if files_str else "No specific files listed.",
+                        "next_steps": next_steps if next_steps else "No next steps defined."
                     }
             return None
 
@@ -260,18 +323,62 @@ _No hay sesiones abiertas actualmente._
 
           # This function will attempt to extract context for the specified session.
           def get_session_context(session_id, content):
-              session_block_pattern = re.compile(r"(^## .*?\n(?:- \*\*Session ID:\*\* `.*?`\n(?:- \*\*Status:\*\* .*?\n)?(?:- \*\*Sprint:\*\* .*?\n)?(?:- \*\*Started:\*\* .*?\n)?(?:- Contexto: (.*?)\n)?(?:- Próximos Pasos: .*?\n)?(?:- Archivos de Contexto: (.*?)\n)*)+)", re.MULTILINE | re.DOTALL)
+              def find_blocks(text):
+                  blocks = []
+                  lines = text.split('\n')
+                  current_block = []
+                  for line in lines:
+                      if line.startswith('## ') and not line.startswith('## SESIONES') and not line.startswith('## REGISTRO'):
+                          if current_block:
+                              blocks.append('\n'.join(current_block))
+                          current_block = [line]
+                      elif current_block:
+                          current_block.append(line)
+                  if current_block:
+                      blocks.append('\n'.join(current_block))
+                  return blocks
               
-              for match in session_block_pattern.finditer(content):
-                  block = match.group(0)
-                  current_id_match = re.search(r"- \*\*Session ID:\*\* `(.*?)`", block)
+              for block in find_blocks(content):
+                  current_id_match = re.search(r"- \*\*Session ID:\*\*\s*`(.*?)`", block)
                   if current_id_match and current_id_match.group(1) == session_id:
-                      context_match = re.search(r"- Contexto: (.*?)$", block, re.MULTILINE)
-                      files_match = re.search(r"- Archivos de Contexto: (.*?)$", block, re.MULTILINE)
+                      context_match = re.search(r"- (?:\*\*)?Contexto:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                      files_str = ""
+                      files_match = re.search(r"- (?:\*\*)?Archivos de Contexto:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                      if files_match:
+                          first_line = files_match.group(1).strip()
+                          if first_line:
+                              files_str = first_line
+                          block_after = block[files_match.end():]
+                          for line in block_after.split('\n'):
+                              stripped = line.strip()
+                              if stripped.startswith('- ') or stripped.startswith('`'):
+                                  clean = stripped.lstrip('- ').strip().strip('`').strip()
+                                  if clean and not clean.startswith('**'):
+                                      files_str += (', ' if files_str else '') + clean
+                              elif stripped == '' or stripped.startswith('---'):
+                                  break
+                              else:
+                                  break
+                      next_steps_match = re.search(r"- (?:\*\*)?Próximos Pasos:?(?:\*\*)?\s*(.*?)$", block, re.MULTILINE)
+                      next_steps = ""
+                      if next_steps_match:
+                          ns_first = next_steps_match.group(1).strip()
+                          if ns_first:
+                              next_steps = ns_first
+                          block_after_ns = block[next_steps_match.end():]
+                          for line in block_after_ns.split('\n'):
+                              stripped = line.strip()
+                              if stripped.startswith('- ['):
+                                  next_steps += ('\n' if next_steps else '') + stripped
+                              elif stripped == '' or stripped.startswith('---') or stripped.startswith('- **'):
+                                  break
+                              else:
+                                  break
                       return {
                           "title": re.search(r"^## (.*?)$", block, re.MULTILINE).group(1).strip(),
                           "context": context_match.group(1).strip() if context_match else "No context found.",
-                          "files": files_match.group(1).strip() if files_match else "No specific files listed."
+                          "files": files_str if files_str else "No specific files listed.",
+                          "next_steps": next_steps if next_steps else "No next steps defined."
                       }
               return None
 
@@ -401,8 +508,14 @@ _No hay sesiones abiertas actualmente._
   # Step 5: Final step to signal readiness for work
   step_4_begin_work:
     action: "Begin development work based on the loaded context."
-    purpose: "This step signals that the environment is fully set up, and the agent is ready to receive further instructions related to the task."
-    outcome: "Agent is ready for task execution."
+    purpose: >
+      This step signals that the environment is fully set up. The agent must:
+      1. Read the session's context files listed in 'Archivos de Contexto' from session-log.md.
+      2. Display the session's 'Próximos Pasos' to the user.
+      3. If the session references sprint task files (e.g. docs/log/sprints/sprint-XX/*.md),
+         read the FIRST incomplete task to understand what to work on.
+      4. Ask the user which task or next step to begin.
+    outcome: "Agent is ready for task execution with full context loaded."
 
   # Step 5: Prompt to end session
   step_5_prompt_to_end_session:

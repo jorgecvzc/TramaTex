@@ -2,40 +2,37 @@ package productclient
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/shopspring/decimal"
+	productapp "github.com/joran-cortez/tramatex/internal/product/application"
 )
 
-func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
-	t.Helper()
+type fakeProductDataProvider struct {
+	variantData  *productapp.VariantPricingDataDTO
+	variantErr   error
+	variantsList []*productapp.VariantPricingDataDTO
+	listErr      error
+}
 
-	sqlDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
-	if err != nil {
-		sqlDB.Close()
-		t.Fatalf("failed to open gorm db: %v", err)
-	}
-	cleanup := func() { _ = sqlDB.Close() }
-	return gormDB, mock, cleanup
+func (f *fakeProductDataProvider) GetVariantPricingData(_ context.Context, _ uuid.UUID) (*productapp.VariantPricingDataDTO, error) {
+	return f.variantData, f.variantErr
+}
+
+func (f *fakeProductDataProvider) GetVariantsPricingData(_ context.Context, _ []uuid.UUID) ([]*productapp.VariantPricingDataDTO, error) {
+	return f.variantsList, f.listErr
+}
+
+func (f *fakeProductDataProvider) ListVariantsPricingData(_ context.Context, _ uuid.UUID) ([]*productapp.VariantPricingDataDTO, error) {
+	return f.variantsList, f.listErr
 }
 
 func TestProductPricingClient_GetVariantPricingInfo_NotFound(t *testing.T) {
-	gormDB, mock, cleanup := newMockDB(t)
-	defer cleanup()
+	fake := &fakeProductDataProvider{variantData: nil, variantErr: nil}
+	client := NewProductPricingClient(fake)
 
-	mock.ExpectQuery("SELECT .* FROM \"product_variants\"").
-		WithArgs(sqlmock.AnyArg()).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
-
-	client := NewProductPricingClient(gormDB)
 	info, err := client.GetVariantPricingInfo(context.Background(), uuid.New())
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -43,44 +40,83 @@ func TestProductPricingClient_GetVariantPricingInfo_NotFound(t *testing.T) {
 	if info != nil {
 		t.Fatalf("expected nil info")
 	}
+}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+func TestProductPricingClient_GetVariantPricingInfo_Error(t *testing.T) {
+	fake := &fakeProductDataProvider{variantErr: errors.New("db error")}
+	client := NewProductPricingClient(fake)
+
+	info, err := client.GetVariantPricingInfo(context.Background(), uuid.New())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if info != nil {
+		t.Fatal("expected nil info on error")
 	}
 }
 
 func TestProductPricingClient_GetVariantPricingInfo_Success(t *testing.T) {
-	gormDB, mock, cleanup := newMockDB(t)
-	defer cleanup()
-
 	variantID := uuid.New()
 	productID := uuid.New()
 	brandID := uuid.New()
 	groupID := uuid.New()
 
-	mock.ExpectQuery("SELECT .* FROM \"product_variants\"").
-		WithArgs(variantID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "product_id", "base_cost"}).
-			AddRow(variantID, productID, 25.0))
+	fake := &fakeProductDataProvider{
+		variantData: &productapp.VariantPricingDataDTO{
+			VariantID:             variantID,
+			ProductID:             productID,
+			BaseCost:              25.0,
+			Currency:              "EUR",
+			BrandID:               brandID,
+			BrandMarkupPercentage: 10.0,
+			GroupIDs:              []uuid.UUID{groupID},
+			TaxRate:               21.0,
+		},
+	}
+	client := NewProductPricingClient(fake)
 
-	mock.ExpectQuery("SELECT .* FROM \"products\"").
-		WithArgs(productID).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "brand_id", "group_ids"}).
-			AddRow(productID, brandID, pq.StringArray{groupID.String()}))
-
-	client := NewProductPricingClient(gormDB)
 	info, err := client.GetVariantPricingInfo(context.Background(), variantID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if info == nil || info.ProductID != productID || info.BrandID != brandID {
-		t.Fatalf("unexpected info result")
+	if info == nil {
+		t.Fatal("expected non-nil info")
+	}
+	if info.VariantID != variantID || info.ProductID != productID {
+		t.Fatalf("unexpected IDs: variant=%s product=%s", info.VariantID, info.ProductID)
+	}
+	if info.BrandID != brandID || !info.BrandMarkupPercentage.Equal(decimal.NewFromFloat(10.0)) {
+		t.Fatal("unexpected brand data")
 	}
 	if len(info.GroupIDs) != 1 || info.GroupIDs[0] != groupID {
-		t.Fatalf("expected group id parsed")
+		t.Fatal("expected group id parsed")
 	}
+	if !info.BaseCost.Equal(decimal.NewFromFloat(25.0)) || !info.TaxRate.Equal(decimal.NewFromFloat(21.0)) {
+		t.Fatal("unexpected pricing data")
+	}
+}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet expectations: %v", err)
+func TestProductPricingClient_ListVariantsPricingInfo_Success(t *testing.T) {
+	productID := uuid.New()
+	v1 := uuid.New()
+	v2 := uuid.New()
+
+	fake := &fakeProductDataProvider{
+		variantsList: []*productapp.VariantPricingDataDTO{
+			{VariantID: v1, ProductID: productID, BaseCost: 10.0, Currency: "EUR"},
+			{VariantID: v2, ProductID: productID, BaseCost: 20.0, Currency: "EUR"},
+		},
+	}
+	client := NewProductPricingClient(fake)
+
+	infos, err := client.ListVariantsPricingInfo(context.Background(), productID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(infos) != 2 {
+		t.Fatalf("expected 2 infos, got %d", len(infos))
+	}
+	if infos[0].VariantID != v1 || infos[1].VariantID != v2 {
+		t.Fatal("unexpected variant order")
 	}
 }

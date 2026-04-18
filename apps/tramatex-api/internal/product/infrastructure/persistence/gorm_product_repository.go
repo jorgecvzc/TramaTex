@@ -56,6 +56,23 @@ func (r *GORMProductRepository) FindByID(ctx context.Context, id uuid.UUID) (*do
 	return dataModel.ToDomain(), nil
 }
 
+// FindByIDs finds multiple products by their IDs
+func (r *GORMProductRepository) FindByIDs(ctx context.Context, ids []uuid.UUID) ([]*domain.Product, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var dataModels []ProductDataModel
+	err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&dataModels).Error
+	if err != nil {
+		return nil, err
+	}
+	products := make([]*domain.Product, len(dataModels))
+	for i := range dataModels {
+		products[i] = dataModels[i].ToDomain()
+	}
+	return products, nil
+}
+
 // FindBySKU finds a product by its SKU (case-insensitive)
 func (r *GORMProductRepository) FindBySKU(ctx context.Context, sku string) (*domain.Product, error) {
 	var dataModel ProductDataModel

@@ -89,14 +89,25 @@ func executeSQLMigrations(db *gorm.DB) error {
 			return fmt.Errorf("failed to read migration file %s: %w", fileName, err)
 		}
 
-		// Execute the SQL
-		if _, err := sqlDB.Exec(string(content)); err != nil {
+		// Execute the SQL and record migration in a single transaction
+		// so that if the SQL fails, the migration is not recorded.
+		tx, err := sqlDB.Begin()
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction for migration %s: %w", fileName, err)
+		}
+
+		if _, err := tx.Exec(string(content)); err != nil {
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to execute migration %s: %w", fileName, err)
 		}
 
-		// Record migration as executed
-		if err := recordMigration(sqlDB, fileName); err != nil {
+		if _, err := tx.Exec("INSERT INTO schema_migrations (filename) VALUES ($1)", fileName); err != nil {
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to record migration %s: %w", fileName, err)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit migration %s: %w", fileName, err)
 		}
 
 		fmt.Printf("  ✓ Executed %s\n", fileName)

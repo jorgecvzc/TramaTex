@@ -177,53 +177,53 @@ func (tdb *TestDB) SetUpSales() error {
 	createSchema := `
 		DO $$ BEGIN
 			CREATE TYPE quote_status AS ENUM (
-				'BORRADOR',
-				'EMITIDA',
-				'APROBADA',
-				'RECHAZADA',
-				'EXPIRADA',
-				'CONVERTIDA_A_PEDIDO'
+				'DRAFT',
+				'ISSUED',
+				'APPROVED',
+				'REJECTED',
+				'EXPIRED',
+				'CONVERTED_TO_ORDER'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
 		END $$;
 		DO $$ BEGIN
 			CREATE TYPE sales_order_status AS ENUM (
-				'PENDIENTE',
-				'EN_PREPARACION',
-				'ENTREGADO_PARCIALMENTE',
-				'ENTREGADO',
-				'CANCELADO',
-				'FACTURADO_PARCIALMENTE',
-				'FACTURADO_COMPLETAMENTE'
+				'PENDING',
+				'IN_PREPARATION',
+				'PARTIALLY_DELIVERED',
+				'DELIVERED',
+				'CANCELLED',
+				'PARTIALLY_INVOICED',
+				'INVOICED'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
 		END $$;
 		DO $$ BEGIN
 			CREATE TYPE delivery_note_status AS ENUM (
-				'PENDIENTE',
-				'ENTREGADO',
-				'CANCELADO'
+				'PENDING',
+				'DELIVERED',
+				'CANCELLED'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
 		END $$;
 		DO $$ BEGIN
 			CREATE TYPE invoice_status AS ENUM (
-				'BORRADOR',
-				'EMITIDA',
-				'PAGADA',
-				'VENCIDA',
-				'ANULADA'
+				'DRAFT',
+				'ISSUED',
+				'PAID',
+				'OVERDUE',
+				'VOID'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
 		END $$;
 		DO $$ BEGIN
 			CREATE TYPE invoice_type AS ENUM (
-				'COMPLETA',
-				'SIMPLIFICADA'
+				'COMPLETE',
+				'SIMPLIFIED'
 			);
 		EXCEPTION
 			WHEN duplicate_object THEN null;
@@ -344,7 +344,7 @@ func (tdb *TestDB) SetUpSales() error {
 		CREATE TABLE "invoices" (
 			"id" UUID PRIMARY KEY,
 			"invoice_number" VARCHAR(50) NOT NULL,
-			"type" invoice_type NOT NULL DEFAULT 'COMPLETA',
+			"type" invoice_type NOT NULL DEFAULT 'COMPLETE',
 			"series_code" VARCHAR(10) NOT NULL DEFAULT 'A',
 			"series_year" INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
 			"series_prefix" VARCHAR(10) NOT NULL DEFAULT 'A',

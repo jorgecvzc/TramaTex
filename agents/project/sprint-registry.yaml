@@ -9,7 +9,7 @@ metadata:
   filename: "sprint-registry.yaml"
   location: "agents/sprint-registry.yaml"
   version: "1.2"
-  last_updated: "2026-03-22"
+  last_updated: "2026-04-11"
   purpose: "Central registry of all sprints and tasks, their status, and metadata"
   auto_update_trigger: "After each task session"
   note: "Parsed by load-session.yaml for quick discovery"
@@ -40,24 +40,25 @@ metadata:
 
 active_tasks:
   title: "🔄 Active/Open Tasks"
-  count: 3
+  count: 4
   note: "List tasks with Estado: ⏳ Planificado, 🔄 En Progreso, ✅ Completado (AI), 🔍 Pendiente de Aprobación Humana"
   tasks:
-    task_16_01:
-      id: "16-01"
-      sprint: "16"
-      filename: "01-ui-ux-design-system-definition.md"
-      title: "TramaTex Design System: Átomos y Estilo Global"
-      status: "✅ Completado (AI)"
+    task_18_01:
+      id: "18-01"
+      sprint: "18"
+      filename: "01-iam-role-alignment.md"
+      title: "IAM Role Alignment: Fix DB↔Domain↔Frontend Role Mismatch"
+      status: "⏳ Planificado"
       dates:
-        started: "2026-03-26"
-        completed: "2026-03-28"
-      context_focus: "UI/UX - Colors, Buttons, Material Symbols"
-      facilitator: "Gemini CLI"
+        started: null
+      context_focus: "IAM - Role constraint alignment across all layers"
+      facilitator: "GitHub Copilot / Claude Opus 4.6"
       key_outcomes:
-        - "Estandarización de botones (6 tipos semánticos)"
-        - "Iconografía inamovible (Material Symbols Outlined)"
-        - "Variables CSS de color y espaciado sincronizadas"
+        - "Decidir roles definitivos (propuesta: admin, commercial, designer, workshop del ADR-014)"
+        - "Migración SQL para actualizar constraint chk_role y seed"
+        - "Verificar coherencia role.go ↔ SQL ↔ frontend ↔ docs"
+        - "Fix bug updateUser() no definido in iam.ts"
+        - "Tests e2e de creación de usuario con cada rol válido"
     task_16_02:
       id: "16-02"
       sprint: "16"
@@ -86,107 +87,41 @@ active_tasks:
         - "Ruta oculta /dev/design-system operativa"
         - "Guía técnica de BaseEntityPage redactada"
         - "Sección de diseño añadida al README principal"
-  structure: |
-    # Example task structure:
-    # task_XX_YY:
-    #   id: "XX-YY"
-    #   sprint: "XX"
-    #   filename: "YY-descriptive-name.md"
-    #   title: "Task Title"
-    #   status: "⏳ Planificado / 🔄 En Progreso / ✅ Completado (AI) / 🔍 Pendiente de Aprobación Humana"
-    #   dates:
-    #     started: "YYYY-MM-DD"
-    #     completed: "YYYY-MM-DD" # Only if completed
-    #   context_focus: "Module or context area"
-    #   facilitator: "AI Assistant or Team Member"
-    #   key_outcomes:
-    #     - "Outcome 1"
-    #     - "Outcome 2"
-    #   # Additional fields as needed
-  
-
 
 completed_tasks:
   title: "✅ Completed Tasks"
   note: "Archive tasks with Estado: ✅ Completado. Format: task_[SPRINT]_[TASK]"
   tasks:
-    task_14_01:
-      id: "14-01"
-      sprint: "14"
-      filename: "01-party-module-finalization.md"
-      title: "Finalización Módulo Party: CRUD Direcciones e Integridad de Datos"
+    task_17_01_to_06:
+      id: "17-01-06"
+      sprint: "17"
+      title: "Pricing Consolidation: Engine, Decimal, Legacy Removal & ACL"
       status: "✅ Completado"
       dates:
-        started: "2026-02-23"
-        completed: "2026-02-26"
-      context_focus: "Party Module - Address CRUD, Contact Deletion, Auth Fixes"
-      facilitator: "AI Assistant + Usuario"
+        started: "2026-04-08"
+        completed: "2026-04-11"
+      context_focus: "Pricing & Sales Integration"
+      facilitator: "Gemini CLI"
       key_outcomes:
-        - "CRUD completo de direcciones para entidades Party (GET, POST, PUT, DELETE)"
-        - "Eliminación inteligente de contactos con consolidación de migraciones"
-        - "Corrección de bugs de autenticación en flujos Party"
-        - "Tests y limpieza de console.log"
-      artifacts:
-        - "docs/log/sprints/sprint-14/01-party-module-finalization.md"
-    task_14_02:
-      id: "14-02"
-      sprint: "14"
-      filename: "02-product-pricing-validation.md"
-      title: "Validación Product: TaxRate, UI y Mejoras Pricing/Party"
+        - "Motor de precios optimizado (Bulk Fetching, sin N+1)"
+        - "Migración a shopspring/decimal completada"
+        - "Sistema legacy eliminado y ACLs saneados"
+        - "Auditoría UI/UX en Albaranes y Facturas finalizada"
+    task_16_01:
+      id: "16-01"
+      sprint: "16"
+      filename: "01-ui-ux-design-system-definition.md"
+      title: "TramaTex Design System: Átomos y Estilo Global"
       status: "✅ Completado"
       dates:
-        started: "2026-02-26"
-        completed: "2026-03-05"
-      context_focus: "Product Module Validation + Pricing/Party Enhancements"
-      facilitator: "AI Assistant + Usuario"
+        started: "2026-03-26"
+        completed: "2026-03-28"
+      context_focus: "UI/UX - Colors, Buttons, Material Symbols"
+      facilitator: "Gemini CLI"
       key_outcomes:
-        - "Fix handler TaxRate actualización + corrección de tests"
-        - "Mejoras UI: filtros búsqueda, página precios, edición Brand/Group"
-        - "Fix GORM: eliminados tags default:0 en TaxRate/BasePrice (valores cero persistidos correctamente)"
-        - "fix(pricing): ClientID cambiado de uuid.UUID a string para compatibilidad Party"
-        - "feat: visualización de impuestos y descuento por defecto de cliente"
-      artifacts:
-        - "docs/log/sprints/sprint-14/02-product-pricing-validation.md"
-    task_14_03:
-      id: "14-03"
-      sprint: "14"
-      filename: "03-sales-ux-improvements.md"
-      title: "Sales UX: Layout Full-Width, VariantSelector y Facturas Simplificadas"
-      status: "✅ Completado"
-      dates:
-        started: "2026-03-05"
-        completed: "2026-03-12"
-      context_focus: "Sales UX Validation - Frontend Improvements"
-      facilitator: "AI Assistant + Usuario"
-      key_outcomes:
-        - "Layout full-width para el módulo Sales"
-        - "Single-row line items para mayor densidad de información"
-        - "VariantSelector extendido a todos los formularios Sales"
-        - "Totales en tiempo real en OrderCreate"
-        - "Ciclo completo de facturas simplificadas (ADR-020)"
-      artifacts:
-        - "docs/log/sprints/sprint-14/03-sales-ux-improvements.md"
-    task_14_04:
-      id: "14-04"
-      sprint: "14"
-      filename: "04-mes-refactor-sales-integration.md"
-      title: "MES: Refactor Completo de Dominio e Integración con Sales"
-      status: "✅ Completado"
-      dates:
-        started: "2026-03-12"
-        completed: "2026-03-19"
-      context_focus: "MES Module - Clean Architecture Refactor + Sales Integration"
-      facilitator: "AI Assistant + Usuario"
-      key_outcomes:
-        - "Dominio MES refactorizado completamente a Arquitectura Limpia"
-        - "WorkOrder progress query: estado de tareas completadas vs totales"
-        - "Integración bidireccional Sales ↔ MES: pedidos con visibilidad de producción"
-        - "Terminal de taller: operarios reportan avance desde pantalla de producción"
-        - "Documentación MES actualizada"
-      artifacts:
-        - "docs/log/sprints/sprint-14/04-mes-refactor-sales-integration.md"
-        - "internal/mes/domain/ (refactorizado)"
-        - "internal/sales/application/ (integración MES)"
+        - "Estandarización de botones (6 tipos semánticos)"
+        - "Iconografía inamovible (Material Symbols Outlined)"
+        - "Variables CSS de color y espaciado sincronizadas"
     task_15_01:
       id: "15-01"
       sprint: "15"
@@ -199,226 +134,18 @@ completed_tasks:
       context_focus: "Architecture Refactoring - All Backend Modules"
       facilitator: "AI Assistant (GitHub Copilot / Claude Sonnet 4.6)"
       key_outcomes:
-        - "P1: Fragmentación SalesService (2232→247 líneas) en 4 servicios (quote/order/delivery/billing)"
-        - "P2: Middleware global errores activado; eliminados 3 mappers locales en mes/sales/product handlers"
-        - "P3: Cálculos duplicados consolidados en sales/domain/calculations.go (6→1 función)"
-        - "P4: User.id migrado de string a uuid.UUID (11 archivos + 3 tests, frontera JWT preservada)"
-        - "IAM Cleanup: createdAt/updatedAt eliminados de entidad User domain (pertenecen a persistencia)"
-        - "Build limpio y todos los tests verdes post-refactor"
-        - "Rama mvp-arch-refinement lista para PR → develop"
-      artifacts:
-        - "docs/log/sprints/sprint-15/01-mvp-architectural-refinement.md"
-        - "internal/sales/domain/calculations.go"
-        - "internal/sales/application/(quote|order|delivery_note|billing)_service.go"
-        - "shared/domain/errors.go + shared/infrastructure/middleware/"
-        - "internal/iam/domain/model/user.go (uuid.UUID, sin audit fields)"
-    task_13_01:
-      id: "13-01"
-      sprint: "13"
-      filename: "01-mvp-backend-coverage-compliance.md"
-      title: "MVP Backend Coverage Compliance (ADR-011)"
-      status: "✅ Completado (Alcance Ajustado)"
-      dates:
-        started: "2026-02-21"
-        completed: "2026-02-22"
-      context_focus: "Backend Testing Coverage - Product Application"
-      facilitator: "AI Assistant + Usuario"
-      key_outcomes:
-        - "Product Application coverage: 42.7% → 49.5% (+6.8 puntos, +16% relativo)"
-        - "14 tests unitarios nuevos (ListAttributes, GetApplicableAttributes, GenerateProductVariants, FindOrCreateVariant)"
-        - "Objetivo ajustado: 75% → 50% tras análisis ROI (tests integración cubren complejidad, funciones críticas testeadas)"
-        - "ADR-011 actualizado con justificación técnica y tabla ajustada (Product Domain vs Application)"
-        - "Status final MVP Backend: 6/7 módulos cumpliendo objetivo estricto (85.7%), 7/7 con ajuste pragmático (100%)"
-        - "Pricing 85.4% ✅, Party 86.7% ✅, Product Domain 83.6% ✅, Sales 75.3% ✅, IAM 82.8% ✅"
-        - "Decisión estratégica: priorizar ROI de tests vs coverage absoluto"
-      artifacts:
-        - "docs/log/sprints/sprint-13/01-mvp-backend-coverage-compliance.md"
-        - "apps/tramatex-api/internal/product/application/product_service_coverage_test.go (813 líneas, 14 tests)"
-        - "docs/architecture/adrs/ADR-011-testing-coverage-strategy.md (actualizado)"
-      lessons_learned:
-        - "Tests de integración aportan más valor que unitarios en funciones combinatorias complejas"
-        - "Análisis ROI temprano evita inversión excesiva en tests de bajo valor"
-        - "Flexibilidad en ADRs: ajustar objetivos basado en análisis técnico pragmático"
-    task_12_01:
-      id: "12-01"
-      sprint: "12"
-      filename: "01-mes-module-foundation.md"
-      title: "MES Module Foundation & Architecture"
+        - "Fragmentación SalesService en 4 servicios especializados"
+        - "Middleware global de errores activado"
+        - "User.id migrado a uuid.UUID"
+    task_14_01:
+      id: "14-01"
+      sprint: "14"
+      filename: "01-party-module-finalization.md"
+      title: "Finalización Módulo Party: CRUD Direcciones e Integridad de Datos"
       status: "✅ Completado"
       dates:
-        started: "2026-02-18"
-        completed: "2026-02-21"
-      context_focus: "MES Module - Manufacturing Execution System"
-      facilitator: "AI Assistant + Usuario"
+        started: "2026-02-23"
+        completed: "2026-02-26"
       key_outcomes:
-        - "MES Module completo: 6 tablas (tasks, positions, service_groups, mes_works, etc.)"
-        - "Backend Go (Clean Architecture): internal/mes/ con Domain + Application + Infrastructure"
-        - "Frontend Vue 3: pages/mes/ + ComponentesmMES + mesApi.ts"
-        - "CRUD maestros: Tasks, Positions, ServiceGroups con validaciones completas"
-        - "MESWork Aggregate Root: generación automática de tareas, integración Party/Product"
-        - "Dashboard MES funcional: estadísticas, monitoreo, filtros"
-        - "Migration 021 exitosa: 6 tablas creadas"
-        - "Tests completos: ≥70% coverage backend, frontend tests implementados"
-      artifacts:
-        - "docs/log/sprints/sprint-12/01-mes-module-foundation.md"
-        - "migrations/021_create_mes_tables.up.sql"
-        - "internal/mes/ (Domain, Application, Infrastructure layers)"
-        - "apps/frontend/src/pages/mes/ + components/mes/"
-        - "apps/frontend/src/api/mesApi.ts"
-      database_tables:
-        - "tasks, positions, service_groups, service_group_tasks, mes_works, mes_work_service_groups, mes_work_tasks"
-    task_11_02:
-      id: "11-02"
-      sprint: "11"
-      filename: "02-critical-remediation-plan.md"
-      title: "Critical Remediation Plan - ERP Core"
-      status: "✅ Completado"
-      dates:
-        started: "2026-02-17"
-        completed: "2026-02-18"
-      context_focus: "Technical Debt Remediation - Critical Items"
-      facilitator: "AI Assistant"
-      key_outcomes:
-        - "7 items críticos remediados en ~13.5h (vs 40-55h estimados, 75% reducción tiempo)"
-        - "FASE 1 Quick Wins: 30+ artifacts limpiados, .gitignore corregido, binarios eliminados, /tmp/ estructurado"
-        - "FASE 2 Type Safety: TypeScript migration validada (2,337 líneas ya completadas)"
-        - "FASE 3 Frontend Tests: +125 tests, 6.6% → 77.63% coverage statements / 80.42% lines (supera objetivo 70%)"
-        - "FASE 4 Sales Tests: +4 tests, 39.1% → 47.0% coverage (alcanza objetivo 50%)"
-        - "229 errores TypeScript → 0"
-        - "194 tests passing (3 skipped)"
-        - "ProductGroup refactor full-stack (tangible/service) + migration 020 creada"
-        - "Codebase 100% limpio y proyecto desbloqueado para MES"
-      artifacts:
-        - "docs/log/sprints/sprint-11/02-critical-remediation-plan.md"
-        - ".gitignore corregido"
-        - "API services en TypeScript validados"
-        - "10 archivos de tests Frontend (vs 5 iniciales)"
-        - "Migration 020: product_group_type enum"
-    task_11_03:
-      id: "11-03"
-      sprint: "11"
-      filename: "03-erp-core-ux-testing.md"
-      title: "ERP Core UX Testing & Validation"
-      status: "✅ Completado (Alcance Reducido)"
-      dates:
-        started: "2026-02-18"
-        completed: "2026-02-22"
-      context_focus: "User Experience Testing - ERP Core Modules (Phases 1-3)"
-      facilitator: "AI Assistant + Usuario"
-      key_outcomes:
-        - "3/6 fases completadas (50%): Party, Product y Pricing validadas"
-        - "3 bugs críticos resueltos: PartySelector import, QuoteCreate payload, Variant selector"
-        - "Decisión GO implícito: MES Module exitoso prueba estabilidad del Core"
-        - "Guides creados para validación Post-MVP: manual-testing-guide.md, smoketest-quick.md"
-        - "Métricas finales: Backend 86.7% (Party), 83.6% (Product), 97.5% (Pricing), 79.2% (Sales)"
-        - "Frontend: 77.63% coverage statements, 80.42% lines, 194 tests passing"
-      artifacts:
-        - "docs/log/sprints/sprint-11/03-erp-core-ux-testing.md"
-        - "tmp/manual-testing-guide.md"
-        - "tmp/smoketest-quick.md"
-      backlog_deferred:
-        - "Fases 4-6 diferidas a Post-MVP (Sales/Integration/UX Review)"
-    task_11_01:
-      id: "11-01"
-      sprint: "11"
-      filename: "01-erp-core-validation-qa.md"
-      title: "ERP Core Validation & Quality Assurance"
-      status: "✅ Completado"
-      dates:
-        started: "2026-02-15"
-        completed: "2026-02-17"
-      context_focus: "Quality Assurance - All ERP Core Modules"
-      facilitator: "AI Assistant"
-      key_outcomes:
-        - "Validación exhaustiva de 4 módulos (Party, Product, Pricing, Sales)"
-        - "Coverage medido: Backend 70.8%, Frontend 6.6%"
-        - "41 items technical debt documentados (~98-135h)"
-        - "Quality Baseline Checklist v1.0 creado"
-        - "Executive Summary y decisión NO-GO para MES"
-        - "+49 tests mejorados durante validación"
-      artifacts:
-        - "docs/log/sprints/sprint-11/01-erp-core-validation-qa.md"
-        - "docs/log/ERP_CORE_COMPLETION.md (actualizado con métricas)"
-  structure: |
-    # Example task structure:
-    # task_XX_YY:
-    #   id: "XX-YY"
-    #   sprint: "XX"
-    #   filename: "YY-descriptive-name.md"
-    #   title: "Task Title"
-    #   status: "✅ Completado"
-    #   dates:
-    #     started: "YYYY-MM-DD"
-    #     completed: "YYYY-MM-DD"
-    #   context_focus: "Module or context area"
-    #   facilitator: "AI Assistant or Team Member"
-    #   key_outcomes:
-    #     - "Outcome 1"
-    #     - "Outcome 2"
-    #   artifacts:
-    #     - "path/to/artifact1"
-    #     - "path/to/artifact2"
-
-task_backlog:
-  title: "📋 Recommended Next Tasks (Backlog)"
-  note: "This section should list high-level tasks that are planned for future sprints."
-  candidates: [] # Keep empty for template
-  structure: |
-    # Example candidate structure:
-    # candidate_X:
-    #   priority: "HIGH|MEDIUM|LOW"
-    #   focus: "Your next big task"
-    #   context_to_load:
-    #     - "agents/project/context/your-context.yaml"
-    #   suggested_title: "sprint-XX-descriptive-module-task"
-    #   estimated_duration: "X hours"
-    #   key_actions:
-    #     - "Action 1"
-    #     - "Action 2"
-
-phase_status:
-  title: "🎯 Project Phase Status"
-  phases: [] # Keep empty for template
-  structure: |
-    # Example phase structure:
-    # phase_X:
-    #   name: "Phase Name"
-    #   status: "✅ COMPLETED|🔄 IN PROGRESS|⏳ BLOCKED"
-    #   modules_completed: []
-    #   modules_in_progress: []
-    #   modules_planned: []
-    #   estimated_total_hours: "X-Y"
-    #   target_completion: "Q1 YYYY"
-
-session_flow_quick_start:
-  title: "🚀 When You Start a New Session"
-  
-  step_by_step:
-    1: "Load: agents/load-session.yaml"
-    2: "It will scan docs/log/sprints/ for open tasks"
-    3: "Check: agents/project/sprint-registry.yaml for status"
-    4: "Review: active_tasks list"
-    5: "If active_tasks.count > 0 → Continue one of them"
-    6: "If active_tasks.count = 0 → Check task_backlog.candidates"
-    7: "Load relevant context from agents/project/context/"
-    8: "Begin work following TDD approach"
-
-instructions_for_ai:
-  title: "📝 For AI Assistants Using This File"
-  
-  when_session_starts:
-    step_1: "Parse this file (sprint-registry.yaml)"
-    step_2: "Note 'active_tasks.count' - how many are open"
-    step_3: "If active_tasks.count > 0, propose continuing one"
-    step_4: "If active_tasks.count = 0, propose from task_backlog.candidates"
-    step_5: "Use phase_status to understand timeline"
-  
-  when_task_completes:
-    step_1: "Move task from active_tasks to completed_tasks"
-    step_2: "Update 'last_updated' timestamp"
-    step_3: "Add key_outcomes section"
-    step_4: "Ensure next phase is ready"
-    step_5: "Update phase_status accordingly"
-  
-  keep_this_file:
-    note: "This is a living document. Update after each task session."
+        - "CRUD completo de direcciones para entidades Party"
+        - "Corrección de bugs de autenticación"
