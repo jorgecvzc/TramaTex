@@ -32,7 +32,7 @@ func (s *SalesService) CreateDeliveryNote(ctx context.Context, cmd CreateDeliver
 		if order == nil {
 			return domain.NewNotFoundError("order not found")
 		}
-		if order.Status == domain.SalesOrderStatusCanceled {
+		if order.Status == domain.SalesOrderStatusCancelled {
 			return domain.NewConflictError("cannot create delivery note for canceled order")
 		}
 		if order.Status == domain.SalesOrderStatusInvoiced || order.Status == domain.SalesOrderStatusPartiallyInvoiced {
@@ -175,33 +175,105 @@ func (s *SalesService) ListDeliveryNotes(ctx context.Context, query ListDelivery
 }
 
 func (s *SalesService) ChangeDeliveryNoteStatus(ctx context.Context, cmd ChangeDeliveryNoteStatusCommand) (*DeliveryNoteDTO, error) {
-	note, err := s.deliveryRepo.FindByID(ctx, cmd.DeliveryNoteID)
+	var result *DeliveryNoteDTO
+	err := s.runInTransaction(ctx, func(txCtx context.Context) error {
+		note, err := s.deliveryRepo.FindByID(txCtx, cmd.DeliveryNoteID)
+		if err != nil {
+			return err
+		}
+		if note == nil {
+			return domain.NewNotFoundError("delivery note not found")
+		}
+
+		status, err := parseDeliveryNoteStatus(cmd.NewStatus)
+		if err != nil {
+			return err
+		}
+
+		if err := note.ChangeStatus(status); err != nil {
+			return err
+		}
+
+		if err := s.deliveryRepo.Save(txCtx, note); err != nil {
+			return err
+		}
+
+		// Update order status based on current notes
+		order, err := s.orderRepo.FindByIDForUpdate(txCtx, note.SalesOrderID)
+		if err != nil {
+			return err
+		}
+		if order != nil {
+			if err := s.refreshOrderDeliveryStatus(txCtx, order); err != nil {
+				return err
+			}
+		}
+
+		result = NewDeliveryNoteDTO(note)
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
-	if note == nil {
-		return nil, domain.NewNotFoundError("delivery note not found")
-	}
+	return result, nil
+}
 
-	status, err := parseDeliveryNoteStatus(cmd.NewStatus)
-	if err != nil {
-		return nil, err
-	}
-	if err := note.ChangeStatus(status); err != nil {
-		return nil, err
-	}
+func (s *SalesService) DeleteDeliveryNote(ctx context.Context, cmd DeleteDeliveryNoteCommand) error {
+	return s.runInTransaction(ctx, func(txCtx context.Context) error {
+		note, err := s.deliveryRepo.FindByID(txCtx, cmd.DeliveryNoteID)
+		if err != nil {
+			return err
+		}
+		if note == nil {
+			return domain.NewNotFoundError("delivery note not found")
+		}
 
-	if err := s.deliveryRepo.Save(ctx, note); err != nil {
-		return nil, err
-	}
+		// Check if it's already invoiced
+		for _, li := range note.LineItems {
+			if li.InvoiceLineItemID != nil {
+				return domain.NewConflictError("cannot delete an invoiced delivery note")
+			}
+		}
 
-	dto := NewDeliveryNoteDTO(note)
-	return dto, nil
+		// Delete the note
+		if err := s.deliveryRepo.Delete(txCtx, note.ID); err != nil {
+			return err
+		}
+
+		// Recalculate Sales Order Status
+		order, err := s.orderRepo.FindByIDForUpdate(txCtx, note.SalesOrderID)
+		if err != nil {
+			return err
+		}
+		if order != nil {
+			if err := s.refreshOrderDeliveryStatus(txCtx, order); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func parseDeliveryNoteStatus(input string) (domain.DeliveryNoteStatus, error) {
-	value := domain.DeliveryNoteStatus(strings.ToUpper(strings.TrimSpace(input)))
-	return value, value.IsValid()
+	u := strings.ToUpper(strings.TrimSpace(input))
+
+	switch u {
+	case "PENDING", "PENDIENTE":
+		return domain.DeliveryNoteStatusPending, nil
+	case "DELIVERED", "ENTREGADO", "ENTREGADA":
+		return domain.DeliveryNoteStatusDelivered, nil
+	case "CANCELLED", "CANCELADO", "ANULADO", "ANULADA", "CANCELADA":
+		return domain.DeliveryNoteStatusCancelled, nil
+	default:
+		// Fallback to direct cast and validation
+		val := domain.DeliveryNoteStatus(u)
+		if err := val.IsValid(); err != nil {
+			return "", err
+		}
+		return val, nil
+	}
 }
 
 func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUID) (map[uuid.UUID]int, error) {
@@ -211,7 +283,7 @@ func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUI
 		return nil, err
 	}
 	for _, note := range notes {
-		if note.Status == domain.DeliveryNoteStatusCanceled {
+		if note.Status == domain.DeliveryNoteStatusCancelled {
 			continue
 		}
 		for _, item := range note.LineItems {
@@ -219,6 +291,52 @@ func (s *SalesService) deliveredQuantities(ctx context.Context, orderID uuid.UUI
 		}
 	}
 	return results, nil
+}
+
+func (s *SalesService) refreshOrderDeliveryStatus(ctx context.Context, order *domain.SalesOrder) error {
+	if order == nil {
+		return nil
+	}
+	if order.Status == domain.SalesOrderStatusInvoiced || order.Status == domain.SalesOrderStatusPartiallyInvoiced || order.Status == domain.SalesOrderStatusCancelled {
+		return nil
+	}
+
+	delivered, err := s.deliveredQuantities(ctx, order.ID)
+	if err != nil {
+		return err
+	}
+
+	targetStatus := calculateOrderDeliveryStatus(order, delivered)
+	if order.Status == targetStatus {
+		return nil
+	}
+
+	// Delivery-note driven status is derived state. It must reflect current delivered quantities
+	// even when that implies moving backwards from DELIVERED/PARTIALLY_DELIVERED.
+	order.Status = targetStatus
+	return s.orderRepo.Save(ctx, order)
+}
+
+func calculateOrderDeliveryStatus(order *domain.SalesOrder, delivered map[uuid.UUID]int) domain.SalesOrderStatus {
+	allDelivered := true
+	anyDelivered := false
+	for _, li := range order.LineItems {
+		qty := delivered[li.ID]
+		if qty > 0 {
+			anyDelivered = true
+		}
+		if qty < li.Quantity {
+			allDelivered = false
+		}
+	}
+
+	if allDelivered {
+		return domain.SalesOrderStatusDelivered
+	}
+	if anyDelivered {
+		return domain.SalesOrderStatusPartiallyDelivered
+	}
+	return domain.SalesOrderStatusInPreparation
 }
 
 func isOrderFullyDelivered(items []domain.OrderLineItem, previous map[uuid.UUID]int, newItems []domain.DeliveryNoteLineItem) bool {

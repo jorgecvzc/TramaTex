@@ -165,25 +165,56 @@ function handleVariantSelected(v) {
   item.productVariantId = variant.id;
   item.variantSku = variant.sku;
   item.displayName = variant.product_name + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : '');
-  item.unitPrice = variant.product_base_price || 0;
+  item.unitPrice = null;
+  item.listPrice = null;
+  item._autoPrice = true;
   showVariantSelector.value = false;
-  calculateTotals();
+  
+  // Trigger immediate calculation to get the correct sale price with margins
+  calculateTotals(true);
 }
 
 let previewTimer = null;
-function calculateTotals() {
+const isPreviewLoading = ref(false);
+
+function calculateTotals(immediate = false) {
   clearTimeout(previewTimer);
+  const delay = immediate ? 0 : 400;
+  
   previewTimer = setTimeout(async () => {
     const items = formData.lineItems.filter(i => i.productVariantId).map(i => ({
-      productVariantId: i.productVariantId, quantity: i.quantity,
-      unitPrice: { amount: i.unitPrice, currency: 'EUR' }, discountPercent: i.discountPercent
+      productVariantId: i.productVariantId, 
+      quantity: Number(i.quantity || 0),
+      ...(i._autoPrice === false ? { unitPrice: { amount: Number(i.unitPrice || 0), currency: 'EUR' } } : {}), 
+      discountPercent: Number(i.discountPercent || 0)
     }));
-    if (!formData.partyId || items.length === 0) { Object.assign(totals, { subtotal: 0, tax: 0, total: 0 }); return; }
+    
+    if (!formData.partyId || items.length === 0) { 
+      Object.assign(totals, { subtotal: 0, tax: 0, total: 0 }); 
+      return; 
+    }
+    
+    isPreviewLoading.value = true;
     try {
       const res = await salesApi.previewQuoteCalculation(formData.partyId, items);
-      totals.subtotal = res.subtotal.amount; totals.tax = res.taxAmount.amount; totals.total = res.total.amount;
-    } catch (err) {}
-  }, 400);
+      if (res) {
+        totals.subtotal = res.subtotal.amount; 
+        totals.tax = res.taxAmount.amount; 
+        totals.total = res.total.amount;
+        
+        // Update line prices for items that haven't been manually overridden
+        formData.lineItems.forEach((item, idx) => {
+          if (item.productVariantId && item._autoPrice !== false && res.lineItems?.[idx]) {
+            item.unitPrice = res.lineItems[idx].unitPrice.amount;
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Error calculating preview:", err);
+    } finally {
+      isPreviewLoading.value = false;
+    }
+  }, delay);
 }
 
 function calculateLineSubtotal(idx) {

@@ -2,12 +2,11 @@ package domain
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) (*SalesOrder, error) {
-	if q.Status != QuoteStatusApproved {
-		return nil, NewConflictError("quote must be approved before conversion")
-	}
 	orderItems := make([]OrderLineItem, len(q.LineItems))
 	for i, item := range q.LineItems {
 		orderItems[i] = OrderLineItem{
@@ -38,7 +37,7 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 	orderWorkRefs := make([]WorkReference, len(q.WorkReferences))
 	for i, ws := range q.WorkReferences {
 		orderWorkRefs[i] = WorkReference{
-			ID:          ws.ID,
+			ID:          uuid.New(),
 			WorkSetupID: ws.WorkSetupID,
 			Sequence:    ws.Sequence,
 			Description: ws.Description,
@@ -46,6 +45,9 @@ func (q *Quote) ConvertToOrder(orderNumber OrderNumber, deliveryDate time.Time) 
 	}
 	order.WorkReferences = orderWorkRefs
 
+	// Force transition to CONVERTED_TO_ORDER. 
+	// The application layer should ensure the quote was APPROVED first.
+	// If the state was not valid for conversion, ChangeStatus will return the error.
 	if err := q.ChangeStatus(QuoteStatusConverted); err != nil {
 		return nil, err
 	}

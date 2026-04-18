@@ -50,6 +50,10 @@
                 <label>Línea de Contacto</label>
                 <input v-model.trim="form.contactLine" type="text" placeholder="email / teléfono" />
               </div>
+              <div class="form-group full-width">
+                <label>Datos Registro Mercantil</label>
+                <input v-model.trim="form.mercantileRegistry" type="text" placeholder="R.M. Madrid, Tomo..." />
+              </div>
             </div>
           </FormSection>
 
@@ -77,7 +81,8 @@
             </div>
             <div class="mock-body">Contenido del documento...</div>
             <div class="mock-footer">
-              Generado por {{ form.displayName || 'TramaTex' }} · TramaTex ERP
+              <p>{{ form.mercantileRegistry }}</p>
+              <p>Generado por {{ form.displayName || 'TramaTex' }} · TramaTex ERP</p>
             </div>
           </div>
           <button class="btn btn-outline btn-sm w-full mt-4" @click="printPreview">
@@ -102,8 +107,13 @@ const message = ref('')
 const form = reactive<PrintIssuerProfile>(getPrintIssuerProfile())
 
 function copyProfileToForm(p: PrintIssuerProfile) {
-  form.displayName = p.displayName; form.taxLabel = p.taxLabel; form.taxId = p.taxId
-  form.addressLine = p.addressLine; form.cityLine = p.cityLine; form.contactLine = p.contactLine
+  form.displayName = p.displayName; 
+  form.taxLabel = p.taxLabel; 
+  form.taxId = p.taxId;
+  form.addressLine = p.addressLine; 
+  form.cityLine = p.cityLine; 
+  form.contactLine = p.contactLine;
+  form.mercantileRegistry = p.mercantileRegistry;
 }
 function reloadProfile() { copyProfileToForm(getPrintIssuerProfile()); message.value = 'Datos recargados' }
 function saveProfile() { savePrintIssuerProfile({ ...form }); message.value = 'Perfil guardado con éxito' }
@@ -112,6 +122,13 @@ function printPreview() { window.print() }
 
 <style scoped>
 .page-layout { background-color: var(--color-background); min-height: 100vh; }
+
+/* Corrección de altura de cabecera: Resetear altura fija del header heredada de layouts de dashboard si existiera */
+:deep(.page-header) {
+  min-height: auto;
+  padding: 1.5rem 1rem;
+}
+
 .page-content { max-width: 1300px; margin: 0 auto; padding: 1rem; }
 
 .fiscal-layout { display: grid; grid-template-columns: 1fr 400px; gap: 2rem; align-items: flex-start; }

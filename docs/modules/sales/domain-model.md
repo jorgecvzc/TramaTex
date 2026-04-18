@@ -16,7 +16,7 @@ Representa una intención comercial no vinculante.
 ### El Pedido (`SalesOrder`)
 Es el eje central de la operación.
 - **Compromiso de Entrega:** Requiere obligatoriamente una fecha de entrega (`DeliveryDate`).
-- **Disparador de Producción:** Un pedido confirmado puede disparar automáticamente órdenes de trabajo en el módulo **MES** si los productos son de fabricación propia (ver sección 3: Integración con MES).
+- **Disparador de Producción:** Un pedido nace directamente en estado **Confirmado** (`EN_PREPARACION`), lo que dispara automáticamente su visibilidad en el taller (módulo **MES**) si los productos son de fabricación propia.
 - **Inmutabilidad Parcial:** Una vez que un pedido tiene albaranes o facturas asociadas, sus líneas de producto quedan bloqueadas para edición.
 
 ### El Albarán (`DeliveryNote`)
@@ -51,12 +51,13 @@ Para facilitar la comunicación entre el backend (con estados técnicos en caste
 - `CONVERTIDA_A_PEDIDO` (Converted)
 
 **Pedidos (Orders):**
-- `PENDIENTE` (Pending)
-- `EN_PREPARACION` (In Preparation)
+- `EN_PREPARACION` (Confirmed / In Preparation) - **Estado Inicial**
 - `ENTREGADO_PARCIALMENTE` (Partially Delivered)
 - `ENTREGADO` (Delivered)
 - `FACTURADO_PARCIALMENTE` (Partially Invoiced)
 - `FACTURADO_COMPLETAMENTE` (Invoiced)
+- `CANCELADO` (Cancelled)
+- `PENDIENTE` (Pending) - Estado de seguridad tras una reactivación desde anulado.
 
 **Facturas (Invoices):**
 - `BORRADOR` (Draft)

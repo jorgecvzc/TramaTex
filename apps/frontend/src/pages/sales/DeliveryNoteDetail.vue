@@ -1,5 +1,5 @@
 <template>
-  <BaseEntityPage v-if="isLoading">
+  <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
       <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
     </template>
@@ -9,7 +9,7 @@
     </div>
   </BaseEntityPage>
 
-  <BaseEntityPage v-else-if="error">
+  <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
       <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
     </template>
@@ -25,30 +25,30 @@
     </div>
   </BaseEntityPage>
 
-  <BaseEntityPage v-else-if="deliveryNote">
+  <BaseEntityPage class="no-print" v-else-if="deliveryNote">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <PageHeader 
         :title="mode === 'edit' ? `Editando Albarán ${deliveryNote.deliveryNoteNumber}` : `Albarán ${deliveryNote.deliveryNoteNumber}`" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
       >
         <template #icon>
           <span class="material-symbols-outlined">local_shipping</span>
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
-            <button class="btn btn-outline" @click="printDeliveryNote">
+            <button class="btn btn-outline btn-sm" @click="printDeliveryNote">
               <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
             </button>
-            <button v-if="deliveryNote.status === 'PENDIENTE'" class="btn btn-primary" @click="enterEditMode">
+            <button v-if="['PENDING', 'PENDIENTE'].includes(deliveryNote.status)" class="btn btn-primary btn-sm" @click="enterEditMode">
               <span class="material-symbols-outlined">edit</span> <span>Editar</span>
             </button>
           </template>
           <template v-else>
-            <button class="btn btn-outline" @click="mode = 'detail'" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-secondary" @click="saveDeliveryNote" :disabled="isSaving">
+            <button class="btn btn-outline btn-sm" @click="mode = 'detail'" :disabled="isSaving">Cancelar</button>
+            <button class="btn btn-secondary btn-sm" @click="saveDeliveryNote" :disabled="isSaving">
               <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}</span>
+              <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
             </button>
           </template>
         </template>
@@ -72,14 +72,16 @@
           >
             <span class="material-symbols-outlined">check_circle</span> <span>Confirmar Entrega</span>
           </button>
+
           <button
-            v-if="['PENDING', 'PENDIENTE'].includes(deliveryNote.status)"
+            v-if="!relatedInvoice"
             class="btn btn-danger btn-sm"
-            @click="cancelDeliveryNote"
+            @click="confirmDeleteDeliveryNote"
             :disabled="isChangingStatus"
           >
-            <span class="material-symbols-outlined">cancel</span> <span>Anular Albarán</span>
+            <span class="material-symbols-outlined">delete</span> <span>Eliminar Albarán</span>
           </button>
+          
           <button
             v-if="['DELIVERED', 'ENTREGADO'].includes(deliveryNote.status) && !relatedInvoice"
             class="btn btn-success btn-sm"
@@ -258,28 +260,57 @@
         <p>ID único del documento: <code>{{ deliveryNote.id }}</code></p>
       </div>
     </template>
-  </BaseEntityPage>
+    </BaseEntityPage>
 
-  <!-- DIÁLOGO DE CONFIRMACIÓN DE FACTURACIÓN -->
-  <BaseDialog
-    :show="showInvoiceConfirm"
-    title="Confirmar Facturación"
-    icon="receipt_long"
-    confirm-text="Generar Factura"
-    confirm-class="btn-success"
-    :is-confirming="isCreatingInvoice"
-    @close="showInvoiceConfirm = false"
-    @confirm="confirmCreateInvoice"
-  >
-    <div class="confirm-dialog-body">
-      <p>Está a punto de <strong>generar una factura oficial</strong> para este albarán.</p>
-      <div class="info-notice mt-4">
-        <span class="material-symbols-outlined">info</span>
-        <p>Esta operación creará un nuevo documento contable y vinculará permanentemente este albarán.</p>
-      </div>
-      <p class="mt-4 text-secondary italic">¿Desea continuar?</p>
+    <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
+    <div class="print-container">
+    <PrintDocument
+      v-if="deliveryNote"
+      type="DELIVERY_NOTE"
+      :number="deliveryNote.deliveryNoteNumber || deliveryNote.delivery_note_number"
+      :date="deliveryNote.deliveryDate || deliveryNote.delivery_date"
+      :customer-name="partyName"
+      :customer-tax-id="deliveryNote.taxId"
+      :items="deliveryNote.lineItems"
+      :totals="{ subtotal: 0, taxAmount: 0, total: 0 }"
+      :notes="deliveryNote.notes"
+    />
     </div>
-  </BaseDialog>
+
+    <!-- DIÁLOGOS DE CONFIRMACIÓN -->
+    <BaseDialog
+      :show="showStatusConfirm"
+      :title="statusConfirmTitle"
+      :icon="statusConfirmIcon"
+      :confirm-text="statusConfirmText"
+      :confirm-class="statusConfirmClass"
+      :is-confirming="isChangingStatus"
+      @close="showStatusConfirm = false"
+      @confirm="executeStatusChange"
+    >
+      <p v-html="statusConfirmMessage"></p>
+    </BaseDialog>
+
+    <!-- DIÁLOGO DE CONFIRMACIÓN DE FACTURACIÓN -->
+    <BaseDialog
+      :show="showInvoiceConfirm"
+      title="Confirmar Facturación"
+      icon="receipt_long"
+      confirm-text="Generar Factura"
+      confirm-class="btn-success"
+      :is-confirming="isCreatingInvoice"
+      @close="showInvoiceConfirm = false"
+      @confirm="confirmCreateInvoice"
+    >
+      <div class="confirm-dialog-body">
+        <p>Está a punto de <strong>generar una factura oficial</strong> para este albarán.</p>
+        <div class="info-notice mt-4">
+          <span class="material-symbols-outlined">info</span>
+          <p>Esta operación creará un nuevo documento contable y vinculará permanentemente este albarán.</p>
+        </div>
+        <p class="mt-4 text-secondary italic">¿Desea continuar?</p>
+      </div>
+    </BaseDialog>
 </template>
 
 <script setup>
@@ -291,8 +322,10 @@ import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
+import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
+import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -308,6 +341,15 @@ const error = ref('');
 const partyName = ref('Cargando...');
 const orderNumber = ref(null);
 const relatedInvoice = ref(null);
+
+// Status change confirm dialog state
+const showStatusConfirm = ref(false);
+const statusConfirmTitle = ref('');
+const statusConfirmMessage = ref('');
+const statusConfirmIcon = ref('');
+const statusConfirmText = ref('');
+const statusConfirmClass = ref('');
+const pendingStatus = ref('');
 
 const formData = reactive({
   deliveryDate: '',
@@ -383,25 +425,40 @@ async function saveDeliveryNote() {
   }
 }
 
-async function markAsDelivered() {
-  if (!confirm('¿Marcar este albarán como entregado?')) return;
-  isChangingStatus.value = true;
-  try {
-    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'ENTREGADO');
-  } catch (err) {
-    alert(err?.message || 'Error al cambiar estado');
-  } finally {
-    isChangingStatus.value = false;
-  }
+function markAsDelivered() {
+  statusConfirmTitle.value = 'Confirmar Entrega';
+  statusConfirmMessage.value = '¿Desea marcar este albarán como <strong>entregado</strong>? Esta acción confirmará que el cliente ha recibido la mercancía.';
+  statusConfirmIcon.value = 'check_circle';
+  statusConfirmText.value = 'Confirmar Entrega';
+  statusConfirmClass.value = 'btn-success';
+  pendingStatus.value = 'ENTREGADO';
+  showStatusConfirm.value = true;
 }
 
-async function cancelDeliveryNote() {
-  if (!confirm('¿Anular este albarán?')) return;
+function confirmDeleteDeliveryNote() {
+  statusConfirmTitle.value = 'Eliminar Albarán';
+  statusConfirmMessage.value = '¿Realmente desea <strong>ELIMINAR</strong> este albarán? Las cantidades volverán a estar disponibles en el pedido original para ser albaraneadas de nuevo.';
+  statusConfirmIcon.value = 'delete';
+  statusConfirmText.value = 'Eliminar Permanentemente';
+  statusConfirmClass.value = 'btn-danger';
+  pendingStatus.value = 'DELETE_ACTION'; // Special marker for delete
+  showStatusConfirm.value = true;
+}
+
+async function executeStatusChange() {
   isChangingStatus.value = true;
   try {
-    deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, 'CANCELADO');
+    if (pendingStatus.value === 'DELETE_ACTION') {
+      const orderId = deliveryNote.value.salesOrderId;
+      await salesApi.deleteDeliveryNote(deliveryNote.value.id);
+      showStatusConfirm.value = false;
+      router.push(orderId ? `/sales/orders/${orderId}` : '/sales/delivery-notes');
+    } else {
+      deliveryNote.value = await salesApi.changeDeliveryNoteStatus(deliveryNote.value.id, pendingStatus.value);
+      showStatusConfirm.value = false;
+    }
   } catch (err) {
-    alert(err?.message || 'Error al anular');
+    alert(err?.message || 'Error al procesar la solicitud');
   } finally {
     isChangingStatus.value = false;
   }
@@ -443,30 +500,6 @@ function formatVariantId(id) { return id ? id.substring(0, 8) : '—'; }
 <style scoped>
 @import "@/design-system/_sections.css";
 
-.overview-tags-row, .related-history-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
-.related-history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-
-.summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
-.related-tag-card { padding: 0.6rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-left: 4px solid var(--color-secondary); border-radius: 10px; display: flex; align-items: center; gap: 0.75rem; text-decoration: none; position: relative; transition: all 0.2s ease; }
-.related-tag-card.highlight-info { border-left-color: #2563eb; }
-.related-tag-card:hover { background: white; transform: translateX(2px) translateY(-1px); box-shadow: var(--box-shadow-md); }
-.related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
-
-.tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
-.tag-icon .material-symbols-outlined { font-size: 22px; }
-
-.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
-.icon.green, .tag-icon.success { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-
-.tag-content { display: flex; flex-direction: column; gap: 0.15rem; line-height: 1.2; }
-.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
-.tag-content strong { font-size: 0.95rem; color: var(--color-text-primary); }
-
-.jump-icon { font-size: 18px; color: var(--color-text-secondary); opacity: 0.5; margin-left: auto; transition: all 0.2s; }
-.related-tag-card:hover .jump-icon { opacity: 1; color: var(--color-primary); transform: scale(1.1); }
-
 .action-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: var(--box-shadow-sm); margin: 0; }
 .status-badge { padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em; }
 .toolbar-buttons { display: flex; gap: 0.75rem; }
@@ -490,4 +523,12 @@ function formatVariantId(id) { return id ? id.substring(0, 8) : '—'; }
 
 .info-notice { display: flex; gap: 0.75rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #1e40af; font-size: 0.9rem; }
 .info-notice .material-symbols-outlined { color: #2563eb; }
+
+/* ESTILOS DE IMPRESIÓN PROFESIONAL */
+.print-container { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+}
 </style>

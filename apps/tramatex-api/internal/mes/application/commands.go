@@ -82,6 +82,7 @@ type CreateWorkOrderCommand struct {
 	WorkSetupID      *uuid.UUID `json:"work_setup_id"`
 	Notes            *string    `json:"notes"`
 	Priority         *string    `json:"priority"`
+	Status           *string    `json:"status"`
 	DueDate          *string    `json:"due_date"`
 	OrderWorkSetupID *uuid.UUID `json:"order_work_setup_id,omitempty"`
 }

@@ -370,6 +370,16 @@ func TestQuote_ChangeStatus_ValidTransition_IssuedToDraft(t *testing.T) {
 	assert.Equal(t, QuoteStatusDraft, quote.Status)
 }
 
+func TestQuote_ChangeStatus_InvalidTransition_RejectedToConverted(t *testing.T) {
+	quote := createValidQuote(t)
+	quote.Status = QuoteStatusRejected
+
+	err := quote.ChangeStatus(QuoteStatusConverted)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid quote status transition")
+}
+
 func TestQuote_ChangeStatus_InvalidTransition_RejectedToAnything(t *testing.T) {
 	quote := createValidQuote(t)
 	quote.Status = QuoteStatusRejected

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TramaTex - Presentación Corporativa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <style>
+    :root {
+      --primary: #1b3a6b;
+      --primary-dark: #0f172a;
+      --accent: #2563eb;
+      --text-main: #1e293b;
+      --text-light: #64748b;
+      --bg-light: #f8fafc;
+      --white: #ffffff;
+      --slide-padding: 4rem;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body, html {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg-light);
+      overflow: hidden;
+    }
+
+    /* Motor de Presentación (Scroll Snap) */
+    .presentation-container {
+      height: 100vh;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    section {
+      height: 100vh;
+      width: 100vw;
+      scroll-snap-align: start;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: var(--slide-padding);
+      background-color: var(--white);
+      overflow: hidden;
+    }
+
+    /* Layouts Especializados */
+    .layout-impact {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: var(--white);
+    }
+
+    .layout-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .layout-grid {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    /* Tipografía */
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 5rem;
+      text-transform: uppercase;
+      letter-spacing: -2px;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 3rem;
+      color: var(--primary);
+      margin-bottom: 2rem;
+      border-left: 8px solid var(--accent);
+      padding-left: 1.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.5rem;
+      font-weight: 300;
+      opacity: 0.9;
+      max-width: 800px;
+    }
+
+    p { font-size: 1.25rem; line-height: 1.6; color: var(--text-light); }
+
+    /* Elementos de Diseño */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: var(--bg-light);
+      padding: 2rem;
+      border-radius: 1rem;
+      border-bottom: 4px solid var(--primary);
+    }
+
+    .card h3 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 100%;
+      background: #e2e8f0;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      border: 2px dashed #cbd5e1;
+      font-style: italic;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Navegación Visual (Indicador de Scroll) */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      opacity: 0.5;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+      40% {transform: translateY(-10px) translateX(-50%);}
+      60% {transform: translateY(-5px) translateX(-50%);}
+    }
+
+    .logo-header {
+      position: absolute;
+      top: 2rem;
+      right: 4rem;
+      font-weight: 800;
+      color: var(--primary);
+      opacity: 0.2;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="presentation-container">
+    
+    <!-- Diapositiva 1: PORTADA -->
+    <section class="layout-impact">
+      <div class="badge">SOLUCIÓN TEXTIL INTELIGENTE</div>
+      <h1>TramaTex</h1>
+      <p class="subtitle">"La solución inteligente de gestión para la microempresa textil"</p>
+      
+      <div class="card-grid" style="margin-top: 4rem; text-align: left; max-width: 1000px;">
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 0.5rem;">
+          <strong style="display: block; color: var(--accent);">Cerrar la Brecha</strong>
+          <small>Herramienta adaptada a recursos limitados.</small>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 0.5rem;">
+          <strong style="display: block; color: var(--accent);">Organización Integral</strong>
+          <small>Gestión centralizada de clientes y producción.</small>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 0.5rem;">
+          <strong style="display: block; color: var(--accent);">Impulso al Crecimiento</strong>
+          <small>Optimización de procesos y trazabilidad.</small>
+        </div>
+      </div>
+
+      <div class="scroll-hint">Desliza para comenzar ↓</div>
+    </section>
+
+    <!-- Diapositiva 2: VISIÓN Y ALCANCE -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="content-area">
+        <h2>Innovación en el Sector Textil</h2>
+        <p style="margin-bottom: 2rem;"><strong>Visión:</strong> Sistema líder para pequeñas y medianas empresas de vestuario laboral y EPIs, especializado en la personalización de prendas.</p>
+        
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <h3><span class="material-symbols-outlined">bolt</span> El Desafío</h3>
+          <p>Superar la ineficiencia de procesos manuales y sistemas genéricos costosos mediante una arquitectura local-first eficiente.</p>
+        </div>
+
+        <div class="card" style="border-bottom-color: var(--accent);">
+          <h3><span class="material-symbols-outlined">target</span> Objetivo Estratégico</h3>
+          <p>Integrar en un flujo único y trazable las ventas, la tarificación inteligente y la producción en taller (MES).</p>
+        </div>
+      </div>
+      <div class="image-area">
+        <div class="image-placeholder" style="background: url('assets/vision.png') center/cover no-repeat;">
+          <!-- vision.png -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 3: DASHBOARD -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="image-area">
+        <div class="image-placeholder" style="background: url('assets/dashboard.png') center/cover no-repeat;">
+          <!-- dashboard.png -->
+        </div>
+      </div>
+      <div class="content-area">
+        <h2>Gestión Centralizada</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">El Dashboard de TramaTex es el centro neurálgico de la operación diaria.</p>
+        
+        <ul style="list-style: none;">
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <div>
+              <strong>Interfaz Moderna:</strong>
+              <p>Diseño minimalista que prioriza la agilidad del usuario.</p>
+            </div>
+          </li>
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <div>
+              <strong>Métricas Críticas:</strong>
+              <p>Acceso instantáneo a los indicadores clave de rendimiento.</p>
+            </div>
+          </li>
+          <li style="display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <div>
+              <strong>Navegación Modular:</strong>
+              <p>Acceso rápido a Clientes, Catálogo, Ventas y Producción.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Diapositiva 4: MÓDULO PARTY -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="content-area">
+        <h2>Gestión de Terceros</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Un enfoque unificado para clientes y proveedores bajo el concepto de <strong>Party</strong>.</p>
+        
+        <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="card">
+            <h3><span class="material-symbols-outlined">group</span> Entidad Única</h3>
+            <p>Evita la duplicidad de datos: una misma entidad puede ser cliente y proveedor simultáneamente.</p>
+          </div>
+          <div class="card">
+            <h3><span class="material-symbols-outlined">account_tree</span> Relaciones</h3>
+            <p>Gestión completa de matrices, filiales y múltiples puntos de contacto/direcciones.</p>
+          </div>
+          <div class="card">
+            <h3><span class="material-symbols-outlined">badge</span> Perfiles</h3>
+            <p>Soporte especializado para Organizaciones (B2B) y Personas (B2C).</p>
+          </div>
+          <div class="card">
+            <h3><span class="material-symbols-outlined">history</span> Consistencia</h3>
+            <p>Histórico de transacciones centralizado para una visión 360º del tercero.</p>
+          </div>
+        </div>
+      </div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Captura: Detalle de Cliente / Directorio de Partys]
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 5: MÓDULO PRODUCT -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Captura: Configuración de Atributos y Variantes JIT]
+        </div>
+      </div>
+      <div class="content-area">
+        <h2>Catálogo Inteligente</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Gestión de inventario adaptada a la complejidad del sector textil.</p>
+        
+        <ul style="list-style: none;">
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">settings_input_component</span>
+            <div>
+              <strong>Variantes Just-In-Time:</strong>
+              <p>Creación dinámica de combinaciones (Talla/Color) según la demanda real.</p>
+            </div>
+          </li>
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">layers</span>
+            <div>
+              <strong>Atributos Flexibles:</strong>
+              <p>Configuración ilimitada de tallajes, tejidos y tipos de marcación.</p>
+            </div>
+          </li>
+          <li style="display: flex; align-items: flex-start; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent)">precision_manufacturing</span>
+            <div>
+              <strong>Base para Producción:</strong>
+              <p>Precisión técnica total para el cálculo de costes y órdenes de taller.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Diapositiva 6: MÓDULO SALES -->
+    <section class="layout-grid">
+      <div class="logo-header">TRAMATEX</div>
+      <h2>Ciclo Comercial Integrado</h2>
+      <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Del primer contacto a la factura final sin fricciones ni errores manuales.</p>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 2rem; margin-top: 2rem;">
+        <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
+          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">request_quote</span>
+          <strong>Presupuestos</strong>
+        </div>
+        <span class="material-symbols-outlined" style="color: #cbd5e1;">arrow_forward</span>
+        <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
+          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">shopping_cart_checkout</span>
+          <strong>Pedidos</strong>
+        </div>
+        <span class="material-symbols-outlined" style="color: #cbd5e1;">arrow_forward</span>
+        <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
+          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">local_shipping</span>
+          <strong>Albaranes</strong>
+        </div>
+        <span class="material-symbols-outlined" style="color: #cbd5e1;">arrow_forward</span>
+        <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
+          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">receipt_long</span>
+          <strong>Facturación</strong>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 3rem; background: var(--primary); color: white;">
+        <p style="color: rgba(255,255,255,0.8);"><strong>Trazabilidad Documental:</strong> El sistema mantiene el rastro completo de cada operación, permitiendo facturación agrupada o tickets retail rápidos.</p>
+      </div>
+    </section>
+
+    <!-- Diapositiva 7: MÓDULO MES -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="content-area">
+        <h2>Control de Producción (MES)</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">El corazón operativo que conecta la oficina comercial con el taller.</p>
+        
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3><span class="material-symbols-outlined">precision_manufacturing</span> Órdenes de Trabajo</h3>
+          <p>Transformación automática de pedidos de venta en tareas ejecutables para los operarios.</p>
+        </div>
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3><span class="material-symbols-outlined">visibility</span> Monitorización Real-Time</h3>
+          <p>Seguimiento del estado de fabricación en cada centro de trabajo o máquina.</p>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">verified</span> Control de Calidad</h3>
+          <p>Registro de verificaciones obligatorio en cada etapa crítica del flujo productivo.</p>
+        </div>
+      </div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Captura: Cola de producción / Terminal de Taller]
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 8: HITOS Y FUTURO -->
+    <section class="layout-grid">
+      <div class="logo-header">TRAMATEX</div>
+      <h2>Realidad Actual y Evolución</h2>
+      
+      <div class="card-grid">
+        <div class="card" style="border-bottom-color: var(--accent);">
+          <h3><span class="material-symbols-outlined">star</span> MVP Completado</h3>
+          <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
+            <li>✓ Core operativo (Ventas/Precios)</li>
+            <li>✓ Gestión de taller (MES)</li>
+            <li>✓ Seguridad y Permisos</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">rocket_launch</span> Hoja de Ruta</h3>
+          <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
+            <li>→ Unificación UI/UX Avanzada</li>
+            <li>→ Inteligencia de Negocio</li>
+            <li>→ Notificaciones Real-Time</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">add_circle</span> Expansión</h3>
+          <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
+            <li>+ Gestión de Inventario Pro</li>
+            <li>+ Logística Integrada</li>
+            <li>+ Módulo de Contabilidad</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 9: INGENIERÍA DE CLASE MUNDIAL -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="image-area">
+        <div class="image-placeholder" style="background: var(--primary-dark); border: none;">
+          [Esquema: Clean Architecture / Módulos desacoplados]
+        </div>
+      </div>
+      <div class="content-area">
+        <h2>Ingeniería de Clase Mundial</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Robustez tecnológica diseñada para la longevidad del software.</p>
+        
+        <div class="card" style="margin-bottom: 1rem; background: var(--bg-light);">
+          <strong>Arquitectura Modular:</strong>
+          <p>Dominios independientes que garantizan estabilidad y crecimiento sin límites.</p>
+        </div>
+        <div class="card" style="margin-bottom: 1rem; background: var(--bg-light);">
+          <strong>Clean Architecture:</strong>
+          <p>Protección de la lógica de negocio frente a cambios tecnológicos.</p>
+        </div>
+        <div class="card" style="background: var(--bg-light);">
+          <strong>Domain-Driven Design (DDD):</strong>
+          <p>El software habla el lenguaje real del negocio textil.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 10: BACKEND (GO) -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="content-area">
+        <h2>Backend: Potencia y Eficiencia</h2>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <div style="background: #00add8; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">Go (Golang)</div>
+          <div style="background: #336791; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">PostgreSQL</div>
+        </div>
+        
+        <ul style="list-style: none;">
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: #00add8">speed</span>
+            <span><strong>Alto Rendimiento:</strong> Procesamiento ultra-rápido con consumo mínimo.</span>
+          </li>
+          <li style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: #00add8">settings_ethernet</span>
+            <span><strong>Concurrencia Nativa:</strong> Gestión de múltiples procesos simultáneos.</span>
+          </li>
+          <li style="display: flex; align-items: center; gap: 1rem;">
+            <span class="material-symbols-outlined" style="color: #00add8">security</span>
+            <span><strong>Integridad Total:</strong> Base de datos robusta para información crítica.</span>
+          </li>
+        </ul>
+      </div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Imagen: Código Go limpio / Logo Go]
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 11: FRONTEND (VUE) -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Imagen: Componentes Vue / UI agil]
+        </div>
+      </div>
+      <div class="content-area">
+        <h2>Frontend: Agilidad y Modernidad</h2>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+          <div style="background: #42b883; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">Vue.js 3</div>
+          <div style="background: #38bdf8; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">Tailwind CSS</div>
+        </div>
+        
+        <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <div style="border-left: 4px solid #42b883; padding-left: 1rem;">
+            <strong>Interactividad:</strong>
+            <p style="font-size: 1rem;">Interfaz reactiva que mejora la productividad.</p>
+          </div>
+          <div style="border-left: 4px solid #42b883; padding-left: 1rem;">
+            <strong>Consistencia:</strong>
+            <p style="font-size: 1rem;">Sistema de diseño unificado e intuitivo.</p>
+          </div>
+          <div style="border-left: 4px solid #42b883; padding-left: 1rem;">
+            <strong>Adaptabilidad:</strong>
+            <p style="font-size: 1rem;">Optimizado para taller y oficina.</p>
+          </div>
+          <div style="border-left: 4px solid #42b883; padding-left: 1rem;">
+            <strong>Calidad:</strong>
+            <p style="font-size: 1rem;">TypeScript para una UI sin errores comunes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 12: SIMPLICIDAD Y DESPLIEGUE -->
+    <section class="layout-grid">
+      <div class="logo-header">TRAMATEX</div>
+      <h2>Despliegue Local-First</h2>
+      <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Control total de los datos y costes de infraestructura mínimos.</p>
+      
+      <div class="card-grid">
+        <div class="card">
+          <h3><span class="material-symbols-outlined">cloud_off</span> Privacidad Total</h3>
+          <p>Operación 100% local. Los datos nunca salen de la empresa, garantizando la máxima seguridad.</p>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">box</span> Contenedores</h3>
+          <p>Despliegue estandarizado con Docker. Actualizaciones sencillas y sin conflictos de dependencias.</p>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">memory</span> Eficiencia</h3>
+          <p>Optimizado para funcionar en hardware modesto sin pérdida de rendimiento.</p>
+        </div>
+      </div>
+      
+      <div style="margin-top: 3rem; text-align: center; color: var(--text-light); font-style: italic;">
+        "Independencia tecnológica para la microempresa."
+      </div>
+    </section>
+
+    <!-- Diapositiva 13: ESTANDARIZACIÓN (SCAFFOLDING) -->
+    <section class="layout-split">
+      <div class="logo-header">TRAMATEX</div>
+      <div class="content-area">
+        <h2>Estandarización de Proyectos</h2>
+        <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">La base para la innovación acelerada y la calidad constante.</p>
+        
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3><span class="material-symbols-outlined">architecture</span> Scaffolding Profesional</h3>
+          <p>Estructura de proyecto lista para el desarrollo profesional desde el primer minuto.</p>
+        </div>
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3><span class="material-symbols-outlined">shutter_speed</span> Velocidad de Desarrollo</h3>
+          <p>Reduce drásticamente el tiempo de arranque de nuevos módulos o aplicaciones.</p>
+        </div>
+        <div class="card">
+          <h3><span class="material-symbols-outlined">rule</span> Calidad Integrada</h3>
+          <p>Asegura que todo nuevo desarrollo siga los altos estándares de ingeniería de TramaTex.</p>
+        </div>
+      </div>
+      <div class="image-area">
+        <div class="image-placeholder">
+          [Imagen: Estructura de carpetas / Pipeline de CI]
+        </div>
+      </div>
+    </section>
+
+    <!-- Diapositiva 14: CONCLUSIONES -->
+    <section class="layout-impact">
+      <h1>TramaTex</h1>
+      <p class="subtitle" style="margin-bottom: 3rem;">Preparados para el Siguiente Nivel</p>
+      
+      <div style="max-width: 800px; text-align: left; background: rgba(255,255,255,0.1); padding: 3rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.2);">
+        <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          Solución ERP/MES completa y específica para el sector textil.
+        </p>
+        <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          Arquitectura moderna: Estabilidad hoy, escalabilidad mañana.
+        </p>
+        <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          El aliado tecnológico definitivo para la organización y el crecimiento.
+        </p>
+      </div>
+
+      <div style="margin-top: 4rem; font-family: 'Montserrat'; font-size: 2rem; letter-spacing: 2px;">
+        ¡GRACIAS POR SU ATENCIÓN!
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
+
+
+</body>
+</html>

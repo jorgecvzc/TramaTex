@@ -299,59 +299,55 @@ function handleVariantSelected(payload) {
     item.selectedVariantName = variant.sku;
     item.productName = variant.product_name;
     item.optionConfiguration = variant.option_configuration || {};
-    // Usar base_cost que ya viene calculado con modificadores del backend
-    item.unitPrice = variant.base_cost ?? 0;
-    fetchPriceForLineItem(item);
+    item.unitPrice = null;
+    item._autoPrice = true;
   }
   showVariantSelector.value = false;
-  calculateTotals();
+  calculateTotals(true);
 }
 
-async function fetchPriceForLineItem(item) {
-  try {
-    const result = await pricingApi.calculateBaseSalesPrice(item.productId, item.productVariantId);
-    item.unitPrice = result.baseSalesPrice?.amount ?? item.unitPrice;
-    calculateTotals();
-  } catch (err) {}
-}
-
-async function inlineSmartSearch(index) {
-  const q = formData.value.lineItems[index].quickSearchQuery?.trim();
-  if (!q) return;
-  try {
-    const result = await productApi.smartSearch(q);
-    if (result.type === 'exact_variant') handleVariantSelected(result.variant);
-    else openVariantSelector(index);
-  } catch { openVariantSelector(index); }
-}
-
-function clearLineVariant(index) {
-  const item = formData.value.lineItems[index];
-  item.productVariantId = ''; item.selectedVariantName = '';
-  calculateTotals();
-}
-
-function removeLineItem(index) { formData.value.lineItems.splice(index, 1); calculateTotals(); }
-function addConfig() { formData.value.mesWorkRefs.push({ workSetupId: null, description: '' }); }
-function removeConfig(idx) { formData.value.mesWorkRefs.splice(idx, 1); }
-
-function calculateTotals() {
+function calculateTotals(immediate = false) {
   clearTimeout(previewDebounceTimer);
-  previewDebounceTimer = setTimeout(fetchPreviewCalculation, 400);
+  const delay = immediate ? 0 : 400;
+  previewDebounceTimer = setTimeout(fetchPreviewCalculation, delay);
 }
 
 async function fetchPreviewCalculation() {
   const items = formData.value.lineItems.filter(i => i.productVariantId).map(i => ({
-    productVariantId: i.productVariantId, quantity: i.quantity,
-    unitPrice: { amount: i.unitPrice.toString(), currency: 'EUR' },
-    discountPercent: i.discountPercent || 0
+    productVariantId: i.productVariantId, 
+    quantity: Number(i.quantity || 0),
+    ...(i._autoPrice === false ? { unitPrice: { amount: i.unitPrice.toString(), currency: 'EUR' } } : {}),
+    discountPercent: Number(i.discountPercent || 0)
   }));
-  if (!formData.value.partyId || items.length === 0) { calculatedTotals.value = { subtotal: 0, tax: 0, total: 0 }; return; }
+  
+  if (!formData.value.partyId || items.length === 0) { 
+    calculatedTotals.value = { subtotal: 0, tax: 0, total: 0 }; 
+    return; 
+  }
+  
+  isPreviewLoading.value = true;
   try {
     const res = await salesApi.previewOrderCalculation(formData.value.partyId, items);
-    previewResult.value = res;
-    calculatedTotals.value = { subtotal: res.subtotal.amount, tax: res.taxAmount.amount, total: res.total.amount };
-  } catch (err) {}
+    if (res) {
+      previewResult.value = res;
+      calculatedTotals.value = { 
+        subtotal: res.subtotal.amount, 
+        tax: res.taxAmount.amount, 
+        total: res.total.amount 
+      };
+      
+      // Update line unit prices from pricing engine for auto-priced items
+      formData.value.lineItems.forEach((item, idx) => {
+        if (item.productVariantId && item._autoPrice !== false && res.lineItems?.[idx]) {
+          item.unitPrice = res.lineItems[idx].unitPrice.amount;
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Error calculating order preview:", err);
+  } finally {
+    isPreviewLoading.value = false;
+  }
 }
 
 function calculateLineSubtotal(i) {

@@ -1,5 +1,5 @@
 <template>
-  <BaseEntityPage :is-loading="isLoading" :error="error">
+  <BaseEntityPage class="no-print" :is-loading="isLoading" :error="error">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <BasePageHeader 
@@ -12,10 +12,16 @@
           <span class="material-symbols-outlined">precision_manufacturing</span>
         </template>
         <template #actions>
-          <button v-if="!isEditing" class="btn btn-primary" @click="startEdit">
-            <span class="material-symbols-outlined">edit</span>
-            <span>Editar Orden</span>
-          </button>
+          <template v-if="!isEditing">
+            <button class="btn btn-outline" @click="printWorkOrder">
+              <span class="material-symbols-outlined">print</span>
+              <span>Imprimir Hoja</span>
+            </button>
+            <button class="btn btn-primary ml-2" @click="startEdit">
+              <span class="material-symbols-outlined">edit</span>
+              <span>Editar Orden</span>
+            </button>
+          </template>
           <template v-else>
             <button class="btn btn-outline" @click="cancelEdit" :disabled="isSaving">Cancelar</button>
             <button class="btn btn-secondary" @click="saveChanges" :disabled="isSaving">
@@ -176,6 +182,21 @@
         </FormSection>
       </template>
     </div>
+
+    <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
+    <div class="print-container">
+      <PrintDocument
+        v-if="work"
+        type="WORK_ORDER"
+        :number="work.work_number"
+        :date="work.created_at || new Date().toISOString()"
+        :expiry-date="work.due_date"
+        :customer-name="partyName"
+        :customer-tax-id="partyTaxId"
+        :items="printLines"
+        :notes="work.notes"
+      />
+    </div>
   </BaseEntityPage>
 </template>
 
@@ -186,8 +207,10 @@ import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import DataRow from '@/components/shared/DataRow.vue'
+import PrintDocument from '@/components/sales/PrintDocument.vue'
 import { mesApi } from '@/services/mesApi'
 import { partyApi } from '@/services/partyApi'
+import '@/assets/sales-print.css'
 import type { MESPosition, MESWorkType, WorkOrder } from '@/types/mes'
 
 const route = useRoute()
@@ -196,6 +219,7 @@ const isLoading = ref(false)
 const error = ref('')
 const work = ref<WorkOrder | null>(null)
 const partyName = ref('')
+const partyTaxId = ref('')
 const workSetupName = ref('')
 const workTypeNames = ref<Record<string, string>>({})
 const positionNames = ref<Record<string, string>>({})
@@ -214,6 +238,18 @@ const editForm = ref({
 const isOverdue = computed(() => {
   if (!work.value?.due_date || work.value.status === 'COMPLETED') return false
   return new Date(work.value.due_date) < new Date()
+})
+
+const printLines = computed(() => {
+  if (!work.value) return []
+  return work.value.lines.map(line => ({
+    variantSku: workTypeNames.value[line.work_type_id] || 'PROCESO',
+    productName: positionNames.value[line.position_id] || 'POSICIÓN',
+    description: line.notes || (line.tasks?.length ? `${line.tasks.length} tareas taller` : ''),
+    quantity: 1,
+    unitPrice: 0,
+    total: 0
+  }))
 })
 
 function getStatusClass(status: string) {
@@ -299,6 +335,7 @@ async function loadLookupData(currentWork: WorkOrder) {
   ])
 
   partyName.value = partyResult?.name || ''
+  partyTaxId.value = partyResult?.tax_id || ''
   workSetupName.value = wsResult?.name || ''
 
   const templateMap: Record<string, string> = {}
@@ -344,6 +381,10 @@ function copyPath(path: string) {
   navigator.clipboard.writeText(path)
 }
 
+function printWorkOrder() {
+  window.print()
+}
+
 onMounted(loadDetail)
 </script>
 
@@ -383,4 +424,12 @@ onMounted(loadDetail)
 
 .bg-light { background-color: var(--color-background); }
 .notes-text { color: var(--color-text-primary); line-height: 1.5; margin: 0; }
+
+/* ESTILOS DE IMPRESIÓN PROFESIONAL */
+.print-container { display: none; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+}
 </style>

@@ -3,44 +3,46 @@ package domain
 import "fmt"
 
 type QuoteStatus string
-
 type SalesOrderStatus string
-
 type DeliveryNoteStatus string
-
 type InvoiceStatus string
 
 const (
-	QuoteStatusDraft     QuoteStatus = "BORRADOR"
-	QuoteStatusIssued    QuoteStatus = "EMITIDA"
-	QuoteStatusApproved  QuoteStatus = "APROBADA"
-	QuoteStatusAccepted  QuoteStatus = "ACEPTADA" // Alias for backward compatibility or UI consistency
-	QuoteStatusRejected  QuoteStatus = "RECHAZADA"
-	QuoteStatusExpired   QuoteStatus = "EXPIRADA"
-	QuoteStatusConverted QuoteStatus = "CONVERTIDA_A_PEDIDO"
+	QuoteStatusDraft     QuoteStatus = "DRAFT"
+	QuoteStatusIssued    QuoteStatus = "ISSUED"
+	QuoteStatusApproved  QuoteStatus = "APPROVED"
+	QuoteStatusRejected  QuoteStatus = "REJECTED"
+	QuoteStatusExpired   QuoteStatus = "EXPIRED"
+	QuoteStatusConverted QuoteStatus = "CONVERTED_TO_ORDER"
 
-	SalesOrderStatusPending            SalesOrderStatus = "PENDIENTE"
-	SalesOrderStatusInPreparation      SalesOrderStatus = "EN_PREPARACION"
-	SalesOrderStatusPartiallyDelivered SalesOrderStatus = "ENTREGADO_PARCIALMENTE"
-	SalesOrderStatusDelivered          SalesOrderStatus = "ENTREGADO"
-	SalesOrderStatusCanceled           SalesOrderStatus = "CANCELADO"
-	SalesOrderStatusPartiallyInvoiced  SalesOrderStatus = "FACTURADO_PARCIALMENTE"
-	SalesOrderStatusInvoiced           SalesOrderStatus = "FACTURADO_COMPLETAMENTE"
+	SalesOrderStatusPending            SalesOrderStatus = "PENDING"
+	SalesOrderStatusInPreparation      SalesOrderStatus = "IN_PREPARATION"
+	SalesOrderStatusReadyForProduction SalesOrderStatus = "READY_FOR_PRODUCTION"
+	SalesOrderStatusPartiallyDelivered SalesOrderStatus = "PARTIALLY_DELIVERED"
+	SalesOrderStatusDelivered          SalesOrderStatus = "DELIVERED"
+	SalesOrderStatusCancelled          SalesOrderStatus = "CANCELLED"
+	SalesOrderStatusPartiallyInvoiced  SalesOrderStatus = "PARTIALLY_INVOICED"
+	SalesOrderStatusInvoiced           SalesOrderStatus = "INVOICED"
 
-	DeliveryNoteStatusPending   DeliveryNoteStatus = "PENDIENTE"
-	DeliveryNoteStatusDelivered DeliveryNoteStatus = "ENTREGADO"
-	DeliveryNoteStatusCanceled  DeliveryNoteStatus = "CANCELADO"
+	DeliveryNoteStatusPending   DeliveryNoteStatus = "PENDING"
+	DeliveryNoteStatusDelivered DeliveryNoteStatus = "DELIVERED"
+	DeliveryNoteStatusCancelled DeliveryNoteStatus = "CANCELLED"
 
-	InvoiceStatusDraft   InvoiceStatus = "BORRADOR"
-	InvoiceStatusIssued  InvoiceStatus = "EMITIDA"
-	InvoiceStatusPaid    InvoiceStatus = "PAGADA"
-	InvoiceStatusOverdue InvoiceStatus = "VENCIDA"
-	InvoiceStatusVoid    InvoiceStatus = "ANULADA"
+	InvoiceStatusDraft   InvoiceStatus = "DRAFT"
+	InvoiceStatusIssued  InvoiceStatus = "ISSUED"
+	InvoiceStatusPaid    InvoiceStatus = "PAID"
+	InvoiceStatusOverdue InvoiceStatus = "OVERDUE"
+	InvoiceStatusVoid    InvoiceStatus = "VOID"
 )
 
 func (s QuoteStatus) IsValid() error {
 	switch s {
-	case QuoteStatusDraft, QuoteStatusIssued, QuoteStatusApproved, QuoteStatusAccepted, QuoteStatusRejected, QuoteStatusExpired, QuoteStatusConverted:
+	case QuoteStatusDraft,
+		QuoteStatusIssued,
+		QuoteStatusApproved,
+		QuoteStatusRejected,
+		QuoteStatusExpired,
+		QuoteStatusConverted:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid quote status: %s", s))
@@ -49,8 +51,14 @@ func (s QuoteStatus) IsValid() error {
 
 func (s SalesOrderStatus) IsValid() error {
 	switch s {
-	case SalesOrderStatusPending, SalesOrderStatusInPreparation, SalesOrderStatusPartiallyDelivered, SalesOrderStatusDelivered, SalesOrderStatusCanceled,
-		SalesOrderStatusPartiallyInvoiced, SalesOrderStatusInvoiced:
+	case SalesOrderStatusPending,
+		SalesOrderStatusInPreparation,
+		SalesOrderStatusReadyForProduction,
+		SalesOrderStatusPartiallyDelivered,
+		SalesOrderStatusDelivered,
+		SalesOrderStatusCancelled,
+		SalesOrderStatusPartiallyInvoiced,
+		SalesOrderStatusInvoiced:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid sales order status: %s", s))
@@ -59,7 +67,9 @@ func (s SalesOrderStatus) IsValid() error {
 
 func (s DeliveryNoteStatus) IsValid() error {
 	switch s {
-	case DeliveryNoteStatusPending, DeliveryNoteStatusDelivered, DeliveryNoteStatusCanceled:
+	case DeliveryNoteStatusPending,
+		DeliveryNoteStatusDelivered,
+		DeliveryNoteStatusCancelled:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid delivery note status: %s", s))
@@ -68,7 +78,11 @@ func (s DeliveryNoteStatus) IsValid() error {
 
 func (s InvoiceStatus) IsValid() error {
 	switch s {
-	case InvoiceStatusDraft, InvoiceStatusIssued, InvoiceStatusPaid, InvoiceStatusOverdue, InvoiceStatusVoid:
+	case InvoiceStatusDraft,
+		InvoiceStatusIssued,
+		InvoiceStatusPaid,
+		InvoiceStatusOverdue,
+		InvoiceStatusVoid:
 		return nil
 	default:
 		return NewValidationError(fmt.Sprintf("invalid invoice status: %s", s))
@@ -76,13 +90,16 @@ func (s InvoiceStatus) IsValid() error {
 }
 
 func canTransitionQuote(from QuoteStatus, to QuoteStatus) bool {
+	if from == to {
+		return true
+	}
 	switch from {
 	case QuoteStatusDraft:
 		return to == QuoteStatusIssued
 	case QuoteStatusIssued:
-		return to == QuoteStatusApproved || to == QuoteStatusAccepted || to == QuoteStatusRejected || to == QuoteStatusExpired || to == QuoteStatusDraft
-	case QuoteStatusApproved, QuoteStatusAccepted:
-		return to == QuoteStatusConverted
+		return to == QuoteStatusApproved || to == QuoteStatusRejected || to == QuoteStatusExpired || to == QuoteStatusDraft
+	case QuoteStatusApproved:
+		return to == QuoteStatusConverted || to == QuoteStatusIssued || to == QuoteStatusDraft
 	case QuoteStatusRejected:
 		return to == QuoteStatusDraft
 	default:
@@ -91,18 +108,23 @@ func canTransitionQuote(from QuoteStatus, to QuoteStatus) bool {
 }
 
 func canTransitionOrder(from SalesOrderStatus, to SalesOrderStatus) bool {
+	if from == to {
+		return true
+	}
 	switch from {
 	case SalesOrderStatusPending:
-		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusCanceled
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusReadyForProduction || to == SalesOrderStatusCancelled
 	case SalesOrderStatusInPreparation:
-		return to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusDelivered || to == SalesOrderStatusCanceled
+		return to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusDelivered || to == SalesOrderStatusReadyForProduction || to == SalesOrderStatusCancelled
+	case SalesOrderStatusReadyForProduction:
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusDelivered || to == SalesOrderStatusCancelled
 	case SalesOrderStatusPartiallyDelivered:
-		return to == SalesOrderStatusDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced || to == SalesOrderStatusCanceled
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced || to == SalesOrderStatusCancelled
 	case SalesOrderStatusDelivered:
-		return to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced
+		return to == SalesOrderStatusInPreparation || to == SalesOrderStatusPartiallyDelivered || to == SalesOrderStatusPartiallyInvoiced || to == SalesOrderStatusInvoiced
 	case SalesOrderStatusPartiallyInvoiced:
 		return to == SalesOrderStatusInvoiced
-	case SalesOrderStatusCanceled:
+	case SalesOrderStatusCancelled:
 		return to == SalesOrderStatusPending
 	default:
 		return false
@@ -110,18 +132,20 @@ func canTransitionOrder(from SalesOrderStatus, to SalesOrderStatus) bool {
 }
 
 func canTransitionDeliveryNote(from DeliveryNoteStatus, to DeliveryNoteStatus) bool {
-	switch from {
-	case DeliveryNoteStatusPending:
-		return to == DeliveryNoteStatusDelivered || to == DeliveryNoteStatusCanceled
-	default:
-		return false
+	// Temporarily allow all valid transitions to fix the reactivation issue
+	if from == to {
+		return true
 	}
+	return to.IsValid() == nil
 }
 
 func canTransitionInvoice(from InvoiceStatus, to InvoiceStatus) bool {
+	if from == to {
+		return true
+	}
 	switch from {
 	case InvoiceStatusDraft:
-		return to == InvoiceStatusIssued || to == InvoiceStatusVoid
+		return to == InvoiceStatusIssued || to == InvoiceStatusVoid || to == InvoiceStatusPaid
 	case InvoiceStatusIssued:
 		return to == InvoiceStatusPaid || to == InvoiceStatusOverdue || to == InvoiceStatusVoid
 	case InvoiceStatusOverdue:

@@ -27,6 +27,16 @@
         </div>
 
         <div class="filter-group">
+          <label>Estado</label>
+          <select v-model="filters.status" class="form-input-sm">
+            <option value="">Todos</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="DELIVERED">Entregado</option>
+            <option value="CANCELLED">Anulado</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
           <label>Desde</label>
           <input v-model="filters.fromDate" type="date" />
         </div>
@@ -79,18 +89,19 @@ import { useRouter } from 'vue-router';
 
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
+import { partyApi } from '@/services/partyApi';
 
 const router = useRouter();
 const deliveryNotes = ref([]);
 const isLoading = ref(false);
-const filters = ref({ searchText: '', fromDate: '', toDate: '' });
+const filters = ref({ searchText: '', status: '', fromDate: '', toDate: '' });
 const partiesCache = ref({});
 const ordersCache = ref({});
 
-const hasFilters = computed(() => filters.value.searchText || filters.value.fromDate || filters.value.toDate);
+const hasFilters = computed(() => filters.value.searchText || filters.value.status || filters.value.fromDate || filters.value.toDate);
 
 let searchDebounceTimer = null;
-watch(() => [filters.value.searchText, filters.value.fromDate, filters.value.toDate], () => {
+watch(() => [filters.value.searchText, filters.value.status, filters.value.fromDate, filters.value.toDate], () => {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => fetchNotes(), 350);
 });
@@ -136,7 +147,7 @@ async function loadOrderNumbers() {
 function formatPartyName(id) { return partiesCache.value[id] || 'Cargando...'; }
 function formatOrderNumber(id) { return ordersCache.value[id] || id?.substring(0, 8) || '...'; }
 
-function clearFilters() { filters.value = { searchText: '', fromDate: '', toDate: '' }; fetchNotes(); }
+function clearFilters() { filters.value = { searchText: '', status: '', fromDate: '', toDate: '' }; fetchNotes(); }
 function navigateToDetail(id) { router.push(`/sales/delivery-notes/${id}`); }
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'; }
 </script>

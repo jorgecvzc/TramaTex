@@ -1,15 +1,25 @@
 -- ============================================================================
--- Migration: v2_001_init_iam.sql
--- Description: Initialize IAM (Identity and Access Management) module
--- Date: 2026-02-25
--- Modules: Users, Roles, Permissions, Authentication
+-- Migration: 001_init_iam.sql
+-- Module: IAM (Identity and Access Management)
+-- Tables: users, permissions, role_permissions, revoked_tokens
+-- Date: 2026-04-14
 -- ============================================================================
 
-BEGIN;
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ============================================================================
+-- SHARED TRIGGER FUNCTION (used by all modules)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- USERS TABLE
@@ -18,13 +28,13 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'operator',
+    role VARCHAR(50) NOT NULL DEFAULT 'commercial',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE,
     
-    CONSTRAINT chk_role CHECK (role IN ('admin', 'manager', 'operator', 'cashier')),
+    CONSTRAINT chk_role CHECK (role IN ('admin', 'commercial', 'cashier', 'designer', 'workshop')),
     CONSTRAINT chk_email_not_empty CHECK (email <> ''),
     CONSTRAINT chk_password_not_empty CHECK (password <> '')
 );
@@ -35,17 +45,10 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 
 COMMENT ON TABLE users IS 'Users table - stores user accounts with authentication data';
-COMMENT ON COLUMN users.id IS 'Unique identifier (UUID)';
-COMMENT ON COLUMN users.email IS 'User email address - unique, used for login';
-COMMENT ON COLUMN users.password IS 'Bcrypt hashed password (cost=10)';
-COMMENT ON COLUMN users.role IS 'User role: admin, manager, operator, cashier';
-COMMENT ON COLUMN users.is_active IS 'Account active status';
-COMMENT ON COLUMN users.created_at IS 'Record creation timestamp (UTC)';
-COMMENT ON COLUMN users.updated_at IS 'Record last update timestamp (UTC)';
-COMMENT ON COLUMN users.deleted_at IS 'Soft delete timestamp (NULL = active)';
+COMMENT ON COLUMN users.role IS 'User role: admin, commercial, cashier, designer, workshop';
 
--- ===========================================================================
--- ROLES & PERMISSIONS TABLES
+-- ============================================================================
+-- PERMISSIONS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS permissions (
     id VARCHAR(100) PRIMARY KEY,
@@ -58,6 +61,8 @@ CREATE INDEX IF NOT EXISTS idx_permissions_category ON permissions(category);
 
 COMMENT ON TABLE permissions IS 'System permissions catalog';
 
+-- ============================================================================
+-- ROLE PERMISSIONS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS role_permissions (
     role VARCHAR(50) NOT NULL,
@@ -92,14 +97,6 @@ COMMENT ON TABLE revoked_tokens IS 'Stores revoked JWT tokens for logout functio
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 DROP TRIGGER IF EXISTS trg_users_update_timestamp ON users;
 CREATE TRIGGER trg_users_update_timestamp
 BEFORE UPDATE ON users
@@ -107,10 +104,8 @@ FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- SEED DATA: Admin User
+-- SEED: Admin User (password: admin123)
 -- ============================================================================
--- Password: admin123
--- Hash generated with bcrypt cost=10
 INSERT INTO users (id, email, password, role, is_active)
 VALUES (
     'f47ac10b-58cc-4372-a567-0e02b2c3d479',
@@ -126,8 +121,3 @@ SET
     is_active = true,
     deleted_at = NULL;
 
-COMMIT;
-
--- ============================================================================
--- END OF MIGRATION: v2_001_init_iam.sql
--- ============================================================================

@@ -7,18 +7,27 @@
 }
 
 @media print {
-  /* Ocultar elementos de interfaz */
+  /* Ocultar elementos de interfaz - Selectores agresivos y globales */
   .navbar, 
+  .side-navbar,
+  .app-sidebar,
+  aside,
+  nav,
+  header:not(.print-header),
   .action-toolbar, 
   .header-actions-group, 
   .btn, 
   .breadcrumb-nav,
   .no-print {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    left: -9999px !important;
   }
 
   /* Reset de layout para papel */
-  body, .main-container, .detail-standard-layout {
+  body, .main-container, .detail-standard-layout, .app-main {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
@@ -31,10 +40,31 @@
     display: block !important;
   }
 
-  /* Configuración de página A4 */
+  /*
+   * A4 sin cabecera/pie automáticos del navegador.
+   * El margen visual se aplica al body para mantener el contenido dentro de hoja.
+   */
   @page {
-    size: A4;
-    margin: 15mm;
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body {
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .print-container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 12mm 12mm 18mm !important;
+    box-sizing: border-box !important;
+    overflow: hidden;
+  }
+
+  .print-container * {
+    box-sizing: border-box;
   }
 
   /* Cabecera del Documento */
@@ -86,6 +116,7 @@
   .print-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 2rem;
   }
 
@@ -102,6 +133,18 @@
     padding: 0.75rem;
     border-bottom: 1px solid #eee;
     font-size: 0.9rem;
+  }
+
+  .print-table th,
+  .print-table td,
+  .address-content p,
+  .address-content strong,
+  .notes-block p,
+  .legal-notice p,
+  .footer-col p,
+  .footer-col strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Totales */
@@ -126,8 +169,10 @@
   /* Footer Legal */
   .print-footer {
     position: fixed;
-    bottom: 0;
-    width: 100%;
+    bottom: 8mm;
+    left: 12mm;
+    right: 12mm;
+    width: auto;
     font-size: 0.7rem;
     color: #666;
     text-align: center;

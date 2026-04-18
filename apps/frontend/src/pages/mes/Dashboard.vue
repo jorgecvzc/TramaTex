@@ -223,10 +223,10 @@ async function loadDashboard() {
     inProgressOrders.value = i
     
     // Enriquecer solicitudes de ventas con nombres de clientes
-    const enrichedSW = await Promise.all(sw.map(async (item: any) => {
-      if (item.party_id || item.partyId) {
+    const enrichedSW = await Promise.all(sw.map(async (item: PendingWorkSetup) => {
+      if (item.party_id) {
         try {
-          const party = await partyApi.getParty(item.party_id || item.partyId)
+          const party = await partyApi.getParty(item.party_id)
           return { ...item, party_name: party?.name || party?.displayName }
         } catch (e) {
           return item
@@ -246,13 +246,13 @@ function configureOrder(wo: WorkOrder) {
   showSetupDialog.value = true
 }
 
-function configurePending(setup: any) {
+function configurePending(setup: PendingWorkSetup & { party_name?: string }) {
   // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
   selectedWorkOrder.value = {
     id: setup.id,
     work_number: setup.order_number,
     work_name: setup.description,
-    party_id: setup.party_id || setup.partyId,
+    party_id: setup.party_id,
     party_name: setup.party_name,
     order_work_setup_id: setup.id // Referencia crucial para vincular al crear la orden
   }

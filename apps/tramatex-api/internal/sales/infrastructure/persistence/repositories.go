@@ -143,7 +143,7 @@ func (r *GORMQuoteRepository) List(ctx context.Context, filter domain.QuoteFilte
 	}
 
 	var data []QuoteDataModel
-	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
+	if err := query.Order("quote_number desc").Find(&data).Error; err != nil {
 		return nil, err
 	}
 
@@ -363,7 +363,7 @@ func (r *GORMSalesOrderRepository) List(ctx context.Context, filter domain.Sales
 	}
 
 	var data []SalesOrderDataModel
-	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
+	if err := query.Order("order_number desc").Find(&data).Error; err != nil {
 		return nil, err
 	}
 
@@ -537,7 +537,7 @@ func (r *GORMDeliveryNoteRepository) List(ctx context.Context, filter domain.Del
 	}
 
 	var data []DeliveryNoteDataModel
-	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
+	if err := query.Order("delivery_note_number desc").Find(&data).Error; err != nil {
 		return nil, err
 	}
 
@@ -559,6 +559,15 @@ func (r *GORMDeliveryNoteRepository) List(ctx context.Context, filter domain.Del
 func (r *GORMDeliveryNoteRepository) ListBySalesOrderID(ctx context.Context, orderID uuid.UUID) ([]*domain.DeliveryNote, error) {
 	filter := domain.DeliveryNoteFilter{SalesOrderID: &orderID}
 	return r.List(ctx, filter)
+}
+
+func (r *GORMDeliveryNoteRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return getDB(ctx, r.db).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("delivery_note_id = ?", id).Delete(&DeliveryNoteLineItemDataModel{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&DeliveryNoteDataModel{}, "id = ?", id).Error
+	})
 }
 
 func (r *GORMDeliveryNoteRepository) loadDeliveryNoteLineItems(ctx context.Context, noteID uuid.UUID) ([]DeliveryNoteLineItemDataModel, error) {
@@ -735,7 +744,7 @@ func (r *GORMInvoiceRepository) List(ctx context.Context, filter domain.InvoiceF
 	}
 
 	var data []InvoiceDataModel
-	if err := query.Order("created_at desc").Find(&data).Error; err != nil {
+	if err := query.Order("invoice_number desc").Find(&data).Error; err != nil {
 		return nil, err
 	}
 

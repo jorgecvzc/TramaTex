@@ -63,7 +63,6 @@ func (s *SalesService) PreviewOrderCalculation(ctx context.Context, cmd PreviewO
 	}, nil
 }
 
-
 func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) (*SalesOrderDTO, error) {
 	if cmd.PartyID == uuid.Nil {
 		return nil, domain.NewValidationError("partyId is required")
@@ -94,13 +93,26 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 		if quote == nil {
 			return nil, domain.NewNotFoundError("quote not found")
 		}
-		// Full conversion path: quote is APPROVED â†’ copy line items, change quote status
-		if quote.Status != domain.QuoteStatusApproved {
-			return nil, domain.NewConflictError("quote must be approved before conversion")
+
+		// Auto-approve quote if it's not already approved.
+		// We try to transition through the required states.
+		if quote.Status != domain.QuoteStatusApproved && quote.Status != domain.QuoteStatusConverted {
+			if quote.Status == domain.QuoteStatusDraft {
+				if err := quote.ChangeStatus(domain.QuoteStatusIssued); err != nil {
+					return nil, fmt.Errorf("auto-approve failed (DRAFT->ISSUED): %w", err)
+				}
+			}
+			if quote.Status == domain.QuoteStatusIssued {
+				if err := quote.ChangeStatus(domain.QuoteStatusApproved); err != nil {
+					return nil, fmt.Errorf("auto-approve failed (ISSUED->APPROVED): %w", err)
+				}
+			}
 		}
+
+		// Full conversion path: quote is now in a valid state for ConvertToOrder
 		order, err := quote.ConvertToOrder(orderNumber, cmd.DeliveryDate)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("conversion failed (status %s): %w", quote.Status, err)
 		}
 		if err := s.orderRepo.Save(ctx, order); err != nil {
 			return nil, err
@@ -165,7 +177,6 @@ func (s *SalesService) CreateOrder(ctx context.Context, cmd CreateOrderCommand) 
 	return NewSalesOrderDTO(order), nil
 }
 
-
 func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDetailsCommand) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, cmd.OrderID)
 	if err != nil {
@@ -176,6 +187,14 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 	}
 	if !canEditOrderDetails(order.Status) {
 		return nil, domain.NewConflictError("order details cannot be updated in current status")
+	}
+
+	hasNotes, err := s.orderHasActiveDeliveryNotes(ctx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasNotes {
+		return nil, domain.NewConflictError("order cannot be edited because it has delivery notes")
 	}
 
 	if cmd.PartyID != nil {
@@ -207,7 +226,7 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 
 	// For confirmed orders, create MES WorkOrders for any newly added WorkReferences
 	// that don't yet have a linked WorkOrder (e.g. refs added after initial confirmation).
-	if order.Status == domain.SalesOrderStatusInPreparation {
+	if order.Status == domain.SalesOrderStatusInPreparation || order.Status == domain.SalesOrderStatusReadyForProduction {
 		if err := s.createWorkOrdersForOrder(ctx, order); err != nil {
 			return nil, err
 		}
@@ -219,7 +238,6 @@ func (s *SalesService) UpdateOrderDetails(ctx context.Context, cmd UpdateOrderDe
 
 	return NewSalesOrderDTO(order), nil
 }
-
 
 func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderStatusCommand) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, cmd.OrderID)
@@ -240,7 +258,7 @@ func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderSta
 		return nil, err
 	}
 
-	// On confirmation (PENDIENTE â†’ EN_PREPARACION), create MES WorkOrders
+	// On confirmation (PENDIENTE → EN_PREPARACION), create MES WorkOrders
 	// for every WorkReference that doesn't yet have a WorkOrderID.
 	if previousStatus == domain.SalesOrderStatusPending && status == domain.SalesOrderStatusInPreparation {
 		if err := s.createWorkOrdersForOrder(ctx, order); err != nil {
@@ -248,8 +266,28 @@ func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderSta
 		}
 	}
 
+	// If moving to Production, ensure WorkOrders are created first if they don't exist, then activate them.
+	if status == domain.SalesOrderStatusReadyForProduction {
+		// Create if they don't exist yet (skip path)
+		if err := s.createWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+		// Activate them
+		if err := s.reactivateWorkOrdersForOrder(ctx, order); err != nil {
+			return nil, err
+		}
+	}
+
 	// On cancellation of a confirmed order, suspend its MES WorkOrders.
-	if status == domain.SalesOrderStatusCanceled {
+	// Cancellation is blocked if the order already has active delivery notes.
+	if status == domain.SalesOrderStatusCancelled {
+		hasNotes, err := s.orderHasActiveDeliveryNotes(ctx, order.ID)
+		if err != nil {
+			return nil, err
+		}
+		if hasNotes {
+			return nil, domain.NewConflictError("order cannot be cancelled because it has delivery notes")
+		}
 		if err := s.suspendWorkOrdersForOrder(ctx, order); err != nil {
 			return nil, err
 		}
@@ -259,7 +297,7 @@ func (s *SalesService) ChangeOrderStatus(ctx context.Context, cmd ChangeOrderSta
 	// (PENDIENTE â†’ EN_PREPARACION), reactivate the MES WorkOrders. We also
 	// handle CANCELADO â†’ PENDIENTE directly so WorkOrders are ready even
 	// before the second status change.
-	if previousStatus == domain.SalesOrderStatusCanceled && status == domain.SalesOrderStatusPending {
+	if previousStatus == domain.SalesOrderStatusCancelled && status == domain.SalesOrderStatusPending {
 		if err := s.reactivateWorkOrdersForOrder(ctx, order); err != nil {
 			return nil, err
 		}
@@ -344,7 +382,6 @@ func (s *SalesService) reactivateWorkOrdersForOrder(ctx context.Context, order *
 	return s.workOrderSuspender.ReactivateWorkOrders(ctx, ids)
 }
 
-
 func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineItemCommand) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, cmd.OrderID)
 	if err != nil {
@@ -355,6 +392,13 @@ func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineIte
 	}
 	if !canEditOrderLineItems(order.Status) {
 		return nil, domain.NewConflictError("order line items cannot be updated in current status")
+	}
+	hasNotes, err := s.orderHasActiveDeliveryNotes(ctx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasNotes {
+		return nil, domain.NewConflictError("order cannot be edited because it has delivery notes")
 	}
 
 	seeds := orderLineItemSeedsFromOrder(order.LineItems)
@@ -393,7 +437,6 @@ func (s *SalesService) AddOrderLineItem(ctx context.Context, cmd AddOrderLineIte
 	return NewSalesOrderDTO(order), nil
 }
 
-
 func (s *SalesService) UpdateOrderLineItem(ctx context.Context, cmd UpdateOrderLineItemCommand) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, cmd.OrderID)
 	if err != nil {
@@ -404,6 +447,13 @@ func (s *SalesService) UpdateOrderLineItem(ctx context.Context, cmd UpdateOrderL
 	}
 	if !canEditOrderLineItems(order.Status) {
 		return nil, domain.NewConflictError("order line items cannot be updated in current status")
+	}
+	hasNotes, err := s.orderHasActiveDeliveryNotes(ctx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasNotes {
+		return nil, domain.NewConflictError("order cannot be edited because it has delivery notes")
 	}
 
 	seeds := orderLineItemSeedsFromOrder(order.LineItems)
@@ -449,7 +499,6 @@ func (s *SalesService) UpdateOrderLineItem(ctx context.Context, cmd UpdateOrderL
 	return NewSalesOrderDTO(order), nil
 }
 
-
 func (s *SalesService) RemoveOrderLineItem(ctx context.Context, cmd RemoveOrderLineItemCommand) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, cmd.OrderID)
 	if err != nil {
@@ -460,6 +509,13 @@ func (s *SalesService) RemoveOrderLineItem(ctx context.Context, cmd RemoveOrderL
 	}
 	if !canEditOrderLineItems(order.Status) {
 		return nil, domain.NewConflictError("order line items cannot be updated in current status")
+	}
+	hasNotes, err := s.orderHasActiveDeliveryNotes(ctx, order.ID)
+	if err != nil {
+		return nil, err
+	}
+	if hasNotes {
+		return nil, domain.NewConflictError("order cannot be edited because it has delivery notes")
 	}
 
 	seeds := orderLineItemSeedsFromOrder(order.LineItems)
@@ -499,7 +555,6 @@ func (s *SalesService) RemoveOrderLineItem(ctx context.Context, cmd RemoveOrderL
 	return NewSalesOrderDTO(order), nil
 }
 
-
 func (s *SalesService) GetOrder(ctx context.Context, query GetOrderByIDQuery) (*SalesOrderDTO, error) {
 	order, err := s.orderRepo.FindByID(ctx, query.ID)
 	if err != nil {
@@ -510,11 +565,21 @@ func (s *SalesService) GetOrder(ctx context.Context, query GetOrderByIDQuery) (*
 	}
 	dto := NewSalesOrderDTO(order)
 	s.enrichOrderLineItems(ctx, dto.LineItems)
+	s.enrichOrderDeliveredQuantities(ctx, dto)
 	s.enrichOrderWithQuoteInfo(ctx, dto)
 	s.enrichOrderMESStatus(ctx, dto)
 	return dto, nil
 }
 
+func (s *SalesService) enrichOrderDeliveredQuantities(ctx context.Context, dto *SalesOrderDTO) {
+	delivered, err := s.deliveredQuantities(ctx, dto.ID)
+	if err != nil || len(delivered) == 0 {
+		return
+	}
+	for i := range dto.LineItems {
+		dto.LineItems[i].DeliveredQuantity = delivered[dto.LineItems[i].ID]
+	}
+}
 
 func (s *SalesService) enrichOrderWithQuoteInfo(ctx context.Context, dto *SalesOrderDTO) {
 	if dto.QuoteID == nil {
@@ -526,7 +591,6 @@ func (s *SalesService) enrichOrderWithQuoteInfo(ctx context.Context, dto *SalesO
 	}
 	dto.SourceQuoteNumber = quote.QuoteNumber.String()
 }
-
 
 func (s *SalesService) enrichOrderMESStatus(ctx context.Context, dto *SalesOrderDTO) {
 	if s.workOrderStatusProvider == nil || len(dto.MesWorkRefs) == 0 {
@@ -566,7 +630,6 @@ func (s *SalesService) enrichOrderMESStatus(ctx context.Context, dto *SalesOrder
 	}
 }
 
-
 func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([]*SalesOrderDTO, error) {
 	filter := domain.SalesOrderFilter{PartyID: query.PartyID, FromDate: query.FromDate, ToDate: query.ToDate, Search: query.Search, Limit: query.PageSize}
 	if query.Status != nil {
@@ -589,9 +652,8 @@ func (s *SalesService) ListOrders(ctx context.Context, query ListOrdersQuery) ([
 	return result, nil
 }
 
-
 func (s *SalesService) ListPendingWorkSetups(ctx context.Context) ([]PendingWorkSetupDTO, error) {
-	status := domain.SalesOrderStatusInPreparation
+	status := domain.SalesOrderStatusReadyForProduction
 	filter := domain.SalesOrderFilter{Status: &status}
 	orders, err := s.orderRepo.List(ctx, filter)
 	if err != nil {
@@ -617,7 +679,6 @@ func (s *SalesService) ListPendingWorkSetups(ctx context.Context) ([]PendingWork
 	return result, nil
 }
 
-
 func orderLineItemSeedsFromOrder(items []domain.OrderLineItem) []orderLineItemSeed {
 	seeds := make([]orderLineItemSeed, 0, len(items))
 	for _, item := range items {
@@ -639,7 +700,6 @@ func orderLineItemSeedsFromOrder(items []domain.OrderLineItem) []orderLineItemSe
 	return seeds
 }
 
-
 func (s *SalesService) buildOrderLineItems(ctx context.Context, partyID uuid.UUID, items []OrderLineItemInput, existingIDs []uuid.UUID) ([]domain.OrderLineItem, error) {
 	seeds := make([]orderLineItemSeed, 0, len(items))
 	for i, item := range items {
@@ -659,7 +719,6 @@ func (s *SalesService) buildOrderLineItems(ctx context.Context, partyID uuid.UUI
 	return s.buildOrderLineItemsFromSeeds(ctx, partyID, seeds)
 }
 
-
 func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID uuid.UUID, seeds []orderLineItemSeed) ([]domain.OrderLineItem, error) {
 	if s.pricingEngine == nil {
 		return nil, domain.NewConfigurationError("pricing engine not configured")
@@ -676,8 +735,10 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 			return nil, domain.NewValidationError("quantity must be greater than zero")
 		}
 		request.SaleItems[i] = pricing_app.SaleItemRequest{
-			ProductVariantID: seed.ProductVariantID,
-			Quantity:         seed.Quantity,
+			ProductVariantID:      seed.ProductVariantID,
+			Quantity:              seed.Quantity,
+			ManualUnitPrice:       (*pricing_app.MoneyDTO)(seed.UnitPrice),
+			ManualDiscountPercent: seed.DiscountPercent,
 		}
 	}
 
@@ -698,7 +759,7 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 			return nil, err
 		}
 
-		// Effective unit price: user override or pricing engine's baseSalesPrice
+		// Effective unit price: defaults to the base sales price (tariff). Discounts are applied on top of this.
 		effectiveUnitPrice := listUnitPrice
 		if seed.UnitPrice != nil {
 			effectiveUnitPrice, err = domain.NewMoney(seed.UnitPrice.Amount, seed.UnitPrice.Currency)
@@ -768,7 +829,6 @@ func (s *SalesService) buildOrderLineItemsFromSeeds(ctx context.Context, partyID
 	return lineItems, nil
 }
 
-
 func sumOrderLineItemTaxes(items []domain.OrderLineItem) (domain.Money, error) {
 	total, err := zeroMoney()
 	if err != nil {
@@ -783,27 +843,44 @@ func sumOrderLineItemTaxes(items []domain.OrderLineItem) (domain.Money, error) {
 	return total, nil
 }
 
-
 func parseOrderStatus(input string) (domain.SalesOrderStatus, error) {
-	value := domain.SalesOrderStatus(strings.ToUpper(strings.TrimSpace(input)))
-	return value, value.IsValid()
-}
+	u := strings.ToUpper(strings.TrimSpace(input))
 
+	switch u {
+	case "READY_FOR_PRODUCTION", "READY", "LANZADO_A_PRODUCCION":
+		return domain.SalesOrderStatusReadyForProduction, nil
+	case "IN_PREPARATION", "CONFIRMED", "CONFIRMADO", "EN_PREPARACION":
+		return domain.SalesOrderStatusInPreparation, nil
+	case "PENDING", "PENDIENTE":
+		return domain.SalesOrderStatusPending, nil
+	case "CANCELLED", "CANCELADO", "ANULADO":
+		return domain.SalesOrderStatusCancelled, nil
+	case "DELIVERED", "ENTREGADO":
+		return domain.SalesOrderStatusDelivered, nil
+	case "PARTIALLY_DELIVERED", "ENTREGADO_PARCIALMENTE":
+		return domain.SalesOrderStatusPartiallyDelivered, nil
+	default:
+		// Intento directo si no coincide con los alias
+		val := domain.SalesOrderStatus(u)
+		if err := val.IsValid(); err != nil {
+			return "", err
+		}
+		return val, nil
+	}
+}
 
 func canEditOrderDetails(status domain.SalesOrderStatus) bool {
 	switch status {
-	case domain.SalesOrderStatusPending, domain.SalesOrderStatusInPreparation:
+	case domain.SalesOrderStatusPending, domain.SalesOrderStatusInPreparation, domain.SalesOrderStatusReadyForProduction:
 		return true
 	default:
 		return false
 	}
 }
 
-
 func canEditOrderLineItems(status domain.SalesOrderStatus) bool {
-	return status == domain.SalesOrderStatusPending || status == domain.SalesOrderStatusInPreparation
+	return status == domain.SalesOrderStatusPending || status == domain.SalesOrderStatusInPreparation || status == domain.SalesOrderStatusReadyForProduction
 }
-
 
 func findOrderLineItem(items []domain.OrderLineItem, lineItemID uuid.UUID) *domain.OrderLineItem {
 	for i := range items {
@@ -814,11 +891,23 @@ func findOrderLineItem(items []domain.OrderLineItem, lineItemID uuid.UUID) *doma
 	return nil
 }
 
+// orderHasActiveDeliveryNotes returns true if the order has at least one
+// non-cancelled delivery note, meaning it has been partially or fully delivered.
+func (s *SalesService) orderHasActiveDeliveryNotes(ctx context.Context, orderID uuid.UUID) (bool, error) {
+	notes, err := s.deliveryRepo.ListBySalesOrderID(ctx, orderID)
+	if err != nil {
+		return false, err
+	}
+	for _, note := range notes {
+		if note.Status != domain.DeliveryNoteStatusCancelled {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
 func (s *SalesService) enrichOrderLineItems(ctx context.Context, items []OrderLineItemDTO) {
 	for i := range items {
 		items[i].ProductName, items[i].VariantSKU, items[i].OptionConfiguration = s.lookupVariant(ctx, items[i].ProductVariantID)
 	}
 }
-
-

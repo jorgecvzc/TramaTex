@@ -22,6 +22,7 @@ type IAMHandler struct {
 	checkAuthUseCase  *usecase.CheckAuthorizationUseCase
 	listUsersUseCase  *usecase.ListUsersUseCase
 	deleteUserUseCase *usecase.DeleteUserUseCase
+	updateUserUseCase *usecase.UpdateUserUseCase
 }
 
 // NewIAMHandler creates a new IAM handler.
@@ -35,6 +36,7 @@ func NewIAMHandler(
 	checkAuthUseCase *usecase.CheckAuthorizationUseCase,
 	listUsersUseCase *usecase.ListUsersUseCase,
 	deleteUserUseCase *usecase.DeleteUserUseCase,
+	updateUserUseCase *usecase.UpdateUserUseCase,
 ) *IAMHandler {
 	return &IAMHandler{
 		loginUseCase:      loginUseCase,
@@ -46,6 +48,7 @@ func NewIAMHandler(
 		checkAuthUseCase:  checkAuthUseCase,
 		listUsersUseCase:  listUsersUseCase,
 		deleteUserUseCase: deleteUserUseCase,
+		updateUserUseCase: updateUserUseCase,
 	}
 }
 
@@ -291,6 +294,48 @@ func (h *IAMHandler) CheckAuthorization(c *gin.Context) {
 			return
 		}
 		logging.WithRequestID(reqID).WithError(err).Warn("Authorize failed")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, output)
+}
+
+// UpdateUser handles PUT /auth/users/:id
+func (h *IAMHandler) UpdateUser(c *gin.Context) {
+	var req usecase.UpdateUserInput
+
+	requestID, _ := c.Get("requestID")
+	reqID, _ := requestID.(string)
+
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logging.WithRequestID(reqID).WithField("error", err.Error()).Warn("UpdateUser failed: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request: " + err.Error(),
+		})
+		return
+	}
+	req.ID = userID
+
+	output, err := h.updateUserUseCase.Execute(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, model.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		if errors.Is(err, model.ErrUserAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "email already in use by another user"})
+			return
+		}
+		logging.WithRequestID(reqID).WithError(err).Warn("UpdateUser failed")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
