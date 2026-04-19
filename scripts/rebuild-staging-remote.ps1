@@ -43,6 +43,8 @@ $removeImagesValue = if ($SkipImageRemove) { "false" } else { "true" }
 $remoteScript = @"
 set -euo pipefail
 cd '$ProjectDir'
+git fetch --prune origin
+git reset --hard origin/staging
 if [ ! -f './scripts/rebuild-staging-remote.sh' ]; then
   echo 'Missing scripts/rebuild-staging-remote.sh in remote repo.' >&2
   exit 1
