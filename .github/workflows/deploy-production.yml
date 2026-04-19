@@ -7,10 +7,21 @@ name: Deploy to Production
 on:
   push:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      rebuild_images:
+        description: 'Rebuild and push images before deploying'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   build-api:
     name: Build & Push API Image
+    if: github.event_name == 'push' || inputs.rebuild_images == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,6 +45,7 @@ jobs:
 
   build-frontend:
     name: Build & Push Frontend Image
+    if: github.event_name == 'push' || inputs.rebuild_images == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -60,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     needs: [build-api, build-frontend]
+    if: always() && !failure() && !cancelled()
 
     steps:
       - name: Deploy via SSH
