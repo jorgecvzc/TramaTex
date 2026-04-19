@@ -121,6 +121,57 @@ Una vez levantado, el sistema estará disponible en:
 - **Aplicación Frontend:** `http://localhost:3000`
 - **API Health:** `http://localhost:3000/api/health`
 
+### Scripts de despliegue local (Windows)
+
+El proyecto incluye scripts para gestionar el ciclo completo de arranque, parada y reconstrucción.
+
+#### `start-dev.ps1`
+
+- `./start-dev.ps1`: arranca DB + API (modo desarrollo, frontend por `npm run dev`).
+- `./start-dev.ps1 -Full`: arranca DB + API + Frontend/Nginx.
+- `./start-dev.ps1 -ResetData`: limpia stack previo con `down -v --remove-orphans` antes de levantar.
+- `./start-dev.ps1 -RebuildImages`: fuerza reconstrucción de imágenes (`build --no-cache --pull`) y recreación de contenedores.
+- `./start-dev.ps1 -Help`: muestra ayuda integrada del script.
+- Puedes combinar flags, por ejemplo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-dev.ps1 -Full -ResetData -RebuildImages
+```
+
+#### `stop-dev.ps1`
+
+- `./stop-dev.ps1`: detiene contenedores del entorno local.
+- `./stop-dev.ps1 -FullCleanup`: detiene y además elimina volúmenes + orphans (`down -v --remove-orphans`).
+- `./stop-dev.ps1 -FullCleanup -RemoveImages`: limpieza completa + eliminación de imágenes locales del proyecto (`--rmi local`).
+- `./stop-dev.ps1 -FullCleanup -RemoveImages -RemoveDbImage`: limpieza completa + eliminación de imágenes locales del proyecto + eliminación de la imagen de PostgreSQL definida en `docker/.env`.
+- `./stop-dev.ps1 -Help`: muestra ayuda integrada del script.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1 -FullCleanup
+powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1 -FullCleanup -RemoveImages
+powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1 -FullCleanup -RemoveImages -RemoveDbImage
+```
+
+#### `rebuild-dev.ps1`
+
+Script de reconstrucción total end-to-end.
+
+- `./rebuild-dev.ps1`: limpia completamente (incluyendo imágenes locales del proyecto, datos de BBDD e imagen de PostgreSQL) y reconstruye DB + API + Frontend/Nginx.
+- `./rebuild-dev.ps1 -NoFrontend`: limpia y reconstruye solo DB + API.
+- `./rebuild-dev.ps1 -PreserveDatabase`: reconstruye la aplicación sin tocar volúmenes ni datos de la base de datos.
+- `./rebuild-dev.ps1 -Help`: muestra ayuda integrada del script.
+
+```powershell
+# Reconstrucción total completa
+powershell -ExecutionPolicy Bypass -File .\rebuild-dev.ps1
+
+# Reconstrucción total sin frontend
+powershell -ExecutionPolicy Bypass -File .\rebuild-dev.ps1 -NoFrontend
+
+# Reconstrucción preservando BBDD
+powershell -ExecutionPolicy Bypass -File .\rebuild-dev.ps1 -PreserveDatabase
+```
+
 ## � Mantenimiento de la Demo
 
 TramaTex sigue una filosofía **local-first**: el MVP está diseñado para instalación y operación local, sin depender de conexiones SSH ni infraestructura remota.
@@ -131,7 +182,7 @@ Para restaurar la base de datos al estado inicial con los datos de demostración
 
 ```powershell
 # Windows
-docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
+powershell -ExecutionPolicy Bypass -File .\stop-dev.ps1 -FullCleanup
 .\start-dev.ps1
 
 # Linux/macOS
@@ -139,7 +190,28 @@ docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
 docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
 ```
 
+Nota importante: para Docker Compose en este proyecto se usa `docker/.env` como archivo de entorno. Evita usar `--env-file .env` en la raíz del repositorio salvo que exista y esté alineado con `docker/.env`.
+
+Equivalente manual en Windows (sin scripts):
+
+```powershell
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profile full down -v --remove-orphans
+docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profile full up -d --build
+```
+
 Esto elimina el volumen de PostgreSQL y arranca desde cero. La API ejecuta automáticamente todas las migraciones y los datos semilla (`migrations/007_seed_data.sql`), restaurando el usuario admin y los datos de demostración.
+
+Si además quieres una reconstrucción total del entorno local usando solo scripts del proyecto (contenedores, imágenes locales del proyecto y datos), usa:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\rebuild-dev.ps1
+```
+
+Si quieres reconstruir la aplicación sin tocar la base de datos local, usa:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\rebuild-dev.ps1 -PreserveDatabase
+```
 
 ### Reset automático de la demo pública
 
