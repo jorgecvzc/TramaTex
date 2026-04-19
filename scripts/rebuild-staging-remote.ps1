@@ -49,6 +49,7 @@ if [ ! -f './scripts/rebuild-staging-remote.sh' ]; then
   echo 'Missing scripts/rebuild-staging-remote.sh in remote repo.' >&2
   exit 1
 fi
+sed -i 's/\r//g' ./scripts/rebuild-staging-remote.sh
 chmod +x ./scripts/rebuild-staging-remote.sh
 CHECKOUT_REF='$checkoutValue' PRESERVE_DATABASE='$preserveValue' REMOVE_IMAGES='$removeImagesValue' PROJECT_DIR='$ProjectDir' ./scripts/rebuild-staging-remote.sh
 "@

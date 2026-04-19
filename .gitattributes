@@ -1,0 +1,5 @@
+# Force LF line endings for shell scripts everywhere
+*.sh text eol=lf
+
+# Default: normalize to LF in repo
+* text=auto
