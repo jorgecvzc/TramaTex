@@ -134,6 +134,10 @@ func (s *stubDeliveryNoteRepo) LinkLineItemsToInvoice(ctx context.Context, links
 	return nil
 }
 
+func (s *stubDeliveryNoteRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	return nil
+}
+
 type stubInvoiceRepo struct {
 	saveFn                 func(context.Context, *domain.Invoice) error
 	findByIDFn             func(context.Context, uuid.UUID) (*domain.Invoice, error)
