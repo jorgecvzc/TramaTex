@@ -76,7 +76,7 @@ Write-Host "  Ref: $(if ($NoCheckout) { '(sin checkout)' } else { $CheckoutRef }
 Write-Host "  Base de datos: $(if ($WipeDatabase) { 'WIPE (datos eliminados)' } else { 'preservada' })" -ForegroundColor $(if ($WipeDatabase) { 'Red' } else { 'Gray' })
 Write-Host ""
 
-$remoteScript | ssh "$User@$ProdHost" "bash -s"
+($remoteScript -replace "`r`n", "`n") | ssh "$User@$ProdHost" "bash -s"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "El deploy a produccion fallo." -ForegroundColor Red

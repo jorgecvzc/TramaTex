@@ -52,7 +52,7 @@ CHECKOUT_REF='$checkoutValue' PRESERVE_DATABASE='$preserveValue' REMOVE_IMAGES='
 "@
 
 Write-Host "Lanzando rebuild remoto en $User@$RemoteHost ..." -ForegroundColor Cyan
-$remoteScript | ssh "$User@$RemoteHost" "bash -s"
+($remoteScript -replace "`r`n", "`n") | ssh "$User@$RemoteHost" "bash -s"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "El rebuild remoto fallo." -ForegroundColor Red
