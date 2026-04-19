@@ -16,6 +16,28 @@ El proyecto mantiene tres ramas base permanentes que deben existir siempre:
 
 Todas las features, fixes y demás cambios se desarrollan en ramas temáticas (véase sección 1) y se integran a `develop`.
 
+### 0.1 Protección de ramas en remoto (obligatorio)
+
+Las ramas troncales (`master`, `develop`, `staging`) deben estar protegidas en GitHub con las siguientes reglas mínimas:
+
+- No permitir borrado de la rama.
+- No permitir force-push.
+- Requerir Pull Request para merge.
+- Requerir al menos 1 aprobación.
+
+Puedes aplicarlo automáticamente con el script:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\protect-trunk-branches.ps1
+```
+
+Requisitos previos:
+
+```bash
+gh auth login -h github.com -s repo
+gh auth status
+```
+
 ---
 
 ### 1. Crear Branch

@@ -1,0 +1,13 @@
+graph TD
+    subgraph "Project Scaffolding"
+        S[Bootstrap YAML]
+        T[Templates]
+        G[Guides]
+        A[Agents Config]
+    end
+
+    S --> T
+    S --> G
+    S --> A
+    T -- "Code Generation" --> APPS[Apps/Modules]
+    G -- "Standardization" --> DOCS[Docs]

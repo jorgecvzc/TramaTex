@@ -1,0 +1,12 @@
+graph TD
+    subgraph "Frontend: Vue.js 3 + TypeScript"
+        VUE[Vue.js 3 - Composition API]
+        PINIA[Pinia - State Management]
+        ROUTER[Vue Router - Navigation]
+        CSS[Vanilla CSS - UI Kit]
+    end
+
+    VUE --> PINIA
+    VUE --> ROUTER
+    VUE --> CSS
+    VUE -- "TypeScript" --> VUE

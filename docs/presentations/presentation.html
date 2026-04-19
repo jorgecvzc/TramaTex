@@ -10,12 +10,12 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <style>
     :root {
-      --primary: #1b3a6b;
-      --primary-dark: #0f172a;
-      --accent: #2563eb;
+      --primary: #002395;
+      --primary-dark: #001a6b;
+      --accent: #E6B800;
       --text-main: #1e293b;
       --text-light: #64748b;
-      --bg-light: #f8fafc;
+      --bg-light: #f1f5f9;
       --white: #ffffff;
       --slide-padding: 4rem;
     }
@@ -30,7 +30,6 @@
       overflow: hidden;
     }
 
-    /* Motor de Presentación (Scroll Snap) */
     .presentation-container {
       height: 100vh;
       overflow-y: scroll;
@@ -50,7 +49,6 @@
       overflow: hidden;
     }
 
-    /* Layouts Especializados */
     .layout-impact {
       justify-content: center;
       align-items: center;
@@ -72,7 +70,6 @@
       justify-content: flex-start;
     }
 
-    /* Tipografía */
     h1 {
       font-family: 'Montserrat', sans-serif;
       font-size: 5rem;
@@ -99,7 +96,6 @@
 
     p { font-size: 1.25rem; line-height: 1.6; color: var(--text-light); }
 
-    /* Elementos de Diseño */
     .card-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -133,6 +129,9 @@
       color: #94a3b8;
       border: 2px dashed #cbd5e1;
       font-style: italic;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     .badge {
@@ -146,7 +145,6 @@
       border: 1px solid rgba(255,255,255,0.2);
     }
 
-    /* Navegación Visual (Indicador de Scroll) */
     .scroll-hint {
       position: absolute;
       bottom: 2rem;
@@ -220,7 +218,7 @@
         </div>
       </div>
       <div class="image-area">
-        <div class="image-placeholder" style="background: url('assets/vision.png') center/cover no-repeat;">
+        <div class="image-placeholder" style="background-image: url('assets/vision.png');">
           <!-- vision.png -->
         </div>
       </div>
@@ -230,7 +228,7 @@
     <section class="layout-split">
       <div class="logo-header">TRAMATEX</div>
       <div class="image-area">
-        <div class="image-placeholder" style="background: url('assets/dashboard.png') center/cover no-repeat;">
+        <div class="image-placeholder" style="background-image: url('assets/dashboard.png');">
           <!-- dashboard.png -->
         </div>
       </div>
@@ -291,8 +289,8 @@
         </div>
       </div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Captura: Detalle de Cliente / Directorio de Partys]
+        <div class="image-placeholder" style="background-image: url('assets/party-list.png');">
+          <!-- party-list.png -->
         </div>
       </div>
     </section>
@@ -301,8 +299,8 @@
     <section class="layout-split">
       <div class="logo-header">TRAMATEX</div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Captura: Configuración de Atributos y Variantes JIT]
+        <div class="image-placeholder" style="background-image: url('assets/product-variants.png');">
+          <!-- product-variants.png -->
         </div>
       </div>
       <div class="content-area">
@@ -389,8 +387,8 @@
         </div>
       </div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Captura: Cola de producción / Terminal de Taller]
+        <div class="image-placeholder" style="background-image: url('assets/mes-work-order.png');">
+          <!-- mes-work-order.png -->
         </div>
       </div>
     </section>
@@ -432,8 +430,8 @@
     <section class="layout-split">
       <div class="logo-header">TRAMATEX</div>
       <div class="image-area">
-        <div class="image-placeholder" style="background: var(--primary-dark); border: none;">
-          [Esquema: Clean Architecture / Módulos desacoplados]
+        <div class="image-placeholder" style="background-image: url('assets/clean-arch.png'); border: none;">
+          <!-- clean-arch.png -->
         </div>
       </div>
       <div class="content-area">
@@ -481,8 +479,8 @@
         </ul>
       </div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Imagen: Código Go limpio / Logo Go]
+        <div class="image-placeholder" style="background-image: url('assets/code-go.png');">
+          <!-- code-go.png -->
         </div>
       </div>
     </section>
@@ -491,15 +489,14 @@
     <section class="layout-split">
       <div class="logo-header">TRAMATEX</div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Imagen: Componentes Vue / UI agil]
+        <div class="image-placeholder" style="background-image: url('assets/ui-vue.png');">
+          <!-- ui-vue.png -->
         </div>
       </div>
       <div class="content-area">
         <h2>Frontend: Agilidad y Modernidad</h2>
         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
           <div style="background: #42b883; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">Vue.js 3</div>
-          <div style="background: #38bdf8; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; font-weight: 800;">Tailwind CSS</div>
         </div>
         
         <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -570,8 +567,8 @@
         </div>
       </div>
       <div class="image-area">
-        <div class="image-placeholder">
-          [Imagen: Estructura de carpetas / Pipeline de CI]
+        <div class="image-placeholder" style="background-image: url('assets/scaffolding.png');">
+          <!-- scaffolding.png -->
         </div>
       </div>
     </section>
@@ -602,10 +599,6 @@
     </section>
 
   </div>
-
-</body>
-</html>
-
 
 </body>
 </html>

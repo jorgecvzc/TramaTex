@@ -111,6 +111,7 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 
 ### Criterios Aceptados (Extracto)
 - **Capa de Dominio:** Sin dependencias externas (frameworks, ORM). Reglas de negocio encapsuladas. Interfaces para persistencia. Errores tipados.
+- **Campos de Auditoría:** Por mandato arquitectónico, los campos de auditoría (`CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`) **deben estar excluidos de todas las entidades de dominio**. Estos campos se consideran una preocupación de infraestructura y deben gestionarse exclusivamente en la capa de persistencia/base de datos.
 - **Casos de Uso (Aplicación):** Orquestan dominio e infraestructura. Sin lógica de negocio. Inyección de dependencias clara. Transacciones en la capa de aplicación.
 - **Infraestructura:** Implementa interfaces de dominio. Contiene código específico del framework (GORM). Sin lógica de negocio.
 - **Interfaces (HTTP):** Handlers como adaptadores delgados. DTOs para contratos. Validación de entrada (superficial). Traducción de errores a códigos de estado HTTP.

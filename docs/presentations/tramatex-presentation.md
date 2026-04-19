@@ -169,7 +169,16 @@ Optimización de tiempos de entrega y reducción de errores en personalizaciones
 - **Clean Architecture:** Lógica de negocio protegida de cambios tecnológicos.
 - **Domain-Driven Design:** El software habla el lenguaje del negocio textil.
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div>
+
 <div class="accent">Garantía de longevidad y mantenibilidad del software.</div>
+</div>
+<div class="card">
+
+**Visual:** ![Clean Architecture](assets/clean-arch.png)
+</div>
+</div>
 
 ---
 
@@ -182,6 +191,8 @@ Optimización de tiempos de entrega y reducción de errores en personalizaciones
 
 # Go
 PostgreSQL
+<br>
+![Backend Architecture](assets/code-go.png)
 </div>
 <div>
 
@@ -198,12 +209,21 @@ PostgreSQL
 
 ## Frontend: Agilidad y Modernidad
 
-- **Tecnología:** Vue.js 3 + TypeScript + Tailwind CSS.
+- **Tecnología:** Vue.js 3 + TypeScript + Vanilla CSS.
 - **Interactividad:** Interfaz reactiva para mayor productividad.
 - **Consistencia:** Sistema de diseño unificado (Design System).
 - **Adaptabilidad:** Estaciones de trabajo y terminales de taller.
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div>
+
 <div class="accent">Calidad: Tipado estricto que elimina errores de interfaz.</div>
+</div>
+<div class="card">
+
+**Visual:** ![Frontend Stack](assets/ui-vue.png)
+</div>
+</div>
 
 ---
 
@@ -228,6 +248,11 @@ PostgreSQL
 - **Calidad:** Pipeline de pruebas y documentación automática.
 - **Velocidad:** Reducción drástica del "Time-to-Market" de nuevos módulos.
 - **Consistencia:** Alineación total con los estándares de TramaTex.
+
+<div class="card">
+
+**Visual:** ![Scaffolding Flow](assets/scaffolding.png)
+</div>
 
 ---
 
