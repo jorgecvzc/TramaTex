@@ -31,7 +31,7 @@ core_principles:
           "user-guide.md",
           "bootstrap.yaml",
           "project-context.yaml",
-          "_adr-template.md",
+          "docs/_adr-template.md",
         ]
       incorrect:
         [
@@ -47,7 +47,7 @@ core_principles:
       - name: "Templates con prefijo _"
         pattern: "_kebab-case-template.md"
         examples:
-          ["_adr-template.md", "_task-template.md", "_module-template.md"]
+          ["docs/_adr-template.md", "docs/_task-template.md", "docs/_module-template.md"]
         rationale: "Identificación visual inmediata como meta-archivo"
     rationale: "Consistencia, legibilidad, multiplataforma, estándar open source"
 

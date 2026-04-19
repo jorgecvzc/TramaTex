@@ -1,37 +1,47 @@
-# Contratos de API - Módulo Pricing
+# 🔌 Contratos de API - Módulo Pricing
 
-Este documento detalla la interfaz de integración con el motor de cálculo de precios y la gestión de reglas económicas en TramaTex.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.1 |
+| **Estado** | ✅ Vigente |
+| **Relacionado con** | [ADR-016](../../architecture/adrs/adr-016-pricing-module-architecture.md) |
+
+---
+
+## 🎯 Propósito
+Este documento detalla la interfaz de integración técnica con el motor de cálculo de precios y la gestión de reglas económicas del sistema TramaTex.
 
 ---
 
 ## 1. Motores de Cálculo (`/api/pricing/calculate`)
+El sistema ofrece endpoints especializados según la fase del proceso de negocio:
 
-El sistema ofrece endpoints especializados según la fase del proceso de venta.
-- **Cálculo de Precio Base (BSP) (`POST /api/pricing/base-sales-price/calculate`):** Proporciona el precio de venta sugerido antes de aplicar condiciones de cliente. Útil para visualización en el catálogo general.
-- **Cálculo de Precio Final (FSP) (`POST /api/pricing/final-sale-price/calculate`):** Es el motor orquestador que toma en cuenta al cliente, la cantidad y las promociones vigentes. Devuelve el desglose de reglas aplicadas para que el frontend pueda mostrar los descuentos de forma transparente.
+*   **Cálculo de Precio Base de Venta (`POST /api/pricing/base-sales-price/calculate`):** 
+    Proporciona el precio sugerido antes de aplicar condiciones de cliente. Esencial para la visualización del catálogo y catálogos públicos.
+*   **Cálculo de Precio Final de Venta (`POST /api/pricing/final-sale-price/calculate`):** 
+    Motor orquestador que evalúa al cliente, la cantidad y las promociones vigentes. Devuelve un desglose detallado de las reglas aplicadas para transparencia en el punto de venta.
+
+---
 
 ## 2. Gestión de Reglas (`/api/pricing/rules`)
+Endpoints para administrar las definiciones que alimentan el motor:
 
-Controla las definiciones que alimentan los motores de cálculo.
-- **Reglas Base de Venta (`/api/pricing/base-sales-rules`):** Permite definir márgenes porcentuales o fijos por Marca o Categoría.
-- **Reglas de Modificación (`/api/pricing/sale-modification-rules`):** Define descuentos por volumen, promociones temporales o recargos logísticos.
+*   **Reglas Base de Venta:** Definición de márgenes porcentuales o fijos por Marca o Categoría de producto.
+*   **Reglas de Modificación de Venta:** Gestión de descuentos por volumen, campañas temporales o recargos logísticos.
+
+---
 
 ## 3. Acuerdos Particulares (`/api/pricing/client-overrides`)
+Gestiona excepciones a la política de precios general:
 
-Gestiona la excepción a la regla general.
-- **Precios Pactados:** Permite fijar un precio específico para un binomio Cliente-Variante que anula cualquier otro cálculo automático del sistema.
-
-## 4. Auditoría de Precios (`/api/pricing/history`)
-
-- **Trazabilidad de Cambios:** Endpoint para consultar la evolución de los precios de una variante, permitiendo entender por qué un presupuesto antiguo tenía un precio diferente al actual.
+*   **Precios Pactados:** Permite fijar un precio inamovible para una combinación específica de Cliente y Variante de Producto.
 
 ---
 
-## Estructura de Respuesta Común: `MoneyDTO`
-
-Todas las cantidades económicas devueltas por la API siguen una estructura de objeto de valor (Value Object) para evitar errores de precisión y moneda:
-- `amount`: Valor numérico (ej. 150.50).
-- `currency`: Identificador de moneda (siempre "EUR").
+## 🏗️ Estructura de Datos Común: `MoneyDTO`
+Para garantizar la integridad financiera, la API utiliza un Objeto de Transferencia de Datos específico para importes:
+*   `amount`: Valor numérico de alta precisión (Decimal).
+*   `currency`: Código de moneda (siempre "EUR" para el MVP).
 
 ---
-**Última Actualización:** 2026-03-07
+[Volver al Módulo de Pricing](./README.md)

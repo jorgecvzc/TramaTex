@@ -1,117 +1,49 @@
-# ADR-009 – Estructura de Carpetas y Organización del Proyecto
+# 🏛️ ADR-009: Estructura de Carpetas y Organización del Proyecto
 
-**Fecha:** 11/01/2026  
-**Estado:** Aceptado  
-**Autores:** Jorge Cortés Villalba, Claude (Anthropic)
-
----
-
-## 1. Contexto
-
-TramaTex requiere una estructura de proyecto que:
-
-- Refleje los principios de **Clean Architecture** (ADR-002)
-- Soporte un **monolito modular** con dominios claramente separados (ADR-003)
-- Facilite el **desarrollo dirigido por dominio** (ADR-006, ADR-007)
-- Sea **mantenible por un desarrollador en solitario** con IA copiloto
-- Permita **escalabilidad futura** hacia microservicios si es necesario
-- Organice **documentación técnica y de sesiones** de forma eficiente
-
-**Restricciones técnicas:**
-
-- Stack: Go (tramatex-api), Vue.js 3 (frontend), PostgreSQL (persistencia), Docker Compose
-- Desarrollo local-first
-- Un solo repositorio Git (monorepo)
-- Sin herramientas complejas de monorepo (Nx, Turborepo, etc.)
-
-**Riesgos si no se define estructura:**
-
-- Mezcla de capas (dominio con infraestructura)
-- Dificultad para aplicar un desarrollo guiado por pruebas estricto.
-- Pérdida de trazabilidad entre módulos
-- Código difícil de navegar y mantener
-- Imposibilidad de extraer módulos a servicios independientes en el futuro
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 11-01-2026 |
+| **Autores** | Jorge Cortés Villalba, Claude (Anthropic) |
 
 ---
 
-## 2. Alternativas Consideradas
-
-### Alternativa A – Estructura plana por tipo de archivo
-- Ventajas: Simple y tradicional.
-- Desventajas: Mezcla todos los dominios, no escala.
-
-### Alternativa B – Estructura por capas técnicas
-- Ventajas: Respeta capas de Clean Architecture.
-- Desventajas: No refleja dominios de negocio.
-
-### Alternativa C – Estructura por módulos de dominio (Clean Architecture modular)
-- Ventajas: Refleja dominios claramente, facilita extracción de módulos.
-- Desventajas: Mayor profundidad de carpetas.
-
-### Alternativa D – Monorepo con workspaces independientes
-- Ventajas: Preparado para microservicios desde día 1.
-- Desventajas: Complejidad prematura para MVP.
+## 🎯 Contexto
+TramaTex requiere una estructura de repositorio único (monorepo) que refleje los principios de Clean Architecture y facilite el mantenimiento por un único desarrollador con apoyo de IA, permitiendo además una futura extracción a microservicios.
 
 ---
 
-## 3. Criterios de Decisión
-
-- Alineación con Clean Architecture y DDD.
-- Soporte para un monolito modular.
-- Facilidad de mantenimiento por un solo desarrollador.
-- Preparación para futura extracción de microservicios.
-- Trazabilidad entre documentación y código.
+## 🔍 Alternativas Consideradas
+1. **Estructura Plana:** Simple, pero no escala y mezcla dominios de negocio.
+2. **Por Capas Técnicas:** Respeta Clean Architecture pero oculta la intención de negocio.
+3. **Por Módulos de Dominio (Decisión Adoptada):** Refleja los Bounded Contexts claramente y facilita la testabilidad y escalabilidad.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta una **Estructura por Módulos de Dominio con Clean Architecture Interna**.
 
-Se adopta **Alternativa C: Estructura por módulos de dominio con Clean Architecture**.
+### Organización del Monorepo:
+*   `apps/tramatex-api/internal/`: Contiene los módulos (`iam`, `party`, `pricing`, etc.). Cada módulo tiene sus subcarpetas de `domain`, `application` e `infrastructure`.
+*   `apps/frontend/`: Aplicación única en Vue.js.
+*   `docs/`: El Árbol de Conocimiento del proyecto.
+*   `project-scaffolding/`: Herramientas de estandarización.
 
-**Justificación:**
-- **Refleja el dominio de negocio:** Party, Producto, Tarificación, Ventas, MES son módulos visibles.
-- **Soporta Clean Architecture:** Capas separadas dentro de cada módulo.
-- **Facilita el desarrollo guiado por pruebas:** Tests están junto al código que prueban.
-- **Escalabilidad controlada:** Módulos pueden extraerse a servicios sin refactoring masivo.
+### Justificación:
+Este diseño permite que cada módulo sea una unidad lógica independiente, facilitando que los tests estén junto al código y preparando el sistema para una futura distribución física sin necesidad de refactorizaciones masivas.
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-- Claridad de dominio y separación de responsabilidades.
-- Testabilidad mejorada.
-- Onboarding rápido y preparación para microservicios.
+*   Separación clara de responsabilidades y alta testabilidad.
+*   Preparación nativa para la evolución hacia microservicios.
+*   Navegación intuitiva basada en el lenguaje del negocio.
 
 ### Negativas
-- Mayor profundidad de carpetas (rutas largas).
-- Disciplina requerida para evitar romper la separación.
+*   Mayor profundidad de carpetas (rutas de archivo más largas).
+*   Exige disciplina para no romper los límites entre módulos.
 
 ---
-
-## 6. Alcance
-
-Este ADR define la estructura completa de carpetas del proyecto TramaTex, incluyendo la organización del monorepo (api, frontend, docs) y las convenciones de nombres.
-
----
-
-## 7. Integración con otros ADRs
-
-- **ADR-001:** Stack tecnológico.
-- **ADR-002:** Clean Architecture.
-- **ADR-003:** Monolito modular.
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-### Estructura Completa del Proyecto
-Para una vista detallada de la estructura de carpetas del proyecto, consulte [Guía de Detalles de la Estructura del Proyecto](../../guides/developer/project-structure-details.md).
-
----
-
-## 9. Referencias
-
-- Clean Architecture (Robert C. Martin)
-- Domain-Driven Design (Eric Evans)
-- Golang Project Layout: https://github.com/golang-standards/project-layout
+[Volver al Índice de ADRs](./README.md)

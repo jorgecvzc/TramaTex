@@ -4,27 +4,11 @@
 # SESIONES ABIERTAS
 ---
 
-## Documentation Review & Alignment
-- **Session ID:** `documentation-review-sprint-18`
-- **Status:** En Progreso
-- **Sprint:** Sprint 18
-- **Started:** 2026-04-17
-- **Contexto:** Revisión integral de la documentación del proyecto para alinearla con los cambios recientes en la arquitectura (Pricing Engine), flujos de venta y estabilización de módulos.
-- **Avance (2026-04-18):** Preservado y versionado el deck HTML de presentación (`docs/presentations/presentation.html`) en la rama `docs-consolidation`.
-- **Próximos Pasos:**
-  - [x] Revisar `docs/architecture/` y actualizar diagramas o visiones obsoletas.
-  - [x] Alinear la documentación de módulos en `docs/modules/` (especialmente Pricing y Sales).
-  - [x] Actualizar guías de desarrollo en `docs/guides/` con los nuevos estándares.
-  - [x] Verificar consistencia en el glosario y visión del proyecto.
-- **Archivos de Contexto:**
-  - `docs/`
-  - `docs/architecture/`
-  - `docs/modules/`
-  - `docs/guides/`
-
 # REGISTRO DE SESIONES CERRADAS
 ---
 
+- **Deep Documentation Study & Gap Analysis (Sprint 18)** | Iniciada: 2026-04-19 | Finalizada: 2026-04-19 | ✅ Barrido exhaustivo de documentación completado: ramas y hojas alineadas, referencias corregidas y especificaciones sincronizadas.
+- **Documentation Review & Alignment (Sprint 18)** | Iniciada: 2026-04-17 | Finalizada: 2026-04-19 | ✅ Revisión integral de documentación cerrada tras consolidar ADRs, guías, módulos y presentación corporativa.
 - **Continuidad IAM + Sales — Estado Actual para Retomar (Sprint 18)** | Iniciada: 2026-04-18 | Finalizada: 2026-04-19 | ✅ Sesión de continuidad cerrada tras verificar integración en `develop`, limpieza de pendientes locales y consolidación de fixes IAM/Sales.
 - **POS Polish & MES Terminal Excellence (Sprint 18)** | Iniciada: 2026-04-18 | Finalizada: 2026-04-18 | ✅ TPV industrial optimizado (sin scroll, atajos en cabecera), Terminal MES tabular con recuperación de cliente y Dashboard con KPIs reales.
 - **Fix Production Launch Errors (Sales/IAM) (Sprint 18)** | Iniciada: 2026-04-11 | Finalizada: 2026-04-18 | ✅ Bug de token corregido y flujo de lanzamiento a producción validado.

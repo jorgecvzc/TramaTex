@@ -10,6 +10,6 @@ Esta sección describe las bases estratégicas, decisiones críticas y la estruc
 
 ## 📂 Secciones Especializadas
 
-- **[ADRs (Architectural Decision Records)](./adrs/README.md):** El registro histórico de todas las decisiones técnicas tomadas.
+- **[Registro de Decisiones (ADRs)](./adrs/README.md):** El historial técnico de todas las decisiones críticas tomadas.
 - **[Diagramas](./diagrams/README.md):** Representaciones visuales (C4 Model) de la estructura del sistema.
 - **[Design System](./design-system/README.md):** Principios de diseño de la interfaz de usuario.

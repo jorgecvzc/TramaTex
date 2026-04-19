@@ -1,141 +1,52 @@
-# ADR-003 – Tipo y Distribución de la Aplicación (Monolito Modular Local-First)
+# 🏛️ ADR-003: Tipo y Distribución de la Aplicación (Monolito Modular)
 
-**Fecha:** 07/01/2026  
-**Estado:** Aceptado  
-**Autores:** Jorge Cortés Villalba, ChatGPT  
-**LLM utilizado:** Claude (Anthropic)  
-
----
-
-## 1. Contexto
-
-TramaTex es un ERP/MES para microempresas (5–15 empleados) con restricciones y objetivos:
-
-- Infraestructura **local-first**, sin dependencia obligatoria de cloud  
-- Hardware limitado y heterogéneo (servidor i3, clientes modestos, tablets)  
-- Necesidad de **mantenibilidad por terceros externos**  
-- Dominio crítico con lógica de tarificación y pedidos personalizados  
-- Ciclo de vida largo del software  
-- Proyección futura **no inmediata**: escalado funcional, integraciones técnicas, posible SaaS  
-
-Alternativas arquitectónicas evaluadas:
-
-- **Microservicios:** excesiva complejidad, sobrecarga operativa, requiere madurez organizativa no presente  
-- **Monolito tradicional:** riesgo de acoplamiento, degradación de dominio, difícil extracción futura de servicios  
-
-Se requiere una solución que **maximice simplicidad operativa hoy** sin bloquear evolución futura.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 07-01-2026 |
+| **Autores** | Jorge Cortés Villalba, ChatGPT |
 
 ---
 
-## 2. Alternativas Consideradas
-
-1. **Microservicios desde inicio:**  
-   - Ventajas: escalabilidad futura, modularidad física  
-   - Desventajas: complejidad inicial, sobrecoste operativo, dificultad de mantenimiento con equipo reducido  
-
-2. **Monolito clásico:**  
-   - Ventajas: simplicidad inicial  
-   - Desventajas: acoplamiento del dominio, riesgo de "monolito de barro", difícil evolución  
-
-3. **Monolito modular (decisión adoptada):**  
-   - Ventajas: simplicidad operativa, modularidad lógica, dominio protegido, escalable hacia microservicios en el futuro  
-   - Desventajas: menor aislamiento en tiempo de ejecución frente a microservicios, requiere disciplina arquitectónica  
+## 🎯 Contexto
+El sistema debe operar en infraestructuras **Local-First** con hardware limitado y ser mantenido por terceros. Se requiere una solución que maximice la simplicidad operativa actual sin bloquear el escalado funcional o una posible transición a SaaS en el futuro.
 
 ---
 
-## 3. Criterios de Decisión
-
-- Protección del dominio frente a degradación  
-- Simplicidad de despliegue y operación en infraestructura local  
-- Modularidad lógica para evolución futura  
-- Capacidad de mantenimiento por terceros  
-- Preparación para refactor o extracción futura  
+## 🔍 Alternativas Consideradas
+1. **Microservicios:** Excesiva complejidad operativa para un equipo reducido y hardware local.
+2. **Monolito Tradicional:** Riesgo de acoplamiento ("monolito de barro") y difícil evolución.
+3. **Monolito Modular (Decisión Adoptada):** Simplicidad de un solo proceso con la modularidad lógica de servicios independientes.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta un **Monolito Modular Local-First** bajo los siguientes principios:
 
-Se adopta un **Monolito Modular Local-First** con las siguientes características:
+### 1. Un Solo Proceso, Múltiples Dominios
+*   **Backend:** Un único binario Go (`tramatex-api`).
+*   **Base de Datos:** Una única instancia de PostgreSQL con separación lógica por esquemas o convenciones.
 
-### tramatex-api
+### 2. Límites Claros (Bounded Contexts)
+*   Cada módulo define su propio modelo, reglas y casos de uso.
+*   La comunicación entre módulos es explícita mediante interfaces y contratos.
+*   **Extraíble por diseño:** Cada módulo está preparado para convertirse en un microservicio independiente si fuera necesario.
 
-- **Un único tramatex-api** (binario Go)  
-- **Una única base de datos PostgreSQL**  
-- Dominios claramente separados:  
-  - Dominio principal: Ventas, Tarificación, Clientes/Proveedores  
-  - Subdominio especializado: MES – Producción personalizada  
-  - Dominios Post-MVP: Compras, Inventario  
-  - Módulos transversales: Seguridad, Auditoría, Gestión documental, i18n  
-
-### Frontend
-
-- SPA única (Vue.js 3 + Pinia + Tailwind CSS)  
-- Cliente de la API, adaptador de presentación, motor Web-to-Print  
-- No contiene lógica de negocio crítica  
-
-### Persistencia
-
-- Base de datos única, separación lógica por esquemas o convenciones  
-- Integridad principalmente desde dominio  
-- Evita joins transversales no justificados  
-
-### Principios del Monolito Modular
-
-1. Un proceso, múltiples dominios  
-2. Límites primero: cada módulo define su modelo, reglas y casos de uso  
-3. Comunicación explícita mediante interfaces/contratos  
-4. Extraíble por diseño: cada módulo puede convertirse en servicio independiente  
-5. Infraestructura compartida, dominio no  
-
-### Evolución futura
-
-- Extracción progresiva de motor de tarificación, MES o inventario  
-- Introducción de comunicación asíncrona (eventos de dominio)  
-- Transición eventual a modelo SaaS con multitenencia  
+### 3. Frontend SPA
+*   Una única aplicación Vue.js 3 que actúa como cliente de la API y adaptador de presentación.
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-
-- Simplicidad de despliegue y operación  
-- Coste operativo mínimo  
-- Dominio protegido frente a degradación  
-- Base sólida para futuras extracciones de módulos  
-- Compatible con hardware limitado y entornos locales  
+*   Coste operativo y de despliegue mínimo.
+*   Dominio protegido frente a la degradación.
+*   Compatible con hardware modesto (Local-First).
 
 ### Negativas
-
-- Requiere disciplina estricta para evitar acoplamientos indebidos  
-- Menor aislamiento en tiempo de ejecución frente a microservicios  
-- Necesidad de gobernanza arquitectónica continua  
+*   Requiere una disciplina estricta de gobernanza para evitar acoplamientos entre módulos.
+*   Menor aislamiento en tiempo de ejecución comparado con microservicios físicos.
 
 ---
-
-## 6. Alcance
-
-- Tipo de aplicación (monolito vs distribuido)  
-- Distribución lógica de módulos  
-- Estrategia de evolución arquitectónica  
-- Forma de despliegue del MVP  
-
-Cualquier cambio hacia microservicios, arquitectura distribuida o separación física de dominios requiere **nuevo ADR**.
-
----
-
-## 7. Integración con otros ADRs
-
-- ADR-001: Selección del Stack Tecnológico  
-- ADR-002: Adopción de Clean Architecture y DDD con Rigor Asimétrico  
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-Este ADR, junto con ADR-001 y ADR-002, define el **marco arquitectónico completo** de TramaTex para el MVP.  
-El desarrollo debe enfocarse en **modelar correctamente el dominio**, respetando los límites del monolito modular.
-
----
-
-## 9. Referencias
+[Volver al Índice de ADRs](./README.md)

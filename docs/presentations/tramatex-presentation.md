@@ -12,16 +12,16 @@ style: |
     font-size: 24px;
   }
   h1, h2 {
-    color: #002395;
+    color: #1b3a6b;
     font-family: 'Inter', sans-serif;
     font-weight: 800;
   }
   h1 { font-size: 1.8em; border-bottom: 4px solid #E6B800; padding-bottom: 10px; }
   h2 { font-size: 1.4em; }
-  strong { color: #002395; }
-  .brand { font-family: 'Calibri', sans-serif; font-style: italic; font-weight: bold; color: #002395; }
-  .bg-primary { background-color: #002395; color: white; }
-  .bg-primary h1 { color: #E6B800; border-color: #E6B800; }
+  strong { color: #1b3a6b; }
+  .brand { font-family: 'Calibri', sans-serif; font-style: italic; font-weight: bold; color: #1b3a6b; }
+  section.bg-primary { background-color: #1b3a6b; color: white; }
+  section.bg-primary h1 { color: #E6B800; border-color: #E6B800; }
   .card {
     background: white;
     border-radius: 8px;
@@ -38,11 +38,11 @@ style: |
 <!-- _footer: "" -->
 
 # <span class="brand">TramaTex</span>
-### La solución inteligente de gestión para la microempresa textil
+### La herramienta de gestión diseñada para la microempresa de textil laboral y EPIs
 
-- **Cerrar la Brecha Digital:** Herramienta adaptada a recursos limitados.
-- **Organización Integral:** Gestión centralizada de clientes y producción.
-- **Impulso al Crecimiento:** Optimización de procesos y trazabilidad total.
+- **Gestión Completa:** Ventas, producción y personalización textil en una sola plataforma open source.
+- **Sector Textil y EPIs:** Diseñado para vestuario laboral, calzado y equipos de protección individual.
+- **Control Total de Datos:** Arquitectura local-first: sin dependencias en la nube ni costes recurrentes.
 
 ---
 
@@ -50,7 +50,7 @@ style: |
 
 ## Innovación en el Sector Textil
 
-- **Visión:** Sistema líder para PYMES de vestuario laboral y EPIs.
+- **Visión:** Sistema de gestión especializado para PYMES de vestuario laboral y EPIs.
 - **Especialización:** Personalización y marcación de prendas.
 
 <div class="card">
@@ -89,7 +89,7 @@ Módulos de Clientes, Catálogo, Ventas y Producción a un solo click de distanc
 - **Entidad Única:** Clientes y proveedores bajo el concepto de `Party`.
 - **Roles Dinámicos:** Sin duplicidad de datos; una entidad puede ser ambos.
 - **Perfiles:** Soporte para empresas (Organizaciones) y Personas.
-- **Relaciones:** Gestión de matrices y múltiples contactos.
+- **Relaciones:** Múltiples direcciones y puntos de contacto asociados a un mismo tercero.
 
 <div class="accent">Beneficio: Consistencia total en el histórico de transacciones.</div>
 
@@ -161,18 +161,18 @@ Optimización de tiempos de entrega y reducción de errores en personalizaciones
 
 ---
 
-# 🛠️ Ingeniería de Clase Mundial
+# 🛠️ Ingeniería Sólida y Escalable
 
-## Robustez Tecnológica
+## Base técnica pensada para mantener y evolucionar el producto
 
-- **Arquitectura Modular:** Dominios independientes para estabilidad y crecimiento.
-- **Clean Architecture:** Lógica de negocio protegida de cambios tecnológicos.
-- **Domain-Driven Design:** El software habla el lenguaje del negocio textil.
+- **Arquitectura Modular:** Dominios independientes que favorecen estabilidad y crecimiento.
+- **Clean Architecture:** Lógica de negocio protegida frente a cambios tecnológicos.
+- **Domain-Driven Design:** El software habla el lenguaje real del negocio textil.
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
 <div>
 
-<div class="accent">Garantía de longevidad y mantenibilidad del software.</div>
+<div class="accent">Base técnica preparada para crecer sin perder mantenibilidad.</div>
 </div>
 <div class="card">
 
@@ -240,14 +240,13 @@ PostgreSQL
 
 ---
 
-# 🏗️ Estandarización de Proyectos
+# 🏗️ Scaffolding
 
-## Scaffolding: Innovación Acelerada
+## Un proyecto derivado de TramaTex para arrancar desarrollos con IA
 
-- **Estandarización:** Estructura profesional lista desde el día 1.
-- **Calidad:** Pipeline de pruebas y documentación automática.
-- **Velocidad:** Reducción drástica del "Time-to-Market" de nuevos módulos.
-- **Consistencia:** Alineación total con los estándares de TramaTex.
+- **Nacido de TramaTex:** Captura decisiones reales del proyecto, su estructura modular y criterios de calidad.
+- **Guía de Desarrollo con IA:** Usa agentes y contexto estructurado para reducir ambigüedad en tareas técnicas.
+- **Reutilización Acelerada:** Incluye bootstrap y plantillas para iniciar proyectos con consistencia desde el primer día.
 
 <div class="card">
 

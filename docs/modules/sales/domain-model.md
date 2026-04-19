@@ -53,12 +53,14 @@ En la **Interfaz de Usuario (Frontend)**, los estados se muestran **siempre en c
 - `CONVERTED_TO_ORDER` (Convertido a Pedido) — *Acepta alias: `CONVERTIDA_A_PEDIDO`*
 
 **Pedidos (Orders):**
-- `IN_PREPARATION` (En Preparación) — *Estado Inicial. Acepta alias: `EN_PREPARACION`, `CONFIRMED`*
-- `PARTIALLY_DELIVERED` (Entregado Parcialmente) — *Acepta alias: `ENTREGADO_PARCIALMENTE`*
-- `DELIVERED` (Entregado) — *Acepta alias: `ENTREGADO`*
-- `PARTIALLY_INVOICED` (Facturado Parcialmente) — *Acepta alias: `FACTURADO_PARCIALMENTE`*
-- `INVOICED` (Facturado Completamente) — *Acepta alias: `FACTURADO_COMPLETAMENTE`*
-- `CANCELLED` (Cancelado) — *Acepta alias: `CANCELADO`*
+- `DRAFT` (Borrador)
+- `READY_FOR_PRODUCTION` (Listo para Producción) — *Estado inicial habitual tras formalización. Acepta alias: `EN_PREPARACION`, `CONFIRMED`.*
+- `IN_PRODUCTION` (En Producción) — *El taller ha aceptado e iniciado las tareas asociadas.*
+- `PARTIALLY_DELIVERED` (Entregado Parcialmente) — *Acepta alias: `ENTREGADO_PARCIALMENTE`.*
+- `DELIVERED` (Entregado) — *Acepta alias: `ENTREGADO`.*
+- `PARTIALLY_INVOICED` (Facturado Parcialmente) — *Acepta alias: `FACTURADO_PARCIALMENTE`.*
+- `INVOICED` (Facturado Completamente) — *Acepta alias: `FACTURADO_COMPLETAMENTE`.*
+- `CANCELLED` (Cancelado) — *Acepta alias: `CANCELADO`.*
 - `PENDING` (Pendiente) — *Estado de seguridad tras reactivación.*
 
 **Facturas (Invoices):**
@@ -129,8 +131,8 @@ Cada Agregado de ventas (`Quote`, `SalesOrder`, `Invoice`) implementa un método
 3. **Total**: Suma aritmética de Subtotal + Impuestos.
 
 ### Precisión y Redondeo
-- **Almacenamiento**: Los importes se manejan internamente mediante el Value Object `Money`, que utiliza `float64` para los cálculos pero asegura el redondeo a **2 decimales** en las operaciones de salida y persistencia.
-- **Redondeo en Línea**: El subtotal de cada línea se redondea antes de sumarse al total del documento, minimizando discrepancias por decimales huérfanos en documentos extensos.
+- **Almacenamiento**: Los importes se manejan internamente mediante el Value Object `Money`, que utiliza el tipo **`decimal.Decimal`** (biblioteca `shopspring/decimal`) para todos los cálculos. Esto garantiza una precisión financiera absoluta y elimina los errores de redondeo acumulativo propios de los tipos de punto flotante como `float64`.
+- **Redondeo en Línea**: El subtotal de cada línea se redondea a 2 decimales antes de sumarse al total del documento, minimizando discrepancias en documentos con gran volumen de ítems.
 
 ---
 **Última Actualización:** 25-03-2026

@@ -174,13 +174,13 @@ Este documento detalla el contenido requerido para cada diapositiva de la presen
 
 ## Diapositiva 13: Estandarización de Proyectos
 
-**Título:** Scaffolding: La Base para la Innovación Acelerada
+**Título:** Scaffolding
 
 **Puntos Clave:**
-- **Estandarización:** Estructura de proyecto lista para el desarrollo profesional desde el primer día.
-- **Calidad Integrada:** Pipeline de pruebas y documentación generado automáticamente.
-- **Velocidad:** Reduce drásticamente el tiempo de arranque de nuevos módulos o aplicaciones.
-- **Consistencia:** Asegura que todo nuevo desarrollo siga los altos estándares de ingeniería de TramaTex.
+- **Nacido de TramaTex:** Recoge decisiones reales del proyecto, su estructura modular y criterios de calidad.
+- **Guía de Desarrollo con IA:** Usa agentes y contexto estructurado para reducir ambigüedad en tareas técnicas.
+- **Reutilización Acelerada:** Incluye bootstrap y plantillas para iniciar proyectos con consistencia desde el primer día.
+- **Consistencia:** Mantiene arquitectura, documentación y estándares alineados desde el arranque.
 
 ---
 

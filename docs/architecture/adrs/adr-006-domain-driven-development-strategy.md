@@ -1,107 +1,45 @@
-# ADR-006 – Estrategia de Desarrollo Dirigida por Dominio (MVP)
+# 🏛️ ADR-006: Estrategia de Desarrollo Dirigida por el Dominio
 
-**Fecha:** 09/01/2026  
-**Estado:** Aceptado  
-**Autores:** Jorge Cortés Villalba, ChatGPT  
-
----
-
-## 1. Contexto
-
-En TramaTex, tras la definición del stack tecnológico (ADR-001), la arquitectura DDD + Clean Architecture (ADR-002) y la determinación del tipo de aplicación monolito modular local-first (ADR-003), se identifica que:
-
-- El **principal riesgo** no es tecnológico, sino de ejecución.
-- La implementación desordenada de módulos puede **diluir el dominio core** y generar retrabajo.
-- Se necesita garantizar **trazabilidad** entre RF/RNF, dominio, código y documentación.
-
-Restricciones y riesgos:
-
-- Introducción prematura de infraestructura o lógica técnica antes de que el dominio lo requiera.
-- Desarrollo de la tarificación sin soporte de los dominios Party y Producto.
-- Pérdida de coherencia entre módulos y subdominios del MVP.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 09-01-2026 |
+| **Autores** | Jorge Cortés Villalba, ChatGPT |
 
 ---
 
-## 2. Alternativas Consideradas
-
-**Alternativa A – Desarrollo basado en capas técnicas**  
-- Ventajas: Desarrollo tradicional, rápido para equipos familiarizados con arquitecturas por capas.  
-- Desventajas: Riesgo de mezclar dominio y lógica técnica, retrabajo elevado, dominio económico no protegido.  
-
-**Alternativa B – Desarrollo dirigido por el dominio (propuesta)**  
-- Ventajas: Protección del dominio, trazabilidad total, implementación incremental validable, menor deuda técnica.  
-- Desventajas: Mayor esfuerzo inicial en análisis, ritmo de UI más lento al inicio.  
+## 🎯 Contexto
+El principal riesgo del proyecto no es tecnológico, sino de ejecución. Una implementación desordenada puede diluir el dominio core (tarificación y ventas) y generar retrabajo. Se necesita garantizar la trazabilidad total entre los requisitos de negocio, el código y la documentación.
 
 ---
 
-## 3. Criterios de Decisión
-
-- Protección del dominio crítico (tarificación).
-- Trazabilidad entre requisitos de negocio y código.
-- Minimización de deuda técnica temprana.
-- Capacidad de validación incremental del modelo de negocio.
+## 🔍 Alternativas Consideradas
+1. **Desarrollo Basado en Capas Técnicas:** Enfoque tradicional rápido pero con alto riesgo de mezclar lógica técnica con reglas de negocio.
+2. **Desarrollo Dirigido por el Dominio (Decisión Adoptada):** Protección del dominio core, implementación incremental validable y minimización de la deuda técnica.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta una **estrategia de desarrollo incremental dirigida por el dominio (DDD)** para el MVP.
 
-Se adopta una **estrategia de desarrollo incremental dirigida por el dominio** para el MVP.  
-
-**Justificación:**  
-- Garantiza que los módulos críticos (tarificación, Party, Producto) se implementen de manera coherente y testeable.  
-- Minimiza riesgo de retrabajo y pérdida de trazabilidad.  
-- Permite introducir infraestructura solo cuando existen casos de uso validados.  
-- Facilita el desarrollo guiado por pruebas en dominio y capa de aplicación.
+### Justificación y Reglas:
+*   **Prioridad al Núcleo:** Los módulos críticos (Tarificación, Producto, Party) se implementan y testean antes que su infraestructura.
+*   **Infraestructura Just-In-Time:** Solo se introduce tecnología (persistencia, API) cuando existen casos de uso de dominio validados.
+*   **Trazabilidad:** Cada decisión en el código debe responder a una regla de negocio documentada.
+*   **Testing:** Foco absoluto en el desarrollo guiado por pruebas (TDD) en las capas de dominio y aplicación.
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-- Dominio económico protegido y estable.  
-- Implementación incremental y testeable.  
-- Mayor facilidad de mantenimiento y evolución futura.
+*   Dominio económico (precios y márgenes) protegido y estable.
+*   Sistema altamente testeable y con mínima deuda técnica temprana.
+*   Facilidad de mantenimiento y evolución futura.
 
 ### Negativas
-- Mayor esfuerzo inicial en análisis y diseño.  
-- Ritmo inicial de UI más lento.  
-- Requiere disciplina estricta en el desarrollo.
+*   Mayor esfuerzo inicial en análisis y diseño.
+*   El ritmo de desarrollo de la interfaz de usuario (UI) es más lento al inicio.
 
 ---
-
-## 6. Alcance
-
-Aplica exclusivamente al **desarrollo del dominio MVP**, incluyendo:
-
-- Party / Organización  
-- Producto / Variante / Categoría  
-- Tarificación  
-- Flujo de ventas y MES básico  
-
-No aplica a Post-MVP, ni define infraestructura futura avanzada.
-
----
-
-## 7. Integración con otros ADRs
-
-- ADR-001: Stack tecnológico  
-- ADR-002: Clean Architecture  
-- ADR-003: Monolito Modular Local-First  
-- ADR-004: Ciclo de vida hasta MVP  
-- ADR-005: Definición de estrategia de desarrollo dirigida por dominio
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-- Desarrollo guiado por pruebas se aplica en dominio y capa de aplicación.  
-- Persistencia inicial permitida solo para Party y Producto.  
-- Frontend se desarrolla paralelo para validar casos de uso.  
-
----
-
-## 9. Referencias
-
-- Documentos internos: Documento Consolidado TramaTex v2.1  
-- Diagramas de flujo de dominio y Bounded Contexts  
-- Buenas prácticas DDD y Clean Architecture
+[Volver al Índice de ADRs](./README.md)
