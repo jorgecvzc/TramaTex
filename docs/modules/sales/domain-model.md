@@ -40,31 +40,35 @@ Aunque el módulo de **Pricing** sugiere precios y descuentos, el módulo de **S
 - **Trazabilidad:** El sistema almacena tanto el precio calculado como el manual para permitir análisis de rentabilidad posteriores.
 
 ### Normalización de Estados
-Para facilitar la comunicación entre el backend (con estados técnicos en castellano para legibilidad de dominio) y el frontend (estándares internacionales), el sistema utiliza la siguiente normalización:
+Para facilitar la estandarización técnica y la interoperabilidad, el **backend (Dominio y Base de Datos) utiliza exclusivamente constantes en inglés** como fuente de verdad. Sin embargo, para asegurar la compatibilidad con integraciones previas y facilitar la transición, la API implementa una **estrategia de tolerancia a alias** que acepta términos en castellano y sinónimos comunes.
+
+En la **Interfaz de Usuario (Frontend)**, los estados se muestran **siempre en castellano** mediante mapas de traducción centralizados.
 
 **Presupuestos (Quotes):**
-- `BORRADOR` (Draft)
-- `EMITIDA` (Issued)
-- `APROBADA` (Approved)
-- `RECHAZADA` (Rejected)
-- `EXPIRADA` (Expired)
-- `CONVERTIDA_A_PEDIDO` (Converted)
+- `DRAFT` (Borrador)
+- `ISSUED` (Emitido) — *Acepta alias: `EMITIDA`, `EMITIDO`, `SENT`, `ENVIADO`, `ENVIADA`*
+- `APPROVED` (Aprobado) — *Acepta alias: `APROBADA`*
+- `REJECTED` (Rechazado) — *Acepta alias: `RECHAZADA`*
+- `EXPIRED` (Expirado) — *Acepta alias: `EXPIRADA`*
+- `CONVERTED_TO_ORDER` (Convertido a Pedido) — *Acepta alias: `CONVERTIDA_A_PEDIDO`*
 
 **Pedidos (Orders):**
-- `EN_PREPARACION` (Confirmed / In Preparation) - **Estado Inicial**
-- `ENTREGADO_PARCIALMENTE` (Partially Delivered)
-- `ENTREGADO` (Delivered)
-- `FACTURADO_PARCIALMENTE` (Partially Invoiced)
-- `FACTURADO_COMPLETAMENTE` (Invoiced)
-- `CANCELADO` (Cancelled)
-- `PENDIENTE` (Pending) - Estado de seguridad tras una reactivación desde anulado.
+- `DRAFT` (Borrador)
+- `READY_FOR_PRODUCTION` (Listo para Producción) — *Estado inicial habitual tras formalización. Acepta alias: `EN_PREPARACION`, `CONFIRMED`.*
+- `IN_PRODUCTION` (En Producción) — *El taller ha aceptado e iniciado las tareas asociadas.*
+- `PARTIALLY_DELIVERED` (Entregado Parcialmente) — *Acepta alias: `ENTREGADO_PARCIALMENTE`.*
+- `DELIVERED` (Entregado) — *Acepta alias: `ENTREGADO`.*
+- `PARTIALLY_INVOICED` (Facturado Parcialmente) — *Acepta alias: `FACTURADO_PARCIALMENTE`.*
+- `INVOICED` (Facturado Completamente) — *Acepta alias: `FACTURADO_COMPLETAMENTE`.*
+- `CANCELLED` (Cancelado) — *Acepta alias: `CANCELADO`.*
+- `PENDING` (Pendiente) — *Estado de seguridad tras reactivación.*
 
 **Facturas (Invoices):**
-- `BORRADOR` (Draft)
-- `EMITIDA` (Issued)
-- `PAGADA` (Paid)
-- `VENCIDA` (Overdue)
-- `ANULADA` (Void)
+- `DRAFT` (Borrador)
+- `ISSUED` (Emitido) — *Acepta alias: `EMITIDA`, `EMITIDO`, `SENT`, `ENVIADO`, `ENVIADA`*
+- `PAID` (Pagado) — *Acepta alias: `PAGADA`*
+- `OVERDUE` (Vencido) — *Acepta alias: `VENCIDA`*
+- `VOID` (Anulado) — *Acepta alias: `ANULADA`*
 
 ### Integridad Referencial y Soberanía Comercial
 - **Congelación de Precios:** Una vez que un documento sale del estado `BORRADOR`, el **Precio Unitario**, el **Descuento** y el **IVA** se congelan para garantizar la seguridad jurídica.
@@ -127,8 +131,8 @@ Cada Agregado de ventas (`Quote`, `SalesOrder`, `Invoice`) implementa un método
 3. **Total**: Suma aritmética de Subtotal + Impuestos.
 
 ### Precisión y Redondeo
-- **Almacenamiento**: Los importes se manejan internamente mediante el Value Object `Money`, que utiliza `float64` para los cálculos pero asegura el redondeo a **2 decimales** en las operaciones de salida y persistencia.
-- **Redondeo en Línea**: El subtotal de cada línea se redondea antes de sumarse al total del documento, minimizando discrepancias por decimales huérfanos en documentos extensos.
+- **Almacenamiento**: Los importes se manejan internamente mediante el Value Object `Money`, que utiliza el tipo **`decimal.Decimal`** (biblioteca `shopspring/decimal`) para todos los cálculos. Esto garantiza una precisión financiera absoluta y elimina los errores de redondeo acumulativo propios de los tipos de punto flotante como `float64`.
+- **Redondeo en Línea**: El subtotal de cada línea se redondea a 2 decimales antes de sumarse al total del documento, minimizando discrepancias en documentos con gran volumen de ítems.
 
 ---
 **Última Actualización:** 25-03-2026

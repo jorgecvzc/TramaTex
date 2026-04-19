@@ -6,6 +6,40 @@
 
 ## Workflow de Desarrollo
 
+### 0. Ramas Troncales (Trunk Branches)
+
+El proyecto mantiene tres ramas base permanentes que deben existir siempre:
+
+- **`master`** — Rama de producción. Solo recibe merges desde `staging` tras validación final.
+- **`develop`** — Rama de desarrollo principal. Integra features, fixes y refactors completados.
+- **`staging`** — Rama de preproducción. Prepara cambios validados antes del merge final a `master`.
+
+Todas las features, fixes y demás cambios se desarrollan en ramas temáticas (véase sección 1) y se integran a `develop`.
+
+### 0.1 Protección de ramas en remoto (obligatorio)
+
+Las ramas troncales (`master`, `develop`, `staging`) deben estar protegidas en GitHub con las siguientes reglas mínimas:
+
+- No permitir borrado de la rama.
+- No permitir force-push.
+- Requerir Pull Request para merge.
+- Requerir al menos 1 aprobación.
+
+Puedes aplicarlo automáticamente con el script:
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\protect-trunk-branches.ps1
+```
+
+Requisitos previos:
+
+```bash
+gh auth login -h github.com -s repo
+gh auth status
+```
+
+---
+
 ### 1. Crear Branch
 
 Usa prefijos para tus ramas para indicar el propósito del cambio:
@@ -112,7 +146,7 @@ npm run test:unit -- --coverage
 1.  **Antes de crear el PR:**
     - Asegúrate de que todos los tests pasan localmente.
     - Asegúrate de que los linters no reportan errores.
-    - Actualiza tu rama con la última versión de `main` (`git pull origin main`).
+    - Actualiza tu rama con la última versión de `develop` (`git pull origin develop`).
 
 2.  **Crear el PR:**
     - Usa un título claro que siga el formato de Conventional Commits.
@@ -125,4 +159,4 @@ npm run test:unit -- --coverage
     - Responde a los comentarios y realiza los ajustes necesarios.
 
 4.  **Merge:**
-    - El merge se realizará usando **"Squash and Merge"** para mantener un historial de `main` limpio, donde cada commit corresponde a una feature o fix completo.
+    - El merge se realizará usando **"Squash and Merge"** para mantener un historial de `develop` limpio, donde cada commit corresponde a una feature o fix completo.

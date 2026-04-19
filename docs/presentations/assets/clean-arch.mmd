@@ -1,0 +1,33 @@
+graph TD
+    subgraph "Interfaces Layer (Entry Points)"
+        H[HTTP Handlers]
+        D[DTOs]
+        M[Middleware]
+    end
+
+    subgraph "Application Layer (Orchestration)"
+        UC[Use Cases]
+        AS[Application Services]
+        MAP[Mappers]
+    end
+
+    subgraph "Domain Layer (Core Business Logic)"
+        E[Entities]
+        VO[Value Objects]
+        DS[Domain Services]
+        RI[Repository Interfaces]
+    end
+
+    subgraph "Infrastructure Layer (Technical Concerns)"
+        REP[Repository Impls]
+        EXT[External API Clients]
+        CONF[Configuration]
+    end
+
+    H --> UC
+    UC --> E
+    UC --> VO
+    UC --> RI
+    REP -- Implements --> RI
+    REP --> E
+    REP --> VO

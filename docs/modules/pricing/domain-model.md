@@ -1,49 +1,49 @@
-# Modelo de Dominio - Módulo Pricing
+# 🏛️ Modelo de Dominio - Módulo Pricing
 
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.1 |
+| **Estado** | ✅ Vigente |
+
+---
+
+## 🎯 Propósito
 Este documento describe la lógica de cálculo económico y la jerarquía de reglas que gobiernan los precios en TramaTex. El módulo actúa como un motor de decisión que transforma costes base en precios finales de venta.
 
 ---
 
 ## 1. Conceptos Fundamentales
 
-### Base Selling Price (BSP)
-Es el precio teórico de venta de un producto antes de aplicar condiciones específicas del cliente o promociones. 
-- **Composición:** Se calcula sumando al `BaseCost` (del módulo Product) un **Margen de Beneficio** que puede estar definido a nivel de Marca, Categoría o Producto.
-- **Dinamicidad:** El BSP no se guarda; se recalcula si el coste de los materiales o el margen de la marca cambian.
+### Precio Base de Venta (PBV)
+Es el precio sugerido de un producto antes de aplicar condiciones específicas del cliente o promociones.
+*   **Composición:** Se obtiene sumando al coste base (procedente del módulo *Product*) un **Margen de Beneficio** definido a nivel de Marca, Familia o Producto.
+*   **Precisión:** Todos los cálculos internos utilizan tipos **Decimales** para evitar errores de redondeo.
 
-### Final Selling Price (FSP)
-Es el precio que el cliente ve en su factura o presupuesto.
-- **Cálculo:** `BSP - Descuentos Aplicables + Recargos Específicos`.
-- **Contexto:** El FSP siempre requiere un `Cliente` y una `Cantidad` para ser calculado, ya que las reglas de volumen o los acuerdos comerciales privados pueden alterarlo.
+### Precio Final de Venta (PFV)
+Es el precio definitivo que se aplica en el documento mercantil (Pedido o Factura).
+*   **Cálculo:** `PBV - Descuentos + Recargos`.
+*   **Contexto:** Siempre requiere un Cliente y una Cantidad para su determinación, ya que depende de acuerdos comerciales y reglas de volumen.
 
 ---
 
 ## 2. Jerarquía y Precedencia de Reglas
+El motor de precios sigue el principio de "especificidad máxima". Las reglas se evalúan en este orden:
 
-El motor de precios de TramaTex sigue una lógica de "la regla más específica gana". Cuando existen múltiples reglas aplicables, el sistema las evalúa en este orden:
-
-1.  **Acuerdo Particular (Client Override):** Precios pactados específicamente con un cliente para un producto concreto. Es la prioridad máxima.
-2.  **Regla de Producto:** Margen o precio fijo definido para un artículo específico.
-3.  **Regla de Marca / Familia:** Márgenes comerciales estandarizados para todos los productos de un fabricante o categoría.
-4.  **Regla Global:** Margen por defecto del sistema (fallback) si no hay ninguna otra definición.
-
-### Tipos de Modificadores
-- **Porcentuales:** (ej. +20% margen, -10% descuento por volumen).
-- **Fijos:** (ej. +5€ por canon de reciclaje o montaje).
+1.  **Acuerdo Particular:** Precios pactados manualmente con un cliente. Es la prioridad máxima.
+2.  **Regla de Producto:** Margen específico para un artículo concreto.
+3.  **Regla de Marca / Familia:** Márgenes estandarizados por fabricante o categoría.
+4.  **Regla Global:** Margen de seguridad del sistema (fallback).
 
 ---
 
 ## 3. Comportamientos Críticos
 
-### Orquestación del Cálculo
-El cálculo de un precio no es una simple operación aritmética, sino un proceso de orquestación:
-1.  **Resolución de Coste:** Obtiene el coste base actualizado de la variante desde el módulo `Product`.
-2.  **Identificación de Reglas:** Busca en el motor de reglas todas las definiciones vigentes (por fecha y contexto).
-3.  **Aplicación Cascada:** Aplica primero los márgenes para obtener el BSP y luego los descuentos para el FSP.
-4.  **Validación de Moneda:** Garantiza que todas las operaciones se realicen exclusivamente en **Euros (EUR)**.
-
 ### Inmutabilidad del Cálculo (`PriceCalculation`)
-Cada vez que se genera un precio para un documento oficial (Presupuesto o Factura), el sistema genera un registro de auditoría que congela las reglas que se aplicaron en ese momento. Esto garantiza que, si los márgenes cambian mañana, el documento emitido hoy mantenga su validez legal y coherencia histórica.
+Cada vez que se genera un precio para un presupuesto o factura, el sistema congela las reglas aplicadas en ese instante. Esto garantiza coherencia histórica: si los precios suben mañana, los documentos emitidos hoy mantienen sus valores originales.
+
+### Integridad Financiera
+*   **Moneda Única:** El sistema valida que todas las operaciones se realicen exclusivamente en **Euros (EUR)** para el MVP.
+*   **Caché Distribuida:** El PBV se almacena en **Redis** para optimizar el rendimiento de la interfaz de ventas, invalidándose automáticamente ante cualquier cambio en el catálogo.
 
 ---
-**Última Actualización:** 2026-03-07
+[Volver al Módulo de Pricing](./README.md)

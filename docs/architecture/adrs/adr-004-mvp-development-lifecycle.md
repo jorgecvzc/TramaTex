@@ -1,131 +1,52 @@
-# ADR-004 – Ciclo de Vida de Desarrollo e Implementación hasta MVP
+# 🏛️ ADR-004: Ciclo de Vida de Desarrollo e Implementación hasta MVP
 
-**Fecha:** 07/01/2026  
-**Estado:** Aceptado  
-**Autores:** Jorge Cortés Villalba, ChatGPT  
-**LLM utilizado:** Claude (Anthropic)  
-
----
-
-## 1. Contexto
-
-TramaTex es un ERP/MES para microempresas del sector textil y EPIs que debe alcanzar un **MVP plenamente operativo en entorno real**, bajo las siguientes condiciones:
-
-- Equipo de desarrollo reducido  
-- Infraestructura local limitada (servidor i3)  
-- Dominio crítico en tarificación y precios finales  
-- Necesidad de calidad técnica elevada:
-  - Clean Architecture  
-  - Desarrollo guiado por pruebas (iterativo)  
-  - Alta cobertura de tests  
-- El MVP **no es un prototipo**, sino un sistema productivo  
-
-Se requiere un **ciclo de vida de implementación acotado exclusivamente al MVP**, minimizando riesgos y garantizando estabilidad.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 07-01-2026 |
+| **Autores** | Jorge Cortés Villalba, ChatGPT |
 
 ---
 
-## 2. Alternativas Consideradas
-
-1. **Ciclo de vida completo (MVP + Post-MVP):**  
-   - Rechazada: diluye foco, aumenta riesgo de no entregar MVP sólido  
-
-2. **Prototipado rápido sin rigor técnico:**  
-   - Rechazada: alto riesgo en tarificación y finanzas, deuda técnica inasumible  
-
-3. **Ciclo incremental orientado a MVP (decisión adoptada):**  
-   - Incrementos funcionales completos  
-   - Priorización estricta del núcleo de negocio  
-   - Validación temprana en entorno real  
-   - Rigor técnico desde el inicio  
+## 🎯 Contexto
+TramaTex debe alcanzar un **MVP plenamente operativo** en un entorno real con un equipo reducido y recursos de hardware limitados. El MVP no es un prototipo, sino un sistema productivo que requiere una calidad técnica elevada (Clean Architecture, TDD) para asegurar la integridad de los procesos financieros y de taller.
 
 ---
 
-## 3. Criterios de Decisión
-
-- MVP funcional desde primeras iteraciones  
-- Dominio crítico protegido y testeable  
-- Incrementos entregables y validables  
-- Minimizar riesgo operativo y técnico  
-- Preparación para iteraciones futuras controladas  
+## 🔍 Alternativas Consideradas
+1. **Ciclo Completo (MVP + Post-MVP):** Rechazada por diluir el foco y aumentar el riesgo de no entregar el núcleo sólido a tiempo.
+2. **Prototipado Rápido (Sin Rigor):** Rechazada por el alto riesgo de errores en tarificación y una deuda técnica inasumible.
+3. **Ciclo Incremental Orientado a MVP (Decisión Adoptada):** Foco en incrementos funcionales completos, validación temprana en entorno real y rigor técnico desde la base.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta un **Ciclo de Vida Incremental** dividido en fases:
 
-Se adopta un **Ciclo de Vida Incremental hasta MVP** con fases definidas:
+### Fase 0: Cimentación Técnica
+*   Preparación de infraestructura: Docker, CI/CD, pipeline de tests y linters.
+*   Esqueleto de Clean Architecture y autenticación base.
 
-### Fase 0 – Fundaciones Técnicas
-
-- Preparar infraestructura mínima y Clean Architecture base  
-- Configuración Docker, repositorios, pipeline de tests, linters  
-- Esqueleto de autenticación y autorización  
-- Sin funcionalidad de negocio  
-
-### Fase 1 – Implementación del MVP
-
-- Desarrollar módulos críticos:
-  - Ventas y atención al cliente  
-  - Tarificación completa  
-  - Gestión básica de proveedores  
-  - Flujo de producción esencial (MES)  
-- Interfaces gráficas funcionales (taller, ventas, finanzas básicas)  
+### Fase 1: Implementación del Core (MVP)
+*   Desarrollo de módulos críticos: Ventas, Tarificación, Terceros (Party) y flujo esencial de taller (MES).
+*   Interfaces gráficas funcionales para ventas y operarios.
 
 ### Estrategia de Iteración
-
-- Iteraciones cortas y controladas  
-- Cada incremento debe ser funcional y testeable  
-- Enfoque ágil pragmático, no Scrum completo  
-
-### Criterio de Finalización
-
-- MVP desplegado en servidor local  
-- Sistema soporta flujo real de trabajo  
-- Tarificación y ventas fiables  
-- Sistema mantenible por terceros  
+*   Iteraciones cortas con cada incremento funcional y testeado.
+*   Enfoque ágil pragmático orientado a la entrega de valor real.
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-
-- Foco en valor de negocio inmediato  
-- Reducción de riesgo de sobreingeniería  
-- MVP estable y productivo  
-- Control sobre alcance y plazos  
-- Facilita iniciar un nuevo proyecto post-MVP  
+*   Foco absoluto en el valor de negocio inmediato.
+*   Reducción del riesgo de sobreingeniería.
+*   Obtención de un sistema estable, productivo y mantenible por terceros.
 
 ### Negativas
-
-- Mayor disciplina requerida en planificación  
-- Restricciones en funcionalidad avanzada durante MVP  
-
----
-
-## 6. Alcance
-
-- Ciclo de vida y fases de implementación hasta MVP  
-- Entregables funcionales parciales y finales del MVP  
-- Validación de dominio y casos de uso críticos  
+*   Requiere una disciplina estricta en la planificación del alcance.
+*   Funcionalidades avanzadas quedan postergadas para fases Post-MVP.
 
 ---
-
-## 7. Integración con otros ADRs
-
-- ADR-001: Selección del Stack Tecnológico  
-- ADR-002: Adopción de Clean Architecture y DDD con Rigor Asimétrico  
-- ADR-003: Tipo y Distribución de la Aplicación (Monolito Modular)  
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-Este ADR define la **estrategia de ejecución controlada del MVP**, asegurando:
-
-- Dominio crítico protegido  
-- Incrementos funcionales testeables  
-- Preparación para iteraciones futuras sin comprometer estabilidad
-
----
-
-## 9. Referencias
+[Volver al Índice de ADRs](./README.md)

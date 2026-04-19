@@ -1,212 +1,115 @@
-# TramaTex - ERP Textil para Microempresas
+# 🏛️ TramaTex: Gestión Inteligente para la Microempresa Textil
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white" alt="Go 1.21+">
-  <img src="https://img.shields.io/badge/Vue.js-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue.js 3">
-  <img src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 15">
-  <img src="https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Proyecto-TFM-1b3a6b?style=for-the-badge" alt="TFM">
+  <img src="https://img.shields.io/badge/Backend-Go_1.21+-1b3a6b?style=flat-square" alt="Go">
+  <img src="https://img.shields.io/badge/Frontend-Vue.js_3-1b3a6b?style=flat-square" alt="Vue">
+  <img src="https://img.shields.io/badge/Base_de_Datos-PostgreSQL_15-1b3a6b?style=flat-square" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Licencia-MIT-E6B800?style=flat-square" alt="Licencia">
 </div>
 
-> Un sistema ERP modular de código abierto especializado en la gestión integral de empresas de vestuario laboral y EPIs.
+---
+
+## Descripción General
+TramaTex es un sistema integral de gestión (ERP/MES) de código abierto, desarrollado como **Trabajo Fin de Máster (TFM)**. Su misión es digitalizar y profesionalizar las operaciones de microempresas dedicadas al vestuario laboral y EPIs, aportando soluciones a necesidades críticas de personalización (marcajes, arreglos y tallajes complejos).
+
+El sistema apuesta por la **soberanía tecnológica** mediante una arquitectura **Local-First**, garantizando que la empresa mantenga el control total de sus datos y opere con total independencia de la nube.
+
+## 📺 Presentación Rápida
+Explora de un vistazo la propuesta de valor y los pilares de ingeniería en nuestra presentación corporativa interactiva:
+👉 **[Ver Presentación Visual del Proyecto](docs/presentations/presentation.html)**
+
+---
 
 ## 🌐 Demo Pública
+Accede a una instancia funcional para evaluar el sistema de forma inmediata:
 
-Puedes explorar TramaTex en vivo sin instalar nada:
+| Recurso | Detalle |
+| :--- | :--- |
+| **URL de acceso** | [http://46.101.188.130](http://46.101.188.130) |
+| **Usuario Administrador** | `admin@tramatex.local` |
+| **Contraseña de acceso** | `admin123` |
 
-|                |                        |
-| -------------- | ---------------------- |
-| **URL**        | http://46.101.188.130  |
-| **Email**      | `admin@tramatex.local` |
-| **Contraseña** | `admin123`             |
+> ⚠️ **Mantenimiento:** La base de datos de la demo se restaura automáticamente **cada domingo a las 3:00 AM UTC**.
 
-> Los datos de la demo se restauran automáticamente cada domingo a las 3:00 AM UTC mediante un [workflow de GitHub Actions](.github/workflows/demo-reset.yml). Para más detalles sobre el mantenimiento de la demo, consulta la sección [Mantenimiento de la Demo](#-mantenimiento-de-la-demo).
+---
 
-## 💡 Sobre TramaTex
+## Stack Tecnológico
+Selección técnica orientada al rendimiento, la precisión y la longevidad del software:
 
-TramaTex nace con la misión de digitalizar y profesionalizar a las microempresas dedicadas a la venta de vestuario laboral y EPIs. Tradicionalmente, este sector ha carecido de herramientas adaptadas a su escala y a sus necesidades específicas de personalización y marcaje.
+*   **Backend:** [Go (Golang)](https://go.dev/) siguiendo los patrones de **Clean Architecture** y **Domain-Driven Design (DDD)**.
+*   **Frontend:** [Vue.js 3](https://vuejs.org/) con TypeScript y un **Sistema de Diseño propio** basado en **Vanilla CSS**, optimizado para la agilidad en el día a día.
+*   **Base de Datos:** [PostgreSQL](https://www.postgresql.org/) con manejo de precisión decimal para integridad financiera.
+*   **DevOps:** [Docker](https://www.docker.com/) para una orquestación estandarizada y multiplataforma.
 
-Este proyecto cierra esa brecha ofreciendo una solución integral para:
-- Centralizar la administración de **clientes y proveedores**.
-- Gestionar **catálogos complejos** con variantes JIT (tallas/colores).
-- Controlar el **ciclo de ventas** (presupuestos, facturas, tickets).
-- Supervisar la **ejecución en taller (MES)** de personalizaciones y arreglos.
+---
 
-## 🏛️ Arquitectura y Calidad Técnica
+## Instalación y Ejecución
+El proyecto fomenta el uso de sistemas de código abierto, proporcionando automatización tanto para entornos Windows como Linux.
 
-El sistema se ha desarrollado bajo los principios de **Clean Architecture** y **Domain-Driven Design (DDD)**, estructurado como un **monolito modular**. Esta elección asegura un software profesional, mantenible y escalable, diseñado para durar y evolucionar junto al negocio.
+### 🐧 Entornos Linux (Recomendado para Producción/OSS)
+1.  **Instalación:** `chmod +x scripts/install.sh && ./scripts/install.sh`
+2.  **Ejecución:** `docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d`
 
-Para profundizar en los objetivos estratégicos y el modelo de negocio, consulta:
-👉 **[Visión y Alcance del Proyecto](docs/architecture/project-vision-and-scope.md)**
+### 🪟 Entornos Windows (Desarrollo Ágil)
+1.  **Configurar entorno:** `cp docker/.env.example docker/.env`
+2.  **Lanzar servicios:** `.\start-dev.ps1` (o `.\start-dev.ps1 -Full` para el stack completo).
 
-## ✨ Funcionalidades
+### 🛠️ Herramientas de Gestión
+Consulta el índice de utilidades para tareas de mantenimiento, migraciones o auditoría:
+👉 **[Guía Maestra de Scripts y Utilidades](docs/guides/developer/scripts-index.md)**
 
-- **[Gestión de Identidad (IAM)](docs/modules/iam/README.md):** Sistema de autenticación y autorización basado en roles (JWT).
-- **[Gestión de Terceros (Party)](docs/modules/party/README.md):** Unifica la administración de clientes y proveedores, permitiendo que una misma entidad se comporte como ambos sin duplicar información.
-- **[Catálogo de Productos (Product)](docs/modules/product/README.md):** Permite la creación de productos con un sistema avanzado de variantes y atributos, tales como talla y color. Destaca la creación de variantes **"Just-In-Time" (JIT)**, que evita el engorroso trabajo de dar de alta manualmente miles de combinaciones.
-- **[Motor de Precios (Pricing)](docs/modules/pricing/README.md):** Sistema para definir reglas de precios y calcular costes y precios de venta de forma dinámica, permitiendo el cálculo del precio de variantes a partir del producto base y atributos.
-- **[Ciclo de Ventas (Sales)](docs/modules/sales/README.md):** Gestión completa del ciclo comercial, desde presupuestos hasta la emisión de facturas y tickets.
-- **[Ejecución de Manufactura (MES)](docs/modules/mes/README.md):** Módulo para la gestión y seguimiento de las órdenes de producción en taller, referidas a las manipulaciones sobre los productos, tales como el marcado de logotipos o los arreglos.
+---
 
-## 🛠️ Tecnologías Utilizadas
+## Estructura del Proyecto
+Organización modular por responsabilidades para facilitar la mantenibilidad:
 
-Este proyecto se ha construido utilizando un stack de tecnologías modernas y robustas:
+*   `apps/` - Aplicaciones: Backend (`tramatex-api`) y Frontend (`frontend`).
+*   `docs/` - **Árbol de Conocimiento**: El núcleo documental del proyecto.
+*   `project-scaffolding/` - **Ecosistema Metodológico**: Herramientas de estandarización.
+*   `docker/` - Definiciones de infraestructura y contenedores.
+*   `scripts/` - Utilidades operativas para despliegue y seguridad.
 
-- **Backend:** Go (v1.21+)
-- **Frontend:** Vue.js (v3) con TypeScript
-- **Base de Datos:** PostgreSQL (v15+)
-- **UI Framework:** Tailwind CSS
-- **Contenerización:** Docker & Docker Compose
+---
 
-## 🎨 UI/UX & Sistema de Diseño
+## Funcionalidades Principales
+Ciclo de negocio modular y completo:
 
-TramaTex utiliza un lenguaje visual propietario diseñado para la eficiencia operativa en entornos industriales y de gestión. El sistema se basa en una **Arquitectura de Tres Capas** que garantiza claridad y enfoque:
+1.  **[Gestión de Identidad (IAM)](docs/modules/iam/README.md):** Seguridad robusta y control de acceso por roles.
+2.  **[Gestión de Terceros (Party)](docs/modules/party/README.md):** Clientes y proveedores unificados.
+3.  **[Catálogo de Productos (Product)](docs/modules/product/README.md):** Variantes dinámicas **Just-In-Time (JIT)**.
+4.  **[Motor de Precios (Pricing)](docs/modules/pricing/README.md):** Cálculos con precisión decimal y reglas de negocio.
+5.  **[Ciclo de Ventas (Sales)](docs/modules/sales/README.md):** Trazabilidad desde el presupuesto a la factura.
+6.  **[Control de Producción (MES)](docs/modules/mes/README.md):** Gestión y seguimiento de taller en tiempo real.
 
-1.  **Capa de Identidad (Blanco Puro):** Cabeceras fijas (`Sticky`) con acciones globales.
-2.  **Capa de Contexto (Gris Ceniza):** Dashboard de metadatos, KPIs y trazabilidad del objeto.
-3.  **Capa de Trabajo (Gris Base):** Área operativa con tarjetas de alto contraste y bordes reforzados.
+---
 
-### Herramientas para Desarrolladores (Públicas)
-*   **Design System Center:** Explora la librería de componentes en vivo en [http://46.101.188.130/dev/design-system](http://46.101.188.130/dev/design-system).
-*   **Estándar de Pantallas:** Guía técnica para crear nuevas páginas de entidad en `docs/guides/developer/ui-entity-page-standard.md`.
-*   **Iconografía:** Uso exclusivo de **Material Symbols Outlined** para coherencia visual.
+## 🌱 Metodología y Scaffolding
+TramaTex se ha construido utilizando un sistema de **Scaffolding** desarrollado en paralelo (`project-scaffolding/`). No es una simple utilidad, sino el motor que genera el ecosistema de agentes, carpetas y guías necesario para que el desarrollo del proyecto sea metódico y posible bajo estándares de ingeniería.
 
-## 🚀 Cómo Empezar
+Pieza fundamental de esta metodología es la **[Bitácora de Sesiones](docs/log/session-log.md)**, que permite una trazabilidad técnica exhaustiva de cada decisión y avance realizado en el proyecto.
 
-Para poner en marcha una copia local del proyecto, sigue estos pasos.
+Para conocer el sistema que hace posible esta estructura, visita:
+👉 **[Documentación de Scaffolding y Metodología](project-scaffolding/README.md)**
 
-### Prerrequisitos
+---
 
-La forma más sencilla y recomendada de ejecutar el proyecto es a través de Docker.
-- **Docker**: Asegúrate de tenerlo instalado y en ejecución. Puede ser Docker Desktop (para entornos de desarrollo en Windows/macOS) o Docker Engine en un servidor Linux.
+## 📚 Navegación del Árbol de Documentación
+Explora el conocimiento técnico y estratégico siguiendo estas ramas principales:
 
-### Instalación en Desarrollo Local
+*   🏛️ **[Arquitectura y Decisiones](docs/architecture/README.md):** ADRs, visión técnica y glosario.
+*   📦 **[Detalle de Módulos](docs/modules/README.md):** Especificaciones funcionales de cada dominio.
+*   🛠️ **[Guías y Estándares](docs/guides/README.md):** Normas de código y operativa.
+*   🚀 **[Evolución Post-MVP](docs/post-mvp/post-mvp-roadmap.md):** Hoja de ruta estratégica tras el TFM.
 
-1. **Clona el repositorio:**
-   ```sh
-   git clone git@github.com:jorgecvzc/TramaTex.git
-   cd TramaTex
-   ```
-2. **Crea el archivo de entorno:**
-   ```sh
-   cp docker/.env.example docker/.env
-   # Edita docker/.env con tus valores de desarrollo (o deja los que vienen por defecto)
-   ```
-
-3. **Levanta la base de datos y la API (modo desarrollo habitual):**
-   ```powershell
-   # Windows
-   .\start-dev.ps1
-
-   # Linux/macOS
-   docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
-   ```
-   El frontend se ejecuta aparte con hot-reload:
-   ```sh
-   cd apps/frontend && npm install && npm run dev
-   # → http://localhost:5173
-   ```
-
-4. **O levanta el stack completo con Nginx (modo producción local):**
-   ```powershell
-   # Windows
-   .\start-dev.ps1 -Full
-   # → http://localhost:3000
-
-   # Docker Compose directo
-   docker compose -f docker/docker-compose.local.yml --env-file docker/.env --profile full up -d --build
-   ```
-
-Una vez levantado, el sistema estará disponible en:
-
-- **Aplicación Frontend:** `http://localhost:3000`
-- **API Health:** `http://localhost:3000/api/health`
-
-## � Mantenimiento de la Demo
-
-TramaTex sigue una filosofía **local-first**: el MVP está diseñado para instalación y operación local, sin depender de conexiones SSH ni infraestructura remota.
-
-### Reset a datos de fábrica (local)
-
-Para restaurar la base de datos al estado inicial con los datos de demostración, ejecuta:
-
-```powershell
-# Windows
-docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
-.\start-dev.ps1
-
-# Linux/macOS
-docker compose -f docker/docker-compose.local.yml --env-file docker/.env down -v
-docker compose -f docker/docker-compose.local.yml --env-file docker/.env up -d --build
-```
-
-Esto elimina el volumen de PostgreSQL y arranca desde cero. La API ejecuta automáticamente todas las migraciones y los datos semilla (`migrations/007_seed_data.sql`), restaurando el usuario admin y los datos de demostración.
-
-### Reset automático de la demo pública
-
-La instancia de demostración desplegada en producción se resetea automáticamente cada domingo a las 3:00 AM UTC mediante el workflow [`.github/workflows/demo-reset.yml`](.github/workflows/demo-reset.yml). También puede ejecutarse manualmente desde la pestaña **Actions** del repositorio en GitHub.
-
-## �📂 Estructura del Proyecto
-
-El proyecto sigue una estructura de monolito modular para separar las responsabilidades:
-
-```
-TramaTex/
-├── apps/                 # Contiene las aplicaciones principales
-│   ├── tramatex-api/     # El backend en Go (API REST)
-│   └── frontend/         # El frontend en Vue.js (SPA)
-│
-├── docs/                 # Toda la documentación del proyecto
-│   ├── architecture/     # Decisiones de arquitectura (ADRs), diagramas C4
-│   ├── guides/           # Guías para desarrolladores y usuarios
-│   ├── modules/          # Documentación funcional de cada módulo
-│   └── log/              # Registro de trabajo (sprints, etc.)
-│
-├── agents/               # Definiciones para asistentes de IA
-└── docker/               # Archivos de configuración de Docker Compose
-```
-
-
-## 📚 Documentación
-
-El proyecto incluye documentación exhaustiva que cubre varios aspectos. Este `README.md` sirve como punto de partida para navegarla.
-
--   **Decisiones de Arquitectura (ADRs):** Razón y justificación detrás de las decisiones arquitectónicas clave del proyecto.
-    -   [Visión y Alcance del Proyecto](docs/architecture/project-vision-and-scope.md)
-    -   [Índice de ADRs](docs/architecture/adrs/README.md)
--   **Guías de Desarrollo:** Instrucciones y buenas prácticas para contribuir al código.
-    -   [Guía de Inicio Rápido](docs/guides/quick-start.md)
-    -   [Estándares de Código y Estilo](docs/guides/code-and-style-standards.md)
--   **Documentación de Módulos:** Especificaciones detalladas para cada Módulo de Negocio (Bounded Context).
-    -   [Resumen de Módulos](docs/modules/README.md)
-    -   [Módulo Party](docs/modules/party/README.md)
-    -   [Módulo Product](docs/modules/product/README.md)
-    -   [Módulo Pricing](docs/modules/pricing/README.md)
-    -   [Módulo Sales](docs/modules/sales/README.md)
-    -   [Módulo IAM](docs/modules/iam/README.md)
-    -   [Módulo MES](docs/modules/mes/README.md)
--   **Registros y Estado del Proyecto:** Historial de trabajo, resúmenes de sprints y el estado actual del proyecto.
-    -   [Estado del Proyecto](docs/log/project-status.md)
-    -   [Registros de Sprints](docs/log/sprints/README.md)
-    -   [Registro de Sesiones](docs/log/session-log.md)
+---
 
 ## 📄 Licencia
-
-Este proyecto está bajo la [Licencia MIT](LICENSE.md).
-
-## 🌱 Proyecto de Scaffolding
-
-Como resultado del desarrollo de TramaTex, se ha creado una tecnología de *scaffolding* para estandarizar la creación de futuros proyectos. Este sistema, ubicado en la carpeta `project-scaffolding/`, es una guía apoyada en Inteligencia Artificial para la generación de nuevos proyectos desde una base sólida y estandarizada.
-
-El objetivo principal es permitir a los equipos de desarrollo enfocarse en la lógica de negocio desde el primer día, al proporcionar automáticamente:
-
--   Una estructura de directorios coherente.
--   Configuraciones iniciales para CI/CD.
--   Estrategias de testing.
--   Templates para documentación, ADRs y guías de desarrollo.
-
-Al automatizar la configuración inicial, este proyecto de scaffolding fomenta la consistencia, las mejores prácticas y acelera significativamente el arranque de nuevos desarrollos.
+Este proyecto es software libre y se distribuye bajo la **[Licencia MIT](LICENSE.md)**, garantizando la libertad de uso, modificación y distribución para la comunidad y la industria textil.
 
 ## 👥 Autores
+- **Jorge Cortés Villalba** - *Diseño, Arquitectura e Implementación.*
+- **AI Collaborative Ecosystem** - *Gemini, Claude, GitHub Copilot, ChatGPT & Perplexity en roles de copilotos técnicos.*
 
-- **Jorge Cortés Villalba** - *Product Owner, Arquitectura y Desarrollo*
-- **AI Assistant (Gemini, Claude, Copilot & Perplexity)** - *Copilotos Técnicos y Asistentes de Desarrollo*
+---
+© 2026 TramaTex - Software Engineering for Textile Industry.

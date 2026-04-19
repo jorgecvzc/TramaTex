@@ -117,15 +117,22 @@ nano docker/.env
 ### Desplegar
 
 ```bash
-# Desde Windows (vía Makefile):
-make deploy ENV=staging
+# Desde Windows (script remoto por SSH):
+powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-staging-remote.ps1
 
-# O manualmente vía SSH:
-ssh ele@pcele "cd /opt/tramatex && git fetch origin staging && \
-  git checkout staging && git reset --hard origin/staging && \
-  docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build && \
-  docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d"
+# Si necesitas desplegar una rama temporal:
+powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/chore/staging-deploy-scripts
+
+# Ejecutando directamente en pcele (Linux):
+./scripts/rebuild-staging-remote.sh --checkout-ref origin/staging
 ```
+
+Opciones utiles:
+
+- En Windows: `-NoCheckout`, `-PreserveDatabase`, `-SkipImageRemove`
+- En Linux: `--no-checkout`, `--preserve-database`, `--skip-image-remove`
+
+Nota: el compose remoto usa imagenes publicadas (GHCR), por lo que el flujo recomendado en staging es `down` + `pull` + `up -d --force-recreate`.
 
 > **Nota:** pcele está en la LAN (192.168.0.20), no es accesible desde internet.
 > GitHub Actions no puede desplegar ahí. El deploy es manual desde una máquina en la misma red.

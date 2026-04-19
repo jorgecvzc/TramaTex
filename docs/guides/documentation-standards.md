@@ -41,18 +41,30 @@ Siguiendo los estándares de la industria (GitHub Community Profile) y las neces
 
 ---
 
-## 3. Taxonomía del Portal de Documentación (`/docs/`)
+## 3. Arquitectura del Conocimiento (El Árbol TramaTex)
 
-| Carpeta | Contenido Exclusivo |
+La información se organiza siguiendo una estructura jerárquica inspirada en un árbol:
+
+1.  **El Tronco (`README.md` raíz):** Único punto de entrada profesional. Debe proyectar la visión del TFM, el stack tecnológico real, los pasos de ejecución (Scripts) y el mapa funcional del sistema.
+2.  **Las Ramas (READMEs de Carpeta):** Actúan como "nudos" o índices descriptivos de cada subdirectorio (`architecture/`, `modules/`, `guides/`). Su función es facilitar la navegación y dar contexto a los documentos hijos.
+3.  **Las Hojas (Documentos .md):** Contenido técnico y de negocio final. Deben seguir estrictamente la **Plantilla Maestra de Estilo**.
+
+### 3.1. Mandatos de Calidad Obligatorios
+-   **Unificación Lingüística:** Todo el contenido debe redactarse exclusivamente en **castellano profesional**.
+-   **Plantilla Maestra:** Todo documento debe incluir la cabecera de metadatos (Título con emoji, Versión, Estado, Propósito).
+-   **Navegabilidad (Cero Huérfanos):** Está prohibida la existencia de archivos `.md` que no sean alcanzables mediante enlaces directos desde el "Tronco" o sus "Ramas".
+-   **Sincronía Técnica:** Los modelos de dominio y contratos de API deben reflejar la implementación real del código (Ej: uso de Decimal para finanzas).
+
+## 4. Taxonomía del Árbol (`/docs/`)
+
+| Rama | Contenido Exclusivo |
 | :--- | :--- |
-| `architecture/` | Visiones globales, ADRs, Glosario Ubicuo y Diagramas C4. |
-| `modules/` | Guías de comportamiento, lógica de dominio y contratos de API por módulo. |
-| `guides/` | Manuales de usuario, guías de ingeniería y estándares (este documento). |
-| `log/` | Trazabilidad: Sprints, tareas finalizadas y bitácoras de sesión. |
+| `architecture/` | Decisiones estratégicas (ADRs), Glosario y Diagramas C4. |
+| `modules/` | Especificaciones por Bounded Context (Dominios y APIs). |
+| `guides/` | Estándares (este documento), Manuales de Usuario e Índice de Scripts. |
+| `log/` | Trazabilidad histórica y registro de sesiones. |
 
----
-
-## 4. Protocolo de Refinamiento (Poda y Síntesis)
+## 5. Protocolo de Refinamiento (Poda y Síntesis)
 
 Toda pasada de refinamiento debe seguir estos pasos:
 1.  **Estudio:** Analizar la desalineación entre el documento y la realidad del sistema.

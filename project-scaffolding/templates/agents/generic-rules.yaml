@@ -76,9 +76,9 @@ file_naming_conventions:
       pattern: "_kebab-case-template.md"
       description: "Templates are meta-files, not actual documentation"
       examples:
-        - "_adr-template.md"
-        - "_task-template.md"
-        - "_module-template.md"
+        - "docs/_adr-template.md"
+        - "docs/_task-template.md"
+        - "docs/_module-template.md"
         - "_sprint-summary-template.md"
       rationale: |
         Templates need immediate visual distinction from regular files.
@@ -99,9 +99,9 @@ file_naming_conventions:
     pattern: "_kebab-case-template.md"
     why_underscore_prefix: "Immediate visual identification as meta-file, appears first in listings"
     correct_examples:
-      - "_adr-template.md"
-      - "_task-template.md"
-      - "_module-template.md"
+      - "docs/_adr-template.md"
+      - "docs/_task-template.md"
+      - "docs/_module-template.md"
     incorrect_examples:
       - "ADR_TEMPLATE.md" # Uppercase, not kebab-case
       - "adr-template.md" # Missing underscore prefix for template
