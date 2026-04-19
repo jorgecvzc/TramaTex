@@ -27,36 +27,38 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 
 ---
 
-## 2. Convenciones de Nomenclatura de Archivos y Directorios
+## 2. Convenciones de Nomenclatura
 
-### Regla General
-- **kebab-case universal:** Todos los archivos y directorios usan `kebab-case` (minúsculas con guiones).
+Para garantizar la consistencia técnica entre todas las capas del sistema, se establecen las siguientes reglas de nomenclatura obligatorias:
 
-### Estándar
-- **Descripción:** Todos los archivos usan `kebab-case` (minúsculas con guiones).
-- **Ejemplos Correctos:**
-  - `guia-de-uso.md`
-  - `project-context.yaml`
-  - `load-session.yaml`
-  - `adr-template.md`
-  - `bounded-contexts.yaml`
-- **Ejemplos Incorrectos:**
-  - `GUIA_DE_USO.md`
-  - `Project_Context.yaml`
-  - `LoadSession.yaml`
-  - `ADR_TEMPLATE.md`
-  - `Bounded_Contexts.yaml`
+### 📁 Archivos y Directorios
+*   **Documentación:** `kebab-case` universal (ej: `guia-desarrollo.md`).
+*   **Directorios de Código:** `kebab-case` para nombres de carpetas en todas las aplicaciones.
+*   **Regla de Oro:** Se prefiere el inglés para nombres de archivos técnicos y el castellano para archivos de documentación.
 
-### Excepciones
-- **Archivos estándar universales en la raíz del proyecto:** `README.md`, `LICENSE`, `CONTRIBUTING.md`, `CHANGELOG.md`. (Reconocidos universalmente en proyectos de código abierto).
-- **Archivos de plantilla con prefijo de guion bajo:** `_kebab-case-template.md`. Se utiliza el prefijo `_` para distinguirlos visualmente como archivos meta/herramientas, manteniéndose el `kebab-case`.
+### 🐹 Backend (Go)
+*   **Archivos:** `snake_case` (ej: `party_repository.go`). Los tests llevan siempre el sufijo `_test.go`.
+*   **Paquetes:** Todo en minúsculas, sin guiones ni guiones bajos, siempre en singular (ej: `package party`).
+*   **Símbolos (Entidades/Funciones):**
+    *   `PascalCase` para elementos exportados (ej: `type Money struct`, `func CreateOrder`).
+    *   `camelCase` para elementos privados o locales (ej: `func validateNIF`).
 
-### Razones para `kebab-case`
-- Consistencia: Una única regla sencilla de recordar.
-- Legibilidad: Más fácil de leer que `SCREAMING_SNAKE_CASE`.
-- Multiplataforma: No hay problemas de sensibilidad a mayúsculas/minúsculas.
-- Estándar: Usado por la mayoría de proyectos de código abierto.
-- URLs: Funciona bien en contextos web sin codificación.
+### 🖖 Frontend (Vue.js 3)
+*   **Componentes:** `PascalCase` y multi-palabra (ej: `OrderList.vue`, `BaseButton.vue`).
+*   **Servicios/Stores:** `camelCase` (ej: `authStore.ts`, `salesService.ts`).
+*   **Composables:** Prefijo `use` en `camelCase` (ej: `usePriceCalculator.ts`).
+*   **Símbolos de Código:** `camelCase` para variables y funciones reactivas.
+
+### 🗄️ Base de Datos (PostgreSQL)
+*   **Tablas:** `snake_case` en plural (ej: `parties`, `invoices`, `products`).
+*   **Columnas:** `snake_case` (ej: `customer_id`, `unit_price`, `created_at`).
+*   **Índices:** Prefijo `idx_` (ej: `idx_parties_nif`).
+*   **Constraints:** Prefijos estándar: `fk_` (Foreign Key), `uk_` (Unique), `pk_` (Primary Key).
+
+### Razones para la Estandarización
+- **Consistencia:** Facilita la navegación entre capas del stack.
+- **Interoperabilidad:** Evita problemas de sensibilidad a mayúsculas en diferentes sistemas operativos.
+- **Mantenibilidad:** El código "se explica solo" al seguir patrones predecibles.
 
 ---
 
@@ -111,6 +113,7 @@ Este documento centraliza las reglas y convenciones para el código y el estilo 
 
 ### Criterios Aceptados (Extracto)
 - **Capa de Dominio:** Sin dependencias externas (frameworks, ORM). Reglas de negocio encapsuladas. Interfaces para persistencia. Errores tipados.
+- **Campos de Auditoría:** Por mandato arquitectónico, los campos de auditoría (`CreatedAt`, `UpdatedAt`, `CreatedBy`, `UpdatedBy`) **deben estar excluidos de todas las entidades de dominio**. Estos campos se consideran una preocupación de infraestructura y deben gestionarse exclusivamente en la capa de persistencia/base de datos.
 - **Casos de Uso (Aplicación):** Orquestan dominio e infraestructura. Sin lógica de negocio. Inyección de dependencias clara. Transacciones en la capa de aplicación.
 - **Infraestructura:** Implementa interfaces de dominio. Contiene código específico del framework (GORM). Sin lógica de negocio.
 - **Interfaces (HTTP):** Handlers como adaptadores delgados. DTOs para contratos. Validación de entrada (superficial). Traducción de errores a códigos de estado HTTP.

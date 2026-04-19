@@ -484,7 +484,7 @@ class SalesApi {
   getQuoteStatusClass(status: string): string { return this.getStatusClass(status); }
 
   formatDateForAPI(date: Date): string {
-    return date.toISOString().split('T')[0]
+    return date.toISOString()
   }
 }
 

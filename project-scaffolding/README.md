@@ -1,57 +1,55 @@
-# Sistema de Scaffolding de Proyectos
+# 🏗️ Ecosistema de Scaffolding y Metodología IA
+
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 2.0 |
+| **Estado** | ✅ Vigente |
+| **Propósito** | Motor de materialización y estandarización de proyectos |
+
+---
 
 ## 🎯 Propósito
+Este proyecto, desarrollado en paralelo a TramaTex, constituye la **infraestructura del pensamiento** del ecosistema. No es una simple colección de plantillas, sino un motor de orquestación basado en IA que permite materializar la estructura completa de un proyecto profesional (documentación, agentes y procesos) a partir de una visión inicial.
 
-Este directorio contiene el sistema para generar automáticamente la estructura de nuevos proyectos con documentación, agentes IA y mejores prácticas integradas.
+TramaTex es el primer sistema de grado industrial nacido y escalado íntegramente bajo esta metodología.
 
-## 📚 Documentación
+---
 
-[LICENSE](LICENSE.md) - La licencia bajo la que se distribuye este proyecto.
+## 🐹 Componentes del Ecosistema
 
-### Para Usuarios (Crear Proyectos)
-👉 **[user-guide.md](guides/user-guide.md)** - Cómo usar el scaffolding
+### 1. El Motor de Bootstrap (`/agents/bootstrap_workflow/`)
+Flujos de trabajo automatizados en YAML que guían a la IA para:
+*   Procesar requisitos y definir contextos acotados (Bounded Contexts).
+*   Generar el árbol de directorios y archivos base de arquitectura.
+*   Poblar automáticamente marcadores de posición (*placeholders*) para mantener la coherencia técnica.
 
-### Para Desarrolladores (Modificar Scaffolding)
-👉 **[development-guide.md](guides/development-guide.md)** - Cómo modificar y mejorar el sistema
+### 2. El Cerebro de Agentes (`/templates/agents/`)
+Define el comportamiento de los asistentes de IA que gestionan el proyecto:
+*   **`init.yaml`**: Punto de entrada al flujo de trabajo.
+*   **`load-session.yaml`**: Inteligencia para retomar tareas y cargar contextos.
+*   **`end-session.yaml`**: Protocolo de cierre y persistencia de memoria.
 
-## 🚀 Inicio Rápido
+### 3. Plantillas de Ingeniería (`/templates/docs/`)
+Estándares de oro para la creación de documentos:
+*   Registros de Decisión de Arquitectura (ADRs).
+*   Especificaciones funcionales de módulos.
+*   Estrategias de prueba y gobernanza.
 
-1. **Coloca documentos** (opcional) en `user-input-docs/`
-2. **Ejecuta el bootstrap** - El sistema extrae info automáticamente
-3. **Confirma configuración** - Solo pregunta lo que falta
-4. **¡Listo!** - Proyecto creado con estructura completa
+---
 
-## 📁 Estructura
+## 📜 Metodología de Bitácora (Session Logging)
+El sistema de Scaffolding inyecta en el ADN del proyecto la cultura de la **Trazabilidad Continua**. 
 
-```
-project-scaffolding/
-├── bootstrap.yaml              # Configuración del flujo
-├── guides/                     # Guías y documentación del scaffolding
-│   ├── user-guide.md           # Para usuarios (cómo usar el scaffolding)
-│   ├── development-guide.md    # Para desarrolladores (cómo modificar el scaffolding)
-│   ├── placeholders-guide.md   # Documentación del sistema de placeholders
-│   └── input-docs/             # Guías para preparar documentos de entrada
-│       ├── README.md           # Guía del directorio
-│       └── EJEMPLO_README.md   # Template de ejemplo
-├── user-input-docs/            # Coloca aquí tus documentos (el sistema los analizará)
-├── agents/                     # Agentes del scaffolding
-│   └── scaffolding-developer.yaml
-├── tmp/                        # Archivos temporales (ver README)
-│   └── README.md               # Reglas del directorio temporal
-└── templates/                  # Templates para proyectos
-    ├── agents/
-    ├── docs/
-    └── .github/
-```
+A través del archivo `session-log.md`, los agentes registran cada jornada de desarrollo, las decisiones tomadas y los impedimentos encontrados. Esto permite:
+1.  **Continuidad Asíncrona**: Retomar tareas complejas semanas después sin pérdida de contexto.
+2.  **Auditoría de Decisiones**: Entender el *porqué* de cada cambio en el código.
+3.  **Calidad Certificada**: Asegurar que cada paso cumple con los estándares definidos en la Fase de Bootstrap.
 
-## ✨ Características
+---
 
-- 🧠 **Extracción inteligente** de metadata de documentos
-- 📊 **Preguntas mínimas** - Solo lo que no encuentra
-- 📁 **Multi-formato** - MD, TXT, YAML, JSON, DOCX, PDF
-- 🎯 **Inferencia contextual** - Detecta componentes y tecnologías
-- ✅ **Transparente** - Muestra qué extrajo y de dónde
+## 🛠️ Guías de Operativa
+*   **[Guía de Desarrollo](./guides/development-guide.md):** Cómo modificar y extender el propio motor de scaffolding.
+*   **[Guía de Placeholders](./guides/placeholders-guide.md):** Manual técnico sobre la inyección de variables en el proceso de generación.
 
-## 🔧 Para Modificar el Sistema
-
-Consulta **[development-guide.md](guides/development-guide.md)** y el agente **[scaffolding-developer.yaml](agents/scaffolding-developer.yaml)**
+---
+[Volver al README Principal de TramaTex](../README.md)

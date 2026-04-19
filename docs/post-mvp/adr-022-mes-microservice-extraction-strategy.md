@@ -1,63 +1,55 @@
-# ADR-022: Estrategia de Extracción del Microservicio MES (Post-MVP)
+# 🏛️ ADR-022: Estrategia de Extracción de MES a Microservicio
 
-- Mejorar UI e interacción con ella. Direcciónaplicación dirigida por teclado.
-- Implementar caché de productos/variantes y precios para mayor rapidez de consulta. Cuando se actualize un precio base habrá que borrar todas sus entradas de la caché.
-- Mejorar interfaz TPV para gran agiliad.
-- Mejorar MES para mayor información y control de pedidos. Comjunicación entre Salees y MES
-- Separar MES en un servicio aparte
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | 🚀 Propuesta Post-MVP |
+| **Autor** | Gemini CLI (Arquitectura) |
 
-## Estado
-Propuesto (Estudio Post-MVP)
+---
 
-## Contexto
-El módulo MES (Manufacturing Execution System) de TramaTex está actualmente integrado dentro del monolito modular para simplificar el desarrollo del MVP. Sin embargo, el negocio requiere que este módulo esté arquitectónicamente preparado para ser extraído como un microservicio independiente. Esto permitirá un escalado independiente, ciclos de despliegue especializados e integración con hardware físico de fábrica que puede residir en un segmento de red diferente.
+## 🎯 Contexto
+Siguiendo los principios de "Extraíble por Diseño" definidos en el [ADR-018](../architecture/adrs/adr-018-mes-module-architecture.md), se plantea la ruta técnica para separar físicamente el módulo MES del monolito modular y convertirlo en un microservicio autónomo. Esta decisión es estratégica para permitir el escalado independiente de la planta de producción y una mayor resiliencia ante picos de demanda en el taller.
 
-## Decisión
-Adoptaremos una arquitectura de **"Shared-Nothing"** (Nada Compartido) para la extracción de MES, pasando de llamadas a funciones en memoria a patrones de comunicación distribuida.
+---
 
-### 1. Patrones de Comunicación
+## 🔍 Alternativas de Extracción
 
-#### A. Síncrona (Consultas) - gRPC
-Para necesidades de datos en tiempo real (por ejemplo, verificar si un producto existe antes de comenzar una tarea), MES se comunicará con el ERP Core a través de **gRPC**.
-- **Por qué:** Alto rendimiento, contratos estrictamente tipados mediante Protocol Buffers y excelente soporte en Go.
-- **Mecanismo:** Las interfaces de servicios de aplicación actuales en MES serán satisfechas por nuevos adaptadores de cliente remoto que implementarán la misma interfaz pero realizarán llamadas gRPC en lugar de búsquedas en repositorios locales.
+### A. Extracción en Caliente (Refactorización Directa)
+*   **Descripción:** Separar el código y la base de datos en un único hito de desarrollo.
+*   **Desventajas:** Alto riesgo de interrupción del servicio y dificultad para revertir cambios.
 
-#### B. Asíncrona (Comandos/Efectos Secundarios) - Mensajería Fiable
-Para flujos de trabajo reactivos donde una solicitud debe procesarse eventualmente sin bloquear al emisor (por ejemplo, una orden de venta creando un trabajo MES), utilizaremos **Mensajería Asíncrona Fiable** con **NATS JetStream**.
+### B. Extracción Progresiva por "Strangler Fig" (Adoptada)
+*   **Descripción:** Mantener la lógica en el monolito mientras se construye la infraestructura del microservicio, desviando tráfico progresivamente.
+*   **Ventajas:** Riesgo controlado, validación continua y posibilidad de *rollback* instantáneo.
 
-- **Tecnología: NATS JetStream.**
-  - **Por qué:** Nativo de la nube (optimizado para Kubernetes), escrito en Go, proporciona latencia ultra baja y soporta "Streams" persistentes para una entrega sin pérdidas.
-- **Patrón Transactional Outbox:** Para asegurar que no se pierdan mensajes en el origen, el Core guardará el mensaje en una tabla local `outbox` dentro de la misma transacción de base de datos que la entidad de negocio. Un proceso "Relay" en segundo plano los enviará a NATS.
-- **Grupos de Consumidores:** MES utilizará "Pull Consumers" con suscripciones duraderas. Esto permite escalar el servicio MES a múltiples pods en Kubernetes; NATS distribuirá el trabajo automáticamente y asegurará que cada mensaje se procese exactamente una vez.
-- **Confirmaciones y Reintentos:** NATS solo considerará un mensaje como entregado una vez que MES envíe un `Ack`. Si MES falla, NATS reenviará el mensaje según una política de reintentos.
+---
 
-#### C. Consultas de Información (Lectura) - Regla Híbrida 90/10
-Para equilibrar la frescura de los datos con la resiliencia del sistema, adoptamos una estrategia híbrida:
-- **90% - Proyecciones Locales (Vistas Materializadas vía Eventos NATS):** Los listados comunes se servirán desde modelos de lectura locales actualizados asíncronamente. Esto garantiza una respuesta instantánea de la UI y aislamiento total de fallos.
-- **10% - Consultas Remotas Directas (gRPC):** Solo para datos de alta volatilidad o validaciones críticas en tiempo real (ej. telemetría de máquinas).
+## ✅ Hoja de Ruta Propuesta (Post-MVP)
 
-### 2. Estrategia de Datos
-- **Esquema Independiente:** MES mantendrá su propia base de datos (instancia de PostgreSQL).
-- **Referencias Lógicas:** Sin claves foráneas (FK) físicas a las tablas del Core. MES almacenará referencias `uuid`.
-- **Replicación de Datos:** MES podrá mantener un "caché" local de datos esenciales del Core para seguir funcionando durante particiones de red.
+### 1. Migración de Comunicación
+*   Sustituir las llamadas síncronas directas (Service-to-Service) por un **Message Broker** (ej: RabbitMQ o Redis Streams).
+*   Introducir eventos de dominio para la sincronización asíncrona de datos (ej: `SalesOrderConfirmed` -> `ProductionOrderCreated`).
 
-### 3. Identidad y Seguridad
-- **Propagación de JWT:** El token JWT del usuario se pasará en los metadatos de gRPC para asegurar la autorización en MES.
+### 2. Separación Física de Datos
+*   Migrar las tablas de MES a una base de datos independiente (PostgreSQL).
+*   Eliminar cualquier dependencia técnica residual (foreign keys trans-contexto).
 
-## Consecuencias
+### 3. Despliegue Autónomo
+*   Contenerización individual del microservicio MES.
+*   Implementación de un **API Gateway** para orquestar las peticiones entre el ERP y el Taller.
 
+---
+
+## 📈 Consecuencias
 ### Positivas
-- **Escalado Independiente:** MES puede escalarse según la carga de la fábrica.
-- **Aislamiento de Fallos:** Una caída en Ventas no detiene la producción en el taller.
-- **Flexibilidad Tecnológica:** MES podría reescribirse en otro lenguaje si la integración con hardware lo requiere.
+*   **Escalabilidad:** El taller puede escalar sus recursos sin afectar al área comercial.
+*   **Autonomía:** Ciclos de despliegue independientes para mejoras en la terminal de operario.
+*   **Resiliencia:** Un fallo en el ERP no detiene la operación de las máquinas del taller (Local-First distribuido).
 
 ### Negativas
-- **Complejidad Operativa:** Requiere gestionar un broker de mensajería.
-- **Trazabilidad Distribuida:** Depurar es más complejo (requiere IDs de correlación).
-- **Consistencia Eventual:** Se debe gestionar la sincronización de datos entre servicios.
+*   Aumento de la complejidad operativa (gestión de red, latencia).
+*   Necesidad de gestionar la consistencia eventual entre sistemas.
 
-## Implementation Roadmap (Conceptual)
-1. **Phase 1:** Define `.proto` files for Core services.
-2. **Phase 2:** Refactor MES Adapters to use the gRPC client instead of local Repo injection.
-3. **Phase 3:** Introduce a Message Broker for `Sales` -> `MES` triggers.
-4. **Phase 4:** Physical separation of the database.
+---
+[Volver al Índice de ADRs](../architecture/adrs/README.md)

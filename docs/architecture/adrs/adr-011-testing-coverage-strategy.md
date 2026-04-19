@@ -1,91 +1,46 @@
-# ADR-011 – Testing & Coverage Strategy (Estrategia de Testing y Cobertura)
+# 🏛️ ADR-011: Estrategia de Testing y Cobertura
 
-**Fecha:** 2026-02-01 (Reconstruido)  
-**Estado:** Aceptado  
-**Autores:** Equipo de Arquitectura de TramaTex  
-
----
-
-## 1. Contexto
-
-La calidad y fiabilidad son pilares fundamentales para TramaTex. Una estrategia de testing bien definida es crucial para validar requerimientos, prevenir regresiones y facilitar el mantenimiento en un entorno de desarrollo iterativo.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 01-02-2026 |
+| **Autores** | Equipo de Arquitectura de TramaTex |
 
 ---
 
-## 2. Alternativas Consideradas
-
-**Alternativa A – Enfoque en Tests E2E / Manuales**  
-- Ventajas: Valida flujos reales de usuario.  
-- Desventajas: Lentos, frágiles ante cambios de UI, difícil diagnóstico de errores.
-
-**Alternativa B – Pirámide de Testing (Adoptada)**  
-- Ventajas: Base sólida de tests unitarios rápidos y económicos.  
-- Desventajas: Requiere inversión inicial en infraestructura de testing y mocks.
+## 🎯 Contexto
+La fiabilidad es crítica para TramaTex. Se requiere una estrategia que valide los requisitos de negocio, prevenga regresiones y facilite el mantenimiento en un ciclo de desarrollo iterativo.
 
 ---
 
-## 3. Criterios de Decisión
-
-- **Velocidad de ejecución:** Feedback rápido para el desarrollador.
-- **Precisión:** Identificación clara del punto de fallo.
-- **Rigor Asimétrico:** Mayor cobertura en módulos críticos (Pricing).
-- **Mantenibilidad:** Tests desacoplados de la implementación técnica.
+## 🔍 Alternativas Consideradas
+1. **Foco en E2E / Manual:** Valida flujos reales pero es lento y frágil ante cambios de interfaz.
+2. **Pirámide de Testing (Decisión Adoptada):** Base sólida de tests unitarios rápidos combinada con tests de integración y E2E.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta una **Pirámide de Testing (70% Unit, 25% Integración, 5% E2E)** con un enfoque de rigor asimétrico.
 
-Se adopta una **estrategia de testing multi-capa** alineada con la Pirámide de Testing (70% Unit, 25% Integración, 5% E2E) y un enfoque iterativo de "construir y refinar".
-
-### Objetivos de Cobertura (MVP)
-
+### Objetivos de Cobertura (MVP):
 | Módulo | Cobertura Mínima | Justificación |
-|---|---|---|
-| **Pricing** | **≥ 85%** | Crítico para facturación. |
-| **Party / Sales** | ≥ 75% | Flujo comercial base. |
-| **Product** | ≥ 50% * | Ver notas sobre integración. |
-| **General** | ≥ 75% | Mínimo aceptable. |
-
-*Nota: Product Application compensa cobertura unitaria con tests de integración robustos.*
+| :--- | :--- | :--- |
+| **Pricing** | **≥ 85%** | Crítico para la rentabilidad y facturación. |
+| **Party / Sales** | ≥ 75% | Flujo comercial base del sistema. |
+| **General** | ≥ 75% | Mínimo aceptable para la salud del proyecto. |
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-- Aumento de la confianza en la corrección del código y reducción de bugs.
-- Diseño de software más modular (diseñado para ser testeable).
-- Facilitación de refactorizaciones.
+*   Máxima confianza en la integridad del código.
+*   Diseño modular forzado por la testabilidad.
+*   Facilitación de refactorizaciones seguras.
 
 ### Negativas
-- Incremento del tiempo de desarrollo inicial.
-- Esfuerzo continuo de mantenimiento de tests y mocks.
+*   Inversión inicial significativa en infraestructura de pruebas.
+*   Esfuerzo continuo de mantenimiento de mocks y suites de test.
 
 ---
-
-## 6. Alcance
-
-Aplica a todo el ciclo de vida de desarrollo de los módulos Backend (Go) y Frontend (Vue). Define umbrales de cobertura obligatorios para el paso a producción del MVP.
-
----
-
-## 7. Integración con otros ADRs
-
-- **ADR-002 (Clean Architecture):** Los tests se organizan por capas (Domain, Application, Infrastructure).
-- **ADR-010 (Seguridad):** Inclusión de tests de autorización y políticas.
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-### Tipos de Tests por Capa
-- **Dominio:** Unitarios puros (sin mocks).
-- **Aplicación:** Integración con mocks de servicios/repositorios.
-- **Infraestructura:** Integración con base de datos real (Testcontainers).
-
----
-
-## 9. Referencias
-
-- Estándares de código (`agents/project/context/code-standards.yaml`)
-- Guía de arquitectura de testing de TramaTex.
+[Volver al Índice de ADRs](./README.md)

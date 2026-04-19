@@ -1,85 +1,68 @@
-# Detalles de la Estructura del Proyecto TramaTex
+# 📂 Detalles de la Estructura del Proyecto
 
-Este documento proporciona una vista detallada de la estructura de carpetas del proyecto TramaTex, complementando la decisión arquitectónica definida en [ADR-009: Estructura de Carpetas y Organización del Proyecto](../../architecture/adrs/adr-009-project-structure.md).
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.1 |
+| **Estado** | ✅ Vigente |
+| **Relacionado con** | [ADR-009](../../architecture/adrs/adr-009-project-structure.md) |
 
 ---
 
-## Estructura Completa del Proyecto
+## 🎯 Propósito
+Este documento proporciona una vista exhaustiva de la organización del repositorio TramaTex, facilitando el descubrimiento de componentes y la comprensión de la jerarquía modular tanto para desarrolladores como para asistentes de IA.
 
-```
+---
+
+## 🏗️ Estructura Completa del Proyecto
+
+```text
 tramatex/
 │
-├── README.md                          # Documentación principal del proyecto
-├── LICENSE                            # Licencia del software
-├── .gitignore                         # Archivos ignorados por Git
-├── Makefile                           # Comandos comunes (build, test, run, etc.)
+├── README.md                          # Documentación principal (Tronco del Árbol)
+├── LICENSE.md                         # Licencia MIT del software
+├── Makefile                           # Orquestador de comandos técnicos (Go, Docker)
+├── start-dev.ps1                      # Orquestador de arranque del entorno
 │
-├── docs/                              # DOCUMENTACIÓN (en Español)
-│   ├── architecture/                  # Arquitectura del sistema (ADRs, diagramas)
-│   │   ├── adrs/                      # Architecture Decision Records
-│   │   │   └── ...
-│   │   ├── design-system/             # Principios de diseño y UI
-│   │   └── diagrams/                  # Diagramas (C4, ER, etc.)
-│   │
-│   ├── guides/                        # Guías y tutoriales (desarrolladores, usuarios)
-│   │   ├── developer/
-│   │   └── user/
-│   │
-│   ├── modules/                       # Documentación detallada por Bounded Context (specs, diagramas)
-│   │   ├── _module-template.md
-│   │   ├── iam/
-│   │   ├── party/
-│   │   └── ...
-│   │
-│   └── log/                           # Registros del proyecto (sprints, hitos, gobernanza)
-│       ├── erp-core-completion.md     # Informe de completitud del ERP Core
-│       ├── mes-completion.md          # Informe de completitud del módulo MES
-│       ├── project-status.md          # Estado actual del proyecto
-│       ├── session-log.md             # Registro de sesiones de agentes
-│       ├── analysis/                  # Análisis técnicos y gap reports
-│       ├── governance/                # Políticas del proyecto
-│       └── sprints/                  # Planificación y logs de Sprints y Tareas
-│           ├── _sprint-summary-template.md
-│           ├── _task-template.md
-│           └── sprint-01/
-│               └── ...
-│
-├── apps/
+├── apps/                              # APLICACIONES (Código Fuente)
 │   ├── tramatex-api/                  # Backend API (Go)
-│   │   ├── cmd/api/main.go
-│   │   ├── internal/
-│   │   │   ├── iam/                   # Bounded Context: IAM
-│   │   │   │   ├── domain/
-│   │   │   │   ├── application/
-│   │   │   │   ├── infrastructure/
-│   │   │   │   └── interfaces/
-│   │   │   ├── party/                 # Bounded Context: Party
-│   │   │   │   └── ...
-│   │   │   ├── product/
-│   │   │   ├── pricing/
-│   │   │   ├── sales/                 # Bounded Context: Sales (Ventas)
-│   │   │   │   ├── application/       # Servicios fragmentados (Quote, Order, Billing)
-│   │   │   │   ├── domain/            # Modelo de dominio (Quote, SalesOrder, calculations)
-│   │   │   │   ├── infrastructure/    # Persistencia (GORM) y adaptadores externos
-│   │   │   │   └── interfaces/        # Handlers HTTP y DTOs
-│   │   │   ├── mes/                   # Bounded Context: MES (Producción)
-│   │   │   └── shared/                # Código compartido entre Bounded Contexts
-│   │   ├── pkg/
-│   │   └── ...
+│   │   ├── cmd/api/main.go            # Punto de entrada de la aplicación
+│   │   ├── internal/                  # Dominios de Negocio (Monolito Modular)
+│   │   │   ├── iam/                   # Bounded Context: Identidad y Acceso
+│   │   │   ├── party/                 # Bounded Context: Clientes y Proveedores
+│   │   │   ├── product/               # Bounded Context: Catálogo y Variantes
+│   │   │   ├── pricing/               # Bounded Context: Motor de Precios
+│   │   │   ├── sales/                 # Bounded Context: Flujo Comercial
+│   │   │   └── mes/                   # Bounded Context: Control de Producción
+│   │   └── pkg/                       # Librerías compartidas e infraestructura
 │   │
-│   └── frontend/                      # Frontend (Vue.js 3)
+│   └── frontend/                      # Frontend SPA (Vue.js 3 + TypeScript)
 │       ├── src/
-│       │   ├── components/
-│       │   ├── pages/                 # Páginas principales (anteriormente views)
-│       │   ├── stores/
-│       │   ├── services/
-│       │   ├── composables/
-│       │   └── ...
-│       └── ...
+│       │   ├── components/            # Componentes reutilizables
+│       │   ├── pages/                 # Vistas principales de negocio
+│       │   ├── stores/                # Gestión de estado (Pinia)
+│       │   └── design-system/         # Sistema de diseño (Vanilla CSS)
 │
-├── docker/                            # Configuración de Docker
-│   └── ...
+├── docs/                              # ÁRBOL DE CONOCIMIENTO (Castellano)
+│   ├── architecture/                  # Registro de decisiones y visión técnica
+│   │   ├── adrs/                      # Architectural Decision Records (ADRs 001-021)
+│   │   ├── design-system/             # Documentación visual y estética
+│   │   └── diagrams/                  # Diagramas C4 y flujos de dominio
+│   ├── guides/                        # Manuales operativos y estándares
+│   │   ├── developer/                 # Guías técnicas y operativa de scripts
+│   │   └── user/                      # Manuales de uso funcional
+│   ├── modules/                       # Especificaciones profundas por dominio
+│   └── log/                           # Registro histórico (Session Logs y Sprints)
 │
-└── .github/                           # CI/CD (GitHub Actions)
-    └── ...
+├── project-scaffolding/               # ECOSISTEMA DE ESTANDARIZACIÓN
+│   ├── agents/                        # Motor de orquestación IA
+│   └── templates/                     # Plantillas de arquitectura y documentos
+│
+├── docker/                            # INFRAESTRUCTURA (Docker Compose)
+│   └── ...                            # Configuraciones de red, DB y caché
+│
+└── agents/                            # AGENTES OPERATIVOS
+    └── project/                       # Contexto actual para asistentes de IA
 ```
+
+---
+[Volver al README Principal](../../../README.md)

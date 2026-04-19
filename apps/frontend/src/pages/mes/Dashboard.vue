@@ -234,18 +234,41 @@ const pendingTasksCount = computed(() => {
 async function loadDashboard() {
   isLoading.value = true
   try {
-    const [s, p, i, sw] = await Promise.all([
+    const [statsResult, pendingResult, inProgressResult, pendingSetupsResult] = await Promise.allSettled([
       mesApi.getWorkOrderDashboardStats(),
       mesApi.listWorkOrders({ status: 'PENDING' }),
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
       mesApi.listPendingWorkSetups()
     ])
-    stats.value = s
-    pendingOrders.value = p
-    inProgressOrders.value = i
+
+    if (statsResult.status === 'fulfilled') {
+      stats.value = statsResult.value
+    } else {
+      console.error('[MES Dashboard] Error loading stats:', statsResult.reason)
+      stats.value = null
+    }
+
+    if (pendingResult.status === 'fulfilled') {
+      pendingOrders.value = pendingResult.value
+    } else {
+      console.error('[MES Dashboard] Error loading pending work orders:', pendingResult.reason)
+      pendingOrders.value = []
+    }
+
+    if (inProgressResult.status === 'fulfilled') {
+      inProgressOrders.value = inProgressResult.value
+    } else {
+      console.error('[MES Dashboard] Error loading in-progress work orders:', inProgressResult.reason)
+      inProgressOrders.value = []
+    }
+
+    const pendingSetups = pendingSetupsResult.status === 'fulfilled' ? pendingSetupsResult.value : []
+    if (pendingSetupsResult.status === 'rejected') {
+      console.error('[MES Dashboard] Error loading pending work setups:', pendingSetupsResult.reason)
+    }
     
     // Enriquecer solicitudes de ventas con nombres de clientes
-    const enrichedSW = await Promise.all(sw.map(async (item: any) => {
+    const enrichedSW = await Promise.all(pendingSetups.map(async (item: any) => {
       if (item.party_id) {
         try {
           const party = await partyApi.getParty(item.party_id)
@@ -256,6 +279,7 @@ async function loadDashboard() {
       }
       return item
     }))
+
     pendingSalesWork.value = enrichedSW
   } catch (err) {
     console.error('Error loading dashboard:', err)

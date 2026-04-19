@@ -1,137 +1,53 @@
-# ADR-002 – Adopción de Clean Architecture y DDD con Rigor Asimétrico
+# 🏛️ ADR-002: Adopción de Clean Architecture y DDD con Rigor Asimétrico
 
-**Fecha:** 06/01/2026  
-**Estado:** Aceptado  
-**Autores:** Jorge Cortés Villalba, ChatGPT  
-**LLM utilizado:** Claude (Anthropic)  
-
----
-
-## 1. Contexto
-
-TramaTex es un ERP/MES para microempresas del sector textil y EPIs, caracterizado por:
-
-- Gestión compleja de productos con variantes (talla, color)  
-- Alto volumen de pedidos personalizados  
-- Flujo productivo con fases diferenciadas (diseño, marcaje, taller)  
-- Dependencia crítica de una **tarificación correcta y consistente**  
-- Interacción constante entre áreas comerciales, técnicas y operativas  
-
-Adicionalmente, el sistema debe:
-
-- Operar en infraestructura **local-first** con recursos limitados  
-- Ser mantenible por terceros externos  
-- Tener una vida útil larga  
-- Permitir evolución funcional progresiva  
-- Facilitar transición futura a arquitecturas distribuidas  
-
-Riesgo principal: **degradación del modelo de dominio** por acoplamientos indebidos o dispersión de lógica de negocio.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.0 |
+| **Estado** | ✅ Aceptado |
+| **Fecha** | 06-01-2026 |
+| **Autores** | Jorge Cortés Villalba, ChatGPT |
 
 ---
 
-## 2. Alternativas Consideradas
-
-### Aplicación de Arquitectura
-
-1. **No aplicar Clean Architecture / DDD:**  
-   - Ventajas: rapidez inicial, menos complejidad.  
-   - Desventajas: riesgo de deuda técnica, modelo de dominio vulnerable, difícil escalabilidad y testeo.  
-
-2. **Aplicar Clean Architecture + DDD con rigor uniforme:**  
-   - Ventajas: dominio protegido, testable, separación de responsabilidades.  
-   - Desventajas: esfuerzo inicial elevado, curva de aprendizaje.  
-
-3. **Aplicar Clean Architecture + DDD con rigor asimétrico (decisión adoptada):**  
-   - Ventajas: protege núcleo crítico, aplica esfuerzo arquitectónico donde aporta valor, permite iteración ágil en áreas menos críticas.  
-   - Desventajas: requiere disciplina, puede inducir confusión si se relaja el rigor sin control.
+## 🎯 Contexto
+TramaTex es un ERP/MES para microempresas textiles con una gestión compleja de variantes de producto y una dependencia crítica de una tarificación precisa. El riesgo principal es la degradación del modelo de dominio por acoplamientos técnicos o dispersión de la lógica de negocio.
 
 ---
 
-## 3. Criterios de Decisión
-
-- Protección del dominio crítico (tarificación)  
-- Facilidad de testeo y refactor controlado  
-- Mantenibilidad por terceros  
-- Evolución progresiva del sistema  
-- Control de deuda técnica  
-- Aplicación de esfuerzo arquitectónico **alineado con valor real**  
+## 🔍 Alternativas Consideradas
+1. **Sin Arquitectura Formal:** Rápido al inicio, pero con alto riesgo de deuda técnica y difícil escalabilidad.
+2. **Rigor Uniforme:** Dominio muy protegido, pero con un esfuerzo inicial elevado y lentitud en áreas no críticas (CRUD simples).
+3. **Rigor Asimétrico (Decisión Adoptada):** Protege el núcleo crítico (precios, ventas) mientras permite agilidad en áreas menos complejas.
 
 ---
 
-## 4. Decisión Adoptada
+## ✅ Decisión Adoptada
+Se adopta **Domain-Driven Design (DDD)** junto con **Clean Architecture** aplicando un **rigor asimétrico**.
 
-Se adopta **Domain-Driven Design (DDD)** junto con **Clean Architecture** aplicando **rigor asimétrico**.
+### 1. Capa de Dominio (Rigor Máximo)
+*   Contiene: Entidades, Value Objects y Servicios de Dominio.
+*   **Regla de Oro:** No depende de frameworks, ORMs ni infraestructura. Es testeable en aislamiento total.
+*   Activo estratégico principal: Motor de Tarificación.
 
-### Dominio
+### 2. Capa de Aplicación
+*   Orquesta los casos de uso y flujos de negocio.
+*   Permite abstracciones menos estrictas para CRUDs simples, evitando boilerplate innecesario donde no aporta valor real.
 
-- Implementado con Clean Architecture estricta  
-- Contiene: Entidades, Value Objects, Servicios de dominio  
-- No depende de: Frameworks, Infraestructura, ORM, Serialización, Transporte  
-- Completamente testeable en aislamiento  
-- Considerado activo estratégico principal, especialmente motor de tarificación  
-
-### Capa de Aplicación
-
-- Orquesta casos de uso y flujos de negocio  
-- Se mantiene separación conceptual respecto al dominio  
-- Permite abstracción menos estricta para CRUD simples y casos sin valor real adicional  
-- Relajaciones explícitas, localizadas y justificadas  
-
-### Infraestructura
-
-- Sustituible, aislada del dominio  
-- Incluye: Framework web, Persistencia, Adaptadores externos, Despliegue, Integraciones técnicas  
-- **No contiene lógica de negocio**  
+### 3. Capa de Infraestructura
+*   Implementa los detalles técnicos: persistencia (GORM), framework web (Gin), adaptadores externos y despliegue.
+*   **Prohibición:** No debe contener lógica de negocio.
 
 ---
 
-## 5. Consecuencias
-
+## 📈 Consecuencias
 ### Positivas
-
-- Dominio estable, expresivo y protegido  
-- Alta mantenibilidad a medio y largo plazo  
-- Refactors controlados y localizados  
-- Facilita evolución funcional  
-- Base sólida para transición futura a microservicios  
+*   Dominio estable, expresivo y protegido.
+*   Alta mantenibilidad a largo plazo.
+*   Base sólida para una transición futura a microservicios.
 
 ### Negativas
-
-- Mayor coste inicial de diseño  
-- Incremento del boilerplate estructural  
-- Curva de entrada más elevada para perfiles junior  
+*   Mayor coste inicial de diseño estructural.
+*   Curva de aprendizaje más elevada para nuevos desarrolladores.
 
 ---
-
-## 6. Alcance
-
-- Modelado de dominio  
-- Diseño de entidades y Value Objects  
-- Definición de casos de uso  
-- Organización del código fuente  
-- Estrategia de testing  
-- Evolución futura hacia microservicios  
-
-No prescribe tecnologías concretas, solo **principios estructurales obligatorios**.  
-
----
-
-## 7. Integración con otros ADRs
-
-- ADR-001: Selección del Stack Tecnológico  
-- ADR-003: Tipo y Distribución de la Aplicación (Monolito Modular)  
-
----
-
-## 8. Notas Adicionales / Consideraciones Especiales
-
-- Este ADR consolida y sustituye decisiones previas relacionadas con:  
-  - Uso de Clean Architecture  
-  - Aplicación de DDD  
-  - Nivel de rigor arquitectónico  
-
-- Cualquier desviación relevante deberá justificarse mediante **nuevo ADR**.
-
----
-
-## 9. Referencias
+[Volver al Índice de ADRs](./README.md)

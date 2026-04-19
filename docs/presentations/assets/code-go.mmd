@@ -1,0 +1,13 @@
+graph LR
+    subgraph "Backend: Go + PostgreSQL"
+        GO[Go - Golang]
+        GIN[Gin Gonic - Web Framework]
+        GORM[GORM - ORM]
+        PG[PostgreSQL - Database]
+    end
+
+    GIN --> GO
+    GORM --> GO
+    GORM --> PG
+    GO -- "Clean Architecture" --> GIN
+    GO -- "DDD Strategy" --> GORM

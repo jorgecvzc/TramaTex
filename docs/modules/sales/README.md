@@ -1,31 +1,30 @@
-# Módulo de Sales (Gestión de Órdenes)
+# 🤝 Módulo de Sales (Ciclo Comercial)
 
-Este módulo es el núcleo del proceso de ventas en TramaTex. Gestiona el ciclo de vida completo de la venta, desde la creación de cotizaciones hasta la emisión de facturas, pasando por los pedidos y albaranes. Se integra estrechamente con los módulos de Party, Product y Pricing para consolidar toda la información relevante.
+| Metadato | Valor |
+| :--- | :--- |
+| **Versión** | 1.1 |
+| **Estado** | ✅ Vigente |
+| **Referencia** | [ADR-017](../../architecture/adrs/adr-017-sales-module-architecture.md), [ADR-020](../../architecture/adrs/adr-020-tickets-and-invoice-series.md) |
 
-## Diseño Arquitectónico
+---
 
-Para una descripción detallada de las decisiones arquitectónicas del módulo de Sales, consulte el siguiente Architectural Decision Record (ADR):
+## 🎯 Propósito
+Este módulo gestiona el flujo documental completo de la venta, desde el presupuesto inicial hasta la facturación fiscal. Orquesta la interacción entre clientes, productos y precios, garantizando la trazabilidad total de la operación y el cumplimiento legal (AEAT).
 
-*   [ADR-017: Arquitectura del Módulo de Sales](../../architecture/adrs/adr-017-sales-module-architecture.md)
+---
 
-## Componentes Clave
+## 📄 Ramas del Conocimiento (Documentación)
+*   **Modelo de Dominio:** [domain-model.md](./domain-model.md) — Ciclo de vida de Quote, Order, DeliveryNote e Invoice.
+*   **Casos de Uso:** [use-cases.md](./use-cases.md) — Conversión de documentos y flujos de TPV.
+*   **Contratos de API:** [api-contracts.md](./api-contracts.md) — Endpoints comerciales y DTOs de venta.
+*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md) — Lógica de transiciones y cálculos.
 
-*   **Entidades de Dominio:**
-    *   `Quote` y `QuoteLineItem`
-    *   `SalesOrder` y `OrderLineItem`
-    *   `DeliveryNote` y `DeliveryNoteLineItem`
-    *   `Invoice` y `InvoiceLineItem`
-    *   Value Objects como `Money`, `Percentage`, `OrderNumber`, `QuoteNumber`, `DeliveryNoteNumber`, `InvoiceNumber`.
+---
 
-*   **Casos de Uso (Capa de Aplicación):**
-    *   Un conjunto completo de casos de uso para la gestión de cada tipo de documento de venta y sus transiciones de estado.
+## 🏗️ Componentes Clave
+*   **Agregados:** `Quote` (Presupuesto), `SalesOrder` (Pedido), `DeliveryNote` (Albarán), `Invoice` (Factura/Ticket).
+*   **Lógica Comercial:** Manual Override de precios, gestión de series de facturación y límites legales para facturas simplificadas.
+*   **Trazabilidad:** Rastro íntegro desde la oferta hasta el cobro.
 
-## Documentación Detallada
-
-Consulte los siguientes documentos para una descripción más profunda del módulo de Sales:
-
-*   **Especificación del Módulo:** [module-spec.md](./module-spec.md)
-*   **Modelo de Dominio:** [domain-model.md](./domain-model.md)
-*   **Casos de Uso:** [use-cases.md](./use-cases.md)
-*   **Contratos de API:** [api-contracts.md](./api-contracts.md)
-*   **Guía de Implementación:** [implementation-guide.md](./implementation-guide.md)
+---
+[Volver al Resumen de Módulos](../README.md)
