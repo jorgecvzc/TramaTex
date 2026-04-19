@@ -2,7 +2,7 @@
 # Ejecutar desde la raiz del repo en Windows.
 
 param(
-    [string]$Host = "pcele",
+    [string]$RemoteHost = "pcele",
     [string]$User = "ele",
     [string]$ProjectDir = "/opt/tramatex",
     [string]$CheckoutRef = "origin/staging",
@@ -16,7 +16,7 @@ if ($Help) {
     Write-Host "Uso: .\scripts\rebuild-staging-remote.ps1 [opciones]" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Opciones:" -ForegroundColor Yellow
-    Write-Host "  -Host <host>            Host remoto (default: pcele)" -ForegroundColor White
+    Write-Host "  -RemoteHost <host>      Host remoto (default: pcele)" -ForegroundColor White
     Write-Host "  -User <user>            Usuario SSH (default: ele)" -ForegroundColor White
     Write-Host "  -ProjectDir <path>      Ruta del repo en remoto (default: /opt/tramatex)" -ForegroundColor White
     Write-Host "  -CheckoutRef <ref>      Ref para alinear staging (default: origin/staging)" -ForegroundColor White
@@ -51,8 +51,8 @@ chmod +x ./scripts/rebuild-staging-remote.sh
 CHECKOUT_REF='$checkoutValue' PRESERVE_DATABASE='$preserveValue' REMOVE_IMAGES='$removeImagesValue' PROJECT_DIR='$ProjectDir' ./scripts/rebuild-staging-remote.sh
 "@
 
-Write-Host "Lanzando rebuild remoto en $User@$Host ..." -ForegroundColor Cyan
-$remoteScript | ssh "$User@$Host" "bash -s"
+Write-Host "Lanzando rebuild remoto en $User@$RemoteHost ..." -ForegroundColor Cyan
+$remoteScript | ssh "$User@$RemoteHost" "bash -s"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "El rebuild remoto fallo." -ForegroundColor Red
