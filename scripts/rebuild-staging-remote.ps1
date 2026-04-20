@@ -56,20 +56,19 @@ $remoteScript += "if [ -n '$checkoutValue' ]; then`n"
 $remoteScript += "    git reset --hard '$checkoutValue'`n"
 $remoteScript += "fi`n"
 $remoteScript += "echo 'INFO: Limpiando CRLF en scripts...'`n"
-$remoteScript += "find . -maxdepth 2 -name '*.sh' -exec sed -i 's/\r//g' {} +`n"
+$remoteScript += "for f in scripts/*.sh; do sed -i 's/\r//g' \"\$f\"; done`n"
 $remoteScript += "chmod +x ./scripts/*.sh`n"
-$remoteScript += "echo '[2/5] Lanzando script de reconstrucción...'`n"
+$remoteScript += "echo '[2/5] Lanzando script de reconstruccion...'`n"
 $remoteScript += "export PROJECT_DIR='$ProjectDir'`n"
 $remoteScript += "export COMPOSE_FILE='docker/docker-compose.remote.yml'`n"
 $remoteScript += "export ENV_FILE='docker/.env'`n"
 $remoteScript += "export CHECKOUT_REF='$checkoutValue'`n"
 $remoteScript += "export PRESERVE_DATABASE='$preserveValue'`n"
 $remoteScript += "export REMOVE_IMAGES='$removeImagesValue'`n"
-$remoteScript += "bash ./scripts/rebuild-staging-remote.sh"
+$remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s`n"
 
-Write-Host "🚀 Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
+Write-Host "Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
 
-# Invocamos SSH con el script ya limpio
 $remoteScript | ssh -o ConnectTimeout=10 "$User@$RemoteHost" "bash -s"
 
 if ($LASTEXITCODE -ne 0) {
