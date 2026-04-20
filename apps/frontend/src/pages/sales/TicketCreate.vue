@@ -294,8 +294,8 @@ async function handleVariantSelected(v) {
       unitPrice: 0, 
       discountPercent: customerDiscount.value
     };
-    lineItems.value.push(item);
-    await refreshLinePrice(lineItems.value[lineItems.value.length - 1]);
+    await refreshLinePrice(item);   // precio antes de entrar en la lista reactiva
+    lineItems.value.push(item);     // una sola actualización con precio ya correcto
   }
   productSearch.value = ""; showVariantSelector.value = false; focusSearch();
 }
