@@ -108,7 +108,7 @@ jobs:
             if [ "$FRESH_DB" = "true" ]; then
               echo "WARNING: fresh_db=true — stopping services and removing postgres volume..."
               docker compose -f docker/docker-compose.remote.yml --env-file docker/.env down --volumes --remove-orphans || true
-              docker volume rm tramatex_postgres_data_remote || true
+              docker volume rm docker_postgres_data_remote || true
               echo "Database volume removed. Migrations and seed will run on next start."
             fi
 
