@@ -1,5 +1,5 @@
 # TramaTex - Rebuild total de staging remoto desde Windows (via SSH)
-# Ejecutar desde la raiz del repo en Windows.
+# Ejecutar desde la raíz del repo en Windows.
 
 param(
     [string]$RemoteHost = "pcele",
@@ -21,18 +21,17 @@ if ($Help) {
     Write-Host "  -ProjectDir <path>      Ruta del repo en remoto (default: /opt/tramatex)" -ForegroundColor White
     Write-Host "  -CheckoutRef <ref>      Ref para alinear staging (default: origin/staging)" -ForegroundColor White
     Write-Host "  -NoCheckout             Omite git fetch/checkout/reset en remoto" -ForegroundColor White
-    Write-Host "  -PreserveDatabase       No elimina volumenes de base de datos" -ForegroundColor White
-    Write-Host "  -SkipImageRemove        No elimina imagenes antes de pull" -ForegroundColor White
+    Write-Host "  -PreserveDatabase       No elimina volúmenes de base de datos" -ForegroundColor White
+    Write-Host "  -SkipImageRemove        No elimina imágenes antes de pull" -ForegroundColor White
     Write-Host ""
     Write-Host "Ejemplos:" -ForegroundColor Yellow
     Write-Host "  .\scripts\rebuild-staging-remote.ps1" -ForegroundColor Gray
-    Write-Host "  .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/chore/staging-deploy-scripts" -ForegroundColor Gray
-    Write-Host "  .\scripts\rebuild-staging-remote.ps1 -NoCheckout -PreserveDatabase" -ForegroundColor Gray
+    Write-Host "  .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/staging" -ForegroundColor Gray
     exit 0
 }
 
 if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
-    Write-Host "No se encontro el comando 'ssh' en este equipo." -ForegroundColor Red
+    Write-Host "ERR: No se encontró el comando 'ssh' en este equipo." -ForegroundColor Red
     exit 1
 }
 
@@ -40,26 +39,42 @@ $checkoutValue = if ($NoCheckout) { "" } else { $CheckoutRef }
 $preserveValue = if ($PreserveDatabase) { "true" } else { "false" }
 $removeImagesValue = if ($SkipImageRemove) { "false" } else { "true" }
 
-$remoteScript = @"
-set -euo pipefail
-cd '$ProjectDir'
-git fetch --prune origin
-git reset --hard origin/staging
-if [ ! -f './scripts/rebuild-staging-remote.sh' ]; then
-  echo 'Missing scripts/rebuild-staging-remote.sh in remote repo.' >&2
-  exit 1
-fi
-sed -i 's/\r//g' ./scripts/rebuild-staging-remote.sh
-chmod +x ./scripts/rebuild-staging-remote.sh
-CHECKOUT_REF='$checkoutValue' PRESERVE_DATABASE='$preserveValue' REMOVE_IMAGES='$removeImagesValue' PROJECT_DIR='$ProjectDir' ./scripts/rebuild-staging-remote.sh
-"@
+# Bloque de comandos remotos (Bash) - Construcción limpia
+$remoteScript = "set -euo pipefail`n"
+$remoteScript += "cd '$ProjectDir' || { echo 'ERR: No se pudo acceder a $ProjectDir'; exit 1; }`n"
+$remoteScript += "echo 'INFO: Directorio actual: '`$(pwd)`n"
+$remoteScript += "echo '[0/5] Verificando entorno remoto...'`n"
+$remoteScript += "if [ ! -f 'docker/.env' ]; then`n"
+$remoteScript += "    if [ -f 'docker/.env.staging.example' ]; then`n"
+$remoteScript += "        cp docker/.env.staging.example docker/.env`n"
+$remoteScript += "        echo 'WARN: Creado docker/.env desde ejemplo.'`n"
+$remoteScript += "    fi`n"
+$remoteScript += "fi`n"
+$remoteScript += "echo '[1/5] Actualizando repositorio...'`n"
+$remoteScript += "git fetch --prune origin`n"
+$remoteScript += "if [ -n '$checkoutValue' ]; then`n"
+$remoteScript += "    git reset --hard '$checkoutValue'`n"
+$remoteScript += "fi`n"
+$remoteScript += "echo 'INFO: Limpiando CRLF en scripts...'`n"
+$remoteScript += "find . -maxdepth 2 -name '*.sh' -exec sed -i 's/\r//g' {} +`n"
+$remoteScript += "chmod +x ./scripts/*.sh`n"
+$remoteScript += "echo '[2/5] Lanzando script de reconstrucción...'`n"
+$remoteScript += "export PROJECT_DIR='$ProjectDir'`n"
+$remoteScript += "export COMPOSE_FILE='docker/docker-compose.remote.yml'`n"
+$remoteScript += "export ENV_FILE='docker/.env'`n"
+$remoteScript += "export CHECKOUT_REF='$checkoutValue'`n"
+$remoteScript += "export PRESERVE_DATABASE='$preserveValue'`n"
+$remoteScript += "export REMOVE_IMAGES='$removeImagesValue'`n"
+$remoteScript += "bash ./scripts/rebuild-staging-remote.sh"
 
-Write-Host "Lanzando rebuild remoto en $User@$RemoteHost ..." -ForegroundColor Cyan
-($remoteScript -replace "`r`n", "`n") | ssh "$User@$RemoteHost" "bash -s"
+Write-Host "🚀 Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
+
+# Invocamos SSH con el script ya limpio
+$remoteScript | ssh -o ConnectTimeout=10 "$User@$RemoteHost" "bash -s"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "El rebuild remoto fallo." -ForegroundColor Red
+    Write-Host "`n❌ El rebuild remoto falló con código $LASTEXITCODE." -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-Write-Host "Rebuild remoto completado." -ForegroundColor Green
+Write-Host "`n✅ Rebuild remoto completado con éxito." -ForegroundColor Green
