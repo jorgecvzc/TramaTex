@@ -90,7 +90,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 20m
-          envs: ENV_PROD,GHCR_TOKEN,GHCR_USER
+          envs: ENV_PROD,GHCR_TOKEN,GHCR_USER,FRESH_DB
           script: |
             set -e
 
