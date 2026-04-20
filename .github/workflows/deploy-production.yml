@@ -17,6 +17,14 @@ on:
         options:
           - 'true'
           - 'false'
+      fresh_db:
+        description: 'Drop and recreate database (WARNING: destroys all production data)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   build-api:
@@ -96,6 +104,14 @@ jobs:
             # Write environment file safely (printf avoids shell interpretation of special chars)
             printf '%s' "$ENV_PROD" > docker/.env
 
+            # Drop database if fresh_db requested (DESTRUCTIVE: all data will be lost)
+            if [ "$FRESH_DB" = "true" ]; then
+              echo "WARNING: fresh_db=true — stopping services and removing postgres volume..."
+              docker compose -f docker/docker-compose.remote.yml --env-file docker/.env down --volumes --remove-orphans || true
+              docker volume rm tramatex_postgres_data_remote || true
+              echo "Database volume removed. Migrations and seed will run on next start."
+            fi
+
             # Login to GHCR and pull pre-built images (no build on Droplet)
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker compose -f docker/docker-compose.remote.yml --env-file docker/.env pull
@@ -119,3 +135,4 @@ jobs:
           ENV_PROD: ${{ secrets.ENV_PROD }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
+          FRESH_DB: ${{ inputs.fresh_db || 'false' }}
