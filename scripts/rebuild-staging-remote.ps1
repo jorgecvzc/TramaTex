@@ -69,11 +69,23 @@ $remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s`n"
 
 Write-Host "Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
 
-$remoteScript | ssh -o ConnectTimeout=10 "$User@$RemoteHost" "bash -s"
+# El pipe de PowerShell convierte \n en \r\n, lo que rompe bash en remoto.
+# Escribimos los bytes UTF-8 puros directamente al stdin del proceso SSH.
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($remoteScript)
+$proc = New-Object System.Diagnostics.Process
+$proc.StartInfo.FileName = "ssh"
+$proc.StartInfo.Arguments = "-o ConnectTimeout=10 $User@$RemoteHost bash -s"
+$proc.StartInfo.UseShellExecute = $false
+$proc.StartInfo.RedirectStandardInput = $true
+$proc.Start() | Out-Null
+$proc.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+$proc.StandardInput.Close()
+$proc.WaitForExit()
+$sshExitCode = $proc.ExitCode
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ El rebuild remoto falló con código $LASTEXITCODE." -ForegroundColor Red
-    exit $LASTEXITCODE
+if ($sshExitCode -ne 0) {
+    Write-Host "`n❌ El rebuild remoto falló con código $sshExitCode." -ForegroundColor Red
+    exit $sshExitCode
 }
 
 Write-Host "`n✅ Rebuild remoto completado con éxito." -ForegroundColor Green
