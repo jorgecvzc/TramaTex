@@ -17,7 +17,7 @@ El sistema apuesta por la **soberanía tecnológica** mediante una arquitectura 
 
 ## 📺 Presentación Rápida
 Explora de un vistazo la propuesta de valor y los pilares de ingeniería en nuestra presentación corporativa interactiva:
-👉 **[Ver Presentación Visual del Proyecto](docs/presentations/presentation.html)**
+👉 **[Ver Presentación Visual del Proyecto](https://jorgecvzc.github.io/TramaTex/presentations/presentation.html)**
 
 ---
 
