@@ -56,25 +56,37 @@ $remoteScript += "if [ -n '$checkoutValue' ]; then`n"
 $remoteScript += "    git reset --hard '$checkoutValue'`n"
 $remoteScript += "fi`n"
 $remoteScript += "echo 'INFO: Limpiando CRLF en scripts...'`n"
-$remoteScript += "find . -maxdepth 2 -name '*.sh' -exec sed -i 's/\r//g' {} +`n"
+$remoteScript += "for f in scripts/*.sh; do sed -i 's/\r//g' `"`$f`"; done`n"
 $remoteScript += "chmod +x ./scripts/*.sh`n"
-$remoteScript += "echo '[2/5] Lanzando script de reconstrucción...'`n"
+$remoteScript += "echo '[2/5] Lanzando script de reconstruccion...'`n"
 $remoteScript += "export PROJECT_DIR='$ProjectDir'`n"
 $remoteScript += "export COMPOSE_FILE='docker/docker-compose.remote.yml'`n"
 $remoteScript += "export ENV_FILE='docker/.env'`n"
 $remoteScript += "export CHECKOUT_REF='$checkoutValue'`n"
 $remoteScript += "export PRESERVE_DATABASE='$preserveValue'`n"
 $remoteScript += "export REMOVE_IMAGES='$removeImagesValue'`n"
-$remoteScript += "bash ./scripts/rebuild-staging-remote.sh"
+$remoteScript += "export SKIP_GIT='true'`n"
+$remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s`n"
 
-Write-Host "🚀 Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
+Write-Host "Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
 
-# Invocamos SSH con el script ya limpio
-$remoteScript | ssh -o ConnectTimeout=10 "$User@$RemoteHost" "bash -s"
+# El pipe de PowerShell convierte \n en \r\n, lo que rompe bash en remoto.
+# Escribimos los bytes UTF-8 puros directamente al stdin del proceso SSH.
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($remoteScript)
+$proc = New-Object System.Diagnostics.Process
+$proc.StartInfo.FileName = "ssh"
+$proc.StartInfo.Arguments = "-o ConnectTimeout=10 $User@$RemoteHost bash -s"
+$proc.StartInfo.UseShellExecute = $false
+$proc.StartInfo.RedirectStandardInput = $true
+$proc.Start() | Out-Null
+$proc.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+$proc.StandardInput.Close()
+$proc.WaitForExit()
+$sshExitCode = $proc.ExitCode
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ El rebuild remoto falló con código $LASTEXITCODE." -ForegroundColor Red
-    exit $LASTEXITCODE
+if ($sshExitCode -ne 0) {
+    Write-Host "`n❌ El rebuild remoto falló con código $sshExitCode." -ForegroundColor Red
+    exit $sshExitCode
 }
 
 Write-Host "`n✅ Rebuild remoto completado con éxito." -ForegroundColor Green

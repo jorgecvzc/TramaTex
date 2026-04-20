@@ -10,6 +10,7 @@ ENV_FILE="${ENV_FILE:-docker/.env}"
 CHECKOUT_REF="${CHECKOUT_REF:-origin/staging}"
 PRESERVE_DATABASE="${PRESERVE_DATABASE:-false}"
 REMOVE_IMAGES="${REMOVE_IMAGES:-true}"
+SKIP_GIT="${SKIP_GIT:-false}"
 
 usage() {
   cat <<'EOF'
@@ -77,7 +78,9 @@ done
 cd "$PROJECT_DIR"
 
 echo "[1/5] Preparing repository in $PROJECT_DIR"
-if [[ -n "$CHECKOUT_REF" ]]; then
+if [[ "$SKIP_GIT" == "true" ]]; then
+  echo "Skipping git step (already done by caller)"
+elif [[ -n "$CHECKOUT_REF" ]]; then
   git fetch origin
   git checkout -B staging "$CHECKOUT_REF"
   echo "Using commit: $(git rev-parse HEAD)"
@@ -100,6 +103,18 @@ if [[ "$REMOVE_IMAGES" == "true" ]]; then
     postgres:15-alpine || true
 fi
 
+# Login to GHCR if credentials are present in the env file
+if [[ -f "$ENV_FILE" ]]; then
+  GHCR_USER_VAL=$(grep -E '^GHCR_USER=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r' || true)
+  GHCR_TOKEN_VAL=$(grep -E '^GHCR_TOKEN=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r' || true)
+  if [[ -n "$GHCR_USER_VAL" && -n "$GHCR_TOKEN_VAL" ]]; then
+    echo "Logging in to GHCR as $GHCR_USER_VAL..."
+    echo "$GHCR_TOKEN_VAL" | docker login ghcr.io -u "$GHCR_USER_VAL" --password-stdin
+  else
+    echo "INFO: GHCR_USER/GHCR_TOKEN not set in $ENV_FILE — skipping login (assuming public images)"
+  fi
+fi
+
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
 
 echo "[4/5] Starting services"
@@ -107,6 +122,19 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate
 
 echo "[5/5] Final cleanup and status"
 docker image prune -f
+
+echo "Waiting for API health check..."
+for i in $(seq 1 30); do
+  if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
+    echo "API is healthy"
+    break
+  fi
+  if [[ $i -eq 30 ]]; then
+    echo "WARN: API health check timed out after 60s"
+  fi
+  sleep 2
+done
+
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 
 echo "Rebuild finished successfully."
