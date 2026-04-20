@@ -295,7 +295,7 @@ async function handleVariantSelected(v) {
       discountPercent: customerDiscount.value
     };
     lineItems.value.push(item);
-    await refreshLinePrice(item);
+    await refreshLinePrice(lineItems.value[lineItems.value.length - 1]);
   }
   productSearch.value = ""; showVariantSelector.value = false; focusSearch();
 }
