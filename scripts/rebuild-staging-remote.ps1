@@ -65,6 +65,7 @@ $remoteScript += "export ENV_FILE='docker/.env'`n"
 $remoteScript += "export CHECKOUT_REF='$checkoutValue'`n"
 $remoteScript += "export PRESERVE_DATABASE='$preserveValue'`n"
 $remoteScript += "export REMOVE_IMAGES='$removeImagesValue'`n"
+$remoteScript += "export SKIP_GIT='true'`n"
 $remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s`n"
 
 Write-Host "Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
