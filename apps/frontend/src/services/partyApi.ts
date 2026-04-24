@@ -251,6 +251,7 @@ class PartyApiService {
       id: data.id,
       status: 'ACTIVE',
       roles,
+      default_discount_percentage: data.default_discount_percentage ?? 0,
     }
 
     if (entityType === 'PERSON') {
@@ -275,6 +276,8 @@ class PartyApiService {
         tax_id: data.taxId,
         tax_id_type: data.taxIdType,
         website: data.website,
+        phone: data.phone || '',
+        email: data.email || '',
         notes: data.notes,
       }
     }
