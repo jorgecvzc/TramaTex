@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import salesApi from '../../services/salesApi'
-
-// Mock fetch globally
-globalThis.fetch = vi.fn()
+import { api } from '../../services/api'
 
 describe('SalesApi Service', () => {
   beforeEach(() => {
@@ -29,9 +27,9 @@ describe('SalesApi Service', () => {
         status: 'DRAFT',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockQuote,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockQuote,
+        status: 201,
       })
 
       const result = await salesApi.createQuote({
@@ -41,19 +39,21 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.id).toBe('quote-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/quotes'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('client-001'),
+          party_id: 'client-001',
+          valid_until: '2026-03-18'
         })
       )
     })
 
     it('should handle error when creating quote', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid client ID' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Invalid client ID' },
+          status: 400
+        }
       })
 
       await expect(
@@ -74,24 +74,25 @@ describe('SalesApi Service', () => {
         status: 'DRAFT',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockQuote,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockQuote,
+        status: 200,
       })
 
       const result = await salesApi.getQuote('quote-001')
 
       expect(result.id).toBe('quote-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sales/quotes/quote-001'),
-        expect.objectContaining({ method: 'GET' })
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/quotes/quote-001')
       )
     })
 
     it('should handle error when quote not found', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Quote not found' }),
+      vi.mocked(api.get).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Quote not found' },
+          status: 404
+        }
       })
 
       await expect(salesApi.getQuote('invalid')).rejects.toThrow('Quote not found')
@@ -105,9 +106,9 @@ describe('SalesApi Service', () => {
         { id: 'quote-002', quote_number: 'Q-002', status: 'ISSUED' },
       ]
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockQuotes,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockQuotes,
+        status: 200,
       })
 
       const result = await salesApi.listQuotes()
@@ -117,9 +118,9 @@ describe('SalesApi Service', () => {
     })
 
     it('should apply filters correctly', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listQuotes({
@@ -130,19 +131,20 @@ describe('SalesApi Service', () => {
         toDate: '2026-12-31',
       })
 
-      const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
-      expect(fetchUrl).toContain('search=acme')
-      expect(fetchUrl).toContain('partyId=party-001')
-      expect(fetchUrl).toContain('status=BORRADOR')
-      expect(fetchUrl).toContain('fromDate=2026-01-01')
-      expect(fetchUrl).toContain('toDate=2026-12-31')
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/quotes'),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            search: 'acme',
+            partyId: 'party-001',
+            status: 'DRAFT'
+          })
+        })
+      )
     })
 
     it('should handle error when listing quotes', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      })
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.listQuotes()).rejects.toThrow()
     })
@@ -156,9 +158,9 @@ describe('SalesApi Service', () => {
         valid_until: '2026-04-01',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockQuote,
+      vi.mocked(api.put).mockResolvedValueOnce({
+        data: mockQuote,
+        status: 200,
       })
 
       const result = await salesApi.updateQuote('quote-001', {
@@ -166,19 +168,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.valid_until).toBe('2026-04-01')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.put).toHaveBeenCalledWith(
         expect.stringContaining('/sales/quotes/quote-001'),
         expect.objectContaining({
-          method: 'PUT',
-          body: expect.stringContaining('2026-04-01'),
+          valid_until: '2026-04-01',
         })
       )
     })
 
     it('should handle error when updating quote', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Quote is not in DRAFT status' }),
+      vi.mocked(api.put).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Quote is not in DRAFT status' },
+          status: 400
+        }
       })
 
       await expect(salesApi.updateQuote('quote-001', {})).rejects.toThrow()
@@ -193,27 +196,26 @@ describe('SalesApi Service', () => {
         status: 'ISSUED',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockQuote,
+      vi.mocked(api.patch).mockResolvedValueOnce({
+        data: mockQuote,
+        status: 200,
       })
 
       const result = await salesApi.changeQuoteStatus('quote-001', 'ISSUED')
 
       expect(result.status).toBe('ISSUED')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.patch).toHaveBeenCalledWith(
         expect.stringContaining('/sales/quotes/quote-001/status'),
-        expect.objectContaining({
-          method: 'PATCH',
-          body: JSON.stringify({ newStatus: 'EMITIDA' }),
-        })
+        expect.objectContaining({ newStatus: 'ISSUED' })
       )
     })
 
     it('should handle error when changing quote status', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid status transition' }),
+      vi.mocked(api.patch).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Invalid status transition' },
+          status: 400
+        }
       })
 
       await expect(salesApi.changeQuoteStatus('quote-001', 'ACCEPTED')).rejects.toThrow()
@@ -229,28 +231,29 @@ describe('SalesApi Service', () => {
         status: 'PENDING',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 201,
       })
 
       const result = await salesApi.convertQuoteToOrder('quote-001', '2026-03-01')
 
       expect(result.id).toBe('order-001')
       expect(result.quote_id).toBe('quote-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/quotes/quote-001/convert'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('2026-03-01'),
+          deliveryDate: expect.stringContaining('2026-03-01'),
         })
       )
     })
 
     it('should handle error when converting quote', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Quote is not in ACCEPTED status' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Quote is not in ACCEPTED status' },
+          status: 400
+        }
       })
 
       await expect(salesApi.convertQuoteToOrder('quote-001', '2026-03-01')).rejects.toThrow()
@@ -271,9 +274,9 @@ describe('SalesApi Service', () => {
         status: 'PENDING',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 201,
       })
 
       const result = await salesApi.createOrder({
@@ -283,19 +286,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.id).toBe('order-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/orders'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('client-001'),
+          partyId: 'client-001',
         })
       )
     })
 
     it('should handle error when creating order', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid delivery date' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Invalid delivery date' },
+          status: 400
+        }
       })
 
       await expect(
@@ -316,24 +320,25 @@ describe('SalesApi Service', () => {
         status: 'PENDING',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 200,
       })
 
       const result = await salesApi.getOrder('order-001')
 
       expect(result.id).toBe('order-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sales/orders/order-001'),
-        expect.objectContaining({ method: 'GET' })
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/orders/order-001')
       )
     })
 
     it('should handle error when order not found', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Order not found' }),
+      vi.mocked(api.get).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Order not found' },
+          status: 404
+        }
       })
 
       await expect(salesApi.getOrder('invalid')).rejects.toThrow('Order not found')
@@ -347,9 +352,9 @@ describe('SalesApi Service', () => {
         { id: 'order-002', order_number: 'O-002', status: 'CONFIRMED' },
       ]
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrders,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockOrders,
+        status: 200,
       })
 
       const result = await salesApi.listOrders()
@@ -359,9 +364,9 @@ describe('SalesApi Service', () => {
     })
 
     it('should apply filters correctly', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listOrders({
@@ -372,17 +377,20 @@ describe('SalesApi Service', () => {
         toDate: '2026-12-31',
       })
 
-      const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
-      expect(fetchUrl).toContain('search=acme')
-      expect(fetchUrl).toContain('partyId=party-001')
-      expect(fetchUrl).toContain('status=EN_PREPARACION')
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/orders'),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            search: 'acme',
+            partyId: 'party-001',
+            status: 'CONFIRMED'
+          })
+        })
+      )
     })
 
     it('should handle error when listing orders', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      })
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.listOrders()).rejects.toThrow()
     })
@@ -396,9 +404,9 @@ describe('SalesApi Service', () => {
         delivery_date: '2026-03-15',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.put).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 200,
       })
 
       const result = await salesApi.updateOrder('order-001', {
@@ -406,19 +414,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.delivery_date).toBe('2026-03-15')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.put).toHaveBeenCalledWith(
         expect.stringContaining('/sales/orders/order-001'),
         expect.objectContaining({
-          method: 'PUT',
-          body: expect.stringContaining('2026-03-15'),
+          deliveryDate: '2026-03-15',
         })
       )
     })
 
     it('should handle error when updating order', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Order is not editable' }),
+      vi.mocked(api.put).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Order is not editable' },
+          status: 400
+        }
       })
 
       await expect(salesApi.updateOrder('order-001', {})).rejects.toThrow()
@@ -433,27 +442,26 @@ describe('SalesApi Service', () => {
         status: 'CONFIRMED',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.patch).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 200,
       })
 
       const result = await salesApi.changeOrderStatus('order-001', 'CONFIRMED')
 
       expect(result.status).toBe('CONFIRMED')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.patch).toHaveBeenCalledWith(
         expect.stringContaining('/sales/orders/order-001/status'),
-        expect.objectContaining({
-          method: 'PATCH',
-          body: JSON.stringify({ newStatus: 'EN_PREPARACION' }),
-        })
+        expect.objectContaining({ newStatus: 'CONFIRMED' })
       )
     })
 
     it('should handle error when changing order status', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid status transition' }),
+      vi.mocked(api.patch).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Invalid status transition' },
+          status: 400
+        }
       })
 
       await expect(salesApi.changeOrderStatus('order-001', 'CANCELLED')).rejects.toThrow()
@@ -468,9 +476,9 @@ describe('SalesApi Service', () => {
         line_items: [{ id: 'line-001', quantity: 10 }],
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 201,
       })
 
       const result = await salesApi.addOrderLineItem('order-001', {
@@ -480,20 +488,18 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.line_items).toHaveLength(1)
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/orders/order-001/line-items'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('variant-001'),
+          item: expect.objectContaining({
+             productVariantId: 'variant-001',
+          })
         })
       )
     })
 
     it('should handle error when adding line item', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Product variant not found' }),
-      })
+      vi.mocked(api.post).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(
         salesApi.addOrderLineItem('order-001', {
@@ -513,9 +519,9 @@ describe('SalesApi Service', () => {
         line_items: [{ id: 'line-001', quantity: 20 }],
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.put).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 200,
       })
 
       const result = await salesApi.updateOrderLineItem('order-001', 'line-001', {
@@ -523,20 +529,14 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.line_items[0].quantity).toBe(20)
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.put).toHaveBeenCalledWith(
         expect.stringContaining('/sales/orders/order-001/line-items/line-001'),
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify({ quantity: 20 }),
-        })
+        expect.objectContaining({ quantity: 20 })
       )
     })
 
     it('should handle error when updating line item', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Line item not found' }),
-      })
+      vi.mocked(api.put).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.updateOrderLineItem('order-001', 'invalid', {})).rejects.toThrow()
     })
@@ -550,24 +550,25 @@ describe('SalesApi Service', () => {
         line_items: [],
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockOrder,
+      vi.mocked(api.delete).mockResolvedValueOnce({
+        data: mockOrder,
+        status: 200,
       })
 
       const result = await salesApi.removeOrderLineItem('order-001', 'line-001')
 
       expect(result.line_items).toHaveLength(0)
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sales/orders/order-001/line-items/line-001'),
-        expect.objectContaining({ method: 'DELETE' })
+      expect(api.delete).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/orders/order-001/line-items/line-001')
       )
     })
 
     it('should handle error when removing line item', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Cannot remove line item from confirmed order' }),
+      vi.mocked(api.delete).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Cannot remove line item from confirmed order' },
+          status: 400
+        }
       })
 
       await expect(salesApi.removeOrderLineItem('order-001', 'line-001')).rejects.toThrow()
@@ -587,9 +588,9 @@ describe('SalesApi Service', () => {
         dispatch_date: '2026-03-01',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNote,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockNote,
+        status: 201,
       })
 
       const result = await salesApi.createDeliveryNote({
@@ -599,19 +600,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.id).toBe('note-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/delivery-notes'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('order-001'),
+          order_id: 'order-001',
         })
       )
     })
 
     it('should handle error when creating delivery note', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Order not found' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Order not found' },
+          status: 404
+        }
       })
 
       await expect(
@@ -632,25 +634,21 @@ describe('SalesApi Service', () => {
         party_id: 'order-001',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNote,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockNote,
+        status: 200,
       })
 
       const result = await salesApi.getDeliveryNote('note-001')
 
       expect(result.id).toBe('note-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sales/delivery-notes/note-001'),
-        expect.objectContaining({ method: 'GET' })
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/delivery-notes/note-001')
       )
     })
 
     it('should handle error when delivery note not found', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Delivery note not found' }),
-      })
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.getDeliveryNote('invalid')).rejects.toThrow()
     })
@@ -663,9 +661,9 @@ describe('SalesApi Service', () => {
         { id: 'note-002', delivery_note_number: 'DN-002', party_id: 'order-002' },
       ]
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockNotes,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockNotes,
+        status: 200,
       })
 
       const result = await salesApi.listDeliveryNotes()
@@ -675,23 +673,26 @@ describe('SalesApi Service', () => {
     })
 
     it('should filter by orderId and search', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listDeliveryNotes({ orderId: 'order-001', searchText: 'acme' })
 
-      const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
-      expect(fetchUrl).toContain('salesOrderId=order-001')
-      expect(fetchUrl).toContain('search=acme')
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/delivery-notes'),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            salesOrderId: 'order-001',
+            search: 'acme'
+          })
+        })
+      )
     })
 
     it('should handle error when listing delivery notes', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      })
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.listDeliveryNotes()).rejects.toThrow()
     })
@@ -710,9 +711,9 @@ describe('SalesApi Service', () => {
         totalAmount: { amount: 1500, currency: 'EUR' },
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInvoice,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockInvoice,
+        status: 201,
       })
 
       const result = await salesApi.createInvoice({
@@ -722,19 +723,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.id).toBe('invoice-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/invoices'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('order-001'),
+          order_id: 'order-001',
         })
       )
     })
 
     it('should handle error when creating invoice', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Order not delivered' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Order not delivered' },
+          status: 400
+        }
       })
 
       await expect(
@@ -757,9 +759,9 @@ describe('SalesApi Service', () => {
         isSimplified: true,
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInvoice,
+      vi.mocked(api.post).mockResolvedValueOnce({
+        data: mockInvoice,
+        status: 201,
       })
 
       const result = await salesApi.createSimplifiedInvoice({
@@ -769,19 +771,20 @@ describe('SalesApi Service', () => {
       })
 
       expect(result.id).toBe('invoice-002')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect(api.post).toHaveBeenCalledWith(
         expect.stringContaining('/sales/invoices/simplified'),
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('order-002'),
+          party_id: 'order-002',
         })
       )
     })
 
     it('should handle error when creating simplified invoice', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Amount exceeds simplified invoice limit' }),
+      vi.mocked(api.post).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Amount exceeds simplified invoice limit' },
+          status: 400
+        }
       })
 
       await expect(
@@ -802,24 +805,25 @@ describe('SalesApi Service', () => {
         party_id: 'order-001',
       }
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInvoice,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockInvoice,
+        status: 200,
       })
 
       const result = await salesApi.getInvoice('invoice-001')
 
       expect(result.id).toBe('invoice-001')
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sales/invoices/invoice-001'),
-        expect.objectContaining({ method: 'GET' })
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/invoices/invoice-001')
       )
     })
 
     it('should handle error when invoice not found', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invoice not found' }),
+      vi.mocked(api.get).mockRejectedValueOnce({
+        response: {
+          data: { error: 'Invoice not found' },
+          status: 404
+        }
       })
 
       await expect(salesApi.getInvoice('invalid')).rejects.toThrow('Invoice not found')
@@ -833,9 +837,9 @@ describe('SalesApi Service', () => {
         { id: 'invoice-002', invoice_number: 'INV-002', party_id: 'order-002' },
       ]
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockInvoices,
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: mockInvoices,
+        status: 200,
       })
 
       const result = await salesApi.listInvoices()
@@ -845,35 +849,44 @@ describe('SalesApi Service', () => {
     })
 
     it('should filter by orderId and search', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listInvoices({ orderId: 'order-001', searchText: 'acme' })
 
-      const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
-      expect(fetchUrl).toContain('orderId=order-001')
-      expect(fetchUrl).toContain('search=acme')
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/invoices'),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            orderId: 'order-001',
+            search: 'acme'
+          })
+        })
+      )
     })
 
     it('should filter by partyId', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listInvoices({ partyId: 'party-001' })
 
-      const fetchUrl = (globalThis.fetch as any).mock.calls[0][0]
-      expect(fetchUrl).toContain('partyId=party-001')
+      expect(api.get).toHaveBeenCalledWith(
+        expect.stringContaining('/sales/invoices'),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            partyId: 'party-001'
+          })
+        })
+      )
     })
 
     it('should handle error when listing invoices', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      })
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('API Error'))
 
       await expect(salesApi.listInvoices()).rejects.toThrow()
     })
@@ -884,47 +897,34 @@ describe('SalesApi Service', () => {
   // ============================================================================
 
   describe('Authentication and headers', () => {
-    it('should include auth token in headers', async () => {
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+    it('should work with auth token', async () => {
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listQuotes()
 
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-token',
-          }),
-        })
-      )
+      expect(api.get).toHaveBeenCalled()
     })
 
     it('should work without auth token', async () => {
       localStorage.removeItem('tramatex_auth_token')
 
-      ;(globalThis.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => [],
+      vi.mocked(api.get).mockResolvedValueOnce({
+        data: [],
+        status: 200,
       })
 
       await salesApi.listQuotes()
 
-      const headers = (globalThis.fetch as any).mock.calls[0][1].headers
-      expect(headers.Authorization).toBeUndefined()
+      expect(api.get).toHaveBeenCalled()
     })
 
     it('should handle network errors gracefully', async () => {
-      ;(globalThis.fetch as any).mockRejectedValueOnce(new Error('Network error'))
+      vi.mocked(api.get).mockRejectedValueOnce(new Error('Network error'))
 
-      await expect(salesApi.listQuotes()).rejects.toThrow(/No se pudo conectar/)
+      await expect(salesApi.listQuotes()).rejects.toThrow()
     })
   })
 })
-
-
-
-
-

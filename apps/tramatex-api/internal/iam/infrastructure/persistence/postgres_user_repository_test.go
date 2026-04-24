@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"gorm.io/driver/postgres"

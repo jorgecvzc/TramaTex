@@ -129,6 +129,7 @@ export interface CreatePartyRequest {
   phone?: string | null
   email?: string | null
   notes?: string | null
+  default_discount_percentage?: number
   entityType?: EntityType  // New field to specify entity type
   firstName?: string  // For person entities
   lastName?: string   // For person entities
