@@ -33,18 +33,26 @@ func (r *GORMPartyRepository) Save(ctx context.Context, party *domain.Party, cre
 			return domain.WrapPersistence("failed to load party", result.Error)
 		}
 
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			partyModel.CreatedAt = now
-			partyModel.CreatedBy = createdBy
-		} else {
-			partyModel.CreatedAt = existing.CreatedAt
-			partyModel.CreatedBy = existing.CreatedBy
-		}
 		partyModel.ModifiedAt = now
 		partyModel.ModifiedBy = modifiedBy
 
-		if err := tx.Save(partyModel).Error; err != nil {
-			return domain.WrapPersistence("failed to save party", err)
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			partyModel.CreatedAt = now
+			partyModel.CreatedBy = createdBy
+			if err := tx.Create(partyModel).Error; err != nil {
+				return domain.WrapPersistence("failed to create party", err)
+			}
+		} else {
+			// Update using map to ensure 0 values (like discount) are not ignored by GORM
+			updates := map[string]interface{}{
+				"status":                      partyModel.Status,
+				"default_discount_percentage": partyModel.DefaultDiscountPercentage,
+				"modified_at":                 partyModel.ModifiedAt,
+				"modified_by":                 partyModel.ModifiedBy,
+			}
+			if err := tx.Model(&PartyDataModel{}).Where("id = ?", partyModel.ID).Updates(updates).Error; err != nil {
+				return domain.WrapPersistence("failed to update party", err)
+			}
 		}
 
 		if party.PersonProfile() != nil {

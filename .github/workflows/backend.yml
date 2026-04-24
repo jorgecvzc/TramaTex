@@ -25,6 +25,8 @@ jobs:
           POSTGRES_USER: tramatex
           POSTGRES_PASSWORD: tramatex
           POSTGRES_DB: tramatex_db
+          # Allow any connection to prevent "role root does not exist" errors
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -50,16 +52,19 @@ jobs:
         run: go test -v -race ./...
         working-directory: apps/tramatex-api
         env:
-          # Match the service container setup
+          # Database connection
           DB_HOST: localhost
           DB_PORT: 5432
           DB_USER: tramatex
           DB_PASSWORD: tramatex
           DB_NAME: tramatex_db
-          # Ensure tests use the correct user and don't fallback to system 'root'
+          # Explicit PG environment variables to prevent root fallback
+          PGHOST: localhost
+          PGPORT: 5432
           PGUSER: tramatex
           PGPASSWORD: tramatex
-          # Dummy secret for testing, at least 32 chars long
+          PGDATABASE: tramatex_db
+          # Security
           JWT_SECRET: a-very-secret-key-for-testing-ci-12345
 
   lint:
