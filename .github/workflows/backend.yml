@@ -4,12 +4,12 @@ name: TramaTex Backend CI
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "master" ]
     paths:
       - 'apps/tramatex-api/**'
       - '.github/workflows/backend.yml'
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "develop", "master" ]
     paths:
       - 'apps/tramatex-api/**'
 
@@ -89,7 +89,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.23'
 
       - name: Build
         run: go build -v -o app_binary ./cmd/api
