@@ -34,7 +34,7 @@ jobs:
 
             # 2. Drop and Recreate the public schema to ensure a 100% clean state
             echo "🧹 Wiping database tables..."
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -U tramatex -d tramatex_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO tramatex; GRANT ALL ON SCHEMA public TO public;"
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -h localhost -U tramatex -d tramatex_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO tramatex; GRANT ALL ON SCHEMA public TO public;"
 
             # 3. Restart everything. The API startup logic will detect an empty DB and run all migrations (001 to 007_seed)
             echo "🚀 Restarting services..."
