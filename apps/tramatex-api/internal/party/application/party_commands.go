@@ -168,22 +168,29 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 		return nil, domain.WrapValidation("failed to create party", err)
 	}
 
-	if cmd.DefaultDiscountPercentage != nil {
-		if err := party.SetDefaultDiscountPercentage(*cmd.DefaultDiscountPercentage); err != nil {
-			return nil, err
-		}
-	}
-
+	isCustomer := false
 	for _, role := range cmd.Roles {
 		roleType, err := parsePartyRoleType(role)
 		if err != nil {
 			return nil, err
+		}
+		if roleType == domain.PartyRoleCustomer {
+			isCustomer = true
 		}
 		partyRole, err := domain.NewPartyRole(roleType, nil)
 		if err != nil {
 			return nil, err
 		}
 		if err := party.AddRole(partyRole); err != nil {
+			return nil, err
+		}
+	}
+
+	if cmd.DefaultDiscountPercentage != nil {
+		if !isCustomer && *cmd.DefaultDiscountPercentage != 0 {
+			return nil, domain.NewValidationError("default discount percentage can only be assigned to customers")
+		}
+		if err := party.SetDefaultDiscountPercentage(*cmd.DefaultDiscountPercentage); err != nil {
 			return nil, err
 		}
 	}
@@ -403,6 +410,16 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 	}
 
 	if cmd.DefaultDiscountPercentage != nil {
+		isCustomer := false
+		for _, role := range party.Roles() {
+			if role.Type() == domain.PartyRoleCustomer {
+				isCustomer = true
+				break
+			}
+		}
+		if !isCustomer && *cmd.DefaultDiscountPercentage != 0 {
+			return nil, domain.NewValidationError("default discount percentage can only be assigned to customers")
+		}
 		if err := party.SetDefaultDiscountPercentage(*cmd.DefaultDiscountPercentage); err != nil {
 			return nil, err
 		}

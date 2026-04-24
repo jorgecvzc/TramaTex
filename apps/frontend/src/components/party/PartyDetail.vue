@@ -191,9 +191,11 @@
         </DataRow>
       </div>
       <div v-else>
-        <div class="form-group">
-          <label>Descuento Comercial (%)</label>
-          <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" class="form-input w-32" />
+        <div v-if="formData.role === 'CLIENT' || formData.role === 'BOTH'">
+          <div class="form-group">
+            <label>Descuento Comercial (%)</label>
+            <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" class="form-input w-32" />
+          </div>
         </div>
         <div class="form-group mt-4">
           <label>Observaciones e Instrucciones Internas</label>
