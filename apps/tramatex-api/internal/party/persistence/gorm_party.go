@@ -187,9 +187,8 @@ func (r *GORMPartyRepository) FindByID(ctx context.Context, id domain.PartyID) (
 	if err != nil {
 		return nil, err
 	}
-	if partyModel.DefaultDiscountPercentage > 0 {
-		_ = party.SetDefaultDiscountPercentage(partyModel.DefaultDiscountPercentage)
-	}
+
+	_ = party.SetDefaultDiscountPercentage(partyModel.DefaultDiscountPercentage)
 	party.SetTimestamps(partyModel.CreatedAt, partyModel.ModifiedAt)
 	return party, nil
 }

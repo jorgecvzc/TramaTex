@@ -1,6 +1,6 @@
 # TramaTex - Demo Weekly Reset
 # Resets the production demo database to factory state every Sunday at 3:00 AM UTC.
-# Strategy: Stop containers → remove postgres volume → restart → migrations + seed run automatically.
+# Strategy: Drop public schema → Recreate schema → Restart API → Migrations + Seed run fresh.
 
 name: Demo Weekly Reset
 
@@ -22,27 +22,29 @@ jobs:
           host: ${{ secrets.PROD_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 10m
+          command_timeout: 15m
           script: |
             set -e
             cd /opt/tramatex
 
             echo "🔄 Starting demo reset..."
 
-            # Stop all services
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env down
+            # 1. Stop the API only, keep Postgres running for cleaning
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env stop api
 
-            # Remove postgres data volume to wipe all user-generated data
-            docker volume rm tramatex_postgres_data_remote || true
+            # 2. Drop and Recreate the public schema to ensure a 100% clean state
+            echo "🧹 Wiping database tables..."
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -U tramatex -d tramatex_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO tramatex; GRANT ALL ON SCHEMA public TO public;"
 
-            # Start fresh — API runs all migrations + seed (007_seed_data.sql) automatically
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
+            # 3. Restart everything. The API startup logic will detect an empty DB and run all migrations (001 to 007_seed)
+            echo "🚀 Restarting services..."
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d api
 
-            # Wait for API to become healthy
+            # 4. Wait for API to become healthy and verify data
             echo "⏳ Waiting for API health check..."
             for i in $(seq 1 36); do
               if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
-                echo "✅ Demo reset complete — factory state restored"
+                echo "✅ Demo reset complete — factory state restored with seed data"
                 exit 0
               fi
               sleep 5

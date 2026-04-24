@@ -476,8 +476,8 @@ async function submitForm() {
         entityType: form.entityType,
         notes: form.notes,
       };
-      if ((form.role === 'CLIENT' || form.role === 'BOTH') && form.defaultDiscountPercentage) {
-        requestData.default_discount_percentage = form.defaultDiscountPercentage;
+      if (form.role === 'CLIENT' || form.role === 'BOTH') {
+        requestData.default_discount_percentage = form.defaultDiscountPercentage ?? 0;
       }
       if (form.entityType === 'PERSON') {
         requestData.firstName = form.firstName;
