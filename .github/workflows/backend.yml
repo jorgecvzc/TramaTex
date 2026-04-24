@@ -56,6 +56,9 @@ jobs:
           DB_USER: tramatex
           DB_PASSWORD: tramatex
           DB_NAME: tramatex_db
+          # Ensure tests use the correct user and don't fallback to system 'root'
+          PGUSER: tramatex
+          PGPASSWORD: tramatex
           # Dummy secret for testing, at least 32 chars long
           JWT_SECRET: a-very-secret-key-for-testing-ci-12345
 
@@ -76,6 +79,8 @@ jobs:
         with:
           version: latest
           working-directory: apps/tramatex-api
+          # We keep it informative but won't fail the build for minor style issues if preferred, 
+          # but for high standards we keep it as is.
           args: --timeout=5m
   
   build:
