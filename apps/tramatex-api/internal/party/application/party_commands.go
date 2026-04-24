@@ -174,7 +174,7 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 		if err != nil {
 			return nil, err
 		}
-		if roleType == domain.PartyRoleCustomer {
+		if roleType == domain.PartyRoleClient {
 			isCustomer = true
 		}
 		partyRole, err := domain.NewPartyRole(roleType, nil)
