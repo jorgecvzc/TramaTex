@@ -412,7 +412,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 	if cmd.DefaultDiscountPercentage != nil {
 		isCustomer := false
 		for _, role := range party.Roles() {
-			if role.Type() == domain.PartyRoleCustomer {
+			if role.Type() == domain.PartyRoleClient {
 				isCustomer = true
 				break
 			}
