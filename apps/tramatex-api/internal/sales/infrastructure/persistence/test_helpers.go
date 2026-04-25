@@ -178,6 +178,18 @@ func readEnvFile(path string) (map[string]string, error) {
 
 // SetUpSales initializes database schema for sales tests using AutoMigrate
 func (tdb *TestDB) SetUpSales() error {
+	// Create PostgreSQL enum types required by GORM models (AutoMigrate does not create them)
+	enumTypes := `
+		DO $$ BEGIN CREATE TYPE quote_status AS ENUM ('DRAFT','ISSUED','APPROVED','ACCEPTED','REJECTED','EXPIRED','CONVERTED_TO_ORDER'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE sales_order_status AS ENUM ('PENDING','IN_PREPARATION','READY_FOR_PRODUCTION','PARTIALLY_DELIVERED','DELIVERED','CANCELLED','PARTIALLY_INVOICED','INVOICED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE delivery_note_status AS ENUM ('PENDING','DELIVERED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE invoice_status AS ENUM ('DRAFT','ISSUED','PAID','OVERDUE','VOID'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE invoice_type AS ENUM ('COMPLETE','SIMPLIFIED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+	`
+	if err := tdb.DB.Exec(enumTypes).Error; err != nil {
+		return fmt.Errorf("failed to create sales enum types: %w", err)
+	}
+
 	// AutoMigrate all sales models to ensure schema matches GORM expectations
 	err := tdb.DB.AutoMigrate(
 		&QuoteDataModel{},

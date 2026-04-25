@@ -204,6 +204,16 @@ func (tdb *TestDB) Logf(format string, args ...interface{}) {
 
 // SetUpProduct initializes product schema for tests using AutoMigrate
 func (tdb *TestDB) SetUpProduct() error {
+	// Create PostgreSQL enum types required by GORM models (AutoMigrate does not create them)
+	enumTypes := `
+		DO $$ BEGIN CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE product_group_type AS ENUM ('TANGIBLE', 'SERVICE'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+	`
+	if err := tdb.DB.Exec(enumTypes).Error; err != nil {
+		return fmt.Errorf("failed to create product enum types: %w", err)
+	}
+
 	// AutoMigrate all product models to ensure schema matches GORM expectations
 	err := tdb.DB.AutoMigrate(
 		&BrandDataModel{},
