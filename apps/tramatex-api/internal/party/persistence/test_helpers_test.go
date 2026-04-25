@@ -9,6 +9,7 @@ import (
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func TestReadEnvRemote_ReadsFile(t *testing.T) {
@@ -129,7 +130,9 @@ func newTestDBMock(t *testing.T) (*TestDB, sqlmock.Sqlmock) {
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
 	}
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db, PreferSimpleProtocol: true}), &gorm.Config{})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db, PreferSimpleProtocol: true}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Fatalf("failed to open gorm db: %v", err)
 	}

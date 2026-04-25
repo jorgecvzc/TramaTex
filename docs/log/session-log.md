@@ -4,6 +4,26 @@
 # SESIONES ABIERTAS
 ---
 
+## Estabilización de CI/CD y Lógica de Party
+- **Session ID:** `ci-stability-party-discount-fix`
+- **Status:** En Progreso
+- **Sprint:** Sprint 18
+- **Started:** 2026-04-24
+- **Contexto:** Resolver fallos persistentes en Backend CI y Demo Reset, y corregir la persistencia del descuento en Party.
+- **Próximos Pasos:**
+  - [x] Implementar validación de rol para descuento comercial en Backend.
+  - [x] Cambiar `tx.Save` por `tx.Updates(map)` en repositorio GORM para forzar guardado de valores 0.
+  - [x] Actualizar `demo-reset.yml` para usar `docker compose down -v` (borrado de volúmenes).
+  - [x] Añadir verificación de carga de seed data (usuario admin) en el workflow de reseteo.
+  - [ ] Investigar por qué el driver de Go ignora `PGUSER` y busca `root` en los tests de integración de la CI.
+  - [ ] Validar funcionalmente el guardado del descuento 0% en el despliegue tras el reseteo.
+- **Archivos de Contexto:**
+  - `apps/frontend/src/components/party/PartyForm.vue`
+  - `apps/tramatex-api/internal/party/application/party_commands.go`
+  - `apps/tramatex-api/internal/party/persistence/gorm_party.go`
+  - `.github/workflows/backend.yml`
+  - `.github/workflows/demo-reset.yml`
+
 # REGISTRO DE SESIONES CERRADAS
 ---
 
