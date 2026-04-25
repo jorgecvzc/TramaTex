@@ -54,16 +54,20 @@ jobs:
               exit 1
             fi
 
-            # 4. Verify seed data — migrations run after API startup, so retry up to 60s
-            echo "🔍 Verifying seed data (up to 60s)..."
-            for j in $(seq 1 12); do
-              COUNT=$(docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -U tramatex -d tramatex_db -t -c "SELECT count(*) FROM users WHERE email='admin@tramatex.local';" 2>/dev/null | tr -d ' \n' || echo "0")
-              if [ "$COUNT" = "1" ]; then
-                echo "✅ Demo reset complete — factory state restored with seed data"
+            # 4. Verify seed data via admin login (full-stack test: nginx → API → DB → seed)
+            # Rate limit is 10/min; 8 retries × 8s sleep = 64s max, well within limit.
+            echo "🔍 Verifying seed data via admin login (up to 64s)..."
+            for j in $(seq 1 8); do
+              RESPONSE=$(wget -qO- \
+                --post-data '{"email":"admin@tramatex.local","password":"admin123"}' \
+                --header "Content-Type: application/json" \
+                http://localhost/auth/login 2>/dev/null || echo "{}")
+              if echo "$RESPONSE" | grep -q '"access_token"'; then
+                echo "✅ Demo reset complete — factory state restored and admin login verified"
                 exit 0
               fi
-              sleep 5
+              sleep 8
             done
 
-            echo "❌ Seed data verification failed after timeout!"
+            echo "❌ Seed data verification failed — admin login did not succeed after timeout"
             exit 1
