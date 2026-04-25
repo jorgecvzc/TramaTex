@@ -4,7 +4,7 @@ import "testing"
 
 func TestUserModelTableName(t *testing.T) {
 	var model UserModel
-	if model.TableName() != "users" {
+	if model.TableName() != "\"users\"" {
 		t.Fatalf("unexpected table name: %s", model.TableName())
 	}
 }
