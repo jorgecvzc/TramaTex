@@ -10,19 +10,23 @@
 - **Sprint:** Sprint 18
 - **Started:** 2026-04-24
 - **Contexto:** Resolver fallos persistentes en Backend CI y Demo Reset, y corregir la persistencia del descuento en Party.
-- **Próximos Pasos:**
-  - [x] Implementar validación de rol para descuento comercial en Backend.
-  - [x] Cambiar `tx.Save` por `tx.Updates(map)` en repositorio GORM para forzar guardado de valores 0.
-  - [x] Actualizar `demo-reset.yml` para usar `docker compose down -v` (borrado de volúmenes).
-  - [x] Añadir verificación de carga de seed data (usuario admin) en el workflow de reseteo.
-  - [ ] Investigar por qué el driver de Go ignora `PGUSER` y busca `root` en los tests de integración de la CI.
+- **Logros:**
+  - ✅ Corregida la persistencia de descuento 0% en `gorm_party.go` usando `Updates(map[string]interface{})`.
+  - ✅ Añadido test de integración para validar el descuento 0% en `party`.
+  - ✅ Silenciado el logger de GORM en tests unitarios y de integración para limpiar el ruido en la CI.
+  - ✅ Implementado `AutoMigrate` en los `test_helpers` de `sales` para garantizar coherencia de esquema.
+  - ✅ Añadida política de `concurrency` en GitHub Actions para evitar ejecuciones duplicadas.
+  - ✅ Corregido test de nombre de tabla en `iam` (`UserModel`).
+- **Pendientes:**
+  - [ ] Identificar y corregir la causa raíz del fallo persistente en Backend CI (el semáforo sigue en rojo tras limpiar logs).
+  - [ ] Investigar si hay otros módulos (MES, Pricing) con tests de integración que requieran actualización de esquema.
   - [ ] Validar funcionalmente el guardado del descuento 0% en el despliegue tras el reseteo.
 - **Archivos de Contexto:**
-  - `apps/frontend/src/components/party/PartyForm.vue`
-  - `apps/tramatex-api/internal/party/application/party_commands.go`
   - `apps/tramatex-api/internal/party/persistence/gorm_party.go`
+  - `apps/tramatex-api/internal/sales/infrastructure/persistence/test_helpers.go`
   - `.github/workflows/backend.yml`
-  - `.github/workflows/demo-reset.yml`
+  - `docs/guides/developer/ci-cd.md`
+
 
 # REGISTRO DE SESIONES CERRADAS
 ---
