@@ -17,13 +17,26 @@
   - ✅ Implementado `AutoMigrate` en los `test_helpers` de `sales` para garantizar coherencia de esquema.
   - ✅ Añadida política de `concurrency` en GitHub Actions para evitar ejecuciones duplicadas.
   - ✅ Corregido test de nombre de tabla en `iam` (`UserModel`).
+  - ✅ Corregidos errores de compilación en `party/persistence/test_helpers.go` (`UserDataModel`, `ContactDetailDataModel` indefinidos) y eliminados tests incompatibles con sqlmock.
+  - ✅ Corregidos errores de compilación en `product/infrastructure/persistence/test_helpers.go` (`ProductVariantDataModel`, `PartyDataModel` renombrados a `VariantDataModel`, `PartyServiceConfigurationModel`).
+  - ✅ Corregido FSM en `sales/domain/statuses.go`: `canTransitionDeliveryNote` (Delivered/Cancelled son estados terminales) y Draft→Paid no permitido en invoice.
+  - ✅ `NewInvoice` inicializa `Status: InvoiceStatusDraft` (antes era `InvoiceStatusIssued`).
+  - ✅ `ProductDataModel.TableName()` devolvía `"products"` con comillas SQL embebidas; corregido.
+  - ✅ Añadidos `CREATE TYPE` para enums PostgreSQL en `SetUpProduct()` y `SetUpSales()` (AutoMigrate no puede crear tipos enum personalizados).
+  - ✅ Añadida tabla stub `parties` en `SetUpProduct()` para satisfacer FK en tests de `PartyServiceConfiguration`.
+  - ✅ Añadido `gorm:"type:uuid"` a todos los campos `uuid.UUID` en `sales/infrastructure/persistence/models.go` (sin esta anotación, pgx v5 enviaba el tipo nativo `uuid` pero la columna se creaba como `text`, causando `operator does not exist: text = uuid`).
+  - ✅ Añadido `gorm:"type:uuid"` a campos UUID en `QuoteWorkRefModel` y `OrderWorkRefModel`.
+  - ✅ Eliminadas comillas SQL embebidas de todos los métodos `TableName()` en `models.go`.
+  - ✅ CI GitHub Actions completamente verde (Run Tests ✓, Lint Code ✓, Build Artifact ✓) en rama `fix/ci-backend-persistent-failure` — commit `1cab725`.
 - **Pendientes:**
-  - [ ] Identificar y corregir la causa raíz del fallo persistente en Backend CI (el semáforo sigue en rojo tras limpiar logs).
+  - [ ] Merge de `fix/ci-backend-persistent-failure` → `develop` (PR abierto).
   - [ ] Investigar si hay otros módulos (MES, Pricing) con tests de integración que requieran actualización de esquema.
   - [ ] Validar funcionalmente el guardado del descuento 0% en el despliegue tras el reseteo.
 - **Archivos de Contexto:**
   - `apps/tramatex-api/internal/party/persistence/gorm_party.go`
   - `apps/tramatex-api/internal/sales/infrastructure/persistence/test_helpers.go`
+  - `apps/tramatex-api/internal/sales/infrastructure/persistence/models.go`
+  - `apps/tramatex-api/internal/product/infrastructure/persistence/test_helpers.go`
   - `.github/workflows/backend.yml`
   - `docs/guides/developer/ci-cd.md`
 
