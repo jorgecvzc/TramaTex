@@ -37,12 +37,20 @@ jobs:
             echo "🚀 Restarting services (cold start)..."
             docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
 
-            # 3. Wait for API to become healthy
+            # 4. Wait for API to become healthy and verify data
             echo "⏳ Waiting for API health check..."
             for i in $(seq 1 36); do
               if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
-                echo "✅ Demo reset complete — factory state restored with seed data"
-                exit 0
+                echo "✅ API is healthy"
+                # Final check: Verify admin user exists (seeded in 007_seed_data.sql)
+                echo "🔍 Verifying seed data..."
+                if docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -h localhost -U tramatex -d tramatex_db -t -c "SELECT count(*) FROM users WHERE email='admin@tramatex.local';" | grep -q 1; then
+                   echo "✅ Demo reset complete — factory state restored with seed data"
+                   exit 0
+                else
+                   echo "❌ Seed data verification failed!"
+                   exit 1
+                fi
               fi
               sleep 5
             done
