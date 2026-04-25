@@ -2,10 +2,19 @@
 
 <div align="center">
   <img src="https://img.shields.io/badge/Proyecto-TFM-1b3a6b?style=for-the-badge" alt="TFM">
-  <img src="https://img.shields.io/badge/Backend-Go_1.21+-1b3a6b?style=flat-square" alt="Go">
+  <img src="https://img.shields.io/badge/Backend-Go_1.23-1b3a6b?style=flat-square" alt="Go">
   <img src="https://img.shields.io/badge/Frontend-Vue.js_3-1b3a6b?style=flat-square" alt="Vue">
   <img src="https://img.shields.io/badge/Base_de_Datos-PostgreSQL_15-1b3a6b?style=flat-square" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Licencia-MIT-E6B800?style=flat-square" alt="Licencia">
+</div>
+
+<div align="center">
+  <a href="https://github.com/jorgecvzc/TramaTex/actions/workflows/backend.yml">
+    <img src="https://github.com/jorgecvzc/TramaTex/actions/workflows/backend.yml/badge.svg" alt="Backend CI">
+  </a>
+  <a href="https://github.com/jorgecvzc/TramaTex/actions/workflows/frontend.yml">
+    <img src="https://github.com/jorgecvzc/TramaTex/actions/workflows/frontend.yml/badge.svg" alt="Frontend CI">
+  </a>
 </div>
 
 ---
@@ -30,7 +39,7 @@ Accede a una instancia funcional para evaluar el sistema de forma inmediata:
 | **Usuario Administrador** | `admin@tramatex.local` |
 | **Contraseña de acceso** | `admin123` |
 
-> ⚠️ **Mantenimiento:** La base de datos de la demo se restaura automáticamente **cada domingo a las 3:00 AM UTC**.
+> 🔄 **Mantenimiento Automático:** Para garantizar una experiencia limpia a todos los evaluadores, la base de datos de la demo se restaura a su estado inicial **cada domingo a las 3:00 AM UTC**.
 
 ---
 
