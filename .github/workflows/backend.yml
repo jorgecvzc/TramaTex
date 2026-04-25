@@ -4,7 +4,7 @@ name: TramaTex Backend CI
 
 on:
   push:
-    branches: [ "develop", "master" ]
+    branches: [ "develop", "master", "fix/ci-backend-persistent-failure" ]
     paths:
       - 'apps/tramatex-api/**'
       - '.github/workflows/backend.yml'
