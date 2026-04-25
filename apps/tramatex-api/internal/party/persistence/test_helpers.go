@@ -196,214 +196,32 @@ func readEnvFile(path string) (map[string]string, error) {
 	return env, nil
 }
 
-// SetUp initializes database schema for tests
+// SetUp initializes database schema for tests (Legacy)
 func (tdb *TestDB) SetUp() error {
-	ctx := context.Background()
-
-	dropSchema := `
-		DROP TABLE IF EXISTS addresses CASCADE;
-		DROP TABLE IF EXISTS persons CASCADE;
-		DROP TABLE IF EXISTS organizations CASCADE;
-		DROP TYPE IF EXISTS organization_role CASCADE;
-		DROP TYPE IF EXISTS organization_status CASCADE;
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
-		return fmt.Errorf("failed to drop schema: %w", err)
-	}
-
-	createSchema := `
-		CREATE TYPE organization_role AS ENUM ('CLIENT', 'SUPPLIER', 'BOTH');
-		CREATE TYPE organization_status AS ENUM ('ACTIVE', 'INACTIVE');
-
-		CREATE TABLE organizations (
-			id VARCHAR(100) PRIMARY KEY,
-			name VARCHAR(255) NOT NULL,
-			role organization_role NOT NULL,
-			status organization_status DEFAULT 'ACTIVE',
-			tax_id VARCHAR(50),
-			website VARCHAR(255),
-			notes TEXT,
-			created_by UUID NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID,
-			modified_at TIMESTAMP,
-			UNIQUE(tax_id)
-		);
-
-		CREATE INDEX idx_organizations_role ON organizations(role);
-		CREATE INDEX idx_organizations_status ON organizations(status);
-		CREATE INDEX idx_organizations_tax_id ON organizations(tax_id);
-
-		CREATE TABLE persons (
-			id VARCHAR(100) PRIMARY KEY,
-			organization_id VARCHAR(100) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-			first_name VARCHAR(100) NOT NULL,
-			last_name VARCHAR(100) NOT NULL,
-			email VARCHAR(255) UNIQUE NOT NULL,
-			phone VARCHAR(20),
-			job_title VARCHAR(100),
-			is_primary_contact BOOLEAN DEFAULT FALSE,
-			created_by UUID NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID,
-			modified_at TIMESTAMP
-		);
-
-		CREATE INDEX idx_persons_organization_id ON persons(organization_id);
-		CREATE INDEX idx_persons_email ON persons(email);
-		CREATE INDEX idx_persons_is_primary_contact ON persons(is_primary_contact);
-
-		CREATE TABLE addresses (
-			id VARCHAR(100) PRIMARY KEY,
-			organization_id VARCHAR(100) NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-			street VARCHAR(255) NOT NULL,
-			city VARCHAR(100) NOT NULL,
-			province VARCHAR(100),
-			postal_code VARCHAR(20),
-			country VARCHAR(100) DEFAULT 'Spain',
-			is_primary BOOLEAN DEFAULT FALSE,
-			created_by UUID NOT NULL,
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID,
-			modified_at TIMESTAMP
-		);
-
-		CREATE INDEX idx_addresses_organization_id ON addresses(organization_id);
-		CREATE INDEX idx_addresses_is_primary ON addresses(is_primary);
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
-		return fmt.Errorf("failed to create schema: %w", err)
-	}
-
-	return nil
+	// For backward compatibility, but we should use SetUpParty
+	return tdb.SetUpParty()
 }
 
-// TearDown cleans up test database
+// TearDown cleans up test database (Legacy)
 func (tdb *TestDB) TearDown() error {
-	ctx := context.Background()
-
-	dropSchema := `
-		DROP TABLE IF EXISTS addresses CASCADE;
-		DROP TABLE IF EXISTS persons CASCADE;
-		DROP TABLE IF EXISTS organizations CASCADE;
-		DROP TYPE IF EXISTS organization_role CASCADE;
-		DROP TYPE IF EXISTS organization_status CASCADE;
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
-		return fmt.Errorf("failed to drop schema: %w", err)
-	}
-
-	sqlDB, err := tdb.DB.DB()
-	if err != nil {
-		return err
-	}
-	return sqlDB.Close()
+	// For backward compatibility
+	return tdb.TearDownParty()
 }
 
-// SetUpParty initializes Party schema for tests
+// SetUpParty initializes Party schema for tests using AutoMigrate
 func (tdb *TestDB) SetUpParty() error {
-	ctx := context.Background()
-
-	dropSchema := `
-		DROP TABLE IF EXISTS party_addresses CASCADE;
-		DROP TABLE IF EXISTS contact_details CASCADE;
-		DROP TABLE IF EXISTS party_relationships CASCADE;
-		DROP TABLE IF EXISTS party_roles CASCADE;
-		DROP TABLE IF EXISTS organization_profiles CASCADE;
-		DROP TABLE IF EXISTS person_profiles CASCADE;
-		DROP TABLE IF EXISTS parties CASCADE;
-		DROP TABLE IF EXISTS users CASCADE;
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
-		return fmt.Errorf("failed to drop party schema: %w", err)
-	}
-
-	createSchema := `
-		CREATE TABLE users (
-			id UUID PRIMARY KEY
-		);
-
-		INSERT INTO users (id) VALUES ('00000000-0000-0000-0000-000000000001') ON CONFLICT DO NOTHING;
-		INSERT INTO users (id) VALUES ('00000000-0000-0000-0000-000000000002') ON CONFLICT DO NOTHING;
-
-		CREATE TABLE parties (
-			id VARCHAR(36) PRIMARY KEY,
-			status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-			default_discount_percentage NUMERIC(5,2) NOT NULL DEFAULT 0,
-			created_by UUID NOT NULL REFERENCES users(id),
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID NOT NULL REFERENCES users(id),
-			modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE person_profiles (
-			party_id VARCHAR(36) PRIMARY KEY REFERENCES parties(id) ON DELETE CASCADE,
-			first_name VARCHAR(100) NOT NULL,
-			last_name VARCHAR(100) NOT NULL,
-			phone VARCHAR(30),
-			email VARCHAR(255)
-		);
-
-		CREATE TABLE organization_profiles (
-			party_id VARCHAR(36) PRIMARY KEY REFERENCES parties(id) ON DELETE CASCADE,
-			name VARCHAR(255) NOT NULL,
-			tax_id VARCHAR(50),
-			tax_id_type VARCHAR(20),
-			website VARCHAR(255),
-			phone VARCHAR(30),
-			email VARCHAR(255),
-			notes TEXT
-		);
-
-		CREATE TABLE party_roles (
-			party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
-			role VARCHAR(30) NOT NULL,
-			creation_identifier VARCHAR(100),
-			PRIMARY KEY (party_id, role)
-		);
-
-		CREATE TABLE party_relationships (
-			id VARCHAR(36) PRIMARY KEY,
-			from_party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
-			to_party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
-			type VARCHAR(50) NOT NULL,
-			created_by UUID NOT NULL REFERENCES users(id),
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID NOT NULL REFERENCES users(id),
-			modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE contact_details (
-			id VARCHAR(36) PRIMARY KEY,
-			organization_party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
-			type_description VARCHAR(100) NOT NULL,
-			phone VARCHAR(30),
-			email VARCHAR(255),
-			related_party_id VARCHAR(36) REFERENCES parties(id) ON DELETE SET NULL
-		);
-
-		CREATE TABLE party_addresses (
-			id VARCHAR(36) PRIMARY KEY,
-			party_id VARCHAR(36) NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
-			street VARCHAR(255) NOT NULL,
-			city VARCHAR(100) NOT NULL,
-			province VARCHAR(100),
-			postal_code VARCHAR(20) NOT NULL,
-			country VARCHAR(100) NOT NULL,
-			is_primary BOOLEAN DEFAULT FALSE,
-			created_by UUID NOT NULL REFERENCES users(id),
-			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			modified_by UUID NOT NULL REFERENCES users(id),
-			modified_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
-		return fmt.Errorf("failed to create party schema: %w", err)
+	// AutoMigrate all party models to ensure schema matches GORM expectations
+	err := tdb.DB.AutoMigrate(
+		&PartyDataModel{},
+		&PersonProfileDataModel{},
+		&OrganizationProfileDataModel{},
+		&PartyRoleDataModel{},
+		&PartyRelationshipDataModel{},
+		&ContactDetailsDataModel{},
+		&PartyAddressDataModel{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to auto-migrate party schema: %w", err)
 	}
 
 	return nil

@@ -202,162 +202,35 @@ func (tdb *TestDB) Logf(format string, args ...interface{}) {
 	}
 }
 
-// SetUpProduct initializes product schema for tests
+// SetUpProduct initializes product schema for tests using AutoMigrate
 func (tdb *TestDB) SetUpProduct() error {
-	ctx := context.Background()
-
-	// Drop tables if they exist (for clean state)
-	dropSchema := `
-		DROP TABLE IF EXISTS "parties" CASCADE;
-		DROP TABLE IF EXISTS "party_service_configurations" CASCADE;
-		DROP TABLE IF EXISTS "product_variant_values" CASCADE;
-		DROP TABLE IF EXISTS "product_variants" CASCADE;
-		DROP TABLE IF EXISTS "product_direct_attributes" CASCADE;
-		DROP TABLE IF EXISTS "product_to_groups" CASCADE;
-		DROP TABLE IF EXISTS "products" CASCADE;
-		DROP TABLE IF EXISTS "attribute_values" CASCADE;
-		DROP TABLE IF EXISTS "attributes" CASCADE;
-		DROP TABLE IF EXISTS "product_groups" CASCADE;
-		DROP TABLE IF EXISTS "brands" CASCADE;
+	// Create PostgreSQL enum types required by GORM models (AutoMigrate does not create them)
+	enumTypes := `
+		DO $$ BEGIN CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE product_group_type AS ENUM ('TANGIBLE', 'SERVICE'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
-		return fmt.Errorf("failed to drop product schema: %w", err)
+	if err := tdb.DB.Exec(enumTypes).Error; err != nil {
+		return fmt.Errorf("failed to create product enum types: %w", err)
 	}
 
-	// Create enums and tables (same as migration)
-	createSchema := `
-		CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+	// AutoMigrate all product models to ensure schema matches GORM expectations
+	err := tdb.DB.AutoMigrate(
+		&BrandDataModel{},
+		&ProductGroupDataModel{},
+		&AttributeDataModel{},
+		&AttributeValueDataModel{},
+		&ProductDataModel{},
+		&VariantDataModel{},
+		&PartyServiceConfigurationModel{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to auto-migrate product schema: %w", err)
+	}
 
-		DO $$ BEGIN
-			CREATE TYPE product_type AS ENUM ('TANGIBLE', 'SERVICE');
-		EXCEPTION
-			WHEN duplicate_object OR unique_violation THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE product_group_type AS ENUM ('TANGIBLE', 'SERVICE');
-		EXCEPTION
-			WHEN duplicate_object OR unique_violation THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE variant_status AS ENUM ('PROVISIONAL', 'CONFIRMED');
-		EXCEPTION
-			WHEN duplicate_object OR unique_violation THEN null;
-		END $$;
-
-		CREATE TABLE "brands" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"name" VARCHAR(255) NOT NULL,
-			"default_markup_percentage" NUMERIC(5,2) NOT NULL DEFAULT 0,
-			"is_active" BOOLEAN NOT NULL DEFAULT true,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "product_groups" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"name" VARCHAR(255) NOT NULL,
-			"group_type" product_group_type NOT NULL DEFAULT 'TANGIBLE',
-			"parent_group_id" UUID,
-			"is_active" BOOLEAN NOT NULL DEFAULT true,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_parent_group" FOREIGN KEY ("parent_group_id") REFERENCES "product_groups" ("id") ON DELETE SET NULL
-		);
-
-		CREATE TABLE "attributes" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"name" VARCHAR(255) NOT NULL,
-			"code" VARCHAR(50) NOT NULL,
-			"scope_brand_id" UUID,
-			"scope_group_id" UUID,
-			"created_by" VARCHAR(255),
-			"modified_by" VARCHAR(255),
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_scope_brand" FOREIGN KEY ("scope_brand_id") REFERENCES "brands" ("id") ON DELETE CASCADE,
-			CONSTRAINT "fk_scope_product_group" FOREIGN KEY ("scope_group_id") REFERENCES "product_groups" ("id") ON DELETE CASCADE
-		);
-
-		CREATE TABLE "attribute_values" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"attribute_id" UUID NOT NULL,
-			"value" VARCHAR(255) NOT NULL,
-			"code" VARCHAR(50) NOT NULL,
-			"has_price_modifier" BOOLEAN NOT NULL DEFAULT false,
-			"modifier_type" VARCHAR(20) CHECK (modifier_type IN ('FIXED', 'PERCENTAGE')),
-			"modifier_amount" NUMERIC(10,2),
-			"created_by" VARCHAR(255),
-			"modified_by" VARCHAR(255),
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_attribute" FOREIGN KEY ("attribute_id") REFERENCES "attributes" ("id") ON DELETE CASCADE
-		);
-
-		CREATE TABLE "products" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"sku" VARCHAR(255) UNIQUE,
-			"name" VARCHAR(100) NOT NULL,
-			"long_name" VARCHAR(255),
-			"barcode" VARCHAR(255) UNIQUE,
-			"description" TEXT,
-			"product_type" product_type NOT NULL,
-			"brand_id" UUID NOT NULL,
-			"group_ids" UUID[],
-			"direct_attribute_ids" UUID[],
-			"base_price" NUMERIC(12,2) NOT NULL DEFAULT 0,
-			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
-			"created_by" VARCHAR(255),
-			"modified_by" VARCHAR(255),
-			"is_active" BOOLEAN NOT NULL DEFAULT true,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_products_brand" FOREIGN KEY ("brand_id") REFERENCES "brands" ("id") ON DELETE CASCADE
-		);
-
-
-		CREATE TABLE "product_variants" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"product_id" UUID NOT NULL,
-			"sku" VARCHAR(255) NOT NULL,
-			"barcode" VARCHAR(255),
-			"base_cost" NUMERIC(12,2) NOT NULL DEFAULT 0,
-			"status" variant_status NOT NULL DEFAULT 'PROVISIONAL',
-			"attribute_values" UUID[],
-			"created_by" VARCHAR(255),
-			"modified_by" VARCHAR(255),
-			"is_active" BOOLEAN NOT NULL DEFAULT true,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_product_variants_product" FOREIGN KEY ("product_id") REFERENCES "products" ("id") ON DELETE CASCADE
-		);
-
-
-		CREATE TABLE "parties" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid()
-		);
-
-		CREATE TABLE "party_service_configurations" (
-			"id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			"party_id" UUID NOT NULL,
-			"service_id" VARCHAR(255) NOT NULL,
-			"name" VARCHAR(255) NOT NULL,
-			"configuration_details" JSONB,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE,
-			CONSTRAINT "fk_party_service_configurations_party" FOREIGN KEY ("party_id") REFERENCES "parties" ("id") ON DELETE CASCADE
-		);
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
-		return fmt.Errorf("failed to create product schema: %w", err)
+	// Create parties stub table (cross-module reference: party_service_configurations tests insert into parties)
+	if err := tdb.DB.Exec(`CREATE TABLE IF NOT EXISTS "parties" ("id" UUID PRIMARY KEY)`).Error; err != nil {
+		return fmt.Errorf("failed to create parties reference table: %w", err)
 	}
 
 	return nil
@@ -367,6 +240,7 @@ func (tdb *TestDB) SetUpProduct() error {
 func (tdb *TestDB) TearDownProduct() error {
 	ctx := context.Background()
 
+	// Drop tables if they exist
 	dropSchema := `
 		DROP TABLE IF EXISTS "party_service_configurations" CASCADE;
 		DROP TABLE IF EXISTS "parties" CASCADE;

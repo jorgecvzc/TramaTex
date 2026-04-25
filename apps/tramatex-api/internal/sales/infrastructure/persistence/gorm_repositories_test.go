@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/sales/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupSalesTestDB(t *testing.T) (*TestDB, func()) {
@@ -16,7 +17,7 @@ func setupSalesTestDB(t *testing.T) (*TestDB, func()) {
 		t.Skip("PostgreSQL not available for integration tests")
 	}
 
-	assert.NoError(t, tdb.SetUpSales())
+	require.NoError(t, tdb.SetUpSales())
 
 	cleanup := func() {
 		_ = tdb.TearDownSales()
