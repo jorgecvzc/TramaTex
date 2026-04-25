@@ -49,7 +49,44 @@ JWT_SECRET: a-very-secret-key-for-testing-ci-12345
 
 ---
 
-### 2. Demo Weekly Reset (`.github/workflows/demo-reset.yml`)
+### 2. Deploy a Producción (`.github/workflows/deploy-production.yml`)
+
+**Triggers:**
+- Push a la rama `master` (automático tras cada PR mergeado)
+- Manual: Via `workflow_dispatch` con opciones configurables
+
+**Estrategia:**
+Las imágenes se construyen en GitHub Actions (7 GB RAM) y se publican en GHCR. El servidor de producción (DigitalOcean Droplet) solo hace `pull` y `up`, sin builds en producción.
+
+**Inputs del workflow_dispatch:**
+| Input | Default | Descripción |
+|---|---|---|
+| `rebuild_images` | `true` | Reconstruye y publica imágenes antes del deploy |
+| `fresh_db` | `false` | Destruye el volumen de PostgreSQL (¡DESTRUCTIVO!) |
+
+**Jobs:**
+
+#### build-api / build-frontend
+- Login a GHCR con `GITHUB_TOKEN`
+- `docker build` desde `Dockerfile` / `Dockerfile.frontend`
+- `docker push` a `ghcr.io/<owner>/tramatex-api:latest` / `tramatex-frontend:latest`
+
+#### deploy
+- SSH al Droplet vía `appleboy/ssh-action`
+- `git reset --hard origin/master` para sincronizar `docker-compose.remote.yml`
+- Escribe `docker/.env` desde el secreto `ENV_PROD`
+- Si `fresh_db=true`: `docker compose down --volumes` + elimina volumen (⚠️ pérdida total de datos)
+- `docker compose pull` + `docker compose up -d --force-recreate`
+- Health-check contra `http://localhost/api/health` (30 reintentos × 2 s)
+- `docker image prune -f`
+
+**Secrets requeridos:**
+- `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY` — acceso al Droplet
+- `ENV_PROD` — contenido completo del `docker/.env` de producción
+
+---
+
+### 3. Demo Weekly Reset (`.github/workflows/demo-reset.yml`)
 
 **Triggers:**
 - Scheduled: Every Sunday at 03:00 AM UTC
@@ -66,7 +103,7 @@ Resets the production/staging demo environment to a clean state by wiping databa
 
 ---
 
-### 3. Frontend CI (`.github/workflows/frontend.yml`)
+### 4. Frontend CI (`.github/workflows/frontend.yml`)
 
 **Triggers:**
 - Push to `develop` and `master` branches

@@ -11,9 +11,6 @@
 
 - **Estabilización de CI/CD y Lógica de Party (Sprint 18)** | Iniciada: 2026-04-24 | Finalizada: 2026-04-25 | ✅ CI backend completamente verde. Fixes: `type:uuid` en modelos sales, enum types explícitos, tabla stub `parties`, FSM domain sales, `NewInvoice` Draft status, cleanup party test_helpers. Deploy a producción exitoso (PR #19, commit `07017b8`). Descuento 0% validado funcionalmente en producción.
 
-# REGISTRO DE SESIONES CERRADAS
----
-
 - **Deep Documentation Study & Gap Analysis (Sprint 18)** | Iniciada: 2026-04-19 | Finalizada: 2026-04-19 | ✅ Barrido exhaustivo de documentación completado: ramas y hojas alineadas, referencias corregidas y especificaciones sincronizadas.
 - **Documentation Review & Alignment (Sprint 18)** | Iniciada: 2026-04-17 | Finalizada: 2026-04-19 | ✅ Revisión integral de documentación cerrada tras consolidar ADRs, guías, módulos y presentación corporativa.
 - **Continuidad IAM + Sales — Estado Actual para Retomar (Sprint 18)** | Iniciada: 2026-04-18 | Finalizada: 2026-04-19 | ✅ Sesión de continuidad cerrada tras verificar integración en `develop`, limpieza de pendientes locales y consolidación de fixes IAM/Sales.
