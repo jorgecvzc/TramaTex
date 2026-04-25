@@ -67,6 +67,7 @@ El proyecto fomenta el uso de sistemas de código abierto, proporcionando automa
 ### 🛠️ Herramientas de Gestión
 Consulta el índice de utilidades para tareas de mantenimiento, migraciones o auditoría:
 👉 **[Guía Maestra de Scripts y Utilidades](docs/guides/developer/scripts-index.md)**
+👉 **[Pipeline CI/CD (GitHub Actions)](docs/guides/developer/ci-cd.md)**
 
 ---
 
