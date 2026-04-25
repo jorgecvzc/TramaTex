@@ -37,23 +37,33 @@ jobs:
             echo "🚀 Restarting services (cold start)..."
             docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
 
-            # 4. Wait for API to become healthy and verify data
+            # 3. Wait for API to become healthy
             echo "⏳ Waiting for API health check..."
+            API_HEALTHY=false
             for i in $(seq 1 36); do
               if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
                 echo "✅ API is healthy"
-                # Final check: Verify admin user exists (seeded in 007_seed_data.sql)
-                echo "🔍 Verifying seed data..."
-                if docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -h localhost -U tramatex -d tramatex_db -t -c "SELECT count(*) FROM users WHERE email='admin@tramatex.local';" | grep -q 1; then
-                   echo "✅ Demo reset complete — factory state restored with seed data"
-                   exit 0
-                else
-                   echo "❌ Seed data verification failed!"
-                   exit 1
-                fi
+                API_HEALTHY=true
+                break
               fi
               sleep 5
             done
 
-            echo "❌ API did not become healthy after 3 minutes"
+            if [ "$API_HEALTHY" != "true" ]; then
+              echo "❌ API did not become healthy after 3 minutes"
+              exit 1
+            fi
+
+            # 4. Verify seed data — migrations run after API startup, so retry up to 60s
+            echo "🔍 Verifying seed data (up to 60s)..."
+            for j in $(seq 1 12); do
+              COUNT=$(docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -U tramatex -d tramatex_db -t -c "SELECT count(*) FROM users WHERE email='admin@tramatex.local';" 2>/dev/null | tr -d ' \n' || echo "0")
+              if [ "$COUNT" = "1" ]; then
+                echo "✅ Demo reset complete — factory state restored with seed data"
+                exit 0
+              fi
+              sleep 5
+            done
+
+            echo "❌ Seed data verification failed after timeout!"
             exit 1
