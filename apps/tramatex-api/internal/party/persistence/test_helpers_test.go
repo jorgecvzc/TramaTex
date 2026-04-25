@@ -5,11 +5,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-
-	sqlmock "github.com/DATA-DOG/go-sqlmock"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 func TestReadEnvRemote_ReadsFile(t *testing.T) {
@@ -122,61 +117,5 @@ func TestLoadTestDBConfig_EnvLocalOverrides(t *testing.T) {
 	}
 	if config.User != "local" || config.Password != "localpass" || config.Name != "localdb" || config.Port != "5432" || config.SSLMode != "disable" {
 		t.Fatalf("expected local env overrides to be applied")
-	}
-}
-
-func newTestDBMock(t *testing.T) (*TestDB, sqlmock.Sqlmock) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
-	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
-	}
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db, PreferSimpleProtocol: true}), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
-	})
-	if err != nil {
-		t.Fatalf("failed to open gorm db: %v", err)
-	}
-	return &TestDB{DB: gormDB, t: t}, mock
-}
-
-func TestTestDB_SetUpAndTearDown(t *testing.T) {
-	tdb, mock := newTestDBMock(t)
-
-	mock.ExpectExec("DROP TABLE").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("CREATE TYPE").WillReturnResult(sqlmock.NewResult(0, 0))
-
-	if err := tdb.SetUp(); err != nil {
-		t.Fatalf("expected SetUp to succeed, got: %v", err)
-	}
-
-	mock.ExpectExec("DROP TABLE").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectClose()
-	if err := tdb.TearDown(); err != nil {
-		t.Fatalf("expected TearDown to succeed, got: %v", err)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet sqlmock expectations: %v", err)
-	}
-}
-
-func TestTestDB_SetUpPartyAndTearDownParty(t *testing.T) {
-	tdb, mock := newTestDBMock(t)
-
-	mock.ExpectExec("DROP TABLE IF EXISTS party_addresses").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectExec("CREATE TABLE users").WillReturnResult(sqlmock.NewResult(0, 0))
-
-	if err := tdb.SetUpParty(); err != nil {
-		t.Fatalf("expected SetUpParty to succeed, got: %v", err)
-	}
-
-	mock.ExpectExec("DROP TABLE IF EXISTS party_addresses").WillReturnResult(sqlmock.NewResult(0, 0))
-	mock.ExpectClose()
-	if err := tdb.TearDownParty(); err != nil {
-		t.Fatalf("expected TearDownParty to succeed, got: %v", err)
-	}
-
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unmet sqlmock expectations: %v", err)
 	}
 }

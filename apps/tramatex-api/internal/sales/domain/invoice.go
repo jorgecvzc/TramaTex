@@ -56,7 +56,7 @@ func NewInvoice(
 	if dueDate.Before(invoiceDate) {
 		return nil, NewValidationError("due date cannot be before invoice date")
 	}
-	if err := InvoiceStatusIssued.IsValid(); err != nil {
+	if err := InvoiceStatusDraft.IsValid(); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +81,7 @@ func NewInvoice(
 		PartyID:       partyID,
 		InvoiceDate:   invoiceDate,
 		DueDate:       dueDate,
-		Status:        InvoiceStatusIssued,
+		Status:        InvoiceStatusDraft,
 		LineItems:     lineItems,
 		Subtotal:      subtotal,
 		TaxAmount:     calculatedTax,
