@@ -228,6 +228,11 @@ func (tdb *TestDB) SetUpProduct() error {
 		return fmt.Errorf("failed to auto-migrate product schema: %w", err)
 	}
 
+	// Create parties stub table (cross-module reference: party_service_configurations tests insert into parties)
+	if err := tdb.DB.Exec(`CREATE TABLE IF NOT EXISTS "parties" ("id" UUID PRIMARY KEY)`).Error; err != nil {
+		return fmt.Errorf("failed to create parties reference table: %w", err)
+	}
+
 	return nil
 }
 
