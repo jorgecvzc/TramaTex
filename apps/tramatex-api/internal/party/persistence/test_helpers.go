@@ -212,28 +212,16 @@ func (tdb *TestDB) TearDown() error {
 func (tdb *TestDB) SetUpParty() error {
 	// AutoMigrate all party models to ensure schema matches GORM expectations
 	err := tdb.DB.AutoMigrate(
-		&UserDataModel{},
 		&PartyDataModel{},
 		&PersonProfileDataModel{},
 		&OrganizationProfileDataModel{},
 		&PartyRoleDataModel{},
 		&PartyRelationshipDataModel{},
-		&ContactDetailDataModel{},
+		&ContactDetailsDataModel{},
 		&PartyAddressDataModel{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to auto-migrate party schema: %w", err)
-	}
-
-	// Seed required users for foreign keys
-	users := []UserDataModel{
-		{ID: "00000000-0000-0000-0000-000000000001"},
-		{ID: "00000000-0000-0000-0000-000000000002"},
-	}
-	for _, u := range users {
-		if err := tdb.DB.FirstOrCreate(&u, "id = ?", u.ID).Error; err != nil {
-			return fmt.Errorf("failed to seed test user %s: %w", u.ID, err)
-		}
 	}
 
 	return nil

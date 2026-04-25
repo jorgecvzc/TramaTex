@@ -132,11 +132,16 @@ func canTransitionOrder(from SalesOrderStatus, to SalesOrderStatus) bool {
 }
 
 func canTransitionDeliveryNote(from DeliveryNoteStatus, to DeliveryNoteStatus) bool {
-	// Temporarily allow all valid transitions to fix the reactivation issue
 	if from == to {
 		return true
 	}
-	return to.IsValid() == nil
+	switch from {
+	case DeliveryNoteStatusPending:
+		return to == DeliveryNoteStatusDelivered || to == DeliveryNoteStatusCancelled
+	default:
+		// Delivered and Cancelled are terminal states
+		return false
+	}
 }
 
 func canTransitionInvoice(from InvoiceStatus, to InvoiceStatus) bool {
@@ -145,7 +150,7 @@ func canTransitionInvoice(from InvoiceStatus, to InvoiceStatus) bool {
 	}
 	switch from {
 	case InvoiceStatusDraft:
-		return to == InvoiceStatusIssued || to == InvoiceStatusVoid || to == InvoiceStatusPaid
+		return to == InvoiceStatusIssued || to == InvoiceStatusVoid
 	case InvoiceStatusIssued:
 		return to == InvoiceStatusPaid || to == InvoiceStatusOverdue || to == InvoiceStatusVoid
 	case InvoiceStatusOverdue:

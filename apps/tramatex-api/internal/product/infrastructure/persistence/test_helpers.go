@@ -211,9 +211,8 @@ func (tdb *TestDB) SetUpProduct() error {
 		&AttributeDataModel{},
 		&AttributeValueDataModel{},
 		&ProductDataModel{},
-		&ProductVariantDataModel{},
-		&PartyDataModel{},
-		&PartyServiceConfigurationDataModel{},
+		&VariantDataModel{},
+		&PartyServiceConfigurationModel{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to auto-migrate product schema: %w", err)
