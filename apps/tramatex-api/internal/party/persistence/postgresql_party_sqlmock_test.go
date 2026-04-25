@@ -10,6 +10,7 @@ import (
 	"github.com/joran-cortez/tramatex/internal/party/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func newPartySqlMock(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
@@ -21,7 +22,9 @@ func newPartySqlMock(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
 		_ = db.Close()
 	})
 
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db, PreferSimpleProtocol: true}), &gorm.Config{})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db, PreferSimpleProtocol: true}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Fatalf("failed to create gorm db: %v", err)
 	}

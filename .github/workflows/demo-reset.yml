@@ -1,6 +1,6 @@
 # TramaTex - Demo Weekly Reset
 # Resets the production demo database to factory state every Sunday at 3:00 AM UTC.
-# Strategy: Drop public schema → Recreate schema → Restart API → Migrations + Seed run fresh.
+# Strategy: Stop stack → wipe volumes → start stack → auto-migrate + auto-seed.
 
 name: Demo Weekly Reset
 
@@ -22,30 +22,35 @@ jobs:
           host: ${{ secrets.PROD_IP }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 15m
+          command_timeout: 10m
           script: |
             set -e
             cd /opt/tramatex
 
-            echo "🔄 Starting demo reset..."
+            echo "🔄 Starting full demo reset..."
 
-            # 1. Stop the API only, keep Postgres running for cleaning
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env stop api
+            # 1. Stop and WIPE all volumes (this deletes all DB data)
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env down -v
 
-            # 2. Drop and Recreate the public schema to ensure a 100% clean state
-            echo "🧹 Wiping database tables..."
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -U tramatex -d tramatex_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO tramatex; GRANT ALL ON SCHEMA public TO public;"
-
-            # 3. Restart everything. The API startup logic will detect an empty DB and run all migrations (001 to 007_seed)
-            echo "🚀 Restarting services..."
-            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d api
+            # 2. Start everything fresh
+            # The API startup logic will detect an empty DB and run all migrations (001 to 007_seed)
+            echo "🚀 Restarting services (cold start)..."
+            docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d
 
             # 4. Wait for API to become healthy and verify data
             echo "⏳ Waiting for API health check..."
             for i in $(seq 1 36); do
               if wget -qO- http://localhost/api/health > /dev/null 2>&1; then
-                echo "✅ Demo reset complete — factory state restored with seed data"
-                exit 0
+                echo "✅ API is healthy"
+                # Final check: Verify admin user exists (seeded in 007_seed_data.sql)
+                echo "🔍 Verifying seed data..."
+                if docker compose -f docker/docker-compose.remote.yml --env-file docker/.env exec -T postgres psql -h localhost -U tramatex -d tramatex_db -t -c "SELECT count(*) FROM users WHERE email='admin@tramatex.local';" | grep -q 1; then
+                   echo "✅ Demo reset complete — factory state restored with seed data"
+                   exit 0
+                else
+                   echo "❌ Seed data verification failed!"
+                   exit 1
+                fi
               fi
               sleep 5
             done

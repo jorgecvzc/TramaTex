@@ -10,6 +10,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/joran-cortez/tramatex/internal/pricing/domain"
 )
@@ -21,7 +22,10 @@ func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
 	}
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{SkipDefaultTransaction: true})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{
+		SkipDefaultTransaction: true,
+		Logger:                 logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		sqlDB.Close()
 		t.Fatalf("failed to open gorm db: %v", err)

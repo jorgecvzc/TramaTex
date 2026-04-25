@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
 	"github.com/joran-cortez/tramatex/internal/iam/domain/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -24,7 +26,9 @@ func newMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, func()) {
 	if err != nil {
 		t.Fatalf("failed to create sqlmock: %v", err)
 	}
-	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		sqlDB.Close()
 		t.Fatalf("failed to open gorm db: %v", err)

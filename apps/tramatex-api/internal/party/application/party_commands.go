@@ -174,7 +174,7 @@ func (h *CreatePartyHandler) Handle(ctx context.Context, cmd *CreatePartyCommand
 		if err != nil {
 			return nil, err
 		}
-		if roleType == domain.PartyRoleCustomer {
+		if roleType == domain.PartyRoleClient {
 			isCustomer = true
 		}
 		partyRole, err := domain.NewPartyRole(roleType, nil)
@@ -412,7 +412,7 @@ func (h *UpdatePartyHandler) Handle(ctx context.Context, cmd *UpdatePartyCommand
 	if cmd.DefaultDiscountPercentage != nil {
 		isCustomer := false
 		for _, role := range party.Roles() {
-			if role.Type() == domain.PartyRoleCustomer {
+			if role.Type() == domain.PartyRoleClient {
 				isCustomer = true
 				break
 			}

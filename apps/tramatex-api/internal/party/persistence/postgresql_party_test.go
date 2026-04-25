@@ -66,6 +66,53 @@ func TestPostgreSQLPartyRepository_Save_And_FindByID_Integration(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLPartyRepository_Save_DiscountZero_Integration(t *testing.T) {
+	tdb := NewTestDB(t)
+	if tdb.DB == nil {
+		t.Skip("PostgreSQL not available for integration tests")
+	}
+
+	if err := tdb.SetUpParty(); err != nil {
+		t.Fatalf("Failed to set up party schema: %v", err)
+	}
+	defer func() {
+		_ = tdb.TearDownParty()
+	}()
+
+	repo := NewGORMPartyRepository(tdb.DB)
+	ctx := context.Background()
+
+	partyID, _ := domain.NewPartyID("party-discount-test")
+	personProfile, _ := domain.NewPersonProfile("Discount", "Test", nil, nil)
+	party, _ := domain.NewParty(partyID, domain.PartyStatusActive, personProfile, nil)
+	role, _ := domain.NewPartyRole(domain.PartyRoleClient, nil)
+	_ = party.AddRole(role)
+
+	// Set initial discount to 10%
+	_ = party.SetDefaultDiscountPercentage(10.0)
+	if err := repo.Save(ctx, party, testUserID, testUserID); err != nil {
+		t.Fatalf("Failed to save party with 10%% discount: %v", err)
+	}
+
+	// Verify it was saved as 10%
+	fetched, _ := repo.FindByID(ctx, partyID)
+	if fetched.DefaultDiscountPercentage() != 10.0 {
+		t.Fatalf("Expected 10%% discount, got %f", fetched.DefaultDiscountPercentage())
+	}
+
+	// Now set discount to 0% and update
+	_ = party.SetDefaultDiscountPercentage(0.0)
+	if err := repo.Save(ctx, party, testUserID, testUserID); err != nil {
+		t.Fatalf("Failed to save party with 0%% discount: %v", err)
+	}
+
+	// Verify it was saved as 0% (this is what fails if GORM ignores zero values)
+	fetched, _ = repo.FindByID(ctx, partyID)
+	if fetched.DefaultDiscountPercentage() != 0.0 {
+		t.Fatalf("Expected 0%% discount, got %f (GORM might have ignored the zero value)", fetched.DefaultDiscountPercentage())
+	}
+}
+
 func TestPostgreSQLPartyRelationshipRepository_Save_And_FindByPartyID_Integration(t *testing.T) {
 	tdb := NewTestDB(t)
 	if tdb.DB == nil {
