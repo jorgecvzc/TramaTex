@@ -27,7 +27,7 @@ type ProductDataModel struct {
 }
 
 func (ProductDataModel) TableName() string {
-	return "\"products\""
+	return "products"
 }
 
 // ToDomain converts the data model to a domain model.

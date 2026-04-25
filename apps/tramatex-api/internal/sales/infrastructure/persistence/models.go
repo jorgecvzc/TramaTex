@@ -14,7 +14,7 @@ type QuoteDataModel struct {
 	gorm.Model
 	ID               uuid.UUID `gorm:"type:uuid;primary_key;"`
 	QuoteNumber      string    `gorm:"column:quote_number;not null"`
-	PartyID          uuid.UUID `gorm:"column:party_id;not null"`
+	PartyID          uuid.UUID `gorm:"type:uuid;column:party_id;not null"`
 	QuoteDate        time.Time `gorm:"column:quote_date;not null"`
 	ExpirationDate   time.Time `gorm:"column:expiration_date;not null"`
 	Status           string    `gorm:"type:quote_status;not null"`
@@ -28,14 +28,14 @@ type QuoteDataModel struct {
 }
 
 func (QuoteDataModel) TableName() string {
-	return "\"quotes\""
+	return "quotes"
 }
 
 type QuoteLineItemDataModel struct {
 	gorm.Model
 	ID                    uuid.UUID `gorm:"type:uuid;primary_key;"`
-	QuoteID               uuid.UUID `gorm:"column:quote_id;not null"`
-	ProductVariantID      uuid.UUID `gorm:"column:product_variant_id;not null"`
+	QuoteID               uuid.UUID `gorm:"type:uuid;column:quote_id;not null"`
+	ProductVariantID      uuid.UUID `gorm:"type:uuid;column:product_variant_id;not null"`
 	Quantity              int       `gorm:"column:quantity;not null"`
 	ListUnitPriceAmount   float64   `gorm:"column:list_unit_price_amount;type:numeric(12,2);not null"`
 	ListUnitPriceCurrency string    `gorm:"column:list_unit_price_currency;type:varchar(3);not null"`
@@ -51,15 +51,15 @@ type QuoteLineItemDataModel struct {
 }
 
 func (QuoteLineItemDataModel) TableName() string {
-	return "\"quote_line_items\""
+	return "quote_line_items"
 }
 
 type SalesOrderDataModel struct {
 	gorm.Model
 	ID               uuid.UUID  `gorm:"type:uuid;primary_key;"`
 	OrderNumber      string     `gorm:"column:order_number;not null"`
-	QuoteID          *uuid.UUID `gorm:"column:quote_id"`
-	PartyID          uuid.UUID  `gorm:"column:party_id;not null"`
+	QuoteID          *uuid.UUID `gorm:"type:uuid;column:quote_id"`
+	PartyID          uuid.UUID  `gorm:"type:uuid;column:party_id;not null"`
 	OrderDate        time.Time  `gorm:"column:order_date;not null"`
 	DeliveryDate     time.Time  `gorm:"column:delivery_date;not null"`
 	Status           string     `gorm:"type:sales_order_status;not null"`
@@ -73,14 +73,14 @@ type SalesOrderDataModel struct {
 }
 
 func (SalesOrderDataModel) TableName() string {
-	return "\"sales_orders\""
+	return "sales_orders"
 }
 
 type OrderLineItemDataModel struct {
 	gorm.Model
 	ID                    uuid.UUID `gorm:"type:uuid;primary_key;"`
-	SalesOrderID          uuid.UUID `gorm:"column:sales_order_id;not null"`
-	ProductVariantID      uuid.UUID `gorm:"column:product_variant_id;not null"`
+	SalesOrderID          uuid.UUID `gorm:"type:uuid;column:sales_order_id;not null"`
+	ProductVariantID      uuid.UUID `gorm:"type:uuid;column:product_variant_id;not null"`
 	Quantity              int       `gorm:"column:quantity;not null"`
 	ListUnitPriceAmount   float64   `gorm:"column:list_unit_price_amount;type:numeric(12,2);not null"`
 	ListUnitPriceCurrency string    `gorm:"column:list_unit_price_currency;type:varchar(3);not null"`
@@ -96,36 +96,36 @@ type OrderLineItemDataModel struct {
 }
 
 func (OrderLineItemDataModel) TableName() string {
-	return "\"order_line_items\""
+	return "order_line_items"
 }
 
 type DeliveryNoteDataModel struct {
 	gorm.Model
 	ID                 uuid.UUID `gorm:"type:uuid;primary_key;"`
 	DeliveryNoteNumber string    `gorm:"column:delivery_note_number;not null"`
-	SalesOrderID       uuid.UUID `gorm:"column:sales_order_id;not null"`
-	PartyID            uuid.UUID `gorm:"column:party_id;not null"`
+	SalesOrderID       uuid.UUID `gorm:"type:uuid;column:sales_order_id;not null"`
+	PartyID            uuid.UUID `gorm:"type:uuid;column:party_id;not null"`
 	DeliveryDate       time.Time `gorm:"column:delivery_date;not null"`
 	Status             string    `gorm:"type:delivery_note_status;not null"`
 	Notes              *string   `gorm:"column:notes"`
 }
 
 func (DeliveryNoteDataModel) TableName() string {
-	return "\"delivery_notes\""
+	return "delivery_notes"
 }
 
 type DeliveryNoteLineItemDataModel struct {
 	gorm.Model
 	ID                   uuid.UUID  `gorm:"type:uuid;primary_key;"`
-	DeliveryNoteID       uuid.UUID  `gorm:"column:delivery_note_id;not null"`
-	SalesOrderLineItemID uuid.UUID  `gorm:"column:sales_order_line_item_id;not null"`
-	ProductVariantID     uuid.UUID  `gorm:"column:product_variant_id;not null"`
+	DeliveryNoteID       uuid.UUID  `gorm:"type:uuid;column:delivery_note_id;not null"`
+	SalesOrderLineItemID uuid.UUID  `gorm:"type:uuid;column:sales_order_line_item_id;not null"`
+	ProductVariantID     uuid.UUID  `gorm:"type:uuid;column:product_variant_id;not null"`
 	DeliveredQuantity    int        `gorm:"column:delivered_quantity;not null"`
-	InvoiceLineItemID    *uuid.UUID `gorm:"column:invoice_line_item_id"`
+	InvoiceLineItemID    *uuid.UUID `gorm:"type:uuid;column:invoice_line_item_id"`
 }
 
 func (DeliveryNoteLineItemDataModel) TableName() string {
-	return "\"delivery_note_line_items\""
+	return "delivery_note_line_items"
 }
 
 type InvoiceDataModel struct {
@@ -136,7 +136,7 @@ type InvoiceDataModel struct {
 	SeriesCode       string    `gorm:"column:series_code;not null"`
 	SeriesYear       int       `gorm:"column:series_year;not null"`
 	SeriesPrefix     string    `gorm:"column:series_prefix;not null"`
-	PartyID          uuid.UUID `gorm:"column:party_id;not null"`
+	PartyID          uuid.UUID `gorm:"type:uuid;column:party_id;not null"`
 	InvoiceDate      time.Time `gorm:"column:invoice_date;not null"`
 	DueDate          time.Time `gorm:"column:due_date;not null"`
 	Status           string    `gorm:"type:invoice_status;not null"`
@@ -150,15 +150,15 @@ type InvoiceDataModel struct {
 }
 
 func (InvoiceDataModel) TableName() string {
-	return "\"invoices\""
+	return "invoices"
 }
 
 type InvoiceLineItemDataModel struct {
 	gorm.Model
 	ID                   uuid.UUID  `gorm:"type:uuid;primary_key;"`
-	InvoiceID            uuid.UUID  `gorm:"column:invoice_id;not null"`
-	SalesOrderLineItemID *uuid.UUID `gorm:"column:sales_order_line_item_id"`
-	ProductVariantID     uuid.UUID  `gorm:"column:product_variant_id;not null"`
+	InvoiceID            uuid.UUID  `gorm:"type:uuid;column:invoice_id;not null"`
+	SalesOrderLineItemID *uuid.UUID `gorm:"type:uuid;column:sales_order_line_item_id"`
+	ProductVariantID     uuid.UUID  `gorm:"type:uuid;column:product_variant_id;not null"`
 	Quantity             int        `gorm:"column:quantity;not null"`
 	UnitPriceAmount      float64    `gorm:"column:unit_price_amount;type:numeric(12,2);not null"`
 	UnitPriceCurrency    string     `gorm:"column:unit_price_currency;type:varchar(3);not null"`
@@ -174,7 +174,7 @@ type InvoiceLineItemDataModel struct {
 }
 
 func (InvoiceLineItemDataModel) TableName() string {
-	return "\"invoice_line_items\""
+	return "invoice_line_items"
 }
 
 // normalizeQuoteStatus maps legacy Spanish DB enum values to English domain constants.
@@ -783,8 +783,8 @@ func optionalCurrency(money *domain.Money) *string {
 type QuoteWorkRefModel struct {
 	gorm.Model
 	ID          uuid.UUID  `gorm:"type:uuid;primary_key"`
-	QuoteID     uuid.UUID  `gorm:"column:quote_id;not null"`
-	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
+	QuoteID     uuid.UUID  `gorm:"type:uuid;column:quote_id;not null"`
+	WorkSetupID *uuid.UUID `gorm:"type:uuid;column:work_setup_id"`
 	Description string     `gorm:"column:description;not null;default:''"`
 	Sequence    int        `gorm:"column:sequence;not null;default:1"`
 }
@@ -794,9 +794,9 @@ func (QuoteWorkRefModel) TableName() string { return "quote_work_setups" }
 type OrderWorkRefModel struct {
 	gorm.Model
 	ID          uuid.UUID  `gorm:"type:uuid;primary_key"`
-	OrderID     uuid.UUID  `gorm:"column:order_id;not null"`
-	WorkSetupID *uuid.UUID `gorm:"column:work_setup_id"`
-	WorkOrderID *uuid.UUID `gorm:"column:work_order_id"`
+	OrderID     uuid.UUID  `gorm:"type:uuid;column:order_id;not null"`
+	WorkSetupID *uuid.UUID `gorm:"type:uuid;column:work_setup_id"`
+	WorkOrderID *uuid.UUID `gorm:"type:uuid;column:work_order_id"`
 	Description string     `gorm:"column:description;not null;default:''"`
 	Sequence    int        `gorm:"column:sequence;not null;default:1"`
 }

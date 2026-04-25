@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type TestDB struct {
@@ -31,7 +32,9 @@ func NewTestDB(t *testing.T) *TestDB {
 		config.SSLMode,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Skipf("Could not connect to PostgreSQL: %v. Skipping integration tests.", err)
 	}
@@ -173,275 +176,46 @@ func readEnvFile(path string) (map[string]string, error) {
 	return env, nil
 }
 
+// SetUpSales initializes database schema for sales tests using AutoMigrate
 func (tdb *TestDB) SetUpSales() error {
-	ctx := context.Background()
-
-	dropSchema := `
-		DROP TABLE IF EXISTS "invoice_line_items" CASCADE;
-		DROP TABLE IF EXISTS "invoices" CASCADE;
-		DROP TABLE IF EXISTS "delivery_note_line_items" CASCADE;
-		DROP TABLE IF EXISTS "delivery_notes" CASCADE;
-		DROP TABLE IF EXISTS "order_line_items" CASCADE;
-		DROP TABLE IF EXISTS "order_work_setups" CASCADE;
-		DROP TABLE IF EXISTS "sales_orders" CASCADE;
-		DROP TABLE IF EXISTS "quote_line_items" CASCADE;
-		DROP TABLE IF EXISTS "quote_work_setups" CASCADE;
-		DROP TABLE IF EXISTS "quotes" CASCADE;
-		DROP TABLE IF EXISTS "product_variants" CASCADE;
-		DROP TYPE IF EXISTS quote_status;
-		DROP TYPE IF EXISTS sales_order_status;
-		DROP TYPE IF EXISTS delivery_note_status;
-		DROP TYPE IF EXISTS invoice_status;
-		DROP TYPE IF EXISTS invoice_type;
+	// Create PostgreSQL enum types required by GORM models (AutoMigrate does not create them)
+	enumTypes := `
+		DO $$ BEGIN CREATE TYPE quote_status AS ENUM ('DRAFT','ISSUED','APPROVED','ACCEPTED','REJECTED','EXPIRED','CONVERTED_TO_ORDER'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE sales_order_status AS ENUM ('PENDING','IN_PREPARATION','READY_FOR_PRODUCTION','PARTIALLY_DELIVERED','DELIVERED','CANCELLED','PARTIALLY_INVOICED','INVOICED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE delivery_note_status AS ENUM ('PENDING','DELIVERED','CANCELLED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE invoice_status AS ENUM ('DRAFT','ISSUED','PAID','OVERDUE','VOID'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+		DO $$ BEGIN CREATE TYPE invoice_type AS ENUM ('COMPLETE','SIMPLIFIED'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
-		return fmt.Errorf("failed to drop sales schema: %w", err)
+	if err := tdb.DB.Exec(enumTypes).Error; err != nil {
+		return fmt.Errorf("failed to create sales enum types: %w", err)
 	}
 
-	createSchema := `
-		DO $$ BEGIN
-			CREATE TYPE quote_status AS ENUM (
-				'DRAFT',
-				'ISSUED',
-				'APPROVED',
-				'REJECTED',
-				'EXPIRED',
-				'CONVERTED_TO_ORDER'
-			);
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE sales_order_status AS ENUM (
-				'PENDING',
-				'IN_PREPARATION',
-				'PARTIALLY_DELIVERED',
-				'DELIVERED',
-				'CANCELLED',
-				'PARTIALLY_INVOICED',
-				'INVOICED'
-			);
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE delivery_note_status AS ENUM (
-				'PENDING',
-				'DELIVERED',
-				'CANCELLED'
-			);
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE invoice_status AS ENUM (
-				'DRAFT',
-				'ISSUED',
-				'PAID',
-				'OVERDUE',
-				'VOID'
-			);
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;
-		DO $$ BEGIN
-			CREATE TYPE invoice_type AS ENUM (
-				'COMPLETE',
-				'SIMPLIFIED'
-			);
-		EXCEPTION
-			WHEN duplicate_object THEN null;
-		END $$;
+	// AutoMigrate all sales models to ensure schema matches GORM expectations
+	err := tdb.DB.AutoMigrate(
+		&QuoteDataModel{},
+		&QuoteLineItemDataModel{},
+		&QuoteWorkRefModel{},
+		&SalesOrderDataModel{},
+		&OrderLineItemDataModel{},
+		&OrderWorkRefModel{},
+		&DeliveryNoteDataModel{},
+		&DeliveryNoteLineItemDataModel{},
+		&InvoiceDataModel{},
+		&InvoiceLineItemDataModel{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to auto-migrate sales schema: %w", err)
+	}
 
-		CREATE TABLE "product_variants" (
-			"id" UUID PRIMARY KEY
-		);
-
-		CREATE TABLE "quotes" (
-			"id" UUID PRIMARY KEY,
-			"quote_number" VARCHAR(50) NOT NULL,
-			"party_id" UUID NOT NULL,
-			"quote_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"expiration_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"status" quote_status NOT NULL,
-			"mes_work_refs" JSONB,
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_amount" NUMERIC(12,2) NOT NULL,
-			"tax_currency" VARCHAR(3) NOT NULL,
-			"total_amount" NUMERIC(12,2) NOT NULL,
-			"total_currency" VARCHAR(3) NOT NULL,
-			"notes" TEXT,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "quote_work_setups" (
-			"id" UUID PRIMARY KEY,
-			"quote_id" UUID NOT NULL REFERENCES "quotes" ("id") ON DELETE CASCADE,
-			"work_setup_id" UUID,
-			"sequence" INT NOT NULL DEFAULT 1,
-			"description" TEXT NOT NULL DEFAULT '',
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "quote_line_items" (
-			"id" UUID PRIMARY KEY,
-			"quote_id" UUID NOT NULL REFERENCES "quotes" ("id") ON DELETE CASCADE,
-			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
-			"quantity" INT NOT NULL,
-			"list_unit_price_amount" NUMERIC(12,2) NOT NULL,
-			"list_unit_price_currency" VARCHAR(3) NOT NULL,
-			"unit_price_amount" NUMERIC(12,2) NOT NULL,
-			"unit_price_currency" VARCHAR(3) NOT NULL,
-			"discount_percent" NUMERIC(5,2) NOT NULL DEFAULT 0,
-			"discount_per_unit_amount" NUMERIC(12,2) NOT NULL,
-			"discount_per_unit_currency" VARCHAR(3) NOT NULL,
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
-			"tax_amount" NUMERIC(10,2),
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "sales_orders" (
-			"id" UUID PRIMARY KEY,
-			"order_number" VARCHAR(50) NOT NULL,
-			"quote_id" UUID,
-			"party_id" UUID NOT NULL,
-			"order_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"delivery_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"status" sales_order_status NOT NULL,
-			"mes_work_refs" JSONB,
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_amount" NUMERIC(12,2) NOT NULL,
-			"tax_currency" VARCHAR(3) NOT NULL,
-			"total_amount" NUMERIC(12,2) NOT NULL,
-			"total_currency" VARCHAR(3) NOT NULL,
-			"notes" TEXT,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "order_work_setups" (
-			"id" UUID PRIMARY KEY,
-			"order_id" UUID NOT NULL REFERENCES "sales_orders" ("id") ON DELETE CASCADE,
-			"work_setup_id" UUID,
-			"work_order_id" UUID,
-			"sequence" INT NOT NULL DEFAULT 1,
-			"description" TEXT NOT NULL DEFAULT '',
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "order_line_items" (
-			"id" UUID PRIMARY KEY,
-			"sales_order_id" UUID NOT NULL REFERENCES "sales_orders" ("id") ON DELETE CASCADE,
-			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
-			"quantity" INT NOT NULL,
-			"list_unit_price_amount" NUMERIC(12,2) NOT NULL,
-			"list_unit_price_currency" VARCHAR(3) NOT NULL,
-			"unit_price_amount" NUMERIC(12,2) NOT NULL,
-			"unit_price_currency" VARCHAR(3) NOT NULL,
-			"discount_percent" NUMERIC(5,2) NOT NULL DEFAULT 0,
-			"discount_per_unit_amount" NUMERIC(12,2) NOT NULL,
-			"discount_per_unit_currency" VARCHAR(3) NOT NULL,
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
-			"tax_amount" NUMERIC(10,2),
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "delivery_notes" (
-			"id" UUID PRIMARY KEY,
-			"delivery_note_number" VARCHAR(50) NOT NULL,
-			"sales_order_id" UUID NOT NULL REFERENCES "sales_orders" ("id") ON DELETE CASCADE,
-			"party_id" UUID NOT NULL,
-			"delivery_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"status" delivery_note_status NOT NULL,
-			"notes" TEXT,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "delivery_note_line_items" (
-			"id" UUID PRIMARY KEY,
-			"delivery_note_id" UUID NOT NULL REFERENCES "delivery_notes" ("id") ON DELETE CASCADE,
-			"sales_order_line_item_id" UUID NOT NULL REFERENCES "order_line_items" ("id") ON DELETE RESTRICT,
-			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
-			"delivered_quantity" INT NOT NULL,
-			"invoice_line_item_id" UUID,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "invoices" (
-			"id" UUID PRIMARY KEY,
-			"invoice_number" VARCHAR(50) NOT NULL,
-			"type" invoice_type NOT NULL DEFAULT 'COMPLETE',
-			"series_code" VARCHAR(10) NOT NULL DEFAULT 'A',
-			"series_year" INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
-			"series_prefix" VARCHAR(10) NOT NULL DEFAULT 'A',
-			"party_id" UUID NOT NULL,
-			"invoice_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"due_date" TIMESTAMP WITH TIME ZONE NOT NULL,
-			"status" invoice_status NOT NULL,
-			"payment_terms" TEXT,
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_amount" NUMERIC(12,2) NOT NULL,
-			"tax_currency" VARCHAR(3) NOT NULL,
-			"total_amount" NUMERIC(12,2) NOT NULL,
-			"total_currency" VARCHAR(3) NOT NULL,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-
-		CREATE TABLE "invoice_line_items" (
-			"id" UUID PRIMARY KEY,
-			"invoice_id" UUID NOT NULL REFERENCES "invoices" ("id") ON DELETE CASCADE,
-			"sales_order_line_item_id" UUID REFERENCES "order_line_items" ("id") ON DELETE SET NULL,
-			"product_variant_id" UUID NOT NULL REFERENCES "product_variants" ("id") ON DELETE RESTRICT,
-			"quantity" INT NOT NULL,
-			"unit_price_amount" NUMERIC(12,2) NOT NULL,
-			"unit_price_currency" VARCHAR(3) NOT NULL,
-			"tax_rate" NUMERIC(5,2) NOT NULL DEFAULT 21.00,
-			"discount_amount" NUMERIC(12,2),
-			"discount_currency" VARCHAR(3),
-			"subtotal_amount" NUMERIC(12,2) NOT NULL,
-			"subtotal_currency" VARCHAR(3) NOT NULL,
-			"tax_amount" NUMERIC(12,2),
-			"tax_currency" VARCHAR(3),
-			"total_amount" NUMERIC(12,2) NOT NULL,
-			"total_currency" VARCHAR(3) NOT NULL,
-			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			"deleted_at" TIMESTAMP WITH TIME ZONE
-		);
-	`
-
-	if err := tdb.DB.WithContext(ctx).Exec(createSchema).Error; err != nil {
-		return fmt.Errorf("failed to create sales schema: %w", err)
+	// Create product_variants table if not exists (cross-module reference)
+	if err := tdb.DB.Exec(`CREATE TABLE IF NOT EXISTS "product_variants" ("id" UUID PRIMARY KEY)`).Error; err != nil {
+		return fmt.Errorf("failed to create product_variants reference table: %w", err)
 	}
 
 	return nil
 }
 
+// TearDownSales cleans up sales test database
 func (tdb *TestDB) TearDownSales() error {
 	ctx := context.Background()
 
@@ -457,10 +231,6 @@ func (tdb *TestDB) TearDownSales() error {
 		DROP TABLE IF EXISTS "quote_work_setups" CASCADE;
 		DROP TABLE IF EXISTS "quotes" CASCADE;
 		DROP TABLE IF EXISTS "product_variants" CASCADE;
-		DROP TYPE IF EXISTS quote_status;
-		DROP TYPE IF EXISTS sales_order_status;
-		DROP TYPE IF EXISTS delivery_note_status;
-		DROP TYPE IF EXISTS invoice_status;
 	`
 
 	if err := tdb.DB.WithContext(ctx).Exec(dropSchema).Error; err != nil {
