@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type TestDB struct {
@@ -31,7 +32,9 @@ func NewTestDB(t *testing.T) *TestDB {
 		config.SSLMode,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Skipf("Could not connect to PostgreSQL: %v. Skipping integration tests.", err)
 	}
