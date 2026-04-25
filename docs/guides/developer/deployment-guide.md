@@ -265,7 +265,23 @@ ssh -i tmp/do-setup/deploy_final tramatex@46.101.188.130 \
   "cd /opt/tramatex && docker compose -f docker/docker-compose.remote.yml logs -f"
 ```
 
-## 4. SSL/HTTPS (Producción)
+---
+
+## 4. Reseteo Semanal de la Demo (Mantenimiento)
+
+Para garantizar que la demo pública siempre esté limpia y funcional para nuevos evaluadores, el proyecto incluye un flujo de mantenimiento automático.
+
+- **Frecuencia:** Todos los domingos a las 03:00 AM UTC.
+- **Flujo (`demo-reset.yml`):**
+  1. Detención completa del stack.
+  2. Borrado de volúmenes persistentes (`docker compose down -v`).
+  3. Re-arranque y ejecución de migraciones.
+  4. Verificación de carga de datos iniciales (Seed Data).
+- **Verificación Manual:** Se puede disparar manualmente desde la pestaña "Actions" en GitHub seleccionando "Demo Weekly Reset".
+
+---
+
+## 5. SSL/HTTPS (Producción)
 
 ### Opción A: Let's Encrypt con Certbot (recomendado)
 

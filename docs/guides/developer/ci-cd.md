@@ -11,45 +11,66 @@ TramaTex uses **GitHub Actions** for continuous integration and continuous deplo
 ### 1. Backend CI (`.github/workflows/backend.yml`)
 
 **Triggers:**
-- Push to `master`/`main` branches
-- Pull requests to `master`/`main` branches
-- Changes in `apps/tramatex-api/**`, `go.work`, or the workflow file itself
+- Push to `develop` and `master` branches
+- Pull requests to `develop` and `master` branches
+- Changes in `apps/tramatex-api/**` or the workflow file itself
+
+**Concurrency Policy:**
+We use a concurrency group based on the workflow name and the git reference (`github.ref`). In-progress runs for the same branch or PR are automatically cancelled to save resources and avoid duplicate notifications.
 
 **Jobs:**
 
 #### Test Job
 - **Environment:** Ubuntu Latest with PostgreSQL 15
+- **PostgreSQL Configuration:**
+  - **User:** `tramatex`
+  - **Password:** `tramatex`
+  - **Database:** `tramatex_db`
+  - **Auth Method:** `trust` (to prevent "role root does not exist" errors)
 - **Steps:**
   1. Checkout code
   2. Set up Go 1.23 with caching
   3. Install dependencies
-  4. Run tests with race detection and coverage
-  5. Upload coverage to Codecov
+  4. Run tests with race detection
+- **Database Connection Handling:** 
+  The tests use `test_helpers.go` which prioritize environment variables (`DB_USER`, `DB_HOST`, etc.) over `.env` files, ensuring compatibility with the CI environment.
 
-**Environment Variables:**
-```bash
-DATABASE_URL=postgres://tramatex:tramatex123@localhost:5432/tramatex_test?sslmode=disable
-JWT_SECRET=test-secret-key-for-ci
+**Environment Variables in CI:**
+```yaml
+DB_HOST: localhost
+DB_PORT: 5432
+DB_USER: tramatex
+DB_PASSWORD: tramatex
+DB_NAME: tramatex_db
+PGUSER: tramatex
+PGPASSWORD: tramatex
+JWT_SECRET: a-very-secret-key-for-testing-ci-12345
 ```
-
-#### Lint Job
-- **Linter:** golangci-lint (latest version)
-- **Timeout:** 5 minutes
-- **Checks:** Code style, potential bugs, complexity, security issues
-
-#### Security Job
-- **Tools:**
-  - **nancy**: Dependency vulnerability scanning
-  - **govulncheck**: Go vulnerability database check
-- **Purpose:** Identify known vulnerabilities in dependencies
 
 ---
 
-### 2. Frontend CI (`.github/workflows/frontend.yml`)
+### 2. Demo Weekly Reset (`.github/workflows/demo-reset.yml`)
 
 **Triggers:**
-- Push to `master`/`main` branches
-- Pull requests to `master`/`main` branches
+- Scheduled: Every Sunday at 03:00 AM UTC
+- Manual: Via `workflow_dispatch`
+
+**Purpose:**
+Resets the production/staging demo environment to a clean state by wiping database volumes and re-running migrations and seed data.
+
+**Key Steps:**
+1. Stop the Docker stack
+2. Wipe PostgreSQL volumes (`docker compose down -v`)
+3. Restart the stack
+4. Verify that the API becomes healthy and seed data (e.g., admin user) is present.
+
+---
+
+### 3. Frontend CI (`.github/workflows/frontend.yml`)
+
+**Triggers:**
+- Push to `develop` and `master` branches
+- Pull requests to `develop` and `master` branches
 - Changes in `apps/frontend/**` or the workflow file itself
 
 **Jobs:**
@@ -61,45 +82,8 @@ JWT_SECRET=test-secret-key-for-ci
   2. Set up Node.js with npm caching
   3. Install dependencies (`npm ci`)
   4. Run unit tests
-  5. Generate coverage report
-  6. Upload coverage to Codecov
-  7. Build production bundle
-  8. Upload build artifacts (7-day retention)
-
-#### Lint Job
-- **Tools:**
-  - **Prettier**: Code formatting check
-  - **ESLint**: JavaScript/Vue linting
-- **Note:** Gracefully skips if tools are not configured
-
-#### Security Job
-- **Tool:** npm audit
-- **Level:** Moderate and above
-- **Output:** JSON vulnerability report
-- **Behavior:** Non-blocking (continues on error)
-
----
-
-## Status Badges
-
-The project README displays real-time CI status:
-
-```markdown
-[![Backend CI](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/backend.yml)
-[![Frontend CI](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml/badge.svg)](https://github.com/joran-cortez/tramatex/actions/workflows/frontend.yml)
-[![codecov](https://codecov.io/gh/joran-cortez/tramatex/branch/master/graph/badge.svg)](https://codecov.io/gh/joran-cortez/tramatex)
-```
-
----
-
-## Code Coverage
-
-We use **Codecov** to track and visualize test coverage:
-
-- **Backend Coverage:** Generated via `go test -coverprofile`
-- **Frontend Coverage:** Generated via Vitest coverage reporter
-- **Target:** Maintain > 80% coverage for business logic
-- **Reporting:** Automatic upload on every CI run
+  5. Build production bundle
+  6. Upload build artifacts (7-day retention)
 
 ---
 
@@ -111,91 +95,34 @@ We use **Codecov** to track and visualize test coverage:
    ```bash
    # Backend
    cd apps/tramatex-api
-   make test
+   go test -v ./...
    
    # Frontend
    cd apps/frontend
    npm run test:unit
    ```
 
-2. **Check Linting:**
-   ```bash
-   # Backend
-   cd apps/tramatex-api
-   golangci-lint run
-   
-   # Frontend
-   cd apps/frontend
-   npx eslint src/
-   ```
-
-3. **Security Audit:**
-   ```bash
-   # Backend
-   cd apps/tramatex-api
-   go list -json -deps ./... | nancy sleuth
-   
-   # Frontend
-   cd apps/frontend
-   npm audit
-   ```
-
-### For Pull Requests
-
-- ✅ All CI checks must pass before merge
-- ✅ Coverage should not decrease
-- ✅ No high/critical security vulnerabilities
-- ✅ Code must pass linting rules
+2. **Environment Priority:**
+   The `test_helpers` in the backend follow this priority for configuration:
+   1. Specific test variables (`TRAMATEX_TEST_DB_*`)
+   2. Local `.env.local` / `.env.remote` files
+   3. Standard environment variables (`DB_USER`, `DB_HOST`, etc.)
+   4. Hardcoded defaults (`localhost`, `tramatex`)
 
 ---
 
 ## Troubleshooting
 
-### Backend CI Failures
+### "role root does not exist" (PostgreSQL)
+This typically happens when the Go driver falls back to the system user (root) because the connection string is incomplete or env variables are ignored. 
+**Solution:** Ensure `PGUSER` or `DB_USER` are correctly exported in the CI step and that `POSTGRES_HOST_AUTH_METHOD: trust` is used in the service container.
 
-**Test Failures:**
-- Check database connection (PostgreSQL service health)
-- Verify environment variables are set correctly
-- Ensure migrations are up-to-date
-
-**Lint Failures:**
-- Run `golangci-lint run` locally
-- Fix reported issues following Go best practices
-- Update `.golangci.yml` if needed
-
-**Security Failures:**
-- Update vulnerable dependencies: `go get -u`
-- Check nancy/govulncheck output for specific CVEs
-- Create security issues for tracking
-
-### Frontend CI Failures
-
-**Test Failures:**
-- Run `npm run test:unit` locally
-- Check for missing mocks or test data
-- Verify component dependencies
-
-**Build Failures:**
-- Run `npm run build` locally
-- Check for TypeScript errors
-- Verify all imports resolve correctly
-
-**Security Failures:**
-- Run `npm audit fix` for automatic fixes
-- Review audit report for manual updates
-- Document accepted risks if needed
+### Duplicate CI Runs
+If you see two identical workflows running for a single commit, it's usually because both `push` and `pull_request` events are triggered for the same branch.
+**Solution:** The `concurrency` block added to our workflows automatically manages this by cancelling the redundant run.
 
 ---
 
-## Future Enhancements
+**Last Updated:** 2026-04-25  
+**Related:** [Testing Guidelines](testing-guidelines.md), [Deployment Guide](deployment-guide.md)
 
-- [ ] Add E2E tests with Playwright in CI
-- [ ] Deploy preview environments for PRs
-- [ ] Add performance benchmarking
-- [ ] Implement semantic release automation
-- [ ] Add SAST/DAST security scanning
-
----
-
-**Last Updated:** 2026-01-27  
-**Related:** [ADR-010 Security Architecture](../../architecture/adrs/adr-010-defense-in-depth-security-strategy.md), [Backend Setup Guide](backend/README.md)

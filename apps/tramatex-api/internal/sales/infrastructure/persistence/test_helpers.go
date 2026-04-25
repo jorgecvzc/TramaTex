@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type TestDB struct {
@@ -31,7 +32,9 @@ func NewTestDB(t *testing.T) *TestDB {
 		config.SSLMode,
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		t.Skipf("Could not connect to PostgreSQL: %v. Skipping integration tests.", err)
 	}
@@ -182,8 +185,10 @@ func (tdb *TestDB) SetUpSales() error {
 		DROP TABLE IF EXISTS "delivery_note_line_items" CASCADE;
 		DROP TABLE IF EXISTS "delivery_notes" CASCADE;
 		DROP TABLE IF EXISTS "order_line_items" CASCADE;
+		DROP TABLE IF EXISTS "order_work_setups" CASCADE;
 		DROP TABLE IF EXISTS "sales_orders" CASCADE;
 		DROP TABLE IF EXISTS "quote_line_items" CASCADE;
+		DROP TABLE IF EXISTS "quote_work_setups" CASCADE;
 		DROP TABLE IF EXISTS "quotes" CASCADE;
 		DROP TABLE IF EXISTS "product_variants" CASCADE;
 		DROP TYPE IF EXISTS quote_status;
@@ -276,6 +281,17 @@ func (tdb *TestDB) SetUpSales() error {
 			"deleted_at" TIMESTAMP WITH TIME ZONE
 		);
 
+		CREATE TABLE "quote_work_setups" (
+			"id" UUID PRIMARY KEY,
+			"quote_id" UUID NOT NULL REFERENCES "quotes" ("id") ON DELETE CASCADE,
+			"work_setup_id" UUID,
+			"sequence" INT NOT NULL DEFAULT 1,
+			"description" TEXT NOT NULL DEFAULT '',
+			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"deleted_at" TIMESTAMP WITH TIME ZONE
+		);
+
 		CREATE TABLE "quote_line_items" (
 			"id" UUID PRIMARY KEY,
 			"quote_id" UUID NOT NULL REFERENCES "quotes" ("id") ON DELETE CASCADE,
@@ -313,6 +329,18 @@ func (tdb *TestDB) SetUpSales() error {
 			"total_amount" NUMERIC(12,2) NOT NULL,
 			"total_currency" VARCHAR(3) NOT NULL,
 			"notes" TEXT,
+			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			"deleted_at" TIMESTAMP WITH TIME ZONE
+		);
+
+		CREATE TABLE "order_work_setups" (
+			"id" UUID PRIMARY KEY,
+			"order_id" UUID NOT NULL REFERENCES "sales_orders" ("id") ON DELETE CASCADE,
+			"work_setup_id" UUID,
+			"work_order_id" UUID,
+			"sequence" INT NOT NULL DEFAULT 1,
+			"description" TEXT NOT NULL DEFAULT '',
 			"created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"updated_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			"deleted_at" TIMESTAMP WITH TIME ZONE
@@ -426,8 +454,10 @@ func (tdb *TestDB) TearDownSales() error {
 		DROP TABLE IF EXISTS "delivery_note_line_items" CASCADE;
 		DROP TABLE IF EXISTS "delivery_notes" CASCADE;
 		DROP TABLE IF EXISTS "order_line_items" CASCADE;
+		DROP TABLE IF EXISTS "order_work_setups" CASCADE;
 		DROP TABLE IF EXISTS "sales_orders" CASCADE;
 		DROP TABLE IF EXISTS "quote_line_items" CASCADE;
+		DROP TABLE IF EXISTS "quote_work_setups" CASCADE;
 		DROP TABLE IF EXISTS "quotes" CASCADE;
 		DROP TABLE IF EXISTS "product_variants" CASCADE;
 		DROP TYPE IF EXISTS quote_status;
