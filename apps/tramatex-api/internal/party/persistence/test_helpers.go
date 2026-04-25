@@ -65,8 +65,9 @@ type testDBConfig struct {
 }
 
 func loadTestDBConfig() testDBConfig {
+	// 1. Start with hardcoded defaults
 	config := testDBConfig{
-		Host:     "pcele",
+		Host:     "localhost",
 		Port:     "5432",
 		User:     "tramatex",
 		Password: "tramatex",
@@ -74,12 +75,34 @@ func loadTestDBConfig() testDBConfig {
 		SSLMode:  "disable",
 	}
 
+	// 2. Override with standard environment variables (e.g., from Docker Compose or CI)
+	if value := os.Getenv("DB_HOST"); value != "" {
+		config.Host = value
+	}
+	if value := os.Getenv("DB_PORT"); value != "" {
+		config.Port = value
+	}
+	if value := os.Getenv("DB_USER"); value != "" {
+		config.User = value
+	}
+	if value := os.Getenv("DB_PASSWORD"); value != "" {
+		config.Password = value
+	}
+	if value := os.Getenv("DB_NAME"); value != "" {
+		config.Name = value
+	}
+	if value := os.Getenv("DB_SSLMODE"); value != "" {
+		config.SSLMode = value
+	}
+
+	// 3. Override with .env files if present (local development takes precedence over standard env)
 	if env, err := readEnvLocal(); err == nil {
 		applyEnvOverrides(&config, env, "localhost")
 	} else if env, err := readEnvRemote(); err == nil {
-		applyEnvOverrides(&config, env, "pcele")
+		applyEnvOverrides(&config, env, "localhost")
 	}
 
+	// 4. Finally, override with specific test environment variables (highest priority)
 	if value := os.Getenv("TRAMATEX_TEST_DB_HOST"); value != "" {
 		config.Host = value
 	}
