@@ -510,7 +510,14 @@ function resetForm() {
 function onEntityTypeChange() {
   form.name = '';
   form.firstName = '';
+  // Auto-select the most common tax ID type for the chosen entity type
+  if (form.entityType === 'ORGANIZATION') {
+    form.taxIdType = 'CIF';
+  } else if (form.entityType === 'PERSON') {
+    form.taxIdType = 'NIF';
+  }
   validateField('entityType');
+  validateField('taxId');
 }
 
 function onRoleChange() {
