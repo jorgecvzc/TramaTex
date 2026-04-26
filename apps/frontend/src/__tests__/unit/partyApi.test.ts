@@ -324,25 +324,34 @@ describe('PartyApi Service', () => {
 
   describe('updateParty', () => {
     it('should update a party successfully', async () => {
-      const mockUpdatedParty = {
+      const mockCurrentParty = {
         id: 'party-001',
         roles: ['CLIENT', 'SUPPLIER'],
         status: 'ACTIVE',
         organization_profile: {
-          name: 'Updated Corp',
+          name: 'Test Corp',
           tax_id: 'B12345678',
           tax_id_type: 'CIF',
-          website: 'https://updated.com',
+          website: null,
         },
         person_profile: null,
         created_at: '2026-02-10T08:00:00Z',
         modified_at: '2026-02-17T11:00:00Z',
       }
 
-      ;(global.fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockUpdatedParty,
-      })
+      const mockUpdatedParty = {
+        ...mockCurrentParty,
+        organization_profile: {
+          ...mockCurrentParty.organization_profile,
+          name: 'Updated Corp',
+          website: 'https://updated.com',
+        },
+      }
+
+      // New flow: GET (fetch current roles) → no role sync needed (BOTH = CLIENT+SUPPLIER already) → PUT
+      ;(global.fetch as any)
+        .mockResolvedValueOnce({ ok: true, json: async () => mockCurrentParty }) // GET current
+        .mockResolvedValueOnce({ ok: true, json: async () => mockUpdatedParty }) // PUT
 
       const updateData: UpdatePartyRequest = {
         name: 'Updated Corp',
@@ -358,7 +367,9 @@ describe('PartyApi Service', () => {
         role: 'BOTH',
         website: 'https://updated.com',
       })
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenCalledTimes(2)
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
         expect.stringContaining('/parties/party-001'),
         expect.objectContaining({
           method: 'PUT',
@@ -368,7 +379,7 @@ describe('PartyApi Service', () => {
     })
 
     it('should sync roles when updating from SUPPLIER to CLIENT', async () => {
-      const updatedBackendParty = {
+      const currentPartyRaw = {
         id: 'party-001',
         roles: ['SUPPLIER'],
         status: 'ACTIVE',
@@ -383,16 +394,17 @@ describe('PartyApi Service', () => {
         modified_at: '2026-02-17T11:00:00Z',
       }
 
-      const finalPartyAfterSync = {
-        ...updatedBackendParty,
+      const updatedBackendParty = {
+        ...currentPartyRaw,
         roles: ['CLIENT'],
       }
 
+      // New flow: GET → POST add CLIENT → DELETE SUPPLIER → PUT
       ;(global.fetch as any)
-        .mockResolvedValueOnce({ ok: true, json: async () => updatedBackendParty }) // PUT
+        .mockResolvedValueOnce({ ok: true, json: async () => currentPartyRaw }) // GET current roles
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // POST add CLIENT
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // DELETE SUPPLIER
-        .mockResolvedValueOnce({ ok: true, json: async () => finalPartyAfterSync }) // GET final
+        .mockResolvedValueOnce({ ok: true, json: async () => updatedBackendParty }) // PUT
 
       const result = await partyApi.updateParty('party-001', {
         name: 'Updated Corp',
@@ -402,6 +414,11 @@ describe('PartyApi Service', () => {
       expect(result?.role).toBe('CLIENT')
       expect(global.fetch).toHaveBeenCalledTimes(4)
       expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('/parties/party-001'),
+        expect.objectContaining({ method: 'GET' })
+      )
+      expect(global.fetch).toHaveBeenNthCalledWith(
         2,
         expect.stringContaining('/parties/party-001/roles'),
         expect.objectContaining({ method: 'POST' })
@@ -410,6 +427,11 @@ describe('PartyApi Service', () => {
         3,
         expect.stringContaining('/parties/party-001/roles/SUPPLIER'),
         expect.objectContaining({ method: 'DELETE' })
+      )
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        4,
+        expect.stringContaining('/parties/party-001'),
+        expect.objectContaining({ method: 'PUT' })
       )
     })
 
@@ -434,12 +456,13 @@ describe('PartyApi Service', () => {
         roles: ['EMPLOYEE'],
       }
 
+      // New flow: GET current → POST CONTACT (fails) → POST EMPLOYEE (fallback) → DELETE CLIENT → PUT
       ;(global.fetch as any)
-        .mockResolvedValueOnce({ ok: true, json: async () => updatedBackendParty }) // PUT
-        .mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({ message: 'invalid party role: CONTACT' }) }) // POST add CONTACT
+        .mockResolvedValueOnce({ ok: true, json: async () => updatedBackendParty }) // GET current roles
+        .mockResolvedValueOnce({ ok: false, status: 400, json: async () => ({ message: 'invalid party role: CONTACT' }) }) // POST add CONTACT (fails)
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // POST add EMPLOYEE fallback
         .mockResolvedValueOnce({ ok: true, json: async () => ({}) }) // DELETE CLIENT
-        .mockResolvedValueOnce({ ok: true, json: async () => finalPartyAfterSync }) // GET final
+        .mockResolvedValueOnce({ ok: true, json: async () => finalPartyAfterSync }) // PUT
 
       const result = await partyApi.updateParty('party-contact-001', {
         name: 'Contact Corp',
@@ -448,6 +471,11 @@ describe('PartyApi Service', () => {
 
       expect(result?.role).toBe('CONTACT')
       expect(global.fetch).toHaveBeenCalledTimes(5)
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('/parties/party-contact-001'),
+        expect.objectContaining({ method: 'GET' })
+      )
       expect(global.fetch).toHaveBeenNthCalledWith(
         2,
         expect.stringContaining('/parties/party-contact-001/roles'),

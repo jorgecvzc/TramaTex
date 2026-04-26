@@ -4,11 +4,55 @@
 # SESIONES ABIERTAS
 ---
 
-*(Sin sesiones abiertas)*
+## Estudio y DocumentaciÃ³n UI/UX Post-MVP (Sprint 18)
+
+- **Session ID:** `post-mvp-ui-ux-unification-study-2026-04-26`
+- **Status:** En Progreso
+- **Sprint:** Sprint 18
+- **Started:** 2026-04-26
+
+**Contexto:** SesiÃ³n dedicada al estudio profundo y documentaciÃ³n de la primera tarea planificada post-MVP: "UnificaciÃ³n UI/UX y Sistema de DiseÃ±o". Se analizarÃ¡n los hallazgos de la auditorÃ­a y se prepararÃ¡ el terreno para la implementaciÃ³n tÃ©cnica de componentes globales y estandarizaciÃ³n de listados.
+
+**Próximos Pasos:**
+- [x] Revisar `docs/post-mvp/post-mvp-roadmap.md` y extraer requisitos detallados
+- [x] Identificar archivos clave del sistema de diseño actual (`apps/frontend/src/design-system/`)
+- [x] Generar estudio técnico de unificación (`docs/post-mvp/01-ui-ux-unification-study.md`) en rama dedicada
+- [ ] Documentar el plan de migración para `PartyList.vue` como primer listado de referencia
+- [ ] Definir la estructura de `BasePageHeader`
+
+**Archivos de Contexto:**
+- `docs/post-mvp/post-mvp-roadmap.md`
+- `apps/frontend/src/design-system/`
+- `apps/frontend/src/theme.css`
+- `apps/frontend/src/modules/party/views/PartyList.vue`
+
+## CorrecciÃ³n de Errores â€” MÃ³dulo Party (Sprint 18)
+
+- **Session ID:** `party-module-fixes-2026-04-26`
+- **Status:** Completada
+- **Sprint:** Sprint 18
+- **Started:** 2026-04-26
+- **Finished:** 2026-04-26
+- **Branch:** `fix/party-module-fixes` (desde `develop`)
+
+**Contexto:** Sesión dedicada a identificar y corregir errores en el módulo Party (backend y/o frontend). Los tests unitarios del backend pasan correctamente. Se investigarán bugs funcionales, de integración o de UI que se detecten durante la sesión.
+
+**Próximos Pasos:**
+- [x] Identificar y documentar los errores concretos en el módulo Party
+- [x] **BUG FIX**: Error "discount can only be assigned to customers" al cambiar de Proveedor a Cliente/Ambos — corregido en `apps/frontend/src/services/partyApi.ts` (`updateParty`): roles sincronizados **antes** del PUT en lugar de después
+- [x] Ejecutar tests y verificar que no hay regresiones — 58/58 passing
+- [x] FEATURE: Auto-set taxIdType (CIF/NIF) al cambiar entityType en `PartyForm.vue`
+- [x] Merge a `develop` y deploy a producción
+
+**Archivos de Contexto:**
+- `apps/tramatex-api/internal/party/`
+- `apps/frontend/src/modules/party/`
+- `docs/modules/party/`
 
 # REGISTRO DE SESIONES CERRADAS
 ---
 
+- **Corrección de Errores — Módulo Party (Sprint 18)** | Iniciada: 2026-04-26 | Finalizada: 2026-04-26 | ✅ Bug discount/roles corregido en `partyApi.ts` (sync roles antes del PUT). Feature: auto-set CIF/NIF al cambiar tipo de entidad en `PartyForm.vue`. Deploy a producción exitoso.
 - **Estabilización de CI/CD y Lógica de Party (Sprint 18)** | Iniciada: 2026-04-24 | Finalizada: 2026-04-25 | ✅ CI backend completamente verde. Fixes: `type:uuid` en modelos sales, enum types explícitos, tabla stub `parties`, FSM domain sales, `NewInvoice` Draft status, cleanup party test_helpers. Deploy a producción exitoso (PR #19, commit `07017b8`). Descuento 0% validado funcionalmente en producción.
 
 - **Deep Documentation Study & Gap Analysis (Sprint 18)** | Iniciada: 2026-04-19 | Finalizada: 2026-04-19 | ✅ Barrido exhaustivo de documentación completado: ramas y hojas alineadas, referencias corregidas y especificaciones sincronizadas.
