@@ -4,5 +4,6 @@ Manuales de uso y guías de interacción con el sistema, orientadas a perfiles o
 
 ## 📄 Contenido
 
+- **[Ayuda: Teclado y Atajos](./ayuda-teclado-y-atajos.md):** Guía de navegación rápida y accesibilidad para operarios.
 - **[Guía de Interacción con Agentes](./agent-usage-guide.md):** Cómo sacar el máximo provecho a los asistentes de IA.
 - **[Guía Rápida de Agentes](./guia-agents.md):** Referencia rápida de comandos y funciones de agentes.
