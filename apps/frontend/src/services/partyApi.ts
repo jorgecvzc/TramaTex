@@ -441,6 +441,28 @@ class PartyApiService {
       }
     }
 
+    // Sync roles BEFORE updating profile/discount.
+    // The backend validates that a discount can only be assigned to customers,
+    // so if the user is switching from SUPPLIER to CLIENT/BOTH and also setting
+    // a discount, roles must be updated first or the PUT will be rejected.
+    if (data.role) {
+      const currentResponse = await this.safeFetch(`${this.baseUrl}/${id}`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      })
+      if (currentResponse.ok) {
+        const currentPartyRaw: Party = await currentResponse.json()
+        const currentRoles: string[] = currentPartyRaw.roles || []
+        const targetRoles = this.mapRoleToPartyRoles(data.role)
+        const requiresRoleSync =
+          targetRoles.length !== currentRoles.length ||
+          targetRoles.some((role) => !currentRoles.includes(role))
+        if (requiresRoleSync) {
+          await this.syncPartyRoles(id, currentRoles, data.role)
+        }
+      }
+    }
+
     const response = await this.safeFetch(`${this.baseUrl}/${id}`, {
       method: 'PUT',
       headers: this.getHeaders(),
@@ -452,20 +474,7 @@ class PartyApiService {
     }
 
     const party: Party = await response.json()
-    let mappedParty = this.mapPartyToParty(party)
-    const currentRoles = party.roles || []
-    const targetRoles = data.role ? this.mapRoleToPartyRoles(data.role) : []
-    const requiresRoleSync =
-      !!data.role &&
-      (targetRoles.length !== currentRoles.length ||
-        targetRoles.some((role) => !currentRoles.includes(role)))
-
-    if (data.role && requiresRoleSync) {
-      await this.syncPartyRoles(id, currentRoles, data.role)
-      mappedParty = await this.getParty(id)
-    }
-
-    return mappedParty
+    return this.mapPartyToParty(party)
   }
 
   /**
