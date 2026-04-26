@@ -28,16 +28,11 @@
 ## 1. Unificación UI/UX y Sistema de Diseño
 
 **Prioridad:** Máxima (Primera tarea Post-MVP)  
-**Referencias Técnicas:**
-- [Estudio Técnico de Unificación UI/UX](01-ui-ux-unification-study.md)
-- [Plan de Migración de Listados (Navegación Teclado)](01.1-party-list-migration-plan.md)
-- [Especificación de Atajos en Cabeceras](../architecture/design-system/base-page-header-shortcuts-spec.md)
-- [Plan de Refactorización de Iconos en Formularios](../modules/product/refactor-product-group-form-icons-plan.md)
-- [Estudio de Alineación de Dashboards](01.3-dashboard-alignment-study.md)
-- [Guía de Ayuda de Teclado y Atajos](../guides/user/ayuda-teclado-y-atajos.md)
+**Referencia Técnica Única:**
+- [Plan Maestro de Unificación UI/UX](01-ui-ux-unification-master-plan.md)
 
 **Contexto:**
-Auditoría completa detectó inconsistencias significativas: patrones de navegación mixtos, ausencia de base CSS global, uso de emojis y paleta fragmentada. Esta fase transforma la UI en una herramienta industrial de alta eficiencia para operarios.
+Auditoría completa detectó inconsistencias significativas: patrones de navegación mixtos, ausencia de base CSS global, uso de emojis y paleta fragmentada. Esta fase transforma la UI en una herramienta industrial de alta eficiencia para operarios siguiendo el **Plan Maestro**.
 
 **Tareas de Implementación:**
 
