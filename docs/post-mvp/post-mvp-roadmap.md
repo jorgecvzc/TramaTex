@@ -1,27 +1,33 @@
 # Hoja de Ruta Post-MVP — TramaTex
 
-> Enumeración y orden  de  las mejoras, funcionalidades y módulos planificados para después del MVP.
-> Habrá que definir contexto, prioridad estimada y referencias a la documentación existente.
+> Enumeración y orden de las mejoras, funcionalidades y módulos planificados para después del MVP.
+> Este documento actúa como una declaración de intenciones estratégica.
+
+---
+
+### 🛠️ Metodología de Ejecución
+Para comprender cómo se transforman estos hitos en realidad técnica (gestión de Sprints, flujo Backend → Persistencia → Frontend y criterios de Test Coverage), consulte el:
+👉 **[Plan de Ejecución Post-MVP](post-mvp-execution-plan.md)**
 
 ---
 
 ## Índice
 
-1. [Unificación UI/UX y Sistema de Diseño](#1-unificación-uiux-y-sistema-de-diseño)
-2. [Facturación Consolidada Multi-Albarán](#2-facturación-consolidada-multi-albarán)
-3. [Adopción sistema de facturación electrónica](#3-facturacion-electronica)
-4. [Extracción MES como Microservicio](#4-extracción-mes-como-microservicio)
-5. [Caché de Productos/Variantes y Precios](#5-caché-de-productosvariantes-y-precios)
-6. [Comunicación Asíncrona (Message Broker)](#6-comunicación-asíncrona-message-broker)
-7. [Inteligencia de Negocio y Analítica](#7-inteligencia-de-negocio-y-analítica)
-8. [Notificaciones en Tiempo Real](#8-notificaciones-en-tiempo-real)
-9. [Búsqueda Global Avanzada](#9-búsqueda-global-avanzada)
-10. [Nuevos Módulos de Negocio](#10-nuevos-módulos-de-negocio)
-11. [Mejoras Técnicas de Infraestructura](#11-mejoras-técnicas-de-infrastructure)
-12. [Cobertura de Tests](#12-cobertura-de-tests)
-13. [Gestión Avanzada de Archivos de Diseño (MES)](#13-gestión-avanzada-de-archivos-de-diseño-mes)
-14. [Integración Sales ↔ MES (Producto-Trabajo)](#14-integración-sales--mes-producto-trabajo)
-15. [Asignación de Tareas MES a Operarios](#15-asignación-de-tareas-mes-a-operarios)
+1. [Unificación UI/UX y Sistema de Diseño](#1.%20Unificación%20UI/UX%20y%20Sistema%20de%20Diseño)
+2. [Facturación Consolidada Multi-Albarán](#2.%20Facturación%20Consolidada%20Multi-Albarán)
+3. [Gestión de Cobros, Vencimientos y Tesorería](#3.%20Gestión%20de%20Cobros,%20Vencimientos%20y%20Tesorería)
+4. [Adopción de Facturación Electrónica](#4.%20Adopción%20de%20Facturación%20Electrónica)
+5. [Comunicación Asíncrona (Message Broker)](#5.%20Comunicación%20Asíncrona%20(Message%20Broker))
+6. [Extracción MES como Microservicio](#6.%20Extracción%20MES%20como%20Microservicio)
+7. [Caché y Rendimiento](#7.%20Caché%20y%20Rendimiento)
+8. [Inteligencia de Negocio y Analítica](#8.%20Inteligencia%20de%20Negocio%20y%20Analítica)
+9. [Búsqueda Global Avanzada](#9.%20Búsqueda%20Global%20Avanzada)
+10. [Nuevos Módulos de Negocio](#10.%20Nuevos%20Módulos%20de%20Negocio)
+11. [Mejoras Técnicas de Infraestructura](#11.%20Mejoras%20Técnicas%20de%20Infraestructura)
+12. [Cobertura de Tests](#12.%20Cobertura%20de%20Tests)
+13. [Gestión Avanzada de Archivos de Diseño (MES)](#13.%20Gestión%20Avanzada%20de%20Archivos%20de%20Diseño%20(MES))
+14. [Integración Sales ↔ MES (Producto-Trabajo)](#14.%20Integración%20Sales%20↔%20MES%20(Producto-Trabajo))
+15. [Asignación de Tareas MES a Operarios](#15.%20Asignación%20de%20Tareas%20MES%20a%20Operarios)
 
 ---
 
@@ -32,137 +38,162 @@
 - [Plan Maestro de Unificación UI/UX](01-ui-ux-unification-master-plan.md)
 
 **Contexto:**
-Auditoría completa detectó inconsistencias significativas: patrones de navegación mixtos, ausencia de base CSS global, uso de emojis y paleta fragmentada. Esta fase transforma la UI en una herramienta industrial de alta eficiencia para operarios siguiendo el **Plan Maestro**.
-
-**Tareas de Implementación:**
-
-### 1.1 Sistema de Diseño Base y Estilos
-- [ ] **Iconografía Profesional**: Instalar `lucide-vue-next` y sustituir todos los emojis y Material Symbols residuales (🗑️→Trash, 🔧→Package, ⚙️→Settings).
-- [ ] **CSS Global**: Crear `_buttons.css` (estilos .btn uniformes) y `_dashboards.css` (estilos de KPIs y tarjetas comunes).
-- [ ] **Identidad Visual**: Forzar uso estricto de variables en `_variables.css` (Amarillo Oro #E6B800, Azul Profundo #1B3A6B).
-- [ ] **BasePageHeader**: Refactorizar para incluir indicadores de atajos `<kbd>` y migas de pan consistentes.
-
-### 1.2 Navegación "Keyboard-First"
-- [ ] **Listados Maestros (BaseCatalog)**: Implementar `selectedIndex` y captura de flechas `Up`/`Down` + `Enter` para selección sin ratón.
-- [ ] **Dashboards**: Alinear todos los paneles usando `BaseDashboardPage` e implementar atajos numéricos (`1`-`4`) para KPIs y `Alt+R` para refrescar.
-- [ ] **Líneas de Documentos (Ventas/Pedidos)**:
-  - Navegación bidimensional con cursores entre celdas (Producto ↔ Cantidad).
-  - Uso de <kbd>+</kbd> y <kbd>-</kbd> para ajustar cantidades rápidamente.
-  - <kbd>Enter</kbd> para confirmar línea y crear una nueva automáticamente.
-  - <kbd>Delete</kbd> para eliminación rápida de líneas.
-
-### 1.3 Experiencia de Usuario y Ayuda
-- [ ] **Ayuda en Línea**: Integrar la guía de atajos directamente en la interfaz (ej: modal de ayuda o panel lateral).
-- [ ] **Refactor de Formularios**: Migrar de `fieldset/legend` a diseño de tarjetas (`.card`) y mejorar contraste de etiquetas.
-- [ ] **Foco Visual**: Implementar un estilo de foco (`:focus-visible`) vibrante basado en el color primario para una clara indicación de posición.
-
-### 1.4 Ergonomía Avanzada y Feedback (Nuevas Propuestas)
-- [ ] **Sistema de Notificaciones (Toasts)**: Sustituir `alert()` por un store global de notificaciones no intrusivas (Éxito/Error/Aviso).
-- [ ] **Indicadores de Campos Calculados**: Estilo visual distintivo (`.input-calculated`) para campos que el usuario no puede editar por ser lógica de backend.
-- [ ] **Skeleton Loaders**: Implementar pantallas de carga progresiva que imiten la estructura de los datos para reducir la fatiga visual.
-- [ ] **Chips de Filtros Activos**: Etiquetas eliminables en la parte superior de `BaseCatalog` para gestionar filtros aplicados de un vistazo.
-- [ ] **Tooltips de Atajos**: Mostrar el atajo de teclado al pasar el ratón por botones o elementos interactivos para mejorar el aprendizaje.
-- [ ] **Validación Inline**: Feedback visual inmediato (rojo/verde) al perder el foco en los campos de los formularios.
-- [ ] **Modo Industrial (MES)**: Selector de alto contraste y fuentes aumentadas para terminales de taller con iluminación difícil.
-
----
-
-## Secuencia de Implementación Sugerida (Fase UI/UX)
-
-Para maximizar la eficiencia y el feedback temprano, se propone el siguiente orden de ejecución:
-
-1.  **Fundamentos y Estilo**: Iconos Lucide + CSS Global (_buttons, _variables).
-2.  **Claridad Operativa**: Indicadores de campos calculados + Validación Inline.
-3.  **Feedback Maestro**: Sistema de Notificaciones (Toasts) global.
-4.  **Navegación Eficiente**: Keyboard navigation en BaseCatalog + Chips de filtros.
-5.  **Descubribilidad**: Tooltips de atajos + Guía de ayuda integrada.
-6.  **Consolidación Visual**: Refactor de Dashboards + Skeleton Loaders.
-7.  **Especialización**: Modo Industrial de alto contraste para el MES.
+Transformación de la UI en una herramienta industrial de alta eficiencia para operarios siguiendo el **Plan Maestro**. Foco en accesibilidad "Keyboard-First", iconografía profesional (Lucide) y feedback visual avanzado.
 
 ---
 
 ## 2. Facturación Consolidada Multi-Albarán
 
 **Prioridad:** Media  
-**Referencia:** [module-spec.md](../modules/sales/module-spec.md) — Fase 6
+**Referencia Técnica Única:**
+- [Estrategia de Facturación Consolidada](02-consolidated-billing-strategy.md)
 
-Permite agrupar múltiples albaranes de un mismo cliente en una única factura (ej: facturación mensual).
-
-- [ ] Pantalla de selección de albaranes pendientes por cliente y rango de fechas.
-- [ ] Consolidación de líneas: fusión de líneas con mismo producto y condiciones sumando cantidades.
-- [ ] Vinculación N:1 de albaranes a la factura consolidada.
+**Contexto:**
+Permite agrupar múltiples albaranes de un mismo cliente en una única factura (ej: facturación mensual), optimizando el flujo administrativo y reduciendo el volumen de documentos.
 
 ---
 
-## 3. Extracción MES como Microservicio
+## 3. Gestión de Cobros, Vencimientos y Tesorería
 
-**Prioridad:** Media  
-**Referencia:** [ADR-022](adr-022-mes-microservice-extraction-strategy.md)
+**Prioridad:** Alta  
+**Referencia Técnica Única:**
+- [Estrategia de Gestión de Cobros y Tesorería](03-accounts-receivable-and-collections-strategy.md)
 
-Extraer el módulo MES a un microservicio independiente para escalado y mantenimiento autónomo.
-
-- [ ] Comunicación síncrona vía **gRPC**.
-- [ ] Comunicación asíncrona vía **NATS JetStream**.
-- [ ] Base de datos PostgreSQL independiente para MES.
+**Contexto:**
+Extensión del ciclo financiero para controlar cuándo y cómo se cobran las facturas. Incluye la gestión de formas de pago, cálculo automático de vencimientos, registro de cobros parciales y control de deuda de clientes.
 
 ---
 
-## 4. Caché y Rendimiento
+## 4. Adopción de Facturación Electrónica
 
-**Prioridad:** Media
-- [ ] Implementar caché (Redis) de productos/variantes y reglas de precios.
-- [ ] Estrategia de invalidación automática ante cambios de precios base.
+**Prioridad:** Media (Requisito Legal)  
+**Referencia Técnica Única:**
+- [Análisis de Facturación Electrónica (Ley Crea y Crece)](04-electronic-invoicing-analysis.md)
+
+**Contexto:**
+Cumplimiento normativo con la Ley Crea y Crece y el sistema Veri*factu. Implica la generación de facturas en formato XML estructurado y la comunicación con las plataformas estatales.
 
 ---
 
 ## 5. Comunicación Asíncrona (Message Broker)
 
-**Prioridad:** Media
-- [ ] Introducir **NATS JetStream** para desacoplar módulos (Sales → MES).
-- [ ] Implementar patrón **Transactional Outbox** para garantizar integridad.
+**Prioridad:** Alta (Infraestructura Core)  
+**Referencia Técnica Única:**
+- [Estrategia de Comunicación Asíncrona](05-asynchronous-communication-strategy.md)
+
+**Contexto:**
+Introducción de **NATS JetStream** para desacoplar módulos (Sales → MES, Product → Sales). Permite la coreografía de eventos de dominio y garantiza la integridad mediante el patrón **Transactional Outbox**.
 
 ---
 
-## 6. Inteligencia de Negocio y Analítica
+## 6. Extracción MES como Microservicio
 
-**Prioridad:** Baja
-- [ ] Dashboards avanzados con tendencias, márgenes y KPIs históricos.
-- [ ] Reportes exportables personalizados.
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Extracción de MES](06-mes-microservice-extraction-strategy.md)
 
----
-
-## 7. Búsqueda Global Avanzada
-
-**Prioridad:** Baja
-- [ ] Búsqueda full-text unificada (clientes, productos, pedidos) vía `Ctrl+K`.
-- [ ] Autocompletado inteligente y sugerencias de búsqueda.
+**Contexto:**
+Extraer el módulo MES a un microservicio independiente para escalado y mantenimiento autónomo. Requiere la infraestructura de mensajería del punto anterior para la sincronización de datos y eventos de fabricación.
 
 ---
 
-## 8. Nuevos Módulos de Negocio
+## 7. Caché y Rendimiento
 
-**Prioridad:** Variable
-- [ ] **Compras** (Purchases): Gestión de aprovisionamiento.
-- [ ] **Inventario Avanzado**: Movimientos de almacén y alertas de stock.
-- [ ] **Logística**: Gestión de envíos y transportistas.
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Caché y Rendimiento](07-cache-and-performance-strategy.md)
 
----
-
-## 9. Cobertura de Tests
-
-**Prioridad:** Alta
-- [ ] Elevar cobertura Domain al 100%.
-- [ ] Elevar cobertura Application al ≥95%.
-- [ ] Implementar tests E2E con Playwright para flujos críticos.
+**Contexto:**
+Optimización del ERP central mediante el uso de **Redis**. Foco en el motor de precios (Pricing) y la hidratación rápida del catálogo de productos para reducir la latencia de respuesta.
 
 ---
 
-## 10. Gestión Avanzada de Archivos de Diseño (MES)
+## 8. Inteligencia de Negocio y Analítica
 
-**Prioridad:** Media
-- [ ] Vista previa (thumbnails) de archivos técnicos en paneles de producción.
-- [ ] Integración con aplicaciones nativas para apertura de archivos desde el navegador.
+**Prioridad:** Baja  
+**Referencia Técnica Única:**
+- [Estrategia de BI y Analítica](08-business-intelligence-strategy.md)
+
+**Contexto:**
+Implementación de dashboards avanzados con visualización de tendencias, márgenes de beneficio y KPIs históricos. Incluye la capacidad de generar reportes de negocio exportables y personalizados.
 
 ---
 
-*Última actualización: 2026-04-26*
+## 9. Búsqueda Global Avanzada
+
+**Prioridad:** Baja  
+**Referencia Técnica Única:**
+- [Estrategia de Búsqueda Avanzada](09-advanced-search-strategy.md)
+
+**Contexto:**
+Sistema de búsqueda full-text unificada accesible vía `Ctrl+K` para localizar instantáneamente clientes, productos y pedidos. Incorpora autocompletado inteligente y sugerencias basadas en el historial.
+
+---
+
+## 10. Nuevos Módulos de Negocio
+
+**Prioridad:** Variable  
+**Referencia Técnica Única:**
+- [Estrategia de Nuevos Módulos](10-new-business-modules-strategy.md)
+
+**Contexto:**
+Expansión funcional hacia áreas críticas como **Compras** (aprovisionamiento), **Inventario Avanzado** (movimientos de stock y alertas) y **Logística** (gestión de envíos y transportistas.
+
+---
+
+## 11. Mejoras Técnicas de Infraestructura
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Evolución de Infraestructura](11-infrastructure-evolution-strategy.md)
+
+**Contexto:**
+Evolución del despliegue actual hacia una arquitectura orquestada con **Kubernetes**. Implementación de un sistema de monitorización centralizado basado en Prometheus y Grafana para observabilidad total.
+
+---
+
+## 12. Cobertura de Tests
+
+**Prioridad:** Alta  
+**Referencia Técnica Única:**
+- [Estrategia de QA y Testing](12-quality-assurance-and-testing-strategy.md)
+
+**Contexto:**
+Blindaje del sistema elevando la cobertura de tests en Dominio al 100% y en Aplicación al ≥95%. Implementación de una suite de tests E2E con Playwright para asegurar la integridad de los flujos críticos de usuario.
+
+---
+
+## 13. Gestión Avanzada de Archivos de Diseño (MES)
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Gestión de Archivos MES](13-mes-advanced-file-management.md)
+
+**Contexto:**
+Mejora de la operativa en taller mediante la generación de vistas previas (thumbnails) de archivos técnicos e integración con aplicaciones nativas para la apertura directa de diseños desde el navegador.
+
+---
+
+## 14. Integración Sales ↔ MES (Producto-Trabajo)
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Integración Profunda Sales-MES](14-sales-mes-deep-integration.md)
+
+**Contexto:**
+Establecimiento de una sincronización bidireccional automática. Cualquier cambio en un pedido de venta se reflejará instantáneamente en los trabajos de fabricación activos en el MES.
+
+---
+
+## 15. Asignación de Tareas MES a Operarios
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Planificación de Operarios](15-mes-operator-planning-strategy.md)
+
+**Contexto:**
+Módulo de planificación de carga de trabajo por operario y máquina. Permite el registro preciso de tiempos por tarea y la optimización de la capacidad productiva de la planta.
+
+---
+
+*Última actualización: 2026-04-29*

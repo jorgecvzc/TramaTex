@@ -1,6 +1,6 @@
 # Plan Maestro: Unificación UI/UX y Accesibilidad Universal (Post-MVP)
 
-Este documento es la **fuente única de verdad** para la transformación de la interfaz de TramaTex en una herramienta industrial de alta eficiencia. Consolida todos los estudios técnicos, especificaciones de diseño y planes de migración de la fase Post-MVP.
+Este documento aborda la transformación de la interfaz de TramaTex en una herramienta industrial de alta eficiencia.
 
 ---
 
@@ -24,7 +24,7 @@ El objetivo es que un operario realice el flujo completo (Ventas -> Producción)
 ### 1.3 Líneas de Documentos (Ventas/Pedidos)
 - **Navegación Celdas**: `Tab` o `Flechas Laterales` entre Producto, Cantidad y Precio.
 - **Ajuste Rápido**: Teclas `+` y `-` para incrementar/decrementar cantidades.
-- **Continuidad**: `Enter` en la última celda confirma la línea y crea una nueva vacía.
+- **Continuidad**: `Enter` en la última celda confirma la línea y se posiciona sobre botón de agregar línea, donde nuevo `Enter` la creará posicionándose en el primer campo, y `Tab` saltará al primer campo editable después de las líneas.
 
 ---
 
