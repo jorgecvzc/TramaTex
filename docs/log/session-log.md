@@ -4,26 +4,7 @@
 # SESIONES ABIERTAS
 ---
 
-## Estudio Integral y Planificación Post-MVP (Sprint 18)
-
-- **Session ID:** `post-mvp-comprehensive-studies-2026-04-27`
-- **Status:** En Progreso
-- **Sprint:** Sprint 18
-- **Started:** 2026-04-27
-- **Branch:** `docs/post-mvp-comprehensive-studies`
-
-**Contexto:** Sesión intensiva de análisis y diseño técnico de todos los hitos Post-MVP. Se han generado 15 documentos de estrategia cubriendo desde UI/UX y Facturación Electrónica hasta la extracción del MES como microservicio y la evolución de infraestructura a Kubernetes.
-
-**Próximos Pasos:**
-- [x] Definir el plan de ejecución ordenado para los estudios realizados.
-- [x] Establecer el flujo de trabajo para la implementación: generación de sprints, programación, tests y despliegue.
-- [x] Priorizar el inicio de la fase de construcción basándose en las dependencias técnicas (Infraestructura -> Funcionalidad).
-- [ ] Iniciar el Sprint 19 con el Hito 1: Unificación UI/UX.
-
-**Archivos de Contexto:**
-- `docs/post-mvp/` (Todos los documentos 01-15)
-- `docs/log/project-status.md`
-- `docs/post-mvp/post-mvp-roadmap.md`
+_No hay sesiones abiertas actualmente._
 
 ---
 # REGISTRO DE SESIONES CERRADAS
