@@ -1,288 +1,199 @@
 # Hoja de Ruta Post-MVP — TramaTex
 
-> Documento consolidado de todas las mejoras, funcionalidades y módulos planificados para después del MVP.
-> Cada ítem incluye contexto, prioridad estimada y referencias a la documentación existente.
+> Enumeración y orden de las mejoras, funcionalidades y módulos planificados para después del MVP.
+> Este documento actúa como una declaración de intenciones estratégica.
+
+---
+
+### 🛠️ Metodología de Ejecución
+Para comprender cómo se transforman estos hitos en realidad técnica (gestión de Sprints, flujo Backend → Persistencia → Frontend y criterios de Test Coverage), consulte el:
+👉 **[Plan de Ejecución Post-MVP](post-mvp-execution-plan.md)**
 
 ---
 
 ## Índice
 
-1. [Unificación UI/UX y Sistema de Diseño](#1-unificación-uiux-y-sistema-de-diseño)
-2. [Integración Sales ↔ MES (Producto-Trabajo)](#2-integración-sales--mes-producto-trabajo)
-3. [Extracción MES como Microservicio](#3-extracción-mes-como-microservicio)
-4. [Caché de Productos/Variantes y Precios](#4-caché-de-productosvariantes-y-precios)
-5. [Comunicación Asíncrona (Message Broker)](#5-comunicación-asíncrona-message-broker)
-6. [Inteligencia de Negocio y Analítica](#6-inteligencia-de-negocio-y-analítica)
-7. [Notificaciones en Tiempo Real](#7-notificaciones-en-tiempo-real)
-8. [Búsqueda Global Avanzada](#8-búsqueda-global-avanzada)
-9. [Nuevos Módulos de Negocio](#9-nuevos-módulos-de-negocio)
-10. [Mejoras Técnicas de Infraestructura](#10-mejoras-técnicas-de-infraestructura)
-11. [Cobertura de Tests](#11-cobertura-de-tests)
-12. [Generación de Documentos PDF](#12-generación-de-documentos-pdf)
-13. [Mejoras UX Avanzadas](#13-mejoras-ux-avanzadas)
-14. [Facturación Consolidada Multi-Albarán](#14-facturación-consolidada-multi-albarán)
-15. [Gestión Avanzada de Archivos de Diseño (MES)](#15-gestión-avanzada-de-archivos-de-diseño-mes)
-16. [Asignación de Tareas MES a Operarios](#16-asignación-de-tareas-mes-a-operarios)
+1. [Unificación UI/UX y Sistema de Diseño](#1.%20Unificación%20UI/UX%20y%20Sistema%20de%20Diseño)
+2. [Facturación Consolidada Multi-Albarán](#2.%20Facturación%20Consolidada%20Multi-Albarán)
+3. [Gestión de Cobros, Vencimientos y Tesorería](#3.%20Gestión%20de%20Cobros,%20Vencimientos%20y%20Tesorería)
+4. [Adopción de Facturación Electrónica](#4.%20Adopción%20de%20Facturación%20Electrónica)
+5. [Comunicación Asíncrona (Message Broker)](#5.%20Comunicación%20Asíncrona%20(Message%20Broker))
+6. [Extracción MES como Microservicio](#6.%20Extracción%20MES%20como%20Microservicio)
+7. [Caché y Rendimiento](#7.%20Caché%20y%20Rendimiento)
+8. [Inteligencia de Negocio y Analítica](#8.%20Inteligencia%20de%20Negocio%20y%20Analítica)
+9. [Búsqueda Global Avanzada](#9.%20Búsqueda%20Global%20Avanzada)
+10. [Nuevos Módulos de Negocio](#10.%20Nuevos%20Módulos%20de%20Negocio)
+11. [Mejoras Técnicas de Infraestructura](#11.%20Mejoras%20Técnicas%20de%20Infraestructura)
+12. [Cobertura de Tests](#12.%20Cobertura%20de%20Tests)
+13. [Gestión Avanzada de Archivos de Diseño (MES)](#13.%20Gestión%20Avanzada%20de%20Archivos%20de%20Diseño%20(MES))
+14. [Integración Sales ↔ MES (Producto-Trabajo)](#14.%20Integración%20Sales%20↔%20MES%20(Producto-Trabajo))
+15. [Asignación de Tareas MES a Operarios](#15.%20Asignación%20de%20Tareas%20MES%20a%20Operarios)
 
 ---
 
 ## 1. Unificación UI/UX y Sistema de Diseño
 
-**Prioridad:** Alta (primera tarea Post-MVP)  
-**Referencia:** Auditoría UI/UX completada en sesión `ui-ux-improvement-post-mvp-21-03-2026`  
+**Prioridad:** Máxima (Primera tarea Post-MVP)  
+**Referencia Técnica Única:**
+- [Plan Maestro de Unificación UI/UX](01-ui-ux-unification-master-plan.md)
+
 **Contexto:**
-
-Auditoría completa de UI/UX detectó inconsistencias significativas entre módulos: patrones de navegación mixtos en listados, botones sin base global CSS, emojis en lugar de iconos Material Symbols, paleta de colores fragmentada y layouts con `max-width` variables. Esta es la **primera tarea planificada tras el MVP** para dar coherencia visual al sistema.
-
-**Hallazgos clave:**
-- Patrones de navegación mixtos: Sales usa `clickable-row`, Party/Product usan botones explícitos, MES usa enlaces "Ver".
-- No existe una definición `.btn` global — cada módulo redefine estilos en `<style scoped>`.
-- Radios de borde varían entre 2px, 4px y 8px. El amarillo primario varía entre `#E6B800` y `#f4c430`.
-- Emojis (🗑️, 💰, 🖨️, ⚠️, ⚙️) usados donde deberían estar iconos Material Symbols.
-
-**Tareas:**
-
-- [ ] Crear `apps/frontend/src/design-system/_buttons.css` con estilos globales (`primary`, `secondary`, `outline`, `danger`) e importar en `theme.css`.
-- [ ] Estandarizar iconografía: eliminar todos los emojis de la interfaz y sustituir por Material Symbols Icons (🗑️→Trash2, 🖨️→Printer, 💰→Euro, ⚠️→AlertTriangle, ⚙️→Settings).
-- [ ] Unificar comportamiento de listados: fila clickeable + botón de acción iconográfico al final.
-- [ ] Crear componente `BasePageHeader` (Breadcrumb + Título + Acciones) y aplicar a todas las páginas.
-- [ ] Estandarizar `max-width` de contenedores y jerarquía de cabeceras (H1/H2/H3) entre módulos.
-- [ ] Forzar uso estricto de variables de `_variables.css` (paleta, radios de borde, sombras).
-- [ ] Migrar `PartyList.vue` como primer listado estandarizado de referencia.
-- [ ] Refactorizar `PartyForm.vue` para sustituir `fieldset/legend` por diseño de tarjetas.
-- [ ] Mejorar contraste de etiquetas de formularios (peso 500, `--color-text-secondary`).
-- [ ] Estandarizar dropdowns/selects y definir patrones visuales de validación/errores en formularios.
-- [ ] **Aplicación dirigida por teclado:** Atajos, navegación sin ratón, flujo rápido para operadores.
+Transformación de la UI en una herramienta industrial de alta eficiencia para operarios siguiendo el **Plan Maestro**. Foco en accesibilidad "Keyboard-First", iconografía profesional (Lucide) y feedback visual avanzado.
 
 ---
 
-## 2. Integración Sales ↔ MES (Producto-Trabajo)
+## 2. Facturación Consolidada Multi-Albarán
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Facturación Consolidada](02-consolidated-billing-strategy.md)
+
+**Contexto:**
+Permite agrupar múltiples albaranes de un mismo cliente en una única factura (ej: facturación mensual), optimizando el flujo administrativo y reduciendo el volumen de documentos.
+
+---
+
+## 3. Gestión de Cobros, Vencimientos y Tesorería
 
 **Prioridad:** Alta  
+**Referencia Técnica Única:**
+- [Estrategia de Gestión de Cobros y Tesorería](03-accounts-receivable-and-collections-strategy.md)
+
 **Contexto:**
-
-En el MVP, la relación entre los documentos de Sales (presupuestos, pedidos) y los trabajos MES se implementa a **nivel de documento** de forma informativa:
-
-- Un documento de ventas puede tener **varios trabajos MES asociados** (relación N:M a nivel de documento).
-- La columna `mes_work_id` en las **líneas de producto se mantiene en BD** (nullable) pero **no se usa en la UI del MVP**.
-- Los usuarios seleccionan trabajos MES a nivel de documento como **guía orientativa**. Es labor del usuario identificar qué MES corresponde a qué productos.
-- La asignación granular de MES por línea de producto **no está expuesta** en la interfaz del MVP.
-
-**Objetivo Post-MVP:**
-
-Implementar la vinculación completa y funcional entre líneas de producto y trabajos MES:
-
-- [ ] Selector de MES **por línea de producto** en QuoteCreate/OrderCreate (ya implementado en BD, falta activar en UI).
-- [ ] Validación: al aceptar un pedido, verificar que todas las líneas tengan MES asignado (o política configurable).
-- [ ] Auto-asignación inteligente de MES basada en el tipo de producto o reglas de negocio.
-- [ ] Generación automática de `WorkExecution` por línea al transicionar un pedido a `ACCEPTED`.
-- [ ] Trazabilidad bidireccional completa: desde un trabajo MES ver qué líneas de pedido lo originaron y viceversa.
-
-**Decisión MVP (ADR implícito):**
-
-> Se decidió que para el MVP el MES no se asigna a líneas de producto individuales sino al documento completo.
-> Un documento puede tener varios MES asociados. Esto sirve de guía de unión de trabajos pero es labor de
-> los usuarios identificar qué MES va con qué productos. Se deja para Post-MVP una unión más funcional
-> y completa entre Producto y MES.
-
-**Refs:** `migrations/005_init_sales.sql`, `domain/quote.go`, `domain/sales_order.go`
+Extensión del ciclo financiero para controlar cuándo y cómo se cobran las facturas. Incluye la gestión de formas de pago, cálculo automático de vencimientos, registro de cobros parciales y control de deuda de clientes.
 
 ---
 
-## 3. Extracción MES como Microservicio
+## 4. Adopción de Facturación Electrónica
 
-**Prioridad:** Media  
-**Referencia:** [ADR-022](adr-022-mes-microservice-extraction-strategy.md)
+**Prioridad:** Media (Requisito Legal)  
+**Referencia Técnica Única:**
+- [Análisis de Facturación Electrónica (Ley Crea y Crece)](04-electronic-invoicing-analysis.md)
 
-Extraer el módulo MES del monolito modular a un microservicio independiente:
-
-- [ ] Comunicación síncrona vía **gRPC** (consultas de productos, validaciones).
-- [ ] Comunicación asíncrona vía **NATS JetStream** (comandos, efectos secundarios).
-- [ ] Patrón **Transactional Outbox** para garantizar entrega de mensajes.
-- [ ] Base de datos PostgreSQL independiente para MES.
-- [ ] Propagación de JWT en metadatos gRPC.
-- [ ] Proyecciones locales (vistas materializadas) para lectura rápida.
-- [ ] Pull Consumers con suscripciones duraderas para escalado horizontal.
-
----
-
-## 4. Caché de Productos/Variantes y Precios
-
-**Prioridad:** Media  
-**Referencia:** [ADR-022 (notas)](adr-022-mes-microservice-extraction-strategy.md#L4)
-
-- [ ] Implementar caché (Redis o en memoria) de productos/variantes y precios para consultas rápidas.
-- [ ] Invalidación automática de caché al actualizar un precio base (borrar todas las entradas derivadas).
-- [ ] Estrategia de warm-up al arranque del servicio.
+**Contexto:**
+Cumplimiento normativo con la Ley Crea y Crece y el sistema Veri*factu. Implica la generación de facturas en formato XML estructurado y la comunicación con las plataformas estatales.
 
 ---
 
 ## 5. Comunicación Asíncrona (Message Broker)
 
+**Prioridad:** Alta (Infraestructura Core)  
+**Referencia Técnica Única:**
+- [Estrategia de Comunicación Asíncrona](05-asynchronous-communication-strategy.md)
+
+**Contexto:**
+Introducción de **NATS JetStream** para desacoplar módulos (Sales → MES, Product → Sales). Permite la coreografía de eventos de dominio y garantiza la integridad mediante el patrón **Transactional Outbox**.
+
+---
+
+## 6. Extracción MES como Microservicio
+
 **Prioridad:** Media  
-**Referencia:** [ADR-019](../architecture/adrs/adr-019-synchronous-inter-module-communication-mvp.md)
+**Referencia Técnica Única:**
+- [Estrategia de Extracción de MES](06-mes-microservice-extraction-strategy.md)
 
-- [ ] Introducir **NATS JetStream** como message broker.
-- [ ] Migrar comunicación Sales → MES de síncrona a asíncrona.
-- [ ] Implementar patrón Transactional Outbox en el Core.
-- [ ] Domain Events publicados a streams NATS.
+**Contexto:**
+Extraer el módulo MES a un microservicio independiente para escalado y mantenimiento autónomo. Requiere la infraestructura de mensajería del punto anterior para la sincronización de datos y eventos de fabricación.
 
 ---
 
-## 6. Inteligencia de Negocio y Analítica
+## 7. Caché y Rendimiento
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Caché y Rendimiento](07-cache-and-performance-strategy.md)
+
+**Contexto:**
+Optimización del ERP central mediante el uso de **Redis**. Foco en el motor de precios (Pricing) y la hidratación rápida del catálogo de productos para reducir la latencia de respuesta.
+
+---
+
+## 8. Inteligencia de Negocio y Analítica
 
 **Prioridad:** Baja  
-**Referencia:** Presentaciones ([slides_spec.md](../presentations/slides_spec.md#L111))
+**Referencia Técnica Única:**
+- [Estrategia de BI y Analítica](08-business-intelligence-strategy.md)
 
-- [ ] Cuadros de mando avanzados (dashboards).
-- [ ] Analítica de ventas (tendencias, márgenes, KPIs).
-- [ ] Reportes exportables.
-- [ ] Módulo de **Analytics/BI** independiente.
+**Contexto:**
+Implementación de dashboards avanzados con visualización de tendencias, márgenes de beneficio y KPIs históricos. Incluye la capacidad de generar reportes de negocio exportables y personalizados.
 
 ---
 
-## 7. Notificaciones en Tiempo Real
+## 9. Búsqueda Global Avanzada
 
 **Prioridad:** Baja  
-**Referencia:** Presentaciones ([slides_spec.md](../presentations/slides_spec.md#L113))
+**Referencia Técnica Única:**
+- [Estrategia de Búsqueda Avanzada](09-advanced-search-strategy.md)
 
-- [ ] WebSockets para actualizaciones en tiempo real.
-- [ ] Notificaciones por email.
-- [ ] Alertas de cambios de estado (pedidos, producción).
-
----
-
-## 8. Búsqueda Global Avanzada
-
-**Prioridad:** Baja  
-**Referencia:** Presentaciones, [erp-core-completion.md](../log/erp-core-completion.md#L450)
-
-- [ ] Búsqueda full-text con Elasticsearch o similar.
-- [x] Búsqueda global unificada (productos, clientes, pedidos, facturas) mediante `Ctrl+K` + endpoint backend autenticado `/api/search`.
-- [ ] Autocompletado y sugerencias.
+**Contexto:**
+Sistema de búsqueda full-text unificada accesible vía `Ctrl+K` para localizar instantáneamente clientes, productos y pedidos. Incorpora autocompletado inteligente y sugerencias basadas en el historial.
 
 ---
 
-## 9. Nuevos Módulos de Negocio
+## 10. Nuevos Módulos de Negocio
 
 **Prioridad:** Variable  
-**Referencia:** Presentaciones, [erp-core-completion.md](../log/erp-core-completion.md#L456-L460)
+**Referencia Técnica Única:**
+- [Estrategia de Nuevos Módulos](10-new-business-modules-strategy.md)
 
-- [ ] **Compras** (Purchases) — gestión de pedidos a proveedores.
-- [ ] **Inventario Avanzado** — control de stock, movimientos, alertas.
-- [ ] **Logística** — gestión de envíos y transporte.
-- [ ] **Contabilidad** — integración contable completa.
-- [ ] **RRHH** (HR Module) — gestión de recursos humanos.
+**Contexto:**
+Expansión funcional hacia áreas críticas como **Compras** (aprovisionamiento), **Inventario Avanzado** (movimientos de stock y alertas) y **Logística** (gestión de envíos y transportistas.
 
 ---
 
-## 10. Mejoras Técnicas de Infraestructura
+## 11. Mejoras Técnicas de Infraestructura
 
-**Prioridad:** Baja  
-**Referencia:** [erp-core-completion.md](../log/erp-core-completion.md#L443-L465)
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Evolución de Infraestructura](11-infrastructure-evolution-strategy.md)
 
-- [ ] **Caché con Redis** — sesiones, datos frecuentes.
-- [ ] **Refresh tokens** — mejora de seguridad de autenticación.
-- [ ] **PWA para móvil** — acceso desde dispositivos móviles.
-- [ ] **Internacionalización (i18n)** — soporte multi-idioma.
+**Contexto:**
+Evolución del despliegue actual hacia una arquitectura orquestada con **Kubernetes**. Implementación de un sistema de monitorización centralizado basado en Prometheus y Grafana para observabilidad total.
 
 ---
 
-## 11. Cobertura de Tests
+## 12. Cobertura de Tests
 
 **Prioridad:** Alta  
-**Referencia:** [erp-core-completion.md](../log/erp-core-completion.md#L283-L289)
+**Referencia Técnica Única:**
+- [Estrategia de QA y Testing](12-quality-assurance-and-testing-strategy.md)
 
-Objetivos Post-MVP de cobertura:
-
-- [ ] **Domain:** 100% (actualmente ~88-97% según módulo)
-- [ ] **Application:** ≥95% (actualmente ~57.5%)
-- [ ] **Infrastructure:** ≥80%
-- [ ] **Frontend:** Tests E2E con Playwright (actualmente 0%)
-
----
-
-## 12. Generación de Documentos PDF
-
-**Prioridad:** Baja
-**Referencia:** [erp-core-completion.md](../log/erp-core-completion.md#L448)
-
-- [ ] Plantillas personalizables por empresa.
-
-## 13. Mejoras UX Avanzadas
-
-**Prioridad:** Baja  
-**Contexto:** Mejoras de experiencia de usuario de segunda fase, que dependen de la unificación estética (sección 1).
-
-- [ ] **Mejora interfaz TPV:** Mayor agilidad para ventas rápidas (tickets/facturas simplificadas).
-- [ ] **Diseño responsive:** Adaptación completa a tablets de taller.
-- [ ] **Modo oscuro** para terminales de producción.
-- [ ] **Aplicación dirigida por teclado avanzada:** Atajos, navegación sin ratón, flujo rápido para operadores.
-
----
-
-## 14. Facturación Consolidada Multi-Albarán
-
-**Prioridad:** Media  
-**Referencia:** [module-spec.md](../modules/sales/module-spec.md) — Fase 6, [use-cases.md](../modules/sales/use-cases.md) — CU-S-025
-
-Permite agrupar múltiples albaranes de un mismo cliente en una única factura (ej: facturación mensual).  
-La infraestructura base (campo `invoice_line_item_id` en `delivery_note_line_items`) se implementa en el MVP (Fase 5); la lógica de consolidación es Post-MVP.
-
-- [ ] Pantalla de selección de albaranes pendientes por cliente y rango de fechas.
-- [ ] Consolidación de líneas: las líneas con mismo `ProductVariantID`, `UnitPrice`, `DiscountAmount` y `TaxRate` se fusionan en una sola línea de factura sumando cantidades (relación N:1).
-- [ ] Líneas con distinto producto/precio/descuento se mantienen como líneas independientes.
-- [ ] Vinculación de todas las `DeliveryNoteLineItem`s al `InvoiceLineItemID` generado (N:1).
-- [ ] Validación: todos los albaranes del mismo `Party`, todos en estado `DELIVERED`, ninguna línea previamente facturada.
-- [ ] Actualización automática de estados de los pedidos relacionados.
-
----
-
-## 15. Gestión Avanzada de Archivos de Diseño (MES)
-
-**Prioridad:** Media  
 **Contexto:**
-
-En el MVP, `design_file_path` almacena una ruta de texto libre en `WorkSetupLine`. El campo se muestra en el Panel Tablet y en el configurador de WorkSetup, pero la interacción es mínima (copiar ruta al portapapeles). Las limitaciones del navegador impiden acceder al sistema de archivos local más allá del nombre de archivo.
-
-**Objetivo Post-MVP:**
-
-- [ ] **Vista previa de archivos** en el Panel Tablet y en el diálogo de detalle de WorkOrder/tarea: mostrar thumbnail o preview embebido (imágenes: PNG/JPG/SVG; vectores: AI/PDF si el navegador lo soporta; para otros formatos, icono de tipo de archivo).
-- [ ] **Vista previa** también visible en las páginas de definición de WorkSetup (List / Edit / Create).
-- [ ] **Abrir con aplicación por defecto**: botón "Abrir" exclusivo del configurador de WorkSetup (`/mes/work-setups/`) que invoque el protocolo del SO para abrir el archivo con su aplicación nativa (requiere integración Electron/Tauri o un agente de escritorio local).
-- [ ] Soporte de rutas absolutas completas (implica abandonar el navegador puro — Electron/Tauri o extensión de escritorio).
-- [ ] Almacenamiento opcional del archivo en servidor (upload): guardar en storage y servir URL firmada para preview remoto sin depender del sistema de archivos local.
-- [ ] Validación de extensiones permitidas y tamaño máximo en el configurador.
-
-**Dependencias:**
-
-> La función "Abrir con app por defecto" y las rutas absolutas requieren un entorno de escritorio (Electron/Tauri). El resto de funcionalidades de preview son viables en web si se opta por upload a servidor.  
-> Esta sección está vinculada a la decisión arquitectónica de si TramaTex tendrá cliente de escritorio.
+Blindaje del sistema elevando la cobertura de tests en Dominio al 100% y en Aplicación al ≥95%. Implementación de una suite de tests E2E con Playwright para asegurar la integridad de los flujos críticos de usuario.
 
 ---
 
-## 16. Asignación de Tareas MES a Operarios
+## 13. Gestión Avanzada de Archivos de Diseño (MES)
 
 **Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Gestión de Archivos MES](13-mes-advanced-file-management.md)
+
 **Contexto:**
-
-La columna `assigned_to` (FK a `users.id`) existe en `mes_work_tasks` desde el esquema inicial del MVP, y el campo está presente en el DTO del backend (`AssignedTo *uuid.UUID`) y en el tipo frontend (`WorkOrderTask.assigned_to`). Sin embargo, no se expone en ninguna pantalla del MVP porque la lógica de asignación de operarios pertenece a una fase posterior.
-
-**Objetivo Post-MVP:**
-
-- [ ] Selctor de operario (usuario) al crear o editar una tarea de WorkOrder en el Panel Tablet.
-- [ ] Filtro en el terminal de tablet por operario asignado (`assigned_to = yo`).
-- [ ] Visualizar el nombre del operario asignado en la tabla principal del terminal (columna “Asignado”).
-- [ ] Lógica de reasignación: solo supervisores pueden reasignar tareas ya iniciadas.
-- [ ] Notificación al operario cuando se le asigna una tarea (depende de sección 7 — Notificaciones).
-- [ ] Registrar `assigned_by` y timestamp de asignación para auditoría.
-
-**Estado actual (MVP):**
-
-> Infraestructura lista (BD + backend DTO + tipo frontend). La UI muestra `—` para todas las tareas.
-> La columna “Asignado” fue eliminada del Panel Tablet en MVP por no aportar valor todavía.
-> Restaurarla y activarla es el primer paso de esta sección.
+Mejora de la operativa en taller mediante la generación de vistas previas (thumbnails) de archivos técnicos e integración con aplicaciones nativas para la apertura directa de diseños desde el navegador.
 
 ---
 
-*Última actualización: 2026-03-26*
+## 14. Integración Sales ↔ MES (Producto-Trabajo)
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Integración Profunda Sales-MES](14-sales-mes-deep-integration.md)
+
+**Contexto:**
+Establecimiento de una sincronización bidireccional automática. Cualquier cambio en un pedido de venta se reflejará instantáneamente en los trabajos de fabricación activos en el MES.
+
+---
+
+## 15. Asignación de Tareas MES a Operarios
+
+**Prioridad:** Media  
+**Referencia Técnica Única:**
+- [Estrategia de Planificación de Operarios](15-mes-operator-planning-strategy.md)
+
+**Contexto:**
+Módulo de planificación de carga de trabajo por operario y máquina. Permite el registro preciso de tiempos por tarea y la optimización de la capacidad productiva de la planta.
+
+---
+
+*Última actualización: 2026-04-29*
