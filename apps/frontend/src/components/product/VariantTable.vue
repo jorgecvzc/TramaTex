@@ -9,11 +9,11 @@
       </div>
       <div class="header-actions">
         <button @click="openAddVariantModal" class="btn btn-primary" :disabled="isLoading">
-          <span class="material-symbols-outlined" style="font-size: 16px">add</span>
+          <Plus :size="16" />
           Añadir Variante
         </button>
         <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-          <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
+          <RefreshCw :size="16" />
           Actualizar
         </button>
       </div>
@@ -27,14 +27,14 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && variants.length === 0" class="empty-state">
-      <span class="material-symbols-outlined empty-icon" style="font-size: 64px">inventory_2</span>
+      <Package :size="64" class="empty-icon" />
       <p>No hay variantes creadas para este producto.</p>
       <p class="empty-hint">
         Las variantes se crean automáticamente (Just-in-Time) cuando se añaden a una orden,
         o puedes generarlas manualmente según las combinaciones de atributos disponibles.
       </p>
       <button class="btn btn-primary" @click="openBatchCreator">
-        <span class="material-symbols-outlined" style="font-size: 16px">bolt</span>
+        <Bolt :size="16" />
         Generar variantes
       </button>
     </div>
@@ -100,7 +100,7 @@
                   class="btn-icon"
                   title="Editar variante"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 18px">edit</span>
+                  <Edit2 :size="18" />
                 </button>
                 <button 
                   @click="toggleVariantStatus(variant)" 
@@ -108,7 +108,7 @@
                   :title="variant.is_active ? 'Desactivar' : 'Activar'"
                   :class="{ 'text-warning': variant.is_active }"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 18px">{{ variant.is_active ? 'block' : 'check_circle' }}</span>
+                  <component :is="variant.is_active ? Ban : CheckCircle2" :size="18" />
                 </button>
               </div>
             </td>
@@ -146,8 +146,10 @@
 </template>
 
 <script setup>
+import { Plus, RefreshCw, Package, Bolt, Edit2, Ban, CheckCircle2 } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 import VariantFormModal from './VariantFormModal.vue'
 import VariantBatchCreator from './VariantBatchCreator.vue'
 
@@ -171,6 +173,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['refresh'])
+const toastStore = useToastStore()
 
 // State
 const showVariantForm = ref(false)
@@ -239,19 +242,21 @@ async function toggleVariantStatus(variant) {
     await productApi.updateVariant(variant.id, {
       is_active: !variant.is_active
     })
+    toastStore.addToast(`Variante ${variant.sku} ${variant.is_active ? 'desactivada' : 'activada'} correctamente`, 'info')
     emit('refresh')
   } catch (err) {
-    alert(`Error al ${action} la variante: ` + err.message)
+    toastStore.addToast(`Error al ${action} la variante: ` + err.message, 'error')
   }
 }
 
 function handleBatchCreated(result) {
   console.log('Batch created:', result)
   if (result.created && result.created.length > 0) {
-    alert(`✅ Se crearon ${result.created.length} variante(s) exitosamente`)
+    toastStore.addToast(`Se crearon ${result.created.length} variante(s) exitosamente`, 'success')
   }
   if (result.errors && result.errors.length > 0) {
     console.error('Errors creating variants:', result.errors)
+    toastStore.addToast('Hubo errores al crear algunas variantes', 'warning')
   }
   emit('refresh')
 }

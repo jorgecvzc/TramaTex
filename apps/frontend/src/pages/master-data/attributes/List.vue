@@ -90,7 +90,9 @@ import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import AttributeForm from '@/components/master-data/AttributeForm.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
+const toastStore = useToastStore()
 const attributes = ref([])
 const allAttributes = ref([])
 const isLoading = ref(false)
@@ -141,14 +143,14 @@ async function handleSubmit(payload) {
     if (modalMode.value === 'create') await productApi.createAttribute(payload);
     else await productApi.updateAttribute(payload.id, payload);
     closeModal(); await loadAttributes();
-  } catch (err) { alert(err.message); } finally { isSaving.value = false; }
+  } catch (err) { toastStore.addToast(err.message, 'error'); } finally { isSaving.value = false; }
 }
 
 async function deleteAttribute() {
   if (!attributeToDelete.value) return;
   isDeleting.value = true;
   try { await productApi.deleteAttribute(attributeToDelete.value.id); await loadAttributes(); showDeleteModal.value = false; }
-  catch (err) { alert(err.message); } finally { isDeleting.value = false; }
+  catch (err) { toastStore.addToast(err.message, 'error'); } finally { isDeleting.value = false; }
 }
 
 onMounted(() => loadAttributes())

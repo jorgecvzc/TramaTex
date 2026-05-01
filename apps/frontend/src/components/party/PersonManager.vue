@@ -148,20 +148,20 @@
           <div class="person-info">
             <h4>{{ person.first_name }} {{ person.last_name }}</h4>
             <p class="email">
-              <span class="material-symbols-outlined icon-sm">mail</span>
+              <Mail :size="16" class="icon-sm" />
               {{ person.email }}
             </p>
             <p v-if="person.phone" class="phone">
-              <span class="material-symbols-outlined icon-sm">call</span>
+              <Phone :size="16" class="icon-sm" />
               {{ person.phone }}
             </p>
             <button v-if="editingJobTitleId !== person.id" type="button" class="editable-chip" @click="startEditJobTitle(person)" :title="person.job_title ? 'Clic para editar cargo' : 'Clic para añadir cargo'">
-              <span class="material-symbols-outlined chip-icon">work</span>
+              <Briefcase :size="16" class="chip-icon" />
               <span :class="person.job_title ? '' : 'chip-placeholder'">{{ person.job_title || 'Añadir cargo...' }}</span>
-              <span class="material-symbols-outlined chip-edit">edit</span>
+              <Edit2 :size="14" class="chip-edit" />
             </button>
             <div v-else class="inline-edit">
-              <span class="material-symbols-outlined chip-icon">work</span>
+              <Briefcase :size="16" class="chip-icon" />
               <input
                 ref="jobTitleInput"
                 v-model="editingJobTitleValue"
@@ -184,7 +184,7 @@
                 @click="navigateToContact(person.id)"
                 title="Ver detalles"
               >
-                <span class="material-symbols-outlined">visibility</span>
+                <Eye :size="18" />
               </button>
               <button
                 type="button"
@@ -193,7 +193,7 @@
                 @click="handleRemoveContact(person)"
                 title="Eliminar"
               >
-                <span class="material-symbols-outlined">delete</span>
+                <Trash2 :size="18" />
               </button>
             </div>
           </div>
@@ -216,6 +216,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch, nextTick } from 'vue';
+import { Mail, Phone, Briefcase, Edit2, Eye, Trash2 } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
 

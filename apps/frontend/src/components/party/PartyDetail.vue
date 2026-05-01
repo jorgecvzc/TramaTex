@@ -15,7 +15,7 @@
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="24" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -34,18 +34,18 @@
         show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">{{ (party?.has_person || formData.hasPerson) ? 'person' : 'domain' }}</span>
+          <component :is="(party?.has_person || formData.hasPerson) ? User : Building2" :size="28" />
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
             <button class="btn btn-primary btn-sm" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
+              <Edit2 :size="18" /> <span>Editar</span>
             </button>
           </template>
           <template v-else>
             <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
             <button class="btn btn-primary btn-sm" @click="saveParty" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
               <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
             </button>
           </template>
@@ -64,11 +64,11 @@
         </div>
         <div class="toolbar-buttons">
           <button class="btn btn-outline btn-sm" @click="toggleStatus">
-            <span class="material-symbols-outlined">{{ party.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
+            <component :is="party.status === 'ACTIVE' ? Ban : CheckCircle2" :size="18" />
             <span>{{ party.status === 'ACTIVE' ? 'Desactivar' : 'Activar' }}</span>
           </button>
           <button v-if="party.can_delete" class="btn btn-outline btn-sm btn-danger" @click="deletePartyConfirm">
-            <span class="material-symbols-outlined">delete</span>
+            <Trash2 :size="18" />
             <span>Eliminar</span>
           </button>
         </div>
@@ -79,15 +79,15 @@
     <template #summary v-if="mode === 'detail' && party">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">fingerprint</span></div>
+          <div class="icon blue"><Fingerprint :size="20" /></div>
           <div class="tag-content"><label>Identificación</label><strong>{{ party.tax_id || 'Sin NIF/CIF' }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">percent</span></div>
+          <div class="icon green"><Percent :size="20" /></div>
           <div class="tag-content"><label>Dto. Comercial</label><strong>{{ party.default_discount_percentage || 0 }}%</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon purple"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Alta</label><strong>{{ formatDate(party.created_at) }}</strong></div>
         </div>
       </div>
@@ -97,22 +97,22 @@
     <template #related v-if="mode === 'detail' && party?.role === 'CONTACT' && relatedEntities.length > 0">
       <div class="related-history-grid">
         <router-link v-for="entity in relatedEntities" :key="entity.id" :to="`/parties/${entity.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">{{ entity.role === 'SUPPLIER' ? 'factory' : 'person' }}</span></div>
+          <div class="tag-icon"><component :is="entity.role === 'SUPPLIER' ? Factory : User" :size="20" /></div>
           <div class="tag-content">
             <label>Empresa Vinculada</label>
             <strong>{{ entity.name }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="18" class="jump-icon" />
         </router-link>
       </div>
     </template>
 
     <!-- 5. MAIN CONTENT -->
-    <FormSection title="Información Básica" icon="info">
+    <FormSection title="Información Básica" :icon="Info">
       <div v-if="mode === 'detail'">
-        <DataRow label="Nombre / Razón Social" :value="party?.name" icon="person" />
-        <DataRow label="Tipo de Entidad" :value="party?.has_person ? 'Persona Física' : 'Organización / Empresa'" icon="category" />
-        <DataRow label="Identificación Fiscal" icon="fingerprint">
+        <DataRow label="Nombre / Razón Social" :value="party?.name" :icon="User" />
+        <DataRow label="Tipo de Entidad" :value="party?.has_person ? 'Persona Física' : 'Organización / Empresa'" :icon="Layers" />
+        <DataRow label="Identificación Fiscal" :icon="Fingerprint">
           <code class="code-badge">{{ party?.tax_id || 'No proporcionado' }}</code>
           <span class="text-xs text-muted ml-2">({{ party?.tax_id_type || 'NIF' }})</span>
         </DataRow>
@@ -150,14 +150,14 @@
       </div>
     </FormSection>
 
-    <FormSection title="Datos de Contacto" icon="contact_mail">
+    <FormSection title="Datos de Contacto" :icon="Contact">
       <div v-if="mode === 'detail'">
-        <DataRow label="Teléfono" :value="party?.phone" icon="call" />
-        <DataRow label="Email" icon="mail">
+        <DataRow label="Teléfono" :value="party?.phone" :icon="Phone" />
+        <DataRow label="Email" :icon="Mail">
           <a v-if="party?.email" :href="`mailto:${party.email}`" class="link-primary">{{ party.email }}</a>
           <span v-else>—</span>
         </DataRow>
-        <DataRow label="Sitio Web" icon="language">
+        <DataRow label="Sitio Web" :icon="Globe">
           <a v-if="party?.website" :href="party.website" target="_blank" class="link-primary">{{ party.website }}</a>
           <span v-else>—</span>
         </DataRow>
@@ -180,13 +180,13 @@
       </div>
     </FormSection>
 
-    <FormSection title="Configuración Comercial" icon="settings_suggest">
+    <FormSection title="Configuración Comercial" :icon="Settings">
       <div v-if="mode === 'detail'">
-        <DataRow label="Descuento Comercial" icon="percent">
+        <DataRow label="Descuento Comercial" :icon="Percent">
           <strong class="text-primary" style="font-size: 1.25rem">{{ party?.default_discount_percentage || 0 }}%</strong>
           <span class="text-xs text-muted ml-2">Aplicado por defecto en ventas</span>
         </DataRow>
-        <DataRow label="Observaciones Internas" icon="notes">
+        <DataRow label="Observaciones Internas" :icon="FileText">
           <p class="notes-text">{{ party?.notes || 'Sin observaciones.' }}</p>
         </DataRow>
       </div>
@@ -221,6 +221,11 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { 
+  AlertCircle, User, Building2, Edit2, RefreshCw, Save, Ban, CheckCircle2, 
+  Trash2, Fingerprint, Percent, Calendar, Factory, ExternalLink, 
+  Phone, Mail, Globe, Info, Layers, Contact, Settings, FileText 
+} from 'lucide-vue-next';
 import { useRoute, useRouter } from 'vue-router';
 import { partyApi } from '@/services/partyApi';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
@@ -230,8 +235,11 @@ import DataRow from '@/components/shared/DataRow.vue';
 import PersonManager from './PersonManager.vue';
 import AddressManager from './AddressManager.vue';
 
+import { useToastStore } from '@/stores/toast';
+
 const route = useRoute();
 const router = useRouter();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const isLoading = ref(true);
@@ -313,8 +321,12 @@ function exitEditMode() {
 }
 
 async function saveParty() {
-  if (!formData.name) { alert('El nombre es obligatorio'); return; }
-  isSaving.value = true;
+  if (!formData.name) {
+    toastStore.addToast('El nombre de la entidad es obligatorio', 'warning')
+    return
+  }
+  
+  isSaving.value = true
   try {
     const payload = { 
       ...formData, 
@@ -322,34 +334,45 @@ async function saveParty() {
       has_person: formData.hasPerson,
       tax_id: formData.taxId,
       tax_id_type: formData.taxIdType
-    };
+    }
 
     if (mode.value === 'create') {
-      const newParty = await partyApi.createParty(payload);
-      await router.push(`/parties/${newParty.id}`);
+      const newParty = await partyApi.createParty(payload)
+      toastStore.addToast('Entidad creada con éxito', 'success')
+      await router.push(`/parties/${newParty.id}`)
     } else {
-      await partyApi.updateParty(party.value.id, payload);
-      await fetchParty();
-      mode.value = 'detail';
+      await partyApi.updateParty(party.value.id, payload)
+      toastStore.addToast('Cambios guardados correctamente', 'success')
+      await fetchParty()
+      mode.value = 'detail'
     }
-  } catch (err) { alert('Error al guardar: ' + err.message); }
-  finally { isSaving.value = false; }
+  } catch (err) {
+    toastStore.addToast('Error al guardar: ' + err.message, 'error')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 async function toggleStatus() {
-  const newStatus = party.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  const newStatus = party.value.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
   try {
-    const updated = await partyApi.changePartyStatus(party.value.id, newStatus);
-    party.value = updated;
-  } catch (err) { alert(err.message); }
+    const updated = await partyApi.changePartyStatus(party.value.id, newStatus)
+    party.value = updated
+    toastStore.addToast(`Entidad ${newStatus === 'ACTIVE' ? 'activada' : 'desactivada'} correctamente`, 'info')
+  } catch (err) {
+    toastStore.addToast(err.message, 'error')
+  }
 }
 
 async function deletePartyConfirm() {
-  if (!confirm(`¿Eliminar "${party.value.name}"? Esta acción no se puede deshacer.`)) return;
+  if (!confirm(`¿Eliminar "${party.value.name}"? Esta acción no se puede deshacer.`)) return
   try {
-    await partyApi.deleteParty(party.value.id);
-    router.push('/parties');
-  } catch (err) { alert('No se pudo eliminar: ' + (err?.message || 'Error desconocido')); }
+    await partyApi.deleteParty(party.value.id)
+    toastStore.addToast('Entidad eliminada permanentemente', 'success')
+    router.push('/parties')
+  } catch (err) {
+    toastStore.addToast('No se pudo eliminar: ' + (err?.message || 'Error desconocido'), 'error')
+  }
 }
 
 function formatRole(r) { const map = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Cliente/Prov.', CONTACT: 'Contacto' }; return map[r] || r; }

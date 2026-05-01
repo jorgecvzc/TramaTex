@@ -141,7 +141,9 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
+const toastStore = useToastStore()
 const allGroups = ref([])
 const isLoading = ref(false)
 const error = ref('')
@@ -216,14 +218,14 @@ async function saveGroup() {
     if (modalMode.value === 'create') await productApi.createProductGroup(payload);
     else await productApi.updateProductGroup(currentGroup.value.id, payload);
     showModal.value = false; await loadGroups();
-  } catch (err) { alert(err.message); } finally { isSaving.value = false }
+  } catch (err) { toastStore.addToast(err.message, 'error'); } finally { isSaving.value = false }
 }
 
 async function toggleActive(group) {
   try {
     await productApi.updateProductGroup(group.id, { isActive: !group.is_active });
     await loadGroups();
-  } catch (err) { alert(err.message); }
+  } catch (err) { toastStore.addToast(err.message, 'error'); }
 }
 
 function confirmDelete(group) { 
@@ -238,7 +240,7 @@ async function deleteGroup() {
     await loadGroups(); 
     showDeleteConfirm.value = false;
   } catch (err) { 
-    alert('No se puede eliminar: ' + (err.message || 'La categoría tiene productos asociados.')); 
+    toastStore.addToast('No se puede eliminar: ' + (err.message || 'La categoría tiene productos asociados.'), 'error'); 
   }
 }
 

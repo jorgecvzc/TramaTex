@@ -11,6 +11,7 @@
     </div>
   </template>
   <RouterView v-else />
+  <ToastContainer />
 </template>
 
 <script setup>
@@ -18,6 +19,7 @@ import { computed } from 'vue'
 import { useRoute, RouterView } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import SideNavbar from '@/components/layout/SideNavbar.vue'
+import ToastContainer from '@/components/shared/ToastContainer.vue'
 
 const route = useRoute()
 const showAppChrome = computed(() => route.path !== '/login')

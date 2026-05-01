@@ -7,7 +7,7 @@
           <span class="logo-text">TramaTex</span>
         </div>
         <button class="close-button" @click="$emit('close')">
-          <span class="material-symbols-outlined">close</span>
+          <X :size="24" />
         </button>
       </header>
 
@@ -15,7 +15,7 @@
         <!-- SECCIÓN: VENTAS -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">payments</span>
+            <CreditCard :size="20" class="section-icon" />
             Ventas
           </h3>
           <div class="section-links">
@@ -30,7 +30,7 @@
         <!-- SECCIÓN: PRODUCCIÓN -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <Factory :size="20" class="section-icon" />
             Producción
           </h3>
           <div class="section-links">
@@ -44,7 +44,7 @@
         <!-- SECCIÓN: ENTIDADES -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">groups</span>
+            <Users :size="20" class="section-icon" />
             Entidades
           </h3>
           <div class="section-links">
@@ -57,7 +57,7 @@
         <!-- SECCIÓN: CATÁLOGO (Movida aquí) -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">inventory_2</span>
+            <Package :size="20" class="section-icon" />
             Catálogo
           </h3>
           <div class="section-links">
@@ -71,7 +71,7 @@
         <!-- SECCIÓN: ADMINISTRACIÓN -->
         <section v-if="isAdmin" class="launcher-section admin-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <ShieldCheck :size="20" class="section-icon" />
             Sistema
           </h3>
           <div class="section-links">
@@ -92,6 +92,14 @@
 <script setup>
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { 
+  X, 
+  CreditCard, 
+  Factory, 
+  Users, 
+  Package, 
+  ShieldCheck 
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
@@ -242,9 +250,8 @@ watch(() => props.isOpen, (val) => {
   border-bottom: 2px solid var(--color-background);
 }
 
-.section-title .material-symbols-outlined {
+.section-icon {
   color: var(--color-info);
-  font-size: 1.25rem;
 }
 
 .section-links {
@@ -268,7 +275,7 @@ watch(() => props.isOpen, (val) => {
   padding-left: 1rem;
 }
 
-.admin-section .section-title .material-symbols-outlined {
+.admin-section .section-icon {
   color: var(--color-primary);
 }
 

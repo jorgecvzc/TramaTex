@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { ChevronRight, ArrowLeft } from 'lucide-vue-next'
 
 interface Breadcrumb {
   label: string
@@ -28,7 +29,7 @@ function goBack() {
         <ol class="breadcrumb-list">
           <li v-for="(item, index) in breadcrumbs" :key="index" class="breadcrumb-item">
             <template v-if="index > 0">
-              <span class="material-symbols-outlined breadcrumb-separator">chevron_right</span>
+              <ChevronRight class="breadcrumb-separator" :size="14" />
             </template>
             
             <RouterLink v-if="item.to" :to="item.to" class="breadcrumb-link">
@@ -48,7 +49,7 @@ function goBack() {
             class="back-button" 
             title="Volver"
           >
-            <span class="material-symbols-outlined">arrow_back</span>
+            <ArrowLeft :size="20" />
           </button>
           
           <div class="title-container">

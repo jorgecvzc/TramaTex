@@ -107,8 +107,10 @@ import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { MESPosition } from '@/types/mes'
 
+const toastStore = useToastStore()
 const positions = ref<MESPosition[]>([])
 const isLoading = ref(false)
 const isSaving = ref(false)
@@ -158,13 +160,13 @@ async function savePosition() {
     if (modalMode.value === 'create') await mesApi.createPosition(formData)
     else await mesApi.updatePosition(selectedPositionId.value!, formData)
     showModal.value = false; await loadPositions()
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.addToast(err.message, 'error') }
   finally { isSaving.value = false }
 }
 
 async function toggleActive(item: MESPosition) {
   try { await mesApi.updatePosition(item.id, { is_active: !item.is_active }); await loadPositions() }
-  catch (err: any) { alert(err.message) }
+  catch (err: any) { toastStore.addToast(err.message, 'error') }
 }
 
 function clearFilters() { filters.search = ''; filters.isActive = ''; }

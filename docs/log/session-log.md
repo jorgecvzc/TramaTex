@@ -4,7 +4,28 @@
 # SESIONES ABIERTAS
 ---
 
-_No hay sesiones abiertas actualmente._
+## Unificación UI/UX — Fase 1: Fundamentos y Estilos Base
+- **Session ID:** `post-mvp-01-ui-ux-unification-phase-1`
+- **Status:** En Progreso
+- **Sprint:** Sprint 19
+- **Started:** 2026-05-01
+- **Contexto:** Inicio del Post-MVP 1. Instalación de Lucide Icons, definición de estilos base industriales y normalización de documentación de Sprints.
+- **Próximos Pasos (Pendientes para la siguiente sesión):**
+    - [x] Instalar `lucide-vue-next` en el frontend.
+    - [x] Crear `_dashboards.css` in `apps/frontend/src/design-system/`.
+    - [x] Importar los nuevos estilos en `main.js` (vía theme.css).
+    - [x] Auditar y crear README.md de resumen para Sprints 16, 17, 18 y 19.
+    - [x] Investigar/Fix test fallido preexistente en `PartyForm.test.ts`.
+    - [x] Tarea 02: Implementación de Toasts y Feedback Crítico (Migración exhaustiva de `alert()`).
+    - [x] Migración exhaustiva de Google Material Symbols a Lucide Icons.
+    - [ ] **URGENTE:** Fix en `product-groups/List.vue` - No muestra error/toast al intentar guardar una nueva categoría con el nombre en blanco.
+    - [ ] **URGENTE:** Auditoría final definitiva de `alert()` y `material-symbols-outlined` para cerrar Fase 1.
+    - [ ] Tarea 03: Navegación Core (Lógica de teclado en listados).
+    - [ ] Tarea 04: Skeletons Industriales para estados de carga.
+- **Archivos de Contexto:**
+    - `docs/post-mvp/01-ui-ux-unification-master-plan.md`
+    - `docs/log/sprints/sprint-19/01-fundamentos-y-estilos-base-ui-ux.md`
+    - `apps/frontend/src/main.js`
 
 ---
 # REGISTRO DE SESIONES CERRADAS

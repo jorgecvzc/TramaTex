@@ -6,11 +6,14 @@
  */
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { User, Building2, Ban, CheckCircle2, Trash2 } from 'lucide-vue-next'
 import { partyApi } from '@/services/partyApi'
+import { useToastStore } from '@/stores/toast'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 
 const router = useRouter()
 const route = useRoute()
+const toastStore = useToastStore()
 const parties = ref<any[]>([])
 const isLoading = ref(false)
 const error = ref('')
@@ -87,8 +90,9 @@ async function toggleStatus(party: any) {
   try { 
     await partyApi.changePartyStatus(party.id, newStatus)
     party.status = newStatus 
+    toastStore.success(`Estado de "${party.name}" cambiado a ${getStatusLabel(newStatus)}`)
   } catch (err: any) {
-    alert('Error al cambiar estado: ' + err.message)
+    toastStore.error('Error al cambiar estado: ' + err.message)
   }
 }
 
@@ -96,9 +100,10 @@ async function deleteParty(party: any) {
   if (!confirm(`¿Eliminar "${party.name}"? Esta acción no se puede deshacer.`)) return
   try {
     await partyApi.deleteParty(party.id)
+    toastStore.success(`Entidad "${party.name}" eliminada correctamente`)
     await fetchParties()
   } catch (err: any) {
-    alert('No se pudo eliminar la entidad: ' + (err.message || 'Error desconocido'))
+    toastStore.error('No se pudo eliminar la entidad: ' + (err.message || 'Error desconocido'))
   }
 }
 
@@ -165,7 +170,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
       <td><strong class="font-bold">{{ item.name }}</strong></td>
       <td>
         <div class="type-info">
-          <span class="material-symbols-outlined icon-secondary">{{ item.has_person ? 'person' : 'domain' }}</span>
+          <component :is="item.has_person ? User : Building2" class="icon-secondary" :size="18" />
           <span>{{ item.has_person ? 'Persona' : 'Organización' }}</span>
         </div>
       </td>
@@ -184,7 +189,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
             @click="toggleStatus(item)" 
             :title="item.status === 'ACTIVE' ? 'Desactivar' : 'Activar'"
           >
-            <span class="material-symbols-outlined">{{ item.status === 'ACTIVE' ? 'block' : 'check_circle' }}</span>
+            <component :is="item.status === 'ACTIVE' ? Ban : CheckCircle2" :size="18" />
           </button>
           <button 
             v-if="item.can_delete"
@@ -192,7 +197,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
             @click.stop="deleteParty(item)"
             title="Eliminar entidad"
           >
-            <span class="material-symbols-outlined">delete</span>
+            <Trash2 :size="18" />
           </button>
         </div>
       </td>

@@ -148,8 +148,10 @@ import { useRouter } from 'vue-router'
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const currentStep = ref(1)
 const isSubmitting = ref(false)
 
@@ -202,9 +204,10 @@ async function createProduct() {
   isSubmitting.value = true
   try {
     const res = await productApi.createProduct(formData)
+    toastStore.success(`Producto "${formData.name}" creado correctamente`)
     router.push(`/products/${res.id}`)
-  } catch (err) {
-    alert(err.message || 'Error al crear el producto')
+  } catch (err: any) {
+    toastStore.error(err.message || 'Error al crear el producto')
   } finally {
     isSubmitting.value = false
   }

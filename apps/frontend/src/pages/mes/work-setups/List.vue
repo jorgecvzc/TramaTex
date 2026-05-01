@@ -76,9 +76,11 @@ import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { WorkSetup } from '@/types/mes'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const setups = ref<WorkSetup[]>([])
 const isLoading = ref(false)
 const error = ref('')
@@ -113,9 +115,10 @@ async function loadSetups() {
 async function toggleActive(setup: WorkSetup) {
   try {
     await mesApi.updateWorkSetup(setup.id, { is_active: !setup.is_active })
+    toastStore.addToast(`Configuración ${setup.is_active ? 'desactivada' : 'activada'} correctamente`, 'info')
     await loadSetups()
   } catch (err: any) {
-    alert(err.message)
+    toastStore.addToast(err.message, 'error')
   }
 }
 

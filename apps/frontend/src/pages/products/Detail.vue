@@ -16,7 +16,7 @@
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="32" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -37,22 +37,22 @@
         >
 
           <template #icon>
-            <span class="material-symbols-outlined">{{ (product?.product_type === 'SERVICE' || formData.productType === 'SERVICE') ? 'precision_manufacturing' : 'inventory_2' }}</span>
+            <component :is="(product?.product_type === 'SERVICE' || formData.productType === 'SERVICE') ? Cpu : Package" :size="28" />
           </template>
           <template #actions>
             <template v-if="mode === 'detail'">
               <button class="btn btn-primary" @click="enterEditMode">
-                <span class="material-symbols-outlined">edit</span> <span>Editar Producto</span>
+                <Pencil :size="18" /> <span>Editar Producto</span>
               </button>
             </template>
             <template v-else>
               <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
-                <span class="material-symbols-outlined">close</span>
+                <X :size="18" />
                 <span>Cancelar</span>
               </button>
               <button class="btn btn-secondary" @click="saveProduct" :disabled="isSaving">
-                <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-                <span>{{ isSaving ? 'Guardar Producto' : 'Guardar Producto' }}</span>
+                <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
+                <span>Guardar Producto</span>
               </button>
             </template>
           </template>
@@ -66,7 +66,7 @@
             @click="activeTab = tab.id"
             :class="['tab-btn', { active: activeTab === tab.id }]"
           >
-            <span class="material-symbols-outlined">{{ tab.icon }}</span>
+            <component :is="tab.icon" :size="18" />
             <span>{{ tab.label }}</span>
             <span v-if="tab.count !== undefined" class="tab-badge">{{ tab.count }}</span>
           </button>
@@ -78,19 +78,19 @@
     <template #summary v-if="mode !== 'create' && product">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon blue"><Banknote :size="20" /></div>
           <div class="tag-content"><label>Precio Base</label><strong>{{ formatPrice(product.base_price) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">layers</span></div>
+          <div class="icon green"><Layers :size="20" /></div>
           <div class="tag-content"><label>Variantes</label><strong>{{ variants.length }} activas</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">category</span></div>
+          <div class="icon purple"><Tag :size="20" /></div>
           <div class="tag-content"><label>Marca</label><strong>{{ brand?.name || 'Genérica' }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">verified</span></div>
+          <div class="icon yellow"><BadgeCheck :size="20" /></div>
           <div class="tag-content">
             <label>Estado</label>
             <strong :class="product.is_active ? 'text-success' : 'text-secondary'">{{ product.is_active ? 'Activo' : 'Inactivo' }}</strong>
@@ -249,6 +249,23 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { 
+  AlertCircle, 
+  Cpu, 
+  Package, 
+  Pencil, 
+  X, 
+  RefreshCw, 
+  Save, 
+  FileText, 
+  Layers, 
+  Settings2, 
+  Banknote, 
+  Tag, 
+  BadgeCheck, 
+  Fingerprint, 
+  PlusSquare 
+} from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
@@ -257,9 +274,11 @@ import VariantTable from '@/components/product/VariantTable.vue';
 import AttributesPanel from '@/components/product/AttributesPanel.vue';
 import PricingPanel from '@/components/product/PricingPanel.vue';
 import { productApi } from '@/services/productApi';
+import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
 const route = useRoute();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const activeTab = ref('info');
@@ -285,12 +304,12 @@ const formData = reactive({
 });
 
 const availableTabs = computed(() => {
-  if (mode.value === 'create') return [{ id: 'info', label: 'Alta de Producto', icon: 'add_box' }];
+  if (mode.value === 'create') return [{ id: 'info', label: 'Alta de Producto', icon: PlusSquare }];
   return [
-    { id: 'info', label: 'Ficha Técnica', icon: 'description' },
-    { id: 'variants', label: 'Variantes (JIT)', icon: 'layers', count: variants.value.length },
-    { id: 'attributes', label: 'Matriz Atributos', icon: 'settings_input_component' },
-    { id: 'pricing', label: 'Precios y Costes', icon: 'payments' }
+    { id: 'info', label: 'Ficha Técnica', icon: FileText },
+    { id: 'variants', label: 'Variantes (JIT)', icon: Layers, count: variants.value.length },
+    { id: 'attributes', label: 'Matriz Atributos', icon: Settings2 },
+    { id: 'pricing', label: 'Precios y Costes', icon: Banknote }
   ];
 });
 
@@ -375,8 +394,12 @@ function exitEditMode() {
 }
 
 async function saveProduct() {
-  if (!formData.name || !formData.sku) { alert('Nombre y SKU son obligatorios'); return; }
-  isSaving.value = true;
+  if (!formData.name || !formData.sku) {
+    toastStore.addToast('El nombre y el SKU son obligatorios', 'warning')
+    return
+  }
+  
+  isSaving.value = true
   try {
     const payload = {
       name: formData.name, sku: formData.sku, long_name: formData.longName,
@@ -389,14 +412,19 @@ async function saveProduct() {
 
     if (mode.value === 'create') {
       const newProd = await productApi.createProduct(payload);
+      toastStore.addToast('Producto creado exitosamente', 'success')
       await router.push(`/products/${newProd.id}`);
     } else {
       await productApi.updateProduct(product.value.id, payload);
+      toastStore.addToast('Ficha técnica actualizada correctamente', 'success')
       await fetchProduct();
       mode.value = 'detail';
     }
-  } catch (err) { alert('Error al guardar: ' + err.message); }
-  finally { isSaving.value = false; }
+  } catch (err) {
+    toastStore.addToast('Error al guardar: ' + err.message, 'error')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 function formatPrice(v) { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v || 0); }

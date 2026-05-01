@@ -13,7 +13,7 @@
       </div>
       <div class="header-actions">
         <button @click="loadStats" class="btn-refresh" :disabled="isLoading" title="Actualizar datos">
-          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">sync</span>
+          <RefreshCw :size="20" :class="{ 'spin': isLoading }" />
         </button>
       </div>
     </header>
@@ -21,28 +21,28 @@
     <!-- KPIs INTERACTIVOS -->
     <section class="kpi-grid section-spacing">
       <div class="kpi-card clickable" @click="navigateTo('/sales/dashboard')">
-        <div class="kpi-icon blue"><span class="material-symbols-outlined">payments</span></div>
+        <div class="kpi-icon blue"><CreditCard :size="24" /></div>
         <div class="kpi-data">
           <label>Ventas Mes</label>
           <strong>{{ salesStats.monthlyTotal }}</strong>
         </div>
       </div>
       <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDING')">
-        <div class="kpi-icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
+        <div class="kpi-icon green"><ShoppingCart :size="24" /></div>
         <div class="kpi-data">
           <label>Pedidos Pendientes</label>
           <strong>{{ salesStats.pendingOrders }}</strong>
         </div>
       </div>
       <div class="kpi-card clickable" @click="navigateTo('/mes/work-orders?status=IN_PROGRESS')">
-        <div class="kpi-icon yellow"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+        <div class="kpi-icon yellow"><Cpu :size="24" /></div>
         <div class="kpi-data">
           <label>Órdenes en Taller</label>
           <strong>{{ mesStats.activeWorkOrders }}</strong>
         </div>
       </div>
       <div class="kpi-card clickable" @click="navigateTo('/parties')">
-        <div class="kpi-icon purple"><span class="material-symbols-outlined">groups</span></div>
+        <div class="kpi-icon purple"><Users :size="24" /></div>
         <div class="kpi-data">
           <label>Entidades</label>
           <strong>{{ partyStats.totalParties }}</strong>
@@ -56,25 +56,25 @@
         <!-- ACCESOS DIRECTOS -->
         <section class="ops-section section-block">
           <div class="section-title-alt">
-            <span class="material-symbols-outlined">rocket_launch</span>
+            <Rocket :size="18" />
             <h2>Accesos Directos</h2>
             <span class="section-tag">Atajos de operación</span>
           </div>
           <div class="ops-grid">
             <RouterLink to="/sales/orders/new" class="op-item">
-              <div class="op-icon"><span class="material-symbols-outlined">add_shopping_cart</span></div>
+              <div class="op-icon"><ShoppingCart :size="28" /></div>
               <span>Nuevo Pedido</span>
             </RouterLink>
             <RouterLink to="/sales/tickets/new" class="op-item highlight">
-              <div class="op-icon"><span class="material-symbols-outlined">point_of_sale</span></div>
+              <div class="op-icon"><Receipt :size="28" /></div>
               <span>Venta Directa</span>
             </RouterLink>
             <RouterLink to="/products/new" class="op-item">
-              <div class="op-icon"><span class="material-symbols-outlined">add_box</span></div>
+              <div class="op-icon"><PlusSquare :size="28" /></div>
               <span>Nuevo Producto</span>
             </RouterLink>
             <RouterLink to="/parties/new" class="op-item">
-              <div class="op-icon"><span class="material-symbols-outlined">person_add</span></div>
+              <div class="op-icon"><UserPlus :size="28" /></div>
               <span>Nueva Entidad</span>
             </RouterLink>
           </div>
@@ -83,42 +83,42 @@
         <!-- DASHBOARDS DE MÓDULO -->
         <section class="modules-section section-block">
           <div class="section-title-alt">
-            <span class="material-symbols-outlined">grid_view</span>
+            <LayoutGrid :size="18" />
             <h2>Módulos Principales</h2>
             <span class="section-tag">Gestión por dominio</span>
           </div>
           <div class="modules-grid">
             <RouterLink to="/sales/dashboard" class="module-link-card">
-              <div class="m-icon blue"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+              <div class="m-icon blue"><Wallet :size="22" /></div>
               <div class="m-info">
                 <strong>Ventas</strong>
                 <p>Gestión de presupuestos, pedidos y facturación.</p>
               </div>
-              <span class="material-symbols-outlined arrow">chevron_right</span>
+              <ChevronRight class="arrow" :size="18" />
             </RouterLink>
             <RouterLink to="/products/dashboard" class="module-link-card">
-              <div class="m-icon yellow"><span class="material-symbols-outlined">inventory_2</span></div>
+              <div class="m-icon yellow"><Package :size="22" /></div>
               <div class="m-info">
                 <strong>Catálogo</strong>
                 <p>Control de productos, stock y atributos.</p>
               </div>
-              <span class="material-symbols-outlined arrow">chevron_right</span>
+              <ChevronRight class="arrow" :size="18" />
             </RouterLink>
             <RouterLink to="/parties/dashboard" class="module-link-card">
-              <div class="m-icon green"><span class="material-symbols-outlined">groups</span></div>
+              <div class="m-icon green"><Users :size="22" /></div>
               <div class="m-info">
                 <strong>Entidades</strong>
                 <p>Base de datos de clientes y proveedores.</p>
               </div>
-              <span class="material-symbols-outlined arrow">chevron_right</span>
+              <ChevronRight class="arrow" :size="18" />
             </RouterLink>
             <RouterLink to="/mes/dashboard" class="module-link-card">
-              <div class="m-icon purple"><span class="material-symbols-outlined">precision_manufacturing</span></div>
+              <div class="m-icon purple"><Cpu :size="22" /></div>
               <div class="m-info">
                 <strong>Taller (MES)</strong>
                 <p>Monitorización de producción y órdenes de trabajo.</p>
               </div>
-              <span class="material-symbols-outlined arrow">chevron_right</span>
+              <ChevronRight class="arrow" :size="18" />
             </RouterLink>
           </div>
         </section>
@@ -128,21 +128,21 @@
       <aside class="side-column">
         <section v-if="isAdmin" class="card admin-side-card section-block sticky-admin">
           <div class="ops-header">
-            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <ShieldCheck :size="18" />
             <h2>Sistema</h2>
             <span class="section-tag">Administración</span>
           </div>
           <div class="side-links">
             <RouterLink to="/admin/users" class="side-link-item">
-              <span class="material-symbols-outlined">manage_accounts</span>
+              <UserCog :size="20" />
               <span>Gestión de Usuarios</span>
             </RouterLink>
             <RouterLink to="/admin/print-profile" class="side-link-item mt-2">
-              <span class="material-symbols-outlined">receipt_long</span>
+              <Receipt :size="20" />
               <span>Perfil de Impresión</span>
             </RouterLink>
             <RouterLink to="/dev/design-system" class="side-link-item mt-2 dev-link">
-              <span class="material-symbols-outlined">architecture</span>
+              <Palette :size="20" />
               <span>Design System</span>
             </RouterLink>
           </div>
@@ -155,6 +155,24 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { 
+  RefreshCw, 
+  CreditCard, 
+  ShoppingCart, 
+  Cpu, 
+  Users, 
+  Rocket, 
+  Receipt, 
+  PlusSquare, 
+  UserPlus, 
+  LayoutGrid, 
+  Wallet, 
+  Package, 
+  ChevronRight, 
+  ShieldCheck, 
+  UserCog, 
+  Palette 
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import salesApi from '@/services/salesApi'
 import { mesApi } from '@/services/mesApi'

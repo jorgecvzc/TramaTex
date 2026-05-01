@@ -81,9 +81,11 @@ import { onMounted, ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { MESWorkType } from '@/types/mes'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const workTypes = ref<MESWorkType[]>([])
 const isLoading = ref(false)
 const error = ref('')
@@ -118,7 +120,7 @@ async function toggleActive(item: MESWorkType) {
     await mesApi.updateWorkType(item.id, { is_active: !item.is_active })
     await loadWorkTypes()
   } catch (err: any) {
-    alert(err.message)
+    toastStore.addToast(err.message, 'error')
   }
 }
 

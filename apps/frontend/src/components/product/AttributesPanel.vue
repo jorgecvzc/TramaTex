@@ -8,7 +8,7 @@
         </p>
       </div>
       <button @click="$emit('refresh')" class="btn btn-secondary" :disabled="isLoading">
-        <span class="material-symbols-outlined" style="font-size: 16px">refresh</span>
+        <component :is="getIcon('refresh')" :size="16" />
         Actualizar
       </button>
     </div>
@@ -21,7 +21,7 @@
 
     <!-- Empty State -->
     <div v-if="!isLoading && calculatedAttributes.length === 0" class="empty-state">
-      <span class="material-symbols-outlined empty-icon" style="font-size: 64px">sell</span>
+      <component :is="getIcon('sell')" class="empty-icon" :size="64" />
       <p>No hay atributos configurados para este producto.</p>
       <p class="empty-hint">
         Los atributos definen las características configurables del producto (talla, color, etc.)
@@ -35,7 +35,7 @@
       <div v-if="directAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">push_pin</span>
+            <component :is="getIcon('push_pin')" style="vertical-align: middle; margin-right: 6px" :size="18" />
             Atributos Directos
           </h4>
           <span class="section-badge">{{ directAttributes.length }}</span>
@@ -58,7 +58,7 @@
       <div v-if="brandGroupAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">corporate_fare</span>
+            <component :is="getIcon('corporate_fare')" style="vertical-align: middle; margin-right: 6px" :size="18" />
             Marca + Categoría
           </h4>
           <span class="section-badge">{{ brandGroupAttributes.length }}</span>
@@ -80,7 +80,7 @@
       <div v-if="groupAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">folder</span>
+            <component :is="getIcon('folder')" style="vertical-align: middle; margin-right: 6px" :size="18" />
             Categoría
           </h4>
           <span class="section-badge">{{ groupAttributes.length }}</span>
@@ -102,7 +102,7 @@
       <div v-if="brandAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">sell</span>
+            <component :is="getIcon('sell')" style="vertical-align: middle; margin-right: 6px" :size="18" />
             Marca
           </h4>
           <span class="section-badge">{{ brandAttributes.length }}</span>
@@ -124,7 +124,7 @@
       <div v-if="genericAttributes.length > 0" class="attribute-section">
         <div class="section-header">
           <h4>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">public</span>
+            <component :is="getIcon('public')" style="vertical-align: middle; margin-right: 6px" :size="18" />
             Genéricos
           </h4>
           <span class="section-badge">{{ genericAttributes.length }}</span>
@@ -145,7 +145,7 @@
       <!-- Info Box -->
       <div class="info-box">
         <div class="info-icon">
-          <span class="material-symbols-outlined" style="font-size: 20px">info</span>
+          <component :is="getIcon('info')" :size="20" />
         </div>
         <div>
           <strong>Jerarquía de Atributos</strong>
@@ -163,6 +163,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { getIcon } from '@/utils/icons'
 import AttributeCard from './AttributeCard.vue'
 
 const props = defineProps({

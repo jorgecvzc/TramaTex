@@ -442,7 +442,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
@@ -456,10 +456,12 @@ import PrintDocument from '@/components/sales/PrintDocument.vue'
 import salesApi from '@/services/salesApi'
 import { partyApi } from '@/services/partyApi'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import '@/assets/sales-print.css'
 
 const route = useRoute()
 const router = useRouter()
+const toastStore = useToastStore()
 const order = ref(null)
 const editableOrder = ref({ line_items: [], mes_work_refs: [] })
 const isLoading = ref(false)
@@ -800,8 +802,8 @@ function handleVariantSelected(payload) {
 }
 
 async function saveOrder() {
-  if (!editableOrder.value.party_id) { alert('Debe seleccionar un cliente'); return; }
-  if (!editableOrder.value.line_items.length) { alert('El pedido debe tener al menos una línea'); return; }
+  if (!editableOrder.value.party_id) { toastStore.error('Debe seleccionar un cliente'); return; }
+  if (!editableOrder.value.line_items.length) { toastStore.error('El pedido debe tener al menos una línea'); return; }
   
   isSaving.value = true
   try {
@@ -870,7 +872,7 @@ async function saveOrder() {
     }
   } catch(e) {
     console.error('Error saving order:', e)
-    alert('Error al guardar el pedido: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al guardar el pedido: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -883,7 +885,7 @@ async function confirmOrder() {
     await salesApi.confirmOrder(order.value.id)
     await loadOrder()
   } catch (e) {
-    alert('Error al confirmar: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al confirmar: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -896,7 +898,7 @@ async function cancelOrder() {
     await salesApi.cancelOrder(order.value.id)
     await loadOrder()
   } catch (e) {
-    alert('Error al anular: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al anular: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -909,7 +911,7 @@ async function reactivateOrder() {
     await salesApi.reactivateOrder(order.value.id)
     await loadOrder()
   } catch (e) {
-    alert('Error al reactivar: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al reactivar: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -922,7 +924,7 @@ async function launchOrderToProduction() {
     await salesApi.changeOrderStatus(order.value.id, 'READY_FOR_PRODUCTION')
     await loadOrder()
   } catch (e) {
-    alert('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -945,7 +947,7 @@ async function createDeliveryNote() {
   }).filter(item => item.pendingQuantity > 0);
 
   if (dnForm.value.items.length === 0) {
-    alert('No hay ítems pendientes de albaranar en este pedido.');
+    toastStore.warning('No hay ítems pendientes de albaranar en este pedido.');
     return;
   }
 
@@ -955,14 +957,14 @@ async function createDeliveryNote() {
 async function submitDeliveryNote() {
   const itemsToDeliver = dnForm.value.items.filter(i => i.quantityToDeliver > 0);
   if (itemsToDeliver.length === 0) {
-    alert('Debes indicar al menos una cantidad a entregar.');
+    toastStore.warning('Debes indicar al menos una cantidad a entregar.');
     return;
   }
 
   // Validación de cantidades
   for (const item of itemsToDeliver) {
     if (item.quantityToDeliver > item.pendingQuantity) {
-      alert(`La cantidad a entregar de ${item.productName} no puede superar la pendiente (${item.pendingQuantity}).`);
+      toastStore.error(`La cantidad a entregar de ${item.productName} no puede superar la pendiente (${item.pendingQuantity}).`);
       return;
     }
   }
@@ -982,7 +984,7 @@ async function submitDeliveryNote() {
     router.push(`/sales/delivery-notes/${newDn.id}`);
   } catch (e) {
     console.error('Error al generar albarán:', e);
-    alert('Error al generar albarán: ' + (e.message || 'Error desconocido'));
+    toastStore.error('Error al generar albarán: ' + (e.message || 'Error desconocido'));
   } finally {
     isSaving.value = false;
   }

@@ -425,10 +425,12 @@ import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const isLoading = ref(true); 
@@ -706,8 +708,8 @@ function calculateLineSubtotal(idx) {
 }
 
 async function saveQuote() {
-  if (!formData.partyId) { alert('Seleccione un cliente'); return; }
-  if (formData.lineItems.length === 0) { alert('Añada al menos un producto'); return; }
+  if (!formData.partyId) { toastStore.error('Seleccione un cliente'); return; }
+  if (formData.lineItems.length === 0) { toastStore.error('Añada al menos un producto'); return; }
   isSaving.value = true;
   try {
     let isoExpiration = undefined;
@@ -731,7 +733,7 @@ async function saveQuote() {
       await fetchQuote();
       mode.value = 'detail';
     }
-  } catch (err) { alert('Error al guardar: ' + err.message); }
+  } catch (err) { toastStore.error('Error al guardar: ' + err.message); }
   finally { isSaving.value = false; }
 }
 
@@ -755,7 +757,7 @@ async function confirmIssueQuote() {
     await fetchQuote();
     showPostIssueModal.value = true;
   } catch (err) { 
-    alert(err.message); 
+    toastStore.error(err.message); 
   } 
 }
 
@@ -763,8 +765,8 @@ function postIssuePrint() {
   showPostIssueModal.value = false; 
   window.print(); 
 }
-async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); } catch (err) { alert(err.message); } } }
-async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); } catch (err) { alert(err.message); } }
+async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); } catch (err) { toastStore.error(err.message); } } }
+async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); } catch (err) { toastStore.error(err.message); } }
 
 async function convertToOrder() {
   isConverting.value = true;
@@ -778,7 +780,7 @@ async function convertToOrder() {
     const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
     router.push(`/sales/orders/${order.id}`);
   } catch (err) { 
-    alert('Error al convertir presupuesto: ' + err.message); 
+    toastStore.error('Error al convertir presupuesto: ' + err.message); 
   }
   finally { isConverting.value = false; }
 }

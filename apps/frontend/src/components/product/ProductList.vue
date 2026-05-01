@@ -6,10 +6,13 @@
  */
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Ban, CheckCircle2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const products = ref<any[]>([])
 const brands = ref<any[]>([])
 const productGroups = ref<any[]>([])
@@ -81,8 +84,9 @@ async function toggleStatus(product: any) {
   try { 
     await productApi.changeProductStatus(product.id, newStatus)
     product.is_active = newStatus 
+    toastStore.success(`Producto "${product.name}" ${newStatus ? 'activado' : 'desactivado'}`)
   } catch (err: any) {
-    alert('Error al cambiar estado: ' + err.message)
+    toastStore.error('Error al cambiar estado: ' + err.message)
   }
 }
 
@@ -184,7 +188,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
             @click="toggleStatus(item)" 
             :title="item.is_active ? 'Desactivar' : 'Activar'"
           >
-            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+            <component :is="item.is_active ? Ban : CheckCircle2" :size="18" />
           </button>
         </div>
       </td>

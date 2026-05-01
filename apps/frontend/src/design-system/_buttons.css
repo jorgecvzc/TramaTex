@@ -125,6 +125,16 @@
   font-size: 20px;
 }
 
+.btn .lucide {
+  width: 18px;
+  height: 18px;
+}
+
 .btn-sm .material-symbols-outlined {
   font-size: 18px;
+}
+
+.btn-sm .lucide {
+  width: 16px;
+  height: 16px;
 }

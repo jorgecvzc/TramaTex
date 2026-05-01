@@ -1,7 +1,7 @@
 <template>
   <div class="party-form">
     <header v-if="!hideHeader" class="form-header">
-      <span class="material-symbols-outlined header-icon">{{ isEditing ? 'edit_note' : 'person_add' }}</span>
+      <component :is="isEditing ? FileEdit : UserPlus" :size="48" class="header-icon" />
       <div>
         <h1>{{ isEditing ? 'Editar entidad' : 'Crear entidad' }}</h1>
         <p class="subtitle">{{ isEditing ? `ID: ${props.partyId}` : 'Completa los datos para dar de alta una nueva entidad' }}</p>
@@ -12,7 +12,7 @@
       <!-- Card: Basic Identification -->
       <section class="card form-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">badge</span>
+          <IdCard :size="20" />
           <h2>Identificación y Rol</h2>
         </div>
         
@@ -34,7 +34,7 @@
                 <option value="BOTH">Cliente y proveedor</option>
                 <option value="CONTACT">Contacto</option>
               </select>
-              <span v-if="errors.role" class="error-msg">{{ errors.role }}</span>
+              <span v-if="errors.role" class="error-msg error-vibrant">{{ errors.role }}</span>
             </div>
 
             <div class="form-group">
@@ -54,12 +54,12 @@
                   Persona Jurídica (Organización)
                 </option>
               </select>
-              <span v-if="errors.entityType" class="error-msg">{{ errors.entityType }}</span>
+              <span v-if="errors.entityType" class="error-msg error-vibrant">{{ errors.entityType }}</span>
             </div>
           </div>
 
           <div v-if="form.role === 'CONTACT' || (form.role === 'CONTACT' && form.entityType !== 'PERSON')" class="alert-info">
-            <span class="material-symbols-outlined">info</span>
+            <Info :size="20" />
             <p>Los contactos deben ser únicamente <strong>personas físicas</strong>.</p>
           </div>
 
@@ -110,7 +110,7 @@
       <!-- Card: Legal and Contact -->
       <section class="card form-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">contact_mail</span>
+          <Contact :size="20" />
           <h2>Datos Legales y Contacto</h2>
         </div>
         
@@ -143,7 +143,7 @@
             <div class="form-group">
               <label for="phone">Teléfono de contacto</label>
               <div class="input-with-icon">
-                <span class="material-symbols-outlined icon-start">call</span>
+                <Phone :size="20" class="icon-start" />
                 <input
                   id="phone"
                   v-model="form.phone"
@@ -158,7 +158,7 @@
             <div class="form-group">
               <label for="email">Correo electrónico</label>
               <div class="input-with-icon">
-                <span class="material-symbols-outlined icon-start">mail</span>
+                <Mail :size="20" class="icon-start" />
                 <input
                   id="email"
                   v-model="form.email"
@@ -174,7 +174,7 @@
           <div class="form-group">
             <label for="website">Sitio web / URL</label>
             <div class="input-with-icon">
-              <span class="material-symbols-outlined icon-start">language</span>
+              <Globe :size="20" class="icon-start" />
               <input
                 id="website"
                 v-model="form.website"
@@ -191,7 +191,7 @@
       <!-- Card: Configuration and Notes -->
       <section class="card form-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">settings_suggest</span>
+          <Settings :size="20" />
           <h2>Configuración y Notas</h2>
         </div>
         
@@ -199,7 +199,7 @@
           <div v-if="form.role === 'CLIENT' || form.role === 'BOTH'" class="form-group">
             <label for="defaultDiscount">Bonificación comercial por defecto (%)</label>
             <div class="input-with-icon">
-              <span class="material-symbols-outlined icon-start">percent</span>
+              <Percent :size="20" class="icon-start" />
               <input
                 id="defaultDiscount"
                 v-model.number="form.defaultDiscountPercentage"
@@ -233,7 +233,7 @@
           class="btn btn-outline"
           :disabled="isSubmitting"
         >
-          <span class="material-symbols-outlined">restart_alt</span>
+          <RotateCcw :size="20" />
           Reiniciar
         </button>
         
@@ -242,34 +242,22 @@
           :disabled="isSubmitting"
           class="btn btn-primary btn-grow"
         >
-          <span class="material-symbols-outlined">{{ isSubmitting ? 'sync' : 'save' }}</span>
+          <component :is="isSubmitting ? RefreshCw : Save" :size="20" :class="{ 'spin': isSubmitting }" />
           <span>{{ isSubmitting ? (isEditing ? 'Actualizando...' : 'Creando...') : (isEditing ? 'Actualizar Entidad' : 'Crear Entidad') }}</span>
         </button>
       </footer>
     </form>
-
-    <!-- Feedback Messages -->
-    <Transition name="fade">
-      <div v-if="successMessage" class="feedback-toast success">
-        <span class="material-symbols-outlined">check_circle</span>
-        <p>{{ successMessage }}</p>
-        <button @click="successMessage = ''" class="toast-close">&times;</button>
-      </div>
-    </Transition>
-    
-    <Transition name="fade">
-      <div v-if="errorMessage" class="feedback-toast error">
-        <span class="material-symbols-outlined">error</span>
-        <p>{{ errorMessage }}</p>
-        <button @click="errorMessage = ''" class="toast-close">&times;</button>
-      </div>
-    </Transition>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue';
+import { 
+  FileEdit, UserPlus, IdCard, Info, Contact, Phone, Mail, Globe, Settings, 
+  Percent, RotateCcw, RefreshCw, Save 
+} from 'lucide-vue-next';
 import { partyApi } from '@/services/partyApi';
+import { useToastStore } from '@/stores/toast';
 
 const props = defineProps({
   partyId: {
@@ -291,6 +279,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit', 'update']);
+const toastStore = useToastStore();
 
 // Expose methods for parent components (like header buttons)
 defineExpose({
@@ -317,8 +306,6 @@ const form = reactive({
 
 const errors = reactive({});
 const isSubmitting = ref(false);
-const successMessage = ref('');
-const errorMessage = ref('');
 
 const isEditing = computed(() => !!props.partyId);
 
@@ -437,13 +424,11 @@ function validateForm() {
 
 async function submitForm() {
   if (!validateForm()) {
-    errorMessage.value = 'Corrige los errores antes de continuar';
+    toastStore.error('Corrige los errores antes de continuar');
     return;
   }
 
   isSubmitting.value = true;
-  errorMessage.value = '';
-  successMessage.value = '';
 
   try {
     let result;
@@ -462,7 +447,7 @@ async function submitForm() {
         updatePayload.default_discount_percentage = form.defaultDiscountPercentage || 0;
       }
       result = await partyApi.updateParty(props.partyId, updatePayload);
-      successMessage.value = 'Cambios guardados con éxito';
+      toastStore.success('Cambios guardados con éxito');
       emit('update', result);
     } else {
       const requestData = {
@@ -487,12 +472,12 @@ async function submitForm() {
         requestData.name = form.name;
       }
       result = await partyApi.createParty(requestData);
-      successMessage.value = 'Entidad creada correctamente';
+      toastStore.success('Entidad creada correctamente');
       resetForm();
       emit('submit', result);
     }
   } catch (error) {
-    errorMessage.value = error?.data?.message || error?.message || 'Error al procesar la solicitud';
+    toastStore.error(error?.data?.message || error?.message || 'Error al procesar la solicitud');
   } finally {
     isSubmitting.value = false;
   }
@@ -721,36 +706,6 @@ textarea { resize: vertical; }
 .btn-grow {
   flex: 2;
 }
-
-@media (max-width: 768px) {
-  .form-row { grid-template-columns: 1fr; }
-  .form-footer { flex-direction: column-reverse; }
-  .btn { width: 100%; }
-}
-
-/* Toasts */
-.feedback-toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  border-radius: var(--border-radius-lg);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  box-shadow: var(--box-shadow-lg);
-  z-index: 1000;
-  min-width: 300px;
-}
-
-.feedback-toast.success { background: #16a34a; color: white; }
-.feedback-toast.error { background: #dc2626; color: white; }
-.feedback-toast p { margin: 0; font-weight: 500; flex: 1; }
-.toast-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-
-/* Transitions */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s, transform 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(10px); }
 
 @media (max-width: 768px) {
   .form-row { grid-template-columns: 1fr; }

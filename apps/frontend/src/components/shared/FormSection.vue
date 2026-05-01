@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { getIcon } from '@/utils/icons'
+
 const props = defineProps<{
   title: string
-  icon: string
+  icon: any
   description?: string
 }>()
 </script>
@@ -10,7 +12,7 @@ const props = defineProps<{
   <section class="card form-section">
     <div class="section-header">
       <div class="header-icon">
-        <span class="material-symbols-outlined">{{ props.icon }}</span>
+        <component :is="getIcon(props.icon)" :size="24" />
       </div>
       <div class="header-text">
         <h2>{{ props.title }}</h2>

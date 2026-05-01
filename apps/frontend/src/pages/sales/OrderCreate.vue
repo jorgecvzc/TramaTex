@@ -221,8 +221,10 @@ import salesApi from '@/services/salesApi';
 import { productApi } from '@/services/productApi';
 import { pricingApi } from '@/services/pricingApi';
 import { mesApi } from '@/services/mesApi';
+import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
+const toastStore = useToastStore();
 
 // --- STATE ---
 const formData = ref({
@@ -372,8 +374,11 @@ async function handleSubmit() {
       mesWorkRefs: formData.value.mesWorkRefs
     };
     const order = await salesApi.createOrder(data);
+    toastStore.success('Pedido creado correctamente');
     router.push(`/sales/orders/${order.id}`);
-  } catch (err) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.error(err.message || 'Error al crear el pedido'); 
+  }
   finally { isSubmitting.value = false; }
 }
 

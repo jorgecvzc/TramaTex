@@ -130,7 +130,10 @@ import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import salesApi from '@/services/salesApi';
 
+import { useToastStore } from '@/stores/toast';
+
 const router = useRouter();
+const toastStore = useToastStore();
 const isSubmitting = ref(false);
 const formData = reactive({
   partyId: '',
@@ -236,8 +239,11 @@ async function handleSubmit() {
       }))
     };
     const res = await salesApi.createQuote(payload);
+    toastStore.success('Presupuesto creado correctamente');
     router.push(`/sales/quotes/${res.id}`);
-  } catch (err) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.error(err.message || 'Error al crear el presupuesto'); 
+  }
   finally { isSubmitting.value = false; }
 }
 

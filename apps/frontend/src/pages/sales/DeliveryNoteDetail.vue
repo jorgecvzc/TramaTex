@@ -325,10 +325,12 @@ import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const deliveryNote = ref(null);
@@ -415,11 +417,11 @@ function enterEditMode() {
 async function saveDeliveryNote() {
   isSaving.value = true;
   try {
-    alert('Función de actualización de albarán en desarrollo (Backend MVP limitado)');
+    toastStore.info('Función de actualización de albarán en desarrollo (Backend MVP limitado)');
     mode.value = 'detail';
     await fetchDeliveryNote();
   } catch (err) {
-    alert('Error al guardar: ' + err.message);
+    toastStore.error('Error al guardar: ' + err.message);
   } finally {
     isSaving.value = false;
   }
@@ -458,7 +460,7 @@ async function executeStatusChange() {
       showStatusConfirm.value = false;
     }
   } catch (err) {
-    alert(err?.message || 'Error al procesar la solicitud');
+    toastStore.error(err?.message || 'Error al procesar la solicitud');
   } finally {
     isChangingStatus.value = false;
   }
@@ -483,7 +485,7 @@ async function confirmCreateInvoice() {
     showInvoiceConfirm.value = false;
     router.push(`/sales/invoices/${newInvoice.id}`);
   } catch (err) {
-    alert(err?.message || 'Error al crear factura');
+    toastStore.error(err?.message || 'Error al crear factura');
   } finally {
     isCreatingInvoice.value = false;
   }

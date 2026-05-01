@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { ArrowLeft } from 'lucide-vue-next'
 
 interface Breadcrumb {
   label: string
@@ -32,7 +33,7 @@ function goBack() {
 
       <div class="title-with-back">
         <button v-if="showBack" @click="goBack" class="btn btn-ghost btn-sm back-button" title="Volver">
-          <span class="material-symbols-outlined">arrow_back</span>
+          <ArrowLeft :size="20" />
         </button>
         <div class="title-content">
           <slot name="icon"></slot>
@@ -79,9 +80,11 @@ function goBack() {
 }
 
 /* Soporte para iconos tanto en slot como directos */
-.title-content :deep(.material-symbols-outlined) {
+.title-content :deep(.material-symbols-outlined),
+.title-content :deep(svg.lucide) {
   color: var(--color-primary);
-  font-size: 28px;
+  width: 28px;
+  height: 28px;
 }
 
 .back-button {

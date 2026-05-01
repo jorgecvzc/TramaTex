@@ -107,8 +107,10 @@ import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { MESTask } from '@/types/mes'
 
+const toastStore = useToastStore()
 const tasks = ref<MESTask[]>([])
 const isLoading = ref(false)
 const isSaving = ref(false)
@@ -158,13 +160,13 @@ async function saveTask() {
     if (modalMode.value === 'create') await mesApi.createTask(formData)
     else await mesApi.updateTask(selectedTaskId.value!, formData)
     showModal.value = false; await loadTasks()
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.addToast(err.message, 'error') }
   finally { isSaving.value = false }
 }
 
 async function toggleActive(item: MESTask) {
   try { await mesApi.updateTask(item.id, { is_active: !item.is_active }); await loadTasks() }
-  catch (err: any) { alert(err.message) }
+  catch (err: any) { toastStore.addToast(err.message, 'error') }
 }
 
 function clearFilters() { filters.search = ''; filters.isActive = ''; }

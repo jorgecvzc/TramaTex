@@ -200,6 +200,8 @@ describe('PartyForm Component', () => {
       // Fill form - select entity type first to reveal name field
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
       await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+      // Set taxIdType to NIF explicitly as selecting ORGANIZATION auto-sets it to CIF
+      await fireEvent.update(screen.getByLabelText(/Tipo de NIF\/CIF/i), 'NIF')
       await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'New Company')
       await fireEvent.update(screen.getByPlaceholderText('p. ej., 12345678A'), '12345678Z')
       await fireEvent.update(screen.getByLabelText(/Sitio web/i), 'https://newcompany.com')

@@ -295,11 +295,13 @@ import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const invoice = ref(null);
@@ -393,7 +395,7 @@ async function saveInvoice() {
     mode.value = 'detail';
     await fetchInvoice();
   } catch (err) {
-    alert('Error al guardar: ' + err.message);
+    toastStore.error('Error al guardar: ' + err.message);
   } finally {
     isSaving.value = false;
   }
@@ -456,10 +458,10 @@ async function executeStatusChange() {
   } catch (err) {
     const statusCode = err?.response?.status;
     if (statusCode === 403) {
-      alert('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
+      toastStore.error('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
       return;
     }
-    alert(err?.message || 'Error al cambiar estado');
+    toastStore.error(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
   }

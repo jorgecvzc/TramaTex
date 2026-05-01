@@ -10,32 +10,32 @@
     <div class="menu-section">
       <div class="menu">
         <RouterLink to="/dashboard" class="menu-item" active-class="is-active" title="Dashboard General">
-          <span class="material-symbols-outlined">dashboard</span>
+          <LayoutDashboard :size="24" class="icon" />
           <span class="text">Dashboard</span>
         </RouterLink>
 
         <RouterLink to="/sales/dashboard" class="menu-item" active-class="is-active" title="Ventas">
-          <span class="material-symbols-outlined">payments</span>
+          <CreditCard :size="24" class="icon" />
           <span class="text">Ventas</span>
         </RouterLink>
 
         <RouterLink to="/products/dashboard" class="menu-item" active-class="is-active" title="Catálogo">
-          <span class="material-symbols-outlined">inventory_2</span>
+          <Package :size="24" class="icon" />
           <span class="text">Catálogo</span>
         </RouterLink>
 
         <RouterLink to="/parties/dashboard" class="menu-item" active-class="is-active" title="Entidades">
-          <span class="material-symbols-outlined">groups</span>
+          <Users :size="24" class="icon" />
           <span class="text">Entidades</span>
         </RouterLink>
 
         <RouterLink to="/mes/dashboard" class="menu-item" active-class="is-active" title="Taller (MES)">
-          <span class="material-symbols-outlined">precision_manufacturing</span>
+          <Factory :size="24" class="icon" />
           <span class="text">Taller</span>
         </RouterLink>
         
         <RouterLink v-if="isAdmin" to="/admin/users" class="menu-item admin-item" active-class="is-active" title="Administración">
-          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <ShieldCheck :size="24" class="icon" />
           <span class="text">Administración</span>
         </RouterLink>
       </div>
@@ -46,7 +46,7 @@
     <div class="menu-footer">
       <div class="menu-toggle-wrap">
         <button class="menu-toggle" @click="toggleMenu" title="Colapsar/Expandir menú">
-          <span class="material-symbols-outlined">double_arrow</span>
+          <ChevronsRight :size="20" class="toggle-icon" />
         </button>
       </div>
     </div>
@@ -59,6 +59,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { 
+  LayoutDashboard, 
+  CreditCard, 
+  Package, 
+  Users, 
+  Factory, 
+  ShieldCheck, 
+  ChevronsRight 
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import AppLauncher from './AppLauncher.vue'
 
@@ -188,8 +197,7 @@ const toggleMenu = () => {
   width: 100%;
 }
 
-.menu-item .material-symbols-outlined {
-  font-size: 1.6rem;
+.menu-item .icon {
   color: var(--color-primary);
   flex-shrink: 0;
   width: 2.5rem; /* Mismo ancho que el logo para alinear centros */
@@ -256,12 +264,11 @@ const toggleMenu = () => {
   transform: scale(1.1);
 }
 
-.menu-toggle .material-symbols-outlined {
-  font-size: 1.25rem;
+.menu-toggle .toggle-icon {
   transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.is-expanded .menu-toggle .material-symbols-outlined {
+.is-expanded .menu-toggle .toggle-icon {
   transform: rotate(-180deg);
 }
 

@@ -2,7 +2,7 @@
   <div class="attribute-card" :class="`source-${source}`">
     <div class="card-header">
       <div class="attribute-name">
-        <span class="material-symbols-outlined attribute-icon" style="font-size: 18px">{{ getSourceIcon(source) }}</span>
+        <component :is="getIcon(getSourceIcon(source))" class="attribute-icon" :size="18" />
         <h5>{{ attribute.name }}</h5>
       </div>
       <code class="attribute-code">{{ attribute.code }}</code>
@@ -45,6 +45,8 @@
 </template>
 
 <script setup>
+import { getIcon } from '@/utils/icons'
+
 defineProps({
   attribute: {
     type: Object,

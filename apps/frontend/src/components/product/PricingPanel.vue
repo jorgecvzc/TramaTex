@@ -8,7 +8,7 @@
         </p>
       </div>
       <button class="btn btn-primary" @click="showCalculator = !showCalculator">
-        <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px">{{ showCalculator ? 'bar_chart' : 'calculate' }}</span>
+        <component :is="getIcon(showCalculator ? 'bar_chart' : 'calculate')" :size="16" style="margin-right: 6px" />
         {{ showCalculator ? 'Ver Precios Base': 'Calculadora de Precios' }}
       </button>
     </div>
@@ -16,7 +16,7 @@
     <!-- Pricing Calculator -->
     <div v-if="showCalculator" class="calculator-section card">
       <h4>
-        <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 20px">calculate</span>
+        <component :is="getIcon('calculate')" style="vertical-align: middle; margin-right: 6px" :size="20" />
         Calculadora de Precios
       </h4>
       <p class="help-text">
@@ -78,7 +78,7 @@
           :disabled="!canCalculate || isCalculating"
           @click="calculateFinalPrice"
         >
-          <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 6px">attach_money</span>
+          <component :is="getIcon('attach_money')" :size="16" style="margin-right: 6px" />
           {{ isCalculating ? 'Calculando...' : 'Calcular Precio Final' }}
         </button>
       </div>
@@ -86,7 +86,7 @@
       <!-- Calculation Result -->
       <div v-if="calculationResult" class="calculation-result">
         <h5>
-          <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 18px">check_circle</span>
+          <component :is="getIcon('check_circle')" style="vertical-align: middle; margin-right: 6px" :size="18" />
           Resultado del Cálculo
         </h5>
         <div class="result-grid">
@@ -136,7 +136,7 @@
     <!-- Base Prices Table -->
     <div v-if="!showCalculator" class="prices-section card">
       <h4>
-        <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 20px">bar_chart</span>
+        <component :is="getIcon('bar_chart')" style="vertical-align: middle; margin-right: 6px" :size="20" />
         Precios Base por Variante
       </h4>
       <p class="help-text">
@@ -152,7 +152,7 @@
 
       <!-- Empty State -->
       <div v-if="!isLoadingVariants && variants.length === 0" class="empty-state">
-        <span class="material-symbols-outlined empty-icon" style="font-size: 64px">inventory_2</span>
+        <component :is="getIcon('inventory_2')" class="empty-icon" :size="64" />
         <p>No hay variantes configuradas para este producto.</p>
         <p class="empty-hint">
           Las variantes deben crearse primero en la pestaña "Variantes".
@@ -209,7 +209,7 @@
                   class="btn btn-sm btn-secondary"
                   @click="viewPriceHistory(variant.id)"
                 >
-                  <span class="material-symbols-outlined" style="font-size: 14px; margin-right: 4px">assignment</span>
+                  <component :is="getIcon('assignment')" :size="14" style="margin-right: 4px" />
                   Historial
                 </button>
               </td>
@@ -222,11 +222,11 @@
     <!-- Pricing Rules Section (Future Enhancement) -->
     <div class="rules-info card">
       <h4>
-        <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px; font-size: 20px">settings</span>
+        <component :is="getIcon('settings')" style="vertical-align: middle; margin-right: 6px" :size="20" />
         Reglas de Pricing
       </h4>
       <div class="info-message">
-        <span class="material-symbols-outlined info-icon" style="font-size: 20px">info</span>
+        <component :is="getIcon('info')" class="info-icon" :size="20" />
         <div>
           <p>
             <strong>Próximamente:</strong> Visualización de reglas de pricing aplicables
@@ -243,8 +243,8 @@
     <div v-if="showHistoryModal" class="modal-overlay" @click.self="closeHistoryModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3><span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 6px">assignment</span> Historial de Precios</h3>
-          <button class="modal-close" @click="closeHistoryModal"><span class="material-symbols-outlined" style="font-size: 16px">close</span></button>
+          <h3><component :is="getIcon('assignment')" :size="16" style="vertical-align: middle; margin-right: 6px" /> Historial de Precios</h3>
+          <button class="modal-close" @click="closeHistoryModal"><component :is="getIcon('close')" :size="16" /></button>
         </div>
 
         <div class="modal-body">
@@ -306,6 +306,7 @@
 
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
+import { getIcon } from '@/utils/icons'
 import { pricingApi } from '@/services/pricingApi'
 import PartySelector from '@/components/party/PartySelector.vue'
 

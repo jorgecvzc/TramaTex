@@ -157,7 +157,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { X, AlertTriangle, Save, RefreshCw } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

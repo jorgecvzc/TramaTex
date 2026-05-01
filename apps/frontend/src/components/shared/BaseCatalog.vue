@@ -1,6 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { 
+  List, 
+  FilterX, 
+  RefreshCw, 
+  Plus, 
+  AlertCircle, 
+  SearchX, 
+  Package, 
+  Users, 
+  CreditCard, 
+  Factory, 
+  UserCog, 
+  ShieldCheck 
+} from 'lucide-vue-next'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 const props = defineProps<{
@@ -22,6 +36,25 @@ const emit = defineEmits(['clear-filters', 'refresh', 'click-item'])
 function handleRowClick(item: any) {
   emit('click-item', item)
 }
+
+// Mapa de compatibilidad Material Symbols -> Lucide
+const iconMap: Record<string, any> = {
+  'list_alt': List,
+  'filter_alt_off': FilterX,
+  'refresh': RefreshCw,
+  'add': Plus,
+  'error': AlertCircle,
+  'search_off': SearchX,
+  'inventory_2': Package,
+  'groups': Users,
+  'payments': CreditCard,
+  'precision_manufacturing': Factory,
+  'manage_accounts': UserCog,
+  'admin_panel_settings': ShieldCheck
+}
+
+const resolvedIcon = computed(() => iconMap[props.icon || 'list_alt'] || List)
+const resolvedEmptyIcon = computed(() => iconMap[props.emptyIcon || 'search_off'] || SearchX)
 </script>
 
 <template>
@@ -31,18 +64,18 @@ function handleRowClick(item: any) {
       <div class="catalog-header">
         <BasePageHeader :title="title" :breadcrumbs="breadcrumbs">
           <template #icon>
-            <span class="material-symbols-outlined">{{ icon || 'list_alt' }}</span>
+            <component :is="resolvedIcon" :size="28" />
           </template>
           <template #actions>
             <div class="header-actions">
               <button v-if="hasFilters" class="btn btn-outline btn-sm" @click="$emit('clear-filters')">
-                <span class="material-symbols-outlined">filter_alt_off</span> Limpiar
+                <FilterX :size="16" /> Limpiar
               </button>
               <button class="btn btn-outline btn-sm" @click="$emit('refresh')" :disabled="isLoading">
-                <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span> Actualizar
+                <RefreshCw :size="16" :class="{ 'spin': isLoading }" /> Actualizar
               </button>
               <RouterLink v-if="createRoute" :to="createRoute" class="btn btn-primary btn-sm">
-                <span class="material-symbols-outlined">add</span> {{ createText || 'Nuevo' }}
+                <Plus :size="16" /> {{ createText || 'Nuevo' }}
               </RouterLink>
               <slot name="header-actions"></slot>
             </div>
@@ -65,13 +98,13 @@ function handleRowClick(item: any) {
         </div>
 
         <div v-else-if="error" class="error-state">
-          <span class="material-symbols-outlined">error</span>
+          <AlertCircle :size="48" class="state-icon" />
           <p>{{ error }}</p>
           <button class="btn btn-outline btn-sm mt-4" @click="$emit('refresh')">Reintentar</button>
         </div>
 
         <div v-else-if="items.length === 0" class="empty-state">
-          <span class="material-symbols-outlined">{{ emptyIcon || 'search_off' }}</span>
+          <component :is="resolvedEmptyIcon" :size="48" class="state-icon" />
           <p>{{ emptyText || 'No se han encontrado resultados' }}</p>
         </div>
 
@@ -175,8 +208,10 @@ function handleRowClick(item: any) {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 4rem 2rem; text-align: center; color: var(--color-text-secondary);
 }
-.empty-state .material-symbols-outlined, .error-state .material-symbols-outlined {
-  font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;
+
+.state-icon {
+  opacity: 0.3;
+  margin-bottom: 1rem;
 }
 
 .spinner {

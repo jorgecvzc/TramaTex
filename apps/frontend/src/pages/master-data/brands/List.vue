@@ -17,7 +17,7 @@
     >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add</span>
+          <Plus :size="18" />
           <span>Nueva Marca</span>
         </button>
       </template>
@@ -56,15 +56,15 @@
         </td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
-            <button @click="editBrand(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button @click="editBrand(item)" class="btn-icon" title="Editar"><Edit2 :size="18" /></button>
             <button 
               @click="toggleActive(item)" 
               class="btn-icon" 
               :title="item.is_active ? 'Desactivar' : 'Activar'"
             >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+              <component :is="item.is_active ? Ban : CheckCircle2" :size="18" />
             </button>
-            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><Trash2 :size="18" /></button>
           </div>
         </td>
       </template>
@@ -120,10 +120,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { Plus, Edit2, Ban, CheckCircle2, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
+const toastStore = useToastStore()
 const allBrands = ref([])
 const isLoading = ref(false)
 const error = ref('')
@@ -176,26 +179,45 @@ function editBrand(brand) {
 }
 
 async function saveBrand() {
-  if (!currentBrand.value.name) { alert('El nombre es obligatorio'); return; }
-  isSaving.value = true;
+  if (!currentBrand.value.name) {
+    toastStore.addToast('El nombre de la marca es obligatorio', 'warning')
+    return
+  }
+  
+  isSaving.value = true
   try {
     const payload = { 
       name: currentBrand.value.name, 
       is_active: currentBrand.value.isActive,
       default_markup_percentage: currentBrand.value.defaultMarkupPercentage
-    };
-    if (modalMode.value === 'create') await productApi.createBrand(payload);
-    else await productApi.updateBrand(currentBrand.value.id, payload);
-    showModal.value = false; await loadBrands();
-  } catch (err) { alert(err.message); } finally { isSaving.value = false }
+    }
+    
+    if (modalMode.value === 'create') {
+      await productApi.createBrand(payload)
+      toastStore.addToast('Marca creada exitosamente', 'success')
+    } else {
+      await productApi.updateBrand(currentBrand.value.id, payload)
+      toastStore.addToast('Marca actualizada correctamente', 'success')
+    }
+    
+    showModal.value = false
+    await loadBrands()
+  } catch (err) {
+    toastStore.addToast(err.message || 'Error al guardar la marca', 'error')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 async function toggleActive(brand) {
   try {
-    const newStatus = !brand.is_active;
-    await productApi.updateBrand(brand.id, { is_active: newStatus });
-    await loadBrands();
-  } catch (err) { alert('Error al cambiar estado'); }
+    const newStatus = !brand.is_active
+    await productApi.updateBrand(brand.id, { is_active: newStatus })
+    toastStore.addToast(`Marca ${newStatus ? 'activada' : 'desactivada'} correctamente`, 'info')
+    await loadBrands()
+  } catch (err) {
+    toastStore.addToast('Error al cambiar el estado de la marca', 'error')
+  }
 }
 
 function confirmDelete(brand) { brandToDelete.value = brand; showDeleteConfirm.value = true; }
@@ -203,11 +225,15 @@ async function deleteBrand() {
   if (!brandToDelete.value) return;
   try { 
     await productApi.deleteBrand(brandToDelete.value.id); 
+    toastStore.addToast('Marca eliminada permanentemente', 'success')
     await loadBrands(); 
     showDeleteConfirm.value = false; 
   }
   catch (err) { 
-    alert('No se puede eliminar: ' + (err.message || 'La marca tiene productos asociados.')); 
+    toastStore.addToast(
+      err.message || 'No se puede eliminar la marca (puede tener productos asociados)', 
+      'error'
+    )
   }
 }
 
