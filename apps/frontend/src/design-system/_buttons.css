@@ -120,18 +120,10 @@
 .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
 .btn-lg { padding: 0.8rem 1.75rem; font-size: 1rem; }
 
-/* Iconos Material dentro de botones */
-.btn .material-symbols-outlined {
-  font-size: 20px;
-}
-
+/* Soporte para Lucide Icons */
 .btn .lucide {
   width: 18px;
   height: 18px;
-}
-
-.btn-sm .material-symbols-outlined {
-  font-size: 18px;
 }
 
 .btn-sm .lucide {

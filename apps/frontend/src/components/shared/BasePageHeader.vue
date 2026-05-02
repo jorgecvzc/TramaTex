@@ -194,9 +194,8 @@ function goBack() {
 }
 
 /* Icons in slots */
-.title-with-icon :deep(.material-symbols-outlined) {
+.title-with-icon :deep(svg) {
   color: var(--color-primary);
-  font-size: 28px;
   flex-shrink: 0;
 }
 

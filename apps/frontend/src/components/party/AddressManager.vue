@@ -92,11 +92,11 @@
           <div class="address-info">
             <h4>{{ address.street }}</h4>
             <p class="location">
-              <span class="material-symbols-outlined icon-sm">location_on</span>
+              <MapPin :size="18" />
               {{ address.city }}, {{ address.province }} {{ address.postal_code }}
             </p>
             <p v-if="address.country" class="country">
-              <span class="material-symbols-outlined icon-sm">public</span>
+              <Globe :size="18" />
               {{ address.country }}
             </p>
           </div>
@@ -111,14 +111,14 @@
                 class="btn-icon"
                 title="Editar dirección"
               >
-                <span class="material-symbols-outlined">edit</span>
+                <Pencil :size="18" />
               </button>
               <button 
                 @click="deleteAddress(address.id)" 
                 class="btn-icon text-danger"
                 title="Eliminar dirección"
               >
-                <span class="material-symbols-outlined">delete</span>
+                <Trash2 :size="18" />
               </button>
             </div>
           </div>
@@ -141,6 +141,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue';
+import { MapPin, Globe, Pencil, Trash2 } from 'lucide-vue-next';
 import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({

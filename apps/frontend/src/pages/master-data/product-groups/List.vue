@@ -16,7 +16,7 @@
     >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add_box</span>
+          <PlusSquare :size="18" />
           <span>Nueva Categoría</span>
         </button>
       </template>
@@ -53,7 +53,7 @@
         <td><strong>{{ item.name }}</strong></td>
         <td class="parent-cell">
           <span v-if="item.parent_group_id" class="parent-badge">
-            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">subdirectory_arrow_right</span>
+            <CornerDownRight :size="14" />
             {{ getParentName(item.parent_group_id) }}
           </span>
           <span v-else class="text-muted">—</span>
@@ -68,15 +68,15 @@
         </td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
-            <button @click="editGroup(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button @click="editGroup(item)" class="btn-icon" title="Editar"><Pencil :size="18" /></button>
             <button 
               @click="toggleActive(item)" 
               class="btn-icon" 
               :title="item.is_active ? 'Desactivar' : 'Activar'"
             >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+              <component :is="item.is_active ? Ban : CheckCircle" :size="18" />
             </button>
-            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><Trash2 :size="18" /></button>
           </div>
         </td>
       </template>
@@ -138,6 +138,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { 
+  PlusSquare, 
+  CornerDownRight, 
+  Pencil, 
+  Ban, 
+  CheckCircle, 
+  Trash2
+} from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { productApi } from '@/services/productApi'
@@ -206,7 +214,10 @@ function editGroup(group) { modalMode.value = 'edit'; currentGroup.value = { id:
 function openGroupDetail(group) { editGroup(group); }
 
 async function saveGroup() {
-  if (!currentGroup.value.name) return;
+  if (!currentGroup.value.name) {
+    toastStore.warning('El nombre de la categoría es obligatorio');
+    return;
+  }
   isSaving.value = true;
   const payload = {
     name: currentGroup.value.name,

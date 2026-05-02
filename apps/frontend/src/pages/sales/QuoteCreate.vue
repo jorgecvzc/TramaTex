@@ -57,11 +57,11 @@
               <td>
                 <div v-if="!item.productVariantId" class="input-with-action">
                   <input v-model="item.quickSearch" type="text" class="form-input-sm" placeholder="SKU o nombre..." @keyup.enter="openVariantSelector(index)" />
-                  <button type="button" class="btn btn-outline btn-sm" @click="openVariantSelector(index)"><span class="material-symbols-outlined">search</span></button>
+                  <button type="button" class="btn btn-outline btn-sm" @click="openVariantSelector(index)"><Search :size="16" /></button>
                 </div>
                 <div v-else class="selected-item-tag" @click="clearLine(index)">
                   <strong>{{ item.variantSku }}</strong> <span>{{ item.displayName }}</span>
-                  <span class="material-symbols-outlined">close</span>
+                  <X :size="16" />
                 </div>
               </td>
               <td class="text-center"><input v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" @input="calculateTotals" /></td>
@@ -69,7 +69,7 @@
               <td class="text-center"><input v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" @input="calculateTotals" /></td>
               <td class="align-right"><strong>{{ formatMoney(calculateLineSubtotal(index)) }}</strong></td>
               <td class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLine(index)"><span class="material-symbols-outlined">delete</span></button>
+                <button type="button" class="btn-icon text-danger" @click="removeLine(index)"><Trash2 :size="18" /></button>
               </td>
             </tr>
             <tr v-if="formData.lineItems.length === 0">
@@ -80,7 +80,7 @@
       </div>
       <div class="mt-4">
         <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
-          <span class="material-symbols-outlined">add</span> Añadir Producto
+          <Plus :size="16" /> Añadir Producto
         </button>
       </div>
     </FormSection>
@@ -109,9 +109,9 @@
     <div v-if="showVariantSelector" class="modal-backdrop">
       <div class="modal card w-modal-xl">
         <div class="modal-header">
-          <span class="material-symbols-outlined">inventory_2</span>
+          <Package :size="24" />
           <h2>Seleccionar Producto</h2>
-          <button class="btn-icon ml-auto" @click="showVariantSelector = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showVariantSelector = false"><X :size="20" /></button>
         </div>
         <div class="modal-body overflow-y">
           <VariantSelector :initial-query="variantQuery" @variant-selected="handleVariantSelected" />
@@ -124,6 +124,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { Search, X, Trash2, Plus, Package } from 'lucide-vue-next';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import PartySelector from '@/components/party/PartySelector.vue';

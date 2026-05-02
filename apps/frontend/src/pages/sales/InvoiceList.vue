@@ -18,7 +18,7 @@
     >
       <template #header-actions>
         <button class="btn btn-outline" @click="router.push('/sales/orders')">
-          <span class="material-symbols-outlined">list_alt</span>
+          <List :size="18" />
           <span>Catálogo de Pedidos</span>
         </button>
       </template>
@@ -88,7 +88,7 @@
         <td class="align-right" @click.stop>
           <div class="action-buttons">
             <button class="btn-icon" @click="navigateToDetail(item.id)" title="Ver detalle">
-              <span class="material-symbols-outlined">visibility</span>
+              <Eye :size="18" />
             </button>
           </div>
         </td>
@@ -100,6 +100,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { List, Eye } from 'lucide-vue-next';
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';

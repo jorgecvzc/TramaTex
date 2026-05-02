@@ -392,7 +392,7 @@ function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { ye
 .related-tag-card:hover strong { color: var(--color-primary); text-decoration: underline; }
 
 .tag-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(0,0,0,0.03); color: var(--color-text-secondary); }
-.tag-icon .material-symbols-outlined { font-size: 22px; }
+.tag-icon :deep(svg) { width: 22px; height: 22px; }
 
 .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
 .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }

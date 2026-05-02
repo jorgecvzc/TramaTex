@@ -80,7 +80,6 @@ function goBack() {
 }
 
 /* Soporte para iconos tanto en slot como directos */
-.title-content :deep(.material-symbols-outlined),
 .title-content :deep(svg.lucide) {
   color: var(--color-primary);
   width: 28px;

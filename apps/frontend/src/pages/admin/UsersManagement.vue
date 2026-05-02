@@ -29,7 +29,7 @@
         </div>
         <div class="filter-actions-inline ml-auto">
           <button class="btn btn-primary btn-sm" @click="showCreateDialog = true">
-            <span class="material-symbols-outlined">person_add</span>
+            <UserPlus :size="16" />
             Nuevo Usuario
           </button>
         </div>
@@ -46,7 +46,7 @@
       <template #item="{ item: user }">
         <td>
           <div class="user-cell">
-            <span class="material-symbols-outlined avatar">account_circle</span>
+            <User class="avatar" :size="24" />
             <strong>{{ user.email }}</strong>
           </div>
         </td>
@@ -57,13 +57,13 @@
         <td class="align-right" @click.stop>
           <div class="action-buttons">
             <button class="btn-icon" @click="openEditModal(user)" title="Editar datos básicos">
-              <span class="material-symbols-outlined">edit</span>
+              <Pencil :size="18" />
             </button>
             <button class="btn-icon" @click="openRoleModal(user)" title="Cambiar permisos">
-              <span class="material-symbols-outlined">key</span>
+              <Key :size="18" />
             </button>
             <button class="btn-icon text-danger" @click="confirmDelete(user)" title="Eliminar cuenta">
-              <span class="material-symbols-outlined">delete</span>
+              <Trash2 :size="18" />
             </button>
           </div>
         </td>
@@ -131,6 +131,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed } from 'vue'
+import { UserPlus, User, Pencil, Key, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -250,7 +251,7 @@ onMounted(loadUsers)
 <style scoped>
 .page-layout { background-color: var(--color-background); min-height: 100vh; }
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
-.avatar { color: var(--color-border); font-size: 24px; }
+.avatar { color: var(--color-border); }
 .role-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--color-background-soft); border: 1px solid var(--color-border); }
 .role-admin { border-left: 3px solid var(--color-error); color: var(--color-error); }
 .role-commercial { border-left: 3px solid #2563eb; color: #2563eb; }

@@ -13,7 +13,7 @@
         <div class="stepper-steps">
           <div v-for="step in 3" :key="step" :class="['step-item', { active: currentStep === step, completed: currentStep > step }]">
             <div class="step-number">
-              <span v-if="currentStep > step" class="material-symbols-outlined">check</span>
+              <Check v-if="currentStep > step" :size="18" />
               <span v-else>{{ step }}</span>
             </div>
             <span class="step-label">{{ getStepLabel(step) }}</span>
@@ -73,7 +73,7 @@
       <div v-if="currentStep === 2" class="step-content">
         <FormSection title="Configuración de Variantes" icon="layers" description="Define las combinaciones de atributos (tallas, colores, etc.) para este producto.">
           <div class="alert-info mb-4">
-            <span class="material-symbols-outlined">info</span>
+            <Info :size="18" />
             <p>Se generará automáticamente una variante base. Podrás añadir más atributos para crear combinaciones múltiples.</p>
           </div>
           <!-- Simplified variant logic for the refactor, keeping original intent -->
@@ -127,7 +127,7 @@
       <!-- Custom Footer Actions for Stepper -->
       <template #actions>
         <button type="button" class="btn btn-outline btn-lg" @click="prevStep" v-if="currentStep > 1">
-          <span class="material-symbols-outlined">arrow_back</span>
+          <ArrowLeft :size="18" />
           Anterior
         </button>
         <button type="button" class="btn btn-outline btn-lg" @click="router.push('/products')" v-if="currentStep === 1">
@@ -135,7 +135,7 @@
         </button>
         <button type="submit" class="btn btn-primary btn-lg">
           <span>{{ currentStep === 3 ? 'Finalizar y Crear' : 'Siguiente Paso' }}</span>
-          <span class="material-symbols-outlined">{{ currentStep === 3 ? 'check_circle' : 'arrow_forward' }}</span>
+          <component :is="getIcon(currentStep === 3 ? 'check_circle' : 'arrow_forward')" :size="18" />
         </button>
       </template>
     </BaseFormLayout>
@@ -145,6 +145,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Check, Info, ArrowLeft } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import { productApi } from '@/services/productApi'

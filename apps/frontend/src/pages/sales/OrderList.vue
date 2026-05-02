@@ -80,7 +80,7 @@
       <td class="align-right"><strong>{{ salesApi.formatMoney(item.total) }}</strong></td>
       <td @click.stop>
         <span v-if="getMesWorkIds(item.lineItems).length > 0" class="mes-badge">
-          <span class="material-symbols-outlined">precision_manufacturing</span>
+          <Factory :size="16" />
           {{ getMesSummary(item.lineItems) }}
         </span>
         <span v-else class="text-muted">—</span>
@@ -88,7 +88,7 @@
       <td class="align-right" @click.stop>
         <div class="action-buttons">
           <router-link :to="`/sales/orders/${item.id}`" class="btn-icon" title="Ver detalle">
-            <span class="material-symbols-outlined">visibility</span>
+            <Eye :size="18" />
           </router-link>
         </div>
       </td>
@@ -99,6 +99,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { Factory, Eye } from 'lucide-vue-next';
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import salesApi from '@/services/salesApi';
@@ -187,10 +188,8 @@ function getMesWorkIds(items) { return [...new Set((items || []).map(i => i.mesW
 .align-right { text-align: right; }
 
 .mes-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; background: rgba(0, 35, 149, 0.05); border-radius: 4px; color: var(--color-secondary); font-size: 0.75rem; font-weight: 600; }
-.mes-badge .material-symbols-outlined { font-size: 16px; }
 
 .action-buttons { display: flex; justify-content: flex-end; }
 .btn-icon { color: var(--color-text-secondary); transition: 0.2s; padding: 0.4rem; border-radius: 6px; border: none; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-.btn-icon .material-symbols-outlined { font-size: 18px; }
 .btn-icon:hover { color: var(--color-text-primary); background: rgba(0,0,0,0.05); }
 </style>

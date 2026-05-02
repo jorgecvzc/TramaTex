@@ -15,7 +15,7 @@
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="32" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -33,21 +33,21 @@
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
       >
         <template #icon>
-          <span class="material-symbols-outlined">local_shipping</span>
+          <Truck :size="28" />
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
             <button class="btn btn-outline btn-sm" @click="printDeliveryNote">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
+              <Printer :size="18" /> <span>Imprimir</span>
             </button>
             <button v-if="['PENDING', 'PENDIENTE'].includes(deliveryNote.status)" class="btn btn-primary btn-sm" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar</span>
+              <Pencil :size="18" /> <span>Editar</span>
             </button>
           </template>
           <template v-else>
             <button class="btn btn-outline btn-sm" @click="mode = 'detail'" :disabled="isSaving">Cancelar</button>
             <button class="btn btn-secondary btn-sm" @click="saveDeliveryNote" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
               <span>{{ isSaving ? 'Guardando...' : 'Guardar' }}</span>
             </button>
           </template>
@@ -70,7 +70,7 @@
             @click="markAsDelivered"
             :disabled="isChangingStatus"
           >
-            <span class="material-symbols-outlined">check_circle</span> <span>Confirmar Entrega</span>
+            <CheckCircle :size="18" /> <span>Confirmar Entrega</span>
           </button>
 
           <button
@@ -79,7 +79,7 @@
             @click="confirmDeleteDeliveryNote"
             :disabled="isChangingStatus"
           >
-            <span class="material-symbols-outlined">delete</span> <span>Eliminar Albarán</span>
+            <Trash2 :size="18" /> <span>Eliminar Albarán</span>
           </button>
           
           <button
@@ -88,7 +88,7 @@
             @click="createInvoiceFromDeliveryNote"
             :disabled="isCreatingInvoice"
           >
-            <span class="material-symbols-outlined">receipt_long</span> <span>Facturar Albarán</span>
+            <Receipt :size="18" /> <span>Facturar Albarán</span>
           </button>
         </div>
       </div>
@@ -98,22 +98,22 @@
     <template #summary>
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Entrega</label><strong>{{ formatDate(deliveryNote.deliveryDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="icon purple"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido Origen</label>
             <strong>{{ orderNumber || formatOrderId(deliveryNote.salesOrderId) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">package_2</span></div>
+          <div class="icon green"><Package :size="20" /></div>
           <div class="tag-content">
             <label>Bultos / Líneas</label>
             <strong>{{ deliveryNote.lineItems?.length || 0 }} ítems</strong>
@@ -126,21 +126,21 @@
     <template #related v-if="mode === 'detail'">
       <div class="related-history-grid">
         <router-link :to="`/sales/orders/${deliveryNote.salesOrderId}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="18" /></div>
           <div class="tag-content">
             <label>Pedido de Venta Origen</label>
             <strong>{{ orderNumber || 'Ver Pedido' }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="18" class="jump-icon" />
         </router-link>
 
         <router-link v-if="relatedInvoice" :to="`/sales/invoices/${relatedInvoice.id}`" class="related-tag-card">
-          <div class="tag-icon success"><span class="material-symbols-outlined">receipt</span></div>
+          <div class="tag-icon success"><Receipt :size="18" /></div>
           <div class="tag-content">
             <label>Factura Generada</label>
             <strong>{{ relatedInvoice.invoiceNumber }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="18" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -202,7 +202,7 @@
             <tr v-for="item in deliveryNote.lineItems" :key="item.id">
               <td>
                 <div class="product-info-cell">
-                  <span class="material-symbols-outlined icon-secondary">inventory_2</span>
+                  <Package :size="18" class="icon-secondary" />
                   <div class="content">
                     <strong>{{ item.productName || formatVariantId(item.productVariantId) }}</strong>
                     <code v-if="item.variantSku" class="code-badge ml-2">{{ item.variantSku }}</code>
@@ -228,7 +228,7 @@
           <label class="form-label">Recibido por (Cliente)</label>
           <div class="signature-area">
             <template v-if="deliveryNote.signatures?.customer">
-              <span class="material-symbols-outlined text-success">check_circle</span>
+              <CheckCircle :size="18" class="text-success" />
               <div class="sig-info">
                 <strong>{{ deliveryNote.signatures.customer.name }}</strong>
                 <small>{{ formatDateTime(deliveryNote.signatures.customer.timestamp) }}</small>
@@ -241,7 +241,7 @@
           <label class="form-label">Entregado por (Logística)</label>
           <div class="signature-area">
             <template v-if="deliveryNote.signatures?.driver">
-              <span class="material-symbols-outlined text-success">check_circle</span>
+              <CheckCircle :size="18" class="text-success" />
               <div class="sig-info">
                 <strong>{{ deliveryNote.signatures.driver.name }}</strong>
                 <small>{{ formatDateTime(deliveryNote.signatures.driver.timestamp) }}</small>
@@ -305,7 +305,7 @@
       <div class="confirm-dialog-body">
         <p>Está a punto de <strong>generar una factura oficial</strong> para este albarán.</p>
         <div class="info-notice mt-4">
-          <span class="material-symbols-outlined">info</span>
+          <Info :size="18" />
           <p>Esta operación creará un nuevo documento contable y vinculará permanentemente este albarán.</p>
         </div>
         <p class="mt-4 text-secondary italic">¿Desea continuar?</p>
@@ -316,6 +316,23 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { 
+  AlertCircle, 
+  Truck, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  CheckCircle, 
+  Trash2, 
+  Receipt, 
+  User, 
+  Calendar, 
+  ShoppingCart, 
+  Package, 
+  ExternalLink, 
+  Info 
+} from 'lucide-vue-next';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -524,7 +541,7 @@ function formatVariantId(id) { return id ? id.substring(0, 8) : '—'; }
 .code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; }
 
 .info-notice { display: flex; gap: 0.75rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: #1e40af; font-size: 0.9rem; }
-.info-notice .material-symbols-outlined { color: #2563eb; }
+.info-notice svg { color: #2563eb; }
 
 /* ESTILOS DE IMPRESIÓN PROFESIONAL */
 .print-container { display: none; }

@@ -105,7 +105,7 @@
         <!-- SECCIÓN: BÁSICO -->
         <FormSection title="Información Básica" icon="description">
           <div v-if="mode === 'detail'">
-            <DataRow label="Nombre Comercial" :value="product?.name" icon="label" />
+            <DataRow label="Nombre Comercial" :value="product?.name" icon="sell" />
             <DataRow label="Referencia (SKU)" icon="fingerprint">
               <code class="code-badge">{{ product?.sku }}</code>
             </DataRow>
@@ -134,7 +134,7 @@
         <!-- SECCIÓN: CLASIFICACIÓN (Multi-grupo) -->
         <FormSection title="Clasificación y Familias" icon="category" class="mt-8">
           <div v-if="mode === 'detail'">
-            <DataRow label="Tipo de Producto" :value="product?.product_type === 'TANGIBLE' ? 'Tangible / Stock' : 'Servicio / Taller'" icon="inventory" />
+            <DataRow label="Tipo de Producto" :value="product?.product_type === 'TANGIBLE' ? 'Tangible / Stock' : 'Servicio / Taller'" icon="inventory_2" />
             <DataRow label="Marca / Fabricante" :value="brand?.name || 'Genérica'" icon="branding_watermark" />
             <DataRow label="Familias / Categorías" icon="account_tree">
               <div class="tags-cloud">
@@ -439,7 +439,7 @@ function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { ye
 .tab-btn { display: flex; align-items: center; gap: 0.6rem; padding: 1rem 1.25rem; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--color-text-secondary); font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.025em; margin-bottom: -1px; }
 .tab-btn:hover { color: var(--color-primary); background: rgba(0,0,0,0.02); }
 .tab-btn.active { border-bottom-color: var(--color-secondary); color: var(--color-secondary); background: rgba(0, 35, 149, 0.03); }
-.tab-btn .material-symbols-outlined { font-size: 18px; }
+.tab-btn :deep(svg) { width: 18px; height: 18px; }
 .tab-badge { background: var(--color-background); color: var(--color-text-secondary); padding: 0.1rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
 .tab-btn.active .tab-badge { background: var(--color-secondary); color: white; }
 

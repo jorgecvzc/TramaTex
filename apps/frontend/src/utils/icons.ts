@@ -54,7 +54,14 @@ import {
   Link,
   CornerDownRight,
   PlusSquare,
-  FolderOff
+  FolderOff,
+  FilterX,
+  AlertCircle,
+  Users,
+  Factory,
+  UserCog,
+  ShieldCheck,
+  FolderTree
   } from 'lucide-vue-next'
 
   // Fallback mapping for material symbols to lucide icons
@@ -93,7 +100,7 @@ import {
   'chevron_right': ChevronRight,
   'payments': CreditCard,
   'shopping_cart': ShoppingCart,
-  'precision_manufacturing': Cpu,
+  'precision_manufacturing': Factory,
   'edit_note': FileEdit,
   'person': User,
   'person_add': UserPlus,
@@ -103,7 +110,7 @@ import {
   'calendar_today': Calendar,
   'account_tree': GitFork,
   'layers': Layers,
-  'category': Layers,
+  'category': FolderTree,
   'fact_check': ClipboardCheck,
   'local_shipping': Truck,
   'history_edu': History,
@@ -121,10 +128,19 @@ import {
   'link': Link,
   'subdirectory_arrow_right': CornerDownRight,
   'add_box': PlusSquare,
-  'folder_off': FolderOff
+  'folder_off': FolderOff,
+  'filter_alt_off': FilterX,
+  'error': AlertCircle,
+  'groups': Users,
+  'manage_accounts': UserCog,
+  'admin_panel_settings': ShieldCheck
   }
 
 export function getIcon(name: string | any) {
   if (typeof name !== 'string') return name
   return iconMap[name] || Info // Info as fallback
+}
+
+export function getAllIconNames() {
+  return Object.keys(iconMap).sort()
 }

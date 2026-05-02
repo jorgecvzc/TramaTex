@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { List } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 import PageHeader from '@/components/layout/PageHeader.vue'
 
 interface Breadcrumb {
@@ -22,14 +24,14 @@ const router = useRouter()
   <div class="main-container">
     <PageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
       <template #icon v-if="props.icon">
-        <span class="material-symbols-outlined">{{ props.icon }}</span>
+        <component :is="getIcon(props.icon)" :size="28" />
       </template>
       
       <template #actions>
         <div class="header-actions-group">
           <slot name="actions"></slot>
           <button v-if="props.catalogRoute" @click="router.push(props.catalogRoute)" class="btn btn-outline">
-            <span class="material-symbols-outlined">list_alt</span>
+            <List :size="18" />
             <span>{{ props.catalogText || 'Ir al catálogo' }}</span>
           </button>
         </div>

@@ -9,23 +9,23 @@
         show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">precision_manufacturing</span>
+          <Factory :size="28" />
         </template>
         <template #actions>
           <template v-if="!isEditing">
             <button class="btn btn-outline" @click="printWorkOrder">
-              <span class="material-symbols-outlined">print</span>
+              <Printer :size="18" />
               <span>Imprimir Hoja</span>
             </button>
             <button class="btn btn-primary ml-2" @click="startEdit">
-              <span class="material-symbols-outlined">edit</span>
+              <Pencil :size="18" />
               <span>Editar Orden</span>
             </button>
           </template>
           <template v-else>
             <button class="btn btn-outline" @click="cancelEdit" :disabled="isSaving">Cancelar</button>
             <button class="btn btn-secondary" @click="saveChanges" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+              <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
               <span>{{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}</span>
             </button>
           </template>
@@ -44,10 +44,10 @@
         </div>
         <div class="toolbar-actions">
           <button v-if="work.status === 'PENDING' && work.work_setup_id" class="btn btn-success btn-sm" @click="startWorkOrder">
-            <span class="material-symbols-outlined">play_arrow</span> Iniciar Producción
+            <Play :size="16" /> Iniciar Producción
           </button>
           <button v-if="work.status === 'IN_PROGRESS'" class="btn btn-outline btn-sm" @click="router.push('/mes/terminal')">
-            <span class="material-symbols-outlined">tablet_mac</span> Ir a Terminal
+            <Tablet :size="16" /> Ir a Terminal
           </button>
         </div>
       </div>
@@ -57,25 +57,25 @@
     <template #summary v-if="work && !isEditing">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName || '—' }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">settings_suggest</span></div>
+          <div class="icon yellow"><Settings2 :size="20" /></div>
           <div class="tag-content"><label>Configuración</label><strong>{{ workSetupName || 'No configurada' }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon purple"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Vencimiento</label><strong :class="{'text-danger': isOverdue}">{{ formatDate(work.due_date) }}</strong></div>
         </div>
         <!-- Enlace a Pedido (Sales) -->
         <div v-if="work.sales_order_id" class="summary-tag highlight">
-          <div class="icon green"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="icon green"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Origen (Ventas)</label>
             <RouterLink :to="`/sales/orders/${work.sales_order_id}`" class="order-link">
               <strong>#{{ work.sales_order_number }}</strong>
-              <span class="material-symbols-outlined inline-icon">open_in_new</span>
+              <ExternalLink :size="14" class="inline-icon" />
             </RouterLink>
           </div>
         </div>
@@ -138,7 +138,7 @@
 
         <FormSection title="Ruta de Producción" icon="account_tree">
           <div v-if="work.lines.length === 0" class="empty-state p-8">
-            <span class="material-symbols-outlined text-muted" style="font-size: 3rem">route</span>
+            <Route :size="48" class="text-muted" />
             <p>No se han definido pasos para esta orden.</p>
           </div>
           
@@ -182,11 +182,11 @@
             </div>
 
             <div v-if="line.design_file_path" class="design-file-row flex items-center gap-2 mt-4 p-2 bg-light rounded">
-              <span class="material-symbols-outlined text-secondary">draft</span>
+              <FileText :size="16" class="text-secondary" />
               <span class="text-xs font-bold text-muted">ARCHIVO:</span>
               <code class="text-xs flex-1 truncate">{{ line.design_file_path }}</code>
               <button class="btn btn-ghost btn-sm" @click="copyPath(line.design_file_path)">
-                <span class="material-symbols-outlined">content_copy</span>
+                <Copy :size="14" />
               </button>
             </div>
           </div>
@@ -214,6 +214,27 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { 
+  Factory, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  Play, 
+  Tablet, 
+  User, 
+  Settings2, 
+  Calendar, 
+  ShoppingCart, 
+  ExternalLink, 
+  FileEdit, 
+  Info, 
+  FileText, 
+  GitFork, 
+  Route, 
+  File, 
+  Copy 
+} from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
@@ -406,16 +427,16 @@ onMounted(loadDetail)
 .summary-tag { flex: 1; min-width: 240px; padding: 0.6rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--box-shadow-sm); }
 
 .icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon .material-symbols-outlined { font-size: 22px; }
+.icon :deep(svg) { width: 22px; height: 22px; }
 .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
 .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
+.icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
 .icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
 
 .summary-tag.highlight { border-color: #bbf7d0; background: #f0fdf4; }
 .order-link { display: flex; align-items: center; gap: 0.25rem; text-decoration: none; color: inherit; transition: 0.2s; }
 .order-link:hover { color: #16a34a; }
-.order-link .inline-icon { font-size: 1rem; opacity: 0.6; }
+.order-link :deep(svg) { opacity: 0.6; }
 
 .tag-content { display: flex; flex-direction: column; gap: 0.15rem; }
 .tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
@@ -449,4 +470,7 @@ onMounted(loadDetail)
   .no-print { display: none !important; }
   .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

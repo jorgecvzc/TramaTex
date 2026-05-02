@@ -73,7 +73,7 @@
             <!-- Borrar -->
             <td v-if="isEditing" class="text-center">
               <button class="btn-delete" type="button" @click="removeLine(index)" title="Quitar línea">
-                <span class="material-symbols-outlined">delete</span>
+                <Trash2 :size="18" />
               </button>
             </td>
           </tr>
@@ -89,6 +89,7 @@
 </template>
 
 <script setup>
+import { Trash2 } from 'lucide-vue-next'
 import salesApi from '@/services/salesApi'
 
 const props = defineProps({

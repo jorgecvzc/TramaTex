@@ -7,15 +7,15 @@
         show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">person_add</span>
+          <UserPlus :size="28" />
         </template>
         <template #actions>
           <button @click="triggerSubmit" class="btn btn-primary btn-sm">
-            <span class="material-symbols-outlined">save</span>
+            <Save :size="16" />
             <span>Crear Entidad</span>
           </button>
           <button @click="router.push('/parties')" class="btn btn-outline btn-sm">
-            <span class="material-symbols-outlined">close</span>
+            <X :size="16" />
             <span>Cancelar</span>
           </button>
         </template>
@@ -31,6 +31,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { UserPlus, Save, X } from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import PartyForm from '@/components/party/PartyForm.vue'

@@ -54,8 +54,9 @@ const props = defineProps<{
   min-height: 42px;
 }
 
-.header-icon .material-symbols-outlined {
-  font-size: 24px;
+.header-icon :deep(svg) {
+  width: 24px;
+  height: 24px;
 }
 
 .header-text h2 {

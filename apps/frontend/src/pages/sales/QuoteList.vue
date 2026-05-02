@@ -2,6 +2,7 @@
   <div class="page-layout">
     <BaseCatalog
       title="Presupuestos de Venta"
+      icon="description"
       :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]"
       :items="quotes"
       :is-loading="isLoading"
@@ -80,7 +81,7 @@
         <td class="align-right"><strong>{{ salesApi.formatMoney(item.total) }}</strong></td>
         <td @click.stop>
           <span v-if="getMesWorkIds(item.lineItems).length > 0" class="mes-badge">
-            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <Factory :size="16" />
             {{ getMesSummary(item.lineItems) }}
           </span>
           <span v-else class="text-muted">—</span>
@@ -88,7 +89,7 @@
         <td class="align-right" @click.stop>
           <div class="action-buttons">
             <button class="btn-icon" @click="navigateToDetail(item.id)" title="Ver detalle">
-              <span class="material-symbols-outlined">visibility</span>
+              <Eye :size="18" />
             </button>
           </div>
         </td>
@@ -100,6 +101,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { Factory, Eye } from 'lucide-vue-next';
 
 import BaseCatalog from '@/components/shared/BaseCatalog.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -201,7 +203,6 @@ function getStatusClass(s) { return salesApi.getStatusClass(s); }
 .align-right { text-align: right; }
 
 .mes-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; background: rgba(0, 35, 149, 0.05); border-radius: 4px; color: var(--color-secondary); font-size: 0.75rem; font-weight: 600; }
-.mes-badge .material-symbols-outlined { font-size: 16px; }
 
 .action-buttons { display: flex; justify-content: flex-end; }
 .btn-icon { color: var(--color-text-secondary); transition: 0.2s; padding: 0.4rem; border-radius: 6px; border: none; background: transparent; cursor: pointer; }

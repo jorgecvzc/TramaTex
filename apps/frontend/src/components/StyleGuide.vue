@@ -67,7 +67,7 @@
               <tr>
                 <td><strong>Acción Principal</strong><br><small>Guardar, Crear, Aceptar</small></td>
                 <td><button class="btn btn-primary">Guardar</button></td>
-                <td><button class="btn btn-primary"><span class="material-symbols-outlined">save</span><span>Guardar</span></button></td>
+                <td><button class="btn btn-primary"><Save :size="18" /><span>Guardar</span></button></td>
                 <td><button class="btn btn-primary" disabled>Guardar</button></td>
                 <td><code>.btn-primary</code></td>
               </tr>
@@ -75,7 +75,7 @@
               <tr>
                 <td><strong>Acción de Proceso</strong><br><small>Confirmar, Facturar, Albarán</small></td>
                 <td><button class="btn btn-secondary">Confirmar</button></td>
-                <td><button class="btn btn-secondary"><span class="material-symbols-outlined">check_circle</span><span>Confirmar</span></button></td>
+                <td><button class="btn btn-secondary"><CheckCircle :size="18" /><span>Confirmar</span></button></td>
                 <td><button class="btn btn-secondary" disabled>Confirmar</button></td>
                 <td><code>.btn-secondary</code></td>
               </tr>
@@ -83,7 +83,7 @@
               <tr>
                 <td><strong>Acción Neutra</strong><br><small>Cancelar, Volver, Filtros</small></td>
                 <td><button class="btn btn-outline">Cancelar</button></td>
-                <td><button class="btn btn-outline"><span class="material-symbols-outlined">close</span><span>Cancelar</span></button></td>
+                <td><button class="btn btn-outline"><X :size="18" /><span>Cancelar</span></button></td>
                 <td><button class="btn btn-outline" disabled>Cancelar</button></td>
                 <td><code>.btn-outline</code></td>
               </tr>
@@ -91,7 +91,7 @@
               <tr>
                 <td><strong>Acción Crítica</strong><br><small>Eliminar, Anular, Borrar</small></td>
                 <td><button class="btn btn-danger">Eliminar</button></td>
-                <td><button class="btn btn-danger"><span class="material-symbols-outlined">delete</span><span>Eliminar</span></button></td>
+                <td><button class="btn btn-danger"><Trash2 :size="18" /><span>Eliminar</span></button></td>
                 <td><button class="btn btn-danger" disabled>Eliminar</button></td>
                 <td><code>.btn-danger</code></td>
               </tr>
@@ -99,7 +99,7 @@
               <tr>
                 <td><strong>Acción Positiva</strong><br><small>Aprobar, Completar, Validar</small></td>
                 <td><button class="btn btn-success">Completar</button></td>
-                <td><button class="btn btn-success"><span class="material-symbols-outlined">task_alt</span><span>Completar</span></button></td>
+                <td><button class="btn btn-success"><CheckCircle2 :size="18" /><span>Completar</span></button></td>
                 <td><button class="btn btn-success" disabled>Completar</button></td>
                 <td><code>.btn-success</code></td>
               </tr>
@@ -107,8 +107,8 @@
               <tr>
                 <td><strong>Acción Minimalista</strong><br><small>Iconos en tablas, Cierres</small></td>
                 <td><button class="btn btn-ghost">Editar</button></td>
-                <td><button class="btn btn-ghost"><span class="material-symbols-outlined">edit</span></button></td>
-                <td><button class="btn btn-ghost" disabled><span class="material-symbols-outlined">edit</span></button></td>
+                <td><button class="btn btn-ghost"><Pencil :size="18" /></button></td>
+                <td><button class="btn btn-ghost" disabled><Pencil :size="18" /></button></td>
                 <td><code>.btn-ghost</code></td>
               </tr>
             </tbody>
@@ -145,128 +145,97 @@
         <p>Y aquí tenemos <code>código inline</code>.</p>
       </section>
 
+      <!-- Sección de Iconografía (SSOT) -->
+      <section>
+        <h2>Iconografía (Lucide SSOT)</h2>
+        <p class="section-intro">Iconografía industrial unificada. El sistema utiliza <code>getIcon(name)</code> para mapear nombres antiguos de Material Symbols a los nuevos componentes Lucide.</p>
+        
+        <div class="icon-search-box mb-4">
+          <input v-model="iconSearch" type="text" placeholder="Filtrar iconos por nombre..." class="form-input" />
+        </div>
+
+        <div class="icon-grid">
+          <div v-for="name in filteredIconNames" :key="name" class="icon-card">
+            <div class="icon-preview">
+              <component :is="getIcon(name)" :size="24" />
+            </div>
+            <div class="icon-info">
+              <span class="icon-key">{{ name }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="mt-4 text-muted"><small>Total de iconos registrados: {{ allIconNames.length }}</small></p>
+      </section>
+
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue';
+import { Save, CheckCircle, X, Trash2, CheckCircle2, Pencil } from 'lucide-vue-next';
+import { getIcon, getAllIconNames } from '@/utils/icons';
+
+const iconSearch = ref('');
+const allIconNames = getAllIconNames();
+
+const filteredIconNames = computed(() => {
+  if (!iconSearch.value) return allIconNames;
+  const q = iconSearch.value.toLowerCase();
+  return allIconNames.filter(n => n.toLowerCase().includes(q));
+});
 </script>
 
 <style scoped>
-.style-guide-wrapper {
-  background-color: var(--color-background);
-  min-height: 100vh;
-}
+/* ... (rest of styles) ... */
 
-.style-guide {
-  padding: 3rem var(--spacing-xl);
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: var(--color-surface);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--box-shadow-lg);
-}
-
-section {
-  margin-bottom: 4rem;
-}
-
-h2 {
-  border-bottom: 2px solid var(--color-primary);
-  display: inline-block;
-  margin-bottom: 1.5rem;
-  padding-right: 2rem;
-}
-
-.section-intro {
-  margin-bottom: 2rem;
-  color: var(--color-text-secondary);
-}
-
-.color-grid {
+/* Icon Grid */
+.icon-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--spacing-lg);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
 }
 
-.color-swatch-wrapper {
-  text-align: center;
-}
-
-.color-swatch {
-  width: 100%;
-  height: 80px;
-  border-radius: var(--border-radius-md);
-  margin-bottom: var(--spacing-sm);
-  box-shadow: var(--box-shadow-sm);
-  border: 1px solid rgba(0,0,0,0.05);
-}
-
-.color-swatch-wrapper p {
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-}
-
-.color-swatch-wrapper code {
-  font-size: 0.75rem;
-  background-color: var(--color-background);
-  padding: 2px 6px;
-  border-radius: var(--border-radius-sm);
-}
-
-/* Showcase de Botones */
-.showcase-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-.showcase-table th {
-  text-align: left;
-  padding: 1rem;
-  background: var(--color-background);
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-}
-
-.showcase-table td {
-  padding: 1.25rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.showcase-table tr:last-child td {
-  border-bottom: none;
-}
-
-.sizes-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 2rem;
-  padding: 2rem;
-  background: var(--color-background);
-  border-radius: 12px;
-}
-
-.size-item {
+.icon-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  transition: 0.2s;
 }
 
-.size-item code {
-  font-size: 0.8rem;
+.icon-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-sm);
 }
 
-.mt-8 { margin-top: 2rem; }
-
-.btn-success {
-  background-color: #16a34a;
-  color: white;
+.icon-preview {
+  margin-bottom: 0.75rem;
+  color: var(--color-secondary);
 }
-.btn-success:hover:not(:disabled) {
-  background-color: #15803d;
+
+.icon-info {
+  text-align: center;
+  width: 100%;
+}
+
+.icon-key {
+  font-size: 0.7rem;
+  font-family: var(--font-family-mono);
+  word-break: break-all;
+  color: var(--color-text-secondary);
+}
+
+.mb-4 { margin-bottom: 1rem; }
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  font-family: inherit;
 }
 </style>

@@ -5,20 +5,20 @@
       title="Perfil Fiscal de Impresión" 
       :breadcrumbs="[{ label: 'Administración', to: '/admin/users' }, { label: 'Configuración Fiscal' }]"
     >
-      <template #icon><span class="material-symbols-outlined">receipt_long</span></template>
+      <template #icon><Receipt :size="28" /></template>
       <template #actions>
         <button class="btn btn-outline btn-sm" @click="reloadProfile">
-          <span class="material-symbols-outlined">refresh</span> Recargar
+          <RefreshCw :size="16" /> Recargar
         </button>
         <button class="btn btn-primary btn-sm ml-2" @click="saveProfile">
-          <span class="material-symbols-outlined">save</span> Guardar Cambios
+          <Save :size="16" /> Guardar Cambios
         </button>
       </template>
     </PageHeader>
 
     <main class="page-content">
       <div v-if="!isAdmin" class="alert-error">
-        <span class="material-symbols-outlined">warning</span>
+        <AlertTriangle :size="20" />
         Solo los administradores pueden gestionar el perfil fiscal del emisor.
       </div>
 
@@ -58,7 +58,7 @@
           </FormSection>
 
           <div v-if="message" class="status-message">
-            <span class="material-symbols-outlined">check_circle</span>
+            <CheckCircle :size="18" />
             {{ message }}
           </div>
         </div>
@@ -66,7 +66,7 @@
         <!-- ÁREA DE PREVISUALIZACIÓN -->
         <div class="fiscal-preview-area">
           <div class="section-title-mini">
-            <span class="material-symbols-outlined">print</span>
+            <Printer :size="16" />
             Previsualización de Documento
           </div>
           <div class="print-mockup">
@@ -86,7 +86,7 @@
             </div>
           </div>
           <button class="btn btn-outline btn-sm w-full mt-4" @click="printPreview">
-            <span class="material-symbols-outlined">open_in_new</span> Probar Impresión Real
+            <ExternalLink :size="16" /> Probar Impresión Real
           </button>
         </div>
       </div>
@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { Receipt, RefreshCw, Save, AlertTriangle, CheckCircle, Printer, ExternalLink } from 'lucide-vue-next'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import { useAuthStore } from '@/stores/auth'

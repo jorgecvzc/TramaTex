@@ -2,10 +2,10 @@
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
       <PageHeader title="Ventas y Facturación">
-        <template #icon><span class="material-symbols-outlined">payments</span></template>
+        <template #icon><CreditCard :size="28" /></template>
         <template #actions>
           <button class="btn btn-outline btn-sm" @click="loadSalesData" :disabled="isLoading">
-            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <RefreshCw :size="16" :class="{ 'spin': isLoading }" />
             <span>Actualizar</span>
           </button>
         </template>
@@ -16,28 +16,28 @@
       <!-- 1. KPIs de Resumen -->
       <section class="stats-grid">
         <div class="stat-card clickable" @click="router.push('/sales/quotes')">
-          <div class="stat-icon yellow"><span class="material-symbols-outlined">description</span></div>
+          <div class="stat-icon yellow"><FileText :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Presupuestos</span>
             <span class="stat-value">{{ counts.pendingQuotes }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/sales/orders')">
-          <div class="stat-icon blue"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="stat-icon blue"><ShoppingCart :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Pedidos Activos</span>
             <span class="stat-value">{{ counts.activeOrders }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/sales/delivery-notes')">
-          <div class="stat-icon green"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="stat-icon green"><Truck :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Pend. Entrega</span>
             <span class="stat-value">{{ counts.pendingDelivery }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/sales/invoices')">
-          <div class="stat-icon purple"><span class="material-symbols-outlined">receipt_long</span></div>
+          <div class="stat-icon purple"><Receipt :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Facturas Mes</span>
             <span class="stat-value">{{ counts.monthlyInvoices }}</span>
@@ -48,19 +48,19 @@
       <!-- 2. Accesos a Listados -->
       <section class="listings-grid">
         <RouterLink to="/sales/quotes" class="listing-link">
-          <span class="material-symbols-outlined">request_quote</span>
+          <FileQuestion :size="20" />
           <span>Listado de Presupuestos</span>
         </RouterLink>
         <RouterLink to="/sales/orders" class="listing-link">
-          <span class="material-symbols-outlined">inventory</span>
+          <Package :size="20" />
           <span>Listado de Pedidos</span>
         </RouterLink>
         <RouterLink to="/sales/delivery-notes" class="listing-link">
-          <span class="material-symbols-outlined">conveyor_belt</span>
+          <Truck :size="20" />
           <span>Listado de Albaranes</span>
         </RouterLink>
         <RouterLink to="/sales/invoices" class="listing-link">
-          <span class="material-symbols-outlined">receipt_long</span>
+          <Receipt :size="20" />
           <span>Listado de Facturas</span>
         </RouterLink>
       </section>
@@ -68,7 +68,7 @@
       <!-- 3. Actividad Reciente -->
       <section class="dashboard-section">
         <div class="section-header">
-          <span class="material-symbols-outlined text-primary">history</span>
+          <History :size="20" class="text-primary" />
           <h2>Últimos Movimientos</h2>
         </div>
         <div class="table-wrapper">
@@ -101,26 +101,26 @@
     <template #sidebar>
       <section class="sidebar-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">bolt</span>
+          <Zap :size="20" />
           <h2>Accesos Rápidos</h2>
         </div>
         <div class="quick-actions-list">
           <RouterLink to="/sales/tickets/new" class="admin-card clickable highlight">
-            <span class="material-symbols-outlined text-primary">point_of_sale</span>
+            <Store :size="20" class="text-primary" />
             <div class="admin-card-info">
               <strong>Venta Directa</strong>
               <p>TPV mostrador</p>
             </div>
           </RouterLink>
           <RouterLink to="/sales/quotes/new" class="admin-card clickable">
-            <span class="material-symbols-outlined text-secondary">add_notes</span>
+            <FilePlus :size="20" class="text-secondary" />
             <div class="admin-card-info">
               <strong>Crear Presupuesto</strong>
               <p>Nueva oferta comercial</p>
             </div>
           </RouterLink>
           <RouterLink to="/sales/orders/new" class="admin-card clickable">
-            <span class="material-symbols-outlined">add_shopping_cart</span>
+            <ShoppingCart :size="20" />
             <div class="admin-card-info">
               <strong>Crear Pedido</strong>
               <p>Nuevo pedido de venta</p>
@@ -135,6 +135,20 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
+import { 
+  CreditCard, 
+  RefreshCw, 
+  FileText, 
+  ShoppingCart, 
+  Truck, 
+  Receipt, 
+  FileQuestion, 
+  Package, 
+  History, 
+  Zap, 
+  Store, 
+  FilePlus 
+} from 'lucide-vue-next';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import salesApi from '@/services/salesApi';
@@ -193,7 +207,7 @@ onMounted(loadSalesData);
 .stat-card { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; position: relative; transition: 0.2s; cursor: pointer; }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--box-shadow-md); border-color: var(--color-primary); }
 .stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.stat-icon .material-symbols-outlined { font-size: 22px; }
+.stat-icon :deep(svg) { width: 22px; height: 22px; }
 .stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
@@ -205,7 +219,7 @@ onMounted(loadSalesData);
 .listings-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 .listing-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
 .listing-link:hover { background: var(--color-background); border-color: var(--color-secondary); color: var(--color-secondary); transform: translateY(-1px); }
-.listing-link .material-symbols-outlined { color: var(--color-secondary); font-size: 1.25rem; }
+.listing-link :deep(svg) { color: var(--color-secondary); }
 
 .dashboard-section { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
 .section-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-background); }
@@ -226,4 +240,7 @@ onMounted(loadSalesData);
 @media (max-width: 720px) {
   .stats-grid, .listings-grid { grid-template-columns: 1fr; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

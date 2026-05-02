@@ -53,8 +53,9 @@ const props = defineProps<{
   opacity: 0.7;
 }
 
-.row-icon .material-symbols-outlined {
-  font-size: 18px;
+.row-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
 }
 
 .data-label label {

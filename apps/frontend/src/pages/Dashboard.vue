@@ -301,7 +301,7 @@ onMounted(loadStats)
 .kpi-card.clickable { cursor: pointer; transition: 0.2s; }
 .kpi-card.clickable:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 .kpi-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-.kpi-icon .material-symbols-outlined { font-size: 24px; }
+.kpi-icon :deep(svg) { width: 24px; height: 24px; }
 .kpi-icon.blue { background: rgba(37, 99, 235, 0.08); color: #2563eb; }
 .kpi-icon.green { background: rgba(22, 163, 74, 0.08); color: #16a34a; }
 .kpi-icon.yellow { background: rgba(217, 119, 6, 0.08); color: #d97706; }
@@ -320,7 +320,7 @@ onMounted(loadStats)
 }
 .section-title-alt { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
 .section-title-alt h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
-.section-title-alt .material-symbols-outlined { color: var(--color-text-secondary); }
+.section-title-alt :deep(svg) { color: var(--color-text-secondary); }
 .section-tag {
   margin-left: auto;
   font-size: 0.66rem;
@@ -336,19 +336,19 @@ onMounted(loadStats)
 .modules-section { padding: clamp(1rem, 2vw, 1.35rem); }
 .ops-header { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
 .ops-header h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); }
-.ops-header .material-symbols-outlined { color: var(--color-primary); }
+.ops-header :deep(svg) { color: var(--color-primary); }
 .ops-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
 .op-item { display: flex; flex-direction: column; align-items: center; padding: 1.25rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; font-size: 0.8rem; transition: 0.2s; text-align: center; gap: 0.75rem; border: 1px solid var(--color-border); }
 .op-item:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); color: var(--color-primary); }
 .op-icon { color: var(--color-primary); }
-.op-icon .material-symbols-outlined { font-size: 28px; }
+.op-icon :deep(svg) { width: 28px; height: 28px; }
 .op-item.highlight { background: rgba(230, 184, 0, 0.05); }
 
 .modules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
 .module-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.1rem; background: white; border-radius: 12px; border: 1px solid var(--color-border); text-decoration: none; transition: 0.2s; }
 .module-link-card:hover { transform: translateX(5px); border-color: var(--color-secondary); box-shadow: var(--box-shadow-sm); }
 .m-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.m-icon .material-symbols-outlined { font-size: 22px; }
+.m-icon :deep(svg) { width: 22px; height: 22px; }
 .m-icon.blue { background: rgba(37, 99, 235, 0.05); color: #2563eb; }
 .m-icon.yellow { background: rgba(217, 119, 6, 0.05); color: #d97706; }
 .m-icon.green { background: rgba(22, 163, 74, 0.05); color: #16a34a; }
@@ -363,7 +363,7 @@ onMounted(loadStats)
 .side-links { display: flex; flex-direction: column; gap: var(--dashboard-tag-gap); }
 .side-link-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
 .side-link-item:hover { background: white; border-color: var(--color-primary); color: var(--color-primary); transform: translateX(3px); }
-.side-link-item .material-symbols-outlined { font-size: 20px; color: var(--color-text-secondary); }
+.side-link-item :deep(svg) { width: 20px; height: 20px; color: var(--color-text-secondary); }
 .side-links .mt-2,
 .dev-link { margin-top: 0; }
 .dev-link { opacity: 0.7; }

@@ -2,19 +2,12 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { 
-  List, 
   FilterX, 
   RefreshCw, 
   Plus, 
-  AlertCircle, 
-  SearchX, 
-  Package, 
-  Users, 
-  CreditCard, 
-  Factory, 
-  UserCog, 
-  ShieldCheck 
+  AlertCircle
 } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 const props = defineProps<{
@@ -37,24 +30,8 @@ function handleRowClick(item: any) {
   emit('click-item', item)
 }
 
-// Mapa de compatibilidad Material Symbols -> Lucide
-const iconMap: Record<string, any> = {
-  'list_alt': List,
-  'filter_alt_off': FilterX,
-  'refresh': RefreshCw,
-  'add': Plus,
-  'error': AlertCircle,
-  'search_off': SearchX,
-  'inventory_2': Package,
-  'groups': Users,
-  'payments': CreditCard,
-  'precision_manufacturing': Factory,
-  'manage_accounts': UserCog,
-  'admin_panel_settings': ShieldCheck
-}
-
-const resolvedIcon = computed(() => iconMap[props.icon || 'list_alt'] || List)
-const resolvedEmptyIcon = computed(() => iconMap[props.emptyIcon || 'search_off'] || SearchX)
+const resolvedIcon = computed(() => getIcon(props.icon || 'list_alt'))
+const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'))
 </script>
 
 <template>

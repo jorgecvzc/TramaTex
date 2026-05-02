@@ -585,11 +585,6 @@ function generateId() {
   color: var(--color-text-primary);
 }
 
-.section-header .material-symbols-outlined {
-  font-size: 20px;
-  color: var(--color-text-secondary);
-}
-
 .section-body {
   padding: 1.5rem;
 }
@@ -692,7 +687,7 @@ textarea { resize: vertical; }
 }
 
 .alert-info p { margin: 0; font-size: 0.85rem; color: #1e40af; }
-.alert-info .material-symbols-outlined { color: #3b82f6; font-size: 20px; }
+.alert-info :deep(svg) { color: #3b82f6; }
 
 /* Footer Actions */
 .form-footer {

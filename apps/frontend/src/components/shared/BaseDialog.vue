@@ -157,7 +157,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: var(--color-text-primary);
 }
-.header-content .material-symbols-outlined { color: var(--color-primary); }
+.header-content :deep(svg) { color: var(--color-primary); }
 .btn-icon { background: none; border: none; padding: 0.5rem; border-radius: 50%; cursor: pointer; color: var(--color-text-secondary); }
 .btn-icon:hover { background: var(--color-background-soft); }
 

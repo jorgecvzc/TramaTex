@@ -15,7 +15,7 @@
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="24" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -33,12 +33,12 @@
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
       >
         <template #icon>
-          <span class="material-symbols-outlined">receipt</span>
+          <Receipt :size="28" />
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
             <button class="btn btn-outline btn-sm" @click="printInvoice">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
+              <Printer :size="16" /> <span>Imprimir</span>
             </button>
           </template>
         </template>
@@ -64,7 +64,7 @@
             :disabled="isChangingStatus || !canManageInvoiceStatus"
             :title="!canManageInvoiceStatus ? 'Requiere rol admin o commercial' : ''"
           >
-            <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
+            <CreditCard :size="16" /> <span>Registrar Cobro</span>
           </button>
         </div>
       </div>
@@ -72,7 +72,7 @@
       <!-- Draft Warning -->
       <div v-if="invoice.status === 'DRAFT'" class="alert-card card warning mt-4 mb-0 no-print">
         <div class="alert-icon-wrapper warning">
-          <span class="material-symbols-outlined">warning</span>
+          <AlertTriangle :size="24" />
         </div>
         <div class="alert-content">
           <h4>Factura en estado Borrador</h4>
@@ -85,19 +85,19 @@
     <template #summary>
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">event_busy</span></div>
+          <div class="icon purple"><CalendarOff :size="20" /></div>
           <div class="tag-content"><label>Vencimiento</label><strong>{{ formatDate(invoice.dueDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Factura</label>
             <strong class="amount">{{ salesApi.formatMoney(invoice.total) }}</strong>
@@ -110,21 +110,21 @@
     <template #related v-if="mode === 'detail' && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
       <div class="related-history-grid">
         <router-link v-for="order in relatedOrders" :key="order.id" :to="`/sales/orders/${order.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido de Origen</label>
             <strong>{{ order.orderNumber || formatId(order.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
-          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán de Origen</label>
             <strong>{{ dn.deliveryNoteNumber || formatId(dn.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -180,7 +180,7 @@
               <tr v-for="item in invoice.lineItems" :key="item.id || item.productVariantID">
                 <td>
                   <div class="product-info-cell">
-                    <span class="material-symbols-outlined icon-secondary">inventory_2</span>
+                    <Package :size="20" class="icon-secondary" />
                     <div class="content">
                       <strong>{{ buildDisplayName(item) }}</strong>
                       <code class="code-badge ml-2">{{ item.variantSku || formatId(item.productVariantId || item.productVariantID) }}</code>
@@ -262,18 +262,18 @@
     <div v-if="showPostIssueModal" class="modal-backdrop no-print">
       <div class="modal card w-modal-md">
         <div class="modal-header">
-          <span class="material-symbols-outlined text-success">check_circle</span>
+          <CheckCircle :size="24" class="text-success" />
           <h2>Factura Emitida con Éxito</h2>
-          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><X :size="20" /></button>
         </div>
         <div class="modal-body">
           <p class="mb-4">La factura <strong>{{ invoice?.invoiceNumber }}</strong> ya es oficial y puede ser enviada al cliente.</p>
           <div class="post-issue-actions">
             <button class="btn btn-primary w-full justify-center mb-3" @click="postIssuePrint">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir Factura</span>
+              <Printer :size="16" /> <span>Imprimir Factura</span>
             </button>
             <button class="btn btn-outline w-full justify-center mb-2" @click="postIssueEmail">
-              <span class="material-symbols-outlined">mail</span> <span>Enviar por Email</span>
+              <Mail :size="16" /> <span>Enviar por Email</span>
             </button>
           </div>
         </div>
@@ -285,6 +285,23 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { 
+  AlertCircle, 
+  Receipt, 
+  Printer, 
+  CreditCard, 
+  AlertTriangle, 
+  User, 
+  Calendar, 
+  CalendarOff, 
+  ShoppingCart, 
+  Truck, 
+  ExternalLink, 
+  Package, 
+  CheckCircle, 
+  X, 
+  Mail 
+} from 'lucide-vue-next';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { Info, List, PlusCircle, SearchX, Plus, Trash2 } from 'lucide-vue-next'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
@@ -197,7 +198,7 @@ onMounted(() => {
     <div class="setup-selector-content">
       <!-- Banner informativo -->
       <div class="info-banner mb-4">
-        <span class="material-symbols-outlined">info</span>
+        <Info :size="18" />
         <p>Configurando orden <strong>{{ workOrder?.work_number }}</strong> para el cliente <strong>{{ workOrder?.party_name || workOrder?.party_id }}</strong></p>
       </div>
 
@@ -208,7 +209,7 @@ onMounted(() => {
           :class="{ active: mode === 'assign' }" 
           @click="handleModeChange('assign')"
         >
-          <span class="material-symbols-outlined">list_alt</span>
+          <List :size="18" />
           Asignar Existente
         </button>
         <button 
@@ -216,7 +217,7 @@ onMounted(() => {
           :class="{ active: mode === 'create' }" 
           @click="handleModeChange('create')"
         >
-          <span class="material-symbols-outlined">add_circle</span>
+          <PlusCircle :size="18" />
           Crear Nueva Configuración
         </button>
       </div>
@@ -232,7 +233,7 @@ onMounted(() => {
           <p>Buscando configuraciones del cliente...</p>
         </div>
         <div v-else-if="existingWorkSetups.length === 0" class="empty-state p-8 text-center card bg-light">
-          <span class="material-symbols-outlined text-muted mb-2" style="font-size: 3rem">search_off</span>
+          <SearchX class="text-muted mb-2 mx-auto" :size="48" />
           <p>No se han encontrado configuraciones previas para este cliente.</p>
           <button class="btn btn-outline-primary btn-sm mt-4" @click="handleModeChange('create')">
             Crear la primera configuración
@@ -285,7 +286,7 @@ onMounted(() => {
           <div class="section-header-row mb-3">
             <h4 class="m-0">Pasos de Producción *</h4>
             <button type="button" class="btn btn-outline btn-sm" @click="addSetupLine">
-              <span class="material-symbols-outlined">add</span> Añadir Paso
+              <Plus :size="16" /> Añadir Paso
             </button>
           </div>
 
@@ -316,7 +317,7 @@ onMounted(() => {
                   </td>
                   <td>
                     <button type="button" class="btn-icon text-danger" @click="removeSetupLine(idx)">
-                      <span class="material-symbols-outlined">delete</span>
+                      <Trash2 :size="18" />
                     </button>
                   </td>
                 </tr>
@@ -338,7 +339,7 @@ onMounted(() => {
 .setup-selector-content { min-height: 400px; }
 
 .info-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border: 1px solid var(--color-border); border-radius: 8px; color: var(--color-text-secondary); font-size: 0.9rem; }
-.info-banner .material-symbols-outlined { color: var(--color-primary); }
+.info-banner :deep(svg) { color: var(--color-primary); }
 .info-banner p { margin: 0; }
 
 .mode-tabs { display: flex; border-bottom: 1px solid var(--color-border); gap: 1rem; }

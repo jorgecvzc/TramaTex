@@ -2,10 +2,10 @@
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
       <PageHeader title="Catálogo y Almacén">
-        <template #icon><span class="material-symbols-outlined">inventory_2</span></template>
+        <template #icon><Package :size="24" /></template>
         <template #actions>
           <button class="btn btn-outline btn-sm" @click="loadProductData" :disabled="isLoading">
-            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <RefreshCw :size="16" :class="{ 'spin': isLoading }" />
             <span>Actualizar</span>
           </button>
         </template>
@@ -16,28 +16,28 @@
       <!-- 1. KPIs de Resumen -->
       <section class="stats-grid">
         <div class="stat-card clickable" @click="router.push('/products')">
-          <div class="stat-icon blue"><span class="material-symbols-outlined">inventory_2</span></div>
+          <div class="stat-icon blue"><Package :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Productos Totales</span>
             <span class="stat-value">{{ counts.totalProducts }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/master-data/brands')">
-          <div class="stat-icon yellow"><span class="material-symbols-outlined">branding_watermark</span></div>
+          <div class="stat-icon yellow"><BadgeCheck :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Marcas</span>
             <span class="stat-value">{{ counts.brands }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/master-data/product-groups')">
-          <div class="stat-icon green"><span class="material-symbols-outlined">category</span></div>
+          <div class="stat-icon green"><FolderTree :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Familias</span>
             <span class="stat-value">{{ counts.groups }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/master-data/attributes')">
-          <div class="stat-icon purple"><span class="material-symbols-outlined">tune</span></div>
+          <div class="stat-icon purple"><Sliders :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Atributos</span>
             <span class="stat-value">{{ counts.attributes }}</span>
@@ -48,19 +48,19 @@
       <!-- 2. Accesos a Listados -->
       <section class="listings-grid">
         <RouterLink to="/products" class="listing-link">
-          <span class="material-symbols-outlined">list_alt</span>
+          <List :size="20" />
           <span>Listado de Productos</span>
         </RouterLink>
         <RouterLink to="/master-data/product-groups" class="listing-link">
-          <span class="material-symbols-outlined">account_tree</span>
+          <GitFork :size="20" />
           <span>Familias y Categorías</span>
         </RouterLink>
         <RouterLink to="/master-data/brands" class="listing-link">
-          <span class="material-symbols-outlined">branding_watermark</span>
+          <BadgeCheck :size="20" />
           <span>Marcas Registradas</span>
         </RouterLink>
         <RouterLink to="/master-data/attributes" class="listing-link">
-          <span class="material-symbols-outlined">tune</span>
+          <Sliders :size="20" />
           <span>Atributos Técnicos</span>
         </RouterLink>
       </section>
@@ -68,7 +68,7 @@
       <!-- 3. Actividad Reciente -->
       <section class="dashboard-section">
         <div class="section-header">
-          <span class="material-symbols-outlined text-primary">new_releases</span>
+          <Sparkles :size="20" class="text-primary" />
           <h2>Últimas Incorporaciones</h2>
         </div>
         <div class="table-wrapper">
@@ -101,19 +101,19 @@
     <template #sidebar>
       <section class="sidebar-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">bolt</span>
+          <Zap :size="20" />
           <h2>Operaciones</h2>
         </div>
         <div class="quick-actions-list">
           <RouterLink to="/products/new" class="admin-card clickable">
-            <span class="material-symbols-outlined text-primary">add_box</span>
+            <PlusSquare :size="24" class="text-primary" />
             <div class="admin-card-info">
               <strong>Nuevo Producto</strong>
               <p>Alta de referencia base</p>
             </div>
           </RouterLink>
           <RouterLink to="/master-data/attributes" class="admin-card clickable mt-2">
-            <span class="material-symbols-outlined text-secondary">tune</span>
+            <Sliders :size="24" class="text-secondary" />
             <div class="admin-card-info">
               <strong>Gestionar Atributos</strong>
               <p>Tallas, colores, materiales</p>
@@ -128,6 +128,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
+import { 
+  Package, 
+  RefreshCw, 
+  BadgeCheck, 
+  FolderTree, 
+  Sliders, 
+  List, 
+  GitFork, 
+  Sparkles, 
+  Zap, 
+  PlusSquare 
+} from 'lucide-vue-next';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import { productApi } from '@/services/productApi';
@@ -173,7 +185,7 @@ onMounted(loadProductData);
 .stat-card { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; position: relative; transition: 0.2s; cursor: pointer; }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--box-shadow-md); border-color: var(--color-primary); }
 .stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.stat-icon .material-symbols-outlined { font-size: 22px; }
+.stat-icon svg { width: 22px; height: 22px; }
 .stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
 .stat-icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
@@ -185,7 +197,7 @@ onMounted(loadProductData);
 .listings-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 .listing-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
 .listing-link:hover { background: var(--color-background); border-color: var(--color-secondary); color: var(--color-secondary); transform: translateY(-1px); }
-.listing-link .material-symbols-outlined { color: var(--color-secondary); font-size: 1.25rem; }
+.listing-link svg { color: var(--color-secondary); }
 
 .dashboard-section { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
 .section-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-background); }

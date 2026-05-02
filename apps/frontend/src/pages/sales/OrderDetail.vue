@@ -2,35 +2,35 @@
   <BaseEntityPage class="no-print" :is-loading="isLoading" :error="error">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="pageTitle" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Pedidos', to: '/sales/orders' }, { label: headerLabel }]"
       >
         <template #icon>
-          <span class="material-symbols-outlined">shopping_cart</span>
+          <ShoppingCart :size="28" />
         </template>
         <template #actions>
           <div v-if="order || mode === 'create'" class="header-actions-group">
             <template v-if="mode === 'detail'">
               <button class="btn btn-outline btn-sm" @click="printOrder">
-                <span class="material-symbols-outlined">print</span>
+                <Printer :size="16" />
                 <span>Imprimir</span>
               </button>
               <button v-if="!hasActiveDeliveryNotes" class="btn btn-primary btn-sm" @click="enterEditMode">
-                <span class="material-symbols-outlined">edit</span>
+                <Pencil :size="16" />
                 <span>Editar Pedido</span>
               </button>
             </template>
             <template v-else>
               <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
               <button class="btn btn-secondary btn-sm" @click="saveOrder" :disabled="isSaving">
-                <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+                <component :is="isSaving ? RefreshCw : Save" :size="16" :class="{ 'spin': isSaving }" />
                 <span>{{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}</span>
               </button>
             </template>
           </div>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR: ACCIONES DE FLUJO -->
@@ -48,7 +48,7 @@
             class="btn btn-primary btn-sm" 
             @click="launchOrderToProduction"
           >
-            <span class="material-symbols-outlined">rocket_launch</span>
+            <Rocket :size="16" />
             <span>Lanzar a Producción</span>
           </button>
 
@@ -58,7 +58,7 @@
             class="btn btn-success btn-sm" 
             @click="createDeliveryNote"
           >
-            <span class="material-symbols-outlined">local_shipping</span>
+            <Truck :size="16" />
             <span>Albaranar</span>
           </button>
           
@@ -68,7 +68,7 @@
             class="btn btn-primary btn-sm" 
             @click="reactivateOrder"
           >
-            <span class="material-symbols-outlined">refresh</span>
+            <RefreshCw :size="16" />
             <span>Reactivar Pedido</span>
           </button>
 
@@ -78,7 +78,7 @@
             class="btn btn-danger btn-sm" 
             @click="cancelOrder"
           >
-            <span class="material-symbols-outlined">block</span>
+            <Ban :size="16" />
             <span>Anular Pedido</span>
           </button>
         </div>
@@ -89,28 +89,28 @@
     <template #summary v-if="mode === 'detail' && order">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content">
             <label>Cliente</label>
             <strong>{{ order.party_name || order.partyName }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Pedido</label>
             <strong>{{ formatDate(order.order_date || order.orderDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="icon purple"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Entrega</label>
             <strong>{{ formatDate(order.delivery_date || order.deliveryDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Pedido</label>
             <strong class="amount">{{ formatMoney(totalAmount) }}</strong>
@@ -123,32 +123,32 @@
       <div class="related-history-grid">
         <!-- 1. Presupuesto Origen -->
         <router-link v-if="relatedQuote" :to="`/sales/quotes/${relatedQuote.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">request_quote</span></div>
+          <div class="tag-icon"><FileQuestion :size="20" /></div>
           <div class="tag-content">
             <label>Presupuesto Origen</label>
             <strong>{{ relatedQuote.quoteNumber || relatedQuote.quote_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <!-- 2. Albaranes -->
         <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
-          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán Generado</label>
             <strong>{{ dn.deliveryNoteNumber || dn.delivery_note_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <!-- 3. Factura -->
         <router-link v-if="relatedInvoice" :to="`/sales/invoices/${relatedInvoice.id}`" class="related-tag-card">
-          <div class="tag-icon success"><span class="material-symbols-outlined">receipt</span></div>
+          <div class="tag-icon success"><Receipt :size="20" /></div>
           <div class="tag-content">
             <label>Factura Vinculada</label>
             <strong>{{ relatedInvoice.invoiceNumber || relatedInvoice.invoice_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -209,7 +209,7 @@
       <!-- SECCIÓN MES -->
       <FormSection title="Configuración Técnica (MES)" icon="precision_manufacturing">
         <div v-if="mode === 'detail' && ['PENDING', 'PENDIENTE', 'CONFIRMED', 'CONFIRMADO', 'EN_PREPARACION'].includes(order.status)" class="info-notice mb-4">
-          <span class="material-symbols-outlined">info</span>
+          <Info :size="20" />
           <div>
             <strong>A la espera de lanzamiento operativo.</strong>
             <p class="m-0 text-xs">El taller no visualizará este pedido hasta que se pulse el botón "Lanzar a Producción".</p>
@@ -229,7 +229,7 @@
               <tr v-for="mesRef in (order.mes_work_refs || order.mesWorkRefs)" :key="mesRef.id">
                 <td>
                   <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-secondary">settings_suggest</span>
+                    <Settings2 :size="18" class="text-secondary" />
                     <strong>{{ formatMesWorkId(mesRef.work_setup_id || mesRef.workSetupId) }}</strong>
                   </div>
                 </td>
@@ -242,7 +242,7 @@
                       @click="router.push(`/mes/work-orders/${mesRef.work_order_id || mesRef.workOrderId}`)"
                     >
                       {{ mesApi.getWorkStatusLabel(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId]) || 'Cargando...' }}
-                      <span class="material-symbols-outlined text-xs">open_in_new</span>
+                      <ExternalLink :size="14" />
                     </button>
                   </template>
                   <span v-else class="status-badge status-secondary">Sin lanzar</span>
@@ -256,7 +256,7 @@
         <div v-else>
           <div class="mb-4">
             <button type="button" class="btn btn-outline-secondary btn-sm" @click="addMesWorkRef">
-              <span class="material-symbols-outlined">add</span> <span>Añadir Requerimiento Técnico</span>
+              <Plus :size="16" /> <span>Añadir Requerimiento Técnico</span>
             </button>
           </div>
           <div class="table-wrapper border rounded-lg overflow-hidden">
@@ -283,7 +283,7 @@
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
-                      <span class="material-symbols-outlined">delete</span>
+                      <Trash2 :size="18" />
                     </button>
                   </td>
                 </tr>
@@ -300,7 +300,7 @@
       <FormSection title="Líneas de Pedido" icon="list_alt">
         <div v-if="mode !== 'detail'" class="mb-4">
           <button type="button" class="btn btn-primary btn-sm" @click="showVariantSelector = true">
-            <span class="material-symbols-outlined">add</span> <span>Añadir Producto</span>
+            <Plus :size="16" /> <span>Añadir Producto</span>
           </button>
         </div>
         <OrderLines
@@ -444,6 +444,26 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { 
+  ShoppingCart, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  Rocket, 
+  Truck, 
+  Ban, 
+  User, 
+  Calendar, 
+  CreditCard, 
+  FileQuestion, 
+  Receipt, 
+  ExternalLink, 
+  Info, 
+  Settings2, 
+  Plus, 
+  Trash2 
+} from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
@@ -1034,8 +1054,8 @@ watch(() => route.params.id, loadOrder, { immediate: true })
 .summary-tag { flex: 1; min-width: 200px; padding: 0.75rem 1.25rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 1rem; box-shadow: var(--box-shadow-sm); }
 
 .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon .material-symbols-outlined { font-size: 24px; }
-.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.icon :deep(svg) { width: 24px; height: 24px; }
+.icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
 .icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
 .icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
@@ -1060,8 +1080,9 @@ watch(() => route.params.id, loadOrder, { immediate: true })
   transform: translateY(-1px);
   box-shadow: var(--box-shadow-sm);
 }
-.clickable-status .material-symbols-outlined {
-  font-size: 0.9rem;
+.clickable-status :deep(svg) {
+  width: 0.9rem;
+  height: 0.9rem;
   opacity: 0.8;
 }
 
@@ -1072,4 +1093,7 @@ watch(() => route.params.id, loadOrder, { immediate: true })
   .no-print { display: none !important; }
   .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

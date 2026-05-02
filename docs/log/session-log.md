@@ -18,8 +18,8 @@
     - [x] Investigar/Fix test fallido preexistente en `PartyForm.test.ts`.
     - [x] Tarea 02: Implementación de Toasts y Feedback Crítico (Migración exhaustiva de `alert()`).
     - [x] Migración exhaustiva de Google Material Symbols a Lucide Icons.
-    - [ ] **URGENTE:** Fix en `product-groups/List.vue` - No muestra error/toast al intentar guardar una nueva categoría con el nombre en blanco.
-    - [ ] **URGENTE:** Auditoría final definitiva de `alert()` y `material-symbols-outlined` para cerrar Fase 1.
+    - [x] **URGENTE:** Fix en `product-groups/List.vue` - No muestra error/toast al intentar guardar una nueva categoría con el nombre en blanco.
+    - [x] **URGENTE:** Auditoría final definitiva de `alert()` y `material-symbols-outlined` para cerrar Fase 1.
     - [ ] Tarea 03: Navegación Core (Lógica de teclado en listados).
     - [ ] Tarea 04: Skeletons Industriales para estados de carga.
 - **Archivos de Contexto:**

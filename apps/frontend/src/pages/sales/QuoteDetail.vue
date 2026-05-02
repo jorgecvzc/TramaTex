@@ -15,7 +15,7 @@
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="24" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -33,24 +33,26 @@
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos', to: '/sales/quotes' }, { label: mode === 'create' ? 'Crear' : quote?.quoteNumber }]"
       >
         <template #icon>
-          <span class="material-symbols-outlined">description</span>
+          <FileText :size="28" />
         </template>
         <template #actions>
-          <template v-if="mode === 'detail'">
-            <button v-if="quote?.status !== 'BORRADOR'" class="btn btn-outline" @click="printQuote">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
-            </button>
-            <button v-if="canEdit" class="btn btn-primary" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar Presupuesto</span>
-            </button>
-          </template>
-          <template v-else>
-            <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-secondary" @click="saveQuote" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar Presupuesto' }}</span>
-            </button>
-          </template>
+          <div v-if="quote || mode === 'create'" class="header-actions-group">
+            <template v-if="mode === 'detail'">
+              <button v-if="quote?.status !== 'BORRADOR'" class="btn btn-outline" @click="printQuote">
+                <Printer :size="16" /> <span>Imprimir</span>
+              </button>
+              <button v-if="canEdit" class="btn btn-primary" @click="enterEditMode">
+                <Pencil :size="16" /> <span>Editar Presupuesto</span>
+              </button>
+            </template>
+            <template v-else>
+              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
+              <button class="btn btn-secondary" @click="saveQuote" :disabled="isSaving">
+                <component :is="isSaving ? RefreshCw : Save" :size="16" :class="{ 'spin': isSaving }" />
+                <span>{{ isSaving ? 'Guardando...' : 'Guardar Presupuesto' }}</span>
+              </button>
+            </template>
+          </div>
         </template>
       </PageHeader>
     </template>
@@ -65,19 +67,19 @@
         </div>
         <div class="toolbar-buttons">
           <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="confirmIssueQuote">
-            <span class="material-symbols-outlined">send</span> <span>Emitir a Cliente</span>
+            <Send :size="16" /> <span>Emitir a Cliente</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
-            <span class="material-symbols-outlined">check_circle</span> <span>Aceptar y Crear Pedido</span>
+            <CheckCircle :size="16" /> <span>Aceptar y Crear Pedido</span>
           </button>
           <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
-            <span class="material-symbols-outlined">shopping_cart</span> <span>Crear Pedido</span>
+            <ShoppingCart :size="16" /> <span>Crear Pedido</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="rejectQuote">
-            <span class="material-symbols-outlined">cancel</span> <span>Rechazar</span>
+            <XCircle :size="16" /> <span>Rechazar</span>
           </button>
           <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="reactivateQuote">
-            <span class="material-symbols-outlined">refresh</span> <span>Reactivar</span>
+            <RefreshCw :size="16" /> <span>Reactivar</span>
           </button>
         </div>
       </div>
@@ -87,19 +89,19 @@
     <template #summary>
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(mode === 'create' ? new Date() : quote?.quoteDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">event_busy</span></div>
+          <div class="icon purple"><CalendarOff :size="20" /></div>
           <div class="tag-content"><label>Válido Hasta</label><strong :class="{'text-danger': isExpired}">{{ formatDate(mode === 'create' ? formData.expirationDate : quote?.expirationDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Presupuesto</label>
             <strong class="amount">{{ salesApi.formatMoney(liveTotals.total) }}</strong>
@@ -112,12 +114,12 @@
     <template #related v-if="mode === 'detail' && quote?.generatedOrderId">
       <div class="related-history-grid">
         <router-link :to="`/sales/orders/${quote.generatedOrderId}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido Generado</label>
             <strong>{{ quote.generatedOrderNumber || 'Ver Pedido' }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -177,7 +179,7 @@
             <tr v-for="mesRef in quote.mesWorkRefs" :key="mesRef.id">
               <td class="w-64">
                 <div class="mes-config-info">
-                  <span class="material-symbols-outlined icon-secondary">settings_suggest</span>
+                  <Settings2 :size="18" class="icon-secondary" />
                   <strong>{{ formatMesWorkId(mesRef.workSetupId) }}</strong>
                 </div>
               </td>
@@ -206,7 +208,7 @@
       <div v-else>
         <div class="mb-4">
           <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
-            <span class="material-symbols-outlined">add</span> <span>Añadir Trabajo MES</span>
+            <Plus :size="16" /> <span>Añadir Trabajo MES</span>
           </button>
         </div>
         <div class="table-wrapper">
@@ -233,7 +235,7 @@
                 </td>
                 <td class="text-center">
                   <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
-                    <span class="material-symbols-outlined">delete</span>
+                    <Trash2 :size="18" />
                   </button>
                 </td>
               </tr>
@@ -249,7 +251,7 @@
     <FormSection title="Líneas del Presupuesto" icon="list_alt">
       <div v-if="mode !== 'detail'" class="mb-4">
         <button type="button" class="btn btn-primary btn-sm" @click="openVariantSelector">
-          <span class="material-symbols-outlined">add</span> <span>Añadir Producto</span>
+          <Plus :size="16" /> <span>Añadir Producto</span>
         </button>
       </div>
       <div class="table-wrapper">
@@ -287,7 +289,7 @@
                 <strong>{{ salesApi.formatMoney(mode === 'detail' ? item.subtotal : calculateLineSubtotal(idx)) }}</strong>
               </td>
               <td v-if="mode !== 'detail'" class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)"><span class="material-symbols-outlined">delete</span></button>
+                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)"><Trash2 :size="18" /></button>
               </td>
             </tr>
           </tbody>
@@ -389,9 +391,9 @@
       <div class="modal card w-modal-md animate-fade-in">
         <div class="modal-header border-none pb-0">
           <div class="icon-circle success">
-            <span class="material-symbols-outlined">check_circle</span>
+            <CheckCircle :size="32" />
           </div>
-          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><X :size="20" /></button>
         </div>
         <div class="modal-body text-center p-6 pt-2">
           <h2 class="mb-2">¡Presupuesto Emitido!</h2>
@@ -399,7 +401,7 @@
           
           <div class="post-issue-actions">
             <button class="btn btn-primary w-full justify-center mb-3 py-3" @click="postIssuePrint">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir Presupuesto</span>
+              <Printer :size="16" /> <span>Imprimir Presupuesto</span>
             </button>
             <button class="btn btn-outline w-full justify-center" @click="showPostIssueModal = false">
               <span>Continuar trabajando</span>
@@ -414,6 +416,27 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { 
+  AlertCircle, 
+  FileText, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  Send, 
+  CheckCircle, 
+  ShoppingCart, 
+  XCircle, 
+  User, 
+  Calendar, 
+  CalendarOff, 
+  CreditCard, 
+  ExternalLink, 
+  Settings2, 
+  Plus, 
+  Trash2, 
+  X 
+} from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';

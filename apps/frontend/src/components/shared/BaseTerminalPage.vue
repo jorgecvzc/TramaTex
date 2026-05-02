@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
 import { Terminal, RefreshCw, LogOut } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 
 const props = defineProps<{
   title: string
@@ -27,7 +28,7 @@ onUnmounted(() => {
     <header class="terminal-header">
       <div class="header-brand">
         <div class="logo-icon">
-          <component v-if="icon" :is="icon" :size="48" />
+          <component v-if="icon" :is="getIcon(icon)" :size="48" />
           <Terminal v-else :size="48" />
         </div>
         <div class="title-stack">
