@@ -65,6 +65,10 @@ while [[ $# -gt 0 ]]; do
       REMOVE_IMAGES="false"
       shift
       ;;
+    --build-source)
+      BUILD_SOURCE="true"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
