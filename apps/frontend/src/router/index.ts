@@ -6,7 +6,6 @@ import {
 import Login from "@/pages/auth/Login.vue";
 import Dashboard from "@/pages/Dashboard.vue";
 import NotFound from "@/pages/NotFound.vue";
-import StyleGuide from "@/components/StyleGuide.vue";
 import PartiesList from "@/pages/parties/List.vue";
 import PartiesCreate from "@/pages/parties/Create.vue";
 import PartiesDetail from "@/pages/parties/Detail.vue";
