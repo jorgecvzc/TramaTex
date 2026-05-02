@@ -83,6 +83,11 @@ done
 
 cd "$PROJECT_DIR"
 
+# Redirigir el almacenamiento temporal de Docker a la partición con espacio (/)
+# Esto evita el error "no space left on device" cuando /home está lleno.
+export DOCKER_CONFIG="$PROJECT_DIR/.docker_config"
+mkdir -p "$DOCKER_CONFIG"
+
 echo "[1/5] Preparing repository in $PROJECT_DIR"
 if [[ "$SKIP_GIT" == "true" ]]; then
   echo "Skipping git step (already done by caller)"
