@@ -7,6 +7,7 @@
         v-model="formData.name" 
         type="text" 
         class="form-input"
+        :class="{ 'border-error': errors.name }"
         placeholder="Ej: Nike, Adidas"
         @input="clearError('name')"
       />
@@ -22,6 +23,7 @@
         step="0.01"
         min="0"
         class="form-input"
+        :class="{ 'border-error': errors.defaultMarkupPercentage }"
         placeholder="Ej: 30.00"
         @input="clearError('defaultMarkupPercentage')"
       />

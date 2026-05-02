@@ -78,31 +78,20 @@
       confirm-text="Guardar Marca"
       :is-confirming="isSaving"
       @close="showModal = false"
-      @confirm="saveBrand"
+      @confirm="submitForm"
     >
-      <div class="form-group">
-        <label>Nombre de la Marca</label>
-        <input v-model="currentBrand.name" type="text" class="form-input" placeholder="Ej: Adidas, Nike..." required @keyup.enter="saveBrand" />
-      </div>
-      
-      <div class="form-group mt-4">
-        <label>Margen de Beneficio por defecto (%)</label>
-        <div class="input-with-suffix">
-          <input v-model.number="currentBrand.defaultMarkupPercentage" type="number" step="0.01" class="form-input" placeholder="0.00" />
-          <span class="suffix">%</span>
-        </div>
-        <p class="form-hint">Este margen se aplicará a los productos de esta marca para calcular su precio de venta sugerido.</p>
-      </div>
-
-      <div class="form-group mt-6">
-        <label class="checkbox-label">
-          <input v-model="currentBrand.isActive" type="checkbox" class="form-checkbox" />
-          <span>Marca activa y disponible para productos</span>
-        </label>
-      </div>
+      <BrandForm 
+        v-if="showModal"
+        :key="modalMode + (currentBrand?.id || 'new')"
+        ref="brandFormRef" 
+        :brand="currentBrand" 
+        :mode="modalMode" 
+        @submit="handleSubmit" 
+      />
     </BaseDialog>
 
     <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
+
     <BaseDialog
       :show="showDeleteConfirm"
       title="Eliminar Marca"
@@ -123,6 +112,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { Plus, Edit2, Ban, CheckCircle2, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
+import BrandForm from '@/components/master-data/BrandForm.vue'
 import { productApi } from '@/services/productApi'
 import { useToastStore } from '@/stores/toast'
 
@@ -152,8 +142,9 @@ const showModal = ref(false)
 const showDeleteConfirm = ref(false)
 const modalMode = ref('create')
 const isSaving = ref(false)
-const currentBrand = ref({ name: '', isActive: true, defaultMarkupPercentage: 0 })
+const currentBrand = ref(null)
 const brandToDelete = ref(null)
+const brandFormRef = ref(null)
 
 async function loadBrands() {
   isLoading.value = true; error.value = '';
@@ -166,38 +157,24 @@ async function loadBrands() {
 }
 
 function resetFilters() { filters.search = ''; filters.isActive = ''; }
-function openCreateModal() { modalMode.value = 'create'; currentBrand.value = { name: '', isActive: true, defaultMarkupPercentage: 0 }; showModal.value = true; }
-function editBrand(brand) { 
-  modalMode.value = 'edit'; 
-  currentBrand.value = { 
-    id: brand.id, 
-    name: brand.name, 
-    isActive: brand.is_active,
-    defaultMarkupPercentage: brand.defaultMarkupPercentage
-  };
-  showModal.value = true; 
+function openCreateModal() { modalMode.value = 'create'; currentBrand.value = null; showModal.value = true; }
+function editBrand(brand) { modalMode.value = 'edit'; currentBrand.value = brand; showModal.value = true; }
+
+function submitForm() {
+  if (brandFormRef.value) {
+    brandFormRef.value.handleSubmit()
+  }
 }
 
-async function saveBrand() {
-  if (!currentBrand.value.name) {
-    toastStore.addToast('El nombre de la marca es obligatorio', 'warning')
-    return
-  }
-  
+async function handleSubmit(payload) {
   isSaving.value = true
   try {
-    const payload = { 
-      name: currentBrand.value.name, 
-      is_active: currentBrand.value.isActive,
-      default_markup_percentage: currentBrand.value.defaultMarkupPercentage
-    }
-    
     if (modalMode.value === 'create') {
       await productApi.createBrand(payload)
-      toastStore.addToast('Marca creada exitosamente', 'success')
+      toastStore.success('Marca creada exitosamente')
     } else {
-      await productApi.updateBrand(currentBrand.value.id, payload)
-      toastStore.addToast('Marca actualizada correctamente', 'success')
+      await productApi.updateBrand(payload.id, payload)
+      toastStore.success('Marca actualizada correctamente')
     }
     
     showModal.value = false
