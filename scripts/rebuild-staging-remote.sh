@@ -11,6 +11,7 @@ CHECKOUT_REF="${CHECKOUT_REF:-origin/staging}"
 PRESERVE_DATABASE="${PRESERVE_DATABASE:-false}"
 REMOVE_IMAGES="${REMOVE_IMAGES:-true}"
 SKIP_GIT="${SKIP_GIT:-false}"
+BUILD_SOURCE="${BUILD_SOURCE:-false}"
 
 usage() {
   cat <<'EOF'
@@ -24,6 +25,7 @@ Options:
   --no-checkout             Skip git fetch/checkout/reset step
   --preserve-database       Keep DB volume/data (no -v)
   --skip-image-remove       Do not remove API/Frontend/Postgres images before pull
+  --build-source            Build images from local source instead of pulling from GHCR
   -h, --help                Show this help
 
 Examples:
@@ -115,7 +117,13 @@ if [[ -f "$ENV_FILE" ]]; then
   fi
 fi
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+if [[ "$BUILD_SOURCE" == "true" ]]; then
+  echo "INFO: Building images from source..."
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build
+else
+  echo "INFO: Pulling pre-built images from GHCR..."
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+fi
 
 echo "[4/5] Starting services"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate
