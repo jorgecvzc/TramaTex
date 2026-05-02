@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/vue'
+import { createPinia, setActivePinia } from 'pinia'
 import PartyForm from '../../../components/party/PartyForm.vue'
 import { partyApi } from '../../../services/partyApi'
+import { useToastStore } from '../../../stores/toast'
 
 // Mock partyApi
 vi.mock('../../../services/partyApi', () => ({
@@ -12,8 +14,14 @@ vi.mock('../../../services/partyApi', () => ({
 }))
 
 describe('PartyForm Component', () => {
+  let toastStore: any
+
   beforeEach(() => {
+    setActivePinia(createPinia())
+    toastStore = useToastStore()
     vi.clearAllMocks()
+    vi.spyOn(toastStore, 'error')
+    vi.spyOn(toastStore, 'success')
   })
 
   afterEach(() => {
@@ -90,16 +98,23 @@ describe('PartyForm Component', () => {
 
   describe('Form validation', () => {
     it('should show validation error on submit when name is missing', async () => {
-      render(PartyForm)
+      const { container } = render(PartyForm)
 
-      const submitButton = screen.getByRole('button', { name: /Crear entidad/i })
-      await fireEvent.click(submitButton)
+      // Need to select role and entityType so validateForm can be reached
+      await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
+      await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
+
+      // Submit the form
+      const form = container.querySelector('form')
+      expect(form).toBeTruthy()
+      await fireEvent.submit(form!)
 
       // Wait a bit for potential API call
       await new Promise(resolve => setTimeout(resolve, 100))
 
       // Should NOT call createParty when validation fails
       expect(partyApi.createParty).not.toHaveBeenCalled()
+      expect(toastStore.error).toHaveBeenCalledWith('Corrige los errores antes de continuar')
     })
 
     it('should validate name field on blur', async () => {
@@ -195,7 +210,7 @@ describe('PartyForm Component', () => {
 
       vi.mocked(partyApi.createParty).mockResolvedValueOnce(mockParty)
 
-      const { emitted } = render(PartyForm)
+      const { container, emitted } = render(PartyForm)
 
       // Fill form - select entity type first to reveal name field
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
@@ -207,7 +222,8 @@ describe('PartyForm Component', () => {
       await fireEvent.update(screen.getByLabelText(/Sitio web/i), 'https://newcompany.com')
 
       // Submit
-      await fireEvent.click(screen.getByRole('button', { name: /Crear entidad/i }))
+      const form = container.querySelector('form')
+      await fireEvent.submit(form!)
 
       await waitFor(() => {
         expect(partyApi.createParty).toHaveBeenCalledWith(
@@ -220,6 +236,9 @@ describe('PartyForm Component', () => {
           })
         )
       })
+
+      // Check if success toast was called
+      expect(toastStore.success).toHaveBeenCalledWith('Entidad creada correctamente')
 
       // Check if submit event was emitted
       await waitFor(() => {
@@ -240,17 +259,16 @@ describe('PartyForm Component', () => {
       await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Duplicate Company')
 
       // Submit
-      await fireEvent.click(screen.getByRole('button', { name: /Crear entidad/i }))
+      const form = container.querySelector('form')
+      await fireEvent.submit(form!)
 
       await waitFor(() => {
         expect(partyApi.createParty).toHaveBeenCalled()
       })
 
-      // Check error message appears somewhere in the container
+      // Check if error toast was called
       await waitFor(() => {
-        const hasErrorMessage = container.textContent?.includes('Tax ID') || 
-                                container.textContent?.includes('error')
-        expect(hasErrorMessage).toBe(true)
+        expect(toastStore.error).toHaveBeenCalledWith('Tax ID already exists')
       }, { timeout: 2000 })
     })
 
@@ -263,14 +281,15 @@ describe('PartyForm Component', () => {
         }), 100))
       )
 
-      render(PartyForm)
+      const { container } = render(PartyForm)
 
       await fireEvent.update(screen.getByLabelText(/Rol de la entidad/i), 'CLIENT')
       await fireEvent.update(screen.getByLabelText(/Tipo de entidad/i), 'ORGANIZATION')
       await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Test Company')
 
       const submitButton = screen.getByRole('button', { name: /Crear entidad/i })
-      await fireEvent.click(submitButton)
+      const form = container.querySelector('form')
+      await fireEvent.submit(form!)
 
       // Button should be disabled while submitting
       await waitFor(() => {
@@ -291,7 +310,7 @@ describe('PartyForm Component', () => {
 
       vi.mocked(partyApi.updateParty).mockResolvedValueOnce(mockUpdatedParty)
 
-      const { emitted } = render(PartyForm, {
+      const { container, emitted } = render(PartyForm, {
         props: {
           partyId: 'party-123',
           initialData: {
@@ -313,7 +332,8 @@ describe('PartyForm Component', () => {
       await fireEvent.update(screen.getByLabelText(/Sitio web/i), 'https://updated.com')
 
       // Submit
-      await fireEvent.click(screen.getByRole('button', { name: /Actualizar entidad/i }))
+      const form = container.querySelector('form')
+      await fireEvent.submit(form!)
 
       await waitFor(() => {
         expect(partyApi.updateParty).toHaveBeenCalledWith(
@@ -325,6 +345,9 @@ describe('PartyForm Component', () => {
         )
       })
 
+      // Check success toast
+      expect(toastStore.success).toHaveBeenCalledWith('Cambios guardados con éxito')
+
       await waitFor(() => {
         expect(emitted().update).toBeTruthy()
       })
@@ -332,9 +355,7 @@ describe('PartyForm Component', () => {
 
     it('should handle update error', async () => {
       vi.mocked(partyApi.updateParty).mockRejectedValueOnce({
-        data: {
-          message: 'Party not found',
-        }
+        message: 'Party not found',
       })
 
       const { container } = render(PartyForm, {
@@ -354,16 +375,16 @@ describe('PartyForm Component', () => {
       })
 
       await fireEvent.update(screen.getByLabelText(/Nombre de la organización/i), 'Updated Name')
-      await fireEvent.click(screen.getByRole('button', { name: /Actualizar entidad/i }))
+      const form = container.querySelector('form')
+      await fireEvent.submit(form!)
 
       await waitFor(() => {
         expect(partyApi.updateParty).toHaveBeenCalled()
       })
 
+      // Check error toast
       await waitFor(() => {
-        const hasError = container.textContent?.includes('Party not found') || 
-                        container.textContent?.includes('error')
-        expect(hasError).toBe(true)
+        expect(toastStore.error).toHaveBeenCalledWith('Party not found')
       }, { timeout: 2000 })
     })
   })
