@@ -66,7 +66,7 @@
           </span>
         </div>
         <div class="toolbar-buttons">
-          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="confirmIssueQuote">
+          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="promptIssueQuote">
             <Send :size="16" /> <span>Emitir a Cliente</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
@@ -75,10 +75,10 @@
           <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
             <ShoppingCart :size="16" /> <span>Crear Pedido</span>
           </button>
-          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="rejectQuote">
+          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="promptRejectQuote">
             <XCircle :size="16" /> <span>Rechazar</span>
           </button>
-          <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="reactivateQuote">
+          <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="promptReactivateQuote">
             <RefreshCw :size="16" /> <span>Reactivar</span>
           </button>
         </div>
@@ -342,6 +342,20 @@
     </div>
   </BaseEntityPage>
 
+  <!-- MODALES DE CONFIRMACIÓN (REEMPLAZO DE confirm()) -->
+  <BaseDialog
+    :show="confirmDialog.show"
+    :title="confirmDialog.title"
+    :icon="confirmDialog.icon"
+    :confirm-text="confirmDialog.confirmText"
+    :confirm-class="confirmDialog.confirmClass"
+    :is-confirming="isSaving"
+    @close="confirmDialog.show = false"
+    @confirm="handleConfirmDialog"
+  >
+    <p>{{ confirmDialog.message }}</p>
+  </BaseDialog>
+
   <!-- MODAL: SELECCIÓN DE PRODUCTO -->
   <BaseDialog
     :show="showVariantSelector"
@@ -435,7 +449,8 @@ import {
   Settings2, 
   Plus, 
   Trash2, 
-  X 
+  X,
+  AlertTriangle
 } from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
 import PageHeader from '@/components/layout/PageHeader.vue';
@@ -472,6 +487,54 @@ const positionsCache = ref({});
 const formData = reactive({
   partyId: '', expirationDate: '', notes: '', mesWorkRefs: [], lineItems: []
 });
+
+// --- Confirm Dialog Logic ---
+const confirmDialog = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: 'help-circle',
+  confirmText: 'Confirmar',
+  confirmClass: 'btn-primary',
+  action: null
+})
+
+function promptIssueQuote() {
+  confirmDialog.title = 'Emitir Presupuesto'
+  confirmDialog.message = '¿Desea marcar este presupuesto como EMITIDO? Se generará el documento oficial para el cliente.'
+  confirmDialog.icon = Send
+  confirmDialog.confirmText = 'Sí, Emitir'
+  confirmDialog.confirmClass = 'btn-success'
+  confirmDialog.action = confirmIssueQuote
+  confirmDialog.show = true
+}
+
+function promptRejectQuote() {
+  confirmDialog.title = 'Rechazar Presupuesto'
+  confirmDialog.message = '¿Desea marcar este presupuesto como RECHAZADO? El proceso comercial se detendrá.'
+  confirmDialog.icon = XCircle
+  confirmDialog.confirmText = 'Rechazar'
+  confirmDialog.confirmClass = 'btn-danger'
+  confirmDialog.action = rejectQuote
+  confirmDialog.show = true
+}
+
+function promptReactivateQuote() {
+  confirmDialog.title = 'Reactivar Presupuesto'
+  confirmDialog.message = '¿Desea volver a poner este presupuesto en estado BORRADOR para poder editarlo?'
+  confirmDialog.icon = RefreshCw
+  confirmDialog.confirmText = 'Reactivar'
+  confirmDialog.confirmClass = 'btn-primary'
+  confirmDialog.action = reactivateQuote
+  confirmDialog.show = true
+}
+
+async function handleConfirmDialog() {
+  if (confirmDialog.action) {
+    await confirmDialog.action()
+  }
+  confirmDialog.show = false
+}
 
 const previewResult = ref(null);
 const isPreviewLoading = ref(false);
@@ -779,6 +842,7 @@ async function confirmIssueQuote() {
     await salesApi.changeQuoteStatus(quote.value.id, 'ISSUED'); 
     await fetchQuote();
     showPostIssueModal.value = true;
+    toastStore.success('Presupuesto emitido');
   } catch (err) { 
     toastStore.error(err.message); 
   } 
@@ -788,8 +852,8 @@ function postIssuePrint() {
   showPostIssueModal.value = false; 
   window.print(); 
 }
-async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); } catch (err) { toastStore.error(err.message); } } }
-async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); } catch (err) { toastStore.error(err.message); } }
+async function rejectQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); toastStore.info('Presupuesto rechazado'); } catch (err) { toastStore.error(err.message); } }
+async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); toastStore.success('Presupuesto reactivado'); } catch (err) { toastStore.error(err.message); } }
 
 async function convertToOrder() {
   isConverting.value = true;
@@ -801,6 +865,7 @@ async function convertToOrder() {
     
     // El backend auto-aprueba el presupuesto (DRAFT→ISSUED→APPROVED→CONVERTED)
     const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
+    toastStore.success('Pedido generado con éxito');
     router.push(`/sales/orders/${order.id}`);
   } catch (err) { 
     toastStore.error('Error al convertir presupuesto: ' + err.message); 

@@ -148,10 +148,13 @@
       <!-- Sección de Iconografía (SSOT) -->
       <section>
         <h2>Iconografía (Lucide SSOT)</h2>
-        <p class="section-intro">Iconografía industrial unificada. El sistema utiliza <code>getIcon(name)</code> para mapear nombres antiguos de Material Symbols a los nuevos componentes Lucide.</p>
+        <p class="section-intro">
+          Iconografía industrial unificada. El sistema utiliza una <strong>Verdad Única</strong> en <code>src/utils/icons.ts</code>.
+          Se soportan tanto los nombres directos de Lucide (ej: <code>Search</code>) como alias de compatibilidad Material (ej: <code>search</code>, <code>list_alt</code>).
+        </p>
         
         <div class="icon-search-box mb-4">
-          <input v-model="iconSearch" type="text" placeholder="Filtrar iconos por nombre..." class="form-input" />
+          <input v-model="iconSearch" type="text" placeholder="Filtrar por nombre o alias..." class="form-input" />
         </div>
 
         <div class="icon-grid">
@@ -164,7 +167,7 @@
             </div>
           </div>
         </div>
-        <p class="mt-4 text-muted"><small>Total de iconos registrados: {{ allIconNames.length }}</small></p>
+        <p class="mt-4 text-muted"><small>Total de entradas en el registro: {{ allIconNames.length }}</small></p>
       </section>
 
     </div>

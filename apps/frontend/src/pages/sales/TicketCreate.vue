@@ -5,471 +5,480 @@
     :icon="Store"
     :is-loading="isSubmitting"
     @close="router.push('/sales/dashboard')"
-    @refresh="clearTicket"
+    @refresh="initTicket"
   >
-    <!-- BOTON DE ATAJOS EN CABECERA -->
-    <template #extra-actions>
-      <div class="shortcut-header-group">
-        <button 
-          class="btn-terminal btn-sync btn-shortcuts"
-          @click.stop="showShortcuts = !showShortcuts"
-        >
-          <Keyboard :size="20" />
-          <span>Atajos</span>
-        </button>
-        
-        <!-- DESPLEGABLE DE ATAJOS -->
-        <Teleport to="body">
-          <div v-if="showShortcuts" class="hotkeys-modal-overlay" @click="showShortcuts = false">
-            <div class="hotkeys-modal-box" @click.stop>
-              <header class="modal-box-header">
-                <div class="flex items-center gap-3">
-                  <Keyboard :size="24" />
-                  <h3>ATAJOS DE TECLADO</h3>
-                </div>
-                <button class="btn-close-modal" @click="showShortcuts = false">×</button>
-              </header>
-              <div class="modal-box-body">
-                <div class="hotkey-entry"><span>Buscar Producto</span> <kbd>F3</kbd></div>
-                <div class="hotkey-entry"><span>Seleccionar Cliente</span> <kbd>F4</kbd></div>
-                <div class="hotkey-entry"><span>Cobrar e Imprimir</span> <kbd>F12</kbd></div>
-                <div class="hotkey-entry"><span>Limpiar / Cerrar</span> <kbd>Esc</kbd></div>
-                <div class="hotkey-entry"><span>Más Cantidad</span> <kbd>Num +</kbd></div>
-                <div class="hotkey-entry"><span>Menos Cantidad</span> <kbd>Num -</kbd></div>
-                <div class="hotkey-entry"><span>Eliminar ítem</span> <kbd>Supr</kbd></div>
-              </div>
-            </div>
-          </div>
-        </Teleport>
-      </div>
-    </template>
-
-    <!-- LAYOUT PRINCIPAL -->
-    <div class="tpv-grid">
-      <!-- IZQUIERDA: CARRITO -->
-      <main class="tpv-main-content">
-        <section class="tpv-card-search">
-          <div class="search-flex">
-            <ScanBarcode :size="32" class="search-icon" />
+    <div class="ticket-create-layout">
+      <!-- PANEL IZQUIERDO: BÚSQUEDA Y PRODUCTOS -->
+      <section class="catalog-panel">
+        <div class="search-bar">
+          <div class="input-with-icon">
+            <Search :size="24" />
             <input 
-              ref="productSearchInput"
-              v-model="productSearch" 
+              ref="barcodeInput"
+              v-model="searchQuery" 
               type="text" 
-              placeholder="Escanee código o busque artículo..." 
-              @keyup.enter="handleSearch"
+              placeholder="Escanear código de barras o buscar..." 
+              class="tpv-input"
+              @keyup.enter="handleBarcodeSearch"
             />
-            <button class="btn-add-item" @click="handleSearch">
-              <Plus :size="20" />
-              <span>AÑADIR</span>
-            </button>
           </div>
-        </section>
-
-        <section class="tpv-card-cart">
-          <header class="cart-title">
-            <ShoppingCart :size="18" />
-            <h2>Artículos ({{ lineItems.length }})</h2>
-          </header>
-          
-          <div class="cart-scroll-area">
-            <div v-for="item in lineItems" :key="item.productVariantId" class="cart-item-row">
-              <div class="item-info">
-                <div class="meta">
-                  <code class="sku">{{ item.variantSku }}</code>
-                  <span class="name">{{ item.productName }}</span>
-                  <span class="options">{{ item.optionDescription }}</span>
-                </div>
-              </div>
-              
-              <div class="item-controls">
-                <div class="qty-control">
-                  <button @click="updateQtyByItem(item, -1)">-</button>
-                  <input v-model.number="item.quantity" type="number" @change="refreshLinePrice(item)" />
-                  <button @click="updateQtyByItem(item, 1)">+</button>
-                </div>
-
-                <div class="price-unit">{{ salesApi.formatMoney({ amount: item.unitPrice, currency: 'EUR' }) }}</div>
-
-                <!-- DESCUENTO EN LINEA -->
-                <div class="discount-control">
-                  <div class="input-inline">
-                    <input v-model.number="item.discountPercent" type="number" min="0" max="100" />
-                    <span class="symbol">% DTO.</span>
-                  </div>
-                </div>
-
-                <div class="price-total">{{ salesApi.formatMoney({ amount: (item.unitPrice * item.quantity) * (1 - item.discountPercent / 100), currency: 'EUR' }) }}</div>
-
-                <button class="btn-remove" @click="removeLine(item)">
-                  <X :size="20" />
-                </button>
-              </div>
-            </div>
-
-            <div v-if="lineItems.length === 0" class="empty-cart">
-              <Store :size="64" />
-              <p>Esperando primer producto...</p>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <!-- DERECHA: PANEL AZUL -->
-      <aside class="tpv-side-panel">
-        <div class="side-content">
-          <section class="tpv-card-side">
-            <header class="side-header">
-              <User :size="18" />
-              <h2>Cliente</h2>
-            </header>
-            <div class="p-4">
-              <PartySelector
-                v-model="partyId"
-                label=""
-                placeholder="Buscar cliente..."
-                role-filter="CLIENT"
-                :dark-mode="true"
-              />
-              <div class="client-detail mt-4" v-if="partyId !== CONSUMIDOR_FINAL_ID">
-                <div class="row">
-                  <label>Descuento cliente:</label>
-                  <strong>{{ customerDiscount }}%</strong>
-                </div>
-              </div>
-            </div>
-          </section>
+          <button class="btn-clear-search" @click="searchQuery = ''" v-if="searchQuery"><X :size="20" /></button>
         </div>
 
-        <!-- TOTALES FIJOS -->
-        <section class="tpv-checkout-footer">
-          <div class="checkout-summary">
-            <div class="summary-line">
-              <label>SUBTOTAL</label>
-              <span>{{ salesApi.formatMoney({ amount: subtotal, currency: 'EUR' }) }}</span>
+        <div class="product-grid-container">
+          <div v-if="isSearching" class="tpv-loader">
+            <RefreshCw class="spin" :size="48" />
+            <p>Buscando productos...</p>
+          </div>
+
+          <div v-else-if="catalog.length === 0" class="empty-catalog">
+            <PackageSearch :size="64" />
+            <p>No se encontraron productos.</p>
+          </div>
+
+          <div v-else class="tpv-product-grid">
+            <div 
+              v-for="product in catalog" 
+              :key="product.id" 
+              class="tpv-product-card"
+              @click="handleProductClick(product)"
+            >
+              <div class="product-img">
+                <Package :size="32" />
+              </div>
+              <div class="product-info">
+                <span class="sku">{{ product.sku }}</span>
+                <p class="name">{{ product.name }}</p>
+                <span class="price">{{ formatMoney(product.price) }}</span>
+              </div>
             </div>
-            <div class="summary-line">
+          </div>
+        </div>
+      </section>
+
+      <!-- PANEL DERECHO: TICKET ACTUAL -->
+      <aside class="ticket-panel">
+        <div class="ticket-header">
+          <div class="ticket-meta">
+            <h2 class="flex items-center gap-2"><Receipt :size="20" /> Ticket Actual</h2>
+            <span class="item-count">{{ lineCount }} artículos</span>
+          </div>
+          <button class="btn-tpv btn-tpv-outline text-danger" @click="promptClearTicket" :disabled="lines.length === 0">
+            <Trash2 :size="18" /> Vaciar
+          </button>
+        </div>
+
+        <div class="ticket-lines no-scrollbar">
+          <div v-for="(line, index) in lines" :key="index" class="ticket-line">
+            <div class="line-main">
+              <span class="line-name">{{ line.name }}</span>
+              <span class="line-sku">{{ line.sku }}</span>
+            </div>
+            <div class="line-controls">
+              <div class="qty-stepper">
+                <button @click="updateQty(index, -1)">-</button>
+                <input type="number" v-model.number="line.quantity" readonly />
+                <button @click="updateQty(index, 1)">+</button>
+              </div>
+              <span class="line-total">{{ formatMoney(line.total) }}</span>
+              <button class="btn-remove-line" @click="removeLine(index)"><X :size="16" /></button>
+            </div>
+          </div>
+          
+          <div v-if="lines.length === 0" class="empty-ticket">
+            <ShoppingCart :size="48" />
+            <p>Ticket vacío. Empieza a añadir productos.</p>
+          </div>
+        </div>
+
+        <div class="ticket-footer">
+          <div class="summary-area">
+            <div class="summary-row">
+              <label>Subtotal</label>
+              <span>{{ formatMoney(subtotal) }}</span>
+            </div>
+            <div class="summary-row">
               <label>IVA (21%)</label>
-              <span>{{ salesApi.formatMoney({ amount: taxAmount, currency: 'EUR' }) }}</span>
+              <span>{{ formatMoney(tax) }}</span>
             </div>
-            <div class="grand-total-box">
-              <label>TOTAL TICKET</label>
-              <div class="total-value">{{ salesApi.formatMoney({ amount: total, currency: 'EUR' }) }}</div>
+            <div class="summary-total">
+              <label>TOTAL A PAGAR</label>
+              <span class="amount">{{ formatMoney(total) }}</span>
             </div>
           </div>
 
-          <div class="checkout-actions">
+          <div class="payment-actions">
             <button 
-              class="btn-checkout-primary" 
-              :disabled="lineItems.length === 0 || isSubmitting" 
+              class="btn-tpv btn-tpv-primary btn-checkout" 
+              :disabled="lines.length === 0 || isSubmitting"
               @click="processTicket"
             >
-              <Printer :size="24" />
-              <span>COBRAR (F12)</span>
-            </button>
-            <button class="btn-checkout-secondary" @click="clearTicketPrompt">
-              <Trash2 :size="18" />
-              <span>ANULAR TICKET</span>
+              <CreditCard :size="24" />
+              <span>COBRAR TICKET (F10)</span>
             </button>
           </div>
-        </section>
+        </div>
       </aside>
     </div>
 
-    <!-- DIALOGO BUSQUEDA -->
-    <BaseDialog :show="showVariantSelector" title="Buscador" :icon="Search" size="xl" hide-actions @close="closeVariantSelector">
-      <div class="p-4">
-        <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
-      </div>
-    </BaseDialog>
-      <div class="p-4">
-        <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
+    <!-- MODAL: SELECCIÓN DE VARIANTE (Si el producto tiene varias) -->
+    <BaseDialog 
+      :show="showVariantModal" 
+      title="Seleccionar Variante" 
+      size="md" 
+      hide-actions
+      @close="showVariantModal = false"
+    >
+      <div class="variant-selection-list">
+        <button 
+          v-for="v in activeVariants" 
+          :key="v.id" 
+          class="variant-btn"
+          @click="addVariantToTicket(v)"
+        >
+          <div class="v-info">
+            <strong>{{ v.sku }}</strong>
+            <span>{{ formatVariantOptions(v.option_configuration) }}</span>
+          </div>
+          <span class="v-price">{{ formatMoney(v.price || selectedProduct?.price) }}</span>
+        </button>
       </div>
     </BaseDialog>
 
-    <!-- IMPRESION -->
-    <Teleport to="body">
-      <div id="tpv-print-area" v-if="lastProcessedTicket">
-        <PrintTicket
-          :number="lastProcessedTicket.number"
-          :date="lastProcessedTicket.date"
-          :items="lastProcessedTicket.items"
-          :totals="lastProcessedTicket.totals"
-          :customer-name="lastProcessedTicket.customerName"
-        />
+    <!-- MODAL DE CONFIRMACIÓN -->
+    <BaseDialog
+      :show="confirmDialog.show"
+      :title="confirmDialog.title"
+      :icon="confirmDialog.icon"
+      confirm-text="Sí, Vaciar Ticket"
+      confirm-class="btn-danger"
+      @close="confirmDialog.show = false"
+      @confirm="confirmDialog.action(); confirmDialog.show = false"
+    >
+      <p>{{ confirmDialog.message }}</p>
+    </BaseDialog>
+
+    <!-- ÁREA DE IMPRESIÓN OCULTA (80mm) -->
+    <div id="tpv-print-area" v-if="lastProcessedTicket">
+      <div class="print-ticket">
+        <div class="print-header">
+          <h1>TramaTex ERP</h1>
+          <p>CIF: B12345678</p>
+          <p>Calle Falsa 123, 28001 Madrid</p>
+          <p>Tlf: 910 000 000</p>
+        </div>
+        <div class="print-divider">--------------------------------</div>
+        <div class="print-meta">
+          <p>TICKET: {{ lastProcessedTicket.invoiceNumber }}</p>
+          <p>FECHA: {{ new Date().toLocaleString() }}</p>
+        </div>
+        <div class="print-divider">--------------------------------</div>
+        <div class="print-lines">
+          <div v-for="l in lastProcessedTicket.lineItems" :key="l.id" class="print-line">
+            <div class="l-name">{{ l.productName }} ({{ l.variantSku }})</div>
+            <div class="l-math">
+              <span>{{ l.quantity }} x {{ formatMoney(l.unitPrice) }}</span>
+              <span class="l-sub">{{ formatMoney(l.total) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="print-divider">--------------------------------</div>
+        <div class="print-totals">
+          <div class="t-row"><span>SUBTOTAL:</span> <span>{{ formatMoney(lastProcessedTicket.subtotal) }}</span></div>
+          <div class="t-row"><span>IVA (21%):</span> <span>{{ formatMoney(lastProcessedTicket.taxAmount) }}</span></div>
+          <div class="t-row bold"><span>TOTAL:</span> <span>{{ formatMoney(lastProcessedTicket.total) }}</span></div>
+        </div>
+        <div class="print-footer">
+          <p>¡Gracias por su compra!</p>
+          <p>TramaTex - www.tramatex.com</p>
+        </div>
       </div>
-    </Teleport>
+    </div>
   </BaseTerminalPage>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   Store, 
-  Keyboard, 
-  ScanBarcode, 
-  Plus, 
-  ShoppingCart, 
+  Search, 
   X, 
-  User, 
-  Printer, 
+  RefreshCw, 
+  PackageSearch, 
+  Package, 
+  Receipt, 
   Trash2, 
-  Search 
+  ShoppingCart, 
+  CreditCard,
+  AlertTriangle 
 } from 'lucide-vue-next';
 import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
-import PartySelector from '@/components/party/PartySelector.vue';
-import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
-import PrintTicket from '@/components/sales/PrintTicket.vue';
 import salesApi from '@/services/salesApi';
-import { partyApi } from '@/services/partyApi';
 import { productApi } from '@/services/productApi';
-import { pricingApi } from '@/services/pricingApi';
 import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
 const toastStore = useToastStore();
-const productSearchInput = ref(null);
-const productSearch = ref("");
-const CONSUMIDOR_FINAL_ID = "00000000-0000-0000-0000-000000000001";
-const partyId = ref(CONSUMIDOR_FINAL_ID);
-const customerDiscount = ref(0);
-const lineItems = ref([]);
+
+// --- STATE ---
+const searchQuery = ref('');
+const catalog = ref([]);
+const lines = ref([]);
+const isSearching = ref(false);
 const isSubmitting = ref(false);
-const showShortcuts = ref(false);
-const showVariantSelector = ref(false);
+const barcodeInput = ref(null);
+
+const showVariantModal = ref(false);
+const selectedProduct = ref(null);
+const activeVariants = ref([]);
+
 const lastProcessedTicket = ref(null);
 
-const subtotal = computed(() => lineItems.value.reduce((acc, item) => {
-  const lineVal = (item.unitPrice * item.quantity);
-  const discount = lineVal * (item.discountPercent / 100);
-  return acc + (lineVal - discount);
-}, 0));
-const taxAmount = computed(() => subtotal.value * 0.21);
-const total = computed(() => subtotal.value + taxAmount.value);
+// --- Confirm Dialog Logic ---
+const confirmDialog = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: AlertTriangle,
+  action: null
+})
 
-watch(partyId, async (newId) => {
-  if (!newId) return;
-  try {
-    const party = await partyApi.getParty(newId);
-    customerDiscount.value = party?.default_discount_percentage || 0;
-    lineItems.value.forEach(item => { item.discountPercent = customerDiscount.value; });
-  } catch (err) { console.error("Error loading party:", err); }
-  focusSearch();
-});
-
-function focusSearch() { nextTick(() => productSearchInput.value?.focus()); }
-
-function handleGlobalKeydown(e) {
-  const isInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
-  if (e.key === "F3") { e.preventDefault(); focusSearch(); }
-  if (e.key === "F4") { e.preventDefault(); document.querySelector(".party-selector input")?.focus(); }
-  if (e.key === "F12") { e.preventDefault(); if (lineItems.value.length > 0 && !isSubmitting.value) processTicket(); }
-  if (e.key === "Escape") {
-    if (showShortcuts.value) showShortcuts.value = false;
-    else if (showVariantSelector.value) closeVariantSelector();
-    else { productSearch.value = ""; focusSearch(); }
-  }
+function promptClearTicket() {
+  confirmDialog.title = 'Vaciar Ticket';
+  confirmDialog.message = '¿Estás seguro de que deseas eliminar todos los artículos del ticket actual?';
+  confirmDialog.action = clearTicket;
+  confirmDialog.show = true;
 }
 
-onMounted(async () => {
-  window.addEventListener("keydown", handleGlobalKeydown);
-  await loadDefaultCustomer();
-  focusSearch();
-});
-onBeforeUnmount(() => window.removeEventListener("keydown", handleGlobalKeydown));
+// --- COMPUTED ---
+const subtotal = computed(() => lines.value.reduce((acc, l) => acc + l.total, 0));
+const tax = computed(() => subtotal.value * 0.21);
+const total = computed(() => subtotal.value + tax.value);
+const lineCount = computed(() => lines.value.reduce((acc, l) => acc + l.quantity, 0));
 
-async function loadDefaultCustomer() {
-  try {
-    const p = await partyApi.getParty(CONSUMIDOR_FINAL_ID);
-    if (p) { partyId.value = p.id; customerDiscount.value = p.default_discount_percentage || 0; }
-  } catch (e) { console.error(e); }
+// --- METHODS ---
+async function initTicket() {
+  lines.value = [];
+  searchQuery.value = '';
+  lastProcessedTicket.value = null;
+  await loadRecommendedProducts();
+  focusInput();
 }
 
-async function handleSearch() {
-  const q = productSearch.value.trim();
-  if (!q) { showVariantSelector.value = true; return; }
+async function loadRecommendedProducts() {
   try {
-    const res = await productApi.smartSearch(q);
-    if (res.type === "exact_variant") handleVariantSelected(res.variant);
-    else showVariantSelector.value = true;
-  } catch (e) { showVariantSelector.value = true; }
+    const res = await productApi.listProducts({ limit: 12 });
+    catalog.value = res.data || [];
+  } catch (err) {}
 }
 
-async function handleVariantSelected(v) {
-  const variant = v.variant || v;
-  const existing = lineItems.value.find(i => i.productVariantId === variant.id);
-  if (existing) {
-    existing.quantity++;
-    await refreshLinePrice(existing);
-  } else {
-    const item = {
-      productVariantId: variant.id, 
-      variantSku: variant.sku,
-      productName: variant.product_name || variant.productName || "Producto",
-      optionDescription: "",
-      quantity: 1,
-      unitPrice: 0, 
-      discountPercent: customerDiscount.value
-    };
-    await refreshLinePrice(item);   // precio antes de entrar en la lista reactiva
-    lineItems.value.push(item);     // una sola actualización con precio ya correcto
-  }
-  productSearch.value = ""; showVariantSelector.value = false; focusSearch();
-}
+async function handleBarcodeSearch() {
+  const query = searchQuery.value.trim();
+  if (!query) return;
 
-function closeVariantSelector() { showVariantSelector.value = false; focusSearch(); }
-
-async function refreshLinePrice(item) {
+  isSearching.value = true;
   try {
-    const res = await pricingApi.calculateFinalSalePrice([{ productVariantId: item.productVariantId, quantity: item.quantity }], partyId.value, new Date());
-    if (res.calculatedItems?.length) {
-      item.unitPrice = (res.calculatedItems[0].baseSalesPrice?.amount ?? res.calculatedItems[0].baseSalesPrice) || 0;
+    const res = await productApi.searchVariants(query);
+    if (res && res.length === 1) {
+      addVariantToTicket(res[0]);
+      searchQuery.value = '';
+    } else if (res && res.length > 1) {
+      activeVariants.value = res;
+      showVariantModal.value = true;
+    } else {
+      toastStore.warning(`No se encontró el producto: ${query}`);
     }
-  } catch (e) { console.error(e); }
+  } catch (err) {
+    toastStore.error("Error en la búsqueda.");
+  } finally {
+    isSearching.value = false;
+    focusInput();
+  }
 }
 
-async function updateQtyByItem(item, delta) { item.quantity = Math.max(1, item.quantity + delta); await refreshLinePrice(item); }
-function removeLine(item) { lineItems.value = lineItems.value.filter(i => i.productVariantId !== item.productVariantId); }
-function clearTicket() { lineItems.value = []; productSearch.value = ""; partyId.value = CONSUMIDOR_FINAL_ID; focusSearch(); }
-function clearTicketPrompt() { if (confirm("Anular ticket actual?")) clearTicket(); }
+async function handleProductClick(product) {
+  selectedProduct.value = product;
+  isSearching.value = true;
+  try {
+    const variants = await productApi.listVariants(product.id);
+    if (variants.length === 1) {
+      addVariantToTicket(variants[0]);
+    } else {
+      activeVariants.value = variants;
+      showVariantModal.value = true;
+    }
+  } catch (err) {
+    toastStore.error("Error al cargar variantes.");
+  } finally {
+    isSearching.value = false;
+  }
+}
+
+function addVariantToTicket(variant) {
+  const existingIdx = lines.value.findIndex(l => l.variantId === variant.id);
+  if (existingIdx !== -1) {
+    updateQty(existingIdx, 1);
+  } else {
+    lines.value.push({
+      variantId: variant.id,
+      sku: variant.sku,
+      name: variant.product_name || selectedProduct.value?.name || 'Producto',
+      price: variant.price || selectedProduct.value?.price || 0,
+      quantity: 1,
+      total: variant.price || selectedProduct.value?.price || 0
+    });
+  }
+  showVariantModal.value = false;
+  toastStore.success(`${variant.sku} añadido`, 1000);
+}
+
+function updateQty(idx, delta) {
+  const line = lines.value[idx];
+  line.quantity += delta;
+  if (line.quantity <= 0) {
+    removeLine(idx);
+  } else {
+    line.total = line.quantity * line.price;
+  }
+}
+
+function removeLine(idx) {
+  lines.value.splice(idx, 1);
+}
+
+function clearTicket() {
+  lines.value = [];
+}
 
 async function processTicket() {
-  if (!lineItems.value.length) return;
+  if (lines.value.length === 0) return;
+  
   isSubmitting.value = true;
   try {
-    const req = {
-      partyId: partyId.value,
-      invoiceDate: new Date().toISOString(),
-      type: "SIMPLIFIED",
-      items: lineItems.value.map(i => ({ productVariantId: i.productVariantId, quantity: i.quantity, discountPercent: Number(i.discountPercent || 0) }))
+    const payload = {
+      type: 'SIMPLIFIED',
+      items: lines.value.map(l => ({
+        productVariantId: l.variantId,
+        quantity: l.quantity,
+        unitPrice: { amount: l.price, currency: 'EUR' }
+      }))
     };
-    const inv = await salesApi.createSimplifiedInvoice(req);
-    const items = inv.lineItems || inv.line_items || [];
-    lastProcessedTicket.value = {
-      number: inv.invoice_number || inv.invoiceNumber,
-      date: inv.issue_date || inv.invoiceDate,
-      items: items.map(li => ({
-        productName: li.productName || li.product_name,
-        variantSku: li.variantSku || li.variant_sku, 
-        quantity: li.quantity,
-        unitPrice: (li.unitPrice?.amount ?? li.unit_price) || 0,
-        discountPercent: li.discountPercent ?? li.discount_percentage,
-        subtotal: (li.subtotal?.amount ?? li.subtotal) || 0
-      })),
-      totals: { 
-        subtotal: (inv.subtotal?.amount ?? inv.subtotal) || 0, 
-        taxAmount: (inv.taxAmount?.amount ?? inv.tax_total) || 0, 
-        total: (inv.total?.amount ?? inv.total) || 0 
-      },
-      customerName: inv.partyName || inv.party_name || "CLIENTE"
-    };
-    toastStore.addToast('Venta procesada con éxito', 'success')
-    await new Promise(r => setTimeout(r, 600));
+    
+    const invoice = await salesApi.createInvoice(payload);
+    lastProcessedTicket.value = invoice;
+    
+    toastStore.success("Ticket cobrado con éxito");
+    
+    // Auto-impresión
+    await nextTick();
     window.print();
-    clearTicket();
+    
+    // Reset para el siguiente cliente
+    initTicket();
+    
   } catch (err) {
-    toastStore.addToast('Error al procesar la venta: ' + err.message, 'error')
+    toastStore.error(err.message || "Error al procesar el cobro.");
   } finally {
     isSubmitting.value = false;
-    lastProcessedTicket.value = null;
   }
 }
+
+// --- UTILS ---
+const formatMoney = (v) => salesApi.formatMoney(v);
+const formatVariantOptions = (opts) => opts ? Object.values(opts).join(' / ') : 'Estándar';
+const focusInput = () => barcodeInput.value?.focus();
+
+// --- KEYBOARD SHORTCUTS ---
+const handleGlobalKeys = (e) => {
+  if (e.key === 'F10') { e.preventDefault(); processTicket(); }
+  if (e.key === 'Escape') { searchQuery.value = ''; focusInput(); }
+};
+
+onMounted(() => {
+  initTicket();
+  window.addEventListener('keydown', handleGlobalKeys);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeys);
+});
 </script>
 
 <style scoped>
-/* RESET & TPV LAYOUT */
-.tpv-grid { display: grid; grid-template-columns: 1fr 360px; gap: 1rem; height: 100%; overflow: hidden; }
-.tpv-main-content, .tpv-side-panel { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+/* Estilos industriales táctiles */
+.ticket-create-layout { display: grid; grid-template-columns: 1fr 450px; height: 100%; gap: 0; }
 
-/* PANEL AZUL DERECHO */
-.tpv-side-panel { background: #1e293b; border-left: 2px solid #334155; }
-.side-content { flex: 1; display: flex; flex-direction: column; padding: 1rem; }
-.side-header { padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #334155; margin-bottom: 1rem; }
-.side-header h2 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin: 0; }
-.side-header svg { color: var(--color-primary); }
+/* Catalog Panel */
+.catalog-panel { display: flex; flex-direction: column; background: #0f172a; border-right: 2px solid #1e293b; }
+.search-bar { padding: 1.5rem; background: #1e293b; display: flex; gap: 1rem; }
+.input-with-icon { flex: 1; position: relative; }
+.input-with-icon :deep(svg) { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748b; }
+.tpv-input { width: 100%; background: #0f172a; border: 2px solid #334155; color: white; padding: 1rem 1rem 1rem 3.5rem; border-radius: 12px; font-size: 1.25rem; font-weight: 700; }
+.tpv-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(230, 184, 0, 0.2); }
 
-/* BUSQUEDA */
-.tpv-card-search { background: #1e293b; border-radius: 12px; border: 1px solid #334155; margin-bottom: 1rem; padding: 0.4rem; }
-.search-flex { display: flex; align-items: center; gap: 0.75rem; padding: 0.2rem 0.75rem; }
-.search-icon { color: #475569; }
-.search-flex input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.6rem 1rem; font-size: 1.1rem; color: white; font-weight: 600; outline: none; }
-.search-flex input:focus { border-color: var(--color-primary); }
-.btn-add-item { height: 40px; padding: 0 1.25rem; border-radius: 8px; border: none; background: var(--color-primary); color: black; font-weight: 900; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; }
+.product-grid-container { flex: 1; padding: 1.5rem; overflow-y: auto; }
+.tpv-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.tpv-product-card { background: #1e293b; border-radius: 12px; padding: 1rem; border: 2px solid transparent; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.tpv-product-card:hover { border-color: var(--color-primary); background: #2d3a4f; transform: translateY(-3px); }
+.product-img { width: 80px; height: 80px; background: #0f172a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-primary); }
+.tpv-product-card .sku { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; }
+.tpv-product-card .name { font-size: 0.95rem; font-weight: 700; color: white; margin: 0.25rem 0; height: 2.8rem; overflow: hidden; }
+.tpv-product-card .price { font-size: 1.2rem; font-weight: 900; color: var(--color-primary); }
 
-/* CARRITO */
-.tpv-card-cart { flex: 1; background: #1e293b; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column; overflow: hidden; }
-.cart-title { padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #334155; background: #0f172a; }
-.cart-title h2 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin: 0; }
-.cart-scroll-area { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+/* Ticket Panel */
+.ticket-panel { display: flex; flex-direction: column; background: #1e293b; }
+.ticket-header { padding: 1.5rem; border-bottom: 2px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+.ticket-meta h2 { color: white; font-size: 1.1rem; text-transform: uppercase; font-weight: 800; margin: 0; }
+.item-count { font-size: 0.8rem; color: var(--color-primary); font-weight: 700; }
 
-/* FILA COMPACTA */
-.cart-item-row { background: #0f172a; padding: 0.55rem 0.85rem; border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--color-primary); }
-.item-info { flex: 1; min-width: 260px; display: flex; align-items: center; }
-.meta { display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex-wrap: nowrap; }
-.sku { font-size: 0.72rem; background: var(--color-primary); color: #000; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 900; line-height: 1; flex-shrink: 0; }
-.name { font-size: 1rem; font-weight: 800; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
-.options { font-size: 0.82rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ticket-lines { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.ticket-line { background: #0f172a; border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; border: 1px solid #334155; }
+.line-main { display: flex; flex-direction: column; }
+.line-name { color: white; font-weight: 700; }
+.line-sku { font-size: 0.75rem; color: #64748b; font-family: monospace; }
+.line-controls { display: flex; align-items: center; justify-content: space-between; }
 
-.item-controls { display: flex; align-items: center; gap: 1rem; }
-.qty-control { display: flex; align-items: center; background: #1e293b; border-radius: 8px; border: 1px solid #334155; height: 34px; overflow: hidden; }
-.qty-control button { width: 28px; height: 100%; border: none; background: #162033; color: white; font-size: 1rem; font-weight: 900; cursor: pointer; }
-.qty-control input { width: 42px; text-align: center; background: transparent; border: none; color: #f8fafc; font-size: 0.98rem; font-weight: 900; }
-input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type=number] { -moz-appearance: textfield; }
+.qty-stepper { display: flex; align-items: center; background: #1e293b; border-radius: 8px; overflow: hidden; }
+.qty-stepper button { width: 40px; height: 40px; border: none; background: transparent; color: white; font-size: 1.5rem; cursor: pointer; }
+.qty-stepper button:active { background: #334155; }
+.qty-stepper input { width: 50px; background: transparent; border: none; color: white; text-align: center; font-weight: 800; font-size: 1.1rem; }
+.line-total { font-weight: 900; color: white; font-size: 1.1rem; }
 
-.price-unit { font-size: 0.92rem; font-weight: 700; color: #cbd5e1; text-align: right; width: 82px; }
+.ticket-footer { padding: 1.5rem; background: #0f172a; border-top: 4px solid var(--color-primary); }
+.summary-row { display: flex; justify-content: space-between; color: #94a3b8; font-weight: 600; margin-bottom: 0.5rem; }
+.summary-total { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #334155; }
+.summary-total label { font-weight: 900; color: white; font-size: 0.9rem; }
+.summary-total .amount { font-size: 2.5rem; font-weight: 900; color: var(--color-primary); line-height: 1; }
 
-.discount-control { display: flex; align-items: center; }
-.input-inline { display: flex; align-items: center; background: #1e293b; border: 1px solid #334155; border-radius: 8px; height: 34px; padding: 0 0.5rem; width: 92px; position: relative; }
-.input-inline input { width: 100%; background: transparent; border: none; color: var(--color-primary); font-size: 0.92rem; font-weight: 900; text-align: right; padding-right: 1.9rem; outline: none; }
-.input-inline .symbol { position: absolute; right: 0.45rem; font-weight: 900; color: var(--color-primary); font-size: 0.66rem; pointer-events: none; }
+.payment-actions { margin-top: 1.5rem; }
+.btn-checkout { width: 100%; height: 80px; font-size: 1.5rem; gap: 1rem; box-shadow: 0 10px 25px rgba(230, 184, 0, 0.2); }
 
-.price-total { font-size: 1rem; font-weight: 900; color: #16a34a; text-align: right; width: 96px; }
-.btn-remove { background: transparent; border: none; color: #475569; cursor: pointer; }
-.btn-remove:hover { color: #ef4444; }
+.empty-ticket { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #334155; text-align: center; padding: 2rem; }
+.empty-ticket p { margin-top: 1rem; font-weight: 700; font-size: 1.1rem; }
 
-/* CHECKOUT */
-.tpv-checkout-footer { background: #0f172a; border-top: 2px solid #334155; flex-shrink: 0; }
-.checkout-summary { padding: 0.75rem 1.25rem; display: flex; flex-direction: column; gap: 0.25rem; }
-.summary-line { display: flex; justify-content: space-between; font-size: 0.8rem; color: #94a3b8; font-weight: 600; }
-.grand-total-box { margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid #334155; display: flex; flex-direction: column; align-items: center; }
-.grand-total-box label { font-size: 0.55rem; font-weight: 900; color: #64748b; letter-spacing: 0.1em; }
-.total-value { font-size: 1.75rem; font-weight: 950; color: var(--color-primary); line-height: 1; }
+/* Variants */
+.variant-selection-list { display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; }
+.variant-btn { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+.variant-btn:hover { border-color: var(--color-primary); background: white; }
+.variant-btn .v-info { display: flex; flex-direction: column; text-align: left; }
+.variant-btn .v-price { font-weight: 900; color: var(--color-secondary); font-size: 1.2rem; }
 
-.checkout-actions { padding: 0.5rem 1.25rem 1rem; }
-.btn-checkout-primary { width: 100%; height: 50px; border-radius: 10px; border: none; background: #16a34a; color: white; font-size: 1rem; font-weight: 950; display: flex; align-items: center; justify-content: center; gap: 0.6rem; cursor: pointer; }
-.btn-checkout-secondary { width: 100%; height: 36px; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #ef4444; font-size: 0.75rem; font-weight: 800; margin-top: 0.6rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; }
+/* Utils */
+.btn-tpv { display: flex; align-items: center; justify-content: center; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+.btn-tpv-primary { background: var(--color-primary); color: #0f172a; }
+.btn-tpv-primary:hover { background: #facc15; transform: translateY(-2px); }
+.btn-tpv-primary:active { transform: translateY(0); }
+.btn-tpv-primary:disabled { background: #334155; color: #475569; cursor: not-allowed; transform: none; }
+.btn-tpv-outline { background: transparent; border: 2px solid #334155; color: white; padding: 0.5rem 1rem; }
+.btn-tpv-outline:hover { background: #334155; }
+.btn-remove-line { background: transparent; border: none; color: #64748b; cursor: pointer; padding: 0.5rem; }
+.btn-remove-line:hover { color: #ef4444; }
 
-/* MODAL ATAJOS */
-.hotkeys-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999; }
-.hotkeys-modal-box { width: 400px; background: #1e293b; border: 2px solid var(--color-primary); border-radius: 16px; box-shadow: 0 30px 100px rgba(0,0,0,0.8); overflow: hidden; }
-.modal-box-header { padding: 1rem 1.25rem; background: #0f172a; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
-.modal-box-header h3 { margin: 0; font-size: 0.9rem; font-weight: 900; color: white; }
-.btn-close-modal { background: transparent; border: none; color: #94a3b8; font-size: 1.75rem; line-height: 1; cursor: pointer; }
-.modal-box-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
-.hotkey-entry { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(51, 65, 85, 0.4); }
-.hotkey-entry span { font-size: 0.85rem; font-weight: 700; color: #cbd5e1; }
-.hotkey-entry kbd { background: #0f172a; color: var(--color-primary); padding: 0.3rem 0.6rem; border-radius: 6px; font-family: monospace; font-weight: 900; font-size: 0.85rem; border: 1px solid #334155; min-width: 50px; text-align: center; }
-
-/* UTILS */
-.empty-cart { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.2; gap: 0.5rem; }
-.mt-4 { margin-top: 1rem; }
-.p-4 { padding: 1rem; }
-.bg-dark-alt { background: #0f172a; }
-.rounded-lg { border-radius: 8px; }
-
-#tpv-print-area { display: none; }
-
-:deep(.btn-terminal.btn-sync) { background: #334155 !important; color: #cbd5e1 !important; height: 40px !important; border: 1px solid #475569 !important; }
-:deep(.btn-terminal.btn-sync:hover) { background: #475569 !important; color: white !important; border-color: var(--color-primary) !important; }
-:deep(.btn-terminal.btn-sync.btn-shortcuts) { padding: 0.75rem 1.5rem !important; border-radius: 12px !important; }
-
+/* PRINT STYLES */
 @media print {
-  body * {
-    visibility: hidden !important;
-  }
-
+  body * { visibility: hidden; }
   #tpv-print-area,
   #tpv-print-area * {
     visibility: visible !important;

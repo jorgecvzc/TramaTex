@@ -46,7 +46,7 @@
           <button 
             v-if="order.status === 'PENDING' && (order.mes_work_refs || order.mesWorkRefs || []).length > 0" 
             class="btn btn-primary btn-sm" 
-            @click="launchOrderToProduction"
+            @click="promptLaunchProduction"
           >
             <Rocket :size="16" />
             <span>Lanzar a Producción</span>
@@ -66,7 +66,7 @@
           <button 
             v-if="order.status === 'CANCELLED'" 
             class="btn btn-primary btn-sm" 
-            @click="reactivateOrder"
+            @click="promptReactivate"
           >
             <RefreshCw :size="16" />
             <span>Reactivar Pedido</span>
@@ -76,7 +76,7 @@
           <button 
             v-if="!hasActiveDeliveryNotes && !['DELIVERED', 'PARTIALLY_DELIVERED', 'INVOICED', 'PARTIALLY_INVOICED', 'CANCELLED'].includes(order.status)" 
             class="btn btn-danger btn-sm" 
-            @click="cancelOrder"
+            @click="promptCancelOrder"
           >
             <Ban :size="16" />
             <span>Anular Pedido</span>
@@ -341,108 +341,122 @@
         </div>
       </FormSection>
     </div>
-  </BaseEntityPage>
-  
-  <!-- MODAL: ALBARANADO PARCIAL -->
-  <BaseDialog
-    :show="showDnDialog"
-    title="Generar Albarán de Salida"
-    icon="local_shipping"
-    size="xl"
-    :is-loading="isSaving"
-    confirm-text="Generar Albarán"
-    @close="showDnDialog = false"
-    @confirm="submitDeliveryNote"
-  >
-    <div class="dn-dialog-content">
-      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="form-group">
-          <label>Fecha de Entrega / Salida</label>
-          <input type="date" v-model="dnForm.deliveryDate" class="form-input" />
-        </div>
-        <div class="flex items-end gap-2">
-          <button class="btn btn-outline-secondary btn-sm" @click="deliverAll">Albaranar Todo</button>
-          <button class="btn btn-outline-secondary btn-sm" @click="deliverNone">Limpiar Cantidades</button>
-        </div>
-      </div>
 
-      <div class="table-wrapper border rounded-lg overflow-hidden">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Producto / Variante</th>
-              <th class="text-center">Total Pedido</th>
-              <th class="text-center">Ya Albaranado</th>
-              <th class="text-center">Pendiente</th>
-              <th class="text-center" style="width: 150px">A Entregar Ahora</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in dnForm.items" :key="item.orderLineItemId">
-              <td>
-                <div class="flex flex-col">
-                  <strong>{{ item.productName }}</strong>
-                  <small class="text-muted">{{ item.variantSku }}</small>
-                </div>
-              </td>
-              <td class="text-center">{{ item.totalQuantity }}</td>
-              <td class="text-center">
-                <span :class="{'text-success': item.alreadyDelivered > 0}">{{ item.alreadyDelivered }}</span>
-              </td>
-              <td class="text-center font-bold text-primary">{{ item.pendingQuantity }}</td>
-              <td class="text-center">
-                <div class="flex items-center justify-center gap-2">
-                  <input 
-                    type="number" 
-                    v-model.number="item.quantityToDeliver" 
-                    min="0" 
-                    :max="item.pendingQuantity"
-                    class="form-input text-center" 
-                    style="width: 80px"
-                  />
-                  <span class="text-xs text-muted">/ {{ item.pendingQuantity }}</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- MODALES DE CONFIRMACIÓN (REEMPLAZO DE confirm()) -->
+    <BaseDialog
+      :show="confirmDialog.show"
+      :title="confirmDialog.title"
+      :icon="confirmDialog.icon"
+      :confirm-text="confirmDialog.confirmText"
+      :confirm-class="confirmDialog.confirmClass"
+      :is-confirming="isSaving"
+      @close="confirmDialog.show = false"
+      @confirm="handleConfirmDialog"
+    >
+      <p>{{ confirmDialog.message }}</p>
+    </BaseDialog>
+
+    <!-- MODAL: ALBARANADO PARCIAL -->
+    <BaseDialog
+      :show="showDnDialog"
+      title="Generar Albarán de Salida"
+      icon="local_shipping"
+      size="xl"
+      :is-loading="isSaving"
+      confirm-text="Generar Albarán"
+      @close="showDnDialog = false"
+      @confirm="submitDeliveryNote"
+    >
+      <div class="dn-dialog-content">
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-group">
+            <label>Fecha de Entrega / Salida</label>
+            <input type="date" v-model="dnForm.deliveryDate" class="form-input" />
+          </div>
+          <div class="flex items-end gap-2">
+            <button class="btn btn-outline-secondary btn-sm" @click="deliverAll">Albaranar Todo</button>
+            <button class="btn btn-outline-secondary btn-sm" @click="deliverNone">Limpiar Cantidades</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper border rounded-lg overflow-hidden">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Producto / Variante</th>
+                <th class="text-center">Total Pedido</th>
+                <th class="text-center">Ya Albaranado</th>
+                <th class="text-center">Pendiente</th>
+                <th class="text-center" style="width: 150px">A Entregar Ahora</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in dnForm.items" :key="item.orderLineItemId">
+                <td>
+                  <div class="flex flex-col">
+                    <strong>{{ item.productName }}</strong>
+                    <small class="text-muted">{{ item.variantSku }}</small>
+                  </div>
+                </td>
+                <td class="text-center">{{ item.totalQuantity }}</td>
+                <td class="text-center">
+                  <span :class="{'text-success': item.alreadyDelivered > 0}">{{ item.alreadyDelivered }}</span>
+                </td>
+                <td class="text-center font-bold text-primary">{{ item.pendingQuantity }}</td>
+                <td class="text-center">
+                  <div class="flex items-center justify-center gap-2">
+                    <input 
+                      type="number" 
+                      v-model.number="item.quantityToDeliver" 
+                      min="0" 
+                      :max="item.pendingQuantity"
+                      class="form-input text-center" 
+                      style="width: 80px"
+                    />
+                    <span class="text-xs text-muted">/ {{ item.pendingQuantity }}</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm text-muted italic">
+          * Solo se muestran los ítems que tienen cantidades pendientes de entrega.
+        </p>
       </div>
-      <p class="mt-4 text-sm text-muted italic">
-        * Solo se muestran los ítems que tienen cantidades pendientes de entrega.
-      </p>
+    </BaseDialog>
+
+    <!-- MODAL: SELECCIÓN DE PRODUCTO -->
+    <BaseDialog
+      :show="showVariantSelector"
+      title="Seleccionar Producto"
+      icon="inventory_2"
+      size="xl"
+      hide-actions
+      @close="showVariantSelector = false"
+    >
+      <VariantSelector @variant-selected="handleVariantSelected" />
+    </BaseDialog>
+
+    <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
+    <div class="print-container">
+      <PrintDocument
+        v-if="order"
+        type="ORDER"
+        :number="order.order_number || order.orderNumber"
+        :date="order.order_date || order.orderDate"
+        :customer-name="order.party_name || order.partyName"
+        :customer-tax-id="order.tax_id || order.taxId"
+        :items="order.line_items || order.lineItems"
+        :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
+        :notes="order.notes"
+      />
     </div>
-  </BaseDialog>
-
-  <!-- MODAL: SELECCIÓN DE PRODUCTO -->
-  <BaseDialog
-    :show="showVariantSelector"
-    title="Seleccionar Producto"
-    icon="inventory_2"
-    size="xl"
-    hide-actions
-    @close="showVariantSelector = false"
-  >
-    <VariantSelector @variant-selected="handleVariantSelected" />
-  </BaseDialog>
-
-  <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
-  <div class="print-container">
-    <PrintDocument
-      v-if="order"
-      type="ORDER"
-      :number="order.order_number || order.orderNumber"
-      :date="order.order_date || order.orderDate"
-      :customer-name="order.party_name || order.partyName"
-      :customer-tax-id="order.tax_id || order.taxId"
-      :items="order.line_items || order.lineItems"
-      :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
-      :notes="order.notes"
-    />
-  </div>
+  </BaseEntityPage>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, reactive } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { 
   ShoppingCart, 
@@ -462,10 +476,12 @@ import {
   Info, 
   Settings2, 
   Plus, 
-  Trash2 
+  Trash2,
+  AlertTriangle,
+  Play
 } from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import DataRow from '@/components/shared/DataRow.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
@@ -504,6 +520,54 @@ const partyDefaultDiscount = ref(0)
 const relatedQuote = ref(null)
 const relatedDeliveryNotes = ref([])
 const relatedInvoice = ref(null)
+
+// --- Confirm Dialog Logic ---
+const confirmDialog = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: 'help-circle',
+  confirmText: 'Confirmar',
+  confirmClass: 'btn-primary',
+  action: null
+})
+
+function promptCancelOrder() {
+  confirmDialog.title = 'Anular Pedido'
+  confirmDialog.message = '¿Realmente deseas ANULAR este pedido? Esta acción es irreversible y detendrá cualquier proceso vinculado.'
+  confirmDialog.icon = AlertTriangle
+  confirmDialog.confirmText = 'Sí, Anular Pedido'
+  confirmDialog.confirmClass = 'btn-danger'
+  confirmDialog.action = cancelOrder
+  confirmDialog.show = true
+}
+
+function promptReactivate() {
+  confirmDialog.title = 'Reactivar Pedido'
+  confirmDialog.message = '¿Deseas reactivar este pedido y devolverlo al estado borrador para realizar cambios?'
+  confirmDialog.icon = RefreshCw
+  confirmDialog.confirmText = 'Reactivar Pedido'
+  confirmDialog.confirmClass = 'btn-primary'
+  confirmDialog.action = reactivateOrder
+  confirmDialog.show = true
+}
+
+function promptLaunchProduction() {
+  confirmDialog.title = 'Lanzar a Producción'
+  confirmDialog.message = '¿Lanzar este pedido a producción? Esta acción notificará al taller y permitirá iniciar los trabajos MES.'
+  confirmDialog.icon = Rocket
+  confirmDialog.confirmText = 'Lanzar Ahora'
+  confirmDialog.confirmClass = 'btn-secondary'
+  confirmDialog.action = launchOrderToProduction
+  confirmDialog.show = true
+}
+
+async function handleConfirmDialog() {
+  if (confirmDialog.action) {
+    await confirmDialog.action()
+  }
+  confirmDialog.show = false
+}
 
 const hasActiveDeliveryNotes = computed(() =>
   relatedDeliveryNotes.value.some(dn => dn.status !== 'CANCELLED')
@@ -898,25 +962,12 @@ async function saveOrder() {
   }
 }
 
-async function confirmOrder() {
-  if (!confirm('¿Estás seguro de que deseas confirmar este pedido? Pasará a gestión de almacén/producción.')) return
-  isSaving.value = true
-  try {
-    await salesApi.confirmOrder(order.value.id)
-    await loadOrder()
-  } catch (e) {
-    toastStore.error('Error al confirmar: ' + (e.message || 'Error desconocido'))
-  } finally {
-    isSaving.value = false
-  }
-}
-
 async function cancelOrder() {
-  if (!confirm('¿Realmente deseas ANULAR este pedido? Esta acción es irreversible.')) return
   isSaving.value = true
   try {
     await salesApi.cancelOrder(order.value.id)
     await loadOrder()
+    toastStore.success('Pedido anulado correctamente')
   } catch (e) {
     toastStore.error('Error al anular: ' + (e.message || 'Error desconocido'))
   } finally {
@@ -925,11 +976,11 @@ async function cancelOrder() {
 }
 
 async function reactivateOrder() {
-  if (!confirm('¿Deseas reactivar este pedido y devolverlo al estado borrador?')) return
   isSaving.value = true
   try {
     await salesApi.reactivateOrder(order.value.id)
     await loadOrder()
+    toastStore.success('Pedido reactivado')
   } catch (e) {
     toastStore.error('Error al reactivar: ' + (e.message || 'Error desconocido'))
   } finally {
@@ -938,11 +989,11 @@ async function reactivateOrder() {
 }
 
 async function launchOrderToProduction() {
-  if (!confirm('¿Lanzar este pedido a producción? Esta acción notificará al taller y permitirá iniciar los trabajos.')) return
   isSaving.value = true
   try {
     await salesApi.changeOrderStatus(order.value.id, 'READY_FOR_PRODUCTION')
     await loadOrder()
+    toastStore.success('Pedido lanzado a taller')
   } catch (e) {
     toastStore.error('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
   } finally {
@@ -989,7 +1040,7 @@ async function submitDeliveryNote() {
     }
   }
 
-  isSaving.value = true;
+  isSaving.value = true
   try {
     const payload = {
       salesOrderId: order.value.id,
@@ -1006,7 +1057,7 @@ async function submitDeliveryNote() {
     console.error('Error al generar albarán:', e);
     toastStore.error('Error al generar albarán: ' + (e.message || 'Error desconocido'));
   } finally {
-    isSaving.value = false;
+    isSaving.value = false
   }
 }
 
