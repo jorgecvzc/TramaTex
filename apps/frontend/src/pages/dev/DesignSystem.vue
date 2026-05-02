@@ -82,10 +82,34 @@
         </div>
       </section>
 
-      <!-- SECCIÓN 4: FORMULARIOS (NUEVO ESTÁNDAR) -->
+      <!-- SECCIÓN 4: ICONOGRAFÍA (SSOT) -->
       <section class="showcase-section alt-bg">
         <div class="section-intro">
-          <h2>04. Entrada de Datos</h2>
+          <h2>04. Iconografía (Lucide SSOT)</h2>
+          <p>Iconografía industrial unificada. El sistema utiliza una <strong>Verdad Única</strong> en <code>src/utils/icons.ts</code>.</p>
+        </div>
+        
+        <div class="icon-search-box mb-6">
+          <input v-model="iconSearch" type="text" placeholder="Filtrar iconos por nombre o alias..." class="form-input-lux" />
+        </div>
+
+        <div class="icon-grid">
+          <div v-for="name in filteredIconNames" :key="name" class="icon-card-lux">
+            <div class="icon-preview">
+              <component :is="getIcon(name)" :size="24" />
+            </div>
+            <div class="icon-info">
+              <span class="icon-key">{{ name }}</span>
+            </div>
+          </div>
+        </div>
+        <p class="mt-4 text-muted"><small>Total de entradas registradas: {{ allIconNames.length }}</small></p>
+      </section>
+
+      <!-- SECCIÓN 5: FORMULARIOS (NUEVO ESTÁNDAR) -->
+      <section class="showcase-section">
+        <div class="section-intro">
+          <h2>05. Entrada de Datos</h2>
           <p>Campos de edición diseñados para la precisión y la rapidez en la gestión.</p>
         </div>
         <div class="forms-demo">
@@ -122,7 +146,9 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { getIcon, getAllIconNames } from '@/utils/icons'
 
 const brandColors = [
   { name: 'Amarillo TramaTex', hex: '#E6B800', var: '--color-primary' },
@@ -132,6 +158,15 @@ const brandColors = [
   { name: 'Error', hex: '#dc2626', var: '--color-error' },
   { name: 'Fondo', hex: '#f1f5f9', var: '--color-background' }
 ]
+
+const iconSearch = ref('')
+const allIconNames = getAllIconNames()
+
+const filteredIconNames = computed(() => {
+  if (!iconSearch.value) return allIconNames
+  const q = iconSearch.value.toLowerCase()
+  return allIconNames.filter(n => n.toLowerCase().includes(q))
+})
 </script>
 
 <style scoped>
@@ -263,6 +298,62 @@ const brandColors = [
   color: var(--color-text-secondary);
   margin-bottom: 1.5rem;
 }
+
+/* Icon Grid Lux */
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.icon-card-lux {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: 0.2s;
+}
+
+.icon-card-lux:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md);
+}
+
+.icon-preview {
+  margin-bottom: 1rem;
+  color: var(--color-secondary);
+}
+
+.icon-key {
+  font-size: 0.7rem;
+  font-family: var(--font-family-mono);
+  word-break: break-all;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.form-input-lux {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 2px solid var(--color-border);
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.2s;
+}
+
+.form-input-lux:focus {
+  border-color: var(--color-primary);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(230, 184, 0, 0.1);
+}
+
+.mb-6 { margin-bottom: 1.5rem; }
 
 .showcase-footer {
   text-align: center;
