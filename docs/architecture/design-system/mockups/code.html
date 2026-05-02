@@ -5,7 +5,7 @@
 <title>TramaTex - Login</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
 <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -50,15 +50,15 @@
 <div class="space-y-4">
 <div class="relative">
 <label class="sr-only" for="username">Email or User</label>
-<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-<span class="material-symbols-outlined text-royal-blue/40 text-lg">person</span>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-royal-blue/40">
+<i data-lucide="user" style="width: 1.125rem; height: 1.125rem;"></i>
 </div>
 <input class="block w-full pl-10 pr-3 py-3 border border-royal-blue/30 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-royal-blue focus:border-royal-blue sm:text-sm transition-all" id="username" name="username" placeholder="Email or Username" type="text"/>
 </div>
 <div class="relative">
 <label class="sr-only" for="password">Password</label>
-<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-<span class="material-symbols-outlined text-royal-blue/40 text-lg">lock</span>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-royal-blue/40">
+<i data-lucide="lock" style="width: 1.125rem; height: 1.125rem;"></i>
 </div>
 <input class="block w-full pl-10 pr-3 py-3 border border-royal-blue/30 rounded-md bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-royal-blue focus:border-royal-blue sm:text-sm transition-all" id="password" name="password" placeholder="Password" type="password"/>
 </div>
@@ -76,7 +76,7 @@
 </div>
 <button class="w-full bg-egg-yellow hover:bg-[#EBC715] text-white font-bold py-3.5 px-4 rounded-md shadow-sm transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
                     Login
-                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                    <i data-lucide="arrow-right" style="width: 1.125rem; height: 1.125rem;"></i>
 </button>
 </div>
 <div class="mt-10 text-center">
@@ -95,4 +95,7 @@
 </div>
 </div>
 
+<script>
+  lucide.createIcons();
+</script>
 </body></html>

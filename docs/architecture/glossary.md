@@ -238,8 +238,8 @@ Bloque superior fijo (`Sticky`) de la `BaseEntityPage`. Contiene la identidad de
 **Main Content (Área de Trabajo)**
 Zona operativa central de la página donde residen las secciones de datos (`FormSection`) y el motor de líneas. Utiliza el fondo gris base de la aplicación para resaltar las tarjetas blancas.
 
-**Material Symbols Outlined**
-Estándar obligatorio de iconografía para TramaTex. Se integra mediante la clase CSS `.material-symbols-outlined` y utiliza nombres semánticos de iconos de Google.
+**Lucide Icons (SVG)**
+Estándar obligatorio de iconografía para TramaTex. Se integra mediante la librería `lucide-vue-next` y utiliza una Verdad Única (SSOT) en `src/utils/icons.ts` para mapear nombres semánticos a componentes SVG. Sustituye al antiguo sistema de Material Symbols.
 
 ### R
 

@@ -31,9 +31,9 @@ El diseño se organiza en tres profundidades visuales para maximizar la claridad
 
 ## 2. Estándar de Iconografía
 
-**REGLA INAMOVIBLE:** Se utiliza exclusivamente **Material Symbols Outlined**.
-* **Formato:** `<span class="material-symbols-outlined">icon_name</span>`
-* **Prohibición:** No utilizar Material Symbols Icons ni emojis.
+**REGLA INAMOVIBLE:** Se utiliza exclusivamente **Lucide Icons** registrados en la Verdad Única (`src/utils/icons.ts`).
+* **Uso:** `<component :is="getIcon(entityIcon)" :size="28" />` en la cabecera.
+* **Prohibición:** No utilizar Material Symbols ni fuentes tipográficas de iconos externos.
 
 ## 3. Ejemplo de Estructura de Código
 
