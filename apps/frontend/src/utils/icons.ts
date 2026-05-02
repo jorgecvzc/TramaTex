@@ -53,8 +53,8 @@ import {
   Link, 
   CornerDownRight, 
   PlusSquare, 
-  FolderOff, 
-  FilterX, 
+  FolderX, 
+  FilterX as FilterXIcon, 
   AlertCircle, 
   Users, 
   Factory, 
@@ -105,7 +105,8 @@ import {
   Route,
   File,
   LayoutGrid,
-  Contact2
+  ContactRound,
+  Pin
 } from 'lucide-vue-next'
 
 // Comprehensive mapping for aliases (Material, Slugs) and Direct Component Names
@@ -122,7 +123,7 @@ const iconMap: Record<string, any> = {
   'public': Globe,
   'refresh': RefreshCw,
   'sell': Tag,
-  'push_pin': PushPin,
+  'push_pin': Pin,
   'corporate_fare': Building2,
   'folder': Folder,
   'bar_chart': BarChart3,
@@ -173,8 +174,8 @@ const iconMap: Record<string, any> = {
   'link': Link,
   'subdirectory_arrow_right': CornerDownRight,
   'add_box': PlusSquare,
-  'folder_off': FolderOff,
-  'filter_alt_off': FilterX,
+  'folder_off': FolderX,
+  'filter_alt_off': FilterXIcon,
   'error': AlertCircle,
   'groups': Users,
   'manage_accounts': UserCog,
@@ -203,7 +204,7 @@ const iconMap: Record<string, any> = {
   'route': Route,
   'file': File,
   'grid_view': LayoutGrid,
-  'contact_2': Contact2,
+  'contact_2': ContactRound,
 
   // Direct Component Names (Self-mapping)
   'Info': Info,
@@ -217,7 +218,7 @@ const iconMap: Record<string, any> = {
   'Globe': Globe,
   'RefreshCw': RefreshCw,
   'Tag': Tag,
-  'PushPin': PushPin,
+  'Pin': Pin,
   'Building2': Building2,
   'Folder': Folder,
   'BarChart3': BarChart3,
@@ -262,8 +263,8 @@ const iconMap: Record<string, any> = {
   'Link': Link,
   'CornerDownRight': CornerDownRight,
   'PlusSquare': PlusSquare,
-  'FolderOff': FolderOff,
-  'FilterX': FilterX,
+  'FolderX': FolderX,
+  'FilterXIcon': FilterXIcon,
   'AlertCircle': AlertCircle,
   'Users': Users,
   'UserCog': UserCog,
@@ -312,7 +313,7 @@ const iconMap: Record<string, any> = {
   'Route': Route,
   'File': File,
   'LayoutGrid': LayoutGrid,
-  'Contact2': Contact2
+  'ContactRound': ContactRound
 }
 
 export function getIcon(name: string | any) {
