@@ -24,7 +24,7 @@
             name="groupType"
           />
           <div class="radio-content">
-            <span class="radio-title">🔧 Productos Tangibles</span>
+            <span class="radio-title"><Wrench :size="18" style="vertical-align: middle; margin-right: 4px" /> Productos Tangibles</span>
             <span class="radio-description">Productos físicos: calzado, ropa, accesorios, equipamiento</span>
           </div>
         </label>
@@ -36,7 +36,7 @@
             name="groupType"
           />
           <div class="radio-content">
-            <span class="radio-title">⚙️ Servicios</span>
+            <span class="radio-title"><Settings :size="18" style="vertical-align: middle; margin-right: 4px" /> Servicios</span>
             <span class="radio-description">Servicios profesionales: consultoría, mantenimiento, instalación</span>
           </div>
         </label>
@@ -79,6 +79,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
+import { Wrench, Settings } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

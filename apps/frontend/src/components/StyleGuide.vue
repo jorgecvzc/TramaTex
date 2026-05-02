@@ -190,7 +190,114 @@ const filteredIconNames = computed(() => {
 </script>
 
 <style scoped>
-/* ... (rest of styles) ... */
+.style-guide-wrapper {
+  background-color: var(--color-background);
+  min-height: 100vh;
+}
+
+.style-guide {
+  padding: 3rem var(--spacing-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-lg);
+}
+
+section {
+  margin-bottom: 4rem;
+}
+
+h2 {
+  border-bottom: 2px solid var(--color-primary);
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  padding-right: 2rem;
+}
+
+.section-intro {
+  margin-bottom: 2rem;
+  color: var(--color-text-secondary);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.color-swatch-wrapper {
+  text-align: center;
+}
+
+.color-swatch {
+  width: 100%;
+  height: 80px;
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-sm);
+  box-shadow: var(--box-shadow-sm);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.color-swatch-wrapper p {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.color-swatch-wrapper code {
+  font-size: 0.75rem;
+  background-color: var(--color-background);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+}
+
+/* Showcase de Botones */
+.showcase-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.showcase-table th {
+  text-align: left;
+  padding: 1rem;
+  background: var(--color-background);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.showcase-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.showcase-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sizes-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 2rem;
+  background: var(--color-background);
+  border-radius: 12px;
+}
+
+.size-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.size-item code {
+  font-size: 0.8rem;
+}
+
+.mt-8 { margin-top: 2rem; }
 
 /* Icon Grid */
 .icon-grid {

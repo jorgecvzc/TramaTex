@@ -256,7 +256,7 @@
 
           <!-- Empty History -->
           <div v-if="!isLoadingHistory && priceHistory.length === 0" class="empty-state">
-            <span class="empty-icon">📊</span>
+            <component :is="getIcon('bar_chart')" :size="64" class="empty-icon" />
             <p>No hay historial de cálculos para esta variante.</p>
           </div>
 
