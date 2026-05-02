@@ -7,6 +7,7 @@
         v-model="formData.name" 
         type="text" 
         class="form-input"
+        :class="{ 'border-error': errors.name }"
         placeholder="Ej: Calzado Deportivo, Ropa"
         @input="clearError('name')"
       />
@@ -15,8 +16,8 @@
 
     <div class="form-group">
       <label>Tipo de categoría <span class="required">*</span></label>
-      <div class="radio-group">
-        <label class="radio-label">
+      <div class="radio-group" :class="{ 'border-error-group': errors.type }">
+        <label class="radio-label" :class="{ 'border-error': errors.type }">
           <input 
             type="radio" 
             v-model="formData.type" 

@@ -90,34 +90,16 @@
       confirm-text="Guardar Cambios"
       :is-confirming="isSaving"
       @close="showModal = false"
-      @confirm="saveGroup"
+      @confirm="submitForm"
     >
-      <div class="form-group">
-        <label>Nombre de la Categoría</label>
-        <input v-model="currentGroup.name" type="text" class="form-input" placeholder="Ej: Hilos, Tejidos..." required @keyup.enter="saveGroup" />
-      </div>
-      <div class="form-group mt-4">
-        <label>Categoría Padre</label>
-        <select v-model="currentGroup.parentGroupId" class="form-input">
-          <option value="">Sin categoría padre (nivel raíz)</option>
-          <option v-for="g in availableParents" :key="g.id" :value="g.id">{{ g.name }}</option>
-        </select>
-      </div>
-      <div class="form-row mt-4">
-        <div class="form-group">
-          <label>Tipo</label>
-          <select v-model="currentGroup.type" class="form-input">
-            <option value="TANGIBLE">Producto Físico</option>
-            <option value="SERVICE">Servicio</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label mt-8">
-            <input v-model="currentGroup.isActive" type="checkbox" />
-            <span>Categoría activa</span>
-          </label>
-        </div>
-      </div>
+      <ProductGroupForm 
+        v-if="showModal"
+        :key="modalMode + (currentGroup?.id || 'new')"
+        ref="groupFormRef" 
+        :product-group="currentGroup" 
+        :mode="modalMode" 
+        @submit="handleSubmit" 
+      />
     </BaseDialog>
 
     <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
@@ -148,6 +130,7 @@ import {
 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
+import ProductGroupForm from '@/components/master-data/ProductGroupForm.vue'
 import { productApi } from '@/services/productApi'
 import { useToastStore } from '@/stores/toast'
 
@@ -178,16 +161,10 @@ const modalMode = ref('create')
 const isSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const groupToDelete = ref(null)
-const currentGroup = ref({ name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' })
+const currentGroup = ref(null)
+const groupFormRef = ref(null)
 
 const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
-
-const availableParents = computed(() => {
-  if (modalMode.value === 'edit') {
-    return allGroups.value.filter(g => g.id !== currentGroup.value.id)
-  }
-  return allGroups.value
-})
 
 function getParentName(parentId) {
   const parent = allGroups.value.find(g => g.id === parentId)
@@ -209,27 +186,43 @@ function clearFilters() {
   filters.isActive = '';
 }
 
-function openCreateModal() { modalMode.value = 'create'; currentGroup.value = { name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' }; showModal.value = true; }
-function editGroup(group) { modalMode.value = 'edit'; currentGroup.value = { id: group.id, name: group.name, type: group.type, isActive: group.is_active, parentGroupId: group.parent_group_id || '' }; showModal.value = true; }
+function openCreateModal() { 
+  modalMode.value = 'create'; 
+  currentGroup.value = null; 
+  showModal.value = true; 
+}
+
+function editGroup(group) { 
+  modalMode.value = 'edit'; 
+  currentGroup.value = group; 
+  showModal.value = true; 
+}
+
 function openGroupDetail(group) { editGroup(group); }
 
-async function saveGroup() {
-  if (!currentGroup.value.name) {
-    toastStore.warning('El nombre de la categoría es obligatorio');
-    return;
+function submitForm() {
+  if (groupFormRef.value) {
+    groupFormRef.value.handleSubmit()
   }
+}
+
+async function handleSubmit(payload) {
   isSaving.value = true;
-  const payload = {
-    name: currentGroup.value.name,
-    type: currentGroup.value.type,
-    isActive: currentGroup.value.isActive,
-    parentGroupId: currentGroup.value.parentGroupId || null,
-  };
   try {
-    if (modalMode.value === 'create') await productApi.createProductGroup(payload);
-    else await productApi.updateProductGroup(currentGroup.value.id, payload);
-    showModal.value = false; await loadGroups();
-  } catch (err) { toastStore.addToast(err.message, 'error'); } finally { isSaving.value = false }
+    if (modalMode.value === 'create') {
+      await productApi.createProductGroup(payload);
+      toastStore.success('Categoría creada correctamente');
+    } else {
+      await productApi.updateProductGroup(payload.id, payload);
+      toastStore.success('Categoría actualizada correctamente');
+    }
+    showModal.value = false;
+    await loadGroups();
+  } catch (err) {
+    toastStore.addToast(err.message, 'error');
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 async function toggleActive(group) {
