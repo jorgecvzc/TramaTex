@@ -26,9 +26,67 @@ const props = defineProps<{
 
 const emit = defineEmits(['clear-filters', 'refresh', 'click-item'])
 
-function handleRowClick(item: any) {
+const selectedIndex = ref(-1)
+const tableBodyRef = ref<HTMLElement | null>(null)
+
+function handleRowClick(item: any, index?: number) {
+  if (index !== undefined) selectedIndex.value = index
   emit('click-item', item)
 }
+
+function handleKeyDown(e: KeyboardEvent) {
+  // Ignorar si el usuario está escribiendo en un input o textarea
+  const target = e.target as HTMLElement
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+    return
+  }
+
+  if (props.items.length === 0) return
+
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault()
+      selectedIndex.value = Math.min(selectedIndex.value + 1, props.items.length - 1)
+      scrollToSelected()
+      break
+    case 'ArrowUp':
+      e.preventDefault()
+      selectedIndex.value = Math.max(selectedIndex.value - 1, 0)
+      scrollToSelected()
+      break
+    case 'Enter':
+      if (selectedIndex.value >= 0 && selectedIndex.value < props.items.length) {
+        e.preventDefault()
+        handleRowClick(props.items[selectedIndex.value])
+      }
+      break
+    case 'Escape':
+      selectedIndex.value = -1
+      break
+  }
+}
+
+function scrollToSelected() {
+  if (selectedIndex.value < 0 || !tableBodyRef.value) return
+  
+  const rows = tableBodyRef.value.querySelectorAll('tr')
+  const selectedRow = rows[selectedIndex.value] as HTMLElement
+  
+  if (selectedRow) {
+    selectedRow.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth'
+    })
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
 
 const resolvedIcon = computed(() => getIcon(props.icon || 'list_alt'))
 const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'))
@@ -92,12 +150,13 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
                 <slot name="table-header"></slot>
               </tr>
             </thead>
-            <tbody>
+            <tbody ref="tableBodyRef">
               <tr 
                 v-for="(item, index) in items" 
                 :key="item.id || index" 
                 class="row-clickable" 
-                @click="handleRowClick(item)"
+                :class="{ 'is-selected': selectedIndex === index }"
+                @click="handleRowClick(item, index)"
               >
                 <slot name="item" :item="item"></slot>
               </tr>
@@ -178,8 +237,25 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
   letter-spacing: 0.05em;
 }
 
-.row-clickable { cursor: pointer; transition: background-color 0.15s; }
+.row-clickable { cursor: pointer; transition: background-color 0.15s; position: relative; }
 .row-clickable:hover { background-color: var(--color-background-soft); }
+
+.row-clickable.is-selected {
+  background-color: rgba(230, 184, 0, 0.12) !important;
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.row-clickable.is-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--color-primary);
+}
 
 .empty-state, .loading-state, .error-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
