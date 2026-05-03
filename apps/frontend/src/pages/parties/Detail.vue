@@ -76,25 +76,36 @@
 
     <!-- CAPA 2: CONTEXTO (Resumen) -->
     <template #summary v-if="mode !== 'create' && party">
-      <div class="overview-tags-row">
-        <div class="summary-tag">
+      <div class="overview-details-strip">
+        <div class="detail-item">
           <div class="icon blue"><Fingerprint :size="20" /></div>
-          <div class="tag-content">
-            <label>NIF / CIF</label>
-            <strong class="text-mono">{{ party.tax_id || '—' }}</strong>
+          <div class="text-box">
+            <label>Identificación Fiscal</label>
+            <strong>{{ party.tax_id || '—' }}</strong>
           </div>
         </div>
-        <div class="summary-tag">
+        <div class="detail-item">
           <div class="icon yellow"><MapPin :size="20" /></div>
-          <div class="tag-content">
-            <label>Ubicación</label>
+          <div class="text-box">
+            <label>Ubicación Principal</label>
             <strong>{{ primaryAddressLine }}</strong>
           </div>
         </div>
-        <div class="summary-tag">
-          <div class="icon purple"><History :size="20" /></div>
-          <div class="tag-content">
-            <label>Alta en Sistema</label>
+        <div class="detail-item" v-if="party.email || party.phone">
+          <div class="icon purple"><ContactRound :size="20" /></div>
+          <div class="text-box">
+            <label>Contacto Directo</label>
+            <div class="inline-contacts">
+              <span v-if="party.email">{{ party.email }}</span>
+              <span v-if="party.email && party.phone" class="separator">|</span>
+              <span v-if="party.phone">{{ party.phone }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-item">
+          <div class="icon green"><History :size="20" /></div>
+          <div class="text-box">
+            <label>Fecha de Alta</label>
             <strong>{{ formatDate(party.created_at) }}</strong>
           </div>
         </div>
@@ -383,15 +394,26 @@ watch(() => route.params.id, () => loadData(), { immediate: true })
 .tab-btn:hover { color: var(--color-primary); background: rgba(0,0,0,0.02); }
 .tab-btn.active { border-bottom-color: var(--color-secondary); color: var(--color-secondary); background: rgba(0, 35, 149, 0.03); }
 
-.overview-tags-row { display: flex; flex-wrap: wrap; gap: 1rem; }
-.summary-tag { flex: 1; min-width: 240px; padding: 0.75rem 1.25rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 1rem; box-shadow: var(--box-shadow-sm); }
-.summary-tag .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-.summary-tag .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-.summary-tag .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
-.summary-tag .icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
-.tag-content { display: flex; flex-direction: column; line-height: 1.2; }
-.tag-content label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
-.tag-content strong { font-size: 1rem; color: var(--color-text-primary); }
+.overview-details-strip { 
+  display: flex; flex-wrap: wrap; gap: 2rem; background: white; border: 1px solid var(--color-border); 
+  border-radius: 12px; padding: 1.25rem 2rem; box-shadow: var(--box-shadow-sm); 
+}
+.detail-item { display: flex; align-items: center; gap: 1rem; }
+.detail-item .icon { 
+  width: 36px; height: 36px; border-radius: 8px; display: flex; 
+  align-items: center; justify-content: center; flex-shrink: 0; 
+}
+.detail-item .icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.detail-item .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
+.detail-item .icon.purple { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
+.detail-item .icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+
+.text-box { display: flex; flex-direction: column; line-height: 1.2; }
+.text-box label { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
+.text-box strong { font-size: 0.95rem; color: var(--color-text-primary); font-weight: 700; }
+
+.inline-contacts { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary); }
+.inline-contacts .separator { color: var(--color-border-strong); font-weight: 300; }
 
 .party-master-content { padding-top: 1rem; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }

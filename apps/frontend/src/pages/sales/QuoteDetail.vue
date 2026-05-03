@@ -274,22 +274,50 @@
               <td>{{ buildDisplayName(item) }}</td>
               <td class="text-center">
                 <template v-if="mode === 'detail'">{{ item.quantity }}</template>
-                <input v-else v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" />
+                <input 
+                  v-else 
+                  v-model.number="item.quantity" 
+                  type="number" 
+                  min="1" 
+                  class="form-input-sm w-16 text-center font-bold" 
+                  :data-row="idx"
+                  data-col="qty"
+                  @keydown="handleLineKeyDown($event, idx, 'qty')"
+                />
               </td>
               <td class="align-right">{{ salesApi.formatMoney(mode === 'detail' ? item.listUnitPrice : { amount: item.listPrice || 0, currency: 'EUR' }) }}</td>
               <td class="align-right">
                 <template v-if="mode === 'detail'">{{ salesApi.formatMoney(item.unitPrice) }}</template>
-                <input v-else v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" @input="item._autoPrice = false" />
+                <input 
+                  v-else 
+                  v-model.number="item.unitPrice" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-24 text-right" 
+                  :data-row="idx"
+                  data-col="price"
+                  @input="item._autoPrice = false" 
+                  @keydown="handleLineKeyDown($event, idx, 'price')"
+                />
               </td>
               <td class="text-center">
                 <template v-if="mode === 'detail'">{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</template>
-                <input v-else v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" />
+                <input 
+                  v-else 
+                  v-model.number="item.discountPercent" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-16 text-center" 
+                  :data-row="idx"
+                  data-col="disc"
+                  @keydown="handleLineKeyDown($event, idx, 'disc')"
+                />
               </td>
               <td class="align-right">
                 <strong>{{ salesApi.formatMoney(mode === 'detail' ? item.subtotal : calculateLineSubtotal(idx)) }}</strong>
               </td>
               <td v-if="mode !== 'detail'" class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)"><Trash2 :size="18" /></button>
+                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)" title="Quitar línea"><Trash2 :size="18" /></button>
               </td>
             </tr>
           </tbody>
@@ -682,6 +710,59 @@ function onPartySelected(party) {
   calculateTotals();
 }
 
+function handleLineKeyDown(e, index, col) {
+  const isLastLine = index === formData.lineItems.length - 1
+  const currentLine = formData.lineItems[index]
+
+  // 1. Teclas + y - para cantidad
+  if (col === 'qty') {
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault()
+      currentLine.quantity = Number(currentLine.quantity || 0) + 1
+      return
+    }
+    if (e.key === '-') {
+      e.preventDefault()
+      currentLine.quantity = Math.max(1, Number(currentLine.quantity || 0) - 1)
+      return
+    }
+  }
+
+  // 2. Tecla Enter para navegación
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (col === 'qty') focusLineInput(index, 'price')
+    else if (col === 'price') focusLineInput(index, 'disc')
+    else if (col === 'disc') {
+      if (isLastLine) {
+        openVariantSelector()
+      } else {
+        focusLineInput(index + 1, 'qty')
+      }
+    }
+    return
+  }
+
+  // 3. Flechas para navegación entre filas
+  if (e.key === 'ArrowDown' && !isLastLine) {
+    e.preventDefault()
+    focusLineInput(index + 1, col)
+  } else if (e.key === 'ArrowUp' && index > 0) {
+    e.preventDefault()
+    focusLineInput(index - 1, col)
+  }
+}
+
+function focusLineInput(row, col) {
+  setTimeout(() => {
+    const el = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  }, 10)
+}
+
 function openVariantSelector() { 
   showVariantSelector.value = true; 
 }
@@ -693,8 +774,8 @@ function handleVariantSelected(payload) {
     variantSku: variant.sku,
     displayName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    listPrice: null, // No mostrar nada inicialmente
-    unitPrice: null, // No mostrar nada inicialmente
+    listPrice: null,
+    unitPrice: null,
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   };
@@ -702,9 +783,11 @@ function handleVariantSelected(payload) {
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
   
-  // Trigger immediate calculation
+  // Posicionar foco en la cantidad de la nueva línea
   nextTick(() => {
     fetchPreviewCalculation();
+    const lastIdx = formData.lineItems.length - 1
+    focusLineInput(lastIdx, 'qty')
   });
 }
 

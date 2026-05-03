@@ -392,8 +392,27 @@ const focusInput = () => barcodeInput.value?.focus();
 
 // --- KEYBOARD SHORTCUTS ---
 const handleGlobalKeys = (e) => {
-  if (e.key === 'F10') { e.preventDefault(); processTicket(); }
-  if (e.key === 'Escape') { searchQuery.value = ''; focusInput(); }
+  if (e.key === 'F10') { 
+    e.preventDefault(); 
+    processTicket(); 
+  }
+  if (e.key === 'Escape') { 
+    searchQuery.value = ''; 
+    focusInput(); 
+  }
+  
+  // Atajos rápidos para cantidad en el ticket (+/-)
+  // Solo si no estamos escribiendo en el buscador
+  if (document.activeElement !== barcodeInput.value && lines.value.length > 0) {
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      updateQty(lines.value.length - 1, 1);
+    }
+    if (e.key === '-') {
+      e.preventDefault();
+      updateQty(lines.value.length - 1, -1);
+    }
+  }
 };
 
 onMounted(() => {

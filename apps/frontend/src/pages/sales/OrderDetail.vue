@@ -299,7 +299,12 @@
       <!-- Sección Líneas de Pedido -->
       <FormSection title="Líneas de Pedido" icon="list_alt">
         <div v-if="mode !== 'detail'" class="mb-4">
-          <button type="button" class="btn btn-primary btn-sm" @click="showVariantSelector = true">
+          <button 
+            ref="addProductBtnRef"
+            type="button" 
+            class="btn btn-primary btn-sm" 
+            @click="showVariantSelector = true"
+          >
             <Plus :size="16" /> <span>Añadir Producto</span>
           </button>
         </div>
@@ -307,6 +312,7 @@
           :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
           :is-editing="mode !== 'detail'"
           @update:lines="updateLines"
+          @add-line-request="handleAddLineRequest"
         />
       </FormSection>
       
@@ -865,6 +871,14 @@ function formatMesWorkId(id) {
   return mesWorksCache.value[id]?.name || id.substring(0, 8)
 }
 
+const addProductBtnRef = ref(null)
+
+function handleAddLineRequest() {
+  if (addProductBtnRef.value) {
+    addProductBtnRef.value.focus()
+  }
+}
+
 function handleVariantSelected(payload) {
   const variant = payload.variant || payload
   const newItem = {
@@ -879,9 +893,15 @@ function handleVariantSelected(payload) {
   editableOrder.value.line_items.push(newItem)
   showVariantSelector.value = false
   
-  // Trigger immediate calculation
+  // Posicionar foco en la cantidad de la nueva línea tras el renderizado
   nextTick(() => {
     fetchPreviewCalculation();
+    const lastIdx = editableOrder.value.line_items.length - 1
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
   })
 }
 

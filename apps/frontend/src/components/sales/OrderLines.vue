@@ -30,9 +30,12 @@
                 v-if="isEditing" 
                 :value="line.quantity" 
                 type="number" 
-                class="form-input text-center" 
+                class="form-input text-center font-bold" 
+                :data-row="index"
+                data-col="qty"
                 min="1" 
-                @input="updateLineField(index, 'quantity', $event.target.value)" 
+                @input="updateLineField(index, 'quantity', $event.target.value)"
+                @keydown="handleKeyDown($event, index, 'qty')"
               />
               <span v-else>{{ line.quantity }}</span>
             </td>
@@ -45,7 +48,10 @@
                 type="number" 
                 step="0.01" 
                 class="form-input text-right" 
-                @input="updateLineField(index, 'unit_price', $event.target.value)" 
+                :data-row="index"
+                data-col="price"
+                @input="updateLineField(index, 'unit_price', $event.target.value)"
+                @keydown="handleKeyDown($event, index, 'price')"
               />
               <span v-else>{{ formatMoney(line.unit_price || line.unitPrice) }}</span>
             </td>
@@ -58,9 +64,12 @@
                 type="number" 
                 step="0.01" 
                 class="form-input text-center" 
+                :data-row="index"
+                data-col="disc"
                 min="0" 
                 max="100" 
-                @input="updateLineField(index, 'discount_percent', $event.target.value)" 
+                @input="updateLineField(index, 'discount_percent', $event.target.value)"
+                @keydown="handleKeyDown($event, index, 'disc')"
               />
               <span v-else>{{ line.discount_percent || line.discountPercent || 0 }}%</span>
             </td>
@@ -97,7 +106,61 @@ const props = defineProps({
   isEditing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:lines'])
+const emit = defineEmits(['update:lines', 'add-line-request'])
+
+function handleKeyDown(e, index, col) {
+  const isLastLine = index === props.lines.length - 1
+  const currentLine = props.lines[index]
+
+  // 1. Teclas + y - para cantidad (solo en columna qty)
+  if (col === 'qty') {
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault()
+      updateLineField(index, 'quantity', Number(currentLine.quantity || 0) + 1)
+      return
+    }
+    if (e.key === '-') {
+      e.preventDefault()
+      const newQty = Math.max(1, Number(currentLine.quantity || 0) - 1)
+      updateLineField(index, 'quantity', newQty)
+      return
+    }
+  }
+
+  // 2. Tecla Enter para navegación
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (col === 'qty') focusInput(index, 'price')
+    else if (col === 'price') focusInput(index, 'disc')
+    else if (col === 'disc') {
+      if (isLastLine) {
+        emit('add-line-request')
+      } else {
+        focusInput(index + 1, 'qty')
+      }
+    }
+    return
+  }
+
+  // 3. Flechas para navegación entre filas
+  if (e.key === 'ArrowDown' && !isLastLine) {
+    e.preventDefault()
+    focusInput(index + 1, col)
+  } else if (e.key === 'ArrowUp' && index > 0) {
+    e.preventDefault()
+    focusInput(index - 1, col)
+  }
+}
+
+function focusInput(row, col) {
+  setTimeout(() => {
+    const el = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  }, 10)
+}
 
 function removeLine(index) {
   const newLines = [...props.lines]

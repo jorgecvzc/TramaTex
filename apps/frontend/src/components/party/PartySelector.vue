@@ -25,7 +25,7 @@
         />
         
         <!-- Dropdown Results -->
-        <div v-if="showDropdown && searchTerm" class="dropdown-results">
+        <div v-if="showDropdown" class="dropdown-results">
           <div v-if="isSearching" class="dropdown-item loading">
             <span class="spinner-small"></span>
             Buscando...
@@ -49,7 +49,7 @@
             </div>
           </template>
           <div v-else class="dropdown-item empty">
-            No se encontraron resultados para "{{ searchTerm }}"
+            {{ searchTerm ? `No se encontraron resultados para "${searchTerm}"` : 'No hay entidades disponibles' }}
           </div>
         </div>
       </div>
