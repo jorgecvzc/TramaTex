@@ -29,8 +29,7 @@ const emit = defineEmits(['clear-filters', 'refresh', 'click-item'])
 const selectedIndex = ref(-1)
 const tableBodyRef = ref<HTMLElement | null>(null)
 
-function handleRowClick(item: any, index?: number) {
-  if (index !== undefined) selectedIndex.value = index
+function handleRowClick(item: any) {
   emit('click-item', item)
 }
 
