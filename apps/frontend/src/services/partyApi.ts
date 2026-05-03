@@ -364,7 +364,7 @@ class PartyApiService {
     if (filters.role && filters.role !== 'BOTH') params.append('role', filters.role)
     if (filters.status) params.append('status', filters.status)
     if (filters.pageNumber) params.append('page', filters.pageNumber.toString())
-    if (filters.pageSize) params.append('page_size', filters.pageSize.toString())
+    if (filters.pageSize || filters.limit) params.append('page_size', (filters.pageSize || filters.limit || 100).toString())
     // Allow filtering by type if provided, otherwise show all
     if (filters.type) params.append('type', filters.type)
 

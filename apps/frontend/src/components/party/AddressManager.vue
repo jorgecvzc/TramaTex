@@ -122,11 +122,11 @@ async function executeDelete() {
   if (!confirmDelete.address) return
   try {
     await partyApi.deleteAddress(props.partyId, confirmDelete.address.id)
-    toastStore.success('Dirección eliminada')
+    toastStore.success('Dirección eliminada correctamente')
     await loadAddresses()
     confirmDelete.show = false
   } catch (err) {
-    toastStore.error(err.message)
+    toastStore.error('No se pudo eliminar la dirección')
   }
 }
 
@@ -135,13 +135,20 @@ async function loadAddresses() {
   try {
     addresses.value = await partyApi.listAddresses(props.partyId)
   } catch (err) {
-    console.error('Error loading addresses:', err)
+    console.error('Error al cargar direcciones:', err)
   }
 }
 
 function openCreateModal() {
   editingId.value = null
-  Object.assign(formData, { street: '', city: '', postal_code: '', province: '', country: 'España', is_primary: addresses.value.length === 0 })
+  Object.assign(formData, { 
+    street: '', 
+    city: '', 
+    postal_code: '', 
+    province: '', 
+    country: 'España', 
+    is_primary: addresses.value.length === 0 
+  })
   showModal.value = true
 }
 
@@ -152,33 +159,43 @@ function editAddress(addr) {
 }
 
 async function saveAddress() {
-  if (!formData.street || !formData.city) return
+  if (!formData.street || !formData.city) {
+    toastStore.warning('La calle y la ciudad son obligatorias')
+    return
+  }
   isSaving.value = true
   try {
-    // API expects snake_case for some fields or specific mapping in service
     const payload = {
+      id: editingId.value || generateUUID(),
       street: formData.street,
       city: formData.city,
       province: formData.province,
-      postalCode: formData.postal_code, // The service maps this to postal_code
+      postalCode: formData.postal_code,
       country: formData.country,
       is_primary: formData.is_primary
     }
 
     if (editingId.value) {
       await partyApi.updateAddress(props.partyId, editingId.value, payload)
-      toastStore.success('Dirección actualizada')
+      toastStore.success('Dirección actualizada correctamente')
     } else {
       await partyApi.createAddress(props.partyId, payload)
-      toastStore.success('Dirección añadida')
+      toastStore.success('Dirección añadida correctamente')
     }
     showModal.value = false
     await loadAddresses()
   } catch (err) {
-    toastStore.error(err.message)
+    toastStore.error('Error al guardar la dirección')
   } finally {
     isSaving.value = false
   }
+}
+
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
 }
 
 onMounted(() => loadAddresses())

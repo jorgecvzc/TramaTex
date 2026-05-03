@@ -159,11 +159,11 @@ async function executeDelete() {
   if (!confirmDelete.person) return
   try {
     await partyApi.deletePerson(props.partyId, confirmDelete.person.id)
-    toastStore.success('Vínculo eliminado')
+    toastStore.success('Vínculo eliminado correctamente')
     await loadPersons()
     confirmDelete.show = false
   } catch (err) {
-    toastStore.error(err.message)
+    toastStore.error('No se pudo desvincular el contacto')
   }
 }
 
@@ -172,7 +172,7 @@ async function loadPersons() {
   try {
     persons.value = await partyApi.listPersons(props.partyId)
   } catch (err) {
-    console.error('Error loading persons:', err)
+    console.error('Error al cargar contactos:', err)
   }
 }
 
