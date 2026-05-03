@@ -155,11 +155,21 @@ async function saveAddress() {
   if (!formData.street || !formData.city) return
   isSaving.value = true
   try {
+    // API expects snake_case for some fields or specific mapping in service
+    const payload = {
+      street: formData.street,
+      city: formData.city,
+      province: formData.province,
+      postalCode: formData.postal_code, // The service maps this to postal_code
+      country: formData.country,
+      is_primary: formData.is_primary
+    }
+
     if (editingId.value) {
-      await partyApi.updateAddress(props.partyId, editingId.value, formData)
+      await partyApi.updateAddress(props.partyId, editingId.value, payload)
       toastStore.success('Dirección actualizada')
     } else {
-      await partyApi.createAddress(props.partyId, formData)
+      await partyApi.createAddress(props.partyId, payload)
       toastStore.success('Dirección añadida')
     }
     showModal.value = false

@@ -2,9 +2,14 @@
   <div class="person-manager">
     <div class="manager-header">
       <h3 class="flex items-center gap-2"><Contact2 :size="20" /> Personas de Contacto</h3>
-      <button class="btn btn-primary btn-sm" @click="openCreateModal">
-        <Plus :size="16" /> Añadir Persona
-      </button>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" @click="openLinkModal">
+          <Search :size="16" /> Vincular Existente
+        </button>
+        <button class="btn btn-primary btn-sm ml-2" @click="openCreateModal">
+          <Plus :size="16" /> Añadir Nueva
+        </button>
+      </div>
     </div>
 
     <div v-if="persons.length === 0" class="empty-state">
@@ -34,7 +39,7 @@
 
         <div class="person-actions">
           <button class="btn-icon" @click="editPerson(person)" title="Editar"><Pencil :size="16" /></button>
-          <button class="btn-icon text-danger" @click="promptDelete(person)" title="Eliminar"><Trash2 :size="16" /></button>
+          <button class="btn-icon text-danger" @click="promptDelete(person)" title="Desvincular"><Trash2 :size="16" /></button>
         </div>
       </div>
     </div>
@@ -73,25 +78,49 @@
       </div>
     </BaseDialog>
 
+    <!-- MODAL: VINCULAR EXISTENTE -->
+    <BaseDialog
+      :show="showLinkModal"
+      title="Vincular Contacto Existente"
+      icon="search"
+      confirm-text="Vincular Seleccionado"
+      :is-confirming="isSaving"
+      @close="showLinkModal = false"
+      @confirm="linkExistingPerson"
+    >
+      <div class="p-2">
+        <p class="mb-4 text-sm text-muted">Busca una persona ya registrada en el sistema para vincularla a esta organización.</p>
+        <PartySelector
+          v-model="selectedExistingId"
+          label="Persona de Contacto"
+          placeholder="Escribe nombre para buscar..."
+          role-filter="CONTACT"
+          required
+        />
+      </div>
+    </BaseDialog>
+
     <!-- MODAL DE CONFIRMACIÓN -->
     <BaseDialog
       :show="confirmDelete.show"
-      title="Eliminar Persona"
+      title="Desvincular Persona"
       icon="warning"
-      confirm-text="Eliminar"
+      confirm-text="Desvincular"
       confirm-class="btn-danger"
       @close="confirmDelete.show = false"
       @confirm="executeDelete"
     >
-      <p>¿Estás seguro de que deseas eliminar a <strong>{{ confirmDelete.person?.first_name }} {{ confirmDelete.person?.last_name }}</strong> como contacto?</p>
+      <p>¿Estás seguro de que deseas desvincular a <strong>{{ confirmDelete.person?.first_name }} {{ confirmDelete.person?.last_name }}</strong>?</p>
+      <p class="mt-2 text-xs text-muted">Si esta persona no está vinculada a ninguna otra empresa, sus datos permanecerán en el sistema como contacto independiente.</p>
     </BaseDialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { Contact2, User, Plus, Pencil, Trash2, Mail, Phone } from 'lucide-vue-next'
+import { Contact2, User, Plus, Pencil, Trash2, Mail, Phone, Search } from 'lucide-vue-next'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
+import PartySelector from '@/components/party/PartySelector.vue'
 import { partyApi } from '@/services/partyApi'
 import { useToastStore } from '@/stores/toast'
 
@@ -102,8 +131,10 @@ const props = defineProps({
 const toastStore = useToastStore()
 const persons = ref([])
 const showModal = ref(false)
+const showLinkModal = ref(false)
 const editingId = ref(null)
 const isSaving = ref(false)
+const selectedExistingId = ref('')
 
 const formData = reactive({
   first_name: '',
@@ -128,7 +159,7 @@ async function executeDelete() {
   if (!confirmDelete.person) return
   try {
     await partyApi.deletePerson(props.partyId, confirmDelete.person.id)
-    toastStore.success('Persona de contacto eliminada')
+    toastStore.success('Vínculo eliminado')
     await loadPersons()
     confirmDelete.show = false
   } catch (err) {
@@ -151,6 +182,11 @@ function openCreateModal() {
   showModal.value = true
 }
 
+function openLinkModal() {
+  selectedExistingId.value = ''
+  showLinkModal.value = true
+}
+
 function editPerson(person) {
   editingId.value = person.id
   Object.assign(formData, { ...person })
@@ -161,17 +197,40 @@ async function savePerson() {
   if (!formData.first_name || !formData.last_name) return
   isSaving.value = true
   try {
+    const payload = {
+      firstName: formData.first_name,
+      lastName: formData.last_name,
+      email: formData.email,
+      phone: formData.phone,
+      job_title: formData.job_title
+    }
+
     if (editingId.value) {
-      await partyApi.updatePerson(props.partyId, editingId.value, formData)
+      await partyApi.updatePerson(props.partyId, editingId.value, payload)
       toastStore.success('Datos actualizados')
     } else {
-      await partyApi.createPerson(props.partyId, formData)
-      toastStore.success('Contacto añadido')
+      await partyApi.createPerson(props.partyId, payload)
+      toastStore.success('Contacto creado y vinculado')
     }
     showModal.value = false
     await loadPersons()
   } catch (err) {
     toastStore.error(err.message)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function linkExistingPerson() {
+  if (!selectedExistingId.value) return
+  isSaving.value = true
+  try {
+    await partyApi.addContact(props.partyId, { contact_id: selectedExistingId.value })
+    toastStore.success('Contacto vinculado correctamente')
+    showLinkModal.value = false
+    await loadPersons()
+  } catch (err) {
+    toastStore.error('Error al vincular: ' + (err.message || err))
   } finally {
     isSaving.value = false
   }
