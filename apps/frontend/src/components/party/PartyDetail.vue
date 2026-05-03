@@ -12,14 +12,26 @@
         </template>
         <template #actions>
           <div v-if="party" class="header-actions-group">
-            <button class="btn btn-outline btn-sm" @click="startEdit">
-              <Pencil :size="16" />
-              <span>Editar Datos</span>
-            </button>
-            <button class="btn btn-danger btn-sm ml-2" @click="promptDelete">
-              <Trash2 :size="16" />
-              <span>Eliminar Entidad</span>
-            </button>
+            <template v-if="mode === 'detail'">
+              <button class="btn btn-primary btn-sm" @click="enterEditMode">
+                <Pencil :size="16" />
+                <span>Editar Datos</span>
+              </button>
+              <button class="btn btn-danger btn-sm ml-2" @click="promptDelete">
+                <Trash2 :size="16" />
+                <span>Eliminar Entidad</span>
+              </button>
+            </template>
+            <template v-else>
+              <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">
+                <X :size="16" />
+                <span>Cancelar</span>
+              </button>
+              <button class="btn btn-secondary btn-sm ml-2" @click="saveParty" :disabled="isSaving">
+                <component :is="isSaving ? RefreshCw : Save" :size="16" :class="{ 'spin': isSaving }" />
+                <span>Guardar Cambios</span>
+              </button>
+            </template>
           </div>
         </template>
       </BasePageHeader>
@@ -68,7 +80,7 @@
 
     <!-- CAPA 3: TRABAJO -->
     <div v-if="party" class="party-detail-tabs">
-      <div class="tabs-header">
+      <div class="tabs-header" v-if="mode === 'detail'">
         <button v-for="tab in tabs" :key="tab.id" :class="['tab-btn', { active: activeTab === tab.id }]" @click="activeTab = tab.id">
           <component :is="tab.icon" :size="18" />
           <span>{{ tab.label }}</span>
@@ -80,29 +92,81 @@
         <div v-if="activeTab === 'general'" class="tab-pane animate-fade-in">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FormSection title="Datos de Identidad" icon="person">
-              <DataRow label="Nombre Comercial / Completo" :value="party.name" icon="badge" />
-              <DataRow label="Tipo de Entidad" :value="party.type === 'ORGANIZATION' ? 'Empresa / Organización' : 'Persona Física'" icon="users" />
-              <DataRow label="Identificador Fiscal" :value="party.tax_id" is-mono icon="fingerprint" />
-              <DataRow label="Notas Internas" icon="notes">
-                <p class="notes-text">{{ party.notes || 'Sin observaciones registradas.' }}</p>
-              </DataRow>
+              <div v-if="mode === 'detail'">
+                <DataRow label="Nombre Comercial / Completo" :value="party.name" icon="badge" />
+                <DataRow label="Tipo de Entidad" :value="party.type === 'ORGANIZATION' ? 'Empresa / Organización' : 'Persona Física'" icon="users" />
+                <DataRow label="Identificador Fiscal" :value="party.tax_id" is-mono icon="fingerprint" />
+                <DataRow label="Notas Internas" icon="notes">
+                  <p class="notes-text">{{ party.notes || 'Sin observaciones registradas.' }}</p>
+                </DataRow>
+              </div>
+              <div v-else class="form-container">
+                <div class="form-group">
+                  <label>Nombre de la entidad *</label>
+                  <input v-model="formData.name" type="text" class="form-input" required placeholder="Nombre comercial o completo" />
+                </div>
+                <div class="form-row mt-4">
+                  <div class="form-group">
+                    <label>Tipo de Entidad</label>
+                    <select v-model="formData.type" class="form-input" disabled>
+                      <option value="ORGANIZATION">Empresa / Organización</option>
+                      <option value="PERSON">Persona Física</option>
+                    </select>
+                    <span class="help-text">El tipo no se puede cambiar tras la creación</span>
+                  </div>
+                  <div class="form-group">
+                    <label>Identificador Fiscal</label>
+                    <input v-model="formData.taxId" type="text" class="form-input text-mono" placeholder="NIF / CIF" />
+                  </div>
+                </div>
+                <div class="form-group mt-4">
+                  <label>Notas Internas</label>
+                  <textarea v-model="formData.notes" class="form-textarea" rows="3" placeholder="Observaciones privadas..."></textarea>
+                </div>
+              </div>
             </FormSection>
 
             <FormSection title="Configuración de Cuenta" icon="settings">
-              <DataRow label="Estado Actual" :value="party.status" icon="shield-check" />
-              <DataRow label="Rol en el Sistema" :value="party.role" icon="git-fork" />
-              <DataRow label="Descuento por Defecto" :value="(party.default_discount_percentage || 0) + '%'" icon="tag" />
+              <div v-if="mode === 'detail'">
+                <DataRow label="Estado Actual" :value="party.status" icon="shield-check" />
+                <DataRow label="Rol en el Sistema" :value="party.role" icon="git-fork" />
+                <DataRow label="Descuento por Defecto" :value="(party.default_discount_percentage || 0) + '%'" icon="tag" />
+              </div>
+              <div v-else class="form-container">
+                <div class="form-group">
+                  <label>Estado en Sistema</label>
+                  <select v-model="formData.status" class="form-input">
+                    <option value="ACTIVE">ACTIVO</option>
+                    <option value="INACTIVE">INACTIVO</option>
+                  </select>
+                </div>
+                <div class="form-group mt-4">
+                  <label>Rol Principal</label>
+                  <select v-model="formData.role" class="form-input">
+                    <option value="CLIENT">Cliente</option>
+                    <option value="SUPPLIER">Proveedor</option>
+                    <option value="BOTH">Cliente y Proveedor</option>
+                  </select>
+                </div>
+                <div class="form-group mt-4">
+                  <label>Bonificación Comercial (%)</label>
+                  <div class="input-with-icon">
+                    <Percent :size="18" class="icon-start" />
+                    <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" min="0" max="100" class="form-input" />
+                  </div>
+                </div>
+              </div>
             </FormSection>
           </div>
         </div>
 
         <!-- TAB: DIRECCIONES -->
-        <div v-if="activeTab === 'addresses'" class="tab-pane animate-fade-in">
+        <div v-if="activeTab === 'addresses' && mode === 'detail'" class="tab-pane animate-fade-in">
           <AddressManager :party-id="party.id" />
         </div>
 
         <!-- TAB: CONTACTOS -->
-        <div v-if="activeTab === 'contacts'" class="tab-pane animate-fade-in">
+        <div v-if="activeTab === 'contacts' && mode === 'detail'" class="tab-pane animate-fade-in">
           <PersonManager :party-id="party.id" />
         </div>
       </div>
@@ -122,18 +186,6 @@
       <p>¿Estás seguro de que deseas eliminar permanentemente a <strong>{{ party?.name }}</strong>?</p>
       <p class="mt-2 text-muted italic">Esta acción solo se completará si no existen documentos vinculados (pedidos, facturas, etc.).</p>
     </BaseDialog>
-
-    <!-- MODAL DE EDICIÓN -->
-    <BaseDialog
-      :show="showEditModal"
-      title="Editar Entidad"
-      icon="pencil"
-      size="xl"
-      hide-actions
-      @close="showEditModal = false"
-    >
-      <PartyForm :party-id="party?.id" @submit="handleEditSuccess" @cancel="showEditModal = false" />
-    </BaseDialog>
   </BaseEntityPage>
 </template>
 
@@ -143,7 +195,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { 
   Building2, User, Pencil, Trash2, Fingerprint, MapPin, 
   History, Info, Settings, ShieldCheck, GitFork, Tag, 
-  Contact2, List, LayoutDashboard 
+  Contact2, List, LayoutDashboard, X, Save, RefreshCw, Percent
 } from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
@@ -152,7 +204,6 @@ import DataRow from '@/components/shared/DataRow.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import AddressManager from '@/components/party/AddressManager.vue'
 import PersonManager from '@/components/party/PersonManager.vue'
-import PartyForm from '@/components/party/PartyForm.vue'
 import { partyApi } from '@/services/partyApi'
 import { useToastStore } from '@/stores/toast'
 
@@ -163,15 +214,25 @@ const toastStore = useToastStore()
 const party = ref(null)
 const addresses = ref([])
 const isLoading = ref(true)
-const isDeleting = ref(false)
+const isSaving = ref(false)
 const error = ref('')
 const activeTab = ref('general')
-const showEditModal = ref(false)
+const mode = ref('detail')
+
+const formData = reactive({
+  name: '',
+  type: '',
+  taxId: '',
+  status: '',
+  role: '',
+  notes: '',
+  defaultDiscountPercentage: 0
+})
 
 const tabs = [
   { id: 'general', label: 'General', icon: Info },
   { id: 'addresses', label: 'Direcciones', icon: MapPin },
-  { id: 'contacts', label: 'Contactos', icon: Contact2 }
+  { id: 'contacts', label: 'Contactos', icon: ContactRound }
 ]
 
 const confirmDelete = reactive({
@@ -203,16 +264,54 @@ async function loadPartyData() {
   }
 }
 
-function startEdit() { showEditModal.value = true }
+function enterEditMode() {
+  Object.assign(formData, {
+    name: party.value.name,
+    type: party.value.type,
+    taxId: party.value.tax_id,
+    status: party.value.status,
+    role: party.value.role,
+    notes: party.value.notes || '',
+    defaultDiscountPercentage: party.value.default_discount_percentage || 0
+  })
+  mode.value = 'edit'
+  activeTab.value = 'general'
+}
+
+function exitEditMode() {
+  mode.value = 'detail'
+}
+
+async function saveParty() {
+  if (!formData.name) {
+    toastStore.warning('El nombre de la entidad es obligatorio')
+    return
+  }
+  
+  isSaving.value = true
+  try {
+    const payload = {
+      name: formData.name,
+      role: formData.role,
+      taxId: formData.taxId,
+      status: formData.status,
+      notes: formData.notes,
+      default_discount_percentage: formData.defaultDiscountPercentage || 0
+    }
+
+    await partyApi.updateParty(party.value.id, payload)
+    toastStore.success('Datos de entidad actualizados')
+    await loadPartyData()
+    mode.value = 'detail'
+  } catch (err) {
+    toastStore.error('Error al guardar: ' + err.message)
+  } finally {
+    isSaving.value = false
+  }
+}
 
 function promptDelete() {
   confirmDelete.show = true
-}
-
-async function handleEditSuccess() {
-  showEditModal.value = false
-  toastStore.success('Datos actualizados correctamente')
-  await loadPartyData()
 }
 
 async function executeDelete() {
@@ -260,4 +359,15 @@ onMounted(() => loadPartyData())
 .tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 
 .notes-text { font-style: italic; color: var(--color-text-secondary); line-height: 1.5; margin: 0; }
+
+/* Form Inline Styles */
+.form-group label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+.form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; }
+.form-input:focus, .form-textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1); }
+.form-input:disabled { background: var(--color-background); cursor: not-allowed; }
+.help-text { font-size: 0.7rem; color: var(--color-text-secondary); margin-top: 0.25rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.input-with-icon { position: relative; display: flex; align-items: center; }
+.icon-start { position: absolute; left: 0.75rem; color: var(--color-text-secondary); }
+.input-with-icon input { padding-left: 2.5rem; }
 </style>

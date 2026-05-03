@@ -281,12 +281,6 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'update']);
 const toastStore = useToastStore();
 
-// Expose methods for parent components (like header buttons)
-defineExpose({
-  submitForm,
-  resetForm
-});
-
 // Form state
 const form = reactive({
   id: '',
@@ -306,24 +300,79 @@ const form = reactive({
 
 const errors = reactive({});
 const isSubmitting = ref(false);
+const isLoading = ref(false);
 
 const isEditing = computed(() => !!props.partyId);
 
-// Initialize form with data
-if (props.initialData) {
-  const initial = props.initialData;
+function initFromData(data) {
+  if (!data) return;
+  
+  // Handle both snake_case and camelCase from API/Props
   Object.assign(form, {
-    ...initial,
-    role: initial.role || form.role,
-    taxId: initial.taxId ?? initial.tax_id ?? form.taxId,
-    taxIdType: initial.taxIdType ?? initial.tax_id_type ?? form.taxIdType,
-    defaultDiscountPercentage: initial.defaultDiscountPercentage ?? initial.default_discount_percentage ?? 0,
+    id: data.id || '',
+    entityType: data.entityType || data.type || '',
+    name: data.name || '',
+    firstName: data.firstName || '',
+    lastName: data.lastName || '',
+    role: data.role || '',
+    taxId: data.taxId ?? data.tax_id ?? '',
+    taxIdType: data.taxIdType ?? data.tax_id_type ?? 'NIF',
+    website: data.website || '',
+    phone: data.phone || '',
+    email: data.email || '',
+    notes: data.notes || '',
+    defaultDiscountPercentage: data.defaultDiscountPercentage ?? data.default_discount_percentage ?? 0,
   });
+
+  // Split name if it's a person and firstName/lastName are missing
+  if (form.entityType === 'PERSON' && !form.firstName && form.name) {
+    const parts = form.name.split(' ');
+    form.firstName = parts[0];
+    form.lastName = parts.slice(1).join(' ');
+  }
 
   if (isEditing.value && !form.role) {
     form.role = 'CLIENT';
   }
 }
+
+async function fetchAndInit() {
+  if (props.partyId && !props.initialData) {
+    isLoading.value = true;
+    try {
+      const data = await partyApi.getParty(props.partyId);
+      initFromData(data);
+    } catch (err) {
+      toastStore.error('Error al cargar datos de la entidad');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}
+
+// Initialize form
+onMounted(() => {
+  if (props.initialData) {
+    initFromData(props.initialData);
+  } else {
+    fetchAndInit();
+  }
+});
+
+// Watch for prop changes
+watch(() => props.initialData, (newVal) => {
+  if (newVal) initFromData(newVal);
+}, { deep: true });
+
+watch(() => props.partyId, (newId) => {
+  if (newId && !props.initialData) fetchAndInit();
+});
+
+// Expose methods for parent components (like header buttons)
+defineExpose({
+  submitForm,
+  resetForm
+});
 
 // Validation rules
 const validationRules = {
