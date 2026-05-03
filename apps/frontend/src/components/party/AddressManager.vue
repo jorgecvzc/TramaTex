@@ -11,17 +11,21 @@
       <p class="text-muted italic">No hay direcciones registradas para esta entidad.</p>
     </div>
 
-    <div v-else class="address-grid">
-      <div v-for="addr in addresses" :key="addr.id" class="address-card" :class="{ 'is-primary': addr.is_primary }">
-        <div class="card-badge" v-if="addr.is_primary">PRINCIPAL</div>
-        <div class="address-content">
-          <p class="street"><strong>{{ addr.street }}</strong></p>
-          <p class="city">{{ addr.postal_code }} {{ addr.city }} ({{ addr.province }})</p>
-          <p class="country text-muted">{{ addr.country }}</p>
+    <div v-else class="address-list">
+      <div v-for="addr in addresses" :key="addr.id" class="address-row" :class="{ 'is-primary': addr.is_primary }">
+        <div class="address-main-info">
+          <div class="row-indicator" v-if="addr.is_primary" title="Dirección Principal">
+            <CheckCircle :size="16" class="text-success" />
+          </div>
+          <div class="address-text">
+            <span class="street">{{ addr.street }}</span>
+            <span class="location">{{ addr.postal_code }} {{ addr.city }}, {{ addr.province }}</span>
+            <span class="country text-muted">{{ addr.country }}</span>
+          </div>
         </div>
         <div class="address-actions">
-          <button class="btn-icon" @click="editAddress(addr)" title="Editar"><Pencil :size="16" /></button>
-          <button class="btn-icon text-danger" @click="promptDelete(addr)" title="Eliminar"><Trash2 :size="16" /></button>
+          <button class="btn-icon" @click="editAddress(addr)" title="Editar"><Pencil :size="18" /></button>
+          <button class="btn-icon text-danger" @click="promptDelete(addr)" title="Eliminar"><Trash2 :size="18" /></button>
         </div>
       </div>
     </div>
@@ -202,19 +206,25 @@ onMounted(() => loadAddresses())
 </script>
 
 <style scoped>
-.address-manager { display: flex; flex-direction: column; gap: 1.5rem; }
-.manager-header { display: flex; justify-content: space-between; align-items: center; }
+.address-manager { display: flex; flex-direction: column; gap: 1rem; }
+.manager-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .manager-header h3 { font-size: 0.95rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); margin: 0; }
 
-.address-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-.address-card { background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.25rem; position: relative; transition: 0.2s; display: flex; justify-content: space-between; align-items: flex-start; }
-.address-card:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
-.address-card.is-primary { border-left: 4px solid var(--color-success); background: #f0fdf4; }
+.address-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.address-row { 
+  background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1.25rem; 
+  display: flex; justify-content: space-between; align-items: center; transition: 0.2s; 
+}
+.address-row:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
+.address-row.is-primary { border-left: 4px solid var(--color-success); background: #f0fdf4; }
 
-.card-badge { position: absolute; top: -10px; left: 15px; background: var(--color-success); color: white; font-size: 0.6rem; font-weight: 900; padding: 0.15rem 0.6rem; border-radius: 4px; }
+.address-main-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
+.row-indicator { display: flex; align-items: center; justify-content: center; }
 
-.address-content p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
-.address-content .street { font-size: 1rem; margin-bottom: 0.25rem; color: var(--color-text-primary); }
+.address-text { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; font-size: 0.95rem; }
+.address-text .street { font-weight: 700; color: var(--color-text-primary); min-width: 250px; }
+.address-text .location { color: var(--color-text-primary); }
+.address-text .country { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
 
 .address-actions { display: flex; gap: 0.25rem; }
 .btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }

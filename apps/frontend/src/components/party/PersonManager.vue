@@ -16,30 +16,30 @@
       <p class="text-muted italic">No hay personas de contacto registradas para esta organización.</p>
     </div>
 
-    <div v-else class="person-grid">
-      <div v-for="person in persons" :key="person.id" class="person-card">
-        <div class="person-main">
+    <div v-else class="person-list">
+      <div v-for="person in persons" :key="person.id" class="person-row">
+        <div class="person-main-info">
           <div class="avatar">
-            <User :size="24" />
+            <User :size="20" />
           </div>
-          <div class="person-info">
+          <div class="name-box">
             <strong>{{ person.first_name }} {{ person.last_name }}</strong>
             <span v-if="person.job_title" class="job-title">{{ person.job_title }}</span>
           </div>
         </div>
         
-        <div class="person-details">
-          <div v-if="person.email" class="detail-row">
+        <div class="person-contact-info">
+          <div v-if="person.email" class="contact-item">
             <Mail :size="14" /> <span>{{ person.email }}</span>
           </div>
-          <div v-if="person.phone" class="detail-row">
+          <div v-if="person.phone" class="contact-item">
             <Phone :size="14" /> <span>{{ person.phone }}</span>
           </div>
         </div>
 
         <div class="person-actions">
-          <button class="btn-icon" @click="editPerson(person)" title="Editar"><Pencil :size="16" /></button>
-          <button class="btn-icon text-danger" @click="promptDelete(person)" title="Desvincular"><Trash2 :size="16" /></button>
+          <button class="btn-icon" @click="editPerson(person)" title="Editar"><Pencil :size="18" /></button>
+          <button class="btn-icon text-danger" @click="promptDelete(person)" title="Desvincular"><Trash2 :size="18" /></button>
         </div>
       </div>
     </div>
@@ -96,7 +96,26 @@
           placeholder="Escribe nombre para buscar..."
           role-filter="CONTACT"
           required
+          @select="onExistingPersonSelect"
         />
+
+        <div v-if="selectedExistingId" class="mt-6 p-4 border rounded bg-light animate-fade-in">
+          <p class="section-label mb-3">Datos de contacto para esta empresa:</p>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Cargo / Departamento</label>
+              <input v-model="linkFormData.job_title" type="text" class="form-input" placeholder="Ej: Jefe de Compras" />
+            </div>
+            <div class="form-group">
+              <label>Email específico</label>
+              <input v-model="linkFormData.email" type="email" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Teléfono directo</label>
+              <input v-model="linkFormData.phone" type="tel" class="form-input" />
+            </div>
+          </div>
+        </div>
       </div>
     </BaseDialog>
 
@@ -135,6 +154,7 @@ const showLinkModal = ref(false)
 const editingId = ref(null)
 const isSaving = ref(false)
 const selectedExistingId = ref('')
+const selectedExistingContact = ref(null)
 
 const formData = reactive({
   first_name: '',
@@ -142,6 +162,12 @@ const formData = reactive({
   email: '',
   phone: '',
   job_title: ''
+})
+
+const linkFormData = reactive({
+  job_title: 'Contacto Comercial',
+  email: '',
+  phone: ''
 })
 
 // --- Confirm Dialog Logic ---
@@ -158,7 +184,8 @@ function promptDelete(person) {
 async function executeDelete() {
   if (!confirmDelete.person) return
   try {
-    await partyApi.deletePerson(props.partyId, confirmDelete.person.id)
+    // Para desvincular usamos el ID de la persona
+    await partyApi.removeContact(props.partyId, confirmDelete.person.id, false)
     toastStore.success('Vínculo eliminado correctamente')
     await loadPersons()
     confirmDelete.show = false
@@ -170,7 +197,8 @@ async function executeDelete() {
 async function loadPersons() {
   if (!props.partyId) return
   try {
-    persons.value = await partyApi.listPersons(props.partyId)
+    const res = await partyApi.listPersons(props.partyId)
+    persons.value = res || []
   } catch (err) {
     console.error('Error al cargar contactos:', err)
   }
@@ -184,53 +212,83 @@ function openCreateModal() {
 
 function openLinkModal() {
   selectedExistingId.value = ''
+  selectedExistingContact.value = null
+  Object.assign(linkFormData, { job_title: 'Contacto Comercial', email: '', phone: '' })
   showLinkModal.value = true
 }
 
+function onExistingPersonSelect(party) {
+  selectedExistingContact.value = party
+  if (party) {
+    linkFormData.email = party.email || ''
+    linkFormData.phone = party.phone || ''
+  }
+}
+
+const editingContactDetailsId = ref(null)
+
 function editPerson(person) {
-  editingId.value = person.id
+  editingId.value = person.id // Party ID de la persona
+  editingContactDetailsId.value = person.contact_details_id // ID del vínculo
   Object.assign(formData, { ...person })
   showModal.value = true
 }
 
 async function savePerson() {
-  if (!formData.first_name || !formData.last_name) return
+  if (!formData.first_name || !formData.last_name) {
+    toastStore.warning('El nombre y los apellidos son obligatorios')
+    return
+  }
   isSaving.value = true
   try {
-    const payload = {
-      firstName: formData.first_name,
-      lastName: formData.last_name,
-      email: formData.email,
-      phone: formData.phone,
-      job_title: formData.job_title
-    }
-
     if (editingId.value) {
-      await partyApi.updatePerson(props.partyId, editingId.value, payload)
-      toastStore.success('Datos actualizados')
+      // 1. Actualizar los detalles del vínculo (email, tel, cargo)
+      await partyApi.updatePerson(props.partyId, editingContactDetailsId.value, {
+        email: formData.email,
+        phone: formData.phone,
+        job_title: formData.job_title
+      })
+      
+      // 2. Opcional: Actualizar el nombre en la entidad persona (si ha cambiado)
+      // Por ahora el backend de updatePerson solo toca los detalles del vínculo
+      
+      toastStore.success('Datos actualizados correctamente')
     } else {
-      await partyApi.createPerson(props.partyId, payload)
+      await partyApi.createPerson(props.partyId, {
+        firstName: formData.first_name,
+        lastName: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+        jobTitle: formData.job_title
+      })
       toastStore.success('Contacto creado y vinculado')
     }
     showModal.value = false
     await loadPersons()
   } catch (err) {
-    toastStore.error(err.message)
+    toastStore.error('Error al guardar el contacto')
   } finally {
     isSaving.value = false
   }
 }
 
 async function linkExistingPerson() {
-  if (!selectedExistingId.value) return
+  if (!selectedExistingId.value) {
+    toastStore.warning('Selecciona una persona de la lista')
+    return
+  }
   isSaving.value = true
   try {
-    await partyApi.addContact(props.partyId, { contact_id: selectedExistingId.value })
+    await partyApi.linkExistingContact(props.partyId, selectedExistingId.value, {
+      jobTitle: linkFormData.job_title,
+      email: linkFormData.email,
+      phone: linkFormData.phone
+    })
     toastStore.success('Contacto vinculado correctamente')
     showLinkModal.value = false
     await loadPersons()
   } catch (err) {
-    toastStore.error('Error al vincular: ' + (err.message || err))
+    toastStore.error('Error al vincular el contacto')
   } finally {
     isSaving.value = false
   }
@@ -240,25 +298,29 @@ onMounted(() => loadPersons())
 </script>
 
 <style scoped>
-.person-manager { display: flex; flex-direction: column; gap: 1.5rem; }
-.manager-header { display: flex; justify-content: space-between; align-items: center; }
+.person-manager { display: flex; flex-direction: column; gap: 1rem; }
+.manager-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .manager-header h3 { font-size: 0.95rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); margin: 0; }
 
-.person-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
-.person-card { background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 1.25rem; transition: 0.2s; position: relative; }
-.person-card:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
+.person-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.person-row { 
+  background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1.25rem; 
+  display: flex; justify-content: space-between; align-items: center; transition: 0.2s; 
+}
+.person-row:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 
-.person-main { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-.avatar { width: 44px; height: 44px; background: var(--color-background); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-secondary); border: 1px solid var(--color-border); }
+.person-main-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
+.avatar { width: 36px; height: 36px; background: var(--color-background); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-secondary); border: 1px solid var(--color-border); flex-shrink: 0; }
 
-.person-info { display: flex; flex-direction: column; }
-.person-info strong { font-size: 1rem; color: var(--color-text-primary); }
-.job-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); }
+.name-box { display: flex; flex-direction: column; line-height: 1.2; min-width: 200px; }
+.name-box strong { font-size: 0.95rem; color: var(--color-text-primary); }
+.job-title { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
 
-.person-details { border-top: 1px solid var(--color-background); pt: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
-.detail-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--color-text-secondary); }
+.person-contact-info { display: flex; flex: 2; gap: 2rem; align-items: center; }
+.contact-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-primary); font-weight: 500; }
+.contact-item :deep(svg) { color: var(--color-text-secondary); }
 
-.person-actions { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.25rem; }
+.person-actions { display: flex; gap: 0.25rem; }
 .btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }
 .btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 
@@ -268,4 +330,10 @@ onMounted(() => loadPersons())
 .form-input { width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; font-family: inherit; }
 
 .empty-state { padding: 2rem; text-align: center; background: var(--color-background); border-radius: 12px; border: 2px dashed var(--color-border); }
+
+@media (max-width: 900px) {
+  .person-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .person-contact-info { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .person-actions { position: absolute; top: 0.75rem; right: 0.75rem; }
+}
 </style>
