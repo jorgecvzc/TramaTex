@@ -7,8 +7,10 @@
       :items="parties"
       :is-loading="isLoading"
       :error="error"
+      :has-filters="hasActiveFilters"
       create-route="/parties/new"
       create-text="Nueva Entidad"
+      @clear-filters="clearAllFilters"
       @refresh="loadParties"
       @click-item="goToDetail"
     >
@@ -121,6 +123,17 @@ const filters = reactive({
   type: (route.query.type as string) || '',
   role: (route.query.role as string) || ''
 })
+
+const hasActiveFilters = computed(() => {
+  return filters.search.trim() !== '' || filters.type !== '' || filters.role !== ''
+})
+
+function clearAllFilters() {
+  filters.search = ''
+  filters.type = ''
+  filters.role = ''
+  router.replace({ query: {} })
+}
 
 // Update filters if route changes (e.g. clicking a link in navbar while already on this page)
 watch(() => route.query, (newQuery) => {

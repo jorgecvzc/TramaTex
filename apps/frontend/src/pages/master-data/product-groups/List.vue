@@ -7,6 +7,7 @@
       :items="productGroups"
       :is-loading="isLoading"
       :error="error"
+      :has-filters="hasFilters"
       create-text="Nueva Categoría"
       empty-icon="folder_off"
       empty-text="No hay categorías registradas en el sistema"

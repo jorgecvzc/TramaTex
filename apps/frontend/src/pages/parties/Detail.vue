@@ -121,8 +121,8 @@
           <FormSection title="Datos de Identidad" icon="person">
             <div v-if="mode === 'detail'">
               <DataRow label="Nombre Comercial / Completo" :value="party?.name" icon="badge" />
-              <DataRow label="Tipo de Entidad" :value="party?.type === 'ORGANIZATION' ? 'Empresa / Organización' : 'Persona Física'" icon="users" />
-              <DataRow label="Identificador Fiscal" :value="party?.tax_id" is-mono icon="fingerprint" />
+              <DataRow label="Tipo de Entidad" :value="getEntityTypeLabel(party?.type)" icon="users" />
+              <DataRow label="Identificador Fiscal" :value="`${party?.tax_id_type || 'CIF'}: ${party?.tax_id || '—'}`" is-mono icon="fingerprint" />
               <DataRow label="Notas Internas" icon="notes">
                 <p class="notes-text">{{ party?.notes || 'Sin observaciones registradas.' }}</p>
               </DataRow>
@@ -136,13 +136,23 @@
                 <div class="form-group">
                   <label>Tipo de Entidad</label>
                   <select v-model="formData.type" class="form-input" :disabled="mode === 'edit'">
-                    <option value="ORGANIZATION">Empresa / Organización</option>
+                    <option value="ORGANIZATION">Empresa / Jurídica</option>
                     <option value="PERSON">Persona Física</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label>Identificador Fiscal</label>
-                  <input v-model="formData.taxId" type="text" class="form-input text-mono" placeholder="NIF / CIF" />
+                  <label>Tipo Doc. Fiscal</label>
+                  <select v-model="formData.taxIdType" class="form-input">
+                    <option value="CIF">CIF (Empresas)</option>
+                    <option value="NIF">NIF (Persona Física)</option>
+                    <option value="NIE">NIE (Extranjeros)</option>
+                    <option value="VAT">VAT (Intracomunitario)</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Número Identificación</label>
+                  <input v-model="formData.taxId" type="text" class="form-input text-mono" placeholder="B12345678" />
                 </div>
               </div>
               <div class="form-group mt-4">
@@ -155,9 +165,9 @@
           <!-- SECCIÓN: CONFIGURACIÓN -->
           <FormSection title="Configuración de Cuenta" icon="settings">
             <div v-if="mode === 'detail'">
-              <DataRow label="Estado Actual" :value="party?.status" icon="shield-check" />
-              <DataRow label="Rol en el Sistema" :value="party?.role" icon="git-fork" />
-              <DataRow label="Descuento por Defecto" :value="(party?.default_discount_percentage || 0) + '%'" icon="tag" />
+              <DataRow label="Estado Actual" :value="getStatusLabel(party?.status)" icon="shield-check" />
+              <DataRow label="Rol en el Sistema" :value="getRoleLabel(party?.role)" icon="git-fork" />
+              <DataRow v-if="party?.role !== 'SUPPLIER'" label="Descuento por Defecto" :value="(party?.default_discount_percentage || 0) + '%'" icon="tag" />
             </div>
             <div v-else class="form-container">
               <div class="form-group">
@@ -175,12 +185,16 @@
                   <option value="BOTH">Cliente y Proveedor</option>
                 </select>
               </div>
-              <div class="form-group mt-4">
+              <div class="form-group mt-4" v-if="formData.role !== 'SUPPLIER'">
                 <label>Bonificación Comercial (%)</label>
                 <div class="input-with-icon">
                   <Percent :size="18" class="icon-start" />
                   <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" min="0" max="100" class="form-input" />
                 </div>
+                <span class="help-text">Descuento aplicado automáticamente en líneas de venta.</span>
+              </div>
+              <div class="form-group mt-4" v-else>
+                <p class="text-muted italic text-xs">Los descuentos por defecto no aplican a proveedores.</p>
               </div>
             </div>
           </FormSection>
@@ -249,6 +263,7 @@ const formData = reactive({
   name: '',
   type: 'ORGANIZATION',
   taxId: '',
+  taxIdType: 'CIF',
   status: 'ACTIVE',
   role: 'CLIENT',
   notes: '',
@@ -272,6 +287,20 @@ const primaryAddressLine = computed(() => {
 function getIdentityIcon() {
   const type = mode.value === 'create' ? formData.type : party.value?.type
   return type === 'ORGANIZATION' ? Building2 : User
+}
+
+function getEntityTypeLabel(type) {
+  return type === 'ORGANIZATION' ? 'Empresa / Jurídica' : 'Persona Física'
+}
+
+function getStatusLabel(status) {
+  const map = { ACTIVE: 'ACTIVO', INACTIVE: 'INACTIVO' }
+  return map[status] || status
+}
+
+function getRoleLabel(role) {
+  const map = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Cliente y Proveedor' }
+  return map[role] || role
 }
 
 async function loadData() {
@@ -303,7 +332,7 @@ async function loadData() {
 
 function resetForm() {
   Object.assign(formData, {
-    name: '', type: 'ORGANIZATION', taxId: '', status: 'ACTIVE',
+    name: '', type: 'ORGANIZATION', taxId: '', taxIdType: 'CIF', status: 'ACTIVE',
     role: 'CLIENT', notes: '', defaultDiscountPercentage: 0
   })
 }
@@ -313,6 +342,7 @@ function enterEditMode() {
     name: party.value.name,
     type: party.value.type,
     taxId: party.value.tax_id,
+    taxIdType: party.value.tax_id_type || (party.value.type === 'ORGANIZATION' ? 'CIF' : 'NIF'),
     status: party.value.status,
     role: party.value.role,
     notes: party.value.notes || '',
@@ -334,14 +364,17 @@ async function saveParty() {
 
   isSaving.value = true
   try {
+    const partyId = mode.value === 'create' ? generateUUID() : party.value.id
     const payload = {
+      id: partyId,
       name: formData.name,
       type: formData.type,
       role: formData.role,
       taxId: formData.taxId,
+      taxIdType: formData.taxIdType,
       status: formData.status,
       notes: formData.notes,
-      default_discount_percentage: formData.defaultDiscountPercentage || 0
+      default_discount_percentage: formData.role === 'SUPPLIER' ? 0 : (formData.defaultDiscountPercentage || 0)
     }
 
     if (mode.value === 'create') {
@@ -358,10 +391,17 @@ async function saveParty() {
       mode.value = 'detail'
     }
   } catch (err: any) {
-    toastStore.error('Error al guardar: ' + err.message)
+    toastStore.error('Error al guardar: ' + (err.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
+}
+
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
 }
 
 function promptDelete() { confirmDelete.show = true }

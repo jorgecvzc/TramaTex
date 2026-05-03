@@ -8,6 +8,7 @@
       :items="brands"
       :is-loading="isLoading"
       :error="error"
+      :has-filters="filters.search.trim() !== '' || filters.isActive !== ''"
       create-text="Nueva Marca"
       empty-icon="branding_watermark"
       empty-text="No hay marcas registradas"
