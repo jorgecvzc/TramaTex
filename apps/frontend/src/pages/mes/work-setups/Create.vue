@@ -11,30 +11,44 @@
       </header>
 
       <section class="card form-card">
-        <div v-if="error" class="alert">{{ error }}</div>
+        <div v-if="error" class="alert-box alert-danger">
+          <AlertCircle :size="20" />
+          <span>{{ error }}</span>
+        </div>
 
-        <label class="label">Nombre *</label>
-        <input v-model="form.name" type="text" class="input" placeholder="Ej: Uniformes Empresa XYZ" />
+        <div class="form-group">
+          <label class="label">Nombre *</label>
+          <input v-model="form.name" type="text" class="input" :class="{ 'is-invalid': fieldErrors.name }" placeholder="Ej: Uniformes Empresa XYZ" />
+          <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
+        </div>
 
-        <PartySelector
-          v-model="form.party_id"
-          label="Cliente *"
-          placeholder="Buscar cliente por nombre..."
-          role-filter="CLIENT"
-          :required="true"
-          help-text="Selecciona el cliente"
-        />
+        <div class="form-group">
+          <PartySelector
+            v-model="form.party_id"
+            label="Cliente *"
+            placeholder="Buscar cliente por nombre..."
+            role-filter="CLIENT"
+            :required="true"
+            help-text="Selecciona el cliente"
+          />
+          <span v-if="fieldErrors.party_id" class="field-error">{{ fieldErrors.party_id }}</span>
+        </div>
 
-        <label class="label">Categoría tangible *</label>
-        <select v-model="form.tangible_group_id" class="input">
-          <option value="">Seleccionar categoría tangible</option>
-          <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">
-            {{ group.name }}
-          </option>
-        </select>
+        <div class="form-group">
+          <label class="label">Categoría tangible *</label>
+          <select v-model="form.tangible_group_id" class="input" :class="{ 'is-invalid': fieldErrors.tangible_group_id }">
+            <option value="">Seleccionar categoría tangible</option>
+            <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">
+              {{ group.name }}
+            </option>
+          </select>
+          <span v-if="fieldErrors.tangible_group_id" class="field-error">{{ fieldErrors.tangible_group_id }}</span>
+        </div>
 
-        <label class="label">Descripción</label>
-        <textarea v-model="form.description" class="input" rows="3" placeholder="Descripción opcional" />
+        <div class="form-group">
+          <label class="label">Descripción</label>
+          <textarea v-model="form.description" class="input" rows="3" placeholder="Descripción opcional" />
+        </div>
 
         <label class="check">
           <input v-model="form.is_active" type="checkbox" />
@@ -43,7 +57,7 @@
 
         <div class="lines-block">
           <div class="lines-header">
-            <h3>Líneas de configuración</h3>
+            <h3>Líneas de configuración *</h3>
             <button @click="addLine" type="button" class="btn btn-secondary btn-sm">+ Añadir línea</button>
           </div>
 
@@ -73,10 +87,10 @@
             <button @click="removeLine(index)" type="button" class="btn btn-danger btn-sm">Quitar</button>
           </div>
 
-          <p v-if="form.lines.length === 0" class="empty-state">Sin líneas.</p>
+          <p v-if="form.lines.length === 0" class="empty-state">Sin líneas definidas. Pulsa "+ Añadir línea".</p>
         </div>
 
-        <button @click="submit" :disabled="isSaving" class="btn btn-primary">
+        <button @click="submit" :disabled="isSaving" class="btn btn-primary mt-4">
           {{ isSaving ? 'Guardando...' : 'Crear configuración' }}
         </button>
       </section>
@@ -87,16 +101,20 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import { AlertCircle } from 'lucide-vue-next'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 import type { MESPosition, MESWorkType } from '@/types/mes'
 
 type ProductGroupOption = { id: string; name: string; type: string }
 
 const router = useRouter()
+const toastStore = useToastStore()
 const isSaving = ref(false)
 const error = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 const workTypes = ref<MESWorkType[]>([])
 const positions = ref<MESPosition[]>([])
 const productGroups = ref<ProductGroupOption[]>([])
@@ -134,12 +152,35 @@ function onFileSelected(event: Event, index: number) {
 }
 
 function validate(): boolean {
-  if (!form.name.trim()) { error.value = 'El nombre es obligatorio'; return false }
-  if (!form.party_id.trim()) { error.value = 'El cliente es obligatorio'; return false }
-  if (!form.tangible_group_id.trim()) { error.value = 'La categoría tangible es obligatoria'; return false }
-  const invalid = form.lines.find(l => !l.work_type_id || !l.position_id || l.sequence < 1)
-  if (invalid) { error.value = 'Todas las líneas deben tener tipo de trabajo, posición y secuencia válida'; return false }
-  return true
+  fieldErrors.value = {}
+  error.value = ''
+  let isValid = true
+
+  if (!form.name.trim()) {
+    fieldErrors.value.name = 'El nombre es obligatorio'
+    isValid = false
+  }
+  if (!form.party_id.trim()) {
+    fieldErrors.value.party_id = 'El cliente es obligatorio'
+    isValid = false
+  }
+  if (!form.tangible_group_id.trim()) {
+    fieldErrors.value.tangible_group_id = 'La categoría tangible es obligatoria'
+    isValid = false
+  }
+
+  if (form.lines.length === 0) {
+    error.value = 'Debe añadir al menos una línea de configuración'
+    isValid = false
+  } else {
+    const invalidLine = form.lines.find(l => !l.work_type_id || !l.position_id || l.sequence < 1)
+    if (invalidLine) {
+      error.value = 'Todas las líneas deben tener tipo de trabajo, posición y secuencia válida'
+      isValid = false
+    }
+  }
+
+  return isValid
 }
 
 async function loadOptions() {
@@ -158,8 +199,10 @@ async function loadOptions() {
 }
 
 async function submit() {
-  error.value = ''
-  if (!validate()) return
+  if (!validate()) {
+    toastStore.error('Por favor, corrige los errores del formulario')
+    return
+  }
 
   isSaving.value = true
   try {
@@ -176,6 +219,7 @@ async function submit() {
         design_file_path: l.design_file_path || undefined,
       })),
     })
+    toastStore.success('Configuración creada con éxito')
     await router.push('/mes/work-setups')
   } catch (err: any) {
     error.value = err.message || 'No se pudo crear la configuración'
@@ -195,20 +239,26 @@ onMounted(loadOptions)
 .subtitle { color: #64748b; margin: .5rem 0 0; }
 .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
 .form-card { display: flex; flex-direction: column; gap: .75rem; }
-.label { font-size: .85rem; color: #334155; font-weight: 600; }
-.input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .6rem .75rem; font: inherit; }
-.check { display: inline-flex; align-items: center; gap: .5rem; color: #334155; }
+.form-group { display: flex; flex-direction: column; gap: 0.25rem; }
+.label { font-size: .85rem; color: #334155; font-weight: 600; margin: 0; }
+.input { border: 1px solid #cbd5e1; border-radius: 8px; padding: .6rem .75rem; font: inherit; width: 100%; }
+.input.is-invalid { border-color: #ef4444; }
+.field-error { font-size: 0.75rem; color: #ef4444; font-weight: 600; }
+.check { display: inline-flex; align-items: center; gap: .5rem; color: #334155; cursor: pointer; }
 .btn { border: none; border-radius: 8px; padding: .6rem 1rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; width: fit-content; }
 .btn-primary { background: #f4c430; color: #1b3a6b; font-weight: 600; }
 .btn-secondary { background: #fff; border: 1px solid #e2e8f0; color: #1e293b; }
+.btn-danger { background: #fee2e2; color: #b91c1c; }
 .btn-sm { font-size: .8rem; padding: .35rem .65rem; border-radius: 6px; }
-.lines-header { display: flex; justify-content: space-between; align-items: center; }
+.lines-header { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
 .lines-header h3 { margin: 0; font-size: .95rem; color: #1e293b; }
-.line-row { display: grid; grid-template-columns: 1fr 1fr 70px 1fr auto auto auto; gap: .5rem; align-items: center; }
+.line-row { display: grid; grid-template-columns: 1fr 1fr 70px 1fr auto auto auto; gap: .5rem; align-items: center; margin-bottom: 0.5rem; }
 .file-pick-btn { padding: .4rem .6rem; font-size: .85rem; }
 .file-input-hidden { display: none; }
 .file-path-input { font-size: .8rem; }
 .seq { text-align: center; }
-.empty-state { text-align: center; color: #64748b; padding: .5rem; font-size: .85rem; }
-.alert { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; }
+.empty-state { text-align: center; color: #64748b; padding: 1rem; font-size: .85rem; border: 2px dashed #e2e8f0; border-radius: 8px; }
+.alert-box { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .75rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.alert-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.mt-4 { margin-top: 1rem; }
 </style>

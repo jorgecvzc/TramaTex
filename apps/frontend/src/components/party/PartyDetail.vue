@@ -1,5 +1,5 @@
 <template>
-  <BaseEntityPage :is-loading="isLoading" :error="error">
+  <BaseEntityPage :is-loading="isLoading" :error="error" @refresh="loadPartyData">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
       <BasePageHeader 

@@ -1,10 +1,18 @@
 <script setup lang="ts">
+import { AlertCircle, RefreshCw } from 'lucide-vue-next'
+
 /**
  * BaseEntityPage.vue
  * 
  * Plantilla maestra para la gestión integral de una Entidad.
  * Estética: Cabecera fija blanca + Zona de contexto a ancho completo (gris apagado) + Main Content.
  */
+defineProps<{
+  isLoading?: boolean
+  error?: string
+}>()
+
+defineEmits(['refresh'])
 </script>
 
 <template>
@@ -20,29 +28,48 @@
     <!-- 2. SCROLLING AREA -->
     <div class="entity-scroll-area">
       
-      <!-- A. CONTEXT HEADER (Ancho completo - Gris Apagado) -->
-      <header v-if="$slots.toolbar || $slots.summary || $slots.related" class="entity-context-header">
-        <div class="header-max-width">
-          <div class="metadata-grid">
-            <div v-if="$slots.toolbar" class="metadata-item"><slot name="toolbar"></slot></div>
-            <div v-if="$slots.summary" class="metadata-item"><slot name="summary"></slot></div>
-            <div v-if="$slots.related" class="metadata-item"><slot name="related"></slot></div>
-          </div>
-        </div>
-      </header>
-
-      <!-- B. MAIN CONTENT (Área de Trabajo - Gris Base) -->
-      <div class="entity-body-layout">
-        <main class="entity-main-content">
-          <slot></slot>
-        </main>
-
-        <!-- C. FOOTER -->
-        <footer v-if="$slots.footer" class="entity-footer-area">
-          <div class="footer-divider"></div>
-          <slot name="footer"></slot>
-        </footer>
+      <!-- LOADING STATE -->
+      <div v-if="isLoading" class="state-container loading-state animate-fade-in">
+        <RefreshCw :size="48" class="spin mb-4 text-primary opacity-50" />
+        <p>Sincronizando información...</p>
       </div>
+
+      <!-- ERROR STATE -->
+      <div v-else-if="error" class="state-container error-state animate-fade-in">
+        <AlertCircle :size="56" class="mb-4 text-danger opacity-80" />
+        <h3>Error de Carga</h3>
+        <p>{{ error }}</p>
+        <button class="btn btn-outline btn-sm mt-6" @click="$emit('refresh')">
+          <RefreshCw :size="16" /> Reintentar
+        </button>
+      </div>
+
+      <!-- ACTUAL CONTENT -->
+      <template v-else>
+        <!-- A. CONTEXT HEADER (Ancho completo - Gris Apagado) -->
+        <header v-if="$slots.toolbar || $slots.summary || $slots.related" class="entity-context-header">
+          <div class="header-max-width">
+            <div class="metadata-grid">
+              <div v-if="$slots.toolbar" class="metadata-item"><slot name="toolbar"></slot></div>
+              <div v-if="$slots.summary" class="metadata-item"><slot name="summary"></slot></div>
+              <div v-if="$slots.related" class="metadata-item"><slot name="related"></slot></div>
+            </div>
+          </div>
+        </header>
+
+        <!-- B. MAIN CONTENT (Área de Trabajo - Gris Base) -->
+        <div class="entity-body-layout">
+          <main class="entity-main-content">
+            <slot></slot>
+          </main>
+
+          <!-- C. FOOTER -->
+          <footer v-if="$slots.footer" class="entity-footer-area">
+            <div class="footer-divider"></div>
+            <slot name="footer"></slot>
+          </footer>
+        </div>
+      </template>
 
     </div>
   </div>
@@ -54,6 +81,32 @@
   min-height: 100vh;
   background-color: var(--color-background);
 }
+
+/* --- STATES --- */
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rem 2rem;
+  text-align: center;
+}
+
+.state-container p {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.state-container h3 {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* --- 1. IDENTITY HEADER --- */
 .identity-header-sticky {

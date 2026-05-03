@@ -187,8 +187,8 @@
                 </div>
                 <button @click="removeConfig(idx)" class="btn-icon text-danger"><X :size="16" /></button>
               </div>
-              <button class="btn btn-outline btn-sm w-full mt-2" @click="addConfig">
-                <Plus :size="16" /> Añadir Trabajo
+              <button class="btn btn-secondary btn-sm w-full mt-2" @click="addConfig">
+                <Plus :size="16" /> Añadir Trabajo Taller
               </button>
             </div>
           </section>

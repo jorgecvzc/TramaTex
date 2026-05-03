@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { Info, List, PlusCircle, SearchX, Plus, Trash2 } from 'lucide-vue-next'
+import { Info, List, PlusCircle, SearchX, Plus, Trash2, AlertCircle } from 'lucide-vue-next'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { mesApi } from '@/services/mesApi'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 import type { WorkOrder, WorkSetup, MESWorkType, MESPosition } from '@/types/mes'
 
 interface Props {
@@ -15,12 +16,14 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['close', 'assigned'])
 
+const toastStore = useToastStore()
 const mode = ref<'assign' | 'create'>('assign')
 const isLoading = ref(false)
 const isSaving = ref(false)
 const error = ref('')
+const fieldErrors = ref<Record<string, string>>({})
 
-// Assign mode state
+// ... (rest of state remains same)
 const existingWorkSetups = ref<WorkSetup[]>([])
 const selectedWorkSetupId = ref('')
 
@@ -73,6 +76,7 @@ async function loadMasters() {
 function handleModeChange(newMode: 'assign' | 'create') {
   mode.value = newMode
   error.value = ''
+  fieldErrors.value = {}
   if (newMode === 'create' && workTypes.value.length === 0) {
     loadMasters()
   }
@@ -92,26 +96,46 @@ function removeSetupLine(index: number) {
   newSetupForm.value.lines.forEach((l, i) => l.sequence = i + 1)
 }
 
+function validateCreateMode(): boolean {
+  fieldErrors.value = {}
+  const f = newSetupForm.value
+  let isValid = true
+
+  if (!f.name?.trim()) {
+    fieldErrors.value.name = 'El nombre es obligatorio'
+    isValid = false
+  }
+  if (!f.tangible_group_id) {
+    fieldErrors.value.tangible_group_id = 'La categoría tangible es obligatoria'
+    isValid = false
+  }
+  if (!f.lines?.length) {
+    error.value = 'Debe añadir al menos un paso de producción'
+    isValid = false
+  } else {
+    const hasInvalidLine = f.lines.some(l => !l.work_type_id || !l.position_id)
+    if (hasInvalidLine) {
+      error.value = 'Todos los pasos de producción deben tener tipo y posición'
+      isValid = false
+    }
+  }
+
+  return isValid
+}
+
 async function handleConfirm() {
   if (!props.workOrder || isSaving.value) return
   error.value = ''
-  isSaving.value = true
+  fieldErrors.value = {}
+  
+  let setupId = selectedWorkSetupId.value
 
-  try {
-    let setupId = selectedWorkSetupId.value
-
-    if (mode.value === 'create') {
+  if (mode.value === 'create') {
+    if (!validateCreateMode()) return
+    
+    isSaving.value = true
+    try {
       const f = newSetupForm.value
-      // Validación estricta
-      if (!f.name?.trim()) throw new Error('El nombre de la configuración es obligatorio.')
-      if (!f.party_id) throw new Error('El cliente no está identificado en la orden.')
-      if (!f.tangible_group_id) throw new Error('La categoría tangible es obligatoria.')
-      if (!f.lines?.length) throw new Error('Debe añadir al menos un paso de producción.')
-      
-      // Verificar que todos los pasos tienen tipo y posición
-      const invalidLine = f.lines.find(l => !l.work_type_id || !l.position_id)
-      if (invalidLine) throw new Error('Todos los pasos de producción deben tener tipo y posición asignados.')
-
       console.log('Creando nueva configuración MES...', f)
       const created = await mesApi.createWorkSetup({
         ...f,
@@ -119,24 +143,33 @@ async function handleConfirm() {
       })
       setupId = created.id
       console.log('Configuración creada con éxito:', setupId)
+    } catch (err: any) {
+      console.error('Error detallado en creación MES:', err)
+      error.value = err.message || 'Error al crear la configuración'
+      isSaving.value = false
+      return
     }
+  }
 
-    if (!setupId) {
-      throw new Error('Debes seleccionar o crear una configuración válida.')
-    }
+  if (!setupId) {
+    error.value = 'Debes seleccionar o crear una configuración válida'
+    return
+  }
 
+  isSaving.value = true
+  try {
     console.log(`Asignando configuración ${setupId} a la orden ${props.workOrder.id}...`)
     await mesApi.updateWorkOrder(props.workOrder.id, { 
       work_setup_id: setupId,
-      status: 'PENDING' // Forzamos el cambio de estado para que aparezca en el terminal
+      status: 'PENDING' 
     })
     
-    console.log('Orden de trabajo configurada y lista para iniciar.')
+    toastStore.success('Orden de trabajo configurada correctamente')
     emit('assigned', setupId)
     emit('close')
   } catch (err: any) {
-    console.error('Error detallado en configuración MES:', err)
-    error.value = err.message || 'Error al procesar la solicitud'
+    console.error('Error detallado en asignación MES:', err)
+    error.value = err.message || 'Error al asignar la configuración'
   } finally {
     isSaving.value = false
   }
@@ -145,6 +178,7 @@ async function handleConfirm() {
 function initializeState() {
   const wo = props.workOrder
   error.value = ''
+  fieldErrors.value = {}
   mode.value = 'assign'
   selectedWorkSetupId.value = ''
   
@@ -160,8 +194,6 @@ function initializeState() {
         lines: []
       }
       loadExistingSetups()
-    } else {
-      console.warn('[WorkSetupSelectorDialog] La orden de trabajo no tiene party_id identificado:', wo)
     }
   }
 }
@@ -222,8 +254,9 @@ onMounted(() => {
         </button>
       </div>
 
-      <div v-if="error" class="alert alert-danger mb-4">
-        {{ error }}
+      <div v-if="error" class="alert-box alert-danger mb-4">
+        <AlertCircle :size="20" />
+        <span>{{ error }}</span>
       </div>
 
       <!-- MODO: ASIGNAR EXISTENTE -->
@@ -267,14 +300,16 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div class="form-group">
             <label class="form-label">Nombre del Setup *</label>
-            <input v-model="newSetupForm.name" type="text" class="form-input" placeholder="Ej: Estampado Camiseta Algodón" />
+            <input v-model="newSetupForm.name" type="text" class="form-input" :class="{ 'is-invalid': fieldErrors.name }" placeholder="Ej: Estampado Camiseta Algodón" />
+            <span v-if="fieldErrors.name" class="field-error">{{ fieldErrors.name }}</span>
           </div>
           <div class="form-group">
             <label class="form-label">Categoría Tangible *</label>
-            <select v-model="newSetupForm.tangible_group_id" class="form-input">
+            <select v-model="newSetupForm.tangible_group_id" class="form-input" :class="{ 'is-invalid': fieldErrors.tangible_group_id }">
               <option value="">-- Seleccionar categoría --</option>
               <option v-for="group in tangibleGroups" :key="group.id" :value="group.id">{{ group.name }}</option>
             </select>
+            <span v-if="fieldErrors.tangible_group_id" class="field-error">{{ fieldErrors.tangible_group_id }}</span>
           </div>
           <div class="form-group md:col-span-2">
             <label class="form-label">Descripción / Observaciones</label>
@@ -367,6 +402,12 @@ onMounted(() => {
 .form-label { font-size: 0.8rem; font-weight: 700; color: var(--color-text-secondary); }
 .form-input, .form-textarea { width: 100%; padding: 0.6rem 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; font-family: inherit; }
 .form-input-sm { padding: 0.4rem; border: 1px solid var(--color-border); border-radius: 4px; font-size: 0.85rem; }
+
+.is-invalid { border-color: var(--color-error) !important; }
+.field-error { font-size: 0.75rem; color: var(--color-error); font-weight: 600; margin-top: 0.1rem; }
+
+.alert-box { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: 500; }
+.alert-danger { background: #fef2f2; border: 1px solid #fee2e2; color: #b91c1c; }
 
 .btn-icon { background: none; border: none; cursor: pointer; padding: 0.25rem; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
 .btn-icon:hover { background: rgba(0,0,0,0.05); }

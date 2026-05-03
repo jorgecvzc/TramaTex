@@ -68,6 +68,7 @@ function normalizeSalesStatus(status: string): string {
     PENDIENTE: 'PENDING',
     BORRADOR: 'DRAFT',
     EMITIDA: 'ISSUED',
+    PAGADA: 'PAID',
     CANCELADO: 'CANCELLED',
     CANCELADA: 'CANCELLED',
     ENTREGADO: 'DELIVERED',

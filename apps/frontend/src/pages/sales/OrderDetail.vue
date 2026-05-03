@@ -255,8 +255,8 @@
 
         <div v-else>
           <div class="mb-4">
-            <button type="button" class="btn btn-outline-secondary btn-sm" @click="addMesWorkRef">
-              <Plus :size="16" /> <span>Añadir Requerimiento Técnico</span>
+            <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
+              <Plus :size="16" /> <span>Añadir Trabajo Taller</span>
             </button>
           </div>
           <div class="table-wrapper border rounded-lg overflow-hidden">

@@ -1050,6 +1050,81 @@ class PartyApiService {
     return { ...addresses[0], is_primary: true }
   }
 
+  // ============================================================================
+  // ALIASES PARA COMPATIBILIDAD CON COMPONENTES
+  // ============================================================================
+
+  /**
+   * Alias para listPartyAddresses (Usado en AddressManager y PartyDetail)
+   */
+  async listAddresses(partyId: string): Promise<Address[]> {
+    const payload = await this.listPartyAddresses(partyId)
+    return payload.data || []
+  }
+
+  /**
+   * Alias para addPartyAddress (Usado en AddressManager)
+   */
+  async createAddress(partyId: string, data: any): Promise<Address> {
+    return this.addPartyAddress(partyId, data)
+  }
+
+  /**
+   * Alias para updatePartyAddress (Usado en AddressManager)
+   */
+  async updateAddress(partyId: string, addressId: string, data: any): Promise<Address> {
+    return this.updatePartyAddress(partyId, addressId, data)
+  }
+
+  /**
+   * Alias para deletePartyAddress (Usado en AddressManager)
+   */
+  async deleteAddress(partyId: string, addressId: string): Promise<void> {
+    return this.deletePartyAddress(partyId, addressId)
+  }
+
+  /**
+   * Alias para listContacts (Usado en PersonManager)
+   */
+  async listPersons(partyId: string): Promise<Contact[]> {
+    const payload = await this.listContacts(partyId)
+    return payload.data || []
+  }
+
+  /**
+   * Alias para addContact (Usado en PersonManager)
+   */
+  async createPerson(partyId: string, data: any): Promise<Contact | null> {
+    return this.addContact(partyId, data)
+  }
+
+  /**
+   * Actualiza datos de una persona de contacto (Usado en PersonManager)
+   */
+  async updatePerson(partyId: string, contactId: string, data: any): Promise<void> {
+    // El backend permite actualizar detalles de contacto (email, tel, cargo)
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details/${contactId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        email: data.email,
+        phone: data.phone,
+        type_description: data.job_title || data.typeDescription
+      }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la persona de contacto')
+    }
+  }
+
+  /**
+   * Alias para removeContact (Usado en PersonManager)
+   */
+  async deletePerson(partyId: string, contactId: string): Promise<void> {
+    return this.removeContact(partyId, contactId, true)
+  }
+
 }
 
 // Export singleton instance

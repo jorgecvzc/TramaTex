@@ -100,8 +100,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Building2, User, Eye, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
@@ -109,6 +109,7 @@ import { partyApi } from '@/services/partyApi'
 import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
+const route = useRoute()
 const toastStore = useToastStore()
 const allParties = ref([])
 const isLoading = ref(false)
@@ -116,9 +117,16 @@ const isDeleting = ref(false)
 const error = ref('')
 
 const filters = reactive({
-  search: '',
-  type: '',
-  role: ''
+  search: (route.query.search as string) || '',
+  type: (route.query.type as string) || '',
+  role: (route.query.role as string) || ''
+})
+
+// Update filters if route changes (e.g. clicking a link in navbar while already on this page)
+watch(() => route.query, (newQuery) => {
+  filters.search = (newQuery.search as string) || ''
+  filters.type = (newQuery.type as string) || ''
+  filters.role = (newQuery.role as string) || ''
 })
 
 const parties = computed(() => {

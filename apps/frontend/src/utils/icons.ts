@@ -205,6 +205,14 @@ const iconMap: Record<string, any> = {
   'file': File,
   'grid_view': LayoutGrid,
   'contact_2': ContactRound,
+  'receipt_long': FileText,
+  'location_off': MapPin,
+  'tree_off': GitFork,
+  'assignment_late': AlertTriangle,
+  'settings_off': Settings,
+  'tree': GitFork,
+  'person_search': UserSearch,
+  'person_check': UserCheck,
 
   // Direct Component Names (Self-mapping)
   'Info': Info,
