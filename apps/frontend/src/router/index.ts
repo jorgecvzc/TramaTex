@@ -48,7 +48,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/parties/new",
     name: "CreateParty",
-    component: PartiesCreate,
+    component: PartiesDetail,
     meta: { requiresAuth: true, title: "Crear Entidad - TramaTex" },
   },
   {
