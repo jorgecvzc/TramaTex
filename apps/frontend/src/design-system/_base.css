@@ -27,6 +27,22 @@ body {
   border-radius: 2px;
 }
 
+kbd {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), inset 0 0 0 2px #fff;
+  color: var(--color-text-secondary);
+  display: inline-block;
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 /* Global Container - Max width 1300px */
 .main-container {
   max-width: 1300px;

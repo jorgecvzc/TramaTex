@@ -428,13 +428,23 @@ class PartyApiService {
         phone: data.phone || '',
         email: data.email || '',
       }
+      
+      // Person entities can still have tax_id info (stored in a shadow organization profile)
+      if (data.taxId) {
+        body.organization_profile = {
+          name: data.name,
+          tax_id: data.taxId,
+          tax_id_type: data.taxIdType,
+          website: data.website || '',
+        }
+      }
     } else {
       // Organization entity
       body.organization_profile = {
         name: data.name,
         tax_id: data.taxId,
         tax_id_type: data.taxIdType,
-        website: data.website,
+        website: data.website || '',
         phone: data.phone || '',
         email: data.email || '',
         notes: data.notes || '',

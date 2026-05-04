@@ -6,7 +6,7 @@
 
 ## Unificación UI/UX — Fase 1: Fundamentos y Estilos Base
 - **Session ID:** `post-mvp-01-ui-ux-unification-phase-1`
-- **Status:** ✅ COMPLETADA
+- **Status:** En Progreso
 - **Sprint:** Sprint 19
 - **Started:** 2026-05-01
 - **Finished:** 2026-05-02
@@ -19,8 +19,8 @@
     - [x] Corrección de Scripts de Despliegue para permitir construcción desde código fuente (`-BuildSource`).
     - [x] Consolidación del explorador de iconos en la página de Design System.
     - [x] Actualización íntegra de la documentación técnica y de despliegue.
+    - [x] Tarea 03: Navegación Core (Lógica de teclado en listados).
 - **Próximos Pasos (Pendientes para la siguiente sesión):**
-    - [ ] Tarea 03: Navegación Core (Lógica de teclado en listados).
     - [ ] Tarea 04: Skeletons Industriales para estados de carga.
 - **Archivos de Contexto:**
     - `docs/post-mvp/01-ui-ux-unification-master-plan.md`

@@ -374,7 +374,8 @@ async function saveParty() {
       taxIdType: formData.taxIdType,
       status: formData.status,
       notes: formData.notes,
-      default_discount_percentage: formData.role === 'SUPPLIER' ? 0 : (formData.defaultDiscountPercentage || 0)
+      default_discount_percentage: formData.role === 'SUPPLIER' ? 0 : (formData.defaultDiscountPercentage || 0),
+      hasPerson: formData.type === 'PERSON'
     }
 
     if (mode.value === 'create') {

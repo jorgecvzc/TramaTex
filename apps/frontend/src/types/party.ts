@@ -9,7 +9,7 @@
 
 export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH' | 'CONTACT'
 export type PartyStatus = 'ACTIVE' | 'INACTIVE'
-export type TaxIdType = 'RUT' | 'DNI' | 'CUIT' | 'CUIL' | 'OTHER'
+export type TaxIdType = 'CIF' | 'NIF' | 'NIE' | 'VAT' | 'OTHER'
 export type ContactType = 'EMPLOYEE' | 'EXTERNAL'
 
 // ============================================================================

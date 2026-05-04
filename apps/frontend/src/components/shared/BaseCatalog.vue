@@ -29,7 +29,8 @@ const emit = defineEmits(['clear-filters', 'refresh', 'click-item'])
 const selectedIndex = ref(-1)
 const tableBodyRef = ref<HTMLElement | null>(null)
 
-function handleRowClick(item: any) {
+function handleRowClick(item: any, index: number) {
+  selectedIndex.value = index
   emit('click-item', item)
 }
 
@@ -102,6 +103,9 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
           </template>
           <template #actions>
             <div class="header-actions">
+              <div class="navigation-hint no-mobile">
+                <kbd>↑</kbd> <kbd>↓</kbd> Navegar | <kbd>Enter</kbd> Seleccionar
+              </div>
               <button v-if="hasFilters" class="btn btn-outline btn-sm" @click="$emit('clear-filters')">
                 <FilterX :size="16" /> Limpiar
               </button>
@@ -199,6 +203,25 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
 }
 
 .header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+.navigation-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  padding-right: 1rem;
+  border-right: 1px solid var(--color-border);
+  margin-right: 0.5rem;
+}
+
+.navigation-hint kbd {
+  margin: 0 0.1rem;
+}
+
+@media (max-width: 1024px) {
+  .no-mobile { display: none !important; }
+}
 
 .filters-card {
   padding: 0.75rem 1rem;
