@@ -23,7 +23,7 @@
     - [x] Tarea 04: Skeletons Industriales para estados de carga.
 - **Próximos Pasos (Pendientes para la siguiente sesión):**
     - [x] Tarea 05: Consolidación de Dashboards y BasePageHeader.
-    - [ ] Tarea 06: Implementación de Atajos de Teclado Globales.
+    - [ ] Tarea 06: Implementación de Atajos de Teclado Globales. **(Requiere autorización expresa del usuario con un "Sí" para comenzar)**.
 - **Archivos de Contexto:**
     - `docs/post-mvp/01-ui-ux-unification-master-plan.md`
     - `docs/log/sprints/sprint-19/04-skeletons-industriales.md`

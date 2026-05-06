@@ -56,16 +56,40 @@
     >
       <div class="form-grid">
         <div class="form-group">
-          <label>Nombre *</label>
-          <input v-model="formData.first_name" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.first_name }">Nombre *</label>
+          <input 
+            v-model="formData.first_name" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.first_name }"
+            required 
+            @input="clearError('first_name')"
+          />
+          <span v-if="errors.first_name" class="error-message">{{ errors.first_name }}</span>
         </div>
         <div class="form-group">
-          <label>Apellidos *</label>
-          <input v-model="formData.last_name" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.last_name }">Apellidos *</label>
+          <input 
+            v-model="formData.last_name" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.last_name }"
+            required 
+            @input="clearError('last_name')"
+          />
+          <span v-if="errors.last_name" class="error-message">{{ errors.last_name }}</span>
         </div>
         <div class="form-group">
-          <label>Email</label>
-          <input v-model="formData.email" type="email" class="form-input" placeholder="ejemplo@correo.com" />
+          <label :class="{ 'text-error': errors.email }">Email</label>
+          <input 
+            v-model="formData.email" 
+            type="email" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.email }"
+            placeholder="ejemplo@correo.com" 
+            @input="clearError('email')"
+          />
+          <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
         </div>
         <div class="form-group">
           <label>Teléfono</label>
@@ -199,6 +223,17 @@ const formData = reactive({
   job_title: ''
 })
 
+const errors = reactive({
+  first_name: '',
+  last_name: '',
+  email: '',
+  job_title: ''
+})
+
+function clearError(field) {
+  if (errors[field]) errors[field] = ''
+}
+
 const linkFormData = reactive({
   job_title: 'Contacto Comercial',
   email: '',
@@ -218,6 +253,27 @@ const filteredCandidates = computed(() => {
 function isValidEmail(email) {
   if (!email) return true
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function validate() {
+  let isValid = true
+  
+  if (!formData.first_name.trim()) {
+    errors.first_name = 'El nombre es obligatorio'
+    isValid = false
+  }
+  
+  if (!formData.last_name.trim()) {
+    errors.last_name = 'Los apellidos son obligatorios'
+    isValid = false
+  }
+  
+  if (formData.email && !isValidEmail(formData.email)) {
+    errors.email = 'El formato del email no es válido'
+    isValid = false
+  }
+  
+  return isValid
 }
 
 // --- Confirm Dialog Logic ---

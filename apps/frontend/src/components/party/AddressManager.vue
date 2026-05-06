@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <!-- MODAL: CREAR/EDITAR DIRECCIÓN -->
+    <!-- MODAL: CREATE/EDIT ADDRESS -->
     <BaseDialog
       :show="showModal"
       :title="editingId ? 'Editar Dirección' : 'Nueva Dirección'"
@@ -42,24 +42,65 @@
     >
       <div class="form-grid">
         <div class="form-group full-width">
-          <label>Calle y Número *</label>
-          <input v-model="formData.street" type="text" class="form-input" placeholder="Ej: Av. Constitución 45, 2ºB" required />
+          <label :class="{ 'text-error': errors.street }">Calle y Número *</label>
+          <input 
+            v-model="formData.street" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.street }"
+            placeholder="Ej: Av. Constitución 45, 2ºB" 
+            required 
+            @input="clearError('street')"
+          />
+          <span v-if="errors.street" class="error-message">{{ errors.street }}</span>
         </div>
         <div class="form-group">
-          <label>Ciudad *</label>
-          <input v-model="formData.city" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.city }">Ciudad *</label>
+          <input 
+            v-model="formData.city" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.city }"
+            required 
+            @input="clearError('city')"
+          />
+          <span v-if="errors.city" class="error-message">{{ errors.city }}</span>
         </div>
         <div class="form-group">
-          <label>Código Postal *</label>
-          <input v-model="formData.postal_code" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.postal_code }">Código Postal *</label>
+          <input 
+            v-model="formData.postal_code" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.postal_code }"
+            required 
+            @input="clearError('postal_code')"
+          />
+          <span v-if="errors.postal_code" class="error-message">{{ errors.postal_code }}</span>
         </div>
         <div class="form-group">
-          <label>Provincia *</label>
-          <input v-model="formData.province" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.province }">Provincia *</label>
+          <input 
+            v-model="formData.province" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.province }"
+            required 
+            @input="clearError('province')"
+          />
+          <span v-if="errors.province" class="error-message">{{ errors.province }}</span>
         </div>
         <div class="form-group">
-          <label>País *</label>
-          <input v-model="formData.country" type="text" class="form-input" required />
+          <label :class="{ 'text-error': errors.country }">País *</label>
+          <input 
+            v-model="formData.country" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.country }"
+            required 
+            @input="clearError('country')"
+          />
+          <span v-if="errors.country" class="error-message">{{ errors.country }}</span>
         </div>
         <div class="form-group full-width">
           <label class="checkbox-label mt-2">
@@ -111,6 +152,18 @@ const formData = reactive({
   is_primary: false
 })
 
+const errors = reactive({
+  street: '',
+  city: '',
+  postal_code: '',
+  province: '',
+  country: ''
+})
+
+function clearError(field) {
+  if (errors[field]) errors[field] = ''
+}
+
 // --- Confirm Dialog Logic ---
 const confirmDelete = reactive({
   show: false,
@@ -139,7 +192,7 @@ async function loadAddresses() {
   try {
     addresses.value = await partyApi.listAddresses(props.partyId)
   } catch (err) {
-    console.error('Error al cargar direcciones:', err)
+    console.error('Error loading addresses:', err)
   }
 }
 
@@ -162,11 +215,45 @@ function editAddress(addr) {
   showModal.value = true
 }
 
+function validate() {
+  let isValid = true
+  
+  if (!formData.street.trim()) {
+    errors.street = 'La calle es obligatoria'
+    isValid = false
+  }
+  
+  if (!formData.city.trim()) {
+    errors.city = 'La ciudad es obligatoria'
+    isValid = false
+  }
+  
+  if (!formData.postal_code.trim()) {
+    errors.postal_code = 'El código postal es obligatorio'
+    isValid = false
+  } else if (!/^\d+$/.test(formData.postal_code.trim())) {
+    errors.postal_code = 'El código postal debe ser numérico'
+    isValid = false
+  }
+  
+  if (!formData.province.trim()) {
+    errors.province = 'La provincia es obligatoria'
+    isValid = false
+  }
+  
+  if (!formData.country.trim()) {
+    errors.country = 'El país es obligatorio'
+    isValid = false
+  }
+  
+  return isValid
+}
+
 async function saveAddress() {
-  if (!formData.street || !formData.city) {
-    toastStore.warning('La calle y la ciudad son obligatorias')
+  if (!validate()) {
     return
   }
+  
   isSaving.value = true
   try {
     const payload = {
