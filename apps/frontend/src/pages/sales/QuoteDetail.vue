@@ -250,11 +250,6 @@
     </FormSection>
 
     <FormSection title="Líneas del Presupuesto" icon="list_alt">
-      <div v-if="mode !== 'detail'" class="mb-4">
-        <button type="button" class="btn btn-primary btn-sm" @click="openVariantSelector">
-          <Plus :size="16" /> <span>Añadir Producto</span>
-        </button>
-      </div>
       <div class="table-wrapper">
         <table class="data-table">
           <thead>
@@ -323,6 +318,16 @@
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="mode !== 'detail'" class="mt-4">
+        <button 
+          ref="addProductBtn"
+          type="button" 
+          class="btn btn-primary btn-sm" 
+          @click="openVariantSelector"
+        >
+          <Plus :size="16" /> <span>Añadir Producto (Ins)</span>
+        </button>
       </div>
     </FormSection>
 
@@ -572,6 +577,7 @@ const showVariantSelector = ref(false);
 const showConvertModal = ref(false);
 const isConverting = ref(false);
 const showPostIssueModal = ref(false);
+const addProductBtn = ref(null);
 
 // Watcher para cambios en el formulario que requieran recalcular totales
 watch(() => [formData.partyId, formData.lineItems], () => {
@@ -715,21 +721,36 @@ function handleLineKeyDown(e, index, col) {
   const isLastLine = index === formData.lineItems.length - 1
   const currentLine = formData.lineItems[index]
 
-  // 1. Teclas + y - para cantidad
-  if (col === 'qty') {
-    if (e.key === '+' || e.key === '=') {
+  // 1. Arrows Up/Down as +/- for numeric fields
+  if (['qty', 'price', 'disc'].includes(col)) {
+    if (e.key === 'ArrowUp') {
       e.preventDefault()
-      currentLine.quantity = Number(currentLine.quantity || 0) + 1
+      const step = col === 'qty' ? 1 : 1.0
+      if (col === 'qty') currentLine.quantity = Number(currentLine.quantity || 0) + 1
+      else if (col === 'price') currentLine.unitPrice = Number(currentLine.unitPrice || 0) + step
+      else if (col === 'disc') currentLine.discountPercent = Math.min(100, Number(currentLine.discountPercent || 0) + 1)
       return
     }
-    if (e.key === '-') {
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
-      currentLine.quantity = Math.max(1, Number(currentLine.quantity || 0) - 1)
+      const min = col === 'qty' ? 1 : 0
+      if (col === 'qty') currentLine.quantity = Math.max(min, Number(currentLine.quantity || 0) - 1)
+      else if (col === 'price') currentLine.unitPrice = Math.max(min, Number(currentLine.unitPrice || 0) - 1.0)
+      else if (col === 'disc') currentLine.discountPercent = Math.max(min, Number(currentLine.discountPercent || 0) - 1)
       return
     }
   }
 
-  // 2. Tecla Enter para navegación
+  // 2. Tab key in last field focuses the Add button
+  if (e.key === 'Tab' && !e.shiftKey && isLastLine && col === 'disc') {
+    if (addProductBtn.value) {
+      e.preventDefault()
+      addProductBtn.value.focus()
+      return
+    }
+  }
+
+  // 3. Enter key for navigation
   if (e.key === 'Enter') {
     e.preventDefault()
     if (col === 'qty') focusLineInput(index, 'price')
@@ -744,13 +765,10 @@ function handleLineKeyDown(e, index, col) {
     return
   }
 
-  // 3. Flechas para navegación entre filas
-  if (e.key === 'ArrowDown' && !isLastLine) {
+  // 4. Shortcut for Add Line: Insert key
+  if (e.key === 'Insert') {
     e.preventDefault()
-    focusLineInput(index + 1, col)
-  } else if (e.key === 'ArrowUp' && index > 0) {
-    e.preventDefault()
-    focusLineInput(index - 1, col)
+    openVariantSelector()
   }
 }
 

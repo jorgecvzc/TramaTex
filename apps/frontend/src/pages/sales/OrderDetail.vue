@@ -299,22 +299,23 @@
       
       <!-- Sección Líneas de Pedido -->
       <FormSection title="Líneas de Pedido" icon="list_alt">
-        <div v-if="mode !== 'detail'" class="mb-4">
+        <OrderLines
+          :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
+          :is-editing="mode !== 'detail'"
+          @update:lines="updateLines"
+          @add-line-request="handleAddLineRequest"
+          @last-field-tab="focusAddButton"
+        />
+        <div v-if="mode !== 'detail'" class="mt-4">
           <button 
             ref="addProductBtnRef"
             type="button" 
             class="btn btn-primary btn-sm" 
             @click="showVariantSelector = true"
           >
-            <Plus :size="16" /> <span>Añadir Producto</span>
+            <Plus :size="16" /> <span>Añadir Producto (Ins)</span>
           </button>
         </div>
-        <OrderLines
-          :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
-          :is-editing="mode !== 'detail'"
-          @update:lines="updateLines"
-          @add-line-request="handleAddLineRequest"
-        />
       </FormSection>
       
       <!-- Sección de Totales -->
@@ -874,10 +875,14 @@ function formatMesWorkId(id) {
 
 const addProductBtnRef = ref(null)
 
-function handleAddLineRequest() {
+function focusAddButton() {
   if (addProductBtnRef.value) {
     addProductBtnRef.value.focus()
   }
+}
+
+function handleAddLineRequest() {
+  showVariantSelector.value = true
 }
 
 function handleVariantSelected(payload) {

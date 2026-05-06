@@ -106,28 +106,38 @@ const props = defineProps({
   isEditing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:lines', 'add-line-request'])
+const emit = defineEmits(['update:lines', 'add-line-request', 'last-field-tab'])
 
 function handleKeyDown(e, index, col) {
   const isLastLine = index === props.lines.length - 1
   const currentLine = props.lines[index]
 
-  // 1. Teclas + y - para cantidad (solo en columna qty)
-  if (col === 'qty') {
-    if (e.key === '+' || e.key === '=') {
+  // 1. Arrows Up/Down as +/- for numeric fields
+  if (['qty', 'price', 'disc'].includes(col)) {
+    if (e.key === 'ArrowUp') {
       e.preventDefault()
-      updateLineField(index, 'quantity', Number(currentLine.quantity || 0) + 1)
+      const step = col === 'qty' ? 1 : 1.0
+      const field = col === 'qty' ? 'quantity' : (col === 'price' ? 'unit_price' : 'discount_percent')
+      updateLineField(index, field, Number(currentLine[field] || 0) + step)
       return
     }
-    if (e.key === '-') {
+    if (e.key === 'ArrowDown') {
       e.preventDefault()
-      const newQty = Math.max(1, Number(currentLine.quantity || 0) - 1)
-      updateLineField(index, 'quantity', newQty)
+      const min = col === 'qty' ? 1 : 0
+      const step = col === 'qty' ? 1 : 1.0
+      const field = col === 'qty' ? 'quantity' : (col === 'price' ? 'unit_price' : 'discount_percent')
+      updateLineField(index, field, Math.max(min, Number(currentLine[field] || 0) - step))
       return
     }
   }
 
-  // 2. Enter key for navigation
+  // 2. Tab key in last field
+  if (e.key === 'Tab' && !e.shiftKey && isLastLine && col === 'disc') {
+    emit('last-field-tab')
+    return
+  }
+
+  // 3. Enter key for navigation
   if (e.key === 'Enter') {
     e.preventDefault()
     if (col === 'qty') focusInput(index, 'price')
@@ -142,13 +152,10 @@ function handleKeyDown(e, index, col) {
     return
   }
 
-  // 3. Arrow keys for navigation between rows
-  if (e.key === 'ArrowDown' && !isLastLine) {
+  // 4. Shortcut for Add Line: Insert key
+  if (e.key === 'Insert') {
     e.preventDefault()
-    focusInput(index + 1, col)
-  } else if (e.key === 'ArrowUp' && index > 0) {
-    e.preventDefault()
-    focusInput(index - 1, col)
+    emit('add-line-request')
   }
 }
 

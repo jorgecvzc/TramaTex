@@ -214,7 +214,14 @@
                 <template v-if="mode === 'detail'">
                   <strong class="text-success" style="font-size: 1.1rem">{{ item.deliveredQuantity }}</strong>
                 </template>
-                <input v-else v-model.number="item.deliveredQuantity" type="number" class="form-input-sm w-24 text-center" />
+                <input 
+                  v-else 
+                  v-model.number="item.deliveredQuantity" 
+                  type="number" 
+                  class="form-input-sm w-24 text-center font-bold" 
+                  :data-row="idx"
+                  @keydown="handleLineKeyDown($event, idx)"
+                />
               </td>
               <td class="text-muted italic">Correcto</td>
             </tr>
@@ -503,10 +510,46 @@ async function confirmCreateInvoice() {
     showInvoiceConfirm.value = false;
     router.push(`/sales/invoices/${newInvoice.id}`);
   } catch (err) {
-    toastStore.error(err?.message || 'Error al crear factura');
+    toastStore.error(err?.message || 'Error creating invoice');
   } finally {
     isCreatingInvoice.value = false;
   }
+}
+
+function handleLineKeyDown(e, index) {
+  const isLastLine = index === deliveryNote.value.lineItems.length - 1
+  const item = deliveryNote.value.lineItems[index]
+
+  // 1. Arrows Up/Down as +/- for quantity
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    item.deliveredQuantity = Number(item.deliveredQuantity || 0) + 1
+    return
+  }
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    item.deliveredQuantity = Math.max(0, Number(item.deliveredQuantity || 0) - 1)
+    return
+  }
+
+  // 2. Enter key to navigate to next row
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    if (!isLastLine) {
+      focusLineInput(index + 1)
+    }
+    return
+  }
+}
+
+function focusLineInput(row) {
+  setTimeout(() => {
+    const el = document.querySelector(`input[data-row="${row}"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
+  }, 10)
 }
 
 function printDeliveryNote() { window.print(); }
