@@ -15,6 +15,7 @@ const props = defineProps<{
   breadcrumbs: Breadcrumb[]
   catalogRoute?: string
   catalogText?: string
+  showBack?: boolean
 }>()
 
 const router = useRouter()
@@ -22,7 +23,11 @@ const router = useRouter()
 
 <template>
   <div class="main-container">
-    <BasePageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader 
+      :title="props.title" 
+      :breadcrumbs="props.breadcrumbs"
+      :show-back="props.showBack"
+    >
       <template #icon v-if="props.icon">
         <component :is="getIcon(props.icon)" :size="28" />
       </template>

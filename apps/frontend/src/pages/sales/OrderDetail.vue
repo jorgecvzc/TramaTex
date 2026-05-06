@@ -5,6 +5,7 @@
       <BasePageHeader 
         :title="pageTitle" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Pedidos', to: '/sales/orders' }, { label: headerLabel }]"
+        show-back
       >
         <template #icon>
           <ShoppingCart :size="28" />

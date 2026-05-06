@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage v-if="isLoading" class="no-print">
     <template #header>
-      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,7 +11,7 @@
 
   <BaseEntityPage v-else-if="error" class="no-print">
     <template #header>
-      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -31,6 +31,7 @@
       <BasePageHeader 
         :title="mode === 'edit' ? `Editando Factura ${invoice.invoiceNumber}` : `Factura ${invoice.invoiceNumber}`" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
+        show-back
       >
         <template #icon>
           <Receipt :size="28" />

@@ -159,19 +159,27 @@ function goBack() {
   align-items: center;
   justify-content: center;
   background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border-strong, #cbd5e1);
+  border-radius: var(--border-radius-md, 8px);
   color: var(--color-text-secondary);
-  padding: var(--spacing-xs);
+  padding: var(--spacing-xs, 0.5rem);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .back-button:hover {
-  background-color: var(--color-background);
-  color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
+  background-color: var(--color-background-soft, #f8fafc);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  transform: translateX(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.back-button:active {
+  transform: translateX(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .title-container {

@@ -17,6 +17,7 @@ const props = defineProps<{
   submitIcon?: string
   cancelRoute?: string
   catalogRoute?: string
+  showBack?: boolean
 }>()
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -31,7 +32,11 @@ function handleCancel() {
 
 <template>
   <div class="main-container">
-    <BasePageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader 
+      :title="props.title" 
+      :breadcrumbs="props.breadcrumbs"
+      :show-back="props.showBack"
+    >
       <template #actions>
         <button v-if="props.catalogRoute" @click="router.push(props.catalogRoute)" class="btn btn-outline">
           <List :size="18" />

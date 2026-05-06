@@ -33,6 +33,7 @@
         <BasePageHeader
           :title="mode === 'create' ? 'Nuevo Producto' : (mode === 'edit' ? `Editando ${product?.name}` : product?.name)"
           :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Productos', to: '/products' }, { label: mode === 'create' ? 'Alta' : product?.sku }]"
+          show-back
         >
 
           <template #icon>

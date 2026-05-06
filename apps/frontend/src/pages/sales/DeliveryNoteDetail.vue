@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
-      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+      <BasePageHeader title="Cargando..." show-back />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,7 +11,7 @@
 
   <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
-      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+      <BasePageHeader title="Error" show-back />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -29,8 +29,9 @@
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <BasePageHeader 
-        :title="mode === 'edit' ? `Editando Albarán ${deliveryNote.deliveryNoteNumber}` : `Albarán ${deliveryNote.deliveryNoteNumber}`" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
+        :title="mode === 'edit' ? `Editando Albarán ${dn?.deliveryNoteNumber}` : `Albarán ${dn?.deliveryNoteNumber}`" 
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: dn?.deliveryNoteNumber }]"
+        show-back
       >
         <template #icon>
           <Truck :size="28" />

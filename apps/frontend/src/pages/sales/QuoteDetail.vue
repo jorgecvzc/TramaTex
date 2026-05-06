@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
-      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" show-back />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -31,6 +31,7 @@
       <BasePageHeader 
         :title="mode === 'create' ? 'Nuevo Presupuesto' : (mode === 'edit' ? `Editando Presupuesto ${quote?.quoteNumber}` : `Presupuesto ${quote?.quoteNumber}`)" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos', to: '/sales/quotes' }, { label: mode === 'create' ? 'Crear' : quote?.quoteNumber }]"
+        show-back
       >
         <template #icon>
           <FileText :size="28" />

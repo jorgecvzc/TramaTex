@@ -52,7 +52,7 @@ defineProps<{
 .dashboard-page-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px); /* Subtract Navbar height */
+  height: calc(100vh - 76px); /* Subtract Navbar height (76px) */
   overflow: hidden;
   background-color: var(--color-background);
 }
@@ -65,6 +65,9 @@ defineProps<{
   display: flex;
   align-items: stretch;
   min-height: 88px;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
 }
 
 .header-content-wrapper {
