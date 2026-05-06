@@ -114,7 +114,7 @@ const partiesCache = ref({});
 
 const hasFilters = computed(() => filters.value.searchText || filters.value.status || filters.value.type || filters.value.fromDate || filters.value.toDate);
 
-// Lógica de filtrado automática con debounce
+// Automatic filtering logic with debounce
 let searchDebounceTimer = null;
 watch(filters, () => {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
@@ -154,7 +154,7 @@ function formatPartyName(id) { return partiesCache.value[id] || 'Cargando...'; }
 
 function clearFilters() { 
   filters.value = { searchText: '', status: '', type: '', fromDate: '', toDate: '' }; 
-  // El watch se encargará de llamar a fetchInvoices al cambiar la referencia
+  // The watch will handle calling fetchInvoices when the reference changes
 }
 
 function navigateToDetail(id) { router.push(`/sales/invoices/${id}`); }

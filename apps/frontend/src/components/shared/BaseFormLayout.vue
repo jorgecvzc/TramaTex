@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import { List, Save, RefreshCw } from 'lucide-vue-next'
 import { getIcon } from '@/utils/icons'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 interface Breadcrumb {
   label: string
@@ -31,14 +31,14 @@ function handleCancel() {
 
 <template>
   <div class="main-container">
-    <PageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
       <template #actions>
         <button v-if="props.catalogRoute" @click="router.push(props.catalogRoute)" class="btn btn-outline">
           <List :size="18" />
           <span>Ir al catálogo</span>
         </button>
       </template>
-    </PageHeader>
+    </BasePageHeader>
 
     <form @submit.prevent="emit('submit')" class="form-standard-layout">
       <div class="form-content">

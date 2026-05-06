@@ -1,7 +1,7 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading" class="no-print">
     <template #header>
-      <PageHeader title="Monitor de Producción (MES)">
+      <BasePageHeader title="Monitor de Producción (MES)">
         <template #icon><Factory :size="28" /></template>
         <template #actions>
           <button @click="loadDashboard" class="btn btn-outline btn-sm" :disabled="isLoading">
@@ -9,7 +9,7 @@
             Actualizar
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <div class="module-dashboard-content">
@@ -220,7 +220,7 @@ import {
   Cpu, 
   Sliders 
 } from 'lucide-vue-next'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
 import WorkSetupSelectorDialog from '@/components/mes/WorkSetupSelectorDialog.vue'
 import { mesApi } from '@/services/mesApi'
@@ -324,7 +324,7 @@ async function launchToWorkshop(wo: WorkOrder) {
 }
 
 function configurePending(setup: any) {
-  // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
+  // Map the pending request object to the format expected by the dialog
   selectedWorkOrder.value = {
     id: setup.id,
     work_number: setup.order_number,
@@ -340,7 +340,7 @@ async function handleSetupAssigned() {
   await loadDashboard()
 }
 
-// Helpers de progreso
+// Progress helpers
 function getTotalTasksCount(wo: WorkOrder) {
   let total = 0
   wo.lines?.forEach(l => { total += l.tasks?.length || 0 })
@@ -415,4 +415,4 @@ onMounted(loadDashboard)
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-</style>
+</style>e>>

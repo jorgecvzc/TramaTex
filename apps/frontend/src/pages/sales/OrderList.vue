@@ -145,7 +145,7 @@ async function fetchOrders() {
   try {
     const res = await salesApi.listOrders(filters.value);
     const rawData = Array.isArray(res) ? res : (res.data || []);
-    // Ordenar por fecha descendente (más recientes primero)
+    // Sort by descending date (most recent first)
     orders.value = rawData.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
     await loadPartyNames();
     await loadMesWorksForOrders();

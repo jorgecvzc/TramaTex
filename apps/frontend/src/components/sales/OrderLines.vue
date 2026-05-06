@@ -127,7 +127,7 @@ function handleKeyDown(e, index, col) {
     }
   }
 
-  // 2. Tecla Enter para navegación
+  // 2. Enter key for navigation
   if (e.key === 'Enter') {
     e.preventDefault()
     if (col === 'qty') focusInput(index, 'price')
@@ -142,7 +142,7 @@ function handleKeyDown(e, index, col) {
     return
   }
 
-  // 3. Flechas para navegación entre filas
+  // 3. Arrow keys for navigation between rows
   if (e.key === 'ArrowDown' && !isLastLine) {
     e.preventDefault()
     focusInput(index + 1, col)
@@ -179,13 +179,13 @@ function updateLineField(index, field, value) {
 }
 
 function calculateSubtotal(line) {
-  // Si ya tenemos el subtotal calculado por el backend (modo detalle), lo usamos.
+  // If we already have the subtotal calculated by the backend (detail mode), use it.
   if (!props.isEditing && line.subtotal !== undefined) {
     return line.subtotal?.amount ?? line.subtotal;
   }
   
-  // En modo edición o si no hay subtotal, calculamos localmente.
-  // Usamos ?? en lugar de || para que el 0 no sea ignorado.
+  // In edit mode or if no subtotal, calculate locally.
+  // Use ?? instead of || so that 0 is not ignored.
   const price = Number(line.unit_price ?? line.unitPrice ?? 0)
   const qty = Number(line.quantity ?? 0)
   const disc = Number(line.discount_percent ?? line.discountPercent ?? 0)

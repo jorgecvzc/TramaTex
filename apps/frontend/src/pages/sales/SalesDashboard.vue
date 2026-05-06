@@ -1,7 +1,7 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Ventas y Facturación">
+      <BasePageHeader title="Ventas y Facturación">
         <template #icon><CreditCard :size="28" /></template>
         <template #actions>
           <button class="btn btn-outline btn-sm" @click="loadSalesData" :disabled="isLoading">
@@ -9,7 +9,7 @@
             <span>Actualizar</span>
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <div class="module-dashboard-content">
@@ -150,7 +150,7 @@ import {
   FilePlus 
 } from 'lucide-vue-next';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 

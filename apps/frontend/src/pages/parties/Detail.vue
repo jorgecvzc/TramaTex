@@ -1,5 +1,5 @@
 <template>
-  <!-- PÁGINA: DETALLE / EDICIÓN / ALTA DE ENTIDAD -->
+  <!-- PAGE: DETAIL / EDIT / ENTITY CREATION -->
   
   <BaseEntityPage v-if="isLoading" class="no-print">
     <template #header>
@@ -24,7 +24,7 @@
   </BaseEntityPage>
 
   <BaseEntityPage v-else class="no-print">
-    <!-- CAPA 1: IDENTIDAD -->
+    <!-- LAYER 1: IDENTITY -->
     <template #header>
       <div class="sticky-header-container">
         <BasePageHeader 
@@ -59,7 +59,7 @@
           </template>
         </BasePageHeader>
 
-        <!-- NAVEGACIÓN POR PESTAÑAS (Solo en detalle) -->
+        <!-- TAB NAVIGATION (Only in detail) -->
         <nav v-if="mode === 'detail'" class="entity-tabs">
           <button 
             v-for="tab in tabs" 
@@ -74,7 +74,7 @@
       </div>
     </template>
 
-    <!-- CAPA 2: CONTEXTO (Resumen) -->
+    <!-- LAYER 2: CONTEXT (Summary) -->
     <template #summary v-if="mode !== 'create' && party">
       <div class="overview-details-strip">
         <div class="detail-item">
@@ -112,12 +112,12 @@
       </div>
     </template>
 
-    <!-- CAPA 3: TRABAJO -->
+    <!-- LAYER 3: WORK -->
     <div class="party-master-content">
-      <!-- TAB: GENERAL / FORMULARIO -->
+      <!-- TAB: GENERAL / FORM -->
       <div v-if="activeTab === 'general'" class="tab-fade-in">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- SECCIÓN: IDENTIDAD -->
+          <!-- SECTION: IDENTITY -->
           <FormSection title="Datos de Identidad" icon="person">
             <div v-if="mode === 'detail'">
               <DataRow label="Nombre Comercial / Completo" :value="party?.name" icon="badge" />
@@ -162,7 +162,7 @@
             </div>
           </FormSection>
 
-          <!-- SECCIÓN: CONFIGURACIÓN -->
+          <!-- SECTION: CONFIGURATION -->
           <FormSection title="Configuración de Cuenta" icon="settings">
             <div v-if="mode === 'detail'">
               <DataRow label="Estado Actual" :value="getStatusLabel(party?.status)" icon="shield-check" />
@@ -201,7 +201,7 @@
         </div>
       </div>
 
-      <!-- TABS SECUNDARIAS (Solo modo detalle) -->
+      <!-- SECONDARY TABS (Detail mode only) -->
       <div v-if="activeTab === 'addresses' && mode === 'detail'" class="tab-fade-in">
         <AddressManager :party-id="party?.id" />
       </div>
@@ -211,7 +211,7 @@
       </div>
     </div>
 
-    <!-- DIÁLOGO DE ELIMINACIÓN -->
+    <!-- DELETE DIALOG -->
     <BaseDialog
       :show="confirmDelete.show"
       title="Eliminar Entidad"
@@ -270,11 +270,19 @@ const formData = reactive({
   defaultDiscountPercentage: 0
 })
 
-const tabs = [
-  { id: 'general', label: 'General', icon: Info },
-  { id: 'addresses', label: 'Direcciones', icon: MapPin },
-  { id: 'contacts', label: 'Contactos', icon: ContactRound }
-]
+const tabs = computed(() => {
+  const baseTabs = [
+    { id: 'general', label: 'General', icon: Info },
+    { id: 'addresses', label: 'Direcciones', icon: MapPin }
+  ]
+  
+  // Contacts tab only applies to organizations
+  if (party.value?.type === 'ORGANIZATION') {
+    baseTabs.push({ id: 'contacts', label: 'Contactos', icon: ContactRound })
+  }
+  
+  return baseTabs
+})
 
 const confirmDelete = reactive({ show: false })
 

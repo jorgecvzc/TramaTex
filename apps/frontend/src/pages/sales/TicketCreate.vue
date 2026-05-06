@@ -371,11 +371,11 @@ async function processTicket() {
     
     toastStore.success("Ticket cobrado con éxito");
     
-    // Auto-impresión
+    // Auto-print
     await nextTick();
     window.print();
     
-    // Reset para el siguiente cliente
+    // Reset for the next customer
     initTicket();
     
   } catch (err) {

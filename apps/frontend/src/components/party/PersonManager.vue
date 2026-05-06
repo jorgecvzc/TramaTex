@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <!-- MODAL: CREAR/EDITAR PERSONA -->
+    <!-- MODAL: CREATE/EDIT PERSON -->
     <BaseDialog
       :show="showModal"
       :title="editingId ? 'Editar Persona de Contacto' : 'Nueva Persona de Contacto'"
@@ -78,7 +78,7 @@
       </div>
     </BaseDialog>
 
-    <!-- MODAL: VINCULAR EXISTENTE -->
+    <!-- MODAL: LINK EXISTING -->
     <BaseDialog
       :show="showLinkModal"
       title="Vincular Contacto Existente"
@@ -91,7 +91,7 @@
       <div class="p-1">
         <p class="mb-4 text-sm text-muted">Selecciona una persona física ya registrada en el sistema para vincularla a esta organización.</p>
         
-        <!-- Caja de Búsqueda -->
+        <!-- Search Box -->
         <div class="search-box mb-3">
           <div class="input-with-icon">
             <Search :size="18" class="icon-start" />
@@ -104,7 +104,7 @@
           </div>
         </div>
 
-        <!-- Lista con Scroll -->
+        <!-- Scrollable List -->
         <div class="selectable-list-container">
           <div v-if="isLoadingCandidates" class="loading-mini">
             <RefreshCw :size="20" class="spin" />
@@ -131,7 +131,7 @@
           </div>
         </div>
 
-        <!-- Datos Específicos del Vínculo -->
+        <!-- Specific Link Data -->
         <div v-if="selectedExistingId" class="mt-4 p-4 border rounded bg-light animate-fade-in">
           <p class="section-label mb-3">Datos específicos para esta organización:</p>
           <div class="form-grid">
@@ -152,7 +152,7 @@
       </div>
     </BaseDialog>
 
-    <!-- MODAL DE CONFIRMACIÓN -->
+    <!-- CONFIRMATION MODAL -->
     <BaseDialog
       :show="confirmDelete.show"
       title="Desvincular Persona"
@@ -249,7 +249,7 @@ async function loadPersons() {
     const res = await partyApi.listPersons(props.partyId)
     persons.value = res || []
   } catch (err) {
-    console.error('Error al cargar contactos:', err)
+    console.error('Error loading contacts:', err)
   }
 }
 
@@ -267,7 +267,7 @@ async function openLinkModal() {
   
   isLoadingCandidates.value = true
   try {
-    // Solo personas físicas
+    // Only physical persons
     const res = await partyApi.listParties({ type: 'person', pageSize: 500 })
     const linkedIds = persons.value.map(p => p.id)
     candidates.value = (res.data || []).filter(c => !linkedIds.includes(c.id))

@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router'
 import { List } from 'lucide-vue-next'
 import { getIcon } from '@/utils/icons'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 interface Breadcrumb {
   label: string
@@ -22,7 +22,7 @@ const router = useRouter()
 
 <template>
   <div class="main-container">
-    <PageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
       <template #icon v-if="props.icon">
         <component :is="getIcon(props.icon)" :size="28" />
       </template>
@@ -36,7 +36,7 @@ const router = useRouter()
           </button>
         </div>
       </template>
-    </PageHeader>
+    </BasePageHeader>
 
     <div class="detail-vertical-layout">
       <div v-if="$slots.toolbar" class="detail-toolbar-area">

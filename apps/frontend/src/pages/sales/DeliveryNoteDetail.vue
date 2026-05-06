@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,7 +11,7 @@
 
   <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/delivery-notes' }, { label: 'Albaranes' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -28,7 +28,7 @@
   <BaseEntityPage class="no-print" v-else-if="deliveryNote">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="mode === 'edit' ? `Editando Albarán ${deliveryNote.deliveryNoteNumber}` : `Albarán ${deliveryNote.deliveryNoteNumber}`" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Albaranes', to: '/sales/delivery-notes' }, { label: deliveryNote.deliveryNoteNumber }]"
       >
@@ -52,7 +52,7 @@
             </button>
           </template>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
@@ -335,7 +335,7 @@ import {
 } from 'lucide-vue-next';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';

@@ -6,7 +6,6 @@
         :title="work?.work_name || 'Detalle de Orden'" 
         :subtitle="work?.work_number"
         :breadcrumbs="[{ label: 'MES', to: '/mes/dashboard' }, { label: 'Órdenes', to: '/mes/work-orders' }, { label: work?.work_number || 'Detalle' }]"
-        show-back
       >
         <template #icon>
           <Factory :size="28" />

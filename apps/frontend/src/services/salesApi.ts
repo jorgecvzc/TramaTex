@@ -38,7 +38,7 @@ import { api } from './api'
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
   
-  // Normalización de Facturas
+  // Invoice normalization
   if ('invoiceType' in obj || 'invoice_type' in obj || 'type' in obj) {
     obj.invoiceNumber = obj.invoiceNumber || obj.invoice_number;
     obj.invoiceDate = obj.invoiceDate || obj.invoice_date;
@@ -49,7 +49,7 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
     obj.type = obj.type || obj.invoice_type || obj.invoiceType;
   }
 
-  // Normalización de Pedidos / Presupuestos
+  // Order / Quote normalization
   if ('quoteNumber' in obj || 'quote_number' in obj) {
     obj.quoteNumber = obj.quoteNumber || obj.quote_number;
     obj.partyId = obj.partyId || obj.party_id;

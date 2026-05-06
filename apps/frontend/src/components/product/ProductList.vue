@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * ProductList.vue - Listado Maestro de Productos
+ * ProductList.vue - Master Product List
  * 
- * Implementa el estándar BaseCatalog con Arquitectura de 3 Capas.
+ * Implements the BaseCatalog standard with 3-Layer Architecture.
  */
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -30,7 +30,7 @@ const hasFilters = computed(() =>
   filters.search.trim() !== '' || filters.brandId !== '' || filters.groupId !== '' || filters.isActive !== ''
 )
 
-// Lógica de filtrado con debounce
+// Filtering logic with debounce
 let debounceTimer: any = null
 watch(filters, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
@@ -123,7 +123,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
     @refresh="fetchProducts"
     @click-item="navigateToDetail"
   >
-    <!-- CAPA 2: CONTEXTO (Filtros) -->
+    <!-- LAYER 2: CONTEXT (Filters) -->
     <template #filters>
       <div class="filter-group">
         <label>Búsqueda</label>
@@ -156,7 +156,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
       </div>
     </template>
 
-    <!-- CAPA 3: TRABAJO (Tabla) -->
+    <!-- LAYER 3: WORK (Table) -->
     <template #table-header>
       <th>SKU / Referencia</th>
       <th>Nombre del Producto</th>

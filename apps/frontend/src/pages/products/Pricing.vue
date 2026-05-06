@@ -2,7 +2,7 @@
   <BaseDashboardPage :is-loading="isLoadingProducts" class="pricing-dashboard">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         title="Consulta de Precios" 
         :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Precios' }]"
       >
@@ -18,7 +18,7 @@
             Calcular Todo
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- CAPA 3: TRABAJO (Resultados) -->
@@ -172,7 +172,7 @@ import {
   Info 
 } from 'lucide-vue-next'
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { productApi } from '@/services/productApi'
 import { pricingApi } from '@/services/pricingApi'

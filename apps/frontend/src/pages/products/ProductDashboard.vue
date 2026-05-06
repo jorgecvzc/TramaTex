@@ -1,7 +1,7 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading">
     <template #header>
-      <PageHeader title="Catálogo y Almacén">
+      <BasePageHeader title="Catálogo y Almacén">
         <template #icon><Package :size="24" /></template>
         <template #actions>
           <button class="btn btn-outline btn-sm" @click="loadProductData" :disabled="isLoading">
@@ -9,7 +9,7 @@
             <span>Actualizar</span>
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <div class="module-dashboard-content">
@@ -141,7 +141,7 @@ import {
   PlusSquare 
 } from 'lucide-vue-next';
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import { productApi } from '@/services/productApi';
 
 const router = useRouter();

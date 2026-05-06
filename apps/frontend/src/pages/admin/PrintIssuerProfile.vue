@@ -1,7 +1,7 @@
 <template>
   <div class="page-layout">
     <!-- CAPA 1: IDENTIDAD -->
-    <PageHeader 
+    <BasePageHeader 
       title="Perfil Fiscal de Impresión" 
       :breadcrumbs="[{ label: 'Administración', to: '/admin/users' }, { label: 'Configuración Fiscal' }]"
     >
@@ -14,7 +14,7 @@
           <Save :size="16" /> Guardar Cambios
         </button>
       </template>
-    </PageHeader>
+    </BasePageHeader>
 
     <main class="page-content">
       <div v-if="!isAdmin" class="alert-error">
@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { Receipt, RefreshCw, Save, AlertTriangle, CheckCircle, Printer, ExternalLink } from 'lucide-vue-next'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getPrintIssuerProfile, savePrintIssuerProfile, resetPrintIssuerProfile, type PrintIssuerProfile } from '@/services/printIssuerProfile'

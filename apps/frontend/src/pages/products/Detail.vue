@@ -2,7 +2,7 @@
   
   <BaseEntityPage v-if="isLoading" class="no-print">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -12,7 +12,7 @@
 
   <BaseEntityPage v-else-if="error" class="no-print">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Productos' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -30,10 +30,9 @@
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
       <div class="sticky-header-container">
-        <PageHeader
+        <BasePageHeader
           :title="mode === 'create' ? 'Nuevo Producto' : (mode === 'edit' ? `Editando ${product?.name}` : product?.name)"
           :breadcrumbs="[{ label: 'Catálogo', to: '/products/dashboard' }, { label: 'Productos', to: '/products' }, { label: mode === 'create' ? 'Alta' : product?.sku }]"
-          show-back
         >
 
           <template #icon>
@@ -56,7 +55,7 @@
               </button>
             </template>
           </template>
-        </PageHeader>
+        </BasePageHeader>
 
         <!-- NAVEGACIÓN POR PESTAÑAS -->
         <nav v-if="mode !== 'create'" class="entity-tabs">
@@ -267,7 +266,7 @@ import {
   PlusSquare 
 } from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import VariantTable from '@/components/product/VariantTable.vue';

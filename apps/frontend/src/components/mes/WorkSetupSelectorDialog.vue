@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { Info, List, PlusCircle, SearchX, Plus, Trash2, AlertCircle } from 'lucide-vue-next'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
+import BaseSkeleton from '@/components/shared/BaseSkeleton.vue'
 import { mesApi } from '@/services/mesApi'
 import { productApi } from '@/services/productApi'
 import { useToastStore } from '@/stores/toast'
@@ -261,9 +262,17 @@ onMounted(() => {
 
       <!-- MODO: ASIGNAR EXISTENTE -->
       <div v-if="mode === 'assign'" class="assign-mode">
-        <div v-if="isLoading" class="loading-state p-8 text-center">
-          <div class="spinner mb-2"></div>
-          <p>Buscando configuraciones del cliente...</p>
+        <div v-if="isLoading" class="setup-list">
+          <p class="section-label mb-3">Buscando configuraciones...</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div v-for="i in 2" :key="i" class="setup-card" style="opacity: 0.7;">
+              <div class="card-radio"><BaseSkeleton type="circle" width="20px" /></div>
+              <div class="card-info w-full">
+                <BaseSkeleton type="title" width="70%" />
+                <BaseSkeleton type="text" width="40%" />
+              </div>
+            </div>
+          </div>
         </div>
         <div v-else-if="existingWorkSetups.length === 0" class="empty-state p-8 text-center card bg-light">
           <SearchX class="text-muted mb-2 mx-auto" :size="48" />

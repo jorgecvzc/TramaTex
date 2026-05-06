@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,7 +11,7 @@
 
   <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
@@ -28,7 +28,7 @@
   <BaseEntityPage class="no-print" v-else-if="quote || mode === 'create'">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="mode === 'create' ? 'Nuevo Presupuesto' : (mode === 'edit' ? `Editando Presupuesto ${quote?.quoteNumber}` : `Presupuesto ${quote?.quoteNumber}`)" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos', to: '/sales/quotes' }, { label: mode === 'create' ? 'Crear' : quote?.quoteNumber }]"
       >
@@ -54,7 +54,7 @@
             </template>
           </div>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
@@ -359,7 +359,7 @@
 
   <BaseEntityPage class="no-print" v-else>
     <template #header>
-      <PageHeader title="Estado Indeterminado" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Estado Indeterminado" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-content">
@@ -481,7 +481,7 @@ import {
   AlertTriangle
 } from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
@@ -783,7 +783,7 @@ function handleVariantSelected(payload) {
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
   
-  // Posicionar foco en la cantidad de la nueva línea
+  // Position focus on the quantity of the new line
   nextTick(() => {
     fetchPreviewCalculation();
     const lastIdx = formData.lineItems.length - 1
@@ -941,12 +941,12 @@ async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.
 async function convertToOrder() {
   isConverting.value = true;
   try {
-    // Establecemos fecha de entrega por defecto: 15 días a partir de hoy
+    // Set default delivery date: 15 days from today
     const deliveryDateObj = new Date();
     deliveryDateObj.setDate(deliveryDateObj.getDate() + 15);
     const deliveryDate = deliveryDateObj.toISOString().split('T')[0];
     
-    // El backend auto-aprueba el presupuesto (DRAFT→ISSUED→APPROVED→CONVERTED)
+    // The backend auto-approves the quote (DRAFT→ISSUED→APPROVED→CONVERTED)
     const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
     toastStore.success('Pedido generado con éxito');
     router.push(`/sales/orders/${order.id}`);
@@ -1005,4 +1005,4 @@ function printQuote() { window.print(); }
   .no-print { display: none !important; }
   .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
-</style>
+</style>>>>

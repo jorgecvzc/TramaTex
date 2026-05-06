@@ -632,8 +632,8 @@ watch(() => [editableOrder.value.party_id, editableOrder.value.line_items], () =
 
 function calculateTotals() {
   clearTimeout(previewTimer);
-  // Reseteamos el resultado previo para que los computados usen el fallback local 
-  // instantáneo mientras se espera la respuesta del servidor (evita valores congelados).
+  // Reset the previous result so that computed values use the local fallback 
+  // instantaneously while waiting for the server response (avoids frozen values).
   previewResult.value = null;
   previewTimer = setTimeout(fetchPreviewCalculation, 400);
 }

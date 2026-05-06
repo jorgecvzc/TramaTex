@@ -7,11 +7,17 @@ interface Breadcrumb {
   to?: string
 }
 
+interface Shortcut {
+  label: string
+  key: string
+}
+
 const props = defineProps<{
   title: string
   subtitle?: string
   breadcrumbs?: Breadcrumb[]
   showBack?: boolean
+  shortcuts?: Shortcut[]
 }>()
 
 const router = useRouter()
@@ -63,6 +69,12 @@ function goBack() {
 
         <!-- Actions Slot -->
         <div class="header-actions">
+          <div v-if="shortcuts && shortcuts.length > 0" class="header-shortcuts">
+            <div v-for="shortcut in shortcuts" :key="shortcut.key" class="shortcut-item">
+              <span class="shortcut-label">{{ shortcut.label }}</span>
+              <kbd>{{ shortcut.key }}</kbd>
+            </div>
+          </div>
           <slot name="actions"></slot>
         </div>
       </div>
@@ -190,7 +202,43 @@ function goBack() {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
+}
+
+.header-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  border-right: 1px solid var(--color-border);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.shortcut-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Industrial Keyboard Shortcut Style */
+kbd {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-family: var(--font-family-mono, monospace);
+  font-size: 0.75rem;
+  box-shadow: 0 2px 0 #cbd5e1;
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.2rem;
 }
 
 /* Icons in slots */
@@ -209,6 +257,17 @@ function goBack() {
     width: 100%;
     justify-content: flex-start;
     margin-top: var(--spacing-sm);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .header-shortcuts {
+    padding-right: 0;
+    border-right: none;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border);
+    width: 100%;
   }
 }
 </style>

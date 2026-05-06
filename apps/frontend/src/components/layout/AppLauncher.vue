@@ -12,7 +12,7 @@
       </header>
 
       <div class="launcher-grid">
-        <!-- SECCIÓN: VENTAS -->
+        <!-- SECTION: SALES -->
         <section class="launcher-section">
           <h3 class="section-title">
             <CreditCard :size="20" class="section-icon" />
@@ -27,7 +27,7 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: PRODUCCIÓN -->
+        <!-- SECTION: PRODUCTION -->
         <section class="launcher-section">
           <h3 class="section-title">
             <Factory :size="20" class="section-icon" />
@@ -41,7 +41,7 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: ENTIDADES -->
+        <!-- SECTION: ENTITIES -->
         <section class="launcher-section">
           <h3 class="section-title">
             <Users :size="20" class="section-icon" />
@@ -54,7 +54,7 @@
 
         </section>
 
-        <!-- SECCIÓN: CATÁLOGO (Movida aquí) -->
+        <!-- SECTION: CATALOG (Moved here) -->
         <section class="launcher-section">
           <h3 class="section-title">
             <Package :size="20" class="section-icon" />
@@ -68,7 +68,7 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: ADMINISTRACIÓN -->
+        <!-- SECTION: ADMINISTRATION -->
         <section v-if="isAdmin" class="launcher-section admin-section">
           <h3 class="section-title">
             <ShieldCheck :size="20" class="section-icon" />
@@ -128,7 +128,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleEscape)
 })
 
-// Bloquear scroll del cuerpo cuando está abierto
+// Lock body scroll when open
 watch(() => props.isOpen, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
@@ -151,14 +151,14 @@ watch(() => props.isOpen, (val) => {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Añadido padding superior */
+  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Added top padding */
 }
 
 .app-launcher-card {
   background: white;
   width: 100%;
   max-width: 900px;
-  border-radius: 16px; /* Bordes redondeados en todas las esquinas */
+  border-radius: 16px; /* Rounded corners on all corners */
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;

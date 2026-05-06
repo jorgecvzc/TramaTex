@@ -145,9 +145,19 @@
       </p>
 
       <!-- Loading State -->
-      <div v-if="isLoadingVariants" class="loading-inline">
-        <div class="spinner-small"></div>
-        <span>Cargando precios...</span>
+      <div v-if="isLoadingVariants" class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th v-for="c in 5" :key="c"><BaseSkeleton type="text" width="60%" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in 3" :key="r">
+              <td v-for="c in 5" :key="c"><BaseSkeleton type="row" :width="Math.floor(Math.random() * (90 - 40 + 1) + 40) + '%'" /></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Empty State -->
@@ -188,7 +198,7 @@
                   </span>
                 </div>
                 <div v-else class="loading-price">
-                  <span v-if="loadingPrices[variant.id]">⏳ Calculando...</span>
+                  <BaseSkeleton v-if="loadingPrices[variant.id]" type="text" width="80px" />
                   <span v-else class="text-muted">No calculado</span>
                 </div>
               </td>
@@ -309,6 +319,7 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { getIcon } from '@/utils/icons'
 import { pricingApi } from '@/services/pricingApi'
 import PartySelector from '@/components/party/PartySelector.vue'
+import BaseSkeleton from '@/components/shared/BaseSkeleton.vue'
 
 const props = defineProps({
   productId: {

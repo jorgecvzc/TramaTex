@@ -9,6 +9,7 @@ import {
 } from 'lucide-vue-next'
 import { getIcon } from '@/utils/icons'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
+import BaseSkeleton from '@/components/shared/BaseSkeleton.vue'
 
 const props = defineProps<{
   title: string
@@ -22,6 +23,8 @@ const props = defineProps<{
   createRoute?: string
   emptyIcon?: string
   emptyText?: string
+  skeletonRows?: number
+  skeletonColumns?: number
 }>()
 
 const emit = defineEmits(['clear-filters', 'refresh', 'click-item'])
@@ -35,7 +38,7 @@ function handleRowClick(item: any, index: number) {
 }
 
 function handleKeyDown(e: KeyboardEvent) {
-  // Ignorar si el usuario está escribiendo en un input o textarea
+  // Ignore if the user is typing in an input or textarea
   const target = e.target as HTMLElement
   if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
     return
@@ -94,7 +97,7 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
 
 <template>
   <div class="catalog-page-container">
-    <!-- CAPA 1: IDENTIDAD (STICKY) -->
+    <!-- LAYER 1: IDENTITY (STICKY) -->
     <div class="catalog-header-shell">
       <div class="catalog-header">
         <BasePageHeader :title="title" :breadcrumbs="breadcrumbs">
@@ -123,16 +126,30 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
     </div>
 
     <div class="catalog-content">
-      <!-- CAPA 2: CONTEXTO (FILTROS) -->
+      <!-- LAYER 2: CONTEXT (FILTERS) -->
       <div v-if="$slots.filters" class="card filters-card">
         <slot name="filters"></slot>
       </div>
 
-      <!-- CAPA 3: TRABAJO (TABLA) -->
+      <!-- LAYER 3: WORK (TABLE) -->
       <div class="card table-card">
-        <div v-if="isLoading && items.length === 0" class="loading-state">
-          <div class="spinner"></div>
-          <p>Cargando datos...</p>
+        <div v-if="isLoading && items.length === 0" class="skeleton-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th v-for="c in (skeletonColumns || 4)" :key="c">
+                  <BaseSkeleton type="text" width="60%" />
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in (skeletonRows || 5)" :key="r">
+                <td v-for="c in (skeletonColumns || 4)" :key="c">
+                  <BaseSkeleton type="row" :width="Math.floor(Math.random() * (90 - 40 + 1) + 40) + '%'" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div v-else-if="error" class="error-state">
@@ -184,7 +201,7 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
   background: white;
   border-bottom: 1px solid var(--color-border);
   position: sticky;
-  top: 76px; /* Sincronizado con Navbar superior */
+  top: 76px; /* Synchronized with top Navbar */
   z-index: 900;
 }
 
@@ -232,7 +249,7 @@ const resolvedEmptyIcon = computed(() => getIcon(props.emptyIcon || 'search_off'
   flex-wrap: wrap;
 }
 
-/* Los filtros ahora heredan de _forms.css automáticamente */
+/* Filters now inherit from _forms.css automatically */
 :deep(.filter-group) {
   display: flex;
   flex-direction: column;

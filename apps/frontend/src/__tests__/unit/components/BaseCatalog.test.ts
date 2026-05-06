@@ -160,4 +160,17 @@ describe('BaseCatalog Component', () => {
     
     expect(container.querySelector('.is-selected')).toBeNull()
   })
+
+  it('should render skeleton table when loading and items are empty', () => {
+    const { container } = render(BaseCatalog, {
+      props: { ...defaultProps, items: [], isLoading: true },
+      global: { plugins: [router] },
+    })
+
+    const skeletonWrapper = container.querySelector('.skeleton-table-wrapper')
+    expect(skeletonWrapper).toBeInTheDocument()
+    
+    const skeletons = container.querySelectorAll('.skeleton')
+    expect(skeletons.length).toBeGreaterThan(0)
+  })
 })

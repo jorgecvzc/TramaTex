@@ -20,12 +20,15 @@
     - [x] Consolidación del explorador de iconos en la página de Design System.
     - [x] Actualización íntegra de la documentación técnica y de despliegue.
     - [x] Tarea 03: Navegación Core (Lógica de teclado en listados).
+    - [x] Tarea 04: Skeletons Industriales para estados de carga.
 - **Próximos Pasos (Pendientes para la siguiente sesión):**
-    - [ ] Tarea 04: Skeletons Industriales para estados de carga.
+    - [x] Tarea 05: Consolidación de Dashboards y BasePageHeader.
+    - [ ] Tarea 06: Implementación de Atajos de Teclado Globales.
 - **Archivos de Contexto:**
     - `docs/post-mvp/01-ui-ux-unification-master-plan.md`
-    - `docs/log/sprints/sprint-19/01-fundamentos-y-estilos-base-ui-ux.md`
-    - `apps/frontend/src/main.js`
+    - `docs/log/sprints/sprint-19/04-skeletons-industriales.md`
+    - `apps/frontend/src/components/shared/BaseSkeleton.vue`
+    - `apps/frontend/src/design-system/_skeletons.css`
 
 ---
 # REGISTRO DE SESIONES CERRADAS

@@ -1,160 +1,158 @@
 <template>
-  <div class="dashboard-page">
-    <!-- CABECERA: Bienvenida y Fecha -->
-    <header class="dashboard-header">
-      <div class="welcome-text">
-        <h1 class="font-brand">Panel de Control</h1>
-        <p class="text-muted">Bienvenido, <strong>{{ userName }}</strong>. Gestión de TramaTex para el {{ todayDate }}.</p>
-        <div class="context-tags">
-          <span class="context-tag">Vista Ejecutiva</span>
-          <span class="context-tag">Operaciones</span>
-          <span class="context-tag" :class="{ loading: isLoading }">Datos en tiempo real</span>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button @click="loadStats" class="btn-refresh" :disabled="isLoading" title="Actualizar datos">
-          <RefreshCw :size="20" :class="{ 'spin': isLoading }" />
-        </button>
-      </div>
-    </header>
+  <BaseDashboardPage :is-loading="isLoading">
+    <template #header>
+      <BasePageHeader 
+        title="Panel de Control" 
+        :subtitle="`Bienvenido, ${userName}. Gestión de TramaTex para el ${todayDate}.`"
+      >
+        <template #actions>
+          <div class="context-tags">
+            <span class="context-tag">Vista Ejecutiva</span>
+            <span class="context-tag">Operaciones</span>
+            <span class="context-tag" :class="{ loading: isLoading }">Datos en tiempo real</span>
+          </div>
+          <button @click="loadStats" class="btn-refresh" :disabled="isLoading" title="Actualizar datos">
+            <RefreshCw :size="20" :class="{ 'spin': isLoading }" />
+          </button>
+        </template>
+      </BasePageHeader>
+    </template>
 
-    <!-- KPIs INTERACTIVOS -->
-    <section class="kpi-grid section-spacing">
-      <div class="kpi-card clickable" @click="navigateTo('/sales/dashboard')">
-        <div class="kpi-icon blue"><CreditCard :size="24" /></div>
-        <div class="kpi-data">
-          <label>Ventas Mes</label>
-          <strong>{{ salesStats.monthlyTotal }}</strong>
-        </div>
-      </div>
-      <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDING')">
-        <div class="kpi-icon green"><ShoppingCart :size="24" /></div>
-        <div class="kpi-data">
-          <label>Pedidos Pendientes</label>
-          <strong>{{ salesStats.pendingOrders }}</strong>
-        </div>
-      </div>
-      <div class="kpi-card clickable" @click="navigateTo('/mes/work-orders?status=IN_PROGRESS')">
-        <div class="kpi-icon yellow"><Cpu :size="24" /></div>
-        <div class="kpi-data">
-          <label>Órdenes en Taller</label>
-          <strong>{{ mesStats.activeWorkOrders }}</strong>
-        </div>
-      </div>
-      <div class="kpi-card clickable" @click="navigateTo('/parties')">
-        <div class="kpi-icon purple"><Users :size="24" /></div>
-        <div class="kpi-data">
-          <label>Entidades</label>
-          <strong>{{ partyStats.totalParties }}</strong>
-        </div>
-      </div>
-    </section>
-    
-    <div class="dashboard-main-layout section-spacing">
-      <!-- COLUMNA PRINCIPAL -->
-      <main class="main-column">
-        <!-- ACCESOS DIRECTOS -->
-        <section class="ops-section section-block">
-          <div class="section-title-alt">
-            <Rocket :size="18" />
-            <h2>Accesos Directos</h2>
-            <span class="section-tag">Atajos de operación</span>
+    <div class="dashboard-content-wrapper">
+      <!-- KPIs INTERACTIVOS -->
+      <section class="kpi-grid">
+        <div class="kpi-card clickable" @click="navigateTo('/sales/dashboard')">
+          <div class="kpi-icon blue"><CreditCard :size="24" /></div>
+          <div class="kpi-data">
+            <label>Ventas Mes</label>
+            <strong>{{ salesStats.monthlyTotal }}</strong>
           </div>
-          <div class="ops-grid">
-            <RouterLink to="/sales/orders/new" class="op-item">
-              <div class="op-icon"><ShoppingCart :size="28" /></div>
-              <span>Nuevo Pedido</span>
-            </RouterLink>
-            <RouterLink to="/sales/tickets/new" class="op-item highlight">
-              <div class="op-icon"><Receipt :size="28" /></div>
-              <span>Venta Directa</span>
-            </RouterLink>
-            <RouterLink to="/products/new" class="op-item">
-              <div class="op-icon"><PlusSquare :size="28" /></div>
-              <span>Nuevo Producto</span>
-            </RouterLink>
-            <RouterLink to="/parties/new" class="op-item">
-              <div class="op-icon"><UserPlus :size="28" /></div>
-              <span>Nueva Entidad</span>
-            </RouterLink>
+        </div>
+        <div class="kpi-card clickable" @click="navigateTo('/sales/orders?status=PENDING')">
+          <div class="kpi-icon green"><ShoppingCart :size="24" /></div>
+          <div class="kpi-data">
+            <label>Pedidos Pendientes</label>
+            <strong>{{ salesStats.pendingOrders }}</strong>
           </div>
-        </section>
+        </div>
+        <div class="kpi-card clickable" @click="navigateTo('/mes/work-orders?status=IN_PROGRESS')">
+          <div class="kpi-icon yellow"><Cpu :size="24" /></div>
+          <div class="kpi-data">
+            <label>Órdenes en Taller</label>
+            <strong>{{ mesStats.activeWorkOrders }}</strong>
+          </div>
+        </div>
+        <div class="kpi-card clickable" @click="navigateTo('/parties')">
+          <div class="kpi-icon purple"><Users :size="24" /></div>
+          <div class="kpi-data">
+            <label>Entidades</label>
+            <strong>{{ partyStats.totalParties }}</strong>
+          </div>
+        </div>
+      </section>
 
-        <!-- DASHBOARDS DE MÓDULO -->
-        <section class="modules-section section-block">
-          <div class="section-title-alt">
-            <LayoutGrid :size="18" />
-            <h2>Módulos Principales</h2>
-            <span class="section-tag">Gestión por dominio</span>
-          </div>
-          <div class="modules-grid">
-            <RouterLink to="/sales/dashboard" class="module-link-card">
-              <div class="m-icon blue"><Wallet :size="22" /></div>
-              <div class="m-info">
-                <strong>Ventas</strong>
-                <p>Gestión de presupuestos, pedidos y facturación.</p>
-              </div>
-              <ChevronRight class="arrow" :size="18" />
-            </RouterLink>
-            <RouterLink to="/products/dashboard" class="module-link-card">
-              <div class="m-icon yellow"><Package :size="22" /></div>
-              <div class="m-info">
-                <strong>Catálogo</strong>
-                <p>Control de productos, stock y atributos.</p>
-              </div>
-              <ChevronRight class="arrow" :size="18" />
-            </RouterLink>
-            <RouterLink to="/parties/dashboard" class="module-link-card">
-              <div class="m-icon green"><Users :size="22" /></div>
-              <div class="m-info">
-                <strong>Entidades</strong>
-                <p>Base de datos de clientes y proveedores.</p>
-              </div>
-              <ChevronRight class="arrow" :size="18" />
-            </RouterLink>
-            <RouterLink to="/mes/dashboard" class="module-link-card">
-              <div class="m-icon purple"><Cpu :size="22" /></div>
-              <div class="m-info">
-                <strong>Taller (MES)</strong>
-                <p>Monitorización de producción y órdenes de trabajo.</p>
-              </div>
-              <ChevronRight class="arrow" :size="18" />
-            </RouterLink>
-          </div>
-        </section>
-      </main>
-      
-      <!-- COLUMNA LATERAL -->
-      <aside class="side-column">
-        <section v-if="isAdmin" class="card admin-side-card section-block sticky-admin">
-          <div class="ops-header">
-            <ShieldCheck :size="18" />
-            <h2>Sistema</h2>
-            <span class="section-tag">Administración</span>
-          </div>
-          <div class="side-links">
-            <RouterLink to="/admin/users" class="side-link-item">
-              <UserCog :size="20" />
-              <span>Gestión de Usuarios</span>
-            </RouterLink>
-            <RouterLink to="/admin/print-profile" class="side-link-item mt-2">
-              <Receipt :size="20" />
-              <span>Perfil de Impresión</span>
-            </RouterLink>
-            <RouterLink to="/dev/design-system" class="side-link-item mt-2 dev-link">
-              <Palette :size="20" />
-              <span>Design System</span>
-            </RouterLink>
-          </div>
-        </section>
-      </aside>
+      <!-- ACCESOS DIRECTOS -->
+      <section class="ops-section section-block section-spacing">
+        <div class="section-title-alt">
+          <Rocket :size="18" />
+          <h2>Accesos Directos</h2>
+          <span class="section-tag">Atajos de operación</span>
+        </div>
+        <div class="ops-grid">
+          <RouterLink to="/sales/orders/new" class="op-item">
+            <div class="op-icon"><ShoppingCart :size="28" /></div>
+            <span>Nuevo Pedido</span>
+          </RouterLink>
+          <RouterLink to="/sales/tickets/new" class="op-item highlight">
+            <div class="op-icon"><Receipt :size="28" /></div>
+            <span>Venta Directa</span>
+          </RouterLink>
+          <RouterLink to="/products/new" class="op-item">
+            <div class="op-icon"><PlusSquare :size="28" /></div>
+            <span>Nuevo Producto</span>
+          </RouterLink>
+          <RouterLink to="/parties/new" class="op-item">
+            <div class="op-icon"><UserPlus :size="28" /></div>
+            <span>Nueva Entidad</span>
+          </RouterLink>
+        </div>
+      </section>
+
+      <!-- DASHBOARDS DE MÓDULO -->
+      <section class="modules-section section-block section-spacing">
+        <div class="section-title-alt">
+          <LayoutGrid :size="18" />
+          <h2>Módulos Principales</h2>
+          <span class="section-tag">Gestión por dominio</span>
+        </div>
+        <div class="modules-grid">
+          <RouterLink to="/sales/dashboard" class="module-link-card">
+            <div class="m-icon blue"><Wallet :size="22" /></div>
+            <div class="m-info">
+              <strong>Ventas</strong>
+              <p>Gestión de presupuestos, pedidos y facturación.</p>
+            </div>
+            <ChevronRight class="arrow" :size="18" />
+          </RouterLink>
+          <RouterLink to="/products/dashboard" class="module-link-card">
+            <div class="m-icon yellow"><Package :size="22" /></div>
+            <div class="m-info">
+              <strong>Catálogo</strong>
+              <p>Control de productos, stock y atributos.</p>
+            </div>
+            <ChevronRight class="arrow" :size="18" />
+          </RouterLink>
+          <RouterLink to="/parties/dashboard" class="module-link-card">
+            <div class="m-icon green"><Users :size="22" /></div>
+            <div class="m-info">
+              <strong>Entidades</strong>
+              <p>Base de datos de clientes y proveedores.</p>
+            </div>
+            <ChevronRight class="arrow" :size="18" />
+          </RouterLink>
+          <RouterLink to="/mes/dashboard" class="module-link-card">
+            <div class="m-icon purple"><Cpu :size="22" /></div>
+            <div class="m-info">
+              <strong>Taller (MES)</strong>
+              <p>Monitorización de producción y órdenes de trabajo.</p>
+            </div>
+            <ChevronRight class="arrow" :size="18" />
+          </RouterLink>
+        </div>
+      </section>
     </div>
-  </div>
+
+    <template #sidebar>
+      <section v-if="isAdmin" class="admin-side-section">
+        <div class="ops-header">
+          <ShieldCheck :size="18" />
+          <h2>Sistema</h2>
+          <span class="section-tag">Admin</span>
+        </div>
+        <div class="side-links">
+          <RouterLink to="/admin/users" class="side-link-item">
+            <UserCog :size="20" />
+            <span>Gestión de Usuarios</span>
+          </RouterLink>
+          <RouterLink to="/admin/print-profile" class="side-link-item">
+            <Receipt :size="20" />
+            <span>Perfil de Impresión</span>
+          </RouterLink>
+          <RouterLink to="/dev/design-system" class="side-link-item dev-link">
+            <Palette :size="20" />
+            <span>Design System</span>
+          </RouterLink>
+        </div>
+      </section>
+    </template>
+  </BaseDashboardPage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
+import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import { 
   RefreshCw, 
   CreditCard, 
@@ -190,29 +188,29 @@ const partyStats = ref({ totalParties: 0 })
 
 async function loadStats() {
   isLoading.value = true
-  console.log('[Dashboard] Cargando estadísticas...');
+  console.log('[Dashboard] Loading statistics...');
   
   try {
     const now = new Date()
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    // Ejecutamos en paralelo con captura individual
+    // Execute in parallel with individual capture
     const [ordersRes, workOrdersRes, partiesRes, invoicesRes] = await Promise.allSettled([
       salesApi.listOrders({ status: 'PENDING', limit: 1 }),
       mesApi.listWorkOrders({ status: 'IN_PROGRESS' }),
       partyApi.listParties({ pageSize: 1, pageNumber: 1 }),
-      salesApi.listInvoices({}) // Sin filtro de fecha inicial por compatibilidad
+      salesApi.listInvoices({}) // No initial date filter for compatibility
     ])
     
-    // 1. Pedidos Pendientes
+    // 1. Pending Orders
     if (ordersRes.status === 'fulfilled' && ordersRes.value) {
       salesStats.value.pendingOrders = ordersRes.value.total || 0
-      console.log('[Dashboard] Pedidos cargados:', salesStats.value.pendingOrders);
+      console.log('[Dashboard] Orders loaded:', salesStats.value.pendingOrders);
     } else {
-      console.warn('[Dashboard] Fallo al cargar pedidos:', (ordersRes as any).reason);
+      console.warn('[Dashboard] Failed to load orders:', (ordersRes as any).reason);
     }
     
-    // 2. Ventas Mes (Facturas del mes actual)
+    // 2. Monthly Sales (Invoices for the current month)
     if (invoicesRes.status === 'fulfilled' && invoicesRes.value) {
       const invData = invoicesRes.value.data || []
       const monthInvoices = invData.filter((inv: any) => {
@@ -228,31 +226,31 @@ async function loadStats() {
       }, 0)
 
       salesStats.value.monthlyTotal = salesApi.formatMoney(totalAmount)
-      console.log('[Dashboard] Ventas mes calculadas:', salesStats.value.monthlyTotal, `(${monthInvoices.length} facturas)`);
+      console.log('[Dashboard] Monthly sales calculated:', salesStats.value.monthlyTotal, `(${monthInvoices.length} invoices)`);
     } else {
 
-      console.warn('[Dashboard] Fallo al cargar facturas:', (invoicesRes as any).reason);
+      console.warn('[Dashboard] Failed to load invoices:', (invoicesRes as any).reason);
     }
 
-    // 3. Órdenes en Taller
+    // 3. Work Orders (MES)
     if (workOrdersRes.status === 'fulfilled' && workOrdersRes.value) {
       const workOrders = workOrdersRes.value
       mesStats.value.activeWorkOrders = Array.isArray(workOrders) ? workOrders.length : 0
-      console.log('[Dashboard] Órdenes MES cargadas:', mesStats.value.activeWorkOrders);
+      console.log('[Dashboard] MES orders loaded:', mesStats.value.activeWorkOrders);
     } else {
-      console.warn('[Dashboard] Fallo al cargar órdenes MES:', (workOrdersRes as any).reason);
+      console.warn('[Dashboard] Failed to load MES orders:', (workOrdersRes as any).reason);
     }
     
-    // 4. Entidades
+    // 4. Entities
     if (partiesRes.status === 'fulfilled' && partiesRes.value) {
       partyStats.value.totalParties = partiesRes.value.total || 0
-      console.log('[Dashboard] Entidades cargadas:', partyStats.value.totalParties);
+      console.log('[Dashboard] Entities loaded:', partyStats.value.totalParties);
     } else {
-      console.warn('[Dashboard] Fallo al cargar entidades:', (partiesRes as any).reason);
+      console.warn('[Dashboard] Failed to load entities:', (partiesRes as any).reason);
     }
 
   } catch (err) { 
-    console.error('[Dashboard] Error crítico inesperado:', err) 
+    console.error('[Dashboard] Unexpected critical error:', err) 
   } finally { 
     isLoading.value = false 
   }
@@ -262,26 +260,29 @@ onMounted(loadStats)
 </script>
 
 <style scoped>
-.dashboard-page { 
-  max-width: 1300px; 
-  margin: 0 auto; 
-  padding: 1rem;
-  
-  /* Variables de espaciado locales equilibradas */
-  --dashboard-section-gap: 1.5rem;
-  --dashboard-column-gap: 1.5rem;
-  --dashboard-tag-gap: 0.5rem;
-  --dashboard-card-gap: 0.75rem;
+.dashboard-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-.dashboard-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; }
-.dashboard-header h1 { font-size: clamp(1.8rem, 2.5vw, 2.25rem); color: var(--color-text-primary); margin: 0; font-weight: 800; }
-.btn-refresh { background: white; border: 1px solid var(--color-border); padding: 0.5rem; border-radius: 8px; cursor: pointer; color: var(--color-text-secondary); transition: 0.2s; }
+.btn-refresh { 
+  background: white; 
+  border: 1px solid var(--color-border); 
+  padding: 0.5rem; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  color: var(--color-text-secondary); 
+  transition: 0.2s; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .btn-refresh:hover { color: var(--color-primary); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 
-.section-spacing { margin-top: var(--dashboard-section-gap); }
+.section-spacing { margin-top: var(--spacing-md); }
 
-.context-tags { display: flex; flex-wrap: wrap; gap: var(--dashboard-tag-gap); margin-top: 0.7rem; }
+.context-tags { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); align-items: center; }
 .context-tag {
   display: inline-flex;
   align-items: center;
@@ -310,15 +311,13 @@ onMounted(loadStats)
 .kpi-data label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; }
 .kpi-data strong { font-size: 1.4rem; color: var(--color-text-primary); font-weight: 800; }
 
-.dashboard-main-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--dashboard-column-gap); align-items: start; }
-.main-column, .side-column { display: flex; flex-direction: column; gap: var(--dashboard-section-gap); }
 .section-block {
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 14px;
   box-shadow: var(--box-shadow-sm);
 }
-.section-title-alt { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
+.section-title-alt { display: flex; align-items: center; gap: var(--spacing-xs); margin-bottom: 0.85rem; }
 .section-title-alt h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
 .section-title-alt :deep(svg) { color: var(--color-text-secondary); }
 .section-tag {
@@ -334,17 +333,17 @@ onMounted(loadStats)
 }
 .ops-section,
 .modules-section { padding: clamp(1rem, 2vw, 1.35rem); }
-.ops-header { display: flex; align-items: center; gap: var(--dashboard-tag-gap); margin-bottom: 0.85rem; }
+.ops-header { display: flex; align-items: center; gap: var(--spacing-xs); margin-bottom: 1.5rem; }
 .ops-header h2 { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-primary); }
 .ops-header :deep(svg) { color: var(--color-primary); }
-.ops-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
+.ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--spacing-sm); }
 .op-item { display: flex; flex-direction: column; align-items: center; padding: 1.25rem; background: var(--color-background); border-radius: 12px; text-decoration: none; color: var(--color-text-primary); font-weight: 700; font-size: 0.8rem; transition: 0.2s; text-align: center; gap: 0.75rem; border: 1px solid var(--color-border); }
 .op-item:hover { transform: translateY(-3px); border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); color: var(--color-primary); }
 .op-icon { color: var(--color-primary); }
 .op-icon :deep(svg) { width: 28px; height: 28px; }
 .op-item.highlight { background: rgba(230, 184, 0, 0.05); }
 
-.modules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--dashboard-card-gap); }
+.modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-sm); }
 .module-link-card { display: flex; align-items: center; gap: 1rem; padding: 1.1rem; background: white; border-radius: 12px; border: 1px solid var(--color-border); text-decoration: none; transition: 0.2s; }
 .module-link-card:hover { transform: translateX(5px); border-color: var(--color-secondary); box-shadow: var(--box-shadow-sm); }
 .m-icon { width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -358,34 +357,21 @@ onMounted(loadStats)
 .m-info p { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0.1rem 0 0; }
 .module-link-card .arrow { margin-left: auto; color: var(--color-border); font-size: 18px; }
 
-.admin-side-card { padding: 1.2rem; }
-.sticky-admin { position: sticky; top: 88px; }
-.side-links { display: flex; flex-direction: column; gap: var(--dashboard-tag-gap); }
+.side-links { display: flex; flex-direction: column; gap: var(--spacing-sm); }
 .side-link-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--color-background); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; border: 1px solid transparent; transition: 0.2s; }
 .side-link-item:hover { background: white; border-color: var(--color-primary); color: var(--color-primary); transform: translateX(3px); }
 .side-link-item :deep(svg) { width: 20px; height: 20px; color: var(--color-text-secondary); }
-.side-links .mt-2,
-.dev-link { margin-top: 0; }
 .dev-link { opacity: 0.7; }
-
-@media (max-width: 1180px) {
-  .dashboard-main-layout { grid-template-columns: 1fr; }
-  .sticky-admin { position: static; top: auto; }
-  .ops-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 760px) {
-  :root {
-    --dashboard-section-gap: 2rem;
-  }
-  .dashboard-header { flex-direction: column; align-items: flex-start; }
-  .ops-grid { grid-template-columns: 1fr; }
-  .modules-grid { grid-template-columns: 1fr; }
-  .section-title-alt { flex-wrap: wrap; }
-  .section-tag { margin-left: 0; }
-}
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+@media (max-width: 760px) {
+  .ops-grid { grid-template-columns: 1fr; }
+  .modules-grid { grid-template-columns: 1fr; }
+}
 </style>
+; }
+}
+</style>
+>

@@ -14,9 +14,19 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="loading">
-      <div class="spinner"></div>
-      <p>Cargando atributos...</p>
+    <div v-if="isLoading" class="attributes-container">
+      <div class="attribute-section">
+        <div class="section-header">
+          <BaseSkeleton type="title" width="150px" />
+        </div>
+        <div class="attributes-grid">
+          <div v-for="i in 3" :key="i" class="card" style="padding: 1rem; border: 1px solid var(--color-border);">
+            <BaseSkeleton type="title" width="60%" />
+            <BaseSkeleton type="text" width="90%" />
+            <BaseSkeleton type="text" width="40%" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -165,6 +175,7 @@
 import { computed } from 'vue'
 import { getIcon } from '@/utils/icons'
 import AttributeCard from './AttributeCard.vue'
+import BaseSkeleton from '@/components/shared/BaseSkeleton.vue'
 
 const props = defineProps({
   product: {

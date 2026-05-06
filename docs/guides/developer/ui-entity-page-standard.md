@@ -40,7 +40,7 @@ El diseño se organiza en tres profundidades visuales para maximizar la claridad
 ```html
 <BaseEntityPage>
   <template #header>
-    <PageHeader title="Entidad #123" ... />
+    <BasePageHeader title="Entidad #123" ... />
   </template>
 
   <template #toolbar>

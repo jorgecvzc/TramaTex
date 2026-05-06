@@ -1,0 +1,56 @@
+/*
+ * TramaTex Skeleton Styles
+ * Provides the shimmer effect and base skeleton shapes.
+ */
+
+.skeleton {
+  background-color: var(--color-border);
+  background-image: linear-gradient(
+    90deg,
+    var(--color-border) 0px,
+    var(--color-background) 50%,
+    var(--color-border) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--border-radius-sm);
+  display: inline-block;
+  line-height: 1;
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+/* Shapes */
+.skeleton-text {
+  height: 0.8em;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+  height: 1.2em;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+}
+
+.skeleton-button {
+  height: 2.5rem;
+  width: 100px;
+}
+
+/* Modifiers for table use */
+.skeleton-row {
+  height: 1.5rem;
+  margin: 0.5rem 0;
+}

@@ -123,7 +123,7 @@ async function loadParties(name = '') {
     allParties.value = response.data || (Array.isArray(response) ? response : []);
     
     if (props.modelValue && !name && !selectedParty.value) {
-      // Si tenemos un ID pero no lo encontramos en la lista, traerlo específicamente
+      // If we have an ID but it's not in the list, fetch it specifically
       try {
         externalParty.value = await partyApi.getParty(props.modelValue);
         if (externalParty.value) searchTerm.value = externalParty.value.name;
@@ -189,7 +189,7 @@ function getRoleLabel(role: string) {
 
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
-    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
+    // If the value changes externally, force reload to ensure we have the name
     if (!selectedParty.value || selectedParty.value.id !== newVal) {
       loadParties();
     }
