@@ -162,9 +162,9 @@ watch(() => formData.type, (newType) => {
   <form @submit.prevent="handleSubmit" class="party-form">
     <header class="form-header-box mb-6">
       <h2 class="text-xl font-bold flex items-center gap-2">
-        <Building2 v-if="formData.type === 'ORGANIZATION'" :size="24" />
+        <Building2 v-if="formData && formData.type === 'ORGANIZATION'" :size="24" />
         <User v-else :size="24" />
-        {{ partyId ? 'Editar entidad' : 'Crear entidad' }}
+        {{ props.partyId ? 'Editar entidad' : 'Crear entidad' }}
       </h2>
     </header>
 
@@ -173,7 +173,7 @@ watch(() => formData.type, (newType) => {
       <FormSection title="Identidad" icon="person">
         <div class="form-group mb-4">
           <label for="entity-type">Tipo de entidad *</label>
-          <select id="entity-type" v-model="formData.type" class="form-input" required :disabled="!!partyId">
+          <select id="entity-type" v-model="formData.type" class="form-input" required :disabled="!!props.partyId">
             <option value="">-- Selecciona tipo --</option>
             <option value="ORGANIZATION">Empresa / Jurídica</option>
             <option value="PERSON">Persona Física</option>
@@ -194,9 +194,9 @@ watch(() => formData.type, (newType) => {
         <div class="animate-fade-in">
           <div class="form-group mb-4">
             <label for="party-name">
-              <template v-if="formData.type === 'ORGANIZATION'">Nombre de la organización *</template>
-              <template v-elif="formData.type === 'PERSON'">Nombre completo *</template>
-              <template v-else>Nombre de la entidad *</template>
+              <span v-if="formData.type === 'ORGANIZATION'">Nombre de la organización *</span>
+              <span v-else-if="formData.type === 'PERSON'">Nombre completo *</span>
+              <span v-else>Nombre de la entidad *</span>
             </label>
             <input 
               id="party-name"
@@ -277,7 +277,7 @@ watch(() => formData.type, (newType) => {
       <button type="button" class="btn btn-ghost mr-2" @click="emit('cancel')">Cancelar</button>
       <button type="submit" class="btn btn-secondary" :disabled="isSaving">
         <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
-        <span>{{ partyId ? 'Actualizar entidad' : 'Crear entidad' }}</span>
+        <span>{{ props.partyId ? 'Actualizar entidad' : 'Crear entidad' }}</span>
       </button>
     </div>
   </form>

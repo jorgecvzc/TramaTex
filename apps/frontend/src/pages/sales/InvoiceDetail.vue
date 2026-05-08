@@ -50,10 +50,10 @@
     <template #toolbar v-if="mode === 'detail'">
       <div class="action-toolbar card">
         <div class="toolbar-info">
-          <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
+          <span v-if="invoice" :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
             {{ salesApi.getStatusLabel(invoice.status) }}
           </span>
-          <span :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
+          <span v-if="invoice" :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
             {{ getTypeLabel(invoice.type) }}
           </span>
         </div>
