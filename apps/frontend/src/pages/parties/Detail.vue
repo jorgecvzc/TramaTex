@@ -49,8 +49,8 @@
           </template>
         </BasePageHeader>
 
-        <!-- TAB NAVIGATION (Only in detail) -->
-        <nav v-if="mode === 'detail'" class="entity-tabs">
+        <!-- TAB NAVIGATION (Visible in detail and edit modes) -->
+        <nav v-if="mode !== 'create'" class="entity-tabs">
           <button 
             v-for="tab in tabs" 
             :key="tab.id" 
