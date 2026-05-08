@@ -83,12 +83,20 @@ function scrollToSelected() {
   }
 }
 
+function handleGlobalRefresh() {
+  if (!props.isLoading) {
+    emit('refresh')
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('tramatex-refresh', handleGlobalRefresh)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('tramatex-refresh', handleGlobalRefresh)
 })
 
 const resolvedIcon = computed(() => getIcon(props.icon || 'list_alt'))

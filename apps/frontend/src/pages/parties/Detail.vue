@@ -368,6 +368,20 @@ async function executeDelete() {
 
 function formatDate(d: string) { return d ? new Date(d).toLocaleDateString('es-ES') : '—' }
 
+function handleGlobalRefresh() {
+  if (!isLoading.value) {
+    loadData()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('tramatex-refresh', handleGlobalRefresh)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-refresh', handleGlobalRefresh)
+})
+
 watch(() => route.params.id, () => loadData(), { immediate: true })
 </script>
 
