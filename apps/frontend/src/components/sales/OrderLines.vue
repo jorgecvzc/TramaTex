@@ -30,12 +30,9 @@
                 v-if="isEditing" 
                 :value="line.quantity" 
                 type="number" 
-                class="form-input text-center font-bold" 
-                :data-row="index"
-                data-col="qty"
+                class="form-input text-center" 
                 min="1" 
-                @input="updateLineField(index, 'quantity', $event.target.value)"
-                @keydown="handleKeyDown($event, index, 'qty')"
+                @input="updateLineField(index, 'quantity', $event.target.value)" 
               />
               <span v-else>{{ line.quantity }}</span>
             </td>
@@ -48,10 +45,7 @@
                 type="number" 
                 step="0.01" 
                 class="form-input text-right" 
-                :data-row="index"
-                data-col="price"
-                @input="updateLineField(index, 'unit_price', $event.target.value)"
-                @keydown="handleKeyDown($event, index, 'price')"
+                @input="updateLineField(index, 'unit_price', $event.target.value)" 
               />
               <span v-else>{{ formatMoney(line.unit_price || line.unitPrice) }}</span>
             </td>
@@ -64,12 +58,9 @@
                 type="number" 
                 step="0.01" 
                 class="form-input text-center" 
-                :data-row="index"
-                data-col="disc"
                 min="0" 
                 max="100" 
-                @input="updateLineField(index, 'discount_percent', $event.target.value)"
-                @keydown="handleKeyDown($event, index, 'disc')"
+                @input="updateLineField(index, 'discount_percent', $event.target.value)" 
               />
               <span v-else>{{ line.discount_percent || line.discountPercent || 0 }}%</span>
             </td>
@@ -82,7 +73,7 @@
             <!-- Borrar -->
             <td v-if="isEditing" class="text-center">
               <button class="btn-delete" type="button" @click="removeLine(index)" title="Quitar línea">
-                <Trash2 :size="18" />
+                <span class="material-symbols-outlined">delete</span>
               </button>
             </td>
           </tr>
@@ -98,7 +89,6 @@
 </template>
 
 <script setup>
-import { Trash2 } from 'lucide-vue-next'
 import salesApi from '@/services/salesApi'
 
 const props = defineProps({
@@ -106,68 +96,7 @@ const props = defineProps({
   isEditing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:lines', 'add-line-request', 'last-field-tab'])
-
-function handleKeyDown(e, index, col) {
-  const isLastLine = index === props.lines.length - 1
-  const currentLine = props.lines[index]
-
-  // 1. Arrows Up/Down as +/- for numeric fields
-  if (['qty', 'price', 'disc'].includes(col)) {
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const step = col === 'qty' ? 1 : 1.0
-      const field = col === 'qty' ? 'quantity' : (col === 'price' ? 'unit_price' : 'discount_percent')
-      updateLineField(index, field, Number(currentLine[field] || 0) + step)
-      return
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      const min = col === 'qty' ? 1 : 0
-      const step = col === 'qty' ? 1 : 1.0
-      const field = col === 'qty' ? 'quantity' : (col === 'price' ? 'unit_price' : 'discount_percent')
-      updateLineField(index, field, Math.max(min, Number(currentLine[field] || 0) - step))
-      return
-    }
-  }
-
-  // 2. Tab key in last field
-  if (e.key === 'Tab' && !e.shiftKey && isLastLine && col === 'disc') {
-    emit('last-field-tab')
-    return
-  }
-
-  // 3. Enter key for navigation
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    if (col === 'qty') focusInput(index, 'price')
-    else if (col === 'price') focusInput(index, 'disc')
-    else if (col === 'disc') {
-      if (isLastLine) {
-        emit('add-line-request')
-      } else {
-        focusInput(index + 1, 'qty')
-      }
-    }
-    return
-  }
-
-  // 4. Shortcut for Add Line: Insert key
-  if (e.key === 'Insert') {
-    e.preventDefault()
-    emit('add-line-request')
-  }
-}
-
-function focusInput(row, col) {
-  setTimeout(() => {
-    const el = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`)
-    if (el) {
-      el.focus()
-      el.select()
-    }
-  }, 10)
-}
+const emit = defineEmits(['update:lines'])
 
 function removeLine(index) {
   const newLines = [...props.lines]
@@ -186,13 +115,13 @@ function updateLineField(index, field, value) {
 }
 
 function calculateSubtotal(line) {
-  // If we already have the subtotal calculated by the backend (detail mode), use it.
+  // Si ya tenemos el subtotal calculado por el backend (modo detalle), lo usamos.
   if (!props.isEditing && line.subtotal !== undefined) {
     return line.subtotal?.amount ?? line.subtotal;
   }
   
-  // In edit mode or if no subtotal, calculate locally.
-  // Use ?? instead of || so that 0 is not ignored.
+  // En modo edición o si no hay subtotal, calculamos localmente.
+  // Usamos ?? en lugar de || para que el 0 no sea ignorado.
   const price = Number(line.unit_price ?? line.unitPrice ?? 0)
   const qty = Number(line.quantity ?? 0)
   const disc = Number(line.discount_percent ?? line.discountPercent ?? 0)
