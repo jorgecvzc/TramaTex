@@ -172,6 +172,15 @@ watch(() => formData.type, (newType) => {
       <!-- SECTION: IDENTITY -->
       <FormSection title="Identidad" icon="person">
         <div class="form-group mb-4">
+          <label for="entity-type">Tipo de entidad *</label>
+          <select id="entity-type" v-model="formData.type" class="form-input" required :disabled="!!partyId">
+            <option value="">-- Selecciona tipo --</option>
+            <option value="ORGANIZATION">Empresa / Jurídica</option>
+            <option value="PERSON">Persona Física</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-4">
           <label for="party-role">Rol de la entidad *</label>
           <select id="party-role" v-model="formData.role" class="form-input" required>
             <option value="">-- Selecciona rol --</option>
@@ -182,18 +191,13 @@ watch(() => formData.type, (newType) => {
           </select>
         </div>
 
-        <div class="form-group mb-4">
-          <label for="entity-type">Tipo de entidad *</label>
-          <select id="entity-type" v-model="formData.type" class="form-input" required :disabled="!!partyId">
-            <option value="">-- Selecciona tipo --</option>
-            <option value="ORGANIZATION">Empresa / Jurídica</option>
-            <option value="PERSON">Persona Física</option>
-          </select>
-        </div>
-
         <div class="animate-fade-in">
           <div class="form-group mb-4">
-            <label for="party-name">{{ formData.type === 'ORGANIZATION' ? 'Nombre de la organización *' : 'Nombre completo *' }}</label>
+            <label for="party-name">
+              <template v-if="formData.type === 'ORGANIZATION'">Nombre de la organización *</template>
+              <template v-elif="formData.type === 'PERSON'">Nombre completo *</template>
+              <template v-else>Nombre de la entidad *</template>
+            </label>
             <input 
               id="party-name"
               v-model="formData.name" 
@@ -202,7 +206,7 @@ watch(() => formData.type, (newType) => {
               :class="{ 'is-invalid': errors.name }"
               required 
               @blur="validateName"
-              :placeholder="formData.type === 'ORGANIZATION' ? 'p. ej. Acme Corp' : 'p. ej. Juan Pérez'"
+              :placeholder="formData.type === 'ORGANIZATION' ? 'p. ej. Acme Corp' : (formData.type === 'PERSON' ? 'p. ej. Juan Pérez' : 'Nombre comercial o completo')"
             />
             <span v-if="errors.name" class="error-msg">{{ errors.name }}</span>
           </div>
