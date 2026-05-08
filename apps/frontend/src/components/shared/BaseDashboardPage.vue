@@ -63,7 +63,7 @@ defineProps<{
   box-shadow: var(--box-shadow-sm);
   z-index: 100;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   min-height: 88px;
   position: sticky;
   top: 0;
@@ -72,7 +72,7 @@ defineProps<{
 
 .header-content-wrapper {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 2rem;
