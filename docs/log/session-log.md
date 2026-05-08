@@ -23,7 +23,18 @@
     - [x] Tarea 04: Skeletons Industriales para estados de carga.
 - **Próximos Pasos (Pendientes para la siguiente sesión):**
     - [x] Tarea 05: Consolidación de Dashboards y BasePageHeader.
+    - [x] Refactor de navegación por teclado en tablas de líneas (Flechas +/- y Enter).
+    - [x] Mejora de validación de campos en módulo Entidades (Parties).
     - [ ] Tarea 06: Implementación de Atajos de Teclado Globales. **(Requiere autorización expresa del usuario con un "Sí" para comenzar)**.
+
+---
+### PRÓXIMA SESIÓN: Auditoría y Verificación Global
+Lo primero a realizar mañana será una **comprobación exhaustiva de todo lo implementado** hoy para asegurar que no hay regresiones y que la experiencia de usuario es óptima:
+1. Validar navegación de teclado en todos los formularios de líneas.
+2. Verificar persistencia de cabeceras fijas en Dashboards.
+3. Comprobar flujo de validación en Entidades.
+4. Despliegue en `pcele` tras validación.
+---
 - **Archivos de Contexto:**
     - `docs/post-mvp/01-ui-ux-unification-master-plan.md`
     - `docs/log/sprints/sprint-19/04-skeletons-industriales.md`

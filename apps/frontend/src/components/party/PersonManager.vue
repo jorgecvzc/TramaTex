@@ -350,13 +350,7 @@ function editPerson(person) {
 }
 
 async function savePerson() {
-  if (!formData.first_name || !formData.last_name) {
-    toastStore.warning('El nombre y los apellidos son obligatorios')
-    return
-  }
-  
-  if (!isValidEmail(formData.email)) {
-    toastStore.warning('El formato del email no es válido')
+  if (!validate()) {
     return
   }
 

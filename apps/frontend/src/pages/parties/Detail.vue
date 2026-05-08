@@ -46,16 +46,6 @@
                 <span>Eliminar Entidad</span>
               </button>
             </div>
-            <div v-else class="header-actions-group">
-              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
-                <X :size="18" />
-                <span>Cancelar</span>
-              </button>
-              <button class="btn btn-secondary ml-2" @click="saveParty" :disabled="isSaving">
-                <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
-                <span>{{ mode === 'create' ? 'Crear Entidad' : 'Guardar Cambios' }}</span>
-              </button>
-            </div>
           </template>
         </BasePageHeader>
 
@@ -116,89 +106,35 @@
     <div class="party-master-content">
       <!-- TAB: GENERAL / FORM -->
       <div v-if="activeTab === 'general'" class="tab-fade-in">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- SECTION: IDENTITY -->
-          <FormSection title="Datos de Identidad" icon="person">
-            <div v-if="mode === 'detail'">
+        <template v-if="mode === 'detail'">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- SECTION: IDENTITY -->
+            <FormSection title="Datos de Identidad" icon="person">
               <DataRow label="Nombre Comercial / Completo" :value="party?.name" icon="badge" />
               <DataRow label="Tipo de Entidad" :value="getEntityTypeLabel(party?.type)" icon="users" />
               <DataRow label="Identificador Fiscal" :value="`${party?.tax_id_type || 'CIF'}: ${party?.tax_id || '—'}`" is-mono icon="fingerprint" />
               <DataRow label="Notas Internas" icon="notes">
                 <p class="notes-text">{{ party?.notes || 'Sin observaciones registradas.' }}</p>
               </DataRow>
-            </div>
-            <div v-else class="form-container">
-              <div class="form-group">
-                <label>Nombre de la entidad *</label>
-                <input v-model="formData.name" type="text" class="form-input" required placeholder="Nombre comercial o completo" />
-              </div>
-              <div class="form-row mt-4">
-                <div class="form-group">
-                  <label>Tipo de Entidad</label>
-                  <select v-model="formData.type" class="form-input" :disabled="mode === 'edit'">
-                    <option value="ORGANIZATION">Empresa / Jurídica</option>
-                    <option value="PERSON">Persona Física</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Tipo Doc. Fiscal</label>
-                  <select v-model="formData.taxIdType" class="form-input">
-                    <option value="CIF">CIF (Empresas)</option>
-                    <option value="NIF">NIF (Persona Física)</option>
-                    <option value="NIE">NIE (Extranjeros)</option>
-                    <option value="VAT">VAT (Intracomunitario)</option>
-                    <option value="OTHER">Otro</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Número Identificación</label>
-                  <input v-model="formData.taxId" type="text" class="form-input text-mono" placeholder="B12345678" />
-                </div>
-              </div>
-              <div class="form-group mt-4">
-                <label>Notas Internas</label>
-                <textarea v-model="formData.notes" class="form-textarea" rows="3" placeholder="Observaciones privadas..."></textarea>
-              </div>
-            </div>
-          </FormSection>
+            </FormSection>
 
-          <!-- SECTION: CONFIGURATION -->
-          <FormSection title="Configuración de Cuenta" icon="settings">
-            <div v-if="mode === 'detail'">
+            <!-- SECTION: CONFIGURATION -->
+            <FormSection title="Configuración de Cuenta" icon="settings">
               <DataRow label="Estado Actual" :value="getStatusLabel(party?.status)" icon="shield-check" />
               <DataRow label="Rol en el Sistema" :value="getRoleLabel(party?.role)" icon="git-fork" />
               <DataRow v-if="party?.role !== 'SUPPLIER'" label="Descuento por Defecto" :value="(party?.default_discount_percentage || 0) + '%'" icon="tag" />
-            </div>
-            <div v-else class="form-container">
-              <div class="form-group">
-                <label>Estado en Sistema</label>
-                <select v-model="formData.status" class="form-input">
-                  <option value="ACTIVE">ACTIVO</option>
-                  <option value="INACTIVE">INACTIVO</option>
-                </select>
-              </div>
-              <div class="form-group mt-4">
-                <label>Rol Principal</label>
-                <select v-model="formData.role" class="form-input">
-                  <option value="CLIENT">Cliente</option>
-                  <option value="SUPPLIER">Proveedor</option>
-                  <option value="BOTH">Cliente y Proveedor</option>
-                </select>
-              </div>
-              <div class="form-group mt-4" v-if="formData.role !== 'SUPPLIER'">
-                <label>Bonificación Comercial (%)</label>
-                <div class="input-with-icon">
-                  <Percent :size="18" class="icon-start" />
-                  <input v-model.number="formData.defaultDiscountPercentage" type="number" step="0.01" min="0" max="100" class="form-input" />
-                </div>
-                <span class="help-text">Descuento aplicado automáticamente en líneas de venta.</span>
-              </div>
-              <div class="form-group mt-4" v-else>
-                <p class="text-muted italic text-xs">Los descuentos por defecto no aplican a proveedores.</p>
-              </div>
-            </div>
-          </FormSection>
-        </div>
+            </FormSection>
+          </div>
+        </template>
+        <template v-else>
+          <PartyForm 
+            :party-id="mode === 'edit' ? party?.id : undefined" 
+            :initial-data="mode === 'edit' ? party : undefined" 
+            @submit="(p) => router.push(`/parties/${p.id}`)"
+            @update="loadData"
+            @cancel="exitEditMode"
+          />
+        </template>
       </div>
 
       <!-- SECONDARY TABS (Detail mode only) -->
@@ -243,6 +179,7 @@ import DataRow from '@/components/shared/DataRow.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import AddressManager from '@/components/party/AddressManager.vue'
 import PersonManager from '@/components/party/PersonManager.vue'
+import PartyForm from '@/components/party/PartyForm.vue'
 import { partyApi } from '@/services/partyApi'
 import { useToastStore } from '@/stores/toast'
 
