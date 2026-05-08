@@ -25,7 +25,7 @@
         />
         
         <!-- Dropdown Results -->
-        <div v-if="showDropdown" class="dropdown-results">
+        <div v-if="showDropdown && searchTerm" class="dropdown-results">
           <div v-if="isSearching" class="dropdown-item loading">
             <span class="spinner-small"></span>
             Buscando...
@@ -49,7 +49,7 @@
             </div>
           </template>
           <div v-else class="dropdown-item empty">
-            {{ searchTerm ? `No se encontraron resultados para "${searchTerm}"` : 'No hay entidades disponibles' }}
+            No se encontraron resultados para "{{ searchTerm }}"
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ async function loadParties(name = '') {
     allParties.value = response.data || (Array.isArray(response) ? response : []);
     
     if (props.modelValue && !name && !selectedParty.value) {
-      // If we have an ID but it's not in the list, fetch it specifically
+      // Si tenemos un ID pero no lo encontramos en la lista, traerlo específicamente
       try {
         externalParty.value = await partyApi.getParty(props.modelValue);
         if (externalParty.value) searchTerm.value = externalParty.value.name;
@@ -189,7 +189,7 @@ function getRoleLabel(role: string) {
 
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
-    // If the value changes externally, force reload to ensure we have the name
+    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
     if (!selectedParty.value || selectedParty.value.id !== newVal) {
       loadParties();
     }

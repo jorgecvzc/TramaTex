@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import { Terminal, RefreshCw, LogOut } from 'lucide-vue-next'
-import { getIcon } from '@/utils/icons'
 
 const props = defineProps<{
   title: string
   stationId?: string
-  icon?: any
+  icon?: string
   isLoading?: boolean
 }>()
 
@@ -27,10 +25,7 @@ onUnmounted(() => {
     <!-- CABECERA INDUSTRIAL -->
     <header class="terminal-header">
       <div class="header-brand">
-        <div class="logo-icon">
-          <component v-if="icon" :is="getIcon(icon)" :size="48" />
-          <Terminal v-else :size="48" />
-        </div>
+        <span class="material-symbols-outlined logo-icon">{{ icon || 'terminal' }}</span>
         <div class="title-stack">
           <h1>{{ title }}</h1>
           <span v-if="stationId" class="station-label">ESTACIÓN: {{ stationId }}</span>
@@ -42,11 +37,11 @@ onUnmounted(() => {
         <slot name="extra-actions"></slot>
 
         <button class="btn-terminal btn-sync" @click="$emit('refresh')" :disabled="isLoading">
-          <RefreshCw :size="24" :class="{ 'spin': isLoading }" />
+          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
           <span>Sincronizar</span>
         </button>
         <button class="btn-terminal btn-exit" @click="$emit('close')">
-          <LogOut :size="24" />
+          <span class="material-symbols-outlined">logout</span>
           <span>Salir</span>
         </button>
       </div>

@@ -8,7 +8,7 @@
 
     <!-- Error Display -->
     <div v-if="error" class="error-banner">
-      <AlertTriangle :size="16" style="vertical-align: middle" /> {{ error }}
+      <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle">warning</span> {{ error }}
     </div>
 
     <!-- Search Section -->
@@ -32,7 +32,7 @@
             class="btn btn-search"
             :disabled="isProcessing || !quickSearchQuery"
           >
-            <Search :size="18" />
+            <span class="material-symbols-outlined" style="font-size: 18px">search</span>
           </button>
         </div>
         <small class="form-text">
@@ -69,7 +69,7 @@
             </p>
             <div class="card-footer">
               <button @click="confirmSelection" class="btn btn-success btn-add">
-                <Check :size="16" style="margin-right: 4px; vertical-align: middle" /> Agregar
+                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px; vertical-align: middle">check</span> Agregar
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -150,7 +150,7 @@
           :disabled="isProcessing"
         >
           <span v-if="isProcessing">Cargando...</span>
-          <span v-else><Check :size="16" /> Agregar</span>
+          <span v-else><span class="material-symbols-outlined" style="font-size: 16px">check</span> Agregar</span>
         </button>
       </div>
 
@@ -185,7 +185,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { productApi } from '@/services/productApi'
-import { AlertTriangle, Search, Check } from 'lucide-vue-next'
 
 const props = defineProps({
   title: {
