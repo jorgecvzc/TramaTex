@@ -371,7 +371,3 @@ onMounted(loadStats)
   .modules-grid { grid-template-columns: 1fr; }
 }
 </style>
-; }
-}
-</style>
->
