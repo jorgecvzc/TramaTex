@@ -108,7 +108,7 @@
 
             <div v-if="lineItems.length === 0" class="empty-cart">
               <span class="material-symbols-outlined">point_of_sale</span>
-              <p>Esperando primer producto...</p>
+              <p>Esperando primer artículo...</p>
             </div>
           </div>
         </section>
@@ -120,7 +120,7 @@
           <section class="tpv-card-side">
             <header class="side-header">
               <span class="material-symbols-outlined">person</span>
-              <h2>Cliente</h2>
+              <h2>CLIENTE</h2>
             </header>
             <div class="p-4">
               <PartySelector
@@ -132,7 +132,7 @@
               />
               <div class="client-detail mt-4" v-if="partyId !== CONSUMIDOR_FINAL_ID">
                 <div class="row">
-                  <label>Descuento cliente:</label>
+                  <label>Bonificación Comercial:</label>
                   <strong>{{ customerDiscount }}%</strong>
                 </div>
               </div>
@@ -144,15 +144,15 @@
         <section class="tpv-checkout-footer">
           <div class="checkout-summary">
             <div class="summary-line">
-              <label>SUBTOTAL</label>
+              <label>BASE IMPONIBLE</label>
               <span>{{ salesApi.formatMoney({ amount: subtotal, currency: 'EUR' }) }}</span>
             </div>
             <div class="summary-line">
-              <label>IVA (21%)</label>
+              <label>I.V.A. (21%)</label>
               <span>{{ salesApi.formatMoney({ amount: taxAmount, currency: 'EUR' }) }}</span>
             </div>
             <div class="grand-total-box">
-              <label>TOTAL TICKET</label>
+              <label>TOTAL A PAGAR</label>
               <div class="total-value">{{ salesApi.formatMoney({ amount: total, currency: 'EUR' }) }}</div>
             </div>
           </div>
@@ -163,12 +163,12 @@
               :disabled="lineItems.length === 0 || isSubmitting" 
               @click="processTicket"
             >
-              <span class="material-symbols-outlined">print</span>
-              <span>COBRAR (F12)</span>
+              <span class="material-symbols-outlined">payments</span>
+              <span>COBRAR E IMPRIMIR (F12)</span>
             </button>
             <button class="btn-checkout-secondary" @click="clearTicketPrompt">
               <span class="material-symbols-outlined">delete_sweep</span>
-              <span>ANULAR TICKET</span>
+              <span>CANCELAR OPERACIÓN</span>
             </button>
           </div>
         </section>
@@ -176,7 +176,7 @@
     </div>
 
     <!-- DIALOGO BUSQUEDA -->
-    <BaseDialog :show="showVariantSelector" title="Buscador" icon="search" size="xl" hide-actions @close="closeVariantSelector">
+    <BaseDialog :show="showVariantSelector" title="Buscador de Artículos" icon="search" size="xl" hide-actions @close="closeVariantSelector">
       <div class="p-4">
         <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
       </div>

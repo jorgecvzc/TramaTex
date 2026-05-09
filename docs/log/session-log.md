@@ -5,12 +5,23 @@
 ---
 
 - **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento de Entidades)** | Iniciada: 2026-05-09 | Status: 🟡 **EN CURSO**
-    - **Contexto**: Reabierta para validación manual y corrección de tipos de documentos.
-    - **Objetivo**: Añadir tipos de documentos faltantes y filtrar opciones según el tipo de entidad.
-    - **Tareas**:
-        - [ ] Añadir 'NIE' y 'DNI' (o equivalente) y 'Tarjeta de residente'.
-        - [ ] Implementar filtrado dinámico en `PartyForm.vue`.
-        - [ ] Verificación manual por el usuario.
+    - **Contexto**: Reabierta para corrección de tipos de documentos, desglose de nombres y UX de listados.
+    - **Cambios Realizados**:
+        - [x] Añadidos 'DNI', 'Pasaporte' y 'Tarjeta de residente' a `TaxIdType`.
+        - [x] Implementado filtrado dinámico de documentos según tipo de entidad (Persona/Empresa).
+        - [x] Desglosado campo 'Nombre' en 'Nombre' y 'Apellidos' para Personas Físicas.
+        - [x] Corregido bug de visualización (interfaz en blanco) en `Detail.vue` por importación faltante.
+        - [x] Asegurada generación de UUID en `partyApi.ts` para evitar error "party ID cannot be empty".
+        - [x] Mejorada la UX de catálogos: eliminación de selección persistente al hacer click.
+        - [x] Script de despliegue remoto ahora auto-repara permisos de `.git` y `.docker_config`.
+
+    - **📋 GUÍA DE COMPROBACIÓN MANUAL (Protocolo de Validación)**:
+        1.  **Alta de Empresa**: Crear una entidad "ORGANIZATION". Verificar que solo sale un campo de nombre y que los documentos filtran (CIF, VAT).
+        2.  **Alta de Persona**: Crear una entidad "PERSON". Verificar que aparecen dos campos (Nombre y Apellidos). Verificar que los documentos incluyen DNI, NIE y Tarjeta de Residente.
+        3.  **Edición y Pestañas**: Editar una empresa y verificar que la pestaña "Contactos" es visible y funcional.
+        4.  **Validación de Guardado**: Intentar guardar sin nombre y comprobar que el sistema lo impide. Guardar con éxito y verificar que el ID se genera correctamente (sin errores de "empty ID").
+        5.  **Comportamiento de Listados**: En Marcas o Entidades, hacer click en una fila. Al volver atrás o cancelar, la fila NO debe estar resaltada. Usar flechas del teclado y verificar que ahí SÍ hay resalto visual.
+        6.  **Despliegue Remoto**: Ejecutar `./scripts/rebuild-staging-remote.ps1` y confirmar que no hay errores de permisos ("Permission denied").
 
 ---
 # REGISTRO DE SESIONES CERRADAS

@@ -65,7 +65,7 @@
 
         <!-- COL 3: TIPO Y POSICIÓN -->
         <div class="col-context">
-          <span class="work-type-badge">{{ row.workTypeName.toUpperCase() }}</span>
+          <span class="work-type-badge">{{ (row.workTypeName || 'General').toUpperCase() }}</span>
           <div v-if="row.positionName" class="pos-info-inline">
             <MapPin :size="20" />
             <strong>{{ row.positionName }}</strong>
@@ -75,7 +75,7 @@
         <!-- COL 4: TAREA Y ACCIÓN -->
         <div class="col-task-action">
           <div class="task-desc">
-            <label>TAREA ACTUAL</label>
+            <label>{{ taskStatusLabel(row.taskStatus) }}</label>
             <span class="task-name">{{ row.taskName }}</span>
           </div>
 
