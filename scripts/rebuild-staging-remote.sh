@@ -87,6 +87,10 @@ cd "$PROJECT_DIR"
 # Esto evita el error "no space left on device" cuando /home está lleno.
 export DOCKER_CONFIG="$PROJECT_DIR/.docker_config"
 mkdir -p "$DOCKER_CONFIG"
+# Asegurar permisos: si la carpeta ya existía (ej. creada por root), recuperamos la propiedad para el usuario actual
+if [ -d "$DOCKER_CONFIG" ]; then
+    sudo chown -R $(id -u):$(id -g) "$DOCKER_CONFIG" 2>/dev/null || true
+fi
 
 echo "[1/5] Preparing repository in $PROJECT_DIR"
 if [[ "$SKIP_GIT" == "true" ]]; then
