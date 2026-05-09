@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { Building2, User, Percent, Save, RefreshCw, X, RotateCcw } from 'lucide-vue-next'
 import FormSection from '@/components/shared/FormSection.vue'
 import { partyApi } from '@/services/partyApi'
@@ -23,9 +23,11 @@ const errors = reactive<Record<string, string>>({
 
 const formData = reactive({
   name: '',
+  firstName: '', // For PERSON
+  lastName: '',  // For PERSON
   type: '', // Entity Type
   taxId: '',
-  taxIdType: 'NIF',
+  taxIdType: '',
   status: 'ACTIVE',
   role: '', // Role
   notes: '',
@@ -33,9 +35,30 @@ const formData = reactive({
   defaultDiscountPercentage: 0
 })
 
+// --- Document Filtering ---
+const taxIdOptions = computed(() => {
+  if (formData.type === 'ORGANIZATION') {
+    return [
+      { value: 'CIF', label: 'CIF (España)' },
+      { value: 'VAT', label: 'Número VAT (UE)' },
+      { value: 'OTHER', label: 'Otros' }
+    ]
+  } else if (formData.type === 'PERSON') {
+    return [
+      { value: 'NIF', label: 'NIF / DNI' },
+      { value: 'NIE', label: 'NIE' },
+      { value: 'RESIDENT_CARD', label: 'Tarjeta de Residente' },
+      { value: 'PASSPORT', label: 'Pasaporte' },
+      { value: 'VAT', label: 'VAT Personal' },
+      { value: 'OTHER', label: 'Otros' }
+    ]
+  }
+  return []
+})
+
 function resetForm() {
   Object.assign(formData, {
-    name: '', type: '', taxId: '', taxIdType: 'NIF', status: 'ACTIVE',
+    name: '', firstName: '', lastName: '', type: '', taxId: '', taxIdType: '', status: 'ACTIVE',
     role: '', notes: '', website: '', defaultDiscountPercentage: 0
   })
   Object.keys(errors).forEach(key => errors[key] = '')
@@ -44,9 +67,19 @@ function resetForm() {
 function populateForm(data: any) {
   if (!data) return
   formData.name = data.name || ''
+  formData.firstName = data.firstName || data.first_name || ''
+  formData.lastName = data.lastName || data.last_name || ''
   formData.type = data.entityType || data.type || ''
+  
+  // If PERSON and name is present but firstName/lastName are not (legacy)
+  if (formData.type === 'PERSON' && formData.name && !formData.firstName) {
+    const parts = formData.name.trim().split(/\s+/)
+    formData.firstName = parts[0] || ''
+    formData.lastName = parts.slice(1).join(' ') || ''
+  }
+
   formData.taxId = data.taxId || data.tax_id || ''
-  formData.taxIdType = data.taxIdType || data.tax_id_type || 'NIF'
+  formData.taxIdType = data.taxIdType || data.tax_id_type || (formData.type === 'ORGANIZATION' ? 'CIF' : 'NIF')
   formData.status = data.status || 'ACTIVE'
   formData.role = data.role || ''
   formData.notes = data.notes || ''
@@ -66,13 +99,24 @@ watch(() => props.initialData, (newVal) => {
 
 // --- Validation ---
 function validateName() {
-  if (!formData.name.trim()) {
-    errors.name = 'El nombre es obligatorio'
-    return false
-  }
-  if (formData.name.trim().length < 3) {
-    errors.name = 'Mínimo 3 caracteres'
-    return false
+  if (formData.type === 'ORGANIZATION') {
+    if (!formData.name.trim()) {
+      errors.name = 'El nombre es obligatorio'
+      return false
+    }
+    if (formData.name.trim().length < 3) {
+      errors.name = 'Mínimo 3 caracteres'
+      return false
+    }
+  } else if (formData.type === 'PERSON') {
+    if (!formData.firstName.trim()) {
+      errors.name = 'El nombre es obligatorio'
+      return false
+    }
+    if (!formData.lastName.trim()) {
+      errors.name = 'Los apellidos son obligatorios'
+      return false
+    }
   }
   errors.name = ''
   return true
@@ -122,10 +166,16 @@ async function handleSubmit() {
 
   isSaving.value = true
   try {
+    const finalName = formData.type === 'PERSON' 
+      ? `${formData.firstName} ${formData.lastName}`.trim()
+      : formData.name
+
     const payload = {
-      name: formData.name,
+      name: finalName,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       type: formData.type,
-      entityType: formData.type, // Alignment with test
+      entityType: formData.type, // Alignment with backend
       role: formData.role,
       taxId: formData.taxId,
       taxIdType: formData.taxIdType,
@@ -191,37 +241,63 @@ watch(() => formData.type, (newType) => {
           </select>
         </div>
 
-        <div class="animate-fade-in">
-          <div class="form-group mb-4">
-            <label for="party-name">
-              <span v-if="formData.type === 'ORGANIZATION'">Nombre de la organización *</span>
-              <span v-else-if="formData.type === 'PERSON'">Nombre completo *</span>
-              <span v-else>Nombre de la entidad *</span>
-            </label>
+        <div class="animate-fade-in" v-if="formData.type">
+          <!-- Organization Name -->
+          <div v-if="formData.type === 'ORGANIZATION'" class="form-group mb-4">
+            <label for="party-name">Nombre de la organización *</label>
             <input 
               id="party-name"
               v-model="formData.name" 
               type="text" 
               class="form-input" 
-              :class="{ 'is-invalid': errors.name }"
+              :class="{ 'is-invalid': errors.name && formData.type === 'ORGANIZATION' }"
               required 
               @blur="validateName"
-              :placeholder="formData.type === 'ORGANIZATION' ? 'p. ej. Acme Corp' : (formData.type === 'PERSON' ? 'p. ej. Juan Pérez' : 'Nombre comercial o completo')"
+              placeholder="p. ej. Acme Corp"
             />
-            <span v-if="errors.name" class="error-msg">{{ errors.name }}</span>
+            <span v-if="errors.name && formData.type === 'ORGANIZATION'" class="error-msg">{{ errors.name }}</span>
+          </div>
+
+          <!-- Person Name & Last Name -->
+          <div v-else-if="formData.type === 'PERSON'" class="form-row mb-4">
+            <div class="form-group">
+              <label for="first-name">Nombre *</label>
+              <input 
+                id="first-name"
+                v-model="formData.firstName" 
+                type="text" 
+                class="form-input" 
+                :class="{ 'is-invalid': errors.name && !formData.firstName }"
+                required 
+                @blur="validateName"
+                placeholder="p. ej. Juan"
+              />
+            </div>
+            <div class="form-group">
+              <label for="last-name">Apellidos *</label>
+              <input 
+                id="last-name"
+                v-model="formData.lastName" 
+                type="text" 
+                class="form-input" 
+                :class="{ 'is-invalid': errors.name && !formData.lastName }"
+                required 
+                @blur="validateName"
+                placeholder="p. ej. Pérez"
+              />
+            </div>
+            <span v-if="errors.name && formData.type === 'PERSON'" class="error-msg col-span-2">{{ errors.name }}</span>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="tax-id-type">Tipo de NIF/CIF</label>
+              <label for="tax-id-type">Tipo identificación</label>
               <select id="tax-id-type" v-model="formData.taxIdType" class="form-input">
-                <option value="NIF">NIF</option>
-                <option value="CIF">CIF</option>
-                <option value="VAT">VAT</option>
+                <option v-for="opt in taxIdOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="tax-id">Identificación</label>
+              <label for="tax-id">Número</label>
               <input 
                 id="tax-id"
                 v-model="formData.taxId" 

@@ -9,7 +9,7 @@
 
 export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH' | 'CONTACT'
 export type PartyStatus = 'ACTIVE' | 'INACTIVE'
-export type TaxIdType = 'CIF' | 'NIF' | 'NIE' | 'VAT' | 'OTHER'
+export type TaxIdType = 'CIF' | 'NIF' | 'NIE' | 'DNI' | 'PASSPORT' | 'RESIDENT_CARD' | 'VAT' | 'OTHER'
 export type ContactType = 'EMPLOYEE' | 'EXTERNAL'
 
 // ============================================================================
@@ -58,6 +58,7 @@ export interface Party {
 export interface PartyUI {
   id: string
   name: string
+  type: EntityType
   role: PartyRole
   status: PartyStatus
   can_delete: boolean

@@ -33,7 +33,9 @@ const selectedIndex = ref(-1)
 const tableBodyRef = ref<HTMLElement | null>(null)
 
 function handleRowClick(item: any, index: number) {
-  selectedIndex.value = index
+  // We do NOT persist the selectedIndex on click as per UI requirements
+  // to avoid rows staying highlighted after the action.
+  selectedIndex.value = -1
   emit('click-item', item)
 }
 

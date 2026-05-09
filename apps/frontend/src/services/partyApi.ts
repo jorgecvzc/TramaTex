@@ -152,9 +152,12 @@ class PartyApiService {
       email = party.person_profile.email || null
     }
 
+    const type = party.organization_profile ? 'ORGANIZATION' : 'PERSON'
+
     return {
       id: party.id,
       name,
+      type,
       role,
       status: party.status,
       can_delete: party.can_delete ?? true,

@@ -4,7 +4,13 @@
 # SESIONES ABIERTAS
 ---
 
-*(No hay sesiones abiertas en este momento. Todas las tareas del Sprint 19 - Fase 1 han sido completadas).*
+- **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento de Entidades)** | Iniciada: 2026-05-09 | Status: 🟡 **EN CURSO**
+    - **Contexto**: Reabierta para validación manual y corrección de tipos de documentos.
+    - **Objetivo**: Añadir tipos de documentos faltantes y filtrar opciones según el tipo de entidad.
+    - **Tareas**:
+        - [ ] Añadir 'NIE' y 'DNI' (o equivalente) y 'Tarjeta de residente'.
+        - [ ] Implementar filtrado dinámico en `PartyForm.vue`.
+        - [ ] Verificación manual por el usuario.
 
 ---
 # REGISTRO DE SESIONES CERRADAS

@@ -101,7 +101,7 @@ describe('BaseCatalog Component', () => {
     expect(emitted()['click-item'][0]).toEqual([defaultProps.items[1]])
   })
 
-  it('should update selectedIndex when a row is clicked', async () => {
+  it('should NOT persist selectedIndex when a row is clicked', async () => {
     const { container } = render(BaseCatalog, {
       props: defaultProps,
       global: { plugins: [router] },
@@ -114,7 +114,7 @@ describe('BaseCatalog Component', () => {
     
     await fireEvent.click(rows[2])
     
-    expect(rows[2]).toHaveClass('is-selected')
+    expect(rows[2]).not.toHaveClass('is-selected')
   })
 
   it('should reset selection with Escape', async () => {
