@@ -23,13 +23,13 @@ const errors = reactive<Record<string, string>>({
 
 const formData = reactive({
   name: '',
-  firstName: '', // For PERSON
-  lastName: '',  // For PERSON
-  type: '', // Entity Type
+  firstName: '', 
+  lastName: '',  
+  type: '' as 'ORGANIZATION' | 'PERSON' | '', 
   taxId: '',
   taxIdType: '',
   status: 'ACTIVE',
-  role: '', // Role
+  role: '', 
   notes: '',
   website: '',
   defaultDiscountPercentage: 0
@@ -66,14 +66,16 @@ function resetForm() {
 
 function populateForm(data: any) {
   if (!data) return
+  
+  formData.type = (data.entityType || data.type || '') as any
   formData.name = data.name || ''
+  
+  // Handle names for PERSON
   formData.firstName = data.firstName || data.first_name || ''
   formData.lastName = data.lastName || data.last_name || ''
-  formData.type = data.entityType || data.type || ''
   
-  // If PERSON and name is present but firstName/lastName are not (legacy)
   if (formData.type === 'PERSON' && formData.name && !formData.firstName) {
-    const parts = formData.name.trim().split(/\s+/)
+    const parts = (formData.name as string).trim().split(/\s+/)
     formData.firstName = parts[0] || ''
     formData.lastName = parts.slice(1).join(' ') || ''
   }
@@ -174,15 +176,17 @@ async function handleSubmit() {
       name: finalName,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      type: formData.type,
-      entityType: formData.type, // Alignment with backend
-      role: formData.role,
+      type: formData.type as any,
+      entityType: formData.type as any,
+      role: formData.role as any,
       taxId: formData.taxId,
-      taxIdType: formData.taxIdType,
-      status: formData.status,
+      taxIdType: formData.taxIdType as any,
+      status: formData.status as any,
       notes: formData.notes,
       website: formData.website,
-      defaultDiscountPercentage: formData.defaultDiscountPercentage
+      defaultDiscountPercentage: formData.defaultDiscountPercentage,
+      default_discount_percentage: formData.defaultDiscountPercentage, // Sync names
+      hasPerson: formData.type === 'PERSON'
     }
 
     if (props.partyId) {
@@ -212,7 +216,7 @@ watch(() => formData.type, (newType) => {
   <form @submit.prevent="handleSubmit" class="party-form">
     <header class="form-header-box mb-6">
       <h2 class="text-xl font-bold flex items-center gap-2">
-        <Building2 v-if="formData && formData.type === 'ORGANIZATION'" :size="24" />
+        <Building2 v-if="formData.type === 'ORGANIZATION'" :size="24" />
         <User v-else :size="24" />
         {{ props.partyId ? 'Editar entidad' : 'Crear entidad' }}
       </h2>
@@ -259,7 +263,7 @@ watch(() => formData.type, (newType) => {
           </div>
 
           <!-- Person Name & Last Name -->
-          <div v-else-if="formData.type === 'PERSON'" class="form-row mb-4">
+          <div v-else-if="formData.type === 'PERSON'" class="form-row-names mb-4">
             <div class="form-group">
               <label for="first-name">Nombre *</label>
               <input 
@@ -286,10 +290,10 @@ watch(() => formData.type, (newType) => {
                 placeholder="p. ej. Pérez"
               />
             </div>
-            <span v-if="errors.name && formData.type === 'PERSON'" class="error-msg col-span-2">{{ errors.name }}</span>
+            <span v-if="errors.name && formData.type === 'PERSON'" class="error-msg full-width-msg">{{ errors.name }}</span>
           </div>
 
-          <div class="form-row">
+          <div class="form-row-tax">
             <div class="form-group">
               <label for="tax-id-type">Tipo identificación</label>
               <select id="tax-id-type" v-model="formData.taxIdType" class="form-input">
@@ -350,7 +354,7 @@ watch(() => formData.type, (newType) => {
         <span>Reiniciar</span>
       </button>
       <div class="flex-1"></div>
-      <button type="button" class="btn btn-ghost mr-2" @click="emit('cancel')">Cancelar</button>
+      <button type="button" class="btn btn-ghost mr-2" @click="$emit('cancel')">Cancelar</button>
       <button type="submit" class="btn btn-secondary" :disabled="isSaving">
         <component :is="isSaving ? RefreshCw : Save" :size="18" :class="{ 'spin': isSaving }" />
         <span>{{ props.partyId ? 'Actualizar entidad' : 'Crear entidad' }}</span>
@@ -363,12 +367,15 @@ watch(() => formData.type, (newType) => {
 .party-form { background: white; padding: 2rem; border-radius: 12px; box-shadow: var(--box-shadow-md); border: 1px solid var(--color-border); }
 .form-header-box { border-bottom: 2px solid var(--color-background); padding-bottom: 1rem; color: var(--color-secondary); }
 
-.form-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; }
+.form-row-names { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-row-tax { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
 .form-group label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
 .form-input, .form-textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--color-border); font-family: inherit; transition: 0.2s; }
 .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1); }
 .form-input.is-invalid { border-color: var(--color-error); }
 .error-msg { font-size: 0.7rem; color: var(--color-error); font-weight: 600; margin-top: 0.25rem; display: block; }
+.full-width-msg { grid-column: 1 / span 2; }
 
 .input-with-icon { position: relative; display: flex; align-items: center; }
 .icon-start { position: absolute; left: 0.75rem; color: var(--color-text-secondary); }
@@ -380,4 +387,8 @@ watch(() => formData.type, (newType) => {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 600px) {
+  .form-row-names, .form-row-tax { grid-template-columns: 1fr; }
+}
 </style>

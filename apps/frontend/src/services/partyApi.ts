@@ -417,17 +417,19 @@ class PartyApiService {
    */
   async updateParty(id: string, data: UpdatePartyRequest): Promise<PartyUI | null> {
     const body: Record<string, unknown> = {
-      default_discount_percentage: data.default_discount_percentage ?? 0,
+      default_discount_percentage: data.default_discount_percentage ?? data.defaultDiscountPercentage ?? 0,
     }
 
-    if (data.hasPerson) {
+    const isPerson = data.type === 'PERSON' || data.hasPerson === true
+
+    if (isPerson) {
       // Person entity: split combined name into first/last
-      const nameParts = (data.name || '').trim().split(/\s+/)
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || '-'
+      const finalFirstName = data.firstName || (data.name || '').trim().split(/\s+/)[0] || ''
+      const finalLastName = data.lastName || (data.name || '').trim().split(/\s+/).slice(1).join(' ') || '-'
+      
       body.person_profile = {
-        first_name: firstName,
-        last_name: lastName,
+        first_name: finalFirstName,
+        last_name: finalLastName,
         phone: data.phone || '',
         email: data.email || '',
       }

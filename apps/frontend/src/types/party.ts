@@ -139,6 +139,7 @@ export interface CreatePartyRequest {
 export interface UpdatePartyRequest {
   name: string
   role?: PartyRole
+  type?: EntityType
   hasPerson?: boolean
   taxId?: string | null
   taxIdType?: TaxIdType | null
@@ -146,7 +147,10 @@ export interface UpdatePartyRequest {
   phone?: string | null
   email?: string | null
   notes?: string | null
+  defaultDiscountPercentage?: number
   default_discount_percentage?: number
+  firstName?: string
+  lastName?: string
 }
 
 export interface ChangePartyStatusRequest {
