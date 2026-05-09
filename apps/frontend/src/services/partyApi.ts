@@ -247,14 +247,15 @@ class PartyApiService {
    */
   async createParty(data: CreatePartyRequest): Promise<PartyUI | null> {
     const roles = this.mapRoleToPartyRoles(data.role)
+    const partyId = data.id || this.generateId()
     
     // Determine entity type and build appropriate profile
     const entityType = data.entityType || 'ORGANIZATION'
     const body: any = {
-      id: data.id,
+      id: partyId,
       status: 'ACTIVE',
       roles,
-      default_discount_percentage: data.default_discount_percentage ?? 0,
+      default_discount_percentage: data.default_discount_percentage ?? data.defaultDiscountPercentage ?? 0,
     }
 
     if (entityType === 'PERSON') {
