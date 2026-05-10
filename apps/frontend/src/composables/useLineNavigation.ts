@@ -34,14 +34,18 @@ export function useLineNavigation(options: LineNavigationOptions) {
         const step = (col.includes('quant') || col.includes('qty')) ? 1 : 1.0
         const min = (col.includes('quant') || col.includes('qty')) ? 1 : 0
         
-        const currentValue = Number(lineData[col] || 0)
+        // Use valueAsNumber from the input target for reliability
+        const target = e.target as HTMLInputElement
+        const currentValue = !isNaN(target.valueAsNumber) ? target.valueAsNumber : Number(lineData[col] || 0)
         const newValue = isUp ? currentValue + step : Math.max(min, currentValue - step)
 
         if (options.onUpdate) {
           options.onUpdate(index, col, newValue)
         } else {
           // Fallback to direct mutation if no onUpdate is provided
-          lineData[col] = newValue
+          // We try to find the correct property to mutate
+          const propToMutate = lineData[col] !== undefined ? col : (Object.keys(lineData).find(k => k.toLowerCase().includes(col.toLowerCase())) || col)
+          lineData[propToMutate] = newValue
         }
         return
       }
