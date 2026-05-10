@@ -10,7 +10,30 @@
 # REGISTRO DE SESIONES CERRADAS
 ---
 
-- **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento y Terminales)** | Iniciada: 2026-05-09 | Finalizada: 2026-05-09 | Status: ✅ **COMPLETADO**
+- **Unificación UI/UX — Fase 1 (CIERRE: Experiencia "Sin Ratón" y Centro de Ayuda)** | Iniciada: 2026-05-10 | Finalizada: 2026-05-10 | Status: ✅ **Fase 1 COMPLETADA 100%**
+    - **Contexto**: Finalización del plan maestro de UI/UX con enfoque en productividad industrial y auto-capacitación.
+    - **Cambios Realizados**:
+        - [x] **Iconografía Lucide**: Migración total de `Material Symbols` a componentes `Lucide` en Sales y Entidades, eliminando etiquetas técnicas en inglés.
+        - [x] **Navegación Teclado**: Implementado composable `useLineNavigation` para gestión experta de tablas (Flechas +/- , Enter inteligente, Ctrl+Supr para borrar).
+        - [x] **Módulo MES**: Estandarización de líneas técnicas en Presupuestos y Pedidos con la misma experiencia de teclado que las líneas de producto.
+        - [x] **Sistema de Ayuda**:
+            - Creado **Menú de Ayuda (`Alt+H`)** unificado en la Sidebar.
+            - Implementada **Ayuda Contextual (`F1`)** con panel lateral dinámico según la ruta.
+            - Creado **Centro de Capacitación (`/help`)** navegable por teclado (teclas 1-4).
+        - [x] **Ergonomía**: Auto-foco en buscadores al entrar en listados y apertura de modales.
+        - [x] **Atajos Globales**: `Ctrl+S` (Guardar), `Esc` (Atrás/Cerrar), `Ctrl+K` (Buscar), `Alt+1..5` (Módulos).
+        - [x] **Estabilidad**: Corregidos crashes por imports faltantes (`onBeforeUnmount`) y persistencia de pestañas en edición de Entidades.
+        - [x] **README**: Añadido reconocimiento a Marisol López Núñez por el Jingle oficial del proyecto.
+
+    - **📋 PROTOCOLO DE VALIDACIÓN FINAL**:
+        1.  **Sin Ratón**: Capacidad de crear un presupuesto completo con líneas MES y de producto usando solo teclado.
+        2.  **Aprendizaje**: Comprobar que pulsar `?` muestra el mapa y `F1` la guía de la página actual.
+        3.  **Resiliencia**: Verificar que al editar una entidad y cambiar de pestaña, los datos del formulario no se pierden.
+
+---
+
+- **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento de Entidades)** | Iniciada: 2026-05-09 | Finalizada: 2026-05-09 | Status: ✅ **COMPLETADO**
+
     - **Contexto**: Corrección de tipos de documentos, desglose de nombres, UX de listados y normalización de terminales.
     - **Cambios Realizados**:
         - [x] **Entidades**: Desglosado 'Nombre' en 'Nombre' y 'Apellidos' para personas físicas. Añadidos DNI, Pasaporte y Tarjeta Residente con filtrado dinámico.
