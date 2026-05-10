@@ -73,6 +73,9 @@ onMounted(() => {
   window.addEventListener('tramatex-contextual-help', () => {
     showContextualHelp.value = !showContextualHelp.value
   })
+  window.addEventListener('tramatex-shortcuts', () => {
+    showShortcutHelp.value = !showShortcutHelp.value
+  })
 })
 
 onBeforeUnmount(() => {

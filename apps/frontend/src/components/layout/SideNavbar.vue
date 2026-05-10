@@ -86,11 +86,11 @@ const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
 
 function handleOpenShortcuts() {
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))
+  window.dispatchEvent(new CustomEvent('tramatex-shortcuts'))
 }
 
 function handleOpenHelp() {
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }))
+  window.dispatchEvent(new CustomEvent('tramatex-contextual-help'))
 }
 
 function handleGlobalKeydown(e) {

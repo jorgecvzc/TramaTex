@@ -49,8 +49,7 @@ import {
   HelpCircle, 
   BookOpen, 
   Keyboard, 
-  Info, 
-  LifeBuoy 
+  Info
 } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -68,7 +67,7 @@ const menuItems = [
   { id: 'manual', label: 'Manual de Usuario', icon: BookOpen, shortcutLabel: 'Alt+M', action: () => router.push('/help') },
   { id: 'shortcuts', label: 'Mapa de Atajos', icon: Keyboard, shortcutLabel: '?', action: () => emit('open-shortcuts') },
   { id: 'contextual', label: 'Guía de esta página', icon: Info, shortcutLabel: 'F1', action: () => emit('open-contextual-help') },
-  { id: 'glossary', label: 'Glosario Técnico', icon: LifeBuoy, shortcutLabel: '', action: () => router.push('/help#glossary') },
+  { id: 'glossary', label: 'Glosario Técnico', icon: Info, shortcutLabel: '', action: () => router.push('/help#glossary') },
 ]
 
 function toggleMenu() {

@@ -198,7 +198,8 @@ const tabs = computed(() => {
     { id: 'addresses', label: 'Direcciones', icon: MapPin }
   ]
   
-  if (party.value?.type === 'ORGANIZATION') {
+  const type = (party.value?.type || '').toUpperCase()
+  if (type === 'ORGANIZATION') {
     baseTabs.push({ id: 'contacts', label: 'Contactos', icon: ContactRound })
   }
   
@@ -313,8 +314,10 @@ function handlePartyKeydown(e: KeyboardEvent) {
   }
 }
 
-watch(() => route.params.id, () => {
-  activeTab.value = 'general'
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId !== oldId) {
+    activeTab.value = 'general'
+  }
   loadData()
 }, { immediate: true })
 </script>
