@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, RouterView } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import SideNavbar from '@/components/layout/SideNavbar.vue'
