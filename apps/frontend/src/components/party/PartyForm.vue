@@ -93,7 +93,22 @@ onMounted(() => {
   if (props.initialData) {
     populateForm(props.initialData)
   }
+  window.addEventListener('tramatex-save', handleGlobalSave)
+  window.addEventListener('tramatex-esc', handleGlobalEsc)
 })
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave)
+  window.removeEventListener('tramatex-esc', handleGlobalEsc)
+})
+
+function handleGlobalSave() {
+  if (!isSaving.value) handleSubmit()
+}
+
+function handleGlobalEsc() {
+  emit('cancel')
+}
 
 watch(() => props.initialData, (newVal) => {
   if (newVal) populateForm(newVal)

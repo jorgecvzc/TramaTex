@@ -200,7 +200,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in deliveryNote.lineItems" :key="item.id">
+            <tr v-for="(item, idx) in deliveryNote.lineItems" :key="item.id">
               <td>
                 <div class="product-info-cell">
                   <Package :size="18" class="icon-secondary" />
@@ -220,7 +220,8 @@
                   type="number" 
                   class="form-input-sm w-24 text-center font-bold" 
                   :data-row="idx"
-                  @keydown="handleLineKeyDown($event, idx)"
+                  data-col="deliveredQuantity"
+                  @keydown="handleLineKeyDown($event, idx, 'deliveredQuantity', item)"
                 />
               </td>
               <td class="text-muted italic">Correcto</td>
@@ -322,7 +323,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { 
   AlertCircle, 
@@ -348,6 +349,7 @@ import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { useToastStore } from '@/stores/toast';
@@ -386,7 +388,16 @@ const formData = reactive({
 
 onMounted(() => {
   fetchDeliveryNote();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+});
+
+function handleGlobalEsc() {
+  router.push('/sales/delivery-notes');
+}
 
 async function fetchDeliveryNote() {
   const noteId = route.params.id;
@@ -516,41 +527,10 @@ async function confirmCreateInvoice() {
   }
 }
 
-function handleLineKeyDown(e, index) {
-  const isLastLine = index === deliveryNote.value.lineItems.length - 1
-  const item = deliveryNote.value.lineItems[index]
-
-  // 1. Arrows Up/Down as +/- for quantity
-  if (e.key === 'ArrowUp') {
-    e.preventDefault()
-    item.deliveredQuantity = Number(item.deliveredQuantity || 0) + 1
-    return
-  }
-  if (e.key === 'ArrowDown') {
-    e.preventDefault()
-    item.deliveredQuantity = Math.max(0, Number(item.deliveredQuantity || 0) - 1)
-    return
-  }
-
-  // 2. Enter key to navigate to next row
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    if (!isLastLine) {
-      focusLineInput(index + 1)
-    }
-    return
-  }
-}
-
-function focusLineInput(row) {
-  setTimeout(() => {
-    const el = document.querySelector(`input[data-row="${row}"]`)
-    if (el) {
-      el.focus()
-      el.select()
-    }
-  }, 10)
-}
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => deliveryNote.value?.lineItems?.length || 0,
+  columns: ['deliveredQuantity']
+});
 
 function printDeliveryNote() { window.print(); }
 

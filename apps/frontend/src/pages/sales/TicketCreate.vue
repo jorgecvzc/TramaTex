@@ -255,9 +255,42 @@ function focusSearch() { nextTick(() => productSearchInput.value?.focus()); }
 
 function handleGlobalKeydown(e) {
   const isInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+  
   if (e.key === "F3") { e.preventDefault(); focusSearch(); }
   if (e.key === "F4") { e.preventDefault(); document.querySelector(".party-selector input")?.focus(); }
   if (e.key === "F12") { e.preventDefault(); if (lineItems.value.length > 0 && !isSubmitting.value) processTicket(); }
+  
+  // Shortcuts for line adjustments (only if there are items)
+  if (lineItems.value.length > 0) {
+    const lastItem = lineItems.value[lineItems.value.length - 1];
+    
+    // Num+ or Num- (or just + / -)
+    if (e.key === "+" || e.key === "Add") {
+      e.preventDefault();
+      updateQtyByItem(lastItem, 1);
+    }
+    if (e.key === "-" || e.key === "Subtract") {
+      e.preventDefault();
+      updateQtyByItem(lastItem, -1);
+    }
+    
+    // Navigation arrows (only when not in input)
+    if (!isInput) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        updateQtyByItem(lastItem, 1);
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        updateQtyByItem(lastItem, -1);
+      }
+      if (e.key === "Delete") {
+        e.preventDefault();
+        removeLine(lastItem);
+      }
+    }
+  }
+
   if (e.key === "Escape") {
     if (showShortcuts.value) showShortcuts.value = false;
     else if (showVariantSelector.value) closeVariantSelector();

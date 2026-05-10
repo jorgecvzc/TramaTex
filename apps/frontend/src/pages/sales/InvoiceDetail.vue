@@ -284,8 +284,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+
 import { 
   AlertCircle, 
   Receipt, 
@@ -350,7 +351,28 @@ const formData = reactive({
 
 onMounted(() => {
   fetchInvoice();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('tramatex-save', handleGlobalSave);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+});
+
+function handleGlobalEsc() {
+  if (mode.value === 'edit') {
+    mode.value = 'detail';
+  } else {
+    router.push('/sales/invoices');
+  }
+}
+
+function handleGlobalSave() {
+  if (mode.value === 'edit' && !isSaving.value) {
+    saveInvoice();
+  }
+}
 
 async function fetchInvoice() {
   const invoiceId = route.params.id;

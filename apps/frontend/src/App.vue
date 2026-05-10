@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, RouterView } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import SideNavbar from '@/components/layout/SideNavbar.vue'
@@ -23,6 +23,35 @@ import ToastContainer from '@/components/shared/ToastContainer.vue'
 
 const route = useRoute()
 const showAppChrome = computed(() => route.path !== '/login')
+
+function handleGlobalKeydown(e) {
+  // 1. Guardado Rápido: Ctrl + S
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault()
+    window.dispatchEvent(new CustomEvent('tramatex-save'))
+  }
+
+  // 2. Búsqueda Instantánea: Ctrl + K o / (si no estamos en un input)
+  const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+  if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && !isInput)) {
+    e.preventDefault()
+    window.dispatchEvent(new CustomEvent('tramatex-search'))
+  }
+
+  // 3. Atrás / Cerrar: Esc
+  if (e.key === 'Escape') {
+    // Solo disparamos el evento si no hay modales nativos u otros elementos bloqueantes
+    window.dispatchEvent(new CustomEvent('tramatex-esc'))
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <style>

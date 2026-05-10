@@ -119,13 +119,40 @@
                       </div>
                     </td>
                     <td class="text-center">
-                      <input v-model.number="item.quantity" type="number" min="1" class="qty-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.quantity" 
+                        type="number" 
+                        min="1" 
+                        class="qty-input" 
+                        :data-row="index"
+                        data-col="qty"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'qty', item)"
+                      />
                     </td>
                     <td class="align-right">
-                      <input v-model.number="item.unitPrice" type="number" step="0.01" class="price-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.unitPrice" 
+                        type="number" 
+                        step="0.01" 
+                        class="price-input" 
+                        :data-row="index"
+                        data-col="price"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'price', item)"
+                      />
                     </td>
                     <td class="text-center">
-                      <input v-model.number="item.discountPercent" type="number" step="0.01" class="qty-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.discountPercent" 
+                        type="number" 
+                        step="0.01" 
+                        class="qty-input" 
+                        :data-row="index"
+                        data-col="disc"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'disc', item)"
+                      />
                     </td>
                     <td class="align-right">
                       <strong class="subtotal-text">{{ formatMoney(calculateLineSubtotal(index)) }}</strong>
@@ -231,8 +258,39 @@ import {
 import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
-import { productApi } from '@/services/productApi';
+// ... (rest of imports)
+
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => formData.value.lineItems.length,
+  columns: ['qty', 'price', 'disc'],
+  onUpdate: (index, col, val) => {
+    const item = formData.value.lineItems[index];
+    if (col === 'qty') item.quantity = val;
+    else if (col === 'price') item.unitPrice = val;
+    else if (col === 'disc') item.discountPercent = val;
+    calculateTotals();
+  },
+  onRemoveField: (index) => removeLineItem(index),
+  onAddField: () => addLineItem()
+});
+
+onMounted(() => {
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', goBack);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', goBack);
+});
+
+function handleGlobalSave() {
+  if (isFormValid.value && !isSubmitting.value) handleSubmit();
+}
+
 import { pricingApi } from '@/services/pricingApi';
 import { mesApi } from '@/services/mesApi';
 import { useToastStore } from '@/stores/toast';

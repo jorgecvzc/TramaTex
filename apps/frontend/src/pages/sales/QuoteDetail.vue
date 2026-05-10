@@ -494,6 +494,7 @@ import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
@@ -600,7 +601,18 @@ watch(() => route.params.id, async (newId) => {
 onMounted(async () => {
   await initComponent();
   await loadMesMasters();
+  window.addEventListener('tramatex-save', handleGlobalSave);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+});
+
+function handleGlobalSave() {
+  if (mode.value !== 'detail' && !isSaving.value) {
+    saveQuote();
+  }
+}
 
 async function initComponent() {
   const id = route.params.id;
@@ -717,70 +729,24 @@ function onPartySelected(party) {
   calculateTotals();
 }
 
-function handleLineKeyDown(e, index, col) {
-  const isLastLine = index === formData.lineItems.length - 1
-  const currentLine = formData.lineItems[index]
-
-  // 1. Arrows Up/Down as +/- for numeric fields
-  if (['qty', 'price', 'disc'].includes(col)) {
-    if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const step = col === 'qty' ? 1 : 1.0
-      if (col === 'qty') currentLine.quantity = Number(currentLine.quantity || 0) + 1
-      else if (col === 'price') currentLine.unitPrice = Number(currentLine.unitPrice || 0) + step
-      else if (col === 'disc') currentLine.discountPercent = Math.min(100, Number(currentLine.discountPercent || 0) + 1)
-      return
-    }
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      const min = col === 'qty' ? 1 : 0
-      if (col === 'qty') currentLine.quantity = Math.max(min, Number(currentLine.quantity || 0) - 1)
-      else if (col === 'price') currentLine.unitPrice = Math.max(min, Number(currentLine.unitPrice || 0) - 1.0)
-      else if (col === 'disc') currentLine.discountPercent = Math.max(min, Number(currentLine.discountPercent || 0) - 1)
-      return
-    }
-  }
-
-  // 2. Tab key in last field focuses the Add button
-  if (e.key === 'Tab' && !e.shiftKey && isLastLine && col === 'disc') {
-    if (addProductBtn.value) {
-      e.preventDefault()
-      addProductBtn.value.focus()
-      return
-    }
-  }
-
-  // 3. Enter key for navigation
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    if (col === 'qty') focusLineInput(index, 'price')
-    else if (col === 'price') focusLineInput(index, 'disc')
-    else if (col === 'disc') {
-      if (isLastLine) {
-        openVariantSelector()
-      } else {
-        focusLineInput(index + 1, 'qty')
-      }
-    }
-    return
-  }
-
-  // 4. Shortcut for Add Line: Insert key
-  if (e.key === 'Insert') {
-    e.preventDefault()
-    openVariantSelector()
-  }
-}
-
-function focusLineInput(row, col) {
-  setTimeout(() => {
-    const el = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`)
-    if (el) {
-      el.focus()
-      el.select()
-    }
-  }, 10)
-}
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => formData.lineItems.length,
+  columns: ['qty', 'price', 'disc'],
+  onUpdate: (index, col, val) => {
+    const item = formData.lineItems[index]
+    if (col === 'qty') item.quantity = val
+    else if (col === 'price') item.unitPrice = val
+    else if (col === 'disc') item.discountPercent = val
+    fetchPreviewCalculation()
+  },
+  onRemoveField: (index) => {
+    formData.lineItems.splice(index, 1)
+    fetchPreviewCalculation()
+  },
+  onLastFieldTab: () => addProductBtn.value?.focus(),
+  onLastFieldEnter: () => openVariantSelector(),
+  onAddField: () => openVariantSelector()
+});
 
 function openVariantSelector() { 
   showVariantSelector.value = true; 

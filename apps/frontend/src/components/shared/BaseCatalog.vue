@@ -91,14 +91,31 @@ function handleGlobalRefresh() {
   }
 }
 
+function handleGlobalSearch() {
+  const filterInput = document.querySelector('.filters-card input') as HTMLInputElement
+  filterInput?.focus()
+}
+
+function handleGlobalEsc() {
+  if (selectedIndex.value >= 0) {
+    selectedIndex.value = -1
+  } else {
+    emit('clear-filters')
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('tramatex-refresh', handleGlobalRefresh)
+  window.addEventListener('tramatex-search', handleGlobalSearch)
+  window.addEventListener('tramatex-esc', handleGlobalEsc)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
   window.removeEventListener('tramatex-refresh', handleGlobalRefresh)
+  window.removeEventListener('tramatex-search', handleGlobalSearch)
+  window.removeEventListener('tramatex-esc', handleGlobalEsc)
 })
 
 const resolvedIcon = computed(() => getIcon(props.icon || 'list_alt'))

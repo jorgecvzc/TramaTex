@@ -4,27 +4,27 @@
 # SESIONES ABIERTAS
 ---
 
-- **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento de Entidades)** | Iniciada: 2026-05-09 | Status: 🟡 **EN CURSO**
-    - **Contexto**: Reabierta para corrección de tipos de documentos, desglose de nombres y UX de listados.
-    - **Cambios Realizados**:
-        - [x] Añadidos 'DNI', 'Pasaporte' y 'Tarjeta de residente' a `TaxIdType`.
-        - [x] Implementado filtrado dinámico de documentos según tipo de entidad (Persona/Empresa).
-        - [x] Desglosado campo 'Nombre' en 'Nombre' y 'Apellidos' para Personas Físicas.
-        - [x] Corregido bug de visualización (interfaz en blanco) en `Detail.vue` por importación faltante.
-        - [x] Asegurada generación de UUID en `partyApi.ts` para evitar error "party ID cannot be empty".
-        - [x] Mejorada la UX de catálogos: eliminación de selección persistente al hacer click.
-        - [x] Script de despliegue remoto ahora auto-repara permisos de `.git` y `.docker_config`.
-
-    - **📋 GUÍA DE COMPROBACIÓN MANUAL (Protocolo de Validación)**:
-        1.  **Alta de Empresa**: Crear una entidad "ORGANIZATION". Verificar que solo sale un campo de nombre y que los documentos filtran (CIF, VAT).
-        2.  **Alta de Persona**: Crear una entidad "PERSON". Verificar que aparecen dos campos (Nombre y Apellidos). Verificar que los documentos incluyen DNI, NIE y Tarjeta de Residente.
-        3.  **Edición y Pestañas**: Editar una empresa y verificar que la pestaña "Contactos" es visible y funcional.
-        4.  **Validación de Guardado**: Intentar guardar sin nombre y comprobar que el sistema lo impide. Guardar con éxito y verificar que el ID se genera correctamente (sin errores de "empty ID").
-        5.  **Comportamiento de Listados**: En Marcas o Entidades, hacer click en una fila. Al volver atrás o cancelar, la fila NO debe estar resaltada. Usar flechas del teclado y verificar que ahí SÍ hay resalto visual.
-        6.  **Despliegue Remoto**: Ejecutar `./scripts/rebuild-staging-remote.ps1` y confirmar que no hay errores de permisos ("Permission denied").
+*(No hay sesiones abiertas en este momento. Todas las tareas de refinamiento de la Fase 1 han sido completadas).*
 
 ---
 # REGISTRO DE SESIONES CERRADAS
+---
+
+- **Unificación UI/UX — Fase 1 (EXTENSIÓN: Refinamiento y Terminales)** | Iniciada: 2026-05-09 | Finalizada: 2026-05-09 | Status: ✅ **COMPLETADO**
+    - **Contexto**: Corrección de tipos de documentos, desglose de nombres, UX de listados y normalización de terminales.
+    - **Cambios Realizados**:
+        - [x] **Entidades**: Desglosado 'Nombre' en 'Nombre' y 'Apellidos' para personas físicas. Añadidos DNI, Pasaporte y Tarjeta Residente con filtrado dinámico.
+        - [x] **Terminales**: Normalizadas etiquetas en MES y TPV (ej: "BASE IMPONIBLE", "TOTAL A PAGAR", estados reales de tareas).
+        - [x] **UX**: Eliminada selección persistente al hacer click en filas de catálogos (solo teclado).
+        - [x] **Estabilidad**: Corregido bug de "empty ID" al crear entidades y error de renderizado en Detail.vue.
+        - [x] **DevOps**: Script de despliegue remoto ahora auto-repara permisos de `.git` y `.docker_config`.
+
+    - **📋 PROTOCOLO DE VALIDACIÓN FINAL**:
+        1.  **Terminal Taller (MES)**: Verificar que los estados de tarea (Pendiente, En curso) aparecen traducidos y no como IDs técnicos.
+        2.  **Terminal Venta (TPV)**: Confirmar el uso de términos profesionales ("BASE IMPONIBLE", "Bonificación Comercial").
+        3.  **Formulario Entidades**: Probar el desdoble de nombre en "Persona Física" y el filtrado de documentos por tipo.
+        4.  **Listados**: Confirmar que el click no deja la fila resaltada tras cerrar un diálogo.
+        5.  **Despliegue**: Verificar que `./scripts/rebuild-staging-remote.ps1` termina sin errores de permisos.
 ---
 
 - **Unificación UI/UX — Fase 1: Fundamentos y Estilos Base** | Iniciada: 2026-05-01 | Finalizada: 2026-05-08 | ✅ **Fase 1 COMPLETADA**. 

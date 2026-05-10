@@ -1110,6 +1110,30 @@ function printOrder() {
 function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '' }
 function formatMoney(amount) { return salesApi.formatMoney(amount) }
 
+onMounted(() => {
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+});
+
+function handleGlobalSave() {
+  if (mode.value === 'edit' && !isSaving.value) {
+    saveOrder();
+  }
+}
+
+function handleGlobalEsc() {
+  if (mode.value === 'edit') {
+    exitEditMode();
+  } else {
+    router.push('/sales/orders');
+  }
+}
+
 watch(() => route.params.id, loadOrder, { immediate: true })
 </script>
 

@@ -64,9 +64,42 @@
                   <X :size="16" />
                 </div>
               </td>
-              <td class="text-center"><input v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" @input="calculateTotals" /></td>
-              <td class="align-right"><input v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" @input="calculateTotals" /></td>
-              <td class="text-center"><input v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" @input="calculateTotals" /></td>
+              <td class="text-center">
+                <input 
+                  v-model.number="item.quantity" 
+                  type="number" 
+                  min="1" 
+                  class="form-input-sm w-16" 
+                  :data-row="index"
+                  data-col="qty"
+                  @input="calculateTotals" 
+                  @keydown="handleLineKeyDown($event, index, 'qty', item)"
+                />
+              </td>
+              <td class="align-right">
+                <input 
+                  v-model.number="item.unitPrice" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-24 text-right" 
+                  :data-row="index"
+                  data-col="price"
+                  @input="calculateTotals" 
+                  @keydown="handleLineKeyDown($event, index, 'price', item)"
+                />
+              </td>
+              <td class="text-center">
+                <input 
+                  v-model.number="item.discountPercent" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-16 text-center" 
+                  :data-row="index"
+                  data-col="disc"
+                  @input="calculateTotals" 
+                  @keydown="handleLineKeyDown($event, index, 'disc', item)"
+                />
+              </td>
               <td class="align-right"><strong>{{ formatMoney(calculateLineSubtotal(index)) }}</strong></td>
               <td class="text-center">
                 <button type="button" class="btn-icon text-danger" @click="removeLine(index)"><Trash2 :size="18" /></button>
@@ -129,6 +162,7 @@ import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
 
 import { useToastStore } from '@/stores/toast';
@@ -142,6 +176,20 @@ const formData = reactive({
   expirationDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
   notes: '',
   lineItems: []
+});
+
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => formData.lineItems.length,
+  columns: ['qty', 'price', 'disc'],
+  onUpdate: (index, col, val) => {
+    const item = formData.lineItems[index];
+    if (col === 'qty') item.quantity = val;
+    else if (col === 'price') item.unitPrice = val;
+    else if (col === 'disc') item.discountPercent = val;
+    calculateTotals();
+  },
+  onLastFieldEnter: () => addLineItem(),
+  onAddField: () => addLineItem()
 });
 
 const totals = reactive({ subtotal: 0, tax: 0, total: 0 });

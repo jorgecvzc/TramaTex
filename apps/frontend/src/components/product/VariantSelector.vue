@@ -25,7 +25,10 @@
             type="text"
             class="form-control"
             placeholder="Ej: TST001, TST001-SIZE.M, código de barras..."
-            @keyup.enter="performSmartSearch"
+            @input="handleQuickInput"
+            @keyup.enter="handleEnter"
+            @keydown.down.prevent="navigateDown"
+            @keydown.up.prevent="navigateUp"
           />
           <button
             @click="performSmartSearch"
@@ -44,10 +47,12 @@
       <div v-if="smartSearchProducts.length > 0 && !selectedProductId" class="product-list-result">
         <h4>Productos encontrados</h4>
         <div
-          v-for="prod in smartSearchProducts"
+          v-for="(prod, index) in smartSearchProducts"
           :key="prod.id"
           class="product-item"
+          :class="{ 'active': index === activeIndex }"
           @click="selectProductFromSearch(prod)"
+          @mouseenter="activeIndex = index"
         >
           <span class="product-item-sku">{{ prod.sku }}</span>
           <span class="product-item-name">{{ prod.name }}</span>
@@ -56,7 +61,7 @@
 
       <!-- Smart Search: exact variant found (no product context) -->
       <div v-if="selectedVariant && !selectedProductId" class="selected-variant">
-        <div class="variant-card">
+        <div class="variant-card active">
           <div class="card-header">
             <span class="badge">{{ formatStatus(selectedVariant.status) }}</span>
             <span v-if="!selectedVariant.is_active" class="badge inactive">Inactivo</span>
@@ -68,8 +73,8 @@
               <strong>Código de barras:</strong> {{ selectedVariant.barcode }}
             </p>
             <div class="card-footer">
-              <button @click="confirmSelection" class="btn btn-success btn-add">
-                <Check :size="16" style="margin-right: 4px; vertical-align: middle" /> Agregar
+              <button ref="confirmBtn" @click="confirmSelection" class="btn btn-success btn-add">
+                <Check :size="16" style="margin-right: 4px; vertical-align: middle" /> Agregar (Enter)
               </button>
               <button @click="clearSelection" class="btn btn-link">
                 Cancelar
@@ -216,6 +221,7 @@ const emit = defineEmits(['variant-selected', 'error'])
 
 // Refs
 const quickSearchInput = ref(null)
+const confirmBtn = ref(null)
 
 // State
 const selectedProductId = ref(props.productId || '')
@@ -228,6 +234,31 @@ const quickSearchQuery = ref('')
 const smartSearchProducts = ref([])
 const isProcessing = ref(false)
 const error = ref('')
+const activeIndex = ref(0)
+
+// Keyboard Methods
+function navigateDown() {
+  if (smartSearchProducts.value.length > 0) {
+    if (activeIndex.value < smartSearchProducts.value.length - 1) activeIndex.value++
+  }
+}
+function navigateUp() {
+  if (smartSearchProducts.value.length > 0) {
+    if (activeIndex.value > 0) activeIndex.value--
+  }
+}
+function handleEnter() {
+  if (smartSearchProducts.value.length > 0) {
+    selectProductFromSearch(smartSearchProducts.value[activeIndex.value])
+  } else if (selectedVariant.value) {
+    confirmSelection()
+  } else {
+    performSmartSearch()
+  }
+}
+function handleQuickInput() {
+  activeIndex.value = 0
+}
 
 // Computed
 const canCreateVariant = computed(() => {
@@ -1005,9 +1036,16 @@ function setError(message) {
   margin-bottom: 0.4rem;
 }
 
-.product-item:hover {
+.product-item:hover,
+.product-item.active {
   background: #f0f9ff;
   border-color: #1b3a6b;
+  box-shadow: 0 0 0 2px rgba(27, 58, 107, 0.1);
+}
+
+.product-item.active .product-item-sku {
+  background: var(--color-primary);
+  color: black;
 }
 
 .product-item-sku {
