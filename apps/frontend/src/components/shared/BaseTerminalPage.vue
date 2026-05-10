@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
+import { RefreshCw, LogOut } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 
 const props = defineProps<{
   title: string
   stationId?: string
-  icon?: string
+  icon?: string | any
   isLoading?: boolean
 }>()
 
@@ -18,6 +20,8 @@ onMounted(() => {
 onUnmounted(() => {
   document.body.classList.remove('terminal-open')
 })
+
+const resolvedIcon = computed(() => getIcon(props.icon || 'terminal'))
 </script>
 
 <template>
@@ -25,7 +29,7 @@ onUnmounted(() => {
     <!-- CABECERA INDUSTRIAL -->
     <header class="terminal-header">
       <div class="header-brand">
-        <span class="material-symbols-outlined logo-icon">{{ icon || 'terminal' }}</span>
+        <component :is="resolvedIcon" class="logo-icon" :size="48" />
         <div class="title-stack">
           <h1>{{ title }}</h1>
           <span v-if="stationId" class="station-label">ESTACIÓN: {{ stationId }}</span>
@@ -37,11 +41,11 @@ onUnmounted(() => {
         <slot name="extra-actions"></slot>
 
         <button class="btn-terminal btn-sync" @click="$emit('refresh')" :disabled="isLoading">
-          <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+          <RefreshCw :size="20" :class="{ 'spin': isLoading }" />
           <span>Sincronizar</span>
         </button>
         <button class="btn-terminal btn-exit" @click="$emit('close')">
-          <span class="material-symbols-outlined">logout</span>
+          <LogOut :size="20" />
           <span>Salir</span>
         </button>
       </div>
@@ -81,11 +85,11 @@ onUnmounted(() => {
 }
 
 .header-brand { display: flex; align-items: center; gap: 1.5rem; }
-.logo-icon { font-size: 3rem; color: var(--color-primary); }
+.logo-icon { color: var(--color-primary); }
 .title-stack h1 { font-size: 1.5rem; margin: 0; font-weight: 800; color: white; text-transform: uppercase; }
 .station-label { font-size: 0.75rem; color: var(--color-primary); font-weight: 700; letter-spacing: 0.1em; }
 
-.header-actions { display: flex; gap: 1rem; }
+.header-actions { display: flex; gap: 1rem; align-items: center; }
 .btn-terminal { 
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; cursor: pointer; border: none;
