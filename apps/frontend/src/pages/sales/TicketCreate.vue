@@ -300,10 +300,30 @@ function handleGlobalKeydown(e) {
 
 onMounted(async () => {
   window.addEventListener("keydown", handleGlobalKeydown);
+  window.addEventListener("tramatex-save", handleGlobalSave);
+  window.addEventListener("tramatex-esc", handleGlobalEsc);
   await loadDefaultCustomer();
   focusSearch();
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", handleGlobalKeydown));
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleGlobalKeydown);
+  window.removeEventListener("tramatex-save", handleGlobalSave);
+  window.removeEventListener("tramatex-esc", handleGlobalEsc);
+});
+
+function handleGlobalSave() {
+  if (lineItems.value.length > 0 && !isSubmitting.value) processTicket();
+}
+
+function handleGlobalEsc() {
+  if (showShortcuts.value) showShortcuts.value = false;
+  else if (showVariantSelector.value) closeVariantSelector();
+  else {
+    productSearch.value = "";
+    focusSearch();
+  }
+}
 
 async function loadDefaultCustomer() {
   try {

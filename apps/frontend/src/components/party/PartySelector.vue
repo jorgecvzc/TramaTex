@@ -175,32 +175,17 @@ function selectFirst() {
 function navigateDown() { if (activeIndex.value < filteredParties.value.length - 1) activeIndex.value++; }
 function navigateUp() { if (activeIndex.value > 0) activeIndex.value--; }
 
-function clearSelection() {
-  emit('update:modelValue', '');
-  emit('select', null);
-  searchTerm.value = '';
+function handleGlobalEsc() {
   showDropdown.value = false;
 }
 
-function getRoleLabel(role: string) {
-  const labels: any = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Ambos', CONTACT: 'Contacto' };
-  return labels[role] || role;
-}
-
-watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
-    if (!selectedParty.value || selectedParty.value.id !== newVal) {
-      loadParties();
-    }
-  } else {
-    searchTerm.value = '';
-    externalParty.value = null;
-  }
-});
-
 onMounted(() => {
   loadParties();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
 });
 </script>
 

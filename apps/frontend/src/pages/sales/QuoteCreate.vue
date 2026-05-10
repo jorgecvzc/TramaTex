@@ -188,6 +188,10 @@ const { handleLineKeyDown, focusLineInput } = useLineNavigation({
     else if (col === 'disc') item.discountPercent = val;
     calculateTotals();
   },
+  onRemoveField: (index) => {
+    formData.lineItems.splice(index, 1);
+    calculateTotals();
+  },
   onLastFieldEnter: () => addLineItem(),
   onAddField: () => addLineItem()
 });
