@@ -155,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, X, Trash2, Plus, Package } from 'lucide-vue-next';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
@@ -192,7 +192,19 @@ const { handleLineKeyDown, focusLineInput } = useLineNavigation({
   onAddField: () => addLineItem()
 });
 
-const totals = reactive({ subtotal: 0, tax: 0, total: 0 });
+onMounted(() => {
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', () => router.push('/sales/quotes'));
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', () => router.push('/sales/quotes'));
+});
+
+function handleGlobalSave() {
+  if (!isSubmitting.value && formData.lineItems.length > 0) handleSubmit();
+}
 const partyDefaultDiscount = ref(null);
 const showVariantSelector = ref(false);
 const editingIdx = ref(null);

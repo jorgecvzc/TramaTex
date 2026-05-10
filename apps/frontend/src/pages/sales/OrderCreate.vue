@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, reactive } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { 
   ShoppingCart, 

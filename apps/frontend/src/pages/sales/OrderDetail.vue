@@ -464,7 +464,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick, reactive } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, reactive } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { 
   ShoppingCart, 
