@@ -55,14 +55,14 @@
         <td class="align-right" @click.stop>
           <div class="action-buttons">
             <router-link :to="`/mes/work-setups/${item.id}/edit`" class="btn-icon" title="Editar">
-              <span class="material-symbols-outlined">edit</span>
+              <Pencil :size="18" />
             </router-link>
             <button 
               class="btn-icon" 
               @click="toggleActive(item)" 
               :title="item.is_active ? 'Desactivar' : 'Activar'"
             >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+              <component :is="item.is_active ? Ban : CheckCircle" :size="18" />
             </button>
           </div>
         </td>
@@ -74,11 +74,14 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Pencil, Ban, CheckCircle } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { WorkSetup } from '@/types/mes'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const setups = ref<WorkSetup[]>([])
 const isLoading = ref(false)
 const error = ref('')
@@ -113,9 +116,10 @@ async function loadSetups() {
 async function toggleActive(setup: WorkSetup) {
   try {
     await mesApi.updateWorkSetup(setup.id, { is_active: !setup.is_active })
+    toastStore.addToast(`Configuración ${setup.is_active ? 'desactivada' : 'activada'} correctamente`, 'info')
     await loadSetups()
   } catch (err: any) {
-    alert(err.message)
+    toastStore.addToast(err.message, 'error')
   }
 }
 

@@ -13,7 +13,7 @@ export async function requireAuth(
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
-  // Verificar si el token expiró
+  // Check if token expired
   if (authStore.accessToken && isTokenExpired(authStore.accessToken)) {
     try {
       await authStore.refreshAccessToken()
@@ -38,7 +38,7 @@ export function setupAuthGuards(router: Router) {
   router.beforeEach(async (to, from) => {
     const authStore = useAuthStore()
 
-    // Restaurar sesión si está disponible
+    // Restore session if available
     if (!authStore.isAuthenticated && !from.name) {
       await authStore.checkAuthStatus()
     }

@@ -22,6 +22,7 @@ describe('PartyApi Service', () => {
       const mockParty: PartyUI = {
         id: 'party-001',
         name: 'Acme Corporation',
+        type: 'ORGANIZATION',
         role: 'CLIENT',
         status: 'ACTIVE',
         tax_id: 'B12345678',

@@ -21,6 +21,28 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+kbd {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), inset 0 0 0 2px #fff;
+  color: var(--color-text-secondary);
+  display: inline-block;
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
 /* Global Container - Max width 1300px */
 .main-container {
   max-width: 1300px;
@@ -292,3 +314,15 @@ body {
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
+/* Utility: Vibrant Error Animation */
+@keyframes vibrate {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.error-vibrant {
+  animation: vibrate 0.3s linear;
+}

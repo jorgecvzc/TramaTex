@@ -2,7 +2,7 @@
   <BaseDialog :show="show" @close="$emit('close')" size="lg" :hide-header="true" :initial-focus="searchInputRef" content-class="search-dialog-content">
     <div class="global-search-wrapper">
       <div class="search-input-container">
-        <span class="material-symbols-outlined">search</span>
+        <Search :size="28" />
         <input
           ref="searchInputRef"
           v-model="query"
@@ -24,13 +24,13 @@
       </div>
       
       <div v-else-if="!query" class="results-container empty">
-        <span class="material-symbols-outlined large-icon">manage_search</span>
+        <Search :size="64" class="large-icon" />
         <p>Introduce un término para buscar en todo el sistema.</p>
         <small class="text-muted">Busca por Nº de documento, SKU o Nombre de Cliente</small>
       </div>
 
       <div v-else-if="results.length === 0 && !isLoading" class="results-container empty">
-        <span class="material-symbols-outlined large-icon">search_off</span>
+        <SearchX :size="64" class="large-icon" />
         <p>No se encontraron resultados para "<strong>{{ query }}</strong>".</p>
       </div>
 
@@ -46,7 +46,7 @@
               @mouseenter="activeResultIndex = getOverallIndex(item.id)"
             >
               <div class="item-icon" :class="item.type">
-                <span class="material-symbols-outlined">{{ getIcon(item.type) }}</span>
+                <component :is="getIconComponent(item.type)" :size="20" />
               </div>
               <div class="item-content">
                 <div class="title-row">
@@ -56,7 +56,7 @@
                 <p>{{ item.subtitle }}</p>
               </div>
               <div class="item-action">
-                <span class="material-symbols-outlined">arrow_forward</span>
+                <ArrowRight :size="20" />
               </div>
             </li>
           </template>
@@ -69,6 +69,8 @@
 <script setup lang="ts">
 import { ref, watch, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { Search, SearchX, ArrowRight } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 import BaseDialog from './BaseDialog.vue'
 import { api } from '@/services/api'
 
@@ -133,8 +135,8 @@ function getOverallIndex(itemId: string) {
   return flatResults.value.findIndex(item => item.id === itemId)
 }
 
-function getIcon(type: string) {
-  const icons: Record<string, string> = {
+function getIconComponent(type: string) {
+  const iconNames: Record<string, string> = {
     order: 'shopping_cart',
     quote: 'request_quote',
     invoice: 'receipt_long',
@@ -143,7 +145,7 @@ function getIcon(type: string) {
     party: 'person',
     mes_work: 'precision_manufacturing'
   }
-  return icons[type] || 'description'
+  return getIcon(iconNames[type] || 'description')
 }
 
 function goTo(url: string) {
@@ -171,7 +173,7 @@ function selectResult() {
 .search-dialog-content { padding: 0 !important; border-radius: 12px; overflow: hidden; }
 .global-search-wrapper { display: flex; flex-direction: column; background: white; }
 .search-input-container { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-border); }
-.search-input-container .material-symbols-outlined { font-size: 28px; color: var(--color-secondary); }
+.search-input-container :deep(svg) { color: var(--color-secondary); }
 .search-input { width: 100%; border: none; background: transparent; font-size: 1.2rem; font-weight: 500; color: var(--color-text-primary); }
 .search-input:focus { outline: none; }
 .search-hint { font-size: 0.7rem; color: var(--color-text-secondary); white-space: nowrap; }
@@ -179,7 +181,7 @@ function selectResult() {
 
 .results-container { min-height: 350px; max-height: 65vh; overflow-y: auto; background: var(--color-background-soft); }
 .results-container.empty, .results-container.loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; color: var(--color-text-secondary); }
-.large-icon { font-size: 4rem; opacity: 0.2; margin-bottom: 1rem; }
+.large-icon { opacity: 0.2; margin-bottom: 1rem; }
 
 .results-list { list-style: none; padding: 0.5rem; margin: 0; }
 .group-header { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); padding: 1.25rem 1rem 0.5rem; letter-spacing: 0.05em; }

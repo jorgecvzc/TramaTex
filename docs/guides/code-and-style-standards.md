@@ -151,8 +151,13 @@ Para garantizar la consistencia técnica entre todas las capas del sistema, se e
   - **Textareas:** Deben usar la clase `.form-textarea`.
   - **Estados:** Se deben implementar estilos consistentes para `:focus` (borde azul oscuro/oro y sombra suave), `:disabled` y estados de error.
   - **Estructura:** Uso de `FormSection` para agrupar campos y `DataRow` para visualización mixta (lectura/edición).
-- **Iconografía:** Exclusivamente `Material Symbols Outlined`. Los emojis están **PROHIBIDOS** en la interfaz final.
+- **Iconografía:** Exclusivamente **Lucide Icons (SVG)** vía `lucide-vue-next`. Se prohíbe el uso de Material Symbols o emojis en la interfaz final. Todos los iconos deben estar registrados en la Verdad Única (SSOT) de `src/utils/icons.ts`.
 - **Manejo de Formularios:** Validación en composables o stores. Lógica de validación reutilizable. Mensajes de error claros al usuario.
+- **Navegación por Teclado (Crítico):**
+  - **Campos Numéricos en Líneas:** Las flechas `↑` (ArrowUp) y `↓` (ArrowDown) deben actuar como incrementadores y decrementadores del valor (Cantidades, Precios, Descuentos).
+  - **Navegación Horizontal (Enter):** La tecla `Enter` debe mover el foco al siguiente campo lógico de la línea (ej: `Cant.` → `Precio` → `Dto.`).
+  - **Salto de Línea:** Al pulsar `Enter` en el último campo de una línea, el foco debe saltar a la primera columna de la siguiente línea o abrir el buscador si es la última.
+  - **Listados:** Navegación entre filas con `↑`/`↓`, selección con `Enter` y cancelación con `Esc`.
 - **Gestión de Estado:** Estado global en stores de Pinia. Acciones de store para mutaciones. Propiedades computadas para estado derivado.
 - **Testing:** Tests para lógica de negocio crítica en stores y composables. Vitest configurado. ≥80% de cobertura para componentes y composables críticos.
 - **Calidad de Código:** TypeScript en modo estricto. ESLint sin warnings.

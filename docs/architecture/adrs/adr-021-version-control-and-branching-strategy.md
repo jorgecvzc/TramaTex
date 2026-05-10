@@ -18,11 +18,11 @@ Con el MVP listo para producción (v1.0.0), se requiere una estrategia de branch
 Se adopta un **GitFlow Simplificado** y el estándar **SemVer 2.0**.
 
 ### 1. Modelo de Ramas:
-*   **`main`**: Código estable y desplegable. Cada merge es una versión productiva. Protegida.
+*   **`master`**: Código estable y desplegable. Cada merge es una versión productiva. Protegida.
 *   **`develop`**: Rama de integración activa. Base para todas las nuevas tareas. Protegida.
 *   **`feature/*`**: Nuevas funcionalidades (nacen de `develop`).
 *   **`bugfix/*`**: Correcciones en desarrollo (nacen de `develop`).
-*   **`hotfix/*`**: Errores críticos en producción (nacen de `main`).
+*   **`hotfix/*`**: Errores críticos en producción (nacen de `master`).
 
 ### 2. Versionado Semántico:
 Formato `MAJOR.MINOR.PATCH` (Ej: 1.2.0).

@@ -1,5 +1,7 @@
 # Resumen del Sprint [XX]
 
+> **Nota de Nomenclatura:** Este archivo debe guardarse como `README.md` dentro del directorio `docs/log/sprints/sprint-[XX]/`.
+
 ---
 
 ## 📋 INFORMACIÓN DEL SPRINT

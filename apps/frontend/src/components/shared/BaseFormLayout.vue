@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import { List, Save, RefreshCw } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 interface Breadcrumb {
   label: string
@@ -15,6 +17,7 @@ const props = defineProps<{
   submitIcon?: string
   cancelRoute?: string
   catalogRoute?: string
+  showBack?: boolean
 }>()
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -29,14 +32,18 @@ function handleCancel() {
 
 <template>
   <div class="main-container">
-    <PageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader 
+      :title="props.title" 
+      :breadcrumbs="props.breadcrumbs"
+      :show-back="props.showBack"
+    >
       <template #actions>
         <button v-if="props.catalogRoute" @click="router.push(props.catalogRoute)" class="btn btn-outline">
-          <span class="material-symbols-outlined">list_alt</span>
+          <List :size="18" />
           <span>Ir al catálogo</span>
         </button>
       </template>
-    </PageHeader>
+    </BasePageHeader>
 
     <form @submit.prevent="emit('submit')" class="form-standard-layout">
       <div class="form-content">
@@ -49,7 +56,11 @@ function handleCancel() {
             Cancelar
           </button>
           <button type="submit" class="btn btn-primary btn-lg" :disabled="props.isSubmitting">
-            <span class="material-symbols-outlined">{{ props.isSubmitting ? 'sync' : (props.submitIcon || 'save') }}</span>
+            <component 
+              :is="props.isSubmitting ? RefreshCw : (getIcon(props.submitIcon) || Save)" 
+              :size="20" 
+              :class="{ 'spin': props.isSubmitting }" 
+            />
             <span>{{ props.isSubmitting ? 'Procesando...' : (props.submitText || 'Guardar Cambios') }}</span>
           </button>
         </slot>
@@ -59,10 +70,10 @@ function handleCancel() {
 </template>
 
 <style scoped>
-.form-standard-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ... (rest of CSS) */
+
+.lucide.spin {
+  animation: spin 1s linear infinite;
 }
 
 .form-footer-actions {
@@ -81,7 +92,7 @@ function handleCancel() {
   min-width: 180px;
 }
 
-.material-symbols-outlined.spin {
+.lucide.spin {
   animation: spin 1s linear infinite;
 }
 

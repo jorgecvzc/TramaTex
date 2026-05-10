@@ -6,6 +6,7 @@ param(
     [string]$User = "ele",
     [string]$ProjectDir = "/opt/tramatex",
     [string]$CheckoutRef = "origin/staging",
+    [switch]$BuildSource,
     [switch]$NoCheckout,
     [switch]$PreserveDatabase,
     [switch]$SkipImageRemove,
@@ -20,13 +21,14 @@ if ($Help) {
     Write-Host "  -User <user>            Usuario SSH (default: ele)" -ForegroundColor White
     Write-Host "  -ProjectDir <path>      Ruta del repo en remoto (default: /opt/tramatex)" -ForegroundColor White
     Write-Host "  -CheckoutRef <ref>      Ref para alinear staging (default: origin/staging)" -ForegroundColor White
+    Write-Host "  -BuildSource            Construye las imágenes desde el código fuente en lugar de descargarlas" -ForegroundColor White
     Write-Host "  -NoCheckout             Omite git fetch/checkout/reset en remoto" -ForegroundColor White
     Write-Host "  -PreserveDatabase       No elimina volúmenes de base de datos" -ForegroundColor White
     Write-Host "  -SkipImageRemove        No elimina imágenes antes de pull" -ForegroundColor White
     Write-Host ""
     Write-Host "Ejemplos:" -ForegroundColor Yellow
     Write-Host "  .\scripts\rebuild-staging-remote.ps1" -ForegroundColor Gray
-    Write-Host "  .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/staging" -ForegroundColor Gray
+    Write-Host "  .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/feature-branch -BuildSource" -ForegroundColor Gray
     exit 0
 }
 
@@ -38,6 +40,8 @@ if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
 $checkoutValue = if ($NoCheckout) { "" } else { $CheckoutRef }
 $preserveValue = if ($PreserveDatabase) { "true" } else { "false" }
 $removeImagesValue = if ($SkipImageRemove) { "false" } else { "true" }
+$buildSourceValue = if ($BuildSource) { "true" } else { "false" }
+$buildSourceFlag = if ($BuildSource) { "--build-source" } else { "" }
 
 # Bloque de comandos remotos (Bash) - Construcción limpia
 $remoteScript = "set -euo pipefail`n"
@@ -65,8 +69,9 @@ $remoteScript += "export ENV_FILE='docker/.env'`n"
 $remoteScript += "export CHECKOUT_REF='$checkoutValue'`n"
 $remoteScript += "export PRESERVE_DATABASE='$preserveValue'`n"
 $remoteScript += "export REMOVE_IMAGES='$removeImagesValue'`n"
+$remoteScript += "export BUILD_SOURCE='$buildSourceValue'`n"
 $remoteScript += "export SKIP_GIT='true'`n"
-$remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s`n"
+$remoteScript += "tr -d '\r' < ./scripts/rebuild-staging-remote.sh | bash -s -- $buildSourceFlag`n"
 
 Write-Host "Lanzando rebuild remoto en $User@$RemoteHost..." -ForegroundColor Cyan
 

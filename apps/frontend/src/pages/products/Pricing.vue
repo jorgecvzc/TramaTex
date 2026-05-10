@@ -2,11 +2,11 @@
   <BaseDashboardPage :is-loading="isLoadingProducts" class="pricing-dashboard">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         title="Consulta de Precios" 
         :breadcrumbs="[{ label: 'Catálogo', to: '/products' }, { label: 'Precios' }]"
       >
-        <template #icon><span class="material-symbols-outlined">payments</span></template>
+        <template #icon><Banknote :size="24" /></template>
         <template #actions>
           <button 
             v-if="selectedProductId && variants.length > 0"
@@ -14,30 +14,30 @@
             :disabled="isCalculatingBase || isCalculatingFinal"
             @click="calculateAllPrices"
           >
-            <span class="material-symbols-outlined">calculate</span>
+            <Calculator :size="18" />
             Calcular Todo
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- CAPA 3: TRABAJO (Resultados) -->
     <div class="pricing-results-area">
       <div v-if="calculationError" class="alert-error mb-4">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="18" />
         {{ calculationError }}
       </div>
 
       <div class="dashboard-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">bar_chart_4_bars</span>
+          <BarChart4 :size="18" />
           <h2>Precios por Variante</h2>
           <span v-if="variants.length" class="header-tag">{{ variants.length }} variantes</span>
         </div>
 
         <!-- Estados vacíos y carga -->
         <div v-if="!selectedProductId" class="empty-state">
-          <span class="material-symbols-outlined">package_2</span>
+          <Package :size="48" />
           <p>Selecciona un producto en el panel lateral para iniciar el cálculo.</p>
         </div>
 
@@ -47,7 +47,7 @@
         </div>
 
         <div v-else-if="variants.length === 0" class="empty-state">
-          <span class="material-symbols-outlined">search_off</span>
+          <SearchX :size="48" />
           <p>Este producto no tiene variantes configuradas.</p>
         </div>
 
@@ -102,7 +102,7 @@
       <div class="sidebar-filters">
         <section class="sidebar-section">
           <div class="section-header">
-            <span class="material-symbols-outlined">filter_list</span>
+            <Filter :size="18" />
             <h2>Condiciones</h2>
           </div>
           
@@ -125,7 +125,7 @@
               :required="false"
             />
             <div v-if="selectedClientId && clientDiscount > 0" class="client-info-mini">
-              <span class="material-symbols-outlined">auto_awesome</span>
+              <Sparkles :size="16" />
               Bonificación activa: <strong>{{ clientDiscount }}%</strong>
             </div>
           </div>
@@ -144,8 +144,10 @@
 
         <section class="help-notice">
           <div class="notice-header">
-            <span class="material-symbols-outlined">info</span>
-            <h3>Cálculo Dinámico</h3>
+            <div class="flex items-center gap-2 mb-2">
+              <Info :size="16" class="text-secondary" />
+              <h3>Cálculo Dinámico</h3>
+            </div>
           </div>
           <p class="help-text">
             Los precios se calculan en base a las reglas de margen, tarifas por cliente y volumen de compra definidos en el sistema.
@@ -158,8 +160,19 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { 
+  Banknote, 
+  Calculator, 
+  AlertCircle, 
+  BarChart4, 
+  Package, 
+  SearchX, 
+  Filter, 
+  Sparkles, 
+  Info 
+} from 'lucide-vue-next'
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
 import { productApi } from '@/services/productApi'
 import { pricingApi } from '@/services/pricingApi'
@@ -274,12 +287,12 @@ const calcDiscountAmount = (id) => {
 
 .sidebar-filters { display: flex; flex-direction: column; gap: 1.5rem; }
 .client-info-mini { margin-top: 0.5rem; font-size: 0.75rem; color: #166534; background: #f0fdf4; padding: 0.4rem 0.6rem; border-radius: 6px; display: flex; align-items: center; gap: 0.3rem; }
-.client-info-mini .material-symbols-outlined { font-size: 1rem; }
+.client-info-mini svg { color: var(--color-success); }
 
 .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 0.75rem 1rem; border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
 
 .empty-state, .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; color: var(--color-text-secondary); }
-.empty-state .material-symbols-outlined { font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; }
+.empty-state svg { opacity: 0.3; margin-bottom: 1rem; }
 
 .pill { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
 .pill.active { background: #dcfce7; color: #166534; }

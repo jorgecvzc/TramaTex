@@ -29,7 +29,7 @@
         </div>
         <div class="filter-actions-inline ml-auto">
           <button class="btn btn-primary btn-sm" @click="showCreateDialog = true">
-            <span class="material-symbols-outlined">person_add</span>
+            <UserPlus :size="16" />
             Nuevo Usuario
           </button>
         </div>
@@ -46,7 +46,7 @@
       <template #item="{ item: user }">
         <td>
           <div class="user-cell">
-            <span class="material-symbols-outlined avatar">account_circle</span>
+            <User class="avatar" :size="24" />
             <strong>{{ user.email }}</strong>
           </div>
         </td>
@@ -57,13 +57,13 @@
         <td class="align-right" @click.stop>
           <div class="action-buttons">
             <button class="btn-icon" @click="openEditModal(user)" title="Editar datos básicos">
-              <span class="material-symbols-outlined">edit</span>
+              <Pencil :size="18" />
             </button>
             <button class="btn-icon" @click="openRoleModal(user)" title="Cambiar permisos">
-              <span class="material-symbols-outlined">key</span>
+              <Key :size="18" />
             </button>
             <button class="btn-icon text-danger" @click="confirmDelete(user)" title="Eliminar cuenta">
-              <span class="material-symbols-outlined">delete</span>
+              <Trash2 :size="18" />
             </button>
           </div>
         </td>
@@ -131,13 +131,16 @@
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed } from 'vue'
+import { UserPlus, User, Pencil, Key, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { Usuario, UserRole } from '@/types/auth'
 import { iamService } from '@/services/iam'
+import { useToastStore } from '@/stores/toast'
 
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 const users = ref<Usuario[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -183,11 +186,11 @@ async function updateUser() {
 
   const candidatePassword = editUserForm.password || ''
   if (candidatePassword && candidatePassword.length < 8) {
-    alert('La nueva contraseña debe tener al menos 8 caracteres.')
+    toastStore.warning('La nueva contraseña debe tener al menos 8 caracteres.')
     return
   }
   if (candidatePassword.length > 72) {
-    alert('La nueva contraseña no puede superar 72 caracteres.')
+    toastStore.warning('La nueva contraseña no puede superar 72 caracteres.')
     return
   }
 
@@ -198,8 +201,9 @@ async function updateUser() {
       password: candidatePassword || undefined
     })
     users.value = users.value.map((u) => u.id === result.id ? { ...u, email: result.email } : u)
+    toastStore.success('Usuario actualizado correctamente')
     showEditModal.value = false
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.error(err.message || 'Error al actualizar usuario') }
   finally { isSaving.value = false }
 }
 
@@ -209,8 +213,9 @@ async function saveRole() {
   try {
     const result = await iamService.assignRole(selectedUser.value.id, selectedRole.value)
     users.value = users.value.map((u) => u.id === result.userId ? { ...u, role: result.role } : u)
+    toastStore.success(`Rol cambiado a ${selectedRole.value} para ${selectedUser.value.email}`)
     closeModal()
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.error(err.message || 'Error al cambiar rol') }
   finally { isSaving.value = false }
 }
 
@@ -219,9 +224,10 @@ async function createUser() {
   try {
     const created = await iamService.createUser(newUser)
     users.value = [created, ...users.value]
+    toastStore.success('Usuario creado correctamente')
     showCreateDialog.value = false
     Object.assign(newUser, { email: '', password: '', role: 'commercial' })
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.error(err.message || 'Error al crear usuario') }
   finally { isCreating.value = false }
 }
 
@@ -231,9 +237,11 @@ async function executeDelete() {
   isDeleting.value = true
   try {
     await iamService.deleteUser(userToDelete.value.id)
+    const deletedEmail = userToDelete.value.email
     users.value = users.value.filter((item) => item.id !== userToDelete.value!.id)
+    toastStore.success(`Cuenta de "${deletedEmail}" eliminada`)
     showDeleteConfirm.value = false
-  } catch (err: any) { alert(err.message) }
+  } catch (err: any) { toastStore.error(err.message || 'Error al eliminar usuario') }
   finally { isDeleting.value = false }
 }
 
@@ -243,7 +251,7 @@ onMounted(loadUsers)
 <style scoped>
 .page-layout { background-color: var(--color-background); min-height: 100vh; }
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
-.avatar { color: var(--color-border); font-size: 24px; }
+.avatar { color: var(--color-border); }
 .role-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; background: var(--color-background-soft); border: 1px solid var(--color-border); }
 .role-admin { border-left: 3px solid var(--color-error); color: var(--color-error); }
 .role-commercial { border-left: 3px solid #2563eb; color: #2563eb; }

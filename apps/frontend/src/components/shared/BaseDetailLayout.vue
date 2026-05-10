@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import { List } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 
 interface Breadcrumb {
   label: string
@@ -13,6 +15,7 @@ const props = defineProps<{
   breadcrumbs: Breadcrumb[]
   catalogRoute?: string
   catalogText?: string
+  showBack?: boolean
 }>()
 
 const router = useRouter()
@@ -20,21 +23,25 @@ const router = useRouter()
 
 <template>
   <div class="main-container">
-    <PageHeader :title="props.title" :breadcrumbs="props.breadcrumbs">
+    <BasePageHeader 
+      :title="props.title" 
+      :breadcrumbs="props.breadcrumbs"
+      :show-back="props.showBack"
+    >
       <template #icon v-if="props.icon">
-        <span class="material-symbols-outlined">{{ props.icon }}</span>
+        <component :is="getIcon(props.icon)" :size="28" />
       </template>
       
       <template #actions>
         <div class="header-actions-group">
           <slot name="actions"></slot>
           <button v-if="props.catalogRoute" @click="router.push(props.catalogRoute)" class="btn btn-outline">
-            <span class="material-symbols-outlined">list_alt</span>
+            <List :size="18" />
             <span>{{ props.catalogText || 'Ir al catálogo' }}</span>
           </button>
         </div>
       </template>
-    </PageHeader>
+    </BasePageHeader>
 
     <div class="detail-vertical-layout">
       <div v-if="$slots.toolbar" class="detail-toolbar-area">

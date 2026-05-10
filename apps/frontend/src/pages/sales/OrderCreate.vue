@@ -4,12 +4,11 @@
     <BasePageHeader 
       title="Crear Nuevo Pedido" 
       :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Pedidos', to: '/sales/orders' }, { label: 'Nuevo' }]"
-      show-back
     >
-      <template #icon><span class="material-symbols-outlined">shopping_cart</span></template>
+      <template #icon><ShoppingCart :size="28" /></template>
       <template #actions>
         <button @click="goBack" class="btn btn-outline btn-sm">
-          <span class="material-symbols-outlined">close</span>
+          <X :size="16" />
           <span>Cancelar</span>
         </button>
         <button 
@@ -17,7 +16,7 @@
           class="btn btn-primary btn-sm ml-2" 
           :disabled="!isFormValid || isSubmitting"
         >
-          <span class="material-symbols-outlined">{{ isSubmitting ? 'sync' : 'save' }}</span>
+          <component :is="isSubmitting ? RefreshCw : Save" :size="16" :class="{ 'spin': isSubmitting }" />
           <span>{{ isSubmitting ? 'Procesando...' : 'Crear Pedido' }}</span>
         </button>
       </template>
@@ -31,7 +30,7 @@
           <!-- SECCIÓN: CLIENTE (CONTEXTO) -->
           <section class="card mb-4">
             <div class="section-header">
-              <span class="material-symbols-outlined">person</span>
+              <User :size="20" />
               <h2>Cliente y Datos Fiscales</h2>
             </div>
             <div class="p-4">
@@ -49,7 +48,7 @@
           <!-- SECCIÓN: CONDICIONES -->
           <section class="card mb-4">
             <div class="section-header">
-              <span class="material-symbols-outlined">event_note</span>
+              <Calendar :size="20" />
               <h2>Condiciones de Venta</h2>
             </div>
             <div class="p-4">
@@ -74,11 +73,11 @@
           <section class="card table-card mb-4">
             <div class="table-header-row">
               <div class="section-header">
-                <span class="material-symbols-outlined">list_alt</span>
+                <List :size="20" />
                 <h2>Líneas de Producto</h2>
               </div>
               <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
-                <span class="material-symbols-outlined">add</span> Añadir Producto
+                <Plus :size="16" /> Añadir Producto
               </button>
             </div>
 
@@ -101,7 +100,7 @@
                     <td>
                       <div class="variant-search-cell">
                         <div v-if="!item.productVariantId" class="input-with-icon">
-                          <span class="material-symbols-outlined">barcode_scanner</span>
+                          <ScanBarcode :size="18" />
                           <input 
                             v-model="item.quickSearchQuery" 
                             type="text" 
@@ -109,31 +108,58 @@
                             @keyup.enter="inlineSmartSearch(index)" 
                           />
                           <button class="btn-inside" @click="openVariantSelector(index)">
-                            <span class="material-symbols-outlined">search</span>
+                            <Search :size="18" />
                           </button>
                         </div>
                         <div v-else class="variant-active-tag" @click="clearLineVariant(index)">
                           <code class="sku">{{ item.selectedVariantName }}</code>
                           <span class="name">{{ buildDisplayName(item) }}</span>
-                          <span class="material-symbols-outlined remove-icon">close</span>
+                          <X :size="16" class="remove-icon" />
                         </div>
                       </div>
                     </td>
                     <td class="text-center">
-                      <input v-model.number="item.quantity" type="number" min="1" class="qty-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.quantity" 
+                        type="number" 
+                        min="1" 
+                        class="qty-input" 
+                        :data-row="index"
+                        data-col="qty"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'qty', item)"
+                      />
                     </td>
                     <td class="align-right">
-                      <input v-model.number="item.unitPrice" type="number" step="0.01" class="price-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.unitPrice" 
+                        type="number" 
+                        step="0.01" 
+                        class="price-input" 
+                        :data-row="index"
+                        data-col="price"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'price', item)"
+                      />
                     </td>
                     <td class="text-center">
-                      <input v-model.number="item.discountPercent" type="number" step="0.01" class="qty-input" @input="calculateTotals" />
+                      <input 
+                        v-model.number="item.discountPercent" 
+                        type="number" 
+                        step="0.01" 
+                        class="qty-input" 
+                        :data-row="index"
+                        data-col="disc"
+                        @input="calculateTotals" 
+                        @keydown="handleLineKeyDown($event, index, 'disc', item)"
+                      />
                     </td>
                     <td class="align-right">
                       <strong class="subtotal-text">{{ formatMoney(calculateLineSubtotal(index)) }}</strong>
                     </td>
                     <td class="text-center">
                       <button type="button" class="btn-icon text-danger" @click="removeLineItem(index)">
-                        <span class="material-symbols-outlined">delete</span>
+                        <Trash2 :size="18" />
                       </button>
                     </td>
                   </tr>
@@ -151,7 +177,7 @@
           <!-- RESUMEN ECONÓMICO -->
           <section class="card totals-card mb-4">
             <div class="section-header">
-              <span class="material-symbols-outlined">payments</span>
+              <CreditCard :size="20" />
               <h2>Resumen de Venta</h2>
             </div>
             <div class="totals-body">
@@ -173,22 +199,36 @@
           <!-- CONFIGURACIONES MES -->
           <section v-if="formData.partyId" class="card mes-summary-card">
             <div class="section-header">
-              <span class="material-symbols-outlined">precision_manufacturing</span>
+              <Factory :size="20" />
               <h2>Configuración Taller</h2>
             </div>
             <div class="mes-body p-3">
               <div v-for="(config, idx) in formData.mesWorkRefs" :key="idx" class="mes-item-row">
                 <div class="mes-item-info">
-                  <select v-model="config.workSetupId" class="mes-select">
+                  <select 
+                    v-model="config.workSetupId" 
+                    class="mes-select"
+                    :data-mes-row="idx"
+                    data-mes-col="setup"
+                    @keydown="handleMesKeyDown($event, idx, 'setup', config)"
+                  >
                     <option :value="null">Sin configuración base</option>
                     <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
                   </select>
-                  <input v-model="config.description" type="text" placeholder="Notas taller..." class="mes-input" />
+                  <input 
+                    v-model="config.description" 
+                    type="text" 
+                    placeholder="Notas taller..." 
+                    class="mes-input" 
+                    :data-mes-row="idx"
+                    data-mes-col="desc"
+                    @keydown="handleMesKeyDown($event, idx, 'desc', config)"
+                  />
                 </div>
-                <button @click="removeConfig(idx)" class="btn-icon text-danger"><span class="material-symbols-outlined">close</span></button>
+                <button @click="removeConfig(idx)" class="btn-icon text-danger"><X :size="16" /></button>
               </div>
-              <button class="btn btn-outline btn-sm w-full mt-2" @click="addConfig">
-                <span class="material-symbols-outlined">add</span> Añadir Trabajo
+              <button class="btn btn-secondary btn-sm w-full mt-2" @click="addConfig">
+                <Plus :size="16" /> Añadir Trabajo Taller
               </button>
             </div>
           </section>
@@ -212,17 +252,74 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, reactive } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { 
+  ShoppingCart, 
+  X, 
+  RefreshCw, 
+  Save, 
+  User, 
+  Calendar, 
+  List, 
+  Plus, 
+  ScanBarcode, 
+  Search, 
+  Trash2, 
+  CreditCard, 
+  Factory 
+} from 'lucide-vue-next';
 import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
+import BaseDialog from '@/components/shared/BaseDialog.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
-import { productApi } from '@/services/productApi';
+// ... (rest of imports)
+
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => formData.value.lineItems.length,
+  columns: ['qty', 'price', 'disc'],
+  onUpdate: (index, col, val) => {
+    const item = formData.value.lineItems[index];
+    if (col === 'qty') item.quantity = val;
+    else if (col === 'price') item.unitPrice = val;
+    else if (col === 'disc') item.discountPercent = val;
+    calculateTotals();
+  },
+  onRemoveField: (index) => removeLineItem(index),
+  onAddField: () => addLineItem()
+});
+
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.value.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeConfig(index),
+  onLastFieldEnter: () => addConfig(),
+  onAddField: () => addConfig()
+});
+
+onMounted(() => {
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', goBack);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', goBack);
+});
+
+function handleGlobalSave() {
+  if (isFormValid.value && !isSubmitting.value) handleSubmit();
+}
+
 import { pricingApi } from '@/services/pricingApi';
 import { mesApi } from '@/services/mesApi';
+import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
+const toastStore = useToastStore();
 
 // --- STATE ---
 const formData = ref({
@@ -372,8 +469,11 @@ async function handleSubmit() {
       mesWorkRefs: formData.value.mesWorkRefs
     };
     const order = await salesApi.createOrder(data);
+    toastStore.success('Pedido creado correctamente');
     router.push(`/sales/orders/${order.id}`);
-  } catch (err) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.error(err.message || 'Error al crear el pedido'); 
+  }
   finally { isSubmitting.value = false; }
 }
 
@@ -390,7 +490,7 @@ const formatMoney = (a) => salesApi.formatMoney({ amount: a?.toString() || '0', 
 
 .section-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--color-background); }
 .section-header h2 { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 0; color: var(--color-text-secondary); }
-.section-header .material-symbols-outlined { font-size: 20px; color: var(--color-secondary); }
+.section-header :deep(svg) { color: var(--color-secondary); }
 
 /* Table specific */
 .table-header-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; }
@@ -399,8 +499,8 @@ const formatMoney = (a) => salesApi.formatMoney({ amount: a?.toString() || '0', 
 .variant-active-tag { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.75rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer; transition: 0.2s; }
 .variant-active-tag:hover { background: white; border-color: var(--color-error); }
 .variant-active-tag .sku { font-weight: 800; color: #166534; font-family: var(--font-family-mono); font-size: 0.8rem; }
-.variant-active-tag .name { font-size: 0.8rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.variant-active-tag .remove-icon { font-size: 16px; color: #94a3b8; }
+.variant-active-tag .name { font-size: 1rem; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.variant-active-tag .remove-icon { color: #94a3b8; }
 
 .qty-input { width: 70px !important; text-align: center; font-weight: 700; }
 .price-input { width: 100px !important; text-align: right; font-weight: 700; color: var(--color-secondary); }
@@ -422,8 +522,11 @@ const formatMoney = (a) => salesApi.formatMoney({ amount: a?.toString() || '0', 
 .btn-icon:hover { background: rgba(0,0,0,0.05); }
 .w-full { width: 100%; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .transactional-layout { grid-template-columns: 1fr; }
   .side-summary-area { order: -1; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

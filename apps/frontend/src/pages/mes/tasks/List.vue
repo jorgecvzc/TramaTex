@@ -15,7 +15,7 @@
   >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add</span>
+          <Plus :size="18" />
           <span>Nueva Tarea</span>
         </button>
       </template>
@@ -55,13 +55,13 @@
         </td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
-            <button @click="editTask(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button @click="editTask(item)" class="btn-icon" title="Editar"><Pencil :size="18" /></button>
             <button 
               @click="toggleActive(item)" 
               class="btn-icon" 
               :title="item.is_active ? 'Desactivar' : 'Activar'"
             >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+              <component :is="item.is_active ? Ban : CheckCircle" :size="18" />
             </button>
           </div>
         </td>
@@ -76,39 +76,30 @@
       confirm-text="Guardar Tarea"
       :is-confirming="isSaving"
       @close="showModal = false"
-      @confirm="saveTask"
+      @confirm="submitForm"
     >
-      <div class="form-group">
-        <label>Nombre de la Tarea *</label>
-        <input v-model="formData.name" type="text" class="form-input" placeholder="Ej: Bordado de logotipo..." required />
-      </div>
-      <div class="form-row mt-4">
-        <div class="form-group">
-          <label>Referencia Técnica</label>
-          <input v-model="formData.reference" type="text" class="form-input" placeholder="Ej: BORD-01" />
-        </div>
-        <div class="form-group">
-          <label>Estado</label>
-          <label class="checkbox-label mt-2">
-            <input v-model="formData.is_active" type="checkbox" class="form-checkbox" />
-            <span>Tarea activa</span>
-          </label>
-        </div>
-      </div>
-      <div class="form-group mt-4">
-        <label>Descripción detallada</label>
-        <textarea v-model="formData.description" class="form-textarea" rows="3"></textarea>
-      </div>
+      <TaskForm 
+        v-if="showModal"
+        :key="modalMode + (selectedTaskId || 'new')"
+        ref="taskFormRef" 
+        :task="currentTask" 
+        :mode="modalMode" 
+        @submit="handleSubmit" 
+      />
     </BaseDialog>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
+import { Plus, Pencil, Ban, CheckCircle } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
+import TaskForm from '@/components/master-data/TaskForm.vue'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import type { MESTask } from '@/types/mes'
 
+const toastStore = useToastStore()
 const tasks = ref<MESTask[]>([])
 const isLoading = ref(false)
 const isSaving = ref(false)
@@ -121,7 +112,8 @@ const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActi
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const selectedTaskId = ref<string | null>(null)
-const formData = reactive({ name: '', reference: '', description: '', is_active: true })
+const currentTask = ref<any>(null)
+const taskFormRef = ref<any>(null)
 
 let debounceTimer: any = null
 watch(filters, () => {
@@ -140,31 +132,47 @@ async function loadTasks() {
 }
 
 function openCreateModal() {
-  modalMode.value = 'create'; selectedTaskId.value = null
-  Object.assign(formData, { name: '', reference: '', description: '', is_active: true })
+  modalMode.value = 'create'
+  selectedTaskId.value = null
+  currentTask.value = null
   showModal.value = true
 }
 
 function editTask(item: MESTask) {
-  modalMode.value = 'edit'; selectedTaskId.value = item.id
-  Object.assign(formData, { name: item.name, reference: item.reference, description: item.description, is_active: item.is_active })
+  modalMode.value = 'edit'
+  selectedTaskId.value = item.id
+  currentTask.value = item
   showModal.value = true
 }
 
-async function saveTask() {
-  if (!formData.name) return;
+function submitForm() {
+  if (taskFormRef.value) {
+    taskFormRef.value.handleSubmit()
+  }
+}
+
+async function handleSubmit(payload: any) {
   isSaving.value = true
   try {
-    if (modalMode.value === 'create') await mesApi.createTask(formData)
-    else await mesApi.updateTask(selectedTaskId.value!, formData)
-    showModal.value = false; await loadTasks()
-  } catch (err: any) { alert(err.message) }
-  finally { isSaving.value = false }
+    if (modalMode.value === 'create') {
+      await mesApi.createTask(payload)
+      toastStore.success('Tarea creada correctamente')
+    } else {
+      await mesApi.updateTask(selectedTaskId.value!, payload)
+      toastStore.success('Tarea actualizada correctamente')
+    }
+    showModal.value = false
+    await loadTasks()
+  } catch (err: any) {
+    toastStore.addToast(err.message, 'error')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 async function toggleActive(item: MESTask) {
   try { await mesApi.updateTask(item.id, { is_active: !item.is_active }); await loadTasks() }
-  catch (err: any) { alert(err.message) }
+  catch (err: any) { toastStore.addToast(err.message, 'error') }
 }
 
 function clearFilters() { filters.search = ''; filters.isActive = ''; }

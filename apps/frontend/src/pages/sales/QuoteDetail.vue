@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage class="no-print" v-if="isLoading">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" show-back />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,11 +11,11 @@
 
   <BaseEntityPage class="no-print" v-else-if="error">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="24" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -28,31 +28,34 @@
   <BaseEntityPage class="no-print" v-else-if="quote || mode === 'create'">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="mode === 'create' ? 'Nuevo Presupuesto' : (mode === 'edit' ? `Editando Presupuesto ${quote?.quoteNumber}` : `Presupuesto ${quote?.quoteNumber}`)" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos', to: '/sales/quotes' }, { label: mode === 'create' ? 'Crear' : quote?.quoteNumber }]"
+        show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">description</span>
+          <FileText :size="28" />
         </template>
         <template #actions>
-          <template v-if="mode === 'detail'">
-            <button v-if="quote?.status !== 'BORRADOR'" class="btn btn-outline" @click="printQuote">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
-            </button>
-            <button v-if="canEdit" class="btn btn-primary" @click="enterEditMode">
-              <span class="material-symbols-outlined">edit</span> <span>Editar Presupuesto</span>
-            </button>
-          </template>
-          <template v-else>
-            <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
-            <button class="btn btn-secondary" @click="saveQuote" :disabled="isSaving">
-              <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
-              <span>{{ isSaving ? 'Guardando...' : 'Guardar Presupuesto' }}</span>
-            </button>
-          </template>
+          <div v-if="quote || mode === 'create'" class="header-actions-group">
+            <template v-if="mode === 'detail'">
+              <button v-if="quote?.status !== 'BORRADOR'" class="btn btn-outline" @click="printQuote">
+                <Printer :size="16" /> <span>Imprimir</span>
+              </button>
+              <button v-if="canEdit" class="btn btn-primary" @click="enterEditMode">
+                <Pencil :size="16" /> <span>Editar Presupuesto</span>
+              </button>
+            </template>
+            <template v-else>
+              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
+              <button class="btn btn-secondary" @click="saveQuote" :disabled="isSaving">
+                <component :is="isSaving ? RefreshCw : Save" :size="16" :class="{ 'spin': isSaving }" />
+                <span>{{ isSaving ? 'Guardando...' : 'Guardar Presupuesto' }}</span>
+              </button>
+            </template>
+          </div>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
@@ -64,20 +67,20 @@
           </span>
         </div>
         <div class="toolbar-buttons">
-          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="confirmIssueQuote">
-            <span class="material-symbols-outlined">send</span> <span>Emitir a Cliente</span>
+          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="promptIssueQuote">
+            <Send :size="16" /> <span>Emitir a Cliente</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
-            <span class="material-symbols-outlined">check_circle</span> <span>Aceptar y Crear Pedido</span>
+            <CheckCircle :size="16" /> <span>Aceptar y Crear Pedido</span>
           </button>
           <button v-if="['APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
-            <span class="material-symbols-outlined">shopping_cart</span> <span>Crear Pedido</span>
+            <ShoppingCart :size="16" /> <span>Crear Pedido</span>
           </button>
-          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="rejectQuote">
-            <span class="material-symbols-outlined">cancel</span> <span>Rechazar</span>
+          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="promptRejectQuote">
+            <XCircle :size="16" /> <span>Rechazar</span>
           </button>
-          <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="reactivateQuote">
-            <span class="material-symbols-outlined">refresh</span> <span>Reactivar</span>
+          <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="promptReactivateQuote">
+            <RefreshCw :size="16" /> <span>Reactivar</span>
           </button>
         </div>
       </div>
@@ -87,19 +90,19 @@
     <template #summary>
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(mode === 'create' ? new Date() : quote?.quoteDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">event_busy</span></div>
+          <div class="icon purple"><CalendarOff :size="20" /></div>
           <div class="tag-content"><label>Válido Hasta</label><strong :class="{'text-danger': isExpired}">{{ formatDate(mode === 'create' ? formData.expirationDate : quote?.expirationDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Presupuesto</label>
             <strong class="amount">{{ salesApi.formatMoney(liveTotals.total) }}</strong>
@@ -112,12 +115,12 @@
     <template #related v-if="mode === 'detail' && quote?.generatedOrderId">
       <div class="related-history-grid">
         <router-link :to="`/sales/orders/${quote.generatedOrderId}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido Generado</label>
             <strong>{{ quote.generatedOrderNumber || 'Ver Pedido' }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -177,7 +180,7 @@
             <tr v-for="mesRef in quote.mesWorkRefs" :key="mesRef.id">
               <td class="w-64">
                 <div class="mes-config-info">
-                  <span class="material-symbols-outlined icon-secondary">settings_suggest</span>
+                  <Settings2 :size="18" class="icon-secondary" />
                   <strong>{{ formatMesWorkId(mesRef.workSetupId) }}</strong>
                 </div>
               </td>
@@ -206,7 +209,7 @@
       <div v-else>
         <div class="mb-4">
           <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
-            <span class="material-symbols-outlined">add</span> <span>Añadir Trabajo MES</span>
+            <Plus :size="16" /> <span>Añadir Trabajo MES</span>
           </button>
         </div>
         <div class="table-wrapper">
@@ -223,17 +226,32 @@
               <tr v-for="(ref, idx) in formData.mesWorkRefs" :key="idx">
                 <td class="text-muted">{{ idx + 1 }}</td>
                 <td>
-                  <select v-model="ref.workSetupId" class="form-input-sm w-full">
+                  <select 
+                    v-model="ref.workSetupId" 
+                    class="form-input-sm w-full"
+                    :data-mes-row="idx"
+                    data-mes-col="setup"
+                    @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                  >
                     <option :value="null">-- Personalizado --</option>
                     <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
                   </select>
                 </td>
                 <td class="w-full">
-                  <input v-model="ref.description" type="text" class="form-input-sm w-full" placeholder="Especificaciones técnicas..." required />
+                  <input 
+                    v-model="ref.description" 
+                    type="text" 
+                    class="form-input-sm w-full" 
+                    placeholder="Especificaciones técnicas..." 
+                    required 
+                    :data-mes-row="idx"
+                    data-mes-col="desc"
+                    @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                  />
                 </td>
                 <td class="text-center">
                   <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
-                    <span class="material-symbols-outlined">delete</span>
+                    <Trash2 :size="18" />
                   </button>
                 </td>
               </tr>
@@ -247,11 +265,6 @@
     </FormSection>
 
     <FormSection title="Líneas del Presupuesto" icon="list_alt">
-      <div v-if="mode !== 'detail'" class="mb-4">
-        <button type="button" class="btn btn-primary btn-sm" @click="openVariantSelector">
-          <span class="material-symbols-outlined">add</span> <span>Añadir Producto</span>
-        </button>
-      </div>
       <div class="table-wrapper">
         <table class="data-table">
           <thead>
@@ -272,26 +285,64 @@
               <td>{{ buildDisplayName(item) }}</td>
               <td class="text-center">
                 <template v-if="mode === 'detail'">{{ item.quantity }}</template>
-                <input v-else v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" />
+                <input 
+                  v-else 
+                  v-model.number="item.quantity" 
+                  type="number" 
+                  min="1" 
+                  class="form-input-sm w-16 text-center font-bold" 
+                  :data-row="idx"
+                  data-col="qty"
+                  @keydown="handleLineKeyDown($event, idx, 'qty')"
+                />
               </td>
               <td class="align-right">{{ salesApi.formatMoney(mode === 'detail' ? item.listUnitPrice : { amount: item.listPrice || 0, currency: 'EUR' }) }}</td>
               <td class="align-right">
                 <template v-if="mode === 'detail'">{{ salesApi.formatMoney(item.unitPrice) }}</template>
-                <input v-else v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" @input="item._autoPrice = false" />
+                <input 
+                  v-else 
+                  v-model.number="item.unitPrice" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-24 text-right" 
+                  :data-row="idx"
+                  data-col="price"
+                  @input="item._autoPrice = false" 
+                  @keydown="handleLineKeyDown($event, idx, 'price')"
+                />
               </td>
               <td class="text-center">
                 <template v-if="mode === 'detail'">{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</template>
-                <input v-else v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" />
+                <input 
+                  v-else 
+                  v-model.number="item.discountPercent" 
+                  type="number" 
+                  step="0.01" 
+                  class="form-input-sm w-16 text-center" 
+                  :data-row="idx"
+                  data-col="disc"
+                  @keydown="handleLineKeyDown($event, idx, 'disc')"
+                />
               </td>
               <td class="align-right">
                 <strong>{{ salesApi.formatMoney(mode === 'detail' ? item.subtotal : calculateLineSubtotal(idx)) }}</strong>
               </td>
               <td v-if="mode !== 'detail'" class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)"><span class="material-symbols-outlined">delete</span></button>
+                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)" title="Quitar línea"><Trash2 :size="18" /></button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="mode !== 'detail'" class="mt-4">
+        <button 
+          ref="addProductBtn"
+          type="button" 
+          class="btn btn-primary btn-sm" 
+          @click="openVariantSelector"
+        >
+          <Plus :size="16" /> <span>Añadir Producto (Ins)</span>
+        </button>
       </div>
     </FormSection>
 
@@ -329,7 +380,7 @@
 
   <BaseEntityPage class="no-print" v-else>
     <template #header>
-      <PageHeader title="Estado Indeterminado" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
+      <BasePageHeader title="Estado Indeterminado" :breadcrumbs="[{ label: 'Ventas', to: '/sales/quotes' }, { label: 'Presupuestos' }]" />
     </template>
     <div class="alert-card card">
       <div class="alert-content">
@@ -339,6 +390,20 @@
       </div>
     </div>
   </BaseEntityPage>
+
+  <!-- MODALES DE CONFIRMACIÓN (REEMPLAZO DE confirm()) -->
+  <BaseDialog
+    :show="confirmDialog.show"
+    :title="confirmDialog.title"
+    :icon="confirmDialog.icon"
+    :confirm-text="confirmDialog.confirmText"
+    :confirm-class="confirmDialog.confirmClass"
+    :is-confirming="isSaving"
+    @close="confirmDialog.show = false"
+    @confirm="handleConfirmDialog"
+  >
+    <p>{{ confirmDialog.message }}</p>
+  </BaseDialog>
 
   <!-- MODAL: SELECCIÓN DE PRODUCTO -->
   <BaseDialog
@@ -389,9 +454,9 @@
       <div class="modal card w-modal-md animate-fade-in">
         <div class="modal-header border-none pb-0">
           <div class="icon-circle success">
-            <span class="material-symbols-outlined">check_circle</span>
+            <CheckCircle :size="32" />
           </div>
-          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><X :size="20" /></button>
         </div>
         <div class="modal-body text-center p-6 pt-2">
           <h2 class="mb-2">¡Presupuesto Emitido!</h2>
@@ -399,7 +464,7 @@
           
           <div class="post-issue-actions">
             <button class="btn btn-primary w-full justify-center mb-3 py-3" @click="postIssuePrint">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir Presupuesto</span>
+              <Printer :size="16" /> <span>Imprimir Presupuesto</span>
             </button>
             <button class="btn btn-outline w-full justify-center" @click="showPostIssueModal = false">
               <span>Continuar trabajando</span>
@@ -412,23 +477,48 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
+import { 
+  AlertCircle, 
+  FileText, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  Send, 
+  CheckCircle, 
+  ShoppingCart, 
+  XCircle, 
+  User, 
+  Calendar, 
+  CalendarOff, 
+  CreditCard, 
+  ExternalLink, 
+  Settings2, 
+  Plus, 
+  Trash2, 
+  X,
+  AlertTriangle
+} from 'lucide-vue-next';
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { mesApi } from '@/services/mesApi';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const isLoading = ref(true); 
@@ -448,6 +538,54 @@ const formData = reactive({
   partyId: '', expirationDate: '', notes: '', mesWorkRefs: [], lineItems: []
 });
 
+// --- Confirm Dialog Logic ---
+const confirmDialog = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: 'help-circle',
+  confirmText: 'Confirmar',
+  confirmClass: 'btn-primary',
+  action: null
+})
+
+function promptIssueQuote() {
+  confirmDialog.title = 'Emitir Presupuesto'
+  confirmDialog.message = '¿Desea marcar este presupuesto como EMITIDO? Se generará el documento oficial para el cliente.'
+  confirmDialog.icon = Send
+  confirmDialog.confirmText = 'Sí, Emitir'
+  confirmDialog.confirmClass = 'btn-success'
+  confirmDialog.action = confirmIssueQuote
+  confirmDialog.show = true
+}
+
+function promptRejectQuote() {
+  confirmDialog.title = 'Rechazar Presupuesto'
+  confirmDialog.message = '¿Desea marcar este presupuesto como RECHAZADO? El proceso comercial se detendrá.'
+  confirmDialog.icon = XCircle
+  confirmDialog.confirmText = 'Rechazar'
+  confirmDialog.confirmClass = 'btn-danger'
+  confirmDialog.action = rejectQuote
+  confirmDialog.show = true
+}
+
+function promptReactivateQuote() {
+  confirmDialog.title = 'Reactivar Presupuesto'
+  confirmDialog.message = '¿Desea volver a poner este presupuesto en estado BORRADOR para poder editarlo?'
+  confirmDialog.icon = RefreshCw
+  confirmDialog.confirmText = 'Reactivar'
+  confirmDialog.confirmClass = 'btn-primary'
+  confirmDialog.action = reactivateQuote
+  confirmDialog.show = true
+}
+
+async function handleConfirmDialog() {
+  if (confirmDialog.action) {
+    await confirmDialog.action()
+  }
+  confirmDialog.show = false
+}
+
 const previewResult = ref(null);
 const isPreviewLoading = ref(false);
 let previewTimer = null;
@@ -455,6 +593,7 @@ const showVariantSelector = ref(false);
 const showConvertModal = ref(false);
 const isConverting = ref(false);
 const showPostIssueModal = ref(false);
+const addProductBtn = ref(null);
 
 // Watcher para cambios en el formulario que requieran recalcular totales
 watch(() => [formData.partyId, formData.lineItems], () => {
@@ -477,7 +616,29 @@ watch(() => route.params.id, async (newId) => {
 onMounted(async () => {
   await initComponent();
   await loadMesMasters();
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('keydown', handleQuoteKeydown);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('keydown', handleQuoteKeydown);
+});
+
+function handleQuoteKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && canEdit.value) {
+      enterEditMode();
+    }
+  }
+}
+
+function handleGlobalSave() {
+  if (mode.value !== 'detail' && !isSaving.value) {
+    saveQuote();
+  }
+}
 
 async function initComponent() {
   const id = route.params.id;
@@ -594,6 +755,34 @@ function onPartySelected(party) {
   calculateTotals();
 }
 
+const { handleLineKeyDown, focusLineInput } = useLineNavigation({
+  rowCount: () => formData.lineItems.length,
+  columns: ['qty', 'price', 'disc'],
+  onUpdate: (index, col, val) => {
+    const item = formData.lineItems[index]
+    if (col === 'qty') item.quantity = val
+    else if (col === 'price') item.unitPrice = val
+    else if (col === 'disc') item.discountPercent = val
+    fetchPreviewCalculation()
+  },
+  onRemoveField: (index) => {
+    formData.lineItems.splice(index, 1)
+    fetchPreviewCalculation()
+  },
+  onLastFieldTab: () => addProductBtn.value?.focus(),
+  onLastFieldEnter: () => openVariantSelector(),
+  onAddField: () => openVariantSelector()
+});
+
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
+});
+
 function openVariantSelector() { 
   showVariantSelector.value = true; 
 }
@@ -605,8 +794,8 @@ function handleVariantSelected(payload) {
     variantSku: variant.sku,
     displayName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    listPrice: null, // No mostrar nada inicialmente
-    unitPrice: null, // No mostrar nada inicialmente
+    listPrice: null,
+    unitPrice: null,
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   };
@@ -614,9 +803,11 @@ function handleVariantSelected(payload) {
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
   
-  // Trigger immediate calculation
+  // Position focus on the quantity of the new line
   nextTick(() => {
     fetchPreviewCalculation();
+    const lastIdx = formData.lineItems.length - 1
+    focusLineInput(lastIdx, 'qty')
   });
 }
 
@@ -706,8 +897,8 @@ function calculateLineSubtotal(idx) {
 }
 
 async function saveQuote() {
-  if (!formData.partyId) { alert('Seleccione un cliente'); return; }
-  if (formData.lineItems.length === 0) { alert('Añada al menos un producto'); return; }
+  if (!formData.partyId) { toastStore.error('Seleccione un cliente'); return; }
+  if (formData.lineItems.length === 0) { toastStore.error('Añada al menos un producto'); return; }
   isSaving.value = true;
   try {
     let isoExpiration = undefined;
@@ -731,7 +922,7 @@ async function saveQuote() {
       await fetchQuote();
       mode.value = 'detail';
     }
-  } catch (err) { alert('Error al guardar: ' + err.message); }
+  } catch (err) { toastStore.error('Error al guardar: ' + err.message); }
   finally { isSaving.value = false; }
 }
 
@@ -754,8 +945,9 @@ async function confirmIssueQuote() {
     await salesApi.changeQuoteStatus(quote.value.id, 'ISSUED'); 
     await fetchQuote();
     showPostIssueModal.value = true;
+    toastStore.success('Presupuesto emitido');
   } catch (err) { 
-    alert(err.message); 
+    toastStore.error(err.message); 
   } 
 }
 
@@ -763,22 +955,23 @@ function postIssuePrint() {
   showPostIssueModal.value = false; 
   window.print(); 
 }
-async function rejectQuote() { if (confirm('¿Rechazar?')) { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); } catch (err) { alert(err.message); } } }
-async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); } catch (err) { alert(err.message); } }
+async function rejectQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'REJECTED'); await fetchQuote(); toastStore.info('Presupuesto rechazado'); } catch (err) { toastStore.error(err.message); } }
+async function reactivateQuote() { try { await salesApi.changeQuoteStatus(quote.value.id, 'DRAFT'); await fetchQuote(); toastStore.success('Presupuesto reactivado'); } catch (err) { toastStore.error(err.message); } }
 
 async function convertToOrder() {
   isConverting.value = true;
   try {
-    // Establecemos fecha de entrega por defecto: 15 días a partir de hoy
+    // Set default delivery date: 15 days from today
     const deliveryDateObj = new Date();
     deliveryDateObj.setDate(deliveryDateObj.getDate() + 15);
     const deliveryDate = deliveryDateObj.toISOString().split('T')[0];
     
-    // El backend auto-aprueba el presupuesto (DRAFT→ISSUED→APPROVED→CONVERTED)
+    // The backend auto-approves the quote (DRAFT→ISSUED→APPROVED→CONVERTED)
     const order = await salesApi.createOrderFromQuote(quote.value.id, deliveryDate);
+    toastStore.success('Pedido generado con éxito');
     router.push(`/sales/orders/${order.id}`);
   } catch (err) { 
-    alert('Error al convertir presupuesto: ' + err.message); 
+    toastStore.error('Error al convertir presupuesto: ' + err.message); 
   }
   finally { isConverting.value = false; }
 }
@@ -832,4 +1025,4 @@ function printQuote() { window.print(); }
   .no-print { display: none !important; }
   .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
-</style>
+</style>>>>

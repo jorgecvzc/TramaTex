@@ -7,15 +7,15 @@
           <span class="logo-text">TramaTex</span>
         </div>
         <button class="close-button" @click="$emit('close')">
-          <span class="material-symbols-outlined">close</span>
+          <X :size="24" />
         </button>
       </header>
 
       <div class="launcher-grid">
-        <!-- SECCIÓN: VENTAS -->
+        <!-- SECTION: SALES -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">payments</span>
+            <CreditCard :size="20" class="section-icon" />
             Ventas
           </h3>
           <div class="section-links">
@@ -27,10 +27,10 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: PRODUCCIÓN -->
+        <!-- SECTION: PRODUCTION -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <Factory :size="20" class="section-icon" />
             Producción
           </h3>
           <div class="section-links">
@@ -41,10 +41,10 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: ENTIDADES -->
+        <!-- SECTION: ENTITIES -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">groups</span>
+            <Users :size="20" class="section-icon" />
             Entidades
           </h3>
           <div class="section-links">
@@ -54,10 +54,10 @@
 
         </section>
 
-        <!-- SECCIÓN: CATÁLOGO (Movida aquí) -->
+        <!-- SECTION: CATALOG (Moved here) -->
         <section class="launcher-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">inventory_2</span>
+            <Package :size="20" class="section-icon" />
             Catálogo
           </h3>
           <div class="section-links">
@@ -68,10 +68,10 @@
           </div>
         </section>
 
-        <!-- SECCIÓN: ADMINISTRACIÓN -->
+        <!-- SECTION: ADMINISTRATION -->
         <section v-if="isAdmin" class="launcher-section admin-section">
           <h3 class="section-title">
-            <span class="material-symbols-outlined">admin_panel_settings</span>
+            <ShieldCheck :size="20" class="section-icon" />
             Sistema
           </h3>
           <div class="section-links">
@@ -92,6 +92,14 @@
 <script setup>
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { 
+  X, 
+  CreditCard, 
+  Factory, 
+  Users, 
+  Package, 
+  ShieldCheck 
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
@@ -120,7 +128,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleEscape)
 })
 
-// Bloquear scroll del cuerpo cuando está abierto
+// Lock body scroll when open
 watch(() => props.isOpen, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
@@ -143,14 +151,14 @@ watch(() => props.isOpen, (val) => {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Añadido padding superior */
+  padding: 1rem 1.5rem 1.5rem 1.5rem; /* Added top padding */
 }
 
 .app-launcher-card {
   background: white;
   width: 100%;
   max-width: 900px;
-  border-radius: 16px; /* Bordes redondeados en todas las esquinas */
+  border-radius: 16px; /* Rounded corners on all corners */
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -242,9 +250,8 @@ watch(() => props.isOpen, (val) => {
   border-bottom: 2px solid var(--color-background);
 }
 
-.section-title .material-symbols-outlined {
+.section-icon {
   color: var(--color-info);
-  font-size: 1.25rem;
 }
 
 .section-links {
@@ -268,7 +275,7 @@ watch(() => props.isOpen, (val) => {
   padding-left: 1rem;
 }
 
-.admin-section .section-title .material-symbols-outlined {
+.admin-section .section-icon {
   color: var(--color-primary);
 }
 

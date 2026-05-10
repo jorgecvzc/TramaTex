@@ -7,7 +7,7 @@
         Lo sentimos, la página que buscas no existe o ha sido movida.
       </p>
       <RouterLink to="/dashboard" class="btn-home">
-        <span class="btn-icon">←</span>
+        <ArrowLeft :size="24" />
         <span>Ir al Dashboard</span>
       </RouterLink>
     </div>
@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
+import { ArrowLeft } from 'lucide-vue-next';
 </script>
 
 <style scoped>

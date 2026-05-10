@@ -1,805 +1,476 @@
 <template>
   <div class="person-manager">
     <div class="manager-header">
-      <h3>Contactos</h3>
-      <button @click="showForm = !showForm" class="btn btn-primary">
-        {{ showForm ? '✕ Cerrar' : '+ Agregar contacto' }}
-      </button>
-    </div>
-
-    <!-- Add/Edit Form -->
-    <div v-if="showForm" class="form-section">
-      <form @submit.prevent="submitForm">
-        <div class="form-mode">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :class="{ active: formMode === 'new' }"
-            @click="setFormMode('new')"
-          >
-            Nuevo contacto
-          </button>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :class="{ active: formMode === 'existing' }"
-            @click="setFormMode('existing')"
-          >
-            Contacto existente
-          </button>
-        </div>
-
-        <div v-if="formMode === 'existing'" class="form-group">
-          <label for="existingContact">Seleccionar persona física existente *</label>
-          <select id="existingContact" v-model="selectedContactId" required>
-            <option value="">-- Selecciona una persona física --</option>
-            <option v-for="contact in availableContacts" :key="contact.id" :value="contact.id">
-              {{ contact.first_name }} {{ contact.last_name }} {{ contact.email ? `(${contact.email})` : '' }}
-            </option>
-          </select>
-          <small v-if="availableContacts.length === 0" class="hint">
-            No hay personas físicas disponibles para vincular.
-          </small>
-        </div>
-
-        <template v-if="formMode === 'new'">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="firstName">Nombre *</label>
-            <input
-              id="firstName"
-              v-model="form.firstName"
-              type="text"
-              placeholder="Nombre"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="lastName">Apellido *</label>
-            <input
-              id="lastName"
-              v-model="form.lastName"
-              type="text"
-              placeholder="Apellido"
-              required
-            />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="email">Correo *</label>
-            <input
-              id="email"
-              v-model="form.email"
-              type="text"
-              placeholder="correo@ejemplo.com"
-              @blur="validateField('email')"
-              required
-            />
-            <span v-if="formErrors.email" class="error">{{ formErrors.email }}</span>
-          </div>
-          <div class="form-group">
-            <label for="phone">Teléfono</label>
-            <input
-              id="phone"
-              v-model="form.phone"
-              type="text"
-              placeholder="+34 123 456 789"
-              @blur="validateField('phone')"
-            />
-            <span v-if="formErrors.phone" class="error">{{ formErrors.phone }}</span>
-          </div>
-        </div>
-        </template>
-
-        <div v-if="formMode === 'new'" class="form-group">
-          <label for="jobTitle">Cargo</label>
-          <input
-            id="jobTitle"
-            v-model="form.jobTitle"
-            type="text"
-            placeholder="p. ej., Gerente"
-          />
-        </div>
-
-        <div v-else class="form-group">
-          <label for="jobTitleExisting">Cargo</label>
-          <input
-            id="jobTitleExisting"
-            v-model="form.jobTitle"
-            type="text"
-            placeholder="p. ej., Gerente"
-          />
-        </div>
-
-        <div class="form-group checkbox">
-          <input
-            id="isPrimary"
-            v-model="form.isPrimary"
-            type="checkbox"
-          />
-          <label for="isPrimary">Marcar como contacto principal</label>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" :disabled="isSubmitting" class="btn btn-primary">
-            {{
-              isSubmitting
-                ? (formMode === 'existing' ? 'Vinculando...' : 'Agregando...')
-                : (formMode === 'existing' ? 'Vincular contacto' : 'Agregar contacto')
-            }}
-          </button>
-          <button type="button" @click="resetForm" class="btn btn-secondary">
-            Cancelar
-          </button>
-        </div>
-      </form>
-
-      <div v-if="formError" class="error-message">
-        <span>✗ {{ formError }}</span>
+      <h3 class="flex items-center gap-2"><Contact2 :size="20" /> Personas de Contacto</h3>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" @click="openLinkModal">
+          <Search :size="16" /> Vincular Existente
+        </button>
+        <button class="btn btn-primary btn-sm ml-2" @click="openCreateModal">
+          <Plus :size="16" /> Añadir Nueva
+        </button>
       </div>
     </div>
 
-    <!-- Contacts List -->
-    <div v-if="persons.length > 0" class="persons-list">
-      <div v-for="person in persons" :key="person.id" class="person-card">
-        <div class="person-header">
-          <div class="person-info">
-            <h4>{{ person.first_name }} {{ person.last_name }}</h4>
-            <p class="email">
-              <span class="material-symbols-outlined icon-sm">mail</span>
-              {{ person.email }}
-            </p>
-            <p v-if="person.phone" class="phone">
-              <span class="material-symbols-outlined icon-sm">call</span>
-              {{ person.phone }}
-            </p>
-            <button v-if="editingJobTitleId !== person.id" type="button" class="editable-chip" @click="startEditJobTitle(person)" :title="person.job_title ? 'Clic para editar cargo' : 'Clic para añadir cargo'">
-              <span class="material-symbols-outlined chip-icon">work</span>
-              <span :class="person.job_title ? '' : 'chip-placeholder'">{{ person.job_title || 'Añadir cargo...' }}</span>
-              <span class="material-symbols-outlined chip-edit">edit</span>
-            </button>
-            <div v-else class="inline-edit">
-              <span class="material-symbols-outlined chip-icon">work</span>
-              <input
-                ref="jobTitleInput"
-                v-model="editingJobTitleValue"
-                type="text"
-                placeholder="p. ej., Gerente"
-                class="inline-input"
-                @keydown.enter="saveJobTitle(person)"
-                @keydown.escape="cancelEditJobTitle"
-                @blur="saveJobTitle(person)"
-              />
-            </div>
+    <div v-if="persons.length === 0" class="empty-state">
+      <p class="text-muted italic">No hay personas de contacto registradas para esta organización.</p>
+    </div>
+
+    <div v-else class="person-list">
+      <div v-for="person in persons" :key="person.id" class="person-row">
+        <div class="person-main-info">
+          <div class="avatar">
+            <User :size="20" />
           </div>
-          <div class="person-badges">
-            <span v-if="person.is_primary" class="badge status-success">Principal</span>
-            <span class="badge status-secondary">{{ formatDate(person.created_at) }}</span>
-            <div class="action-buttons">
-              <button
-                type="button"
-                class="btn-icon"
-                @click="navigateToContact(person.id)"
-                title="Ver detalles"
-              >
-                <span class="material-symbols-outlined">visibility</span>
-              </button>
-              <button
-                type="button"
-                class="btn-icon text-danger"
-                :disabled="isRemovingId === person.id"
-                @click="handleRemoveContact(person)"
-                title="Eliminar"
-              >
-                <span class="material-symbols-outlined">delete</span>
-              </button>
-            </div>
+          <div class="name-box">
+            <strong>{{ person.first_name }} {{ person.last_name }}</strong>
+            <span v-if="person.job_title" class="job-title">{{ person.job_title }}</span>
           </div>
+        </div>
+        
+        <div class="person-contact-info">
+          <div v-if="person.email" class="contact-item">
+            <Mail :size="14" /> <span>{{ person.email }}</span>
+          </div>
+          <div v-if="person.phone" class="contact-item">
+            <Phone :size="14" /> <span>{{ person.phone }}</span>
+          </div>
+        </div>
+
+        <div class="person-actions">
+          <button class="btn-icon" @click="editPerson(person)" title="Editar"><Pencil :size="18" /></button>
+          <button class="btn-icon text-danger" @click="promptDelete(person)" title="Desvincular"><Trash2 :size="18" /></button>
         </div>
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-if="persons.length === 0 && !showForm" class="empty-state">
-      <p>No hay contactos aún. Agrega el primero para empezar.</p>
-    </div>
+    <!-- MODAL: CREATE/EDIT PERSON -->
+    <BaseDialog
+      :show="showModal"
+      :title="editingId ? 'Editar Persona de Contacto' : 'Nueva Persona de Contacto'"
+      icon="contact_2"
+      confirm-text="Guardar Cambios"
+      :is-confirming="isSaving"
+      @close="showModal = false"
+      @confirm="savePerson"
+    >
+      <div class="form-grid">
+        <div class="form-group">
+          <label :class="{ 'text-error': errors.first_name }">Nombre *</label>
+          <input 
+            v-model="formData.first_name" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.first_name }"
+            required 
+            @input="clearError('first_name')"
+          />
+          <span v-if="errors.first_name" class="error-message">{{ errors.first_name }}</span>
+        </div>
+        <div class="form-group">
+          <label :class="{ 'text-error': errors.last_name }">Apellidos *</label>
+          <input 
+            v-model="formData.last_name" 
+            type="text" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.last_name }"
+            required 
+            @input="clearError('last_name')"
+          />
+          <span v-if="errors.last_name" class="error-message">{{ errors.last_name }}</span>
+        </div>
+        <div class="form-group">
+          <label :class="{ 'text-error': errors.email }">Email</label>
+          <input 
+            v-model="formData.email" 
+            type="email" 
+            class="form-input" 
+            :class="{ 'is-invalid': errors.email }"
+            placeholder="ejemplo@correo.com" 
+            @input="clearError('email')"
+          />
+          <span v-if="errors.email" class="error-message">{{ errors.email }}</span>
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input v-model="formData.phone" type="tel" class="form-input" />
+        </div>
+        <div class="form-group full-width">
+          <label>Cargo / Departamento</label>
+          <input v-model="formData.job_title" type="text" class="form-input" placeholder="Ej: Responsable de compras" />
+        </div>
+      </div>
+    </BaseDialog>
 
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading">
-      <div class="spinner"></div>
-      <p>Cargando contactos...</p>
-    </div>
+    <!-- MODAL: LINK EXISTING -->
+    <BaseDialog
+      :show="showLinkModal"
+      title="Vincular Contacto Existente"
+      icon="search"
+      confirm-text="Vincular Seleccionado"
+      :is-confirming="isSaving"
+      @close="showLinkModal = false"
+      @confirm="linkExistingPerson"
+    >
+      <div class="p-1">
+        <p class="mb-4 text-sm text-muted">Selecciona una persona física ya registrada en el sistema para vincularla a esta organización.</p>
+        
+        <!-- Search Box -->
+        <div class="search-box mb-3">
+          <div class="input-with-icon">
+            <Search :size="18" class="icon-start" />
+            <input 
+              v-model="linkSearchTerm" 
+              type="text" 
+              class="form-input" 
+              placeholder="Filtrar por nombre o identificación..." 
+            />
+          </div>
+        </div>
+
+        <!-- Scrollable List -->
+        <div class="selectable-list-container">
+          <div v-if="isLoadingCandidates" class="loading-mini">
+            <RefreshCw :size="20" class="spin" />
+            <span>Cargando personas...</span>
+          </div>
+          <div v-else-if="filteredCandidates.length === 0" class="empty-mini">
+            <p>No se encontraron personas físicas disponibles.</p>
+          </div>
+          <div v-else class="selectable-list scrollable">
+            <div 
+              v-for="candidate in filteredCandidates" 
+              :key="candidate.id"
+              :class="['list-item', { selected: selectedExistingId === candidate.id }]"
+              @click="selectCandidate(candidate)"
+            >
+              <div class="candidate-info">
+                <span class="candidate-name">{{ candidate.name }}</span>
+                <span v-if="candidate.tax_id" class="candidate-tax">{{ candidate.tax_id }}</span>
+              </div>
+              <div v-if="selectedExistingId === candidate.id" class="selection-mark">
+                <Check :size="18" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Specific Link Data -->
+        <div v-if="selectedExistingId" class="mt-4 p-4 border rounded bg-light animate-fade-in">
+          <p class="section-label mb-3">Datos específicos para esta organización:</p>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Cargo / Departamento</label>
+              <input v-model="linkFormData.job_title" type="text" class="form-input" placeholder="Ej: Jefe de Compras" />
+            </div>
+            <div class="form-group">
+              <label>Email específico</label>
+              <input v-model="linkFormData.email" type="email" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Teléfono directo</label>
+              <input v-model="linkFormData.phone" type="tel" class="form-input" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </BaseDialog>
+
+    <!-- CONFIRMATION MODAL -->
+    <BaseDialog
+      :show="confirmDelete.show"
+      title="Desvincular Persona"
+      icon="warning"
+      confirm-text="Desvincular"
+      confirm-class="btn-danger"
+      @close="confirmDelete.show = false"
+      @confirm="executeDelete"
+    >
+      <p>¿Estás seguro de que deseas desvincular a <strong>{{ confirmDelete.person?.first_name }} {{ confirmDelete.person?.last_name }}</strong>?</p>
+      <p class="mt-2 text-xs text-muted">Si esta persona no está vinculada a ninguna otra empresa, sus datos permanecerán en el sistema como contacto independiente.</p>
+    </BaseDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
-import { partyApi } from '@/services/partyApi';
-
-const router = useRouter();
+import { ref, reactive, onMounted, computed } from 'vue'
+import { Contact2, User, Plus, Pencil, Trash2, Mail, Phone, Search, Check, RefreshCw } from 'lucide-vue-next'
+import BaseDialog from '@/components/shared/BaseDialog.vue'
+import { partyApi } from '@/services/partyApi'
+import { useToastStore } from '@/stores/toast'
 
 const props = defineProps({
-  partyId: {
-    type: String,
-    required: true,
-  },
-});
+  partyId: { type: String, required: true }
+})
 
-const persons = ref([]);
-const isLoading = ref(false);
-const isSubmitting = ref(false);
-const isRemovingId = ref('');
-const showForm = ref(false);
-const formError = ref('');
-const formMode = ref('new');
-const availableContacts = ref([]);
-const selectedContactId = ref('');
-const editingJobTitleId = ref('');
-const editingJobTitleValue = ref('');
-const jobTitleInput = ref(null);
-const isSavingJobTitle = ref(false);
+const toastStore = useToastStore()
+const persons = ref([])
+const showModal = ref(false)
+const showLinkModal = ref(false)
+const editingId = ref(null)
+const isSaving = ref(false)
+const selectedExistingId = ref('')
 
-const form = reactive({
-  firstName: '',
-  lastName: '',
+const linkSearchTerm = ref('')
+const candidates = ref([])
+const isLoadingCandidates = ref(false)
+
+const formData = reactive({
+  first_name: '',
+  last_name: '',
   email: '',
   phone: '',
-  jobTitle: '',
-  isPrimary: false,
-});
+  job_title: ''
+})
 
-const formErrors = reactive({
+const errors = reactive({
+  first_name: '',
+  last_name: '',
   email: '',
-  phone: '',
-});
+  job_title: ''
+})
 
-onMounted(() => {
-  fetchPersons();
-});
+function clearError(field) {
+  if (errors[field]) errors[field] = ''
+}
 
-watch(() => props.partyId, () => {
-  if (props.partyId) {
-    fetchPersons();
+const linkFormData = reactive({
+  job_title: 'Contacto Comercial',
+  email: '',
+  phone: ''
+})
+
+const filteredCandidates = computed(() => {
+  if (!linkSearchTerm.value) return candidates.value
+  const term = linkSearchTerm.value.toLowerCase()
+  return candidates.value.filter(c => 
+    c.name.toLowerCase().includes(term) || 
+    (c.tax_id && c.tax_id.toLowerCase().includes(term))
+  )
+})
+
+// --- Validation ---
+function isValidEmail(email) {
+  if (!email) return true
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+function validate() {
+  let isValid = true
+  
+  if (!formData.first_name.trim()) {
+    errors.first_name = 'El nombre es obligatorio'
+    isValid = false
   }
-});
-
-watch(showForm, (isVisible) => {
-  if (isVisible) {
-    loadAvailableContacts();
+  
+  if (!formData.last_name.trim()) {
+    errors.last_name = 'Los apellidos son obligatorios'
+    isValid = false
   }
-});
+  
+  if (formData.email && !isValidEmail(formData.email)) {
+    errors.email = 'El formato del email no es válido'
+    isValid = false
+  }
+  
+  return isValid
+}
 
-async function fetchPersons() {
-  if (!props.partyId) return;
+// --- Confirm Dialog Logic ---
+const confirmDelete = reactive({
+  show: false,
+  person: null
+})
 
-  isLoading.value = true;
+function promptDelete(person) {
+  confirmDelete.person = person
+  confirmDelete.show = true
+}
+
+async function executeDelete() {
+  if (!confirmDelete.person) return
   try {
-    const response = await partyApi.listContacts(props.partyId);
-    persons.value = response.data || [];
-  } catch (error) {
-    formError.value = error?.message || 'No se pudieron cargar los contactos';
+    await partyApi.removeContact(props.partyId, confirmDelete.person.id, false)
+    toastStore.success('Vínculo eliminado correctamente')
+    await loadPersons()
+    confirmDelete.show = false
+  } catch (err) {
+    toastStore.error('No se pudo desvincular el contacto')
+  }
+}
+
+async function loadPersons() {
+  if (!props.partyId) return
+  try {
+    const res = await partyApi.listPersons(props.partyId)
+    persons.value = res || []
+  } catch (err) {
+    console.error('Error loading contacts:', err)
+  }
+}
+
+function openCreateModal() {
+  editingId.value = null
+  Object.assign(formData, { first_name: '', last_name: '', email: '', phone: '', job_title: '' })
+  showModal.value = true
+}
+
+async function openLinkModal() {
+  selectedExistingId.value = ''
+  linkSearchTerm.value = ''
+  Object.assign(linkFormData, { job_title: 'Contacto Comercial', email: '', phone: '' })
+  showLinkModal.value = true
+  
+  isLoadingCandidates.value = true
+  try {
+    // Only physical persons
+    const res = await partyApi.listParties({ type: 'person', pageSize: 500 })
+    const linkedIds = persons.value.map(p => p.id)
+    candidates.value = (res.data || []).filter(c => !linkedIds.includes(c.id))
+  } catch (err) {
+    toastStore.error('Error al cargar candidatos')
   } finally {
-    isLoading.value = false;
+    isLoadingCandidates.value = false
   }
 }
 
-function validateEmail(email) {
-  if (!email || !email.trim()) return true; // Email is optional
-  const emailRegex = /^[a-zA-Z0-9.+_%\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email.trim());
+function selectCandidate(candidate) {
+  selectedExistingId.value = candidate.id
+  linkFormData.email = candidate.email || ''
+  linkFormData.phone = candidate.phone || ''
 }
 
-function navigateToContact(partyId) {
-  router.push({ name: 'PartyDetail', params: { id: partyId } });
+const editingContactDetailsId = ref(null)
+
+function editPerson(person) {
+  editingId.value = person.id
+  editingContactDetailsId.value = person.contact_details_id
+  Object.assign(formData, { ...person })
+  showModal.value = true
 }
 
-function validatePhone(phone) {
-  if (!phone || !phone.trim()) return true; // Phone is optional
-  const phoneRegex = /^[\+]?[\d\s\-()]{8,}$/;
-  return phoneRegex.test(phone.trim());
-}
-
-const validationRules = {
-  email: (value) => {
-    if (!value || !value.trim()) return ''; // Email is required but error is handled elsewhere
-    if (!validateEmail(value)) {
-      return 'Formato de email inválido';
-    }
-    return '';
-  },
-  phone: (value) => {
-    if (value && value.trim() && !validatePhone(value)) {
-      return 'Formato inválido. Debe tener al menos 8 dígitos y puede incluir +, espacios, guiones y paréntesis';
-    }
-    return '';
-  },
-};
-
-function validateField(fieldName) {
-  const validator = validationRules[fieldName];
-  if (validator) {
-    formErrors[fieldName] = validator(form[fieldName]);
+async function savePerson() {
+  if (!validate()) {
+    return
   }
-}
 
-async function submitForm() {
-  isSubmitting.value = true;
-  formError.value = '';
-
+  isSaving.value = true
   try {
-    if (formMode.value === 'existing') {
-      if (!selectedContactId.value) {
-        formError.value = 'Selecciona un contacto existente';
-        return;
-      }
-
-      const selected = availableContacts.value.find((contact) => contact.id === selectedContactId.value);
-
-      await partyApi.linkExistingContact(props.partyId, selectedContactId.value, {
-        jobTitle: form.jobTitle,
-        email: selected?.email || '',
-        phone: selected?.phone || '',
-        isPrimary: form.isPrimary,
-      });
+    if (editingId.value) {
+      await partyApi.updatePerson(props.partyId, editingContactDetailsId.value, {
+        email: formData.email,
+        phone: formData.phone,
+        job_title: formData.job_title
+      })
+      toastStore.success('Datos actualizados correctamente')
     } else {
-      // Validaciones obligatorias
-      if (!form.firstName || !form.lastName || !form.email) {
-        formError.value = 'Nombre, apellido y correo son obligatorios';
-        return;
-      }
-
-      // Validar todos los campos
-      validateField('email');
-      validateField('phone');
-
-      // Verificar si hay errores
-      if (formErrors.email || formErrors.phone) {
-        formError.value = 'Por favor, corrija los errores en el formulario antes de guardar';
-        return;
-      }
-
-      await partyApi.addContact(props.partyId, {
-        id: `person-${Date.now()}`,
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        jobTitle: form.jobTitle,
-        isPrimary: form.isPrimary,
-      });
+      await partyApi.createPerson(props.partyId, {
+        firstName: formData.first_name,
+        lastName: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+        jobTitle: formData.job_title
+      })
+      toastStore.success('Contacto creado y vinculado')
     }
-
-    resetForm();
-    await fetchPersons();
-    await loadAvailableContacts();
-  } catch (error) {
-    formError.value = error?.message || 'No se pudo agregar el contacto';
+    showModal.value = false
+    await loadPersons()
+  } catch (err) {
+    toastStore.error('Error al guardar el contacto: ' + (err.message || ''))
   } finally {
-    isSubmitting.value = false;
+    isSaving.value = false
   }
 }
 
-function setFormMode(mode) {
-  formMode.value = mode;
-  formError.value = '';
-}
-
-async function loadAvailableContacts() {
-  if (!props.partyId) {
-    return;
+async function linkExistingPerson() {
+  if (!selectedExistingId.value) {
+    toastStore.warning('Selecciona una persona de la lista')
+    return
+  }
+  
+  if (!isValidEmail(linkFormData.email)) {
+    toastStore.warning('El formato del email específico no es válido')
+    return
   }
 
+  isSaving.value = true
   try {
-    availableContacts.value = await partyApi.listAvailableContactsForParty(props.partyId);
-  } catch (error) {
-    console.error('Error al cargar contactos disponibles:', error);
-    formError.value = 'No se pudieron cargar los contactos disponibles';
-    availableContacts.value = [];
-  }
-}
-
-async function handleRemoveContact(person) {
-  if (!person?.id) {
-    return;
-  }
-
-  // Check if this contact has other references
-  let hasOtherReferences = false;
-  try {
-    const contactParty = await partyApi.getParty(person.id);
-    const relationships = await partyApi.listRelationships(person.id);
-    // Check if contact has other employment relationships
-    hasOtherReferences = relationships.some(rel => 
-      rel.type === 'IS_EMPLOYEE_OF' && rel.to_party_id !== props.partyId
-    );
-  } catch (error) {
-    // Assume it has references if we can't check
-    hasOtherReferences = true;
-  }
-
-  let message = `¿Eliminar el contacto ${person.first_name} ${person.last_name}?`;
-  if (!hasOtherReferences) {
-    message = `¿Eliminar el contacto ${person.first_name} ${person.last_name}?\n\nEste contacto no está asociado a otras entidades y será eliminado completamente del sistema.`;
-  } else {
-    message = `¿Eliminar el contacto ${person.first_name} ${person.last_name}?\n\nEste contacto será desvinculado de esta entidad, pero permanecerá en el sistema porque está asociado a otras entidades.`;
-  }
-
-  const confirmed = window.confirm(message);
-  if (!confirmed) {
-    return;
-  }
-
-  isRemovingId.value = person.id;
-  formError.value = '';
-
-  try {
-    // Pass true to delete the party if it has no other references
-    await partyApi.removeContact(props.partyId, person.id, !hasOtherReferences);
-    await fetchPersons();
-  } catch (error) {
-    formError.value = error?.message || 'No se pudo eliminar el contacto';
+    await partyApi.linkExistingContact(props.partyId, selectedExistingId.value, {
+      jobTitle: linkFormData.job_title,
+      email: linkFormData.email,
+      phone: linkFormData.phone
+    })
+    toastStore.success('Contacto vinculado correctamente')
+    showLinkModal.value = false
+    await loadPersons()
+  } catch (err) {
+    toastStore.error('Error al vincular el contacto: ' + (err.message || ''))
   } finally {
-    isRemovingId.value = '';
+    isSaving.value = false
   }
 }
 
-function startEditJobTitle(person) {
-  editingJobTitleId.value = person.id;
-  editingJobTitleValue.value = person.job_title || '';
-  nextTick(() => {
-    if (jobTitleInput.value) {
-      const el = Array.isArray(jobTitleInput.value) ? jobTitleInput.value[0] : jobTitleInput.value;
-      el?.focus();
-    }
-  });
-}
-
-function cancelEditJobTitle() {
-  editingJobTitleId.value = '';
-  editingJobTitleValue.value = '';
-}
-
-async function saveJobTitle(person) {
-  if (isSavingJobTitle.value) return;
-  if (editingJobTitleId.value !== person.id) return;
-
-  const newValue = editingJobTitleValue.value.trim();
-  if (newValue === (person.job_title || '')) {
-    cancelEditJobTitle();
-    return;
-  }
-
-  let contactDetailsId = person.contact_details_id;
-
-  // If contact_details_id is not cached, look it up from the API
-  if (!contactDetailsId) {
-    try {
-      const contacts = await partyApi.listContactDetails(props.partyId);
-      const match = contacts.find((c) => c.related_party_id === person.id);
-      if (match?.id) {
-        contactDetailsId = match.id;
-        person.contact_details_id = match.id;
-      }
-    } catch {
-      // ignore lookup failure
-    }
-  }
-
-  if (!contactDetailsId) {
-    // No contact-details record exists yet — create one
-    isSavingJobTitle.value = true;
-    try {
-      const created = await partyApi.createContactDetails(props.partyId, {
-        type_description: newValue || 'Contacto',
-        related_party_id: person.id,
-      });
-      if (created?.id) {
-        person.contact_details_id = created.id;
-      }
-      person.job_title = newValue || 'Contacto';
-      cancelEditJobTitle();
-    } catch (error) {
-      formError.value = error?.message || 'No se pudo crear el cargo';
-      cancelEditJobTitle();
-    } finally {
-      isSavingJobTitle.value = false;
-    }
-    return;
-  }
-
-  isSavingJobTitle.value = true;
-  try {
-    await partyApi.updateContactJobTitle(props.partyId, contactDetailsId, newValue || 'Contacto');
-    person.job_title = newValue || 'Contacto';
-    cancelEditJobTitle();
-  } catch (error) {
-    formError.value = error?.message || 'No se pudo actualizar el cargo';
-    cancelEditJobTitle();
-  } finally {
-    isSavingJobTitle.value = false;
-  }
-}
-
-function resetForm() {
-  form.firstName = '';
-  form.lastName = '';
-  form.email = '';
-  form.phone = '';
-  form.jobTitle = '';
-  form.isPrimary = false;
-  selectedContactId.value = '';
-  formMode.value = 'new';
-  formError.value = '';
-  formErrors.email = '';
-  formErrors.phone = '';
-  showForm.value = false;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+onMounted(() => loadPersons())
 </script>
 
 <style scoped>
-.person-manager {
-  padding: var(--spacing-lg);
-  background: var(--color-surface);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--box-shadow-sm);
+.person-manager { display: flex; flex-direction: column; gap: 1rem; }
+.manager-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.manager-header h3 { font-size: 0.95rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); margin: 0; }
+
+.person-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.person-row { 
+  background: white; border: 1px solid var(--color-border); border-radius: 8px; padding: 0.75rem 1.25rem; 
+  display: flex; justify-content: space-between; align-items: center; transition: 0.2s; 
 }
+.person-row:hover { border-color: var(--color-primary); box-shadow: var(--box-shadow-sm); }
 
-.manager-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-}
+.person-main-info { display: flex; align-items: center; gap: 1rem; flex: 1; }
+.avatar { width: 36px; height: 36px; background: var(--color-background); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-secondary); border: 1px solid var(--color-border); flex-shrink: 0; }
 
-.manager-header h3 {
-  color: var(--color-secondary);
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-}
+.name-box { display: flex; flex-direction: column; line-height: 1.2; min-width: 200px; }
+.name-box strong { font-size: 0.95rem; color: var(--color-text-primary); }
+.job-title { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.025em; }
 
-.form-section {
-  background: var(--color-background);
-  padding: var(--spacing-lg);
-  border-radius: var(--border-radius-md);
-  margin-bottom: var(--spacing-lg);
-  border: 1px solid var(--color-border);
-}
+.person-contact-info { display: flex; flex: 2; gap: 2rem; align-items: center; }
+.contact-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text-primary); font-weight: 500; }
+.contact-item :deep(svg) { color: var(--color-text-secondary); }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
+.person-actions { display: flex; gap: 0.25rem; }
+.btn-icon { background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary); padding: 0.4rem; border-radius: 6px; }
+.btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--color-text-primary); }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.full-width { grid-column: 1 / -1; }
+.form-group label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); margin-bottom: 0.4rem; }
+.form-input { width: 100%; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 8px; font-family: inherit; transition: all 0.2s; }
+.form-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1); }
 
-.form-group label {
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
-}
+.empty-state { padding: 2rem; text-align: center; background: var(--color-background); border-radius: 12px; border: 2px dashed var(--color-border); }
 
-.form-group input:not([type="checkbox"]), .form-group select {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  background: white;
-  transition: all 0.2s;
-}
+/* Selectable List Styles */
+.selectable-list-container { border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; background: white; }
+.selectable-list.scrollable { max-height: 250px; overflow-y: auto; }
+.list-item { padding: 0.75rem 1rem; border-bottom: 1px solid var(--color-background); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+.list-item:last-child { border-bottom: none; }
+.list-item:hover { background-color: var(--color-background-soft); }
+.list-item.selected { background-color: rgba(230, 184, 0, 0.1); border-left: 4px solid var(--color-primary); }
 
-.form-group input:focus, .form-group select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-}
+.candidate-info { display: flex; flex-direction: column; gap: 0.1rem; }
+.candidate-name { font-weight: 600; color: var(--color-text-primary); font-size: 0.9rem; }
+.candidate-tax { font-size: 0.7rem; color: var(--color-text-secondary); font-family: var(--font-family-mono); }
+.selection-mark { color: var(--color-success); }
 
-.form-group.checkbox {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-md) 0;
-}
+.loading-mini, .empty-mini { padding: 2rem; text-align: center; color: var(--color-text-secondary); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
 
-.form-group.checkbox input {
-  width: 18px;
-  height: 18px;
-}
+.section-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; }
 
-.form-group .error {
-  color: var(--color-error);
-  font-size: var(--font-size-xs);
-}
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-.form-actions {
-  display: flex;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
-}
-
-.form-mode {
-  display: flex;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.persons-list {
-  display: grid;
-  gap: var(--spacing-md);
-}
-
-.person-card {
-  padding: var(--spacing-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  background: white;
-  transition: all 0.2s ease;
-}
-
-.person-card:hover {
-  border-color: var(--color-border-strong);
-  box-shadow: var(--box-shadow-md);
-}
-
-.person-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-}
-
-.person-info h4 {
-  color: var(--color-text-primary);
-  margin: 0 0 0.5rem 0;
-  font-weight: 700;
-}
-
-.person-info p {
-  color: var(--color-text-secondary);
-  margin: 0.25rem 0;
-  font-size: var(--font-size-sm);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.icon-sm { font-size: 18px; color: var(--color-text-secondary); }
-
-.person-badges {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.btn-icon {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  padding: 0.4rem;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.btn-icon:hover {
-  background: var(--color-background);
-  color: var(--color-text-primary);
-}
-
-.text-danger { color: var(--color-error); }
-.text-danger:hover { background: var(--color-primary-light); }
-
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.status-success { background: rgba(22, 163, 74, 0.1); color: var(--color-success); }
-.status-secondary { background: var(--color-background); color: var(--color-text-secondary); }
-
-.spinner {
-  width: 24px; height: 24px; border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary); border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-@media (max-width: 768px) {
-  .form-row { grid-template-columns: 1fr; }
-  .person-header { flex-direction: column; }
-  .form-actions { flex-direction: column; }
-}
-
-.editable-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.6rem;
-  margin: 0.25rem 0;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--border-radius-md);
-  background: var(--color-background);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.editable-chip:hover {
-  border-color: var(--color-primary);
-  background: rgba(230, 184, 0, 0.06);
-  color: var(--color-text-primary);
-}
-
-.chip-icon {
-  font-size: 16px;
-}
-
-.chip-edit {
-  font-size: 14px;
-  opacity: 0.5;
-}
-
-.editable-chip:hover .chip-edit {
-  opacity: 1;
-  color: var(--color-primary);
-}
-
-.chip-placeholder {
-  font-style: italic;
-}
-
-.inline-edit {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.25rem 0;
-}
-
-.inline-input {
-  padding: 0.3rem 0.5rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  background: white;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(230, 184, 0, 0.1);
-  width: 200px;
+@media (max-width: 900px) {
+  .person-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .person-contact-info { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .person-actions { position: absolute; top: 0.75rem; right: 0.75rem; }
 }
 </style>

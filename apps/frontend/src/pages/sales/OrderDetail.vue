@@ -2,35 +2,36 @@
   <BaseEntityPage class="no-print" :is-loading="isLoading" :error="error">
     <!-- CAPA 1: IDENTIDAD -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="pageTitle" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Pedidos', to: '/sales/orders' }, { label: headerLabel }]"
+        show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">shopping_cart</span>
+          <ShoppingCart :size="28" />
         </template>
         <template #actions>
           <div v-if="order || mode === 'create'" class="header-actions-group">
             <template v-if="mode === 'detail'">
               <button class="btn btn-outline btn-sm" @click="printOrder">
-                <span class="material-symbols-outlined">print</span>
+                <Printer :size="16" />
                 <span>Imprimir</span>
               </button>
               <button v-if="!hasActiveDeliveryNotes" class="btn btn-primary btn-sm" @click="enterEditMode">
-                <span class="material-symbols-outlined">edit</span>
+                <Pencil :size="16" />
                 <span>Editar Pedido</span>
               </button>
             </template>
             <template v-else>
               <button class="btn btn-outline btn-sm" @click="exitEditMode" :disabled="isSaving">Cancelar</button>
               <button class="btn btn-secondary btn-sm" @click="saveOrder" :disabled="isSaving">
-                <span class="material-symbols-outlined">{{ isSaving ? 'sync' : 'save' }}</span>
+                <component :is="isSaving ? RefreshCw : Save" :size="16" :class="{ 'spin': isSaving }" />
                 <span>{{ isSaving ? 'Guardando...' : 'Guardar Pedido' }}</span>
               </button>
             </template>
           </div>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR: ACCIONES DE FLUJO -->
@@ -46,9 +47,9 @@
           <button 
             v-if="order.status === 'PENDING' && (order.mes_work_refs || order.mesWorkRefs || []).length > 0" 
             class="btn btn-primary btn-sm" 
-            @click="launchOrderToProduction"
+            @click="promptLaunchProduction"
           >
-            <span class="material-symbols-outlined">rocket_launch</span>
+            <Rocket :size="16" />
             <span>Lanzar a Producción</span>
           </button>
 
@@ -58,7 +59,7 @@
             class="btn btn-success btn-sm" 
             @click="createDeliveryNote"
           >
-            <span class="material-symbols-outlined">local_shipping</span>
+            <Truck :size="16" />
             <span>Albaranar</span>
           </button>
           
@@ -66,9 +67,9 @@
           <button 
             v-if="order.status === 'CANCELLED'" 
             class="btn btn-primary btn-sm" 
-            @click="reactivateOrder"
+            @click="promptReactivate"
           >
-            <span class="material-symbols-outlined">refresh</span>
+            <RefreshCw :size="16" />
             <span>Reactivar Pedido</span>
           </button>
 
@@ -76,9 +77,9 @@
           <button 
             v-if="!hasActiveDeliveryNotes && !['DELIVERED', 'PARTIALLY_DELIVERED', 'INVOICED', 'PARTIALLY_INVOICED', 'CANCELLED'].includes(order.status)" 
             class="btn btn-danger btn-sm" 
-            @click="cancelOrder"
+            @click="promptCancelOrder"
           >
-            <span class="material-symbols-outlined">block</span>
+            <Ban :size="16" />
             <span>Anular Pedido</span>
           </button>
         </div>
@@ -89,28 +90,28 @@
     <template #summary v-if="mode === 'detail' && order">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content">
             <label>Cliente</label>
             <strong>{{ order.party_name || order.partyName }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Pedido</label>
             <strong>{{ formatDate(order.order_date || order.orderDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="icon purple"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Entrega</label>
             <strong>{{ formatDate(order.delivery_date || order.deliveryDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Pedido</label>
             <strong class="amount">{{ formatMoney(totalAmount) }}</strong>
@@ -123,32 +124,32 @@
       <div class="related-history-grid">
         <!-- 1. Presupuesto Origen -->
         <router-link v-if="relatedQuote" :to="`/sales/quotes/${relatedQuote.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">request_quote</span></div>
+          <div class="tag-icon"><FileQuestion :size="20" /></div>
           <div class="tag-content">
             <label>Presupuesto Origen</label>
             <strong>{{ relatedQuote.quoteNumber || relatedQuote.quote_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <!-- 2. Albaranes -->
         <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
-          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán Generado</label>
             <strong>{{ dn.deliveryNoteNumber || dn.delivery_note_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <!-- 3. Factura -->
         <router-link v-if="relatedInvoice" :to="`/sales/invoices/${relatedInvoice.id}`" class="related-tag-card">
-          <div class="tag-icon success"><span class="material-symbols-outlined">receipt</span></div>
+          <div class="tag-icon success"><Receipt :size="20" /></div>
           <div class="tag-content">
             <label>Factura Vinculada</label>
             <strong>{{ relatedInvoice.invoiceNumber || relatedInvoice.invoice_number }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -209,7 +210,7 @@
       <!-- SECCIÓN MES -->
       <FormSection title="Configuración Técnica (MES)" icon="precision_manufacturing">
         <div v-if="mode === 'detail' && ['PENDING', 'PENDIENTE', 'CONFIRMED', 'CONFIRMADO', 'EN_PREPARACION'].includes(order.status)" class="info-notice mb-4">
-          <span class="material-symbols-outlined">info</span>
+          <Info :size="20" />
           <div>
             <strong>A la espera de lanzamiento operativo.</strong>
             <p class="m-0 text-xs">El taller no visualizará este pedido hasta que se pulse el botón "Lanzar a Producción".</p>
@@ -229,7 +230,7 @@
               <tr v-for="mesRef in (order.mes_work_refs || order.mesWorkRefs)" :key="mesRef.id">
                 <td>
                   <div class="flex items-center gap-2">
-                    <span class="material-symbols-outlined text-secondary">settings_suggest</span>
+                    <Settings2 :size="18" class="text-secondary" />
                     <strong>{{ formatMesWorkId(mesRef.work_setup_id || mesRef.workSetupId) }}</strong>
                   </div>
                 </td>
@@ -242,7 +243,7 @@
                       @click="router.push(`/mes/work-orders/${mesRef.work_order_id || mesRef.workOrderId}`)"
                     >
                       {{ mesApi.getWorkStatusLabel(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId]) || 'Cargando...' }}
-                      <span class="material-symbols-outlined text-xs">open_in_new</span>
+                      <ExternalLink :size="14" />
                     </button>
                   </template>
                   <span v-else class="status-badge status-secondary">Sin lanzar</span>
@@ -255,8 +256,8 @@
 
         <div v-else>
           <div class="mb-4">
-            <button type="button" class="btn btn-outline-secondary btn-sm" @click="addMesWorkRef">
-              <span class="material-symbols-outlined">add</span> <span>Añadir Requerimiento Técnico</span>
+            <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
+              <Plus :size="16" /> <span>Añadir Trabajo Taller</span>
             </button>
           </div>
           <div class="table-wrapper border rounded-lg overflow-hidden">
@@ -273,17 +274,32 @@
                 <tr v-for="(ref, idx) in editableOrder.mes_work_refs" :key="idx">
                   <td class="text-muted font-bold">{{ idx + 1 }}</td>
                   <td>
-                    <select v-model="ref.work_setup_id" class="form-input w-full">
+                    <select 
+                      v-model="ref.work_setup_id" 
+                      class="form-input w-full"
+                      :data-mes-row="idx"
+                      data-mes-col="setup"
+                      @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                    >
                       <option :value="null">-- Personalizado --</option>
                       <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
                     </select>
                   </td>
                   <td>
-                    <input v-model="ref.description" type="text" class="form-input w-full" placeholder="Ej: Color especial..." required />
+                    <input 
+                      v-model="ref.description" 
+                      type="text" 
+                      class="form-input w-full" 
+                      placeholder="Ej: Color especial..." 
+                      required 
+                      :data-mes-row="idx"
+                      data-mes-col="desc"
+                      @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                    />
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
-                      <span class="material-symbols-outlined">delete</span>
+                      <Trash2 :size="18" />
                     </button>
                   </td>
                 </tr>
@@ -298,16 +314,23 @@
       
       <!-- Sección Líneas de Pedido -->
       <FormSection title="Líneas de Pedido" icon="list_alt">
-        <div v-if="mode !== 'detail'" class="mb-4">
-          <button type="button" class="btn btn-primary btn-sm" @click="showVariantSelector = true">
-            <span class="material-symbols-outlined">add</span> <span>Añadir Producto</span>
-          </button>
-        </div>
         <OrderLines
           :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
           :is-editing="mode !== 'detail'"
           @update:lines="updateLines"
+          @add-line="handleAddLineRequest"
+          @last-field-tab="focusAddButton"
         />
+        <div v-if="mode !== 'detail'" class="mt-4">
+          <button 
+            ref="addProductBtnRef"
+            type="button" 
+            class="btn btn-primary btn-sm" 
+            @click="showVariantSelector = true"
+          >
+            <Plus :size="16" /> <span>Añadir Producto (Ins)</span>
+          </button>
+        </div>
       </FormSection>
       
       <!-- Sección de Totales -->
@@ -341,111 +364,147 @@
         </div>
       </FormSection>
     </div>
-  </BaseEntityPage>
-  
-  <!-- MODAL: ALBARANADO PARCIAL -->
-  <BaseDialog
-    :show="showDnDialog"
-    title="Generar Albarán de Salida"
-    icon="local_shipping"
-    size="xl"
-    :is-loading="isSaving"
-    confirm-text="Generar Albarán"
-    @close="showDnDialog = false"
-    @confirm="submitDeliveryNote"
-  >
-    <div class="dn-dialog-content">
-      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="form-group">
-          <label>Fecha de Entrega / Salida</label>
-          <input type="date" v-model="dnForm.deliveryDate" class="form-input" />
-        </div>
-        <div class="flex items-end gap-2">
-          <button class="btn btn-outline-secondary btn-sm" @click="deliverAll">Albaranar Todo</button>
-          <button class="btn btn-outline-secondary btn-sm" @click="deliverNone">Limpiar Cantidades</button>
-        </div>
-      </div>
 
-      <div class="table-wrapper border rounded-lg overflow-hidden">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Producto / Variante</th>
-              <th class="text-center">Total Pedido</th>
-              <th class="text-center">Ya Albaranado</th>
-              <th class="text-center">Pendiente</th>
-              <th class="text-center" style="width: 150px">A Entregar Ahora</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in dnForm.items" :key="item.orderLineItemId">
-              <td>
-                <div class="flex flex-col">
-                  <strong>{{ item.productName }}</strong>
-                  <small class="text-muted">{{ item.variantSku }}</small>
-                </div>
-              </td>
-              <td class="text-center">{{ item.totalQuantity }}</td>
-              <td class="text-center">
-                <span :class="{'text-success': item.alreadyDelivered > 0}">{{ item.alreadyDelivered }}</span>
-              </td>
-              <td class="text-center font-bold text-primary">{{ item.pendingQuantity }}</td>
-              <td class="text-center">
-                <div class="flex items-center justify-center gap-2">
-                  <input 
-                    type="number" 
-                    v-model.number="item.quantityToDeliver" 
-                    min="0" 
-                    :max="item.pendingQuantity"
-                    class="form-input text-center" 
-                    style="width: 80px"
-                  />
-                  <span class="text-xs text-muted">/ {{ item.pendingQuantity }}</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- MODALES DE CONFIRMACIÓN (REEMPLAZO DE confirm()) -->
+    <BaseDialog
+      :show="confirmDialog.show"
+      :title="confirmDialog.title"
+      :icon="confirmDialog.icon"
+      :confirm-text="confirmDialog.confirmText"
+      :confirm-class="confirmDialog.confirmClass"
+      :is-confirming="isSaving"
+      @close="confirmDialog.show = false"
+      @confirm="handleConfirmDialog"
+    >
+      <p>{{ confirmDialog.message }}</p>
+    </BaseDialog>
+
+    <!-- MODAL: ALBARANADO PARCIAL -->
+    <BaseDialog
+      :show="showDnDialog"
+      title="Generar Albarán de Salida"
+      icon="local_shipping"
+      size="xl"
+      :is-loading="isSaving"
+      confirm-text="Generar Albarán"
+      @close="showDnDialog = false"
+      @confirm="submitDeliveryNote"
+    >
+      <div class="dn-dialog-content">
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="form-group">
+            <label>Fecha de Entrega / Salida</label>
+            <input type="date" v-model="dnForm.deliveryDate" class="form-input" />
+          </div>
+          <div class="flex items-end gap-2">
+            <button class="btn btn-outline-secondary btn-sm" @click="deliverAll">Albaranar Todo</button>
+            <button class="btn btn-outline-secondary btn-sm" @click="deliverNone">Limpiar Cantidades</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper border rounded-lg overflow-hidden">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Producto / Variante</th>
+                <th class="text-center">Total Pedido</th>
+                <th class="text-center">Ya Albaranado</th>
+                <th class="text-center">Pendiente</th>
+                <th class="text-center" style="width: 150px">A Entregar Ahora</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in dnForm.items" :key="item.orderLineItemId">
+                <td>
+                  <div class="flex flex-col">
+                    <strong>{{ item.productName }}</strong>
+                    <small class="text-muted">{{ item.variantSku }}</small>
+                  </div>
+                </td>
+                <td class="text-center">{{ item.totalQuantity }}</td>
+                <td class="text-center">
+                  <span :class="{'text-success': item.alreadyDelivered > 0}">{{ item.alreadyDelivered }}</span>
+                </td>
+                <td class="text-center font-bold text-primary">{{ item.pendingQuantity }}</td>
+                <td class="text-center">
+                  <div class="flex items-center justify-center gap-2">
+                    <input 
+                      type="number" 
+                      v-model.number="item.quantityToDeliver" 
+                      min="0" 
+                      :max="item.pendingQuantity"
+                      class="form-input text-center" 
+                      style="width: 80px"
+                    />
+                    <span class="text-xs text-muted">/ {{ item.pendingQuantity }}</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm text-muted italic">
+          * Solo se muestran los ítems que tienen cantidades pendientes de entrega.
+        </p>
       </div>
-      <p class="mt-4 text-sm text-muted italic">
-        * Solo se muestran los ítems que tienen cantidades pendientes de entrega.
-      </p>
+    </BaseDialog>
+
+    <!-- MODAL: SELECCIÓN DE PRODUCTO -->
+    <BaseDialog
+      :show="showVariantSelector"
+      title="Seleccionar Producto"
+      icon="inventory_2"
+      size="xl"
+      hide-actions
+      @close="showVariantSelector = false"
+    >
+      <VariantSelector @variant-selected="handleVariantSelected" />
+    </BaseDialog>
+
+    <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
+    <div class="print-container">
+      <PrintDocument
+        v-if="order"
+        type="ORDER"
+        :number="order.order_number || order.orderNumber"
+        :date="order.order_date || order.orderDate"
+        :customer-name="order.party_name || order.partyName"
+        :customer-tax-id="order.tax_id || order.taxId"
+        :items="order.line_items || order.lineItems"
+        :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
+        :notes="order.notes"
+      />
     </div>
-  </BaseDialog>
-
-  <!-- MODAL: SELECCIÓN DE PRODUCTO -->
-  <BaseDialog
-    :show="showVariantSelector"
-    title="Seleccionar Producto"
-    icon="inventory_2"
-    size="xl"
-    hide-actions
-    @close="showVariantSelector = false"
-  >
-    <VariantSelector @variant-selected="handleVariantSelected" />
-  </BaseDialog>
-
-  <!-- PORTAL DE IMPRESIÓN (Solo visible en @media print) -->
-  <div class="print-container">
-    <PrintDocument
-      v-if="order"
-      type="ORDER"
-      :number="order.order_number || order.orderNumber"
-      :date="order.order_date || order.orderDate"
-      :customer-name="order.party_name || order.partyName"
-      :customer-tax-id="order.tax_id || order.taxId"
-      :items="order.line_items || order.lineItems"
-      :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
-      :notes="order.notes"
-    />
-  </div>
+  </BaseEntityPage>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick, reactive } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { 
+  ShoppingCart, 
+  Printer, 
+  Pencil, 
+  RefreshCw, 
+  Save, 
+  Rocket, 
+  Truck, 
+  Ban, 
+  User, 
+  Calendar, 
+  CreditCard, 
+  FileQuestion, 
+  Receipt, 
+  ExternalLink, 
+  Info, 
+  Settings2, 
+  Plus, 
+  Trash2,
+  AlertTriangle,
+  Play
+} from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import FormSection from '@/components/shared/FormSection.vue'
 import DataRow from '@/components/shared/DataRow.vue'
 import PartySelector from '@/components/party/PartySelector.vue'
@@ -456,10 +515,12 @@ import PrintDocument from '@/components/sales/PrintDocument.vue'
 import salesApi from '@/services/salesApi'
 import { partyApi } from '@/services/partyApi'
 import { mesApi } from '@/services/mesApi'
+import { useToastStore } from '@/stores/toast'
 import '@/assets/sales-print.css'
 
 const route = useRoute()
 const router = useRouter()
+const toastStore = useToastStore()
 const order = ref(null)
 const editableOrder = ref({ line_items: [], mes_work_refs: [] })
 const isLoading = ref(false)
@@ -482,6 +543,54 @@ const partyDefaultDiscount = ref(0)
 const relatedQuote = ref(null)
 const relatedDeliveryNotes = ref([])
 const relatedInvoice = ref(null)
+
+// --- Confirm Dialog Logic ---
+const confirmDialog = reactive({
+  show: false,
+  title: '',
+  message: '',
+  icon: 'help-circle',
+  confirmText: 'Confirmar',
+  confirmClass: 'btn-primary',
+  action: null
+})
+
+function promptCancelOrder() {
+  confirmDialog.title = 'Anular Pedido'
+  confirmDialog.message = '¿Realmente deseas ANULAR este pedido? Esta acción es irreversible y detendrá cualquier proceso vinculado.'
+  confirmDialog.icon = AlertTriangle
+  confirmDialog.confirmText = 'Sí, Anular Pedido'
+  confirmDialog.confirmClass = 'btn-danger'
+  confirmDialog.action = cancelOrder
+  confirmDialog.show = true
+}
+
+function promptReactivate() {
+  confirmDialog.title = 'Reactivar Pedido'
+  confirmDialog.message = '¿Deseas reactivar este pedido y devolverlo al estado borrador para realizar cambios?'
+  confirmDialog.icon = RefreshCw
+  confirmDialog.confirmText = 'Reactivar Pedido'
+  confirmDialog.confirmClass = 'btn-primary'
+  confirmDialog.action = reactivateOrder
+  confirmDialog.show = true
+}
+
+function promptLaunchProduction() {
+  confirmDialog.title = 'Lanzar a Producción'
+  confirmDialog.message = '¿Lanzar este pedido a producción? Esta acción notificará al taller y permitirá iniciar los trabajos MES.'
+  confirmDialog.icon = Rocket
+  confirmDialog.confirmText = 'Lanzar Ahora'
+  confirmDialog.confirmClass = 'btn-secondary'
+  confirmDialog.action = launchOrderToProduction
+  confirmDialog.show = true
+}
+
+async function handleConfirmDialog() {
+  if (confirmDialog.action) {
+    await confirmDialog.action()
+  }
+  confirmDialog.show = false
+}
 
 const hasActiveDeliveryNotes = computed(() =>
   relatedDeliveryNotes.value.some(dn => dn.status !== 'CANCELLED')
@@ -540,8 +649,8 @@ watch(() => [editableOrder.value.party_id, editableOrder.value.line_items], () =
 
 function calculateTotals() {
   clearTimeout(previewTimer);
-  // Reseteamos el resultado previo para que los computados usen el fallback local 
-  // instantáneo mientras se espera la respuesta del servidor (evita valores congelados).
+  // Reset the previous result so that computed values use the local fallback 
+  // instantaneously while waiting for the server response (avoids frozen values).
   previewResult.value = null;
   previewTimer = setTimeout(fetchPreviewCalculation, 400);
 }
@@ -779,6 +888,27 @@ function formatMesWorkId(id) {
   return mesWorksCache.value[id]?.name || id.substring(0, 8)
 }
 
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => editableOrder.value.mes_work_refs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
+});
+
+const addProductBtnRef = ref(null)
+
+function focusAddButton() {
+  if (addProductBtnRef.value) {
+    addProductBtnRef.value.focus()
+  }
+}
+
+function handleAddLineRequest() {
+  showVariantSelector.value = true
+}
+
 function handleVariantSelected(payload) {
   const variant = payload.variant || payload
   const newItem = {
@@ -793,15 +923,21 @@ function handleVariantSelected(payload) {
   editableOrder.value.line_items.push(newItem)
   showVariantSelector.value = false
   
-  // Trigger immediate calculation
+  // Posicionar foco en la cantidad de la nueva línea tras el renderizado
   nextTick(() => {
     fetchPreviewCalculation();
+    const lastIdx = editableOrder.value.line_items.length - 1
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
   })
 }
 
 async function saveOrder() {
-  if (!editableOrder.value.party_id) { alert('Debe seleccionar un cliente'); return; }
-  if (!editableOrder.value.line_items.length) { alert('El pedido debe tener al menos una línea'); return; }
+  if (!editableOrder.value.party_id) { toastStore.error('Debe seleccionar un cliente'); return; }
+  if (!editableOrder.value.line_items.length) { toastStore.error('El pedido debe tener al menos una línea'); return; }
   
   isSaving.value = true
   try {
@@ -870,59 +1006,46 @@ async function saveOrder() {
     }
   } catch(e) {
     console.error('Error saving order:', e)
-    alert('Error al guardar el pedido: ' + (e.message || 'Error desconocido'))
-  } finally {
-    isSaving.value = false
-  }
-}
-
-async function confirmOrder() {
-  if (!confirm('¿Estás seguro de que deseas confirmar este pedido? Pasará a gestión de almacén/producción.')) return
-  isSaving.value = true
-  try {
-    await salesApi.confirmOrder(order.value.id)
-    await loadOrder()
-  } catch (e) {
-    alert('Error al confirmar: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al guardar el pedido: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
 }
 
 async function cancelOrder() {
-  if (!confirm('¿Realmente deseas ANULAR este pedido? Esta acción es irreversible.')) return
   isSaving.value = true
   try {
     await salesApi.cancelOrder(order.value.id)
     await loadOrder()
+    toastStore.success('Pedido anulado correctamente')
   } catch (e) {
-    alert('Error al anular: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al anular: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
 }
 
 async function reactivateOrder() {
-  if (!confirm('¿Deseas reactivar este pedido y devolverlo al estado borrador?')) return
   isSaving.value = true
   try {
     await salesApi.reactivateOrder(order.value.id)
     await loadOrder()
+    toastStore.success('Pedido reactivado')
   } catch (e) {
-    alert('Error al reactivar: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al reactivar: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
 }
 
 async function launchOrderToProduction() {
-  if (!confirm('¿Lanzar este pedido a producción? Esta acción notificará al taller y permitirá iniciar los trabajos.')) return
   isSaving.value = true
   try {
     await salesApi.changeOrderStatus(order.value.id, 'READY_FOR_PRODUCTION')
     await loadOrder()
+    toastStore.success('Pedido lanzado a taller')
   } catch (e) {
-    alert('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
+    toastStore.error('Error al lanzar a producción: ' + (e.message || 'Error desconocido'))
   } finally {
     isSaving.value = false
   }
@@ -945,7 +1068,7 @@ async function createDeliveryNote() {
   }).filter(item => item.pendingQuantity > 0);
 
   if (dnForm.value.items.length === 0) {
-    alert('No hay ítems pendientes de albaranar en este pedido.');
+    toastStore.warning('No hay ítems pendientes de albaranar en este pedido.');
     return;
   }
 
@@ -955,19 +1078,19 @@ async function createDeliveryNote() {
 async function submitDeliveryNote() {
   const itemsToDeliver = dnForm.value.items.filter(i => i.quantityToDeliver > 0);
   if (itemsToDeliver.length === 0) {
-    alert('Debes indicar al menos una cantidad a entregar.');
+    toastStore.warning('Debes indicar al menos una cantidad a entregar.');
     return;
   }
 
   // Validación de cantidades
   for (const item of itemsToDeliver) {
     if (item.quantityToDeliver > item.pendingQuantity) {
-      alert(`La cantidad a entregar de ${item.productName} no puede superar la pendiente (${item.pendingQuantity}).`);
+      toastStore.error(`La cantidad a entregar de ${item.productName} no puede superar la pendiente (${item.pendingQuantity}).`);
       return;
     }
   }
 
-  isSaving.value = true;
+  isSaving.value = true
   try {
     const payload = {
       salesOrderId: order.value.id,
@@ -982,9 +1105,9 @@ async function submitDeliveryNote() {
     router.push(`/sales/delivery-notes/${newDn.id}`);
   } catch (e) {
     console.error('Error al generar albarán:', e);
-    alert('Error al generar albarán: ' + (e.message || 'Error desconocido'));
+    toastStore.error('Error al generar albarán: ' + (e.message || 'Error desconocido'));
   } finally {
-    isSaving.value = false;
+    isSaving.value = false
   }
 }
 
@@ -1011,6 +1134,41 @@ function printOrder() {
 function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '' }
 function formatMoney(amount) { return salesApi.formatMoney(amount) }
 
+onMounted(() => {
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('keydown', handleOrderKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('keydown', handleOrderKeydown);
+});
+
+function handleOrderKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && !hasActiveDeliveryNotes.value) {
+      enterEditMode();
+    }
+  }
+}
+
+function handleGlobalSave() {
+  if (mode.value === 'edit' && !isSaving.value) {
+    saveOrder();
+  }
+}
+
+function handleGlobalEsc() {
+  if (mode.value === 'edit') {
+    exitEditMode();
+  } else {
+    router.push('/sales/orders');
+  }
+}
+
 watch(() => route.params.id, loadOrder, { immediate: true })
 </script>
 
@@ -1032,8 +1190,8 @@ watch(() => route.params.id, loadOrder, { immediate: true })
 .summary-tag { flex: 1; min-width: 200px; padding: 0.75rem 1.25rem; background: white; border: 1px solid var(--color-border); border-radius: 12px; display: flex; align-items: center; gap: 1rem; box-shadow: var(--box-shadow-sm); }
 
 .icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon .material-symbols-outlined { font-size: 24px; }
-.icon.blue { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
+.icon :deep(svg) { width: 24px; height: 24px; }
+.icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .icon.yellow { background: rgba(230, 184, 0, 0.1); color: #d97706; }
 .icon.purple { background: rgba(168, 85, 247, 0.1); color: #9333ea; }
 .icon.green { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
@@ -1058,8 +1216,9 @@ watch(() => route.params.id, loadOrder, { immediate: true })
   transform: translateY(-1px);
   box-shadow: var(--box-shadow-sm);
 }
-.clickable-status .material-symbols-outlined {
-  font-size: 0.9rem;
+.clickable-status :deep(svg) {
+  width: 0.9rem;
+  height: 0.9rem;
   opacity: 0.8;
 }
 
@@ -1070,4 +1229,7 @@ watch(() => route.params.id, loadOrder, { immediate: true })
   .no-print { display: none !important; }
   .print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

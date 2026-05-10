@@ -11,16 +11,76 @@
     </div>
   </template>
   <RouterView v-else />
+  <ToastContainer />
+  <ShortcutHelp :show="showShortcutHelp" @close="showShortcutHelp = false" />
+  <ContextualHelp :show="showContextualHelp" @close="showContextualHelp = false" />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, RouterView } from 'vue-router'
 import Navbar from '@/components/layout/Navbar.vue'
 import SideNavbar from '@/components/layout/SideNavbar.vue'
+import ToastContainer from '@/components/shared/ToastContainer.vue'
+import ShortcutHelp from '@/components/shared/ShortcutHelp.vue'
+import ContextualHelp from '@/components/shared/ContextualHelp.vue'
 
 const route = useRoute()
 const showAppChrome = computed(() => route.path !== '/login')
+const showShortcutHelp = ref(false)
+const showContextualHelp = ref(false)
+
+function handleGlobalKeydown(e) {
+  // 1. Guardado Rápido: Ctrl + S
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault()
+    window.dispatchEvent(new CustomEvent('tramatex-save'))
+  }
+
+  // 2. Búsqueda Instantánea: Ctrl + K o / (si no estamos en un input)
+  const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+  
+  if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && !isInput)) {
+    e.preventDefault()
+    window.dispatchEvent(new CustomEvent('tramatex-search'))
+  }
+
+  // 3. Ayuda de Atajos: ? (si no estamos en un input)
+  if (e.key === '?' && !isInput) {
+    showShortcutHelp.value = true
+  }
+
+  // 4. Ayuda Contextual: F1
+  if (e.key === 'F1') {
+    e.preventDefault()
+    showContextualHelp.value = !showContextualHelp.value
+  }
+
+  // 5. Atrás / Cerrar: Esc
+  if (e.key === 'Escape') {
+    if (showShortcutHelp.value) {
+      showShortcutHelp.value = false
+    } else if (showContextualHelp.value) {
+      showContextualHelp.value = false
+    } else {
+      window.dispatchEvent(new CustomEvent('tramatex-esc'))
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+  window.addEventListener('tramatex-contextual-help', () => {
+    showContextualHelp.value = !showContextualHelp.value
+  })
+  window.addEventListener('tramatex-shortcuts', () => {
+    showShortcutHelp.value = !showShortcutHelp.value
+  })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <style>

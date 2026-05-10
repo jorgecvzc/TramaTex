@@ -8,7 +8,7 @@
     <form @submit.prevent="handleNext" class="step-form">
       <!-- Info Box -->
       <div class="info-box">
-        <span class="material-symbols-outlined info-icon" style="font-size: 20px">info</span>
+        <component :is="getIcon('info')" class="info-icon" :size="20" />
         <div class="info-content">
           <p>
             <strong>¿Qué son los atributos?</strong> Los atributos definen las características configurables
@@ -80,7 +80,7 @@
               :key="attr.id"
               class="inherited-item"
             >
-              <span class="inherited-icon">link</span>
+              <component :is="getIcon('link')" class="inherited-icon" :size="16" />
               <span class="inherited-text">
                 <strong>{{ attr.name }}</strong>
                 <code class="attr-code">{{ attr.code }}</code>
@@ -107,7 +107,7 @@
               :key="attr.id"
               class="inherited-item"
             >
-              <span class="inherited-icon">link</span>
+              <component :is="getIcon('link')" class="inherited-icon" :size="16" />
               <span class="inherited-text">
                 <strong>{{ attr.name }}</strong>
                 <code class="attr-code">{{ attr.code }}</code>
@@ -121,7 +121,7 @@
 
         <!-- Empty State -->
         <div v-if="allAttributes.length === 0" class="empty-state">
-          <span class="material-symbols-outlined empty-icon" style="font-size: 64px">inventory_2</span>
+          <component :is="getIcon('inventory_2')" class="empty-icon" :size="64" />
           <p>No hay atributos disponibles.</p>
           <p class="empty-hint">
             Puedes crear atributos en la sección de "Gestión de Atributos" y luego asignarlos a este producto.
@@ -146,12 +146,12 @@
       <!-- Variant Strategy Info -->
       <div class="variant-info-box">
         <div class="variant-info-header">
-          <span class="material-symbols-outlined variant-info-icon" style="font-size: 18px">refresh</span>
+          <component :is="getIcon('refresh')" class="variant-info-icon" :size="18" />
           <strong>Gestión de Variantes</strong>
         </div>
         <div v-if="hasAttributes" class="variant-info-content jit">
           <p>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px; font-size: 16px">bolt</span>
+            <component :is="getIcon('bolt')" style="vertical-align: middle; margin-right: 4px" :size="16" />
             <strong>Producto Configurable:</strong> Este producto tendrá variantes que se gestionarán automáticamente.
           </p>
           <ul>
@@ -162,7 +162,7 @@
         </div>
         <div v-else class="variant-info-content simple">
           <p>
-            <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 4px; font-size: 16px">inventory_2</span>
+            <component :is="getIcon('inventory_2')" style="vertical-align: middle; margin-right: 4px" :size="16" />
             <strong>Producto Simple:</strong> Sin atributos configurables, este producto no tendrá variantes.
           </p>
           <ul>
@@ -194,6 +194,7 @@
 
 <script setup>
 import { reactive, computed, onMounted, watch, ref } from 'vue'
+import { getIcon } from '@/utils/icons'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

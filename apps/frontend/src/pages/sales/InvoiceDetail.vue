@@ -1,7 +1,7 @@
 <template>
   <BaseEntityPage v-if="isLoading" class="no-print">
     <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
+      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
     </template>
     <div class="loading-state card">
       <div class="spinner"></div>
@@ -11,11 +11,11 @@
 
   <BaseEntityPage v-else-if="error" class="no-print">
     <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
+      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
     </template>
     <div class="alert-card card">
       <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
+        <AlertCircle :size="24" />
       </div>
       <div class="alert-content">
         <h3>Error al cargar</h3>
@@ -28,31 +28,32 @@
   <BaseEntityPage v-else-if="invoice" class="no-print">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
+      <BasePageHeader 
         :title="mode === 'edit' ? `Editando Factura ${invoice.invoiceNumber}` : `Factura ${invoice.invoiceNumber}`" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
+        show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">receipt</span>
+          <Receipt :size="28" />
         </template>
         <template #actions>
           <template v-if="mode === 'detail'">
             <button class="btn btn-outline btn-sm" @click="printInvoice">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
+              <Printer :size="16" /> <span>Imprimir</span>
             </button>
           </template>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
     <template #toolbar v-if="mode === 'detail'">
       <div class="action-toolbar card">
         <div class="toolbar-info">
-          <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
+          <span v-if="invoice" :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
             {{ salesApi.getStatusLabel(invoice.status) }}
           </span>
-          <span :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
+          <span v-if="invoice" :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
             {{ getTypeLabel(invoice.type) }}
           </span>
         </div>
@@ -64,7 +65,7 @@
             :disabled="isChangingStatus || !canManageInvoiceStatus"
             :title="!canManageInvoiceStatus ? 'Requiere rol admin o commercial' : ''"
           >
-            <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
+            <CreditCard :size="16" /> <span>Registrar Cobro</span>
           </button>
         </div>
       </div>
@@ -72,7 +73,7 @@
       <!-- Draft Warning -->
       <div v-if="invoice.status === 'DRAFT'" class="alert-card card warning mt-4 mb-0 no-print">
         <div class="alert-icon-wrapper warning">
-          <span class="material-symbols-outlined">warning</span>
+          <AlertTriangle :size="24" />
         </div>
         <div class="alert-content">
           <h4>Factura en estado Borrador</h4>
@@ -85,19 +86,19 @@
     <template #summary>
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
+          <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">event_busy</span></div>
+          <div class="icon purple"><CalendarOff :size="20" /></div>
           <div class="tag-content"><label>Vencimiento</label><strong>{{ formatDate(invoice.dueDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Factura</label>
             <strong class="amount">{{ salesApi.formatMoney(invoice.total) }}</strong>
@@ -110,21 +111,21 @@
     <template #related v-if="mode === 'detail' && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
       <div class="related-history-grid">
         <router-link v-for="order in relatedOrders" :key="order.id" :to="`/sales/orders/${order.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido de Origen</label>
             <strong>{{ order.orderNumber || formatId(order.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
-          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán de Origen</label>
             <strong>{{ dn.deliveryNoteNumber || formatId(dn.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
@@ -180,7 +181,7 @@
               <tr v-for="item in invoice.lineItems" :key="item.id || item.productVariantID">
                 <td>
                   <div class="product-info-cell">
-                    <span class="material-symbols-outlined icon-secondary">inventory_2</span>
+                    <Package :size="20" class="icon-secondary" />
                     <div class="content">
                       <strong>{{ buildDisplayName(item) }}</strong>
                       <code class="code-badge ml-2">{{ item.variantSku || formatId(item.productVariantId || item.productVariantID) }}</code>
@@ -262,18 +263,18 @@
     <div v-if="showPostIssueModal" class="modal-backdrop no-print">
       <div class="modal card w-modal-md">
         <div class="modal-header">
-          <span class="material-symbols-outlined text-success">check_circle</span>
+          <CheckCircle :size="24" class="text-success" />
           <h2>Factura Emitida con Éxito</h2>
-          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><X :size="20" /></button>
         </div>
         <div class="modal-body">
           <p class="mb-4">La factura <strong>{{ invoice?.invoiceNumber }}</strong> ya es oficial y puede ser enviada al cliente.</p>
           <div class="post-issue-actions">
             <button class="btn btn-primary w-full justify-center mb-3" @click="postIssuePrint">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir Factura</span>
+              <Printer :size="16" /> <span>Imprimir Factura</span>
             </button>
             <button class="btn btn-outline w-full justify-center mb-2" @click="postIssueEmail">
-              <span class="material-symbols-outlined">mail</span> <span>Enviar por Email</span>
+              <Mail :size="16" /> <span>Enviar por Email</span>
             </button>
           </div>
         </div>
@@ -283,11 +284,29 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
+import { 
+  AlertCircle, 
+  Receipt, 
+  Printer, 
+  CreditCard, 
+  AlertTriangle, 
+  User, 
+  Calendar, 
+  CalendarOff, 
+  ShoppingCart, 
+  Truck, 
+  ExternalLink, 
+  Package, 
+  CheckCircle, 
+  X, 
+  Mail 
+} from 'lucide-vue-next';
+
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
@@ -295,11 +314,13 @@ import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const invoice = ref(null);
@@ -330,7 +351,39 @@ const formData = reactive({
 
 onMounted(() => {
   fetchInvoice();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('keydown', handleInvoiceKeydown);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('keydown', handleInvoiceKeydown);
+});
+
+function handleInvoiceKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && invoice.value?.status === 'DRAFT') {
+      enterEditMode();
+    }
+  }
+}
+
+function handleGlobalEsc() {
+  if (mode.value === 'edit') {
+    mode.value = 'detail';
+  } else {
+    router.push('/sales/invoices');
+  }
+}
+
+function handleGlobalSave() {
+  if (mode.value === 'edit' && !isSaving.value) {
+    saveInvoice();
+  }
+}
 
 async function fetchInvoice() {
   const invoiceId = route.params.id;
@@ -393,7 +446,7 @@ async function saveInvoice() {
     mode.value = 'detail';
     await fetchInvoice();
   } catch (err) {
-    alert('Error al guardar: ' + err.message);
+    toastStore.error('Error al guardar: ' + err.message);
   } finally {
     isSaving.value = false;
   }
@@ -456,10 +509,10 @@ async function executeStatusChange() {
   } catch (err) {
     const statusCode = err?.response?.status;
     if (statusCode === 403) {
-      alert('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
+      toastStore.error('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
       return;
     }
-    alert(err?.message || 'Error al cambiar estado');
+    toastStore.error(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
   }

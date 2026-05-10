@@ -2,7 +2,7 @@
   <BaseTerminalPage
     title="Terminal de Taller"
     station-id="TALLER CENTRAL"
-    icon="tablet_mac"
+    :icon="Tablet"
     :is-loading="isLoading"
     @refresh="loadData"
     @close="goBack"
@@ -30,7 +30,7 @@
       </div>
 
       <div class="terminal-search-wrap">
-        <span class="material-symbols-outlined">search</span>
+        <Search class="terminal-search-icon" :size="32" />
         <input v-model="search" type="text" placeholder="Escanear código o buscar trabajo..." class="terminal-input" />
       </div>
     </div>
@@ -38,7 +38,7 @@
     <!-- LISTADO TÁCTIL (TABULAR ESTRICTO) -->
     <div class="task-list-container">
       <div v-if="filteredRows.length === 0" class="terminal-empty">
-        <span class="material-symbols-outlined">checklist</span>
+        <ListChecks :size="64" />
         <p>No hay tareas pendientes asignadas a esta estación.</p>
       </div>
 
@@ -58,16 +58,16 @@
         <div class="col-work-client">
           <strong class="work-title">{{ row.workName }}</strong>
           <div class="client-info">
-            <span class="material-symbols-outlined">person</span>
+            <User :size="18" />
             <span>{{ row.partyName }}</span>
           </div>
         </div>
 
         <!-- COL 3: TIPO Y POSICIÓN -->
         <div class="col-context">
-          <span class="work-type-badge">{{ row.workTypeName.toUpperCase() }}</span>
+          <span class="work-type-badge">{{ (row.workTypeName || 'General').toUpperCase() }}</span>
           <div v-if="row.positionName" class="pos-info-inline">
-            <span class="material-symbols-outlined">location_on</span>
+            <MapPin :size="20" />
             <strong>{{ row.positionName }}</strong>
           </div>
         </div>
@@ -75,7 +75,7 @@
         <!-- COL 4: TAREA Y ACCIÓN -->
         <div class="col-task-action">
           <div class="task-desc">
-            <label>TAREA ACTUAL</label>
+            <label>{{ taskStatusLabel(row.taskStatus) }}</label>
             <span class="task-name">{{ row.taskName }}</span>
           </div>
 
@@ -86,7 +86,7 @@
               class="btn-terminal-icon attachment"
               @click="viewAttachments(row)"
             >
-              <span class="material-symbols-outlined">description</span>
+              <FileText :size="24" />
             </button>
 
             <!-- Botón de Acción -->
@@ -95,7 +95,7 @@
               class="btn-terminal-action start"
               @click="runAction(row, 'START')"
             >
-              <span class="material-symbols-outlined">play_arrow</span>
+              <Play :size="24" />
               INICIAR
             </button>
             <button
@@ -103,7 +103,7 @@
               class="btn-terminal-action complete"
               @click="runAction(row, 'COMPLETE')"
             >
-              <span class="material-symbols-outlined">check_circle</span>
+              <CheckCircle2 :size="24" />
               FINALIZAR
             </button>
           </div>
@@ -115,7 +115,7 @@
     <BaseDialog
       :show="!!detailRow"
       :title="detailRow ? `Tarea: ${detailRow.taskName}` : ''"
-      icon="assignment"
+      :icon="ClipboardList"
       size="lg"
       hide-actions
       @close="closeDetail"
@@ -143,7 +143,7 @@
             class="btn-giant start"
             @click="dialogAction('START')"
           >
-            <span class="material-symbols-outlined">play_arrow</span>
+            <Play :size="48" />
             INICIAR TRABAJO
           </button>
           <button
@@ -151,14 +151,14 @@
             class="btn-giant complete"
             @click="dialogAction('COMPLETE')"
           >
-            <span class="material-symbols-outlined">check_circle</span>
+            <CheckCircle2 :size="48" />
             COMPLETAR TAREA
           </button>
           <button
             class="btn-giant block"
             @click="dialogAction('BLOCK')"
           >
-            <span class="material-symbols-outlined">block</span>
+            <Ban :size="32" />
             BLOQUEAR
           </button>
         </div>
@@ -170,13 +170,27 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { 
+  Tablet, 
+  Search, 
+  ListChecks, 
+  User, 
+  MapPin, 
+  FileText, 
+  Play, 
+  CheckCircle2, 
+  ClipboardList, 
+  Ban 
+} from 'lucide-vue-next';
 import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import { mesApi } from '@/services/mesApi';
 import { partyApi } from '@/services/partyApi';
+import { useToastStore } from '@/stores/toast';
 import type { WorkOrder, WorkOrderTaskAction, MESWorkType } from '@/types/mes';
 
 const router = useRouter();
+const toastStore = useToastStore();
 const isLoading = ref(true);
 const search = ref('');
 const taskFilter = ref('');
@@ -305,7 +319,9 @@ async function runAction(row: any, action: string) {
   try {
     await mesApi.updateWorkOrderTaskStatus(row.workId, row.taskId, { action: action as WorkOrderTaskAction });
     await loadData();
-  } catch (err: any) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.addToast(err.message, 'error'); 
+  }
 }
 
 // --- DETALLE ---
@@ -318,7 +334,9 @@ async function dialogAction(action: WorkOrderTaskAction) {
   try {
     await mesApi.updateWorkOrderTaskStatus(detailRow.value.workId, detailRow.value.taskId, { action, notes: detailNotes.value });
     closeDetail(); await loadData();
-  } catch (err: any) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.addToast(err.message, 'error'); 
+  }
 }
 
 function taskStatusLabel(s: string) { const map = { PENDING: 'Pte.', IN_PROGRESS: 'En curso', BLOCKED: 'Bloq.', COMPLETED: 'Fin' }; return map[s] || s; }
@@ -347,7 +365,7 @@ onMounted(loadData);
 .terminal-select:focus { border-color: var(--color-primary); }
 
 .terminal-search-wrap { flex: 1; position: relative; }
-.terminal-search-wrap .material-symbols-outlined { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 2rem; color: #64748b; }
+.terminal-search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748b; }
 .terminal-input { 
   width: 100%; background: #0f172a; border: 2px solid #334155; border-radius: 12px;
   padding: 0 1rem 0 4rem; font-size: 1.25rem; color: white;
@@ -355,6 +373,8 @@ onMounted(loadData);
 }
 
 .task-list-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+
+.terminal-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; opacity: 0.3; gap: 1rem; }
 
 .task-row-tabular { 
   background: #1e293b; border-radius: 12px; padding: 1rem 1.5rem; 
@@ -372,7 +392,7 @@ onMounted(loadData);
 .col-work-client { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 .work-title { font-size: 1.25rem; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .client-info { display: flex; align-items: center; gap: 0.4rem; color: #94a3b8; font-size: 0.9rem; font-weight: 600; }
-.client-info .material-symbols-outlined { font-size: 1.1rem; opacity: 0.7; }
+.client-info svg { opacity: 0.7; }
 
 /* COL 3: TIPO Y POSICIÓN */
 .col-context { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -382,7 +402,6 @@ onMounted(loadData);
   border: 1px solid #475569; letter-spacing: 0.05em;
 }
 .pos-info-inline { display: flex; align-items: center; gap: 0.4rem; color: #3b82f6; }
-.pos-info-inline .material-symbols-outlined { font-size: 1.25rem; }
 .pos-info-inline strong { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
 
 /* COL 4: TAREA Y ACCIÓN */

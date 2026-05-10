@@ -32,7 +32,10 @@
                 type="number" 
                 class="form-input text-center" 
                 min="1" 
+                :data-row="index"
+                data-col="quantity"
                 @input="updateLineField(index, 'quantity', $event.target.value)" 
+                @keydown="handleLineKeyDown($event, index, 'quantity', line)"
               />
               <span v-else>{{ line.quantity }}</span>
             </td>
@@ -45,7 +48,10 @@
                 type="number" 
                 step="0.01" 
                 class="form-input text-right" 
+                :data-row="index"
+                data-col="unit_price"
                 @input="updateLineField(index, 'unit_price', $event.target.value)" 
+                @keydown="handleLineKeyDown($event, index, 'unit_price', line)"
               />
               <span v-else>{{ formatMoney(line.unit_price || line.unitPrice) }}</span>
             </td>
@@ -60,7 +66,10 @@
                 class="form-input text-center" 
                 min="0" 
                 max="100" 
+                :data-row="index"
+                data-col="discount_percent"
                 @input="updateLineField(index, 'discount_percent', $event.target.value)" 
+                @keydown="handleLineKeyDown($event, index, 'discount_percent', line)"
               />
               <span v-else>{{ line.discount_percent || line.discountPercent || 0 }}%</span>
             </td>
@@ -73,7 +82,7 @@
             <!-- Borrar -->
             <td v-if="isEditing" class="text-center">
               <button class="btn-delete" type="button" @click="removeLine(index)" title="Quitar línea">
-                <span class="material-symbols-outlined">delete</span>
+                <Trash2 :size="18" />
               </button>
             </td>
           </tr>
@@ -89,6 +98,8 @@
 </template>
 
 <script setup>
+import { Trash2 } from 'lucide-vue-next'
+import { useLineNavigation } from '@/composables/useLineNavigation'
 import salesApi from '@/services/salesApi'
 
 const props = defineProps({
@@ -96,7 +107,17 @@ const props = defineProps({
   isEditing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:lines'])
+const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
+
+const { handleLineKeyDown } = useLineNavigation({
+  rowCount: () => props.lines.length,
+  columns: ['quantity', 'unit_price', 'discount_percent'],
+  onUpdate: (index, col, val) => updateLineField(index, col, val),
+  onRemoveField: (index) => removeLine(index),
+  onLastFieldTab: () => emit('last-field-tab'),
+  onLastFieldEnter: () => emit('add-line'),
+  onAddField: () => emit('add-line')
+})
 
 function removeLine(index) {
   const newLines = [...props.lines]

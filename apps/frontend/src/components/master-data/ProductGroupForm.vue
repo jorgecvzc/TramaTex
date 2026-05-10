@@ -7,6 +7,7 @@
         v-model="formData.name" 
         type="text" 
         class="form-input"
+        :class="{ 'border-error': errors.name }"
         placeholder="Ej: Calzado Deportivo, Ropa"
         @input="clearError('name')"
       />
@@ -15,8 +16,8 @@
 
     <div class="form-group">
       <label>Tipo de categoría <span class="required">*</span></label>
-      <div class="radio-group">
-        <label class="radio-label">
+      <div class="radio-group" :class="{ 'border-error-group': errors.type }">
+        <label class="radio-label" :class="{ 'border-error': errors.type }">
           <input 
             type="radio" 
             v-model="formData.type" 
@@ -24,7 +25,7 @@
             name="groupType"
           />
           <div class="radio-content">
-            <span class="radio-title">🔧 Productos Tangibles</span>
+            <span class="radio-title"><Wrench :size="18" style="vertical-align: middle; margin-right: 4px" /> Productos Tangibles</span>
             <span class="radio-description">Productos físicos: calzado, ropa, accesorios, equipamiento</span>
           </div>
         </label>
@@ -36,7 +37,7 @@
             name="groupType"
           />
           <div class="radio-content">
-            <span class="radio-title">⚙️ Servicios</span>
+            <span class="radio-title"><Settings :size="18" style="vertical-align: middle; margin-right: 4px" /> Servicios</span>
             <span class="radio-description">Servicios profesionales: consultoría, mantenimiento, instalación</span>
           </div>
         </label>
@@ -79,6 +80,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
+import { Wrench, Settings } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
 
 const props = defineProps({

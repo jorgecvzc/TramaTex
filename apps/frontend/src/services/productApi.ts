@@ -586,8 +586,8 @@ class ProductApiService {
       const response = await api.post(this.brandsUrl, {
         id: data.id,
         name: data.name,
-        defaultMarkupPercentage: data.defaultMarkupPercentage ?? 0,
-        isActive: data.isActive !== undefined ? data.isActive : true,
+        default_markup_percentage: data.defaultMarkupPercentage ?? 0,
+        is_active: data.isActive !== undefined ? data.isActive : true,
       })
       return response.data
     } catch (e) {
@@ -600,7 +600,18 @@ class ProductApiService {
    */
   async updateBrand(id: string, data: any): Promise<any> {
     try {
-      const response = await api.put(`${this.brandsUrl}/${id}`, data)
+      // Map frontend camelCase to backend snake_case if necessary
+      const payload: any = { ...data }
+      if (data.defaultMarkupPercentage !== undefined) {
+        payload.default_markup_percentage = data.defaultMarkupPercentage
+        delete payload.defaultMarkupPercentage
+      }
+      if (data.isActive !== undefined) {
+        payload.is_active = data.isActive
+        delete payload.isActive
+      }
+
+      const response = await api.put(`${this.brandsUrl}/${id}`, payload)
       return response.data
     } catch (e) {
       await this.handleError(e, 'No se pudo actualizar la marca')

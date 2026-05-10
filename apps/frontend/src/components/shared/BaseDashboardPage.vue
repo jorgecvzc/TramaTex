@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import BaseSkeleton from '@/components/shared/BaseSkeleton.vue'
+
 /**
- * BaseDashboardPage.vue - Plantilla Maestro para Paneles Operativos
+ * BaseDashboardPage.vue - Master Template for Operating Panels
  * 
- * Diseñado para herramientas como Terminal de Tickets, Taller o Analytics.
- * Soporta un layout de dos columnas (Main + Sidebar) con scroll independiente.
+ * Designed for tools such as Ticket Terminal, Workshop or Analytics.
+ * Supports a two-column layout (Main + Sidebar) with independent scroll.
  */
 defineProps<{
   isLoading?: boolean
@@ -13,27 +15,32 @@ defineProps<{
 
 <template>
   <div class="dashboard-page-container">
-    <!-- CAPA 1: IDENTIDAD -->
+    <!-- LAYER 1: IDENTITY -->
     <header class="dashboard-header-sticky">
       <div class="header-content-wrapper">
         <slot name="header"></slot>
       </div>
     </header>
 
-    <!-- CARGA -->
+    <!-- LOADING -->
     <div v-if="isLoading" class="dashboard-loading">
-      <div class="spinner"></div>
+      <div class="skeleton-container">
+        <BaseSkeleton type="title" width="300px" height="40px" />
+        <div class="skeleton-grid">
+          <BaseSkeleton v-for="i in 4" :key="i" type="row" height="100px" />
+        </div>
+      </div>
       <p>Iniciando panel operativo...</p>
     </div>
 
-    <!-- CAPA 2 y 3: DASHBOARD LAYOUT -->
+    <!-- LAYER 2 and 3: DASHBOARD LAYOUT -->
     <div v-else :class="['dashboard-body-layout', sidebarPosition || 'right']">
-      <!-- ÁREA PRINCIPAL -->
+      <!-- MAIN AREA -->
       <main class="dashboard-main-content">
         <slot></slot>
       </main>
 
-      <!-- ÁREA LATERAL (SIDEBAR / CONTEXTO) -->
+      <!-- SIDE AREA (SIDEBAR / CONTEXT) -->
       <aside v-if="$slots.sidebar" class="dashboard-sidebar">
         <slot name="sidebar"></slot>
       </aside>
@@ -45,7 +52,7 @@ defineProps<{
 .dashboard-page-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px); /* Restar altura de la Navbar */
+  height: calc(100vh - 76px); /* Subtract Navbar height (76px) */
   overflow: hidden;
   background-color: var(--color-background);
 }
@@ -56,13 +63,16 @@ defineProps<{
   box-shadow: var(--box-shadow-sm);
   z-index: 100;
   display: flex;
-  align-items: stretch;
+  align-items: center;
   min-height: 88px;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
 }
 
 .header-content-wrapper {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 2rem;
@@ -109,9 +119,27 @@ defineProps<{
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
+  gap: var(--spacing-md);
+  padding: 2rem;
 }
 
-/* Custom Scrollbars para el modo Dashboard */
+.skeleton-container {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  align-items: center;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+/* Custom Scrollbars for Dashboard mode */
 .dashboard-main-content::-webkit-scrollbar,
 .dashboard-sidebar::-webkit-scrollbar {
   width: 6px;

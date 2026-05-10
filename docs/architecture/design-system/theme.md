@@ -10,33 +10,33 @@ El tema, alineado con los mockups, es **vibrante, de alto contraste y profesiona
 
 ## 🔑 Principios Clave del Diseño
 
-1.  **Jerarquía Visual Fuerte**:
+-   **Jerarquía Visual Fuerte**:
     -   El uso del azul intenso (`--color-secondary`) para cabeceras y elementos de navegación establece una jerarquía clara.
     -   El amarillo (`--color-primary`) se reserva para las acciones más importantes (CTAs) para atraer la atención del usuario.
 
-2.  **Layout Definido y Consistente**:
-    -   La estructura de **sidebar + cabecera + área de contenido** es consistente en toda la aplicación.
-    -   La sidebar proporciona una navegación global clara, mientras que la cabecera ofrece contexto y acciones de usuario.
+2.  **Arquitectura en 3 Capas (Master Layout)**:
+    -   **Capa 1: Identidad (Sticky)**: Cabecera superior fija con título, ID y acciones globales sobre fondo blanco.
+    -   **Capa 2: Contexto (Summary)**: Cinta de KPIs, trazabilidad y estado sobre fondo gris ceniza.
+    -   **Capa 3: Trabajo (Main)**: Área operativa con formularios, tablas de líneas y datos maestros.
 
-3.  **Diseño Basado en Tarjetas**:
+3.  **Filosofía Keyboard-First (Industrial UX)**:
+    -   Diseñado para ser operado al 100% sin ratón.
+    -   Navegación intensiva mediante atajos (`Alt+1-5`, `F1`, `?`) y control experto de tablas de líneas (`Enter` continuo, flechas de incremento).
+
+4.  **Diseño Basado en Tarjetas**:
     -   El contenido principal se organiza en tarjetas (`--color-surface`) que se elevan sobre un fondo ligeramente gris (`--color-background`).
-    -   Esto agrupa la información de forma lógica y crea un espacio de trabajo limpio y organizado.
 
-4.  **Densidad de Información Funcional**:
-    -   La interfaz está diseñada para mostrar una cantidad significativa de información sin sentirse abarrotada.
-    -   Se utilizan tamaños de fuente más pequeños (`--font-size-xs`, `--font-size-sm`) para metadatos y etiquetas, permitiendo que los datos importantes destaquen.
-
-5.  **Retroalimentación Clara y Sutil**:
-    -   Las interacciones del usuario (hover, click) tienen una retroalimentación visual clara pero no intrusiva (cambios de color, sombras sutiles).
-    -   Los botones principales tienen efectos visuales (`shadow`, `active:translate-y`) que los hacen sentir tangibles.
+5.  **Iconografía Lucide (SVG)**:
+    -   Uso exclusivo de la librería `lucide-vue-next` para una iconografía nítida, moderna y técnicamente superior a las fuentes de iconos tradicionales.
 
 ---
 
 ## 🖼️ Look & Feel General
 
 -   **Energético y Profesional**: La combinación de azul intenso y amarillo huevo es audaz, pero se equilibra con una gran cantidad de espacio en blanco y grises neutros.
--   **Orientado a la Productividad**: El diseño no es decorativo; está optimizado para que los usuarios encuentren información y completen tareas rápidamente.
--   **Moderno y Limpio**: El uso de una fuente sans-serif moderna (`Inter`), iconos claros (`Material Symbols`) y bordes redondeados sutiles (`--border-radius-sm`) le da un aspecto actual.
+-   **Orientado a la Productividad Industrial**: El diseño no es decorativo; está optimizado para que los usuarios encuentren información y completen tareas rápidamente.
+-   **Moderno y Limpio**: El uso de una fuente sans-serif moderna (`Inter`) y bordes redondeados sutiles (`--border-radius-sm`) le da un aspecto actual.
+
 
 ---
 

@@ -950,6 +950,15 @@ func recalculateWorkStatus(work *domain.WorkOrder, now time.Time) {
 		return
 	}
 
+	// Si hay progreso (tareas completadas) o la orden ya estaba lanzada (IN_PROGRESS),
+	// mantenemos IN_PROGRESS en lugar de volver a PENDING.
+	if completedOrSkipped > 0 || work.Status == domain.ProductionStatusInProgress {
+		if hasPending {
+			work.Status = domain.ProductionStatusInProgress
+			return
+		}
+	}
+
 	if hasPending {
 		work.Status = domain.ProductionStatusPending
 		return

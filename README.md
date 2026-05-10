@@ -121,5 +121,10 @@ Este proyecto es software libre y se distribuye bajo la **[Licencia MIT](LICENSE
 - **Jorge Cortés Villalba** - *Diseño, Arquitectura e Implementación.*
 - **AI Collaborative Ecosystem** - *Gemini, Claude, GitHub Copilot, ChatGPT & Perplexity en roles de copilotos técnicos.*
 
+## 🎶 Colaboración Especial
+Para aportar una nota de alegría a la rigurosidad técnica contamos con una pieza musical única:
+- **Marisol López Núñez** - *Composición del Jingle Oficial de TramaTex.*
+👉 **[Escuchar el Jingle de TramaTex en Suno](https://suno.com/s/LPocpmzdmolnhfvd)**
+
 ---
 © 2026 TramaTex - Software Engineering for Textile Industry.

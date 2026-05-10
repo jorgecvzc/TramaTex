@@ -1,11 +1,32 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { RouterLink } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
+import { 
+  LayoutDashboard, 
+  Users, 
+  Package, 
+  List, 
+  PlusSquare, 
+  CreditCard, 
+  FileText, 
+  ShoppingCart, 
+  Truck, 
+  ReceiptText, 
+  Factory, 
+  LineChart, 
+  Tablet, 
+  UserCog, 
+  Search 
+} from 'lucide-vue-next'
 import UserMenu from './UserMenu.vue'
 import GlobalSearch from '../shared/GlobalSearch.vue'
 
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 const isAdmin = computed(() => authStore.isAdmin)
 const showProduct = ref(false)
 const showSales = ref(false)
@@ -50,10 +71,73 @@ function handleDocumentClick(event: MouseEvent) {
 }
 
 function handleShortcuts(e: KeyboardEvent) {
-  if (e.ctrlKey && e.key === 'k') {
+  // 1. BUSQUEDA GLOBAL: Ctrl + K
+  if (e.ctrlKey && e.key.toLowerCase() === 'k') {
     e.preventDefault()
     openSearch()
+    return
   }
+
+  // 2. NUEVO ELEMENTO: Alt + N
+  if (e.altKey && e.key.toLowerCase() === 'n') {
+    e.preventDefault()
+    handleNewAction()
+    return
+  }
+
+  // 3. GUARDAR / ENVIAR: Ctrl + Enter
+  if (e.ctrlKey && e.key === 'Enter') {
+    e.preventDefault()
+    triggerSubmit()
+    return
+  }
+
+  // 4. REFRESCAR DATOS: Alt + R
+  if (e.altKey && e.key.toLowerCase() === 'r') {
+    e.preventDefault()
+    triggerRefresh()
+    return
+  }
+}
+
+function handleNewAction() {
+  const path = route.path
+  if (path.startsWith('/parties')) {
+    router.push('/parties/new')
+  } else if (path.startsWith('/products')) {
+    router.push('/products/new')
+  } else if (path.startsWith('/sales/orders')) {
+    router.push('/sales/orders/new')
+  } else if (path.startsWith('/sales/quotes')) {
+    router.push('/sales/quotes/new')
+  } else if (path.startsWith('/sales/tickets')) {
+    router.push('/sales/tickets/new')
+  } else {
+    // Si no estamos en un módulo específico, podemos abrir el buscador o un menú de creación rápida
+    toastStore.info('Usa Alt+N dentro de un módulo para crear un nuevo elemento')
+  }
+}
+
+function triggerSubmit() {
+  // Buscamos el botón de submit principal (convención: btn-primary o btn-secondary en footer/actions)
+  // O el botón de tipo submit dentro de un formulario
+  const submitBtn = document.querySelector('button[type="submit"]') as HTMLButtonElement || 
+                    document.querySelector('.form-actions .btn-secondary') as HTMLButtonElement ||
+                    document.querySelector('.header-actions .btn-primary') as HTMLButtonElement
+
+  if (submitBtn && !submitBtn.disabled) {
+    submitBtn.click()
+  } else {
+    console.log('No submit button found for Ctrl+Enter')
+  }
+}
+
+function triggerRefresh() {
+  // Emitimos un evento global que los componentes pueden escuchar
+  window.dispatchEvent(new CustomEvent('tramatex-refresh'))
+  
+  // Feedback visual
+  toastStore.info('Refrescando datos...')
 }
 
 onMounted(() => {
@@ -77,31 +161,31 @@ onBeforeUnmount(() => {
       <ul class="nav-menu">
         <li>
           <RouterLink to="/dashboard" class="nav-link" active-class="active">
-            <span class="material-symbols-outlined">dashboard</span>
+            <LayoutDashboard :size="20" />
             <span class="nav-label">Dashboard</span>
           </RouterLink>
         </li>
         <li>
           <RouterLink to="/parties" class="nav-link" active-class="active">
-            <span class="material-symbols-outlined">groups</span>
+            <Users :size="20" />
             <span class="nav-label">Entidades</span>
           </RouterLink>
         </li>
         <li class="dropdown" @click.stop>
           <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleProduct">
-            <span class="material-symbols-outlined">inventory_2</span>
+            <Package :size="20" />
             <span class="nav-label">Catálogo</span>
           </button>
           <ul v-if="showProduct" class="dropdown-menu">
             <li>
               <RouterLink to="/products" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">list_alt</span>
+                <List :size="20" />
                 <span>Listado de Productos</span>
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/products/new" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">add_box</span>
+                <PlusSquare :size="20" />
                 <span>Nuevo Producto</span>
               </RouterLink>
             </li>
@@ -109,31 +193,31 @@ onBeforeUnmount(() => {
         </li>
         <li class="dropdown" @click.stop>
           <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleSales">
-            <span class="material-symbols-outlined">payments</span>
+            <CreditCard :size="20" />
             <span class="nav-label">Ventas</span>
           </button>
           <ul v-if="showSales" class="dropdown-menu">
             <li>
               <RouterLink to="/sales/quotes" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">request_quote</span>
+                <FileText :size="20" />
                 <span>Presupuestos</span>
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/sales/orders" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">shopping_cart</span>
+                <ShoppingCart :size="20" />
                 <span>Pedidos</span>
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/sales/delivery-notes" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">local_shipping</span>
+                <Truck :size="20" />
                 <span>Albaranes</span>
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/sales/invoices" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">receipt_long</span>
+                <ReceiptText :size="20" />
                 <span>Facturas</span>
               </RouterLink>
             </li>
@@ -141,19 +225,19 @@ onBeforeUnmount(() => {
         </li>
         <li class="dropdown" @click.stop>
           <button type="button" class="nav-link dropdown-toggle" @click.stop="toggleMES">
-            <span class="material-symbols-outlined">precision_manufacturing</span>
+            <Factory :size="20" />
             <span class="nav-label">Taller</span>
           </button>
           <ul v-if="showMES" class="dropdown-menu">
             <li>
               <RouterLink to="/mes/dashboard" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">monitoring</span>
+                <LineChart :size="20" />
                 <span>Panel de control</span>
               </RouterLink>
             </li>
             <li>
               <RouterLink to="/mes/terminal" class="dropdown-item" @click="closeAllDropdowns">
-                <span class="material-symbols-outlined">tablet_mac</span>
+                <Tablet :size="20" />
                 <span>Terminal Taller</span>
               </RouterLink>
             </li>
@@ -161,7 +245,7 @@ onBeforeUnmount(() => {
         </li>
         <li v-if="isAdmin">
           <RouterLink to="/admin/users" class="nav-link" active-class="active">
-            <span class="material-symbols-outlined">manage_accounts</span>
+            <UserCog :size="20" />
             <span class="nav-label">Admin</span>
           </RouterLink>
         </li>
@@ -169,7 +253,7 @@ onBeforeUnmount(() => {
 
       <div class="navbar-actions">
         <button @click="openSearch" class="search-btn" title="Búsqueda Global (Ctrl+K)">
-          <span class="material-symbols-outlined">search</span>
+          <Search :size="18" />
           <span class="search-placeholder">Buscar...</span>
           <span class="kbd-shortcut">Ctrl+K</span>
         </button>
@@ -321,10 +405,6 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 400px;
   transition: all 0.2s;
-}
-
-.search-btn .material-symbols-outlined {
-  font-size: 1.1rem;
 }
 
 .search-btn:hover {

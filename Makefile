@@ -249,15 +249,16 @@ frontend-test: ## Run frontend tests
 # DEPLOYMENT
 # ============================================================================
 
-deploy: ## Deploy to remote server (ENV=staging|prod)
+deploy: ## Deploy to remote server (ENV=staging|prod BRANCH=branch_name)
 ifeq ($(ENV),staging)
-	@echo "🚀 Deploying to staging (pcele LAN — 192.168.0.20)..."
-	ssh ele@pcele "cd /opt/tramatex && git fetch origin staging && \
-		git checkout staging && git reset --hard origin/staging && \
+	$(eval DEPLOY_BRANCH ?= $(if $(BRANCH),$(BRANCH),staging))
+	@echo "🚀 Deploying to staging (pcele LAN — 192.168.0.20) from branch $(DEPLOY_BRANCH)..."
+	ssh ele@pcele "cd /opt/tramatex && git fetch origin $(DEPLOY_BRANCH) && \
+		git checkout -B $(DEPLOY_BRANCH) origin/$(DEPLOY_BRANCH) && \
 		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env build && \
 		docker compose -f docker/docker-compose.remote.yml --env-file docker/.env up -d && \
 		docker image prune -f"
-	@echo "✓ Deployed to pcele (staging)"
+	@echo "✓ Deployed to pcele (staging) from branch $(DEPLOY_BRANCH)"
 else ifeq ($(ENV),prod)
 	@echo "🚀 Deploying to production (push to master triggers GitHub Actions)..."
 	@echo "⚠️  Are you sure? This deploys to PRODUCTION (DigitalOcean)."

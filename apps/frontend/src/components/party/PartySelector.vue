@@ -10,6 +10,7 @@
       <div class="search-selector">
         <input
           :id="inputId"
+          ref="searchInput"
           v-model="searchTerm"
           type="text"
           :placeholder="placeholder || 'Buscar por nombre o referencia...'"
@@ -138,6 +139,8 @@ async function loadParties(name = '') {
   }
 }
 
+const searchInput = ref<HTMLInputElement | null>(null);
+
 function handleInput() {
   showDropdown.value = true;
   activeIndex.value = 0;
@@ -175,32 +178,22 @@ function selectFirst() {
 function navigateDown() { if (activeIndex.value < filteredParties.value.length - 1) activeIndex.value++; }
 function navigateUp() { if (activeIndex.value > 0) activeIndex.value--; }
 
-function clearSelection() {
-  emit('update:modelValue', '');
-  emit('select', null);
-  searchTerm.value = '';
+function handleGlobalEsc() {
   showDropdown.value = false;
 }
 
-function getRoleLabel(role: string) {
-  const labels: any = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Ambos', CONTACT: 'Contacto' };
-  return labels[role] || role;
-}
-
-watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
-    if (!selectedParty.value || selectedParty.value.id !== newVal) {
-      loadParties();
-    }
-  } else {
-    searchTerm.value = '';
-    externalParty.value = null;
-  }
-});
-
 onMounted(() => {
   loadParties();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  
+  // Auto-focus if requested or standard
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
 });
 </script>
 

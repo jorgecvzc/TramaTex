@@ -120,19 +120,20 @@ nano docker/.env
 # Desde Windows (script remoto por SSH):
 powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-staging-remote.ps1
 
-# Si necesitas desplegar una rama temporal:
-powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/chore/staging-deploy-scripts
+# Si necesitas desplegar una rama temporal (FORZANDO construcción desde código fuente):
+# El flag -BuildSource es CRÍTICO para ver cambios de ramas de feature que no están en GHCR.
+powershell -ExecutionPolicy Bypass -File .\scripts\rebuild-staging-remote.ps1 -CheckoutRef origin/feature/mi-rama -BuildSource
 
 # Ejecutando directamente en pcele (Linux):
-./scripts/rebuild-staging-remote.sh --checkout-ref origin/staging
+./scripts/rebuild-staging-remote.sh --checkout-ref origin/staging --build-source
 ```
 
-Opciones utiles:
+Opciones útiles:
 
-- En Windows: `-NoCheckout`, `-PreserveDatabase`, `-SkipImageRemove`
-- En Linux: `--no-checkout`, `--preserve-database`, `--skip-image-remove`
+- En Windows: `-NoCheckout`, `-PreserveDatabase`, `-SkipImageRemove`, `-BuildSource`
+- En Linux: `--no-checkout`, `--preserve-database`, `--skip-image-remove`, `--build-source`
 
-Nota: el compose remoto usa imagenes publicadas (GHCR), por lo que el flujo recomendado en staging es `down` + `pull` + `up -d --force-recreate`.
+Nota: por defecto, el compose remoto intenta usar imagenes publicadas (GHCR). Si estás en una rama de desarrollo (feature), **debes usar `--build-source`** para compilar las imágenes localmente en pcele usando los Dockerfiles del repo.
 
 > **Nota:** pcele está en la LAN (192.168.0.20), no es accesible desde internet.
 > GitHub Actions no puede desplegar ahí. El deploy es manual desde una máquina en la misma red.

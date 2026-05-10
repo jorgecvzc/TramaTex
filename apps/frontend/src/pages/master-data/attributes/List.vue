@@ -18,7 +18,7 @@
     >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add</span>
+          <Plus :size="18" />
           <span>Nuevo Atributo</span>
         </button>
       </template>
@@ -47,8 +47,8 @@
         </td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
-            <button @click="editAttribute(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
-            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+            <button @click="editAttribute(item)" class="btn-icon" title="Editar"><Pencil :size="18" /></button>
+            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><Trash2 :size="18" /></button>
           </div>
         </td>
       </template>
@@ -86,11 +86,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import AttributeForm from '@/components/master-data/AttributeForm.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
+const toastStore = useToastStore()
 const attributes = ref([])
 const allAttributes = ref([])
 const isLoading = ref(false)
@@ -141,14 +144,14 @@ async function handleSubmit(payload) {
     if (modalMode.value === 'create') await productApi.createAttribute(payload);
     else await productApi.updateAttribute(payload.id, payload);
     closeModal(); await loadAttributes();
-  } catch (err) { alert(err.message); } finally { isSaving.value = false; }
+  } catch (err) { toastStore.addToast(err.message, 'error'); } finally { isSaving.value = false; }
 }
 
 async function deleteAttribute() {
   if (!attributeToDelete.value) return;
   isDeleting.value = true;
   try { await productApi.deleteAttribute(attributeToDelete.value.id); await loadAttributes(); showDeleteModal.value = false; }
-  catch (err) { alert(err.message); } finally { isDeleting.value = false; }
+  catch (err) { toastStore.addToast(err.message, 'error'); } finally { isDeleting.value = false; }
 }
 
 onMounted(() => loadAttributes())
