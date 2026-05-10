@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch, computed, onBeforeUnmount } from 'vue'
-import { Building2, User, Percent, Save, RefreshCw, X, RotateCcw } from 'lucide-vue-next'
+import { Building2, User, Percent, Save, RefreshCw, X, RotateCcw, Settings } from 'lucide-vue-next'
 import FormSection from '@/components/shared/FormSection.vue'
 import { partyApi } from '@/services/partyApi'
 import { useToastStore } from '@/stores/toast'

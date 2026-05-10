@@ -1,32 +1,10 @@
 <template>
   <!-- PAGE: DETAIL / EDIT / ENTITY CREATION -->
   
-  <BaseEntityPage v-if="isLoading" class="no-print">
-    <template #header>
-      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Detalle' }]" />
-    </template>
-    <div class="state-container loading-state">
-      <RefreshCw :size="48" class="spin mb-4 opacity-50" />
-      <p>Sincronizando ficha de entidad...</p>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else-if="error" class="no-print">
-    <template #header>
-      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: 'Listado' }]" />
-    </template>
-    <div class="state-container error-state">
-      <AlertCircle :size="56" class="mb-4 text-danger opacity-80" />
-      <h3>Error de Carga</h3>
-      <p>{{ error }}</p>
-      <button class="btn btn-outline btn-sm mt-6" @click="router.push('/parties')">Volver al listado</button>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else class="no-print">
+  <BaseEntityPage :is-loading="isLoading" :error="error" class="no-print" @refresh="loadData">
     <!-- LAYER 1: IDENTITY -->
     <template #header>
-      <div class="sticky-header-container">
+      <div class="sticky-header-container" v-if="!isLoading && !error">
         <BasePageHeader 
           :title="mode === 'create' ? 'Nueva Entidad' : (mode === 'edit' ? `Editando ${party?.name}` : party?.name)" 
           :breadcrumbs="[{ label: 'Entidades', to: '/parties' }, { label: mode === 'create' ? 'Alta' : party?.name }]"
@@ -36,6 +14,7 @@
             <component :is="getIdentityIcon()" :size="28" />
           </template>
           <template #actions>
+            <!-- Detail Mode Actions -->
             <div v-if="mode === 'detail'" class="header-actions-group">
               <button class="btn btn-primary" @click="enterEditMode">
                 <Pencil :size="18" />
@@ -45,6 +24,15 @@
                 <Trash2 :size="18" />
                 <span>Eliminar Entidad</span>
               </button>
+            </div>
+            
+            <!-- Edit/Create Mode Actions -->
+            <div v-else class="header-actions-group">
+              <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
+                Cancelar
+              </button>
+              <!-- Nota: El botón de guardado real está dentro del componente PartyForm para mayor cohesión, 
+                   pero podríamos disparar el evento tramatex-save desde aquí si quisiéramos. -->
             </div>
           </template>
         </BasePageHeader>
@@ -65,7 +53,7 @@
     </template>
 
     <!-- LAYER 2: CONTEXT (Summary) -->
-    <template #summary v-if="mode !== 'create' && party">
+    <template #summary v-if="!isLoading && !error && mode !== 'create' && party">
       <div class="overview-details-strip">
         <div class="detail-item">
           <div class="icon blue"><Fingerprint :size="20" /></div>
@@ -102,10 +90,11 @@
       </div>
     </template>
 
-    <!-- LAYER 3: WORK -->
-    <div class="party-master-content">
+    <!-- LAYER 3: WORK AREA -->
+    <div class="party-master-content" v-if="!isLoading && !error">
+      
       <!-- TAB: GENERAL -->
-      <div v-if="activeTab === 'general'" class="tab-fade-in">
+      <div v-show="activeTab === 'general'" class="tab-fade-in">
         <template v-if="mode === 'detail'">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- SECTION: IDENTITY -->
@@ -126,9 +115,13 @@
             </FormSection>
           </div>
         </template>
+        
         <template v-else>
           <!-- Componente de formulario para Creación / Edición -->
+          <!-- Usamos v-if aquí para que el formulario se resetee si cambiamos de entidad, 
+               pero el v-show del div padre mantiene el estado al cambiar de pestaña. -->
           <PartyForm 
+            v-if="mode !== 'detail'"
             :party-id="mode === 'edit' ? party?.id : undefined" 
             :initial-data="mode === 'edit' ? party : undefined" 
             @submit="(p) => router.push(`/parties/${p.id}`)"
@@ -138,14 +131,15 @@
         </template>
       </div>
 
-      <!-- SECONDARY TABS -->
-      <div v-else-if="activeTab === 'addresses' && party?.id" class="tab-fade-in">
+      <!-- SECONDARY TABS (Solo si hay una entidad cargada) -->
+      <div v-if="activeTab === 'addresses' && party?.id" class="tab-fade-in">
         <AddressManager :party-id="party.id" />
       </div>
 
-      <div v-else-if="activeTab === 'contacts' && party?.id" class="tab-fade-in">
+      <div v-if="activeTab === 'contacts' && party?.id" class="tab-fade-in">
         <PersonManager :party-id="party.id" />
       </div>
+
     </div>
 
     <!-- DELETE DIALOG -->
@@ -171,7 +165,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { 
   Building2, User, Pencil, Trash2, Fingerprint, MapPin, 
   History, Info, Settings, ShieldCheck, GitFork, Tag, 
-  ContactRound, X, Save, RefreshCw, Percent, AlertCircle
+  ContactRound, X, Save, RefreshCw, Percent, AlertCircle,
+  Settings2, AlertTriangle, Users
 } from 'lucide-vue-next'
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue'
 import BasePageHeader from '@/components/shared/BasePageHeader.vue'
@@ -197,24 +192,12 @@ const error = ref('')
 const party = ref<any>(null)
 const addresses = ref<any[]>([])
 
-const formData = reactive({
-  name: '',
-  type: 'ORGANIZATION',
-  taxId: '',
-  taxIdType: 'CIF',
-  status: 'ACTIVE',
-  role: 'CLIENT',
-  notes: '',
-  defaultDiscountPercentage: 0
-})
-
 const tabs = computed(() => {
   const baseTabs = [
     { id: 'general', label: 'General', icon: Info },
     { id: 'addresses', label: 'Direcciones', icon: MapPin }
   ]
   
-  // Contacts tab only applies to organizations
   if (party.value?.type === 'ORGANIZATION') {
     baseTabs.push({ id: 'contacts', label: 'Contactos', icon: ContactRound })
   }
@@ -225,13 +208,14 @@ const tabs = computed(() => {
 const confirmDelete = reactive({ show: false })
 
 const primaryAddressLine = computed(() => {
-  if (!addresses.value.length) return 'Sin dirección'
+  if (!addresses.value || !addresses.value.length) return 'Sin dirección'
   const primary = addresses.value.find(a => a.is_primary) || addresses.value[0]
-  return `${primary.city}, ${primary.province}`
+  if (!primary) return 'Sin dirección'
+  return `${primary.city || 'Ciudad desconocida'}, ${primary.province || '—'}`
 })
 
 function getIdentityIcon() {
-  const type = mode.value === 'create' ? formData.type : party.value?.type
+  const type = party.value?.type
   return type === 'ORGANIZATION' ? Building2 : User
 }
 
@@ -253,12 +237,11 @@ async function loadData() {
   const id = route.params.id as string
   if (!id || id === 'new') {
     mode.value = 'create'
-    resetForm()
+    party.value = null
     isLoading.value = false
     return
   }
 
-  mode.value = 'detail'
   isLoading.value = true
   error.value = ''
   try {
@@ -268,6 +251,7 @@ async function loadData() {
     ])
     party.value = partyData
     addresses.value = addrData
+    mode.value = 'detail'
   } catch (err: any) {
     error.value = 'No se pudo cargar la información de la entidad.'
     console.error(err)
@@ -276,24 +260,7 @@ async function loadData() {
   }
 }
 
-function resetForm() {
-  Object.assign(formData, {
-    name: '', type: 'ORGANIZATION', taxId: '', taxIdType: 'CIF', status: 'ACTIVE',
-    role: 'CLIENT', notes: '', defaultDiscountPercentage: 0
-  })
-}
-
 function enterEditMode() {
-  Object.assign(formData, {
-    name: party.value.name,
-    type: party.value.type,
-    taxId: party.value.tax_id,
-    taxIdType: party.value.tax_id_type || (party.value.type === 'ORGANIZATION' ? 'CIF' : 'NIF'),
-    status: party.value.status,
-    role: party.value.role,
-    notes: party.value.notes || '',
-    defaultDiscountPercentage: party.value.default_discount_percentage || 0
-  })
   mode.value = 'edit'
 }
 
@@ -302,58 +269,10 @@ function exitEditMode() {
   else router.push('/parties')
 }
 
-async function saveParty() {
-  if (!formData.name) {
-    toastStore.warning('El nombre es obligatorio')
-    return
-  }
-
-  isSaving.value = true
-  try {
-    const partyId = mode.value === 'create' ? generateUUID() : party.value.id
-    const payload = {
-      id: partyId,
-      name: formData.name,
-      type: formData.type,
-      role: formData.role,
-      taxId: formData.taxId,
-      taxIdType: formData.taxIdType,
-      status: formData.status,
-      notes: formData.notes,
-      default_discount_percentage: formData.role === 'SUPPLIER' ? 0 : (formData.defaultDiscountPercentage || 0),
-      hasPerson: formData.type === 'PERSON'
-    }
-
-    if (mode.value === 'create') {
-      const newParty = await partyApi.createParty({
-        ...payload,
-        entityType: formData.type // API naming alignment
-      })
-      toastStore.success('Entidad creada con éxito')
-      router.push(`/parties/${newParty.id}`)
-    } else {
-      await partyApi.updateParty(party.value.id, payload)
-      toastStore.success('Ficha técnica actualizada')
-      await loadData()
-      mode.value = 'detail'
-    }
-  } catch (err: any) {
-    toastStore.error('Error al guardar: ' + (err.message || 'Error desconocido'))
-  } finally {
-    isSaving.value = false
-  }
-}
-
-function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
-  })
-}
-
 function promptDelete() { confirmDelete.show = true }
 
 async function executeDelete() {
+  if (!party.value?.id) return
   isSaving.value = true
   try {
     await partyApi.deleteParty(party.value.id)
@@ -383,7 +302,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('tramatex-refresh', handleGlobalRefresh)
 })
 
-watch(() => route.params.id, () => loadData(), { immediate: true })
+watch(() => route.params.id, () => {
+  activeTab.value = 'general'
+  loadData()
+}, { immediate: true })
 </script>
 
 <style scoped>
