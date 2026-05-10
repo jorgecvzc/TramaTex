@@ -9,6 +9,7 @@ import { nextTick } from 'vue'
 export interface LineNavigationOptions {
   rowCount: () => number
   columns: string[]
+  prefix?: string
   onLastFieldTab?: () => void
   onLastFieldEnter?: () => void
   onAddField?: () => void
@@ -17,6 +18,9 @@ export interface LineNavigationOptions {
 }
 
 export function useLineNavigation(options: LineNavigationOptions) {
+  const rowAttr = options.prefix ? `data-${options.prefix}-row` : 'data-row'
+  const colAttr = options.prefix ? `data-${options.prefix}-col` : 'data-col'
+
   /**
    * Main keydown handler to be attached to inputs in the line items table.
    */
@@ -43,7 +47,6 @@ export function useLineNavigation(options: LineNavigationOptions) {
           options.onUpdate(index, col, newValue)
         } else {
           // Fallback to direct mutation if no onUpdate is provided
-          // We try to find the correct property to mutate
           const propToMutate = lineData[col] !== undefined ? col : (Object.keys(lineData).find(k => k.toLowerCase().includes(col.toLowerCase())) || col)
           lineData[propToMutate] = newValue
         }
@@ -84,17 +87,14 @@ export function useLineNavigation(options: LineNavigationOptions) {
       return
     }
 
-    // 4. Keyboard Deletion: Delete key (if in numeric col or with modifier)
+    // 4. Keyboard Deletion: Delete key
     if (e.key === 'Delete' || (e.key === 'Backspace' && e.ctrlKey)) {
       if (options.onRemoveField) {
-        // Only trigger delete if it's a "whole line" operation or we are intentional
-        // For numeric inputs, Delete usually deletes a character, so we check if field is empty or use Ctrl
         const isInputEmpty = String(lineData[col]).length === 0 || lineData[col] === 0
         if (e.ctrlKey || isInputEmpty) {
           e.preventDefault()
           options.onRemoveField(index)
           
-          // Focus the previous line if available, otherwise next
           const nextRow = index > 0 ? index - 1 : 0
           if (rowCount > 1) {
              focusLineInput(nextRow, col)
@@ -117,15 +117,17 @@ export function useLineNavigation(options: LineNavigationOptions) {
    */
   function focusLineInput(row: number, col?: string) {
     nextTick(() => {
-      let selector = `input[data-row="${row}"]`
+      let selector = `[${rowAttr}="${row}"]`
       if (col) {
-        selector += `[data-col="${col}"]`
+        selector += `[${colAttr}="${col}"]`
       }
       
-      const el = document.querySelector(selector) as HTMLInputElement
+      const el = document.querySelector(selector) as HTMLElement & { select?: () => void }
       if (el) {
         el.focus()
-        el.select()
+        if (typeof el.select === 'function') {
+          el.select()
+        }
       }
     })
   }

@@ -205,11 +205,25 @@
             <div class="mes-body p-3">
               <div v-for="(config, idx) in formData.mesWorkRefs" :key="idx" class="mes-item-row">
                 <div class="mes-item-info">
-                  <select v-model="config.workSetupId" class="mes-select">
+                  <select 
+                    v-model="config.workSetupId" 
+                    class="mes-select"
+                    :data-mes-row="idx"
+                    data-mes-col="setup"
+                    @keydown="handleMesKeyDown($event, idx, 'setup', config)"
+                  >
                     <option :value="null">Sin configuración base</option>
                     <option v-for="ws in mesWorkSetups" :key="ws.id" :value="ws.id">{{ ws.name }}</option>
                   </select>
-                  <input v-model="config.description" type="text" placeholder="Notas taller..." class="mes-input" />
+                  <input 
+                    v-model="config.description" 
+                    type="text" 
+                    placeholder="Notas taller..." 
+                    class="mes-input" 
+                    :data-mes-row="idx"
+                    data-mes-col="desc"
+                    @keydown="handleMesKeyDown($event, idx, 'desc', config)"
+                  />
                 </div>
                 <button @click="removeConfig(idx)" class="btn-icon text-danger"><X :size="16" /></button>
               </div>
@@ -275,6 +289,15 @@ const { handleLineKeyDown, focusLineInput } = useLineNavigation({
   },
   onRemoveField: (index) => removeLineItem(index),
   onAddField: () => addLineItem()
+});
+
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.value.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeConfig(index),
+  onLastFieldEnter: () => addConfig(),
+  onAddField: () => addConfig()
 });
 
 onMounted(() => {

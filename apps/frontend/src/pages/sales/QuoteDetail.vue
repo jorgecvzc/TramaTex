@@ -226,13 +226,28 @@
               <tr v-for="(ref, idx) in formData.mesWorkRefs" :key="idx">
                 <td class="text-muted">{{ idx + 1 }}</td>
                 <td>
-                  <select v-model="ref.workSetupId" class="form-input-sm w-full">
+                  <select 
+                    v-model="ref.workSetupId" 
+                    class="form-input-sm w-full"
+                    :data-mes-row="idx"
+                    data-mes-col="setup"
+                    @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                  >
                     <option :value="null">-- Personalizado --</option>
                     <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
                   </select>
                 </td>
                 <td class="w-full">
-                  <input v-model="ref.description" type="text" class="form-input-sm w-full" placeholder="Especificaciones técnicas..." required />
+                  <input 
+                    v-model="ref.description" 
+                    type="text" 
+                    class="form-input-sm w-full" 
+                    placeholder="Especificaciones técnicas..." 
+                    required 
+                    :data-mes-row="idx"
+                    data-mes-col="desc"
+                    @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                  />
                 </td>
                 <td class="text-center">
                   <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
@@ -757,6 +772,15 @@ const { handleLineKeyDown, focusLineInput } = useLineNavigation({
   onLastFieldTab: () => addProductBtn.value?.focus(),
   onLastFieldEnter: () => openVariantSelector(),
   onAddField: () => openVariantSelector()
+});
+
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
 });
 
 function openVariantSelector() { 

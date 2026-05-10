@@ -274,13 +274,28 @@
                 <tr v-for="(ref, idx) in editableOrder.mes_work_refs" :key="idx">
                   <td class="text-muted font-bold">{{ idx + 1 }}</td>
                   <td>
-                    <select v-model="ref.work_setup_id" class="form-input w-full">
+                    <select 
+                      v-model="ref.work_setup_id" 
+                      class="form-input w-full"
+                      :data-mes-row="idx"
+                      data-mes-col="setup"
+                      @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                    >
                       <option :value="null">-- Personalizado --</option>
                       <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
                     </select>
                   </td>
                   <td>
-                    <input v-model="ref.description" type="text" class="form-input w-full" placeholder="Ej: Color especial..." required />
+                    <input 
+                      v-model="ref.description" 
+                      type="text" 
+                      class="form-input w-full" 
+                      placeholder="Ej: Color especial..." 
+                      required 
+                      :data-mes-row="idx"
+                      data-mes-col="desc"
+                      @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                    />
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
@@ -872,6 +887,15 @@ function formatMesWorkId(id) {
   if (!id) return 'Sin config.'
   return mesWorksCache.value[id]?.name || id.substring(0, 8)
 }
+
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => editableOrder.value.mes_work_refs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
+});
 
 const addProductBtnRef = ref(null)
 

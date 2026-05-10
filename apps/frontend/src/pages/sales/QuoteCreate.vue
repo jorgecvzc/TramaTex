@@ -38,6 +38,64 @@
       </div>
     </FormSection>
 
+    <!-- Section: MES Technical Config -->
+    <FormSection title="Configuración Técnica (MES)" icon="precision_manufacturing" description="Define los requerimientos técnicos o configuraciones de taller vinculadas.">
+      <div class="mb-4">
+        <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
+          <Plus :size="16" /> <span>Añadir Trabajo MES</span>
+        </button>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table fixed-layout">
+          <thead>
+            <tr>
+              <th style="width: 50px">#</th>
+              <th style="width: 250px">Configuración</th>
+              <th>Descripción / Notas *</th>
+              <th class="text-center" style="width: 80px">Borrar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(ref, idx) in formData.mesWorkRefs" :key="idx">
+              <td class="text-muted">{{ idx + 1 }}</td>
+              <td>
+                <select 
+                  v-model="ref.workSetupId" 
+                  class="form-input-sm w-full"
+                  :data-mes-row="idx"
+                  data-mes-col="setup"
+                  @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                >
+                  <option :value="null">-- Personalizado --</option>
+                  <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
+                </select>
+              </td>
+              <td class="w-full">
+                <input 
+                  v-model="ref.description" 
+                  type="text" 
+                  class="form-input-sm w-full" 
+                  placeholder="Especificaciones técnicas..." 
+                  required 
+                  :data-mes-row="idx"
+                  data-mes-col="desc"
+                  @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                />
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
+                  <Trash2 :size="18" />
+                </button>
+              </td>
+            </tr>
+            <tr v-if="formData.mesWorkRefs.length === 0">
+              <td colspan="4" class="text-muted text-center p-4">No hay trabajos MES vinculados. Pulsa en "Añadir".</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </FormSection>
+
     <!-- Section: Line Items -->
     <FormSection title="Detalle de Líneas" icon="list_alt" description="Añade los productos o servicios que componen el presupuesto.">
       <div class="table-wrapper">
@@ -155,7 +213,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, X, Trash2, Plus, Package } from 'lucide-vue-next';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
@@ -164,7 +222,7 @@ import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
-
+import { mesApi } from '@/services/mesApi';
 import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
@@ -175,7 +233,8 @@ const formData = reactive({
   quoteDate: new Date().toISOString().split('T')[0],
   expirationDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
   notes: '',
-  lineItems: []
+  lineItems: [],
+  mesWorkRefs: []
 });
 
 const { handleLineKeyDown, focusLineInput } = useLineNavigation({
@@ -196,7 +255,17 @@ const { handleLineKeyDown, focusLineInput } = useLineNavigation({
   onAddField: () => addLineItem()
 });
 
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
+});
+
 onMounted(() => {
+  loadMesMasters();
   window.addEventListener('tramatex-save', handleGlobalSave);
   window.addEventListener('tramatex-esc', () => router.push('/sales/quotes'));
 });
@@ -209,12 +278,40 @@ onBeforeUnmount(() => {
 function handleGlobalSave() {
   if (!isSubmitting.value && formData.lineItems.length > 0) handleSubmit();
 }
+
+const availableMesSetups = ref([]);
+const workTypesCache = ref({});
+const positionsCache = ref({});
 const partyDefaultDiscount = ref(null);
 const showVariantSelector = ref(false);
 const editingIdx = ref(null);
 const variantQuery = ref('');
+const totals = reactive({ subtotal: 0, tax: 0, total: 0 });
 
-function onPartySelected(party) { partyDefaultDiscount.value = party?.default_discount_percentage || null; }
+async function loadMesMasters() {
+  try {
+    const [types, pos] = await Promise.all([mesApi.listWorkTypes(), mesApi.listPositions()]);
+    (types.data || types).forEach(t => workTypesCache.value[t.id] = t.name);
+    (pos.data || pos).forEach(p => positionsCache.value[p.id] = p.name);
+  } catch (err) { console.error('Error maestros MES', err); }
+}
+
+async function loadAvailableSetups(partyId) {
+  if (!partyId) return;
+  try { 
+    const res = await mesApi.listWorkSetups({ party_id: partyId }); 
+    availableMesSetups.value = res.data || res || [];
+  } catch (err) { availableMesSetups.value = []; }
+}
+
+function onPartySelected(party) {
+  partyDefaultDiscount.value = party?.default_discount_percentage || null;
+  formData.partyId = party?.id || '';
+  loadAvailableSetups(party?.id);
+}
+
+function addMesWorkRef() { formData.mesWorkRefs.push({ workSetupId: null, description: '' }); }
+function removeMesWorkRef(idx) { formData.mesWorkRefs.splice(idx, 1); }
 
 function addLineItem() {
   formData.lineItems.push({ productVariantId: '', variantSku: '', displayName: '', quantity: 1, unitPrice: 0, discountPercent: partyDefaultDiscount.value || 0, quickSearch: '' });
@@ -237,8 +334,6 @@ function handleVariantSelected(v) {
   item.listPrice = null;
   item._autoPrice = true;
   showVariantSelector.value = false;
-  
-  // Trigger immediate calculation to get the correct sale price with margins
   calculateTotals(true);
 }
 
@@ -270,7 +365,6 @@ function calculateTotals(immediate = false) {
         totals.tax = res.taxAmount.amount; 
         totals.total = res.total.amount;
         
-        // Update line prices for items that haven't been manually overridden
         formData.lineItems.forEach((item, idx) => {
           if (item.productVariantId && item._autoPrice !== false && res.lineItems?.[idx]) {
             item.unitPrice = res.lineItems[idx].unitPrice.amount;
@@ -291,7 +385,10 @@ function calculateLineSubtotal(idx) {
 }
 
 async function handleSubmit() {
-  if (formData.lineItems.length === 0) return;
+  if (formData.lineItems.length === 0) {
+    toastStore.warning('Añade al menos un producto');
+    return;
+  }
   isSubmitting.value = true;
   try {
     const payload = {
@@ -301,6 +398,10 @@ async function handleSubmit() {
       items: formData.lineItems.map(i => ({
         productVariantId: i.productVariantId, quantity: i.quantity,
         unitPrice: { amount: i.unitPrice, currency: 'EUR' }, discountPercent: i.discountPercent
+      })),
+      mesWorkRefs: formData.mesWorkRefs.filter(r => r.workSetupId || r.description).map(r => ({
+        workSetupId: r.workSetupId || undefined,
+        description: r.description || ''
       }))
     };
     const res = await salesApi.createQuote(payload);
@@ -333,4 +434,6 @@ function formatMoney(a) { return new Intl.NumberFormat('es-ES', { style: 'curren
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .w-modal-xl { width: 90%; max-width: 1100px; }
 .btn-icon { color: var(--color-text-secondary); cursor: pointer; }
+
+.fixed-layout { table-layout: fixed; }
 </style>
