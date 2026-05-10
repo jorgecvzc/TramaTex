@@ -44,6 +44,13 @@
     <div class="flex"></div>
 
     <div class="menu-footer">
+      <!-- Unificado: Menú de Ayuda -->
+      <HelpMenu 
+        :sidebar-expanded="isExpanded" 
+        @open-shortcuts="window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))"
+        @open-contextual-help="window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }))"
+      />
+
       <div class="menu-toggle-wrap">
         <button class="menu-toggle" @click="toggleMenu" title="Colapsar/Expandir menú">
           <ChevronsRight :size="20" class="toggle-icon" />
@@ -70,6 +77,7 @@ import {
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import AppLauncher from './AppLauncher.vue'
+import HelpMenu from './HelpMenu.vue'
 
 const router = useRouter()
 const isExpanded = ref(true)
