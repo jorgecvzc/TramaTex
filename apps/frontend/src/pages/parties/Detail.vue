@@ -104,8 +104,8 @@
 
     <!-- LAYER 3: WORK -->
     <div class="party-master-content">
-      <!-- TAB: GENERAL / FORM -->
-      <div v-show="activeTab === 'general'" class="tab-fade-in">
+      <!-- TAB: GENERAL -->
+      <div v-if="activeTab === 'general'" class="tab-fade-in">
         <template v-if="mode === 'detail'">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- SECTION: IDENTITY -->
@@ -127,6 +127,7 @@
           </div>
         </template>
         <template v-else>
+          <!-- Componente de formulario para Creación / Edición -->
           <PartyForm 
             :party-id="mode === 'edit' ? party?.id : undefined" 
             :initial-data="mode === 'edit' ? party : undefined" 
@@ -137,12 +138,12 @@
         </template>
       </div>
 
-      <!-- SECONDARY TABS (Visible in detail and edit modes) -->
-      <div v-if="activeTab === 'addresses' && party?.id" class="tab-fade-in">
+      <!-- SECONDARY TABS -->
+      <div v-else-if="activeTab === 'addresses' && party?.id" class="tab-fade-in">
         <AddressManager :party-id="party.id" />
       </div>
 
-      <div v-if="activeTab === 'contacts' && party?.id" class="tab-fade-in">
+      <div v-else-if="activeTab === 'contacts' && party?.id" class="tab-fade-in">
         <PersonManager :party-id="party.id" />
       </div>
     </div>
