@@ -262,6 +262,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresAdmin: true, title: "Perfil Fiscal Impresión - TramaTex" },
   },
   {
+    path: "/help",
+    name: "HelpCenter",
+    component: () => import("@/pages/help/HelpCenter.vue"),
+    meta: { requiresAuth: true, title: "Centro de Ayuda - TramaTex" },
+  },
+  {
     path: "/dev/design-system",
     name: "DesignSystem",
     component: () => import("@/pages/dev/DesignSystem.vue"),
