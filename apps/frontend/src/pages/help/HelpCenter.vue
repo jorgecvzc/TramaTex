@@ -154,7 +154,7 @@ const blocks = [
           { key: 'Enter', label: 'Siguiente campo / Nueva línea' },
           { key: '↑ / ↓', label: 'Subir / Bajar valores' },
           { key: 'Insert', label: 'Abrir buscador rápido' },
-          { key: 'Ctrl+Del', label: 'Eliminar línea actual' }
+          { key: 'Ctrl+Supr', label: 'Eliminar línea actual' }
         ]
       },
       {
@@ -162,6 +162,7 @@ const blocks = [
         content: 'Funciona en cualquier parte del sistema.',
         shortcuts: [
           { key: 'Alt+1..5', label: 'Cambiar de módulo' },
+          { key: 'Alt+H', label: 'Menú de Ayuda' },
           { key: 'Ctrl+S', label: 'Guardar formulario' },
           { key: 'Ctrl+B', label: 'Colapsar Sidebar' },
           { key: 'F1', label: 'Ayuda Contextual' }

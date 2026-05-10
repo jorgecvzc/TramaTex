@@ -318,7 +318,7 @@
           :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
           :is-editing="mode !== 'detail'"
           @update:lines="updateLines"
-          @add-line-request="handleAddLineRequest"
+          @add-line="handleAddLineRequest"
           @last-field-tab="focusAddButton"
         />
         <div v-if="mode !== 'detail'" class="mt-4">

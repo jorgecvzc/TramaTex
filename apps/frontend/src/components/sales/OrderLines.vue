@@ -107,13 +107,14 @@ const props = defineProps({
   isEditing: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:lines', 'add-line'])
+const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
 
 const { handleLineKeyDown } = useLineNavigation({
   rowCount: () => props.lines.length,
   columns: ['quantity', 'unit_price', 'discount_percent'],
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
+  onLastFieldTab: () => emit('last-field-tab'),
   onLastFieldEnter: () => emit('add-line'),
   onAddField: () => emit('add-line')
 })
