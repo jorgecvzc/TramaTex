@@ -105,7 +105,7 @@
     <!-- LAYER 3: WORK -->
     <div class="party-master-content">
       <!-- TAB: GENERAL / FORM -->
-      <div v-if="activeTab === 'general'" class="tab-fade-in">
+      <div v-show="activeTab === 'general'" class="tab-fade-in">
         <template v-if="mode === 'detail'">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- SECTION: IDENTITY -->
@@ -137,13 +137,13 @@
         </template>
       </div>
 
-      <!-- SECONDARY TABS (Detail mode only) -->
-      <div v-if="activeTab === 'addresses' && mode === 'detail'" class="tab-fade-in">
-        <AddressManager :party-id="party?.id" />
+      <!-- SECONDARY TABS (Visible in detail and edit modes) -->
+      <div v-if="activeTab === 'addresses' && party?.id" class="tab-fade-in">
+        <AddressManager :party-id="party.id" />
       </div>
 
-      <div v-if="activeTab === 'contacts' && mode === 'detail'" class="tab-fade-in">
-        <PersonManager :party-id="party?.id" />
+      <div v-if="activeTab === 'contacts' && party?.id" class="tab-fade-in">
+        <PersonManager :party-id="party.id" />
       </div>
     </div>
 
