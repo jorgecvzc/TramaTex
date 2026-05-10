@@ -47,8 +47,8 @@
       <!-- Unificado: Menú de Ayuda -->
       <HelpMenu 
         :sidebar-expanded="isExpanded" 
-        @open-shortcuts="window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))"
-        @open-contextual-help="window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }))"
+        @open-shortcuts="handleOpenShortcuts"
+        @open-contextual-help="handleOpenHelp"
       />
 
       <div class="menu-toggle-wrap">
@@ -84,6 +84,14 @@ const isExpanded = ref(true)
 const isLauncherOpen = ref(false)
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
+
+function handleOpenShortcuts() {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))
+}
+
+function handleOpenHelp() {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F1' }))
+}
 
 function handleGlobalKeydown(e) {
   // 1. Toggle Sidebar: Ctrl + B
