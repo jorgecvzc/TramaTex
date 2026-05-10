@@ -353,12 +353,23 @@ onMounted(() => {
   fetchInvoice();
   window.addEventListener('tramatex-esc', handleGlobalEsc);
   window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('keydown', handleInvoiceKeydown);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('tramatex-esc', handleGlobalEsc);
   window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('keydown', handleInvoiceKeydown);
 });
+
+function handleInvoiceKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && invoice.value?.status === 'DRAFT') {
+      enterEditMode();
+    }
+  }
+}
 
 function handleGlobalEsc() {
   if (mode.value === 'edit') {

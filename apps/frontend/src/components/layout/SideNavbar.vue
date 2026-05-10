@@ -57,8 +57,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import { 
   LayoutDashboard, 
   CreditCard, 
@@ -71,16 +71,45 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import AppLauncher from './AppLauncher.vue'
 
+const router = useRouter()
 const isExpanded = ref(true)
 const isLauncherOpen = ref(false)
 const authStore = useAuthStore()
 const isAdmin = computed(() => authStore.isAdmin)
+
+function handleGlobalKeydown(e) {
+  // 1. Toggle Sidebar: Ctrl + B
+  if (e.ctrlKey && e.key === 'b') {
+    e.preventDefault()
+    toggleMenu()
+  }
+
+  // 2. Module Navigation: Alt + 1, 2, 3, 4, 5
+  if (e.altKey) {
+    const map = {
+      '1': '/dashboard',
+      '2': '/sales/dashboard',
+      '3': '/products/dashboard',
+      '4': '/parties/dashboard',
+      '5': '/mes/dashboard'
+    }
+    if (map[e.key]) {
+      e.preventDefault()
+      router.push(map[e.key])
+    }
+  }
+}
 
 onMounted(() => {
   const saved = localStorage.getItem('sidebar-expanded')
   if (saved !== null) {
     isExpanded.value = saved === 'true'
   }
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 const toggleMenu = () => {

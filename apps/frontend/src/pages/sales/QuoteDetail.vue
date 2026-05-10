@@ -602,11 +602,22 @@ onMounted(async () => {
   await initComponent();
   await loadMesMasters();
   window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('keydown', handleQuoteKeydown);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('keydown', handleQuoteKeydown);
 });
+
+function handleQuoteKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && canEdit.value) {
+      enterEditMode();
+    }
+  }
+}
 
 function handleGlobalSave() {
   if (mode.value !== 'detail' && !isSaving.value) {

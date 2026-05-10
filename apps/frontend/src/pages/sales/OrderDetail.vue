@@ -1113,12 +1113,23 @@ function formatMoney(amount) { return salesApi.formatMoney(amount) }
 onMounted(() => {
   window.addEventListener('tramatex-save', handleGlobalSave);
   window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('keydown', handleOrderKeydown);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('tramatex-save', handleGlobalSave);
   window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('keydown', handleOrderKeydown);
 });
+
+function handleOrderKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && !hasActiveDeliveryNotes.value) {
+      enterEditMode();
+    }
+  }
+}
 
 function handleGlobalSave() {
   if (mode.value === 'edit' && !isSaving.value) {

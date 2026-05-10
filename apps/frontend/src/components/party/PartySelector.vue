@@ -10,6 +10,7 @@
       <div class="search-selector">
         <input
           :id="inputId"
+          ref="searchInput"
           v-model="searchTerm"
           type="text"
           :placeholder="placeholder || 'Buscar por nombre o referencia...'"
@@ -138,6 +139,8 @@ async function loadParties(name = '') {
   }
 }
 
+const searchInput = ref<HTMLInputElement | null>(null);
+
 function handleInput() {
   showDropdown.value = true;
   activeIndex.value = 0;
@@ -182,6 +185,11 @@ function handleGlobalEsc() {
 onMounted(() => {
   loadParties();
   window.addEventListener('tramatex-esc', handleGlobalEsc);
+  
+  // Auto-focus if requested or standard
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
 });
 
 onBeforeUnmount(() => {

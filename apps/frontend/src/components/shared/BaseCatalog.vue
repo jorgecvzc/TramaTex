@@ -109,6 +109,11 @@ onMounted(() => {
   window.addEventListener('tramatex-refresh', handleGlobalRefresh)
   window.addEventListener('tramatex-search', handleGlobalSearch)
   window.addEventListener('tramatex-esc', handleGlobalEsc)
+  
+  // Auto-focus search on mount
+  nextTick(() => {
+    handleGlobalSearch()
+  })
 })
 
 onUnmounted(() => {

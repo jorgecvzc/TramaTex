@@ -114,6 +114,7 @@ const { handleLineKeyDown } = useLineNavigation({
   columns: ['quantity', 'unit_price', 'discount_percent'],
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
+  onLastFieldEnter: () => emit('add-line'),
   onAddField: () => emit('add-line')
 })
 

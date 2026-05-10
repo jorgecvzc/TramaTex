@@ -296,11 +296,22 @@ function handleGlobalRefresh() {
 
 onMounted(() => {
   window.addEventListener('tramatex-refresh', handleGlobalRefresh)
+  window.addEventListener('keydown', handlePartyKeydown)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('tramatex-refresh', handleGlobalRefresh)
+  window.removeEventListener('keydown', handlePartyKeydown)
 })
+
+function handlePartyKeydown(e: KeyboardEvent) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault()
+    if (mode.value === 'detail') {
+      enterEditMode()
+    }
+  }
+}
 
 watch(() => route.params.id, () => {
   activeTab.value = 'general'

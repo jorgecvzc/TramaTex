@@ -389,11 +389,22 @@ const formData = reactive({
 onMounted(() => {
   fetchDeliveryNote();
   window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('keydown', handleDnKeydown);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('keydown', handleDnKeydown);
 });
+
+function handleDnKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && deliveryNote.value?.status === 'DRAFT') {
+      enterEditMode();
+    }
+  }
+}
 
 function handleGlobalEsc() {
   router.push('/sales/delivery-notes');
