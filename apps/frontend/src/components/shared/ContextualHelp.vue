@@ -111,7 +111,7 @@ function goToFullHelp() {
 .contextual-help-panel {
   position: fixed; top: 0; right: 0; bottom: 0; width: 360px;
   background: white; border-left: 1px solid var(--color-border);
-  z-index: 4000; box-shadow: var(--box-shadow-lg);
+  z-index: 9999; box-shadow: var(--box-shadow-lg);
   display: flex; flex-direction: column;
 }
 

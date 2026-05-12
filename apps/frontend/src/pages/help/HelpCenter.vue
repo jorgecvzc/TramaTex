@@ -26,6 +26,7 @@
 
         <div class="keyboard-hint mt-8">
           <p>Usa <kbd>1</kbd>-<kbd>4</kbd> para saltar entre bloques</p>
+          <p class="mt-2">O <kbd>Alt+H</kbd> para Soporte Técnico</p>
         </div>
       </aside>
 
