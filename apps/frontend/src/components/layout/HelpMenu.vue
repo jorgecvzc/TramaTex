@@ -67,9 +67,7 @@ const menuContainer = ref<HTMLElement | null>(null)
 const menuItems = [
   { id: 'manual', label: 'Manual de Usuario', icon: BookOpen, shortcutLabel: 'Alt+M', action: () => router.push('/help') },
   { id: 'shortcuts', label: 'Mapa de Atajos', icon: Keyboard, shortcutLabel: '?', action: () => emit('open-shortcuts') },
-  { id: 'contextual', label: 'Guía de esta página', icon: Info, shortcutLabel: 'F1', action: () => {
-    window.dispatchEvent(new CustomEvent('tramatex-contextual-help'))
-  }},
+  { id: 'contextual', label: 'Guía de esta página', icon: Info, shortcutLabel: 'F1', action: () => emit('open-contextual-help') },
   { id: 'support', label: 'Soporte Técnico', icon: LifeBuoy, shortcutLabel: '', action: () => window.open('mailto:soporte@tramatex.local', '_blank') },
 ]
 
@@ -119,13 +117,11 @@ function handleGlobalKeydown(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('click', handleGlobalClick)
   window.addEventListener('keydown', handleGlobalKeydown)
-  window.addEventListener('tramatex-contextual-help', () => emit('open-contextual-help'))
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('click', handleGlobalClick)
   window.removeEventListener('keydown', handleGlobalKeydown)
-  window.removeEventListener('tramatex-contextual-help', () => emit('open-contextual-help'))
 })
 </script>
 
