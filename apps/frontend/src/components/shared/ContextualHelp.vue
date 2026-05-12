@@ -1,49 +1,51 @@
 <template>
-  <Transition name="slide-right">
-    <aside v-if="show" class="contextual-help-panel" @keydown.esc="$emit('close')">
-      <header class="panel-header">
-        <div class="flex items-center gap-3">
-          <Info :size="24" class="text-secondary" />
-          <div class="title-group">
-            <h3>Guía Rápida</h3>
-            <span class="route-label">{{ routeName }}</span>
+  <Teleport to="body">
+    <Transition name="slide-right">
+      <aside v-if="show" class="contextual-help-panel" @keydown.esc="$emit('close')">
+        <header class="panel-header">
+          <div class="flex items-center gap-3">
+            <Info :size="24" class="text-secondary" />
+            <div class="title-group">
+              <h3>Guía Rápida</h3>
+              <span class="route-label">{{ routeName }}</span>
+            </div>
+          </div>
+          <button class="btn-close" @click="$emit('close')"><X :size="20" /></button>
+        </header>
+
+        <div class="panel-body">
+          <!-- Content reacciona a la ruta actual -->
+          <section class="help-section">
+            <h4>¿Qué puedo hacer aquí?</h4>
+            <p>{{ currentHelp.description }}</p>
+          </section>
+
+          <section class="help-section" v-if="currentHelp.actions?.length">
+            <h4>Acciones Principales</h4>
+            <ul class="actions-list">
+              <li v-for="action in currentHelp.actions" :key="action.label">
+                <strong>{{ action.label }}:</strong> {{ action.text }}
+              </li>
+            </ul>
+          </section>
+
+          <section class="help-section" v-if="currentHelp.tips?.length">
+            <h4>Pro-Tips de Teclado</h4>
+            <div v-for="tip in currentHelp.tips" :key="tip.key" class="tip-card">
+              <kbd>{{ tip.key }}</kbd>
+              <span>{{ tip.text }}</span>
+            </div>
+          </section>
+
+          <div class="panel-footer">
+            <button class="btn btn-primary w-full justify-center" @click="goToFullHelp">
+              <BookOpen :size="18" /> Ver Manual Completo
+            </button>
           </div>
         </div>
-        <button class="btn-close" @click="$emit('close')"><X :size="20" /></button>
-      </header>
-
-      <div class="panel-body">
-        <!-- Content reacciona a la ruta actual -->
-        <section class="help-section">
-          <h4>¿Qué puedo hacer aquí?</h4>
-          <p>{{ currentHelp.description }}</p>
-        </section>
-
-        <section class="help-section" v-if="currentHelp.actions?.length">
-          <h4>Acciones Principales</h4>
-          <ul class="actions-list">
-            <li v-for="action in currentHelp.actions" :key="action.label">
-              <strong>{{ action.label }}:</strong> {{ action.text }}
-            </li>
-          </ul>
-        </section>
-
-        <section class="help-section" v-if="currentHelp.tips?.length">
-          <h4>Pro-Tips de Teclado</h4>
-          <div v-for="tip in currentHelp.tips" :key="tip.key" class="tip-card">
-            <kbd>{{ tip.key }}</kbd>
-            <span>{{ tip.text }}</span>
-          </div>
-        </section>
-
-        <div class="panel-footer">
-          <button class="btn btn-primary w-full justify-center" @click="goToFullHelp">
-            <BookOpen :size="18" /> Ver Manual Completo
-          </button>
-        </div>
-      </div>
-    </aside>
-  </Transition>
+      </aside>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -109,10 +111,17 @@ function goToFullHelp() {
 
 <style scoped>
 .contextual-help-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; width: 360px;
-  background: white; border-left: 1px solid var(--color-border);
-  z-index: 100000; box-shadow: var(--box-shadow-lg);
-  display: flex; flex-direction: column;
+  position: fixed; 
+  top: 0; 
+  right: 0; 
+  bottom: 0; 
+  width: 360px;
+  background: white; 
+  border-left: 1px solid var(--color-border);
+  z-index: 200000; 
+  box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+  display: flex; 
+  flex-direction: column;
 }
 
 .panel-header {
