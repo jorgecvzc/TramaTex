@@ -12,38 +12,40 @@
     </button>
 
     <!-- Dropdown Popover -->
-    <Transition name="slide-up">
-      <div v-if="isOpen" class="help-dropdown" @keydown="handleKeyDown">
-        <header class="dropdown-header">
-          <HelpCircle :size="16" />
-          <span>Centro de Soporte</span>
-        </header>
-        
-        <div class="dropdown-body">
-          <button 
-            v-for="(item, index) in menuItems" 
-            :key="item.id"
-            class="dropdown-item"
-            :class="{ 'focused': activeIndex === index }"
-            @click="executeAction(item)"
-            @mouseenter="activeIndex = index"
-          >
-            <div class="item-icon">
-              <component :is="item.icon" :size="18" />
-            </div>
-            <div class="item-content">
-              <span class="item-label">{{ item.label }}</span>
-              <span class="item-shortcut">{{ item.shortcutLabel }}</span>
-            </div>
-          </button>
+    <Teleport to="body">
+      <Transition name="slide-up">
+        <div v-if="isOpen" class="help-dropdown" @keydown="handleKeyDown" :style="dropdownStyle">
+          <header class="dropdown-header">
+            <HelpCircle :size="16" />
+            <span>Centro de Soporte</span>
+          </header>
+          
+          <div class="dropdown-body">
+            <button 
+              v-for="(item, index) in menuItems" 
+              :key="item.id"
+              class="dropdown-item"
+              :class="{ 'focused': activeIndex === index }"
+              @click="executeAction(item)"
+              @mouseenter="activeIndex = index"
+            >
+              <div class="item-icon">
+                <component :is="item.icon" :size="18" />
+              </div>
+              <div class="item-content">
+                <span class="item-label">{{ item.label }}</span>
+                <span class="item-shortcut">{{ item.shortcutLabel }}</span>
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   HelpCircle, 
@@ -63,6 +65,13 @@ const router = useRouter()
 const isOpen = ref(false)
 const activeIndex = ref(0)
 const menuContainer = ref<HTMLElement | null>(null)
+
+const dropdownStyle = computed(() => ({
+  position: 'fixed' as const,
+  bottom: '80px',
+  left: props.sidebarExpanded ? '20px' : '10px',
+  zIndex: 200000
+}))
 
 const menuItems = [
   { id: 'manual', label: 'Manual de Usuario', icon: BookOpen, shortcutLabel: 'Alt+M', action: () => router.push('/help') },
