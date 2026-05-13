@@ -1,43 +1,17 @@
 <template>
-  <BaseEntityPage v-if="isLoading" class="no-print">
-    <template #header>
-      <BasePageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
-    </template>
-    <div class="loading-state card">
-      <div class="spinner"></div>
-      <p>Cargando información de la factura...</p>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else-if="error" class="no-print">
-    <template #header>
-      <BasePageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" show-back />
-    </template>
-    <div class="alert-card card">
-      <div class="alert-icon-wrapper error">
-        <AlertCircle :size="24" />
-      </div>
-      <div class="alert-content">
-        <h3>Error al cargar</h3>
-        <p>{{ error }}</p>
-        <button class="btn btn-outline btn-sm mt-4" @click="router.push('/sales/invoices')">Volver al catálogo</button>
-      </div>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else-if="invoice" class="no-print">
+  <BaseEntityPage :is-loading="isLoading" :error="error" class="no-print" @refresh="fetchInvoice">
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <BasePageHeader 
-        :title="mode === 'edit' ? `Editando Factura ${invoice.invoiceNumber}` : `Factura ${invoice.invoiceNumber}`" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
+        :title="mode === 'edit' ? `Editando Factura ${invoice?.invoiceNumber}` : `Factura ${invoice?.invoiceNumber}`" 
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice?.invoiceNumber || 'Detalle' }]"
         show-back
       >
         <template #icon>
           <Receipt :size="28" />
         </template>
         <template #actions>
-          <template v-if="mode === 'detail'">
+          <template v-if="mode === 'detail' && invoice">
             <button class="btn btn-outline btn-sm" @click="printInvoice">
               <Printer :size="16" /> <span>Imprimir</span>
             </button>
@@ -47,13 +21,13 @@
     </template>
 
     <!-- 2. TOOLBAR -->
-    <template #toolbar v-if="mode === 'detail'">
+    <template #toolbar v-if="mode === 'detail' && invoice">
       <div class="action-toolbar card">
         <div class="toolbar-info">
-          <span v-if="invoice" :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
+          <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
             {{ salesApi.getStatusLabel(invoice.status) }}
           </span>
-          <span v-if="invoice" :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
+          <span :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
             {{ getTypeLabel(invoice.type) }}
           </span>
         </div>
@@ -83,7 +57,7 @@
     </template>
 
     <!-- 3. SUMMARY -->
-    <template #summary>
+    <template #summary v-if="invoice">
       <div class="overview-tags-row">
         <div class="summary-tag">
           <div class="icon blue"><User :size="20" /></div>
@@ -131,19 +105,19 @@
     </template>
 
     <!-- 5. MAIN CONTENT -->
-    <div ref="invoiceContentRef">
-      <FormSection title="Identificación del Cliente" icon="person">
-        <DataRow label="Nombre del Cliente" :value="partyName" icon="person" />
+    <div v-if="invoice" ref="invoiceContentRef">
+      <FormSection title="Identificación del Cliente" :icon="User">
+        <DataRow label="Nombre del Cliente" :value="partyName" :icon="User" />
         <DataRow v-if="invoice.taxId" label="NIF/CIF" :value="invoice.taxId" is-mono />
         <DataRow label="ID de Cliente" :value="invoice.partyId" is-mono />
       </FormSection>
 
-      <FormSection title="Condiciones y Notas" icon="description">
+      <FormSection title="Condiciones y Notas" :icon="FileText">
         <div v-if="mode === 'detail'">
-          <DataRow v-if="invoice.paymentTerms" label="Condiciones de Pago" icon="payments">
+          <DataRow v-if="invoice.paymentTerms" label="Condiciones de Pago" :icon="CreditCard">
             <p class="notes-text">{{ invoice.paymentTerms }}</p>
           </DataRow>
-          <DataRow v-if="invoice.notes" label="Observaciones" icon="notes">
+          <DataRow v-if="invoice.notes" label="Observaciones" :icon="FileText">
             <p class="notes-text">{{ invoice.notes }}</p>
           </DataRow>
         </div>
@@ -163,44 +137,11 @@
         </div>
       </FormSection>
 
-      <FormSection title="Líneas de la Factura" icon="list_alt">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Producto / Referencia</th>
-                <th class="text-center">Cant.</th>
-                <th class="align-right">P. Unitario</th>
-                <th class="text-center">Dto. %</th>
-                <th class="text-center">IVA %</th>
-                <th class="align-right">Subtotal</th>
-                <th class="align-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in invoice.lineItems" :key="item.id || item.productVariantID">
-                <td>
-                  <div class="product-info-cell">
-                    <Package :size="20" class="icon-secondary" />
-                    <div class="content">
-                      <strong>{{ buildDisplayName(item) }}</strong>
-                      <code class="code-badge ml-2">{{ item.variantSku || formatId(item.productVariantId || item.productVariantID) }}</code>
-                    </div>
-                  </div>
-                </td>
-                <td class="text-center">{{ item.quantity }}</td>
-                <td class="align-right">{{ salesApi.formatUnitPrice(item.unitPrice) }}</td>
-                <td class="text-center">{{ item.discountAmount && item.unitPrice?.amount ? ((item.discountAmount.amount / item.unitPrice.amount) * 100).toFixed(2) + '%' : '—' }}</td>
-                <td class="text-center">{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '21%' }}</td>
-                <td class="align-right">{{ salesApi.formatMoney(item.subtotal) }}</td>
-                <td class="align-right"><strong>{{ salesApi.formatMoney(item.total) }}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <FormSection title="Líneas de la Factura" :icon="List">
+        <OrderLines :lines="invoice.lineItems" :is-editing="false" />
       </FormSection>
 
-      <FormSection title="Resumen Económico" icon="payments">
+      <FormSection title="Resumen Económico" :icon="CreditCard">
         <div class="totals-summary-container">
           <section class="totals-summary-card">
             <div class="summary-row">
@@ -249,7 +190,7 @@
       v-if="invoice"
       type="INVOICE"
       :number="invoice.invoiceNumber"
-      :date="invoice.invoiceDate"
+      :date="invoice.issueDate"
       :customer-name="partyName"
       :customer-tax-id="invoice.taxId"
       :items="invoice.lineItems"
@@ -284,7 +225,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
 import { 
@@ -299,10 +240,11 @@ import {
   ShoppingCart, 
   Truck, 
   ExternalLink, 
-  Package, 
   CheckCircle, 
   X, 
-  Mail 
+  Mail,
+  FileText,
+  List
 } from 'lucide-vue-next';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
@@ -310,6 +252,7 @@ import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
@@ -388,6 +331,7 @@ function handleGlobalSave() {
 async function fetchInvoice() {
   const invoiceId = route.params.id;
   isLoading.value = true;
+  error.value = '';
   try {
     invoice.value = await salesApi.getInvoice(invoiceId);
     await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
@@ -440,8 +384,6 @@ async function saveInvoice() {
       paymentTerms: formData.paymentTerms,
       notes: formData.notes
     };
-    // Note: Backend might have limited support for updates in current MVP iteration
-    // but we proceed to allow saving basic metadata if implemented.
     await salesApi.updateInvoice(invoice.value.id, payload);
     mode.value = 'detail';
     await fetchInvoice();
@@ -452,16 +394,6 @@ async function saveInvoice() {
   }
 }
 
-function emitInvoice() {
-  statusConfirmTitle.value = 'Emitir Factura';
-  statusConfirmMessage.value = '¿Desea <strong>EMITIR</strong> esta factura? Esta acción generará el número de factura definitivo y bloqueará cambios estructurales.';
-  statusConfirmIcon.value = 'send';
-  statusConfirmText.value = 'Emitir Factura';
-  statusConfirmClass.value = 'btn-success';
-  pendingStatus.value = 'ISSUED';
-  showStatusConfirm.value = true;
-}
-
 function markAsPaid() {
   statusConfirmTitle.value = 'Registrar Cobro';
   statusConfirmMessage.value = '¿Desea marcar esta factura como <strong>PAGADA</strong>?';
@@ -469,26 +401,6 @@ function markAsPaid() {
   statusConfirmText.value = 'Confirmar Cobro';
   statusConfirmClass.value = 'btn-success';
   pendingStatus.value = 'PAID';
-  showStatusConfirm.value = true;
-}
-
-function cancelInvoice() {
-  statusConfirmTitle.value = 'Anular Factura';
-  statusConfirmMessage.value = '¿Realmente desea <strong>ANULAR</strong> esta factura? Esta acción es irreversible en términos contables.';
-  statusConfirmIcon.value = 'block';
-  statusConfirmText.value = 'Anular Factura';
-  statusConfirmClass.value = 'btn-danger';
-  pendingStatus.value = 'VOID';
-  showStatusConfirm.value = true;
-}
-
-function reactivateInvoice() {
-  statusConfirmTitle.value = 'Reactivar Factura';
-  statusConfirmMessage.value = '¿Desea devolver esta factura al estado <strong>borrador</strong>?';
-  statusConfirmIcon.value = 'refresh';
-  statusConfirmText.value = 'Reactivar';
-  statusConfirmClass.value = 'btn-primary';
-  pendingStatus.value = 'DRAFT';
   showStatusConfirm.value = true;
 }
 
@@ -543,7 +455,6 @@ function openMailClient() {
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'; }
 function formatId(id) { return id ? id.substring(0, 8) : '—'; }
 function getTypeLabel(t) { const map = { STANDARD: 'Venta Estándar', SIMPLIFIED: 'Venta Simplificada' }; return map[t] || t; }
-function buildDisplayName(item) { return (item.productName || item.displayName || 'Producto') + (item.optionConfiguration ? ' - ' + Object.values(item.optionConfiguration).join(', ') : ''); }
 </script>
 
 <style scoped>
@@ -557,12 +468,8 @@ function buildDisplayName(item) { return (item.productName || item.displayName |
 .type-standard { border-left: 3px solid #2563eb; }
 .type-simplified { border-left: 3px solid #d97706; }
 
-.product-info-cell { display: flex; align-items: center; gap: 0.75rem; }
-.product-info-cell .content { display: flex; flex-direction: column; }
-
 .notes-text { font-style: italic; color: var(--color-text-secondary); margin: 0; }
 .audit-info { color: var(--color-text-secondary); font-size: 0.8rem; font-style: italic; }
-.code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .w-modal-md { width: 90%; max-width: 500px; }
