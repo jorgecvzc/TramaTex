@@ -45,7 +45,7 @@
         <div class="toolbar-buttons">
           <!-- Lanzar a Producción (Solo si está pendiente Y tiene trabajos MES definidos) -->
           <button 
-            v-if="order.status === 'PENDING' && (order.mes_work_refs || order.mesWorkRefs || []).length > 0" 
+            v-if="order.status === 'PENDING' && (order.mesWorkRefs || []).length > 0" 
             class="btn btn-primary btn-sm" 
             @click="promptLaunchProduction"
           >
@@ -69,8 +69,7 @@
             class="btn btn-primary btn-sm" 
             @click="promptReactivate"
           >
-            <RefreshCw :size="16" />
-            <span>Reactivar Pedido</span>
+            <RefreshCw :size="16" /> <span>Reactivar Pedido</span>
           </button>
 
           <!-- Anular (Solo si no está entregado ni facturado ni ya anulado) -->
@@ -79,8 +78,7 @@
             class="btn btn-danger btn-sm" 
             @click="promptCancelOrder"
           >
-            <Ban :size="16" />
-            <span>Anular Pedido</span>
+            <Ban :size="16" /> <span>Anular Pedido</span>
           </button>
         </div>
       </div>
@@ -93,21 +91,21 @@
           <div class="icon blue"><User :size="20" /></div>
           <div class="tag-content">
             <label>Cliente</label>
-            <strong>{{ order.party_name || order.partyName }}</strong>
+            <strong>{{ order.partyName }}</strong>
           </div>
         </div>
         <div class="summary-tag">
           <div class="icon yellow"><Calendar :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Pedido</label>
-            <strong>{{ formatDate(order.order_date || order.orderDate) }}</strong>
+            <strong>{{ formatDate(order.orderDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
           <div class="icon purple"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Fecha Entrega</label>
-            <strong>{{ formatDate(order.delivery_date || order.deliveryDate) }}</strong>
+            <strong>{{ formatDate(order.deliveryDate) }}</strong>
           </div>
         </div>
         <div class="summary-tag">
@@ -127,7 +125,7 @@
           <div class="tag-icon"><FileQuestion :size="20" /></div>
           <div class="tag-content">
             <label>Presupuesto Origen</label>
-            <strong>{{ relatedQuote.quoteNumber || relatedQuote.quote_number }}</strong>
+            <strong>{{ relatedQuote.quoteNumber }}</strong>
           </div>
           <ExternalLink :size="14" class="jump-icon" />
         </router-link>
@@ -137,7 +135,7 @@
           <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán Generado</label>
-            <strong>{{ dn.deliveryNoteNumber || dn.delivery_note_number }}</strong>
+            <strong>{{ dn.deliveryNoteNumber }}</strong>
           </div>
           <ExternalLink :size="14" class="jump-icon" />
         </router-link>
@@ -147,7 +145,7 @@
           <div class="tag-icon success"><Receipt :size="20" /></div>
           <div class="tag-content">
             <label>Factura Vinculada</label>
-            <strong>{{ relatedInvoice.invoiceNumber || relatedInvoice.invoice_number }}</strong>
+            <strong>{{ relatedInvoice.invoiceNumber }}</strong>
           </div>
           <ExternalLink :size="14" class="jump-icon" />
         </router-link>
@@ -162,7 +160,7 @@
           <div class="form-item-wrapper">
             <template v-if="mode !== 'detail'">
               <PartySelector
-                v-model="editableOrder.party_id"
+                v-model="editableOrder.partyId"
                 label="Cliente *"
                 placeholder="Buscar cliente por nombre o NIF..."
                 required
@@ -170,38 +168,38 @@
               />
             </template>
             <DataRow v-else label="Cliente" icon="person">
-              <strong>{{ order.party_name || order.partyName }}</strong> 
-              <code class="ml-2 text-xs">#{{ (order.party_id || order.partyId || '').substring(0,8) }}</code>
+              <strong>{{ order.partyName }}</strong> 
+              <code class="ml-2 text-xs">#{{ (order.partyId || '').substring(0,8) }}</code>
             </DataRow>
           </div>
 
           <div class="form-group">
             <label v-if="mode !== 'detail'">Referencia Cliente</label>
             <template v-if="mode !== 'detail'">
-              <input v-model="editableOrder.party_reference" class="form-input" placeholder="Ej: PO-12345" />
+              <input v-model="editableOrder.partyReference" class="form-input" placeholder="Ej: PO-12345" />
             </template>
             <DataRow v-else label="Referencia Cliente" icon="badge">
-              {{ order.party_reference || order.partyReference || '—' }}
+              {{ order.partyReference || '—' }}
             </DataRow>
           </div>
 
           <div class="form-group">
             <label v-if="mode !== 'detail'">Fecha del Pedido *</label>
             <template v-if="mode !== 'detail'">
-              <input type="date" v-model="editableOrder.order_date" class="form-input" required />
+              <input type="date" v-model="editableOrder.orderDate" class="form-input" required />
             </template>
             <DataRow v-else label="Fecha del Pedido" icon="event">
-              {{ formatDate(order.order_date || order.orderDate) }}
+              {{ formatDate(order.orderDate) }}
             </DataRow>
           </div>
 
           <div class="form-group">
             <label v-if="mode !== 'detail'">Fecha Estimada de Entrega</label>
             <template v-if="mode !== 'detail'">
-              <input type="date" v-model="editableOrder.delivery_date" class="form-input" />
+              <input type="date" v-model="editableOrder.deliveryDate" class="form-input" />
             </template>
             <DataRow v-else label="Fecha de Entrega" icon="local_shipping">
-              {{ formatDate(order.delivery_date || order.deliveryDate) }}
+              {{ formatDate(order.deliveryDate) }}
             </DataRow>
           </div>
         </div>
@@ -218,7 +216,7 @@
         </div>
 
         <div v-if="mode === 'detail'" class="table-wrapper">
-          <table v-if="(order.mes_work_refs || order.mesWorkRefs || []).length > 0" class="data-table">
+          <table v-if="(order.mesWorkRefs || []).length > 0" class="data-table">
             <thead>
               <tr>
                 <th>Proceso / Configuración</th>
@@ -227,22 +225,22 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="mesRef in (order.mes_work_refs || order.mesWorkRefs)" :key="mesRef.id">
+              <tr v-for="mesRef in order.mesWorkRefs" :key="mesRef.id">
                 <td>
                   <div class="flex items-center gap-2">
                     <Settings2 :size="18" class="text-secondary" />
-                    <strong>{{ formatMesWorkId(mesRef.work_setup_id || mesRef.workSetupId) }}</strong>
+                    <strong>{{ formatMesWorkId(mesRef.workSetupId) }}</strong>
                   </div>
                 </td>
                 <td><p class="text-sm italic m-0">{{ mesRef.description || '—' }}</p></td>
                 <td class="text-right">
-                  <template v-if="mesRef.work_order_id || mesRef.workOrderId">
+                  <template v-if="mesRef.workOrderId">
                     <button 
                       class="status-badge clickable-status" 
-                      :class="`status-${getMesStatusClass(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId])}`"
-                      @click="router.push(`/mes/work-orders/${mesRef.work_order_id || mesRef.workOrderId}`)"
+                      :class="`status-${getMesStatusClass(mesOrdersStatus[mesRef.workOrderId])}`"
+                      @click="router.push(`/mes/work-orders/${mesRef.workOrderId}`)"
                     >
-                      {{ mesApi.getWorkStatusLabel(mesOrdersStatus[mesRef.work_order_id || mesRef.workOrderId]) || 'Cargando...' }}
+                      {{ mesApi.getWorkStatusLabel(mesOrdersStatus[mesRef.workOrderId]) || 'Cargando...' }}
                       <ExternalLink :size="14" />
                     </button>
                   </template>
@@ -271,11 +269,11 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(ref, idx) in editableOrder.mes_work_refs" :key="idx">
+                <tr v-for="(ref, idx) in editableOrder.mesWorkRefs" :key="idx">
                   <td class="text-muted font-bold">{{ idx + 1 }}</td>
                   <td>
                     <select 
-                      v-model="ref.work_setup_id" 
+                      v-model="ref.workSetupId" 
                       class="form-input w-full"
                       :data-mes-row="idx"
                       data-mes-col="setup"
@@ -303,7 +301,7 @@
                     </button>
                   </td>
                 </tr>
-                <tr v-if="editableOrder.mes_work_refs.length === 0">
+                <tr v-if="editableOrder.mesWorkRefs.length === 0">
                   <td colspan="4" class="text-muted text-center p-6 italic">No se han añadido trabajos MES. Haz clic en "Añadir".</td>
                 </tr>
               </tbody>
@@ -315,7 +313,7 @@
       <!-- Sección Líneas de Pedido -->
       <FormSection title="Líneas de Pedido" icon="list_alt">
         <OrderLines
-          :lines="mode === 'detail' ? (order.line_items || order.lineItems) : editableOrder.line_items"
+          :lines="mode === 'detail' ? order.lineItems : editableOrder.lineItems"
           :is-editing="mode !== 'detail'"
           @update:lines="updateLines"
           @add-line="handleAddLineRequest"
@@ -512,6 +510,7 @@ import OrderLines from '@/components/sales/OrderLines.vue'
 import VariantSelector from '@/components/product/VariantSelector.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
 import PrintDocument from '@/components/sales/PrintDocument.vue'
+import { useLineNavigation } from '@/composables/useLineNavigation'
 import salesApi from '@/services/salesApi'
 import { partyApi } from '@/services/partyApi'
 import { mesApi } from '@/services/mesApi'
@@ -522,7 +521,7 @@ const route = useRoute()
 const router = useRouter()
 const toastStore = useToastStore()
 const order = ref(null)
-const editableOrder = ref({ line_items: [], mes_work_refs: [] })
+const editableOrder = ref({ lineItems: [], mesWorkRefs: [] })
 const isLoading = ref(false)
 const isSaving = ref(false)
 const error = ref('')
@@ -641,7 +640,7 @@ const orderId = computed(() => route.params.id)
 const isCreateMode = computed(() => !orderId.value || orderId.value === 'new')
 
 // Watcher para cambios en el formulario que requieran recalcular totales
-watch(() => [editableOrder.value.party_id, editableOrder.value.line_items], () => {
+watch(() => [editableOrder.value.partyId, editableOrder.value.lineItems], () => {
   if (mode.value !== 'detail' && !isSaving.value) {
     calculateTotals();
   }
@@ -656,12 +655,12 @@ function calculateTotals() {
 }
 
 async function fetchPreviewCalculation() {
-  const partyId = editableOrder.value.party_id;
-  const items = (editableOrder.value.line_items || []).map(i => ({ 
-    productVariantId: i.product_variant_id || i.productVariantId, 
+  const partyId = editableOrder.value.partyId;
+  const items = (editableOrder.value.lineItems || []).map(i => ({ 
+    productVariantId: i.productVariantId, 
     quantity: Number(i.quantity ?? 0), 
-    ...(i._autoPrice === false ? { manualUnitPrice: { amount: Number(i.unit_price ?? 0), currency: 'EUR' } } : {}),
-    manualDiscountPercent: Number(i.discount_percent ?? 0) 
+    ...(i._autoPrice === false ? { manualUnitPrice: { amount: Number(i.unitPrice ?? 0), currency: 'EUR' } } : {}),
+    manualDiscountPercent: Number(i.discountPercent ?? 0) 
   }));
   
   if (!partyId || !items.length) { 
@@ -676,10 +675,10 @@ async function fetchPreviewCalculation() {
       previewResult.value = res;
       // Populate unit prices from pricing engine for auto-priced items
       const serverItems = res.lineItems || res.line_items || [];
-      editableOrder.value.line_items.forEach((item, idx) => {
+      editableOrder.value.lineItems.forEach((item, idx) => {
         if (item._autoPrice !== false && serverItems[idx]) {
           const sItem = serverItems[idx];
-          item.unit_price = sItem.unitPrice?.amount ?? sItem.unit_price?.amount ?? sItem.unit_price ?? 0;
+          item.unitPrice = sItem.unitPrice?.amount ?? sItem.unit_price?.amount ?? sItem.unit_price ?? 0;
         }
       });
     }
@@ -720,13 +719,13 @@ async function loadRelatedDocs(data) {
 
 const pageTitle = computed(() => {
   if (isCreateMode.value) return 'Nuevo Pedido'
-  const num = order.value?.order_number || order.value?.orderNumber || '...'
+  const num = order.value?.orderNumber || order.value?.order_number || '...'
   return mode.value === 'edit' ? `Editando Pedido #${num}` : `Pedido #${num}`
 })
 
 const headerLabel = computed(() => {
   if (isCreateMode.value) return 'Nuevo'
-  return `#${order.value?.order_number || order.value?.orderNumber || '...'}`
+  return `#${order.value?.orderNumber || order.value?.order_number || '...'}`
 })
 
 const statusLabel = computed(() => salesApi.getStatusLabel(order.value?.status))
@@ -740,11 +739,11 @@ const subtotal = computed(() => {
   if (previewResult.value && !isPreviewLoading.value) {
     return previewResult.value.subtotal?.amount ?? 0;
   }
-  return (editableOrder.value.line_items || []).reduce((acc, line) => {
+  return (editableOrder.value.lineItems || []).reduce((acc, line) => {
     // Usamos ?? para que el 0 no sea ignorado en el cálculo local
-    const price = Number(line.unit_price ?? line.unitPrice ?? 0);
+    const price = Number(line.unitPrice ?? 0);
     const qty = Number(line.quantity ?? 0);
-    const disc = Number(line.discount_percent ?? line.discountPercent ?? 0);
+    const disc = Number(line.discountPercent ?? 0);
     return acc + (qty * price) * (1 - (disc / 100))
   }, 0)
 })
@@ -784,7 +783,7 @@ async function loadOrder() {
     const data = await salesApi.getOrder(orderId.value)
     order.value = data
     syncEditableOrder(data)
-    const pId = data.party_id || data.partyId
+    const pId = data.partyId || data.party_id
     if (pId) {
       loadAvailableSetups(pId)
       loadRelatedDocs(data)
@@ -794,7 +793,7 @@ async function loadOrder() {
     }
     
     // CARGAR ESTADOS MES (NUEVO)
-    const mesRefs = data.mes_work_refs || data.mesWorkRefs || []
+    const mesRefs = data.mesWorkRefs || data.mes_work_refs || []
     if (mesRefs.length > 0) {
       fetchMesWorkStatuses(mesRefs)
     }
@@ -810,12 +809,12 @@ async function loadOrder() {
 
 function resetForm() {
   editableOrder.value = {
-    party_id: '',
-    order_date: new Date().toISOString().split('T')[0],
-    delivery_date: '',
-    party_reference: '',
-    mes_work_refs: [],
-    line_items: [],
+    partyId: '',
+    orderDate: new Date().toISOString().split('T')[0],
+    deliveryDate: '',
+    partyReference: '',
+    mesWorkRefs: [],
+    lineItems: [],
     notes: ''
   }
   order.value = null
@@ -823,21 +822,23 @@ function resetForm() {
 
 function syncEditableOrder(data) {
   editableOrder.value = {
-    party_id: data.party_id || data.partyId,
-    order_date: data.order_date ? new Date(data.order_date).toISOString().split('T')[0] : (data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : ''),
-    delivery_date: data.delivery_date ? new Date(data.delivery_date).toISOString().split('T')[0] : (data.deliveryDate ? new Date(data.deliveryDate).toISOString().split('T')[0] : ''),
-    party_reference: data.party_reference || data.partyReference || '',
-    mes_work_refs: (data.mes_work_refs || data.mesWorkRefs || []).map(r => ({
+    partyId: data.partyId || data.party_id,
+    orderDate: data.orderDate ? new Date(data.orderDate).toISOString().split('T')[0] : (data.order_date ? new Date(data.order_date).toISOString().split('T')[0] : ''),
+    deliveryDate: data.deliveryDate ? new Date(data.deliveryDate).toISOString().split('T')[0] : (data.delivery_date ? new Date(data.delivery_date).toISOString().split('T')[0] : ''),
+    partyReference: data.partyReference || data.party_reference || '',
+    mesWorkRefs: (data.mesWorkRefs || data.mes_work_refs || []).map(r => ({
       id: r.id,
-      work_setup_id: r.work_setup_id || r.workSetupId || null,
+      workSetupId: r.workSetupId || r.work_setup_id || null,
       description: r.description || ''
     })),
-    line_items: (data.line_items || data.lineItems || []).map(li => ({
+    lineItems: (data.lineItems || data.line_items || []).map(li => ({
       ...li,
-      unit_price: li.unit_price?.amount ?? li.unit_price ?? li.unitPrice?.amount ?? li.unitPrice ?? 0,
+      unitPrice: li.unitPrice?.amount ?? li.unitPrice ?? li.unit_price?.amount ?? li.unit_price ?? 0,
       quantity: li.quantity || 0,
-      discount_percent: li.discount_percent || li.discountPercent || 0,
-      product_variant_id: li.product_variant_id || li.productVariantId,
+      discountPercent: li.discountPercent || li.discount_percent || 0,
+      productVariantId: li.productVariantId || li.product_variant_id,
+      variantSku: li.variantSku || li.variant_sku,
+      productName: li.productName || li.product_name,
       _autoPrice: false
     })),
     notes: data.notes || ''
@@ -845,8 +846,8 @@ function syncEditableOrder(data) {
 }
 
 function enterEditMode() {
-  if (editableOrder.value.party_id) {
-    loadAvailableSetups(editableOrder.value.party_id)
+  if (editableOrder.value.partyId) {
+    loadAvailableSetups(editableOrder.value.partyId)
   }
   mode.value = 'edit'
 }
@@ -858,7 +859,7 @@ function exitEditMode() {
 
 function handlePartyChange(party) {
   if (party) {
-    editableOrder.value.party_id = party.id
+    editableOrder.value.partyId = party.id
     partyDefaultDiscount.value = party.default_discount_percentage || 0
     loadAvailableSetups(party.id)
   }
@@ -876,11 +877,11 @@ async function loadAvailableSetups(partyId) {
 }
 
 function addMesWorkRef() {
-  editableOrder.value.mes_work_refs.push({ work_setup_id: null, description: '' })
+  editableOrder.value.mesWorkRefs.push({ workSetupId: null, description: '' })
 }
 
 function removeMesWorkRef(idx) {
-  editableOrder.value.mes_work_refs.splice(idx, 1)
+  editableOrder.value.mesWorkRefs.splice(idx, 1)
 }
 
 function formatMesWorkId(id) {
@@ -889,7 +890,7 @@ function formatMesWorkId(id) {
 }
 
 const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
-  rowCount: () => editableOrder.value.mes_work_refs.length,
+  rowCount: () => editableOrder.value.mesWorkRefs.length,
   columns: ['setup', 'desc'],
   prefix: 'mes',
   onRemoveField: (index) => removeMesWorkRef(index),
@@ -912,21 +913,21 @@ function handleAddLineRequest() {
 function handleVariantSelected(payload) {
   const variant = payload.variant || payload
   const newItem = {
-    product_variant_id: variant.id,
-    variant_sku: variant.sku,
-    product_name: variant.product_name || variant.name,
+    productVariantId: variant.id,
+    variantSku: variant.sku,
+    productName: variant.product_name || variant.name,
     quantity: 1,
-    unit_price: null,
-    discount_percent: partyDefaultDiscount.value || 0,
+    unitPrice: null,
+    discountPercent: partyDefaultDiscount.value || 0,
     _autoPrice: true
   }
-  editableOrder.value.line_items.push(newItem)
+  editableOrder.value.lineItems.push(newItem)
   showVariantSelector.value = false
   
   // Posicionar foco en la cantidad de la nueva línea tras el renderizado
   nextTick(() => {
     fetchPreviewCalculation();
-    const lastIdx = editableOrder.value.line_items.length - 1
+    const lastIdx = editableOrder.value.lineItems.length - 1
     const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`)
     if (el) {
       el.focus()
@@ -936,8 +937,8 @@ function handleVariantSelected(payload) {
 }
 
 async function saveOrder() {
-  if (!editableOrder.value.party_id) { toastStore.error('Debe seleccionar un cliente'); return; }
-  if (!editableOrder.value.line_items.length) { toastStore.error('El pedido debe tener al menos una línea'); return; }
+  if (!editableOrder.value.partyId) { toastStore.error('Debe seleccionar un cliente'); return; }
+  if (!editableOrder.value.lineItems.length) { toastStore.error('El pedido debe tener al menos una línea'); return; }
   
   isSaving.value = true
   try {
@@ -947,20 +948,20 @@ async function saveOrder() {
     }
 
     const payload = { 
-      partyId: editableOrder.value.party_id,
-      orderDate: formatToRFC3339(editableOrder.value.order_date),
-      deliveryDate: formatToRFC3339(editableOrder.value.delivery_date) || formatToRFC3339(editableOrder.value.order_date),
-      partyReference: editableOrder.value.party_reference || "",
+      partyId: editableOrder.value.partyId,
+      orderDate: formatToRFC3339(editableOrder.value.orderDate),
+      deliveryDate: formatToRFC3339(editableOrder.value.deliveryDate) || formatToRFC3339(editableOrder.value.orderDate),
+      partyReference: editableOrder.value.partyReference || "",
       notes: editableOrder.value.notes || "",
-      mesWorkRefs: (editableOrder.value.mes_work_refs || []).map(r => ({
-        workSetupId: r.work_setup_id || undefined,
+      mesWorkRefs: (editableOrder.value.mesWorkRefs || []).map(r => ({
+        workSetupId: r.workSetupId || undefined,
         description: r.description || ''
       })),
-      items: editableOrder.value.line_items.map(li => ({
-        productVariantId: li.product_variant_id || li.productVariantId,
+      items: editableOrder.value.lineItems.map(li => ({
+        productVariantId: li.productVariantId,
         quantity: Number(li.quantity),
-        unitPrice: { amount: Number(li.unit_price), currency: 'EUR' },
-        discountPercent: Number(li.discount_percent || 0)
+        unitPrice: { amount: Number(li.unitPrice), currency: 'EUR' },
+        discountPercent: Number(li.discountPercent || 0)
       }))
     }
 
@@ -972,8 +973,8 @@ async function saveOrder() {
       await salesApi.updateOrder(orderId.value, payload)
       
       // 2. Gestionar Líneas (Sincronización granular)
-      const originalLines = order.value.line_items || order.value.lineItems || []
-      const currentLines = editableOrder.value.line_items
+      const originalLines = order.value.lineItems || order.value.line_items || []
+      const currentLines = editableOrder.value.lineItems
       
       // ELIMINAR líneas que ya no están
       const toDelete = originalLines.filter(ol => !currentLines.some(cl => cl.id === ol.id))
@@ -984,10 +985,10 @@ async function saveOrder() {
       // AÑADIR o ACTUALIZAR
       for (const line of currentLines) {
         const itemPayload = {
-          productVariantId: line.product_variant_id || line.productVariantId,
+          productVariantId: line.productVariantId,
           quantity: Number(line.quantity),
-          unitPrice: { amount: Number(line.unit_price), currency: 'EUR' },
-          discountPercent: Number(line.discount_percent || 0)
+          unitPrice: { amount: Number(line.unitPrice), currency: 'EUR' },
+          discountPercent: Number(line.discountPercent || 0)
         }
         
         if (!line.id || line.id.length < 10) { // Es nueva (ID temporal o inexistente)
@@ -995,7 +996,10 @@ async function saveOrder() {
         } else {
           const original = originalLines.find(ol => ol.id === line.id)
           // Solo actualizar si algo ha cambiado para ahorrar peticiones
-          if (original && (original.quantity !== line.quantity || original.unit_price !== line.unit_price || original.discount_percent !== line.discount_percent)) {
+          const originalPrice = original.unitPrice?.amount ?? original.unitPrice ?? original.unit_price?.amount ?? original.unit_price ?? 0;
+          const originalDiscount = original.discountPercent || original.discount_percent || 0;
+          
+          if (original && (original.quantity !== line.quantity || originalPrice !== line.unitPrice || originalDiscount !== line.discountPercent)) {
             await salesApi.updateOrderLineItem(orderId.value, line.id, itemPayload)
           }
         }
@@ -1124,7 +1128,7 @@ function deliverNone() {
 }
 
 function updateLines(newLines) {
-  editableOrder.value.line_items = newLines
+  editableOrder.value.lineItems = newLines
 }
 
 function printOrder() {

@@ -4,10 +4,27 @@
 # SESIONES ABIERTAS
 ---
 
-*(No hay sesiones abiertas en este momento. Todas las tareas de refinamiento de la Fase 1 han sido completadas).*
+_No hay sesiones abiertas actualmente._
 
 ---
 # REGISTRO DE SESIONES CERRADAS
+---
+
+- **Refinamiento UI/UX y Regresiones Sales** | Iniciada: 2026-05-12 | Finalizada: 2026-05-13 | Status: ✅ **COMPLETADO**
+    - **Contexto**: Resolución de fallos críticos en la visualización de pedidos y estabilización del flujo de conversión de presupuestos.
+    - **Cambios Realizados**:
+        - [x] **OrderDetail.vue**: Corregida pantalla en blanco (missing import `useLineNavigation`) y refactorizado a camelCase integral para consistencia con el resto de la UI.
+        - [x] **QuoteDetail.vue**: Refactorizado para utilizar el componente unificado `OrderLines`, eliminando duplicidad de lógica.
+        - [x] **OrderLines.vue**: Añadida columna de "Precio Tarifa" y estandarización de nombres de campos en camelCase.
+        - [x] **salesApi.ts**: Mejorada la normalización automática de entidades (snake_case -> camelCase recursivo) para blindar el frontend ante desajustes del backend.
+        - [x] **Backend (Go)**: Implementadas transacciones en `ConvertQuoteToOrder` y `AcceptAndConvertQuote` para asegurar la atomicidad de la creación de pedidos.
+        - [x] **Dominio (Go)**: Corregido bug en `canTransitionInvoice` que permitía saltar de `DRAFT` a `PAID`, alineando el código con los tests de dominio.
+    - **📋 PROTOCOLO DE VALIDACIÓN FINAL**:
+        1.  **Visualización**: El detalle de pedido (`OrderDetail.vue`) ya no muestra pantalla en blanco y renderiza todas las líneas correctamente.
+        2.  **Unificación**: Tanto presupuestos como pedidos utilizan el mismo componente de líneas con soporte completo de teclado.
+        3.  **Conversión**: Probada la conversión de presupuestos en estado `ISSUED`, verificando que el pedido se crea y el presupuesto se cierra correctamente en una única operación atómica.
+        4.  **Tests**: `go test ./apps/tramatex-api/internal/sales/...` devuelve `ok` en todos los subpaquetes.
+
 ---
 
 - **Unificación UI/UX — Fase 1 (CIERRE: Experiencia "Sin Ratón" y Centro de Ayuda)** | Iniciada: 2026-05-10 | Finalizada: 2026-05-10 | Status: ✅ **Fase 1 COMPLETADA 100%**

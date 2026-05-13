@@ -38,25 +38,57 @@ import { api } from './api'
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
   
-  // Invoice normalization
-  if ('invoiceType' in obj || 'invoice_type' in obj || 'type' in obj) {
-    obj.invoiceNumber = obj.invoiceNumber || obj.invoice_number;
-    obj.invoiceDate = obj.invoiceDate || obj.invoice_date;
-    obj.issueDate = obj.invoiceDate || obj.invoice_date;
-    obj.partyId = obj.partyId || obj.party_id;
-    obj.salesOrderIds = obj.relatedOrderIds || obj.related_order_ids || [];
-    obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || obj.related_delivery_note_ids || [];
-    obj.type = obj.type || obj.invoice_type || obj.invoiceType;
-  }
+  // Base normalization (snake_case to camelCase)
+  const snakeToCamelMap: Record<string, string> = {
+    'party_id': 'partyId',
+    'party_name': 'partyName',
+    'party_reference': 'partyReference',
+    'order_number': 'orderNumber',
+    'quote_number': 'quoteNumber',
+    'order_date': 'orderDate',
+    'quote_date': 'quoteDate',
+    'delivery_date': 'deliveryDate',
+    'line_items': 'lineItems',
+    'mes_work_refs': 'mesWorkRefs',
+    'tax_id': 'taxId',
+    'invoice_number': 'invoiceNumber',
+    'invoice_date': 'invoiceDate',
+    'invoice_type': 'invoiceType',
+    'related_order_ids': 'relatedOrderIds',
+    'related_delivery_note_ids': 'relatedDeliveryNoteIds',
+    'delivered_quantity': 'deliveredQuantity',
+    'unit_price': 'unitPrice',
+    'discount_percent': 'discountPercent',
+    'product_variant_id': 'productVariantId',
+    'variant_sku': 'variantSku',
+    'product_name': 'productName',
+    'work_setup_id': 'workSetupId',
+    'work_order_id': 'workOrderId'
+  };
 
-  // Order / Quote normalization
-  if ('quoteNumber' in obj || 'quote_number' in obj) {
-    obj.quoteNumber = obj.quoteNumber || obj.quote_number;
-    obj.partyId = obj.partyId || obj.party_id;
+  Object.entries(snakeToCamelMap).forEach(([snake, camel]) => {
+    if (snake in obj && !(camel in obj)) {
+      (obj as any)[camel] = obj[snake];
+    }
+  });
+
+  // Deep normalization for items/refs
+  if (Array.isArray(obj.lineItems)) {
+    obj.lineItems = obj.lineItems.map(normalizeEntity);
   }
-  if ('orderNumber' in obj || 'order_number' in obj) {
-    obj.orderNumber = obj.orderNumber || obj.order_number;
-    obj.partyId = obj.partyId || obj.party_id;
+  if (Array.isArray(obj.mesWorkRefs)) {
+    obj.mesWorkRefs = obj.mesWorkRefs.map(normalizeEntity);
+  }
+  if (Array.isArray(obj.items)) {
+    obj.items = obj.items.map(normalizeEntity);
+  }
+  
+  // Specific legacy fixes
+  if ('invoiceType' in obj || 'invoice_type' in obj || 'type' in obj) {
+    obj.issueDate = obj.invoiceDate || obj.issueDate;
+    obj.salesOrderIds = obj.relatedOrderIds || obj.salesOrderIds || [];
+    obj.deliveryNoteIds = obj.relatedDeliveryNoteIds || obj.deliveryNoteIds || [];
+    obj.type = obj.type || obj.invoiceType;
   }
 
   return obj;

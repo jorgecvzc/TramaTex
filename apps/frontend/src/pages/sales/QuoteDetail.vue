@@ -262,75 +262,13 @@
     </FormSection>
 
     <FormSection title="Líneas del Presupuesto" icon="list_alt">
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Ref.</th>
-              <th>Producto</th>
-              <th class="text-center">Cant.</th>
-              <th class="align-right">P. Tarifa</th>
-              <th class="align-right">P. Venta</th>
-              <th class="text-center">Dto %</th>
-              <th class="align-right">Subtotal</th>
-              <th v-if="mode !== 'detail'" class="text-center">Borrar</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, idx) in (mode === 'detail' ? quote.lineItems : formData.lineItems)" :key="idx">
-              <td><code class="code-badge">{{ item.variantSku || formatVariantId(item.productVariantId || item.productVariantID) }}</code></td>
-              <td>{{ buildDisplayName(item) }}</td>
-              <td class="text-center">
-                <template v-if="mode === 'detail'">{{ item.quantity }}</template>
-                <input 
-                  v-else 
-                  v-model.number="item.quantity" 
-                  type="number" 
-                  min="1" 
-                  class="form-input-sm w-16 text-center font-bold" 
-                  :data-row="idx"
-                  data-col="qty"
-                  @keydown="handleLineKeyDown($event, idx, 'qty')"
-                />
-              </td>
-              <td class="align-right">{{ salesApi.formatMoney(mode === 'detail' ? item.listUnitPrice : { amount: item.listPrice || 0, currency: 'EUR' }) }}</td>
-              <td class="align-right">
-                <template v-if="mode === 'detail'">{{ salesApi.formatMoney(item.unitPrice) }}</template>
-                <input 
-                  v-else 
-                  v-model.number="item.unitPrice" 
-                  type="number" 
-                  step="0.01" 
-                  class="form-input-sm w-24 text-right" 
-                  :data-row="idx"
-                  data-col="price"
-                  @input="item._autoPrice = false" 
-                  @keydown="handleLineKeyDown($event, idx, 'price')"
-                />
-              </td>
-              <td class="text-center">
-                <template v-if="mode === 'detail'">{{ item.discountPercent ? item.discountPercent.toFixed(2) + '%' : '—' }}</template>
-                <input 
-                  v-else 
-                  v-model.number="item.discountPercent" 
-                  type="number" 
-                  step="0.01" 
-                  class="form-input-sm w-16 text-center" 
-                  :data-row="idx"
-                  data-col="disc"
-                  @keydown="handleLineKeyDown($event, idx, 'disc')"
-                />
-              </td>
-              <td class="align-right">
-                <strong>{{ salesApi.formatMoney(mode === 'detail' ? item.subtotal : calculateLineSubtotal(idx)) }}</strong>
-              </td>
-              <td v-if="mode !== 'detail'" class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLineItem(idx)" title="Quitar línea"><Trash2 :size="18" /></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <OrderLines
+        :lines="mode === 'detail' ? quote.lineItems : formData.lineItems"
+        :is-editing="mode !== 'detail'"
+        @update:lines="(newLines) => formData.lineItems = newLines"
+        @add-line="openVariantSelector"
+        @last-field-tab="addProductBtn?.focus()"
+      />
       <div v-if="mode !== 'detail'" class="mt-4">
         <button 
           ref="addProductBtn"
@@ -503,6 +441,7 @@ import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
@@ -640,7 +579,7 @@ function handleGlobalSave() {
 async function initComponent() {
   const id = route.params.id;
   const isCreate = id === 'new' || route.name === 'CreateQuote' || !id;
-  
+
   if (isCreate) {
     mode.value = 'create';
     resetForm();
@@ -669,7 +608,7 @@ async function fetchQuote() {
     isLoading.value = false;
     return;
   }
-  
+
   isLoading.value = true;
   error.value = '';
   try {
@@ -722,7 +661,7 @@ async function enterEditMode() {
     lineItems: (quote.value.lineItems || []).map(i => ({
       productVariantId: i.productVariantId || i.productVariantID,
       variantSku: i.variantSku,
-      displayName: buildDisplayName(i),
+      productName: buildDisplayName(i),
       quantity: i.quantity,
       listPrice: i.listUnitPrice?.amount ?? i.unitPrice?.amount ?? 0,
       unitPrice: i.unitPrice?.amount ?? i.listUnitPrice?.amount ?? 0,
@@ -752,25 +691,6 @@ function onPartySelected(party) {
   calculateTotals();
 }
 
-const { handleLineKeyDown, focusLineInput } = useLineNavigation({
-  rowCount: () => formData.lineItems.length,
-  columns: ['qty', 'price', 'disc'],
-  onUpdate: (index, col, val) => {
-    const item = formData.lineItems[index]
-    if (col === 'qty') item.quantity = val
-    else if (col === 'price') item.unitPrice = val
-    else if (col === 'disc') item.discountPercent = val
-    fetchPreviewCalculation()
-  },
-  onRemoveField: (index) => {
-    formData.lineItems.splice(index, 1)
-    fetchPreviewCalculation()
-  },
-  onLastFieldTab: () => addProductBtn.value?.focus(),
-  onLastFieldEnter: () => openVariantSelector(),
-  onAddField: () => openVariantSelector()
-});
-
 const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
   rowCount: () => formData.mesWorkRefs.length,
   columns: ['setup', 'desc'],
@@ -789,26 +709,29 @@ function handleVariantSelected(payload) {
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
-    displayName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
+    productName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
     listPrice: null,
     unitPrice: null,
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   };
-  
+
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
-  
+
   // Position focus on the quantity of the new line
   nextTick(() => {
     fetchPreviewCalculation();
     const lastIdx = formData.lineItems.length - 1
-    focusLineInput(lastIdx, 'qty')
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`)
+    if (el) {
+      el.focus()
+      el.select()
+    }
   });
 }
 
-function removeLineItem(idx) { formData.lineItems.splice(idx, 1); }
 function addMesWorkRef() { formData.mesWorkRefs.push({ workSetupId: null, description: '' }); }
 function removeMesWorkRef(idx) { formData.mesWorkRefs.splice(idx, 1); }
 
@@ -827,12 +750,12 @@ async function fetchPreviewCalculation() {
     ...(!i._autoPrice ? { unitPrice: { amount: Number(i.unitPrice || 0), currency: 'EUR' } } : {}),
     discountPercent: Number(i.discountPercent || 0) 
   }));
-  
+
   if (!partyId || !items.length) { 
     previewResult.value = null; 
     return; 
   }
-  
+
   isPreviewLoading.value = true;
   try { 
     const res = await salesApi.previewQuoteCalculation(partyId, items);
@@ -882,16 +805,6 @@ const liveTotals = computed(() => {
   if (previewResult.value && !isPreviewLoading.value) return { subtotal: previewResult.value.subtotal, taxAmount: previewResult.value.taxAmount, total: previewResult.value.total };
   return localDraftTotals.value;
 });
-
-function calculateLineSubtotal(idx) {
-  const item = formData.lineItems[idx];
-  if (!item) return 0;
-  if (previewResult.value?.lineItems) {
-    const calculated = previewResult.value.lineItems[idx];
-    if (calculated?.subtotal?.amount !== undefined) return calculated.subtotal.amount;
-  }
-  return calculateLineSubtotalLocal(item);
-}
 
 async function saveQuote() {
   if (!formData.partyId) { toastStore.error('Seleccione un cliente'); return; }

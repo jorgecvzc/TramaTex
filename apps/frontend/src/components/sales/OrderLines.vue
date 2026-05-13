@@ -6,7 +6,8 @@
           <tr>
             <th>Producto / Variante</th>
             <th class="text-center" style="width: 100px">Cant.</th>
-            <th class="text-right" style="width: 140px">Precio Unit.</th>
+            <th class="text-right" style="width: 140px">P. Tarifa</th>
+            <th class="text-right" style="width: 140px">P. Venta</th>
             <th class="text-center" style="width: 100px">Dto %</th>
             <th class="text-right" style="width: 140px">Subtotal</th>
             <th v-if="isEditing" style="width: 50px"></th>
@@ -18,8 +19,8 @@
             <td>
               <div class="product-info-cell">
                 <div class="name-with-sku">
-                  <span class="sku-label" v-if="line.variant_sku || line.variantSku">{{ line.variant_sku || line.variantSku }}</span>
-                  <span class="product-name">{{ line.product_name || line.productName || line.description }}</span>
+                  <span class="sku-label" v-if="line.variantSku">{{ line.variantSku }}</span>
+                  <span class="product-name">{{ line.productName || line.description || 'Producto' }}</span>
                 </div>
               </div>
             </td>
@@ -40,38 +41,43 @@
               <span v-else>{{ line.quantity }}</span>
             </td>
 
-            <!-- Precio Unitario -->
+            <!-- Precio Tarifa -->
+            <td class="text-right">
+              <span class="text-muted">{{ formatMoney(line.listUnitPrice || line.listPrice) }}</span>
+            </td>
+
+            <!-- Precio Venta -->
             <td class="text-right">
               <input 
                 v-if="isEditing" 
-                :value="line.unit_price" 
+                :value="line.unitPrice" 
                 type="number" 
                 step="0.01" 
                 class="form-input text-right" 
                 :data-row="index"
-                data-col="unit_price"
-                @input="updateLineField(index, 'unit_price', $event.target.value)" 
-                @keydown="handleLineKeyDown($event, index, 'unit_price', line)"
+                data-col="unitPrice"
+                @input="onManualPriceChange(index, $event.target.value)" 
+                @keydown="handleLineKeyDown($event, index, 'unitPrice', line)"
               />
-              <span v-else>{{ formatMoney(line.unit_price || line.unitPrice) }}</span>
+              <span v-else>{{ formatMoney(line.unitPrice) }}</span>
             </td>
 
             <!-- Descuento -->
             <td class="text-center">
               <input 
                 v-if="isEditing" 
-                :value="line.discount_percent" 
+                :value="line.discountPercent" 
                 type="number" 
                 step="0.01" 
                 class="form-input text-center" 
                 min="0" 
                 max="100" 
                 :data-row="index"
-                data-col="discount_percent"
-                @input="updateLineField(index, 'discount_percent', $event.target.value)" 
-                @keydown="handleLineKeyDown($event, index, 'discount_percent', line)"
+                data-col="discountPercent"
+                @input="updateLineField(index, 'discountPercent', $event.target.value)" 
+                @keydown="handleLineKeyDown($event, index, 'discountPercent', line)"
               />
-              <span v-else>{{ line.discount_percent || line.discountPercent || 0 }}%</span>
+              <span v-else>{{ line.discountPercent || 0 }}%</span>
             </td>
 
             <!-- Subtotal -->
@@ -111,7 +117,7 @@ const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
 
 const { handleLineKeyDown } = useLineNavigation({
   rowCount: () => props.lines.length,
-  columns: ['quantity', 'unit_price', 'discount_percent'],
+  columns: ['quantity', 'unitPrice', 'discountPercent'],
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
   onLastFieldTab: () => emit('last-field-tab'),
@@ -135,6 +141,20 @@ function updateLineField(index, field, value) {
   emit('update:lines', newLines)
 }
 
+function onManualPriceChange(index, value) {
+  const newLines = props.lines.map((line, i) => {
+    if (i === index) {
+      return { 
+        ...line, 
+        unitPrice: value === '' ? 0 : Number(value),
+        _autoPrice: false // Mark as manual override
+      }
+    }
+    return { ...line }
+  })
+  emit('update:lines', newLines)
+}
+
 function calculateSubtotal(line) {
   // Si ya tenemos el subtotal calculado por el backend (modo detalle), lo usamos.
   if (!props.isEditing && line.subtotal !== undefined) {
@@ -143,9 +163,9 @@ function calculateSubtotal(line) {
   
   // En modo edición o si no hay subtotal, calculamos localmente.
   // Usamos ?? en lugar de || para que el 0 no sea ignorado.
-  const price = Number(line.unit_price ?? line.unitPrice ?? 0)
+  const price = Number(line.unitPrice ?? 0)
   const qty = Number(line.quantity ?? 0)
-  const disc = Number(line.discount_percent ?? line.discountPercent ?? 0)
+  const disc = Number(line.discountPercent ?? 0)
   return (price * qty) * (1 - disc / 100)
 }
 

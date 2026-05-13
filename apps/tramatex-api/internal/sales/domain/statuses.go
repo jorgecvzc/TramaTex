@@ -150,7 +150,7 @@ func canTransitionInvoice(from InvoiceStatus, to InvoiceStatus) bool {
 	}
 	switch from {
 	case InvoiceStatusDraft:
-		return to == InvoiceStatusIssued || to == InvoiceStatusPaid || to == InvoiceStatusVoid
+		return to == InvoiceStatusIssued || to == InvoiceStatusVoid
 	case InvoiceStatusIssued:
 		return to == InvoiceStatusPaid || to == InvoiceStatusOverdue || to == InvoiceStatusVoid
 	case InvoiceStatusOverdue:
