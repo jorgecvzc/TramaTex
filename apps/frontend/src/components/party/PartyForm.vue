@@ -8,9 +8,12 @@ import { useToastStore } from '@/stores/toast'
 interface Props {
   partyId?: string
   initialData?: any
+  showActions?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showActions: true
+})
 const emit = defineEmits(['submit', 'update', 'cancel'])
 
 const toastStore = useToastStore()
@@ -363,7 +366,7 @@ watch(() => formData.type, (newType) => {
       </FormSection>
     </div>
 
-    <div class="form-actions mt-8">
+    <div v-if="props.showActions" class="form-actions mt-8">
       <button type="button" class="btn btn-outline" @click="resetForm">
         <RotateCcw :size="18" />
         <span>Reiniciar</span>

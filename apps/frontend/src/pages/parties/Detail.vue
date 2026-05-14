@@ -31,8 +31,10 @@
               <button class="btn btn-outline" @click="exitEditMode" :disabled="isSaving">
                 Cancelar
               </button>
-              <!-- Nota: El botón de guardado real está dentro del componente PartyForm para mayor cohesión, 
-                   pero podríamos disparar el evento tramatex-save desde aquí si quisiéramos. -->
+              <button class="btn btn-success ml-2" @click="triggerSave" :disabled="isSaving">
+                <Save :size="18" />
+                <span>{{ mode === 'create' ? 'Crear Entidad' : 'Guardar Cambios' }}</span>
+              </button>
             </div>
           </template>
         </BasePageHeader>
@@ -124,6 +126,7 @@
             v-if="mode !== 'detail'"
             :party-id="mode === 'edit' ? party?.id : undefined" 
             :initial-data="mode === 'edit' ? party : undefined" 
+            :show-actions="false"
             @submit="(p) => router.push(`/parties/${p.id}`)"
             @update="loadData"
             @cancel="exitEditMode"
@@ -268,6 +271,10 @@ function enterEditMode() {
 function exitEditMode() {
   if (mode.value === 'edit') mode.value = 'detail'
   else router.push('/parties')
+}
+
+function triggerSave() {
+  window.dispatchEvent(new CustomEvent('tramatex-save'))
 }
 
 function promptDelete() { confirmDelete.show = true }
