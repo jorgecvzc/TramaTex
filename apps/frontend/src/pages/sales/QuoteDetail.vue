@@ -70,7 +70,12 @@
           <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="promptIssueQuote">
             <Send :size="16" /> <span>Emitir a Cliente</span>
           </button>
-          <button v-if="['EMITIDA', 'ISSUED', 'APROBADA', 'APPROVED', 'ACCEPTED'].includes(quote.status) && !isExpired && !quote.generatedOrderId" class="btn btn-success btn-sm" @click="showConvertModal = true">
+          <!-- Robust check for conversion button -->
+          <button 
+            v-if="['ISSUED', 'EMITIDA', 'APPROVED', 'APROBADA', 'ACCEPTED'].includes(quote.status?.toUpperCase()) && !quote.generatedOrderId" 
+            class="btn btn-success btn-sm" 
+            @click="showConvertModal = true"
+          >
             <ShoppingCart :size="16" /> <span>Convertir a Pedido</span>
           </button>
           <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="promptRejectQuote">

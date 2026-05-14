@@ -4,7 +4,10 @@
 # SESIONES ABIERTAS
 ---
 
-_No hay sesiones abiertas actualmente._
+## 📅 2026-05-13 — Estabilización Global de UI y Flujos
+*   **Contexto:** Cierre de issues pendientes en Sales, estandarización de UI en Parties y refactorización final de componentes.
+*   **Estado:** En curso (Rama: `fix/sales-order-detail-blank-screen-and-conversion-flow`).
+*   **Análisis detallado:** [docs/log/analysis/2026-05-13-global-ui-stabilization.md](docs/log/analysis/2026-05-13-global-ui-stabilization.md)
 
 ---
 # REGISTRO DE SESIONES CERRADAS

@@ -48,6 +48,7 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
     'order_date': 'orderDate',
     'quote_date': 'quoteDate',
     'delivery_date': 'deliveryDate',
+    'expiration_date': 'expirationDate',
     'line_items': 'lineItems',
     'mes_work_refs': 'mesWorkRefs',
     'tax_id': 'taxId',
@@ -63,7 +64,10 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
     'variant_sku': 'variantSku',
     'product_name': 'productName',
     'work_setup_id': 'workSetupId',
-    'work_order_id': 'workOrderId'
+    'work_order_id': 'workOrderId',
+    'subtotal_amount': 'subtotal', // Handle variations
+    'tax_amount': 'taxAmount',
+    'total_amount': 'total'
   };
 
   Object.entries(snakeToCamelMap).forEach(([snake, camel]) => {
@@ -71,6 +75,11 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
       (obj as any)[camel] = obj[snake];
     }
   });
+
+  // Ensure status is normalized to uppercase for consistent UI logic
+  if (obj.status && typeof obj.status === 'string') {
+    obj.status = normalizeSalesStatus(obj.status);
+  }
 
   // Deep normalization for items/refs
   if (Array.isArray(obj.lineItems)) {

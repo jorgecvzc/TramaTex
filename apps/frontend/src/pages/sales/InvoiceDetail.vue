@@ -1,17 +1,22 @@
 <template>
-  <BaseEntityPage :is-loading="isLoading" :error="error" class="no-print" @refresh="fetchInvoice">
+  <BaseEntityPage 
+    :is-loading="isLoading" 
+    :error="error" 
+    class="no-print" 
+    @refresh="fetchInvoice"
+  >
     <!-- 1. IDENTITY HEADER -->
     <template #header>
       <BasePageHeader 
-        :title="mode === 'edit' ? `Editando Factura ${invoice?.invoiceNumber}` : `Factura ${invoice?.invoiceNumber}`" 
+        :title="mode === 'edit' ? `Editando Factura ${invoice?.invoiceNumber}` : `Factura ${invoice?.invoiceNumber || 'Detalle'}`" 
         :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice?.invoiceNumber || 'Detalle' }]"
         show-back
       >
         <template #icon>
           <Receipt :size="28" />
         </template>
-        <template #actions>
-          <template v-if="mode === 'detail' && invoice">
+        <template #actions v-if="invoice">
+          <template v-if="mode === 'detail'">
             <button class="btn btn-outline btn-sm" @click="printInvoice">
               <Printer :size="16" /> <span>Imprimir</span>
             </button>
@@ -27,13 +32,13 @@
           <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
             {{ salesApi.getStatusLabel(invoice.status) }}
           </span>
-          <span :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
-            {{ getTypeLabel(invoice.type) }}
+          <span v-if="invoice.invoiceType" :class="['type-badge-inline', `type-${invoice.invoiceType.toLowerCase()}`]">
+            {{ getTypeLabel(invoice.invoiceType) }}
           </span>
         </div>
         <div class="toolbar-buttons">
           <button
-            v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status)"
+            v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status?.toUpperCase())"
             class="btn btn-success btn-sm"
             @click="markAsPaid"
             :disabled="isChangingStatus || !canManageInvoiceStatus"
@@ -61,11 +66,11 @@
       <div class="overview-tags-row">
         <div class="summary-tag">
           <div class="icon blue"><User :size="20" /></div>
-          <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
+          <div class="tag-content"><label>Cliente</label><strong>{{ partyName || 'Cargando...' }}</strong></div>
         </div>
         <div class="summary-tag">
           <div class="icon yellow"><Calendar :size="20" /></div>
-          <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate) }}</strong></div>
+          <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate || invoice.invoiceDate) }}</strong></div>
         </div>
         <div class="summary-tag">
           <div class="icon purple"><CalendarOff :size="20" /></div>
@@ -82,7 +87,7 @@
     </template>
 
     <!-- 4. RELATED -->
-    <template #related v-if="mode === 'detail' && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
+    <template #related v-if="mode === 'detail' && invoice && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
       <div class="related-history-grid">
         <router-link v-for="order in relatedOrders" :key="order.id" :to="`/sales/orders/${order.id}`" class="related-tag-card highlight-info">
           <div class="tag-icon"><ShoppingCart :size="20" /></div>
@@ -105,19 +110,19 @@
     </template>
 
     <!-- 5. MAIN CONTENT -->
-    <div v-if="invoice" ref="invoiceContentRef">
-      <FormSection title="Identificación del Cliente" :icon="User">
-        <DataRow label="Nombre del Cliente" :value="partyName" :icon="User" />
+    <div v-if="invoice">
+      <FormSection title="Identificación del Cliente" icon="person">
+        <DataRow label="Nombre del Cliente" :value="partyName" icon="person" />
         <DataRow v-if="invoice.taxId" label="NIF/CIF" :value="invoice.taxId" is-mono />
         <DataRow label="ID de Cliente" :value="invoice.partyId" is-mono />
       </FormSection>
 
-      <FormSection title="Condiciones y Notas" :icon="FileText">
+      <FormSection title="Condiciones y Notas" icon="description">
         <div v-if="mode === 'detail'">
-          <DataRow v-if="invoice.paymentTerms" label="Condiciones de Pago" :icon="CreditCard">
+          <DataRow v-if="invoice.paymentTerms" label="Condiciones de Pago" icon="payments">
             <p class="notes-text">{{ invoice.paymentTerms }}</p>
           </DataRow>
-          <DataRow v-if="invoice.notes" label="Observaciones" :icon="FileText">
+          <DataRow v-if="invoice.notes" label="Observaciones" icon="notes">
             <p class="notes-text">{{ invoice.notes }}</p>
           </DataRow>
         </div>
@@ -137,11 +142,11 @@
         </div>
       </FormSection>
 
-      <FormSection title="Líneas de la Factura" :icon="List">
+      <FormSection title="Líneas de la Factura" icon="list_alt">
         <OrderLines :lines="invoice.lineItems" :is-editing="false" />
       </FormSection>
 
-      <FormSection title="Resumen Económico" :icon="CreditCard">
+      <FormSection title="Resumen Económico" icon="payments">
         <div class="totals-summary-container">
           <section class="totals-summary-card">
             <div class="summary-row">
@@ -190,7 +195,7 @@
       v-if="invoice"
       type="INVOICE"
       :number="invoice.invoiceNumber"
-      :date="invoice.issueDate"
+      :date="invoice.issueDate || invoice.invoiceDate"
       :customer-name="partyName"
       :customer-tax-id="invoice.taxId"
       :items="invoice.lineItems"
@@ -242,9 +247,7 @@ import {
   ExternalLink, 
   CheckCircle, 
   X, 
-  Mail,
-  FileText,
-  List
+  Mail 
 } from 'lucide-vue-next';
 
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
@@ -330,13 +333,17 @@ function handleGlobalSave() {
 
 async function fetchInvoice() {
   const invoiceId = route.params.id;
+  if (!invoiceId) return;
+
   isLoading.value = true;
   error.value = '';
   try {
     invoice.value = await salesApi.getInvoice(invoiceId);
+    if (!invoice.value) throw new Error('Factura no encontrada');
     await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
   } catch (err) {
     error.value = err?.message || 'Error al cargar factura';
+    console.error('fetchInvoice error:', err);
   } finally {
     isLoading.value = false;
   }
@@ -346,12 +353,12 @@ async function loadPartyName() {
   if (!invoice.value?.partyId) return;
   try {
     const party = await partyApi.getParty(invoice.value.partyId);
-    partyName.value = party.name || 'Sin nombre';
+    partyName.value = party.name || party.displayName || 'Sin nombre';
   } catch { partyName.value = 'Desconocido'; }
 }
 
 async function loadRelatedOrders() {
-  const ids = invoice.value?.salesOrderIds;
+  const ids = invoice.value?.salesOrderIds || invoice.value?.relatedOrderIds;
   if (!ids?.length) {
     relatedOrders.value = [];
     return;
@@ -360,7 +367,7 @@ async function loadRelatedOrders() {
 }
 
 async function loadRelatedDeliveryNotes() {
-  const ids = invoice.value?.deliveryNoteIds;
+  const ids = invoice.value?.deliveryNoteIds || invoice.value?.relatedDeliveryNoteIds;
   if (!ids?.length) {
     relatedDeliveryNotes.value = [];
     return;
@@ -380,7 +387,7 @@ async function saveInvoice() {
   isSaving.value = true;
   try {
     const payload = {
-      dueDate: new Date(formData.dueDate).toISOString(),
+      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
       paymentTerms: formData.paymentTerms,
       notes: formData.notes
     };
@@ -397,7 +404,7 @@ async function saveInvoice() {
 function markAsPaid() {
   statusConfirmTitle.value = 'Registrar Cobro';
   statusConfirmMessage.value = '¿Desea marcar esta factura como <strong>PAGADA</strong>?';
-  statusConfirmIcon.value = 'payments';
+  statusConfirmIcon.value = CreditCard;
   statusConfirmText.value = 'Confirmar Cobro';
   statusConfirmClass.value = 'btn-success';
   pendingStatus.value = 'PAID';
@@ -409,11 +416,9 @@ async function executeStatusChange() {
   try {
     const invoiceId = invoice.value.id;
     const requestedStatus = pendingStatus.value;
-    invoice.value = await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
+    await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
 
-    // Always rehydrate from GET to keep related entities and enriched fields in sync.
-    invoice.value = await salesApi.getInvoice(invoiceId);
-    await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
+    await fetchInvoice();
     showStatusConfirm.value = false;
     if (requestedStatus === 'ISSUED') {
       showPostIssueModal.value = true;
@@ -431,11 +436,8 @@ async function executeStatusChange() {
 }
 
 function printInvoice() { window.print(); }
-
 function postIssuePrint() { showPostIssueModal.value = false; window.print(); }
 async function postIssueEmail() { showPostIssueModal.value = false; await generateInvoicePdf(); openMailClient(); }
-
-const invoiceContentRef = ref(null);
 
 async function generateInvoicePdf() {
   const { default: html2pdf } = await import('html2pdf.js');
