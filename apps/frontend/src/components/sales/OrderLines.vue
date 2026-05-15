@@ -5,11 +5,11 @@
         <thead>
           <tr>
             <th>Producto / Variante</th>
-            <th class="text-center" style="width: 100px">Cant.</th>
-            <th class="text-right" style="width: 140px">P. Tarifa</th>
-            <th class="text-right" style="width: 140px">P. Venta</th>
-            <th class="text-center" style="width: 100px">Dto %</th>
-            <th class="text-right" style="width: 140px">Subtotal</th>
+            <th class="text-center" style="width: 100px">{{ props.quantityLabel }}</th>
+            <th v-if="props.showPrices" class="text-right" style="width: 140px">P. Tarifa</th>
+            <th v-if="props.showPrices" class="text-right" style="width: 140px">P. Venta</th>
+            <th v-if="props.showPrices" class="text-center" style="width: 100px">Dto %</th>
+            <th v-if="props.showTotal" class="text-right" style="width: 140px">Subtotal</th>
             <th v-if="isEditing" style="width: 50px"></th>
           </tr>
         </thead>
@@ -42,12 +42,12 @@
             </td>
 
             <!-- Precio Tarifa -->
-            <td class="text-right">
+            <td v-if="props.showPrices" class="text-right">
               <span class="text-muted">{{ formatMoney(line.listUnitPrice || line.listPrice) }}</span>
             </td>
 
             <!-- Precio Venta -->
-            <td class="text-right">
+            <td v-if="props.showPrices" class="text-right">
               <input 
                 v-if="isEditing" 
                 :value="line.unitPrice" 
@@ -63,7 +63,7 @@
             </td>
 
             <!-- Descuento -->
-            <td class="text-center">
+            <td v-if="props.showPrices" class="text-center">
               <input 
                 v-if="isEditing" 
                 :value="line.discountPercent" 
@@ -81,7 +81,7 @@
             </td>
 
             <!-- Subtotal -->
-            <td class="text-right">
+            <td v-if="props.showTotal" class="text-right">
               <strong class="text-primary">{{ formatMoney(calculateSubtotal(line)) }}</strong>
             </td>
 
@@ -110,14 +110,26 @@ import salesApi from '@/services/salesApi'
 
 const props = defineProps({
   lines: { type: Array, default: () => [] },
-  isEditing: { type: Boolean, default: false }
+  isEditing: { type: Boolean, default: false },
+  showPrices: { type: Boolean, default: true },
+  showTotal: { type: Boolean, default: true },
+  quantityLabel: { type: String, default: 'Cant.' }
 })
 
 const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
 
+const columns = computed(() => {
+  const cols = ['quantity']
+  if (props.showPrices) {
+    cols.push('unitPrice')
+    cols.push('discountPercent')
+  }
+  return cols
+})
+
 const { handleLineKeyDown } = useLineNavigation({
   rowCount: () => props.lines.length,
-  columns: ['quantity', 'unitPrice', 'discountPercent'],
+  columns: columns.value,
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
   onLastFieldTab: () => emit('last-field-tab'),

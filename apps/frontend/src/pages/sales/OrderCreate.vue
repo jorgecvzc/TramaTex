@@ -76,98 +76,26 @@
                 <List :size="20" />
                 <h2>Líneas de Producto</h2>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
-                <Plus :size="16" /> Añadir Producto
-              </button>
             </div>
 
-            <div class="table-wrapper">
-              <table class="data-table compact">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th style="min-width: 300px">Referencia / Descripción</th>
-                    <th class="text-center">Cantidad</th>
-                    <th class="align-right">P. Ud.</th>
-                    <th class="text-center">Dto %</th>
-                    <th class="align-right">Subtotal</th>
-                    <th class="text-center"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in formData.lineItems" :key="index" class="row-hover">
-                    <td class="text-muted">{{ index + 1 }}</td>
-                    <td>
-                      <div class="variant-search-cell">
-                        <div v-if="!item.productVariantId" class="input-with-icon">
-                          <ScanBarcode :size="18" />
-                          <input 
-                            v-model="item.quickSearchQuery" 
-                            type="text" 
-                            placeholder="SKU o escáner..." 
-                            @keyup.enter="inlineSmartSearch(index)" 
-                          />
-                          <button class="btn-inside" @click="openVariantSelector(index)">
-                            <Search :size="18" />
-                          </button>
-                        </div>
-                        <div v-else class="variant-active-tag" @click="clearLineVariant(index)">
-                          <code class="sku">{{ item.selectedVariantName }}</code>
-                          <span class="name">{{ buildDisplayName(item) }}</span>
-                          <X :size="16" class="remove-icon" />
-                        </div>
-                      </div>
-                    </td>
-                    <td class="text-center">
-                      <input 
-                        v-model.number="item.quantity" 
-                        type="number" 
-                        min="1" 
-                        class="qty-input" 
-                        :data-row="index"
-                        data-col="qty"
-                        @input="calculateTotals" 
-                        @keydown="handleLineKeyDown($event, index, 'qty', item)"
-                      />
-                    </td>
-                    <td class="align-right">
-                      <input 
-                        v-model.number="item.unitPrice" 
-                        type="number" 
-                        step="0.01" 
-                        class="price-input" 
-                        :data-row="index"
-                        data-col="price"
-                        @input="calculateTotals" 
-                        @keydown="handleLineKeyDown($event, index, 'price', item)"
-                      />
-                    </td>
-                    <td class="text-center">
-                      <input 
-                        v-model.number="item.discountPercent" 
-                        type="number" 
-                        step="0.01" 
-                        class="qty-input" 
-                        :data-row="index"
-                        data-col="disc"
-                        @input="calculateTotals" 
-                        @keydown="handleLineKeyDown($event, index, 'disc', item)"
-                      />
-                    </td>
-                    <td class="align-right">
-                      <strong class="subtotal-text">{{ formatMoney(calculateLineSubtotal(index)) }}</strong>
-                    </td>
-                    <td class="text-center">
-                      <button type="button" class="btn-icon text-danger" @click="removeLineItem(index)">
-                        <Trash2 :size="18" />
-                      </button>
-                    </td>
-                  </tr>
-                  <tr v-if="formData.lineItems.length === 0">
-                    <td colspan="7" class="empty-row">Pulse "Añadir Producto" para comenzar la carga.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="p-4">
+              <OrderLines
+                :lines="formData.lineItems"
+                :is-editing="true"
+                @update:lines="(newLines) => formData.lineItems = newLines"
+                @add-line="handleAddLineRequest"
+                @last-field-tab="focusAddButton"
+              />
+              <div class="mt-4">
+                <button 
+                  ref="addProductBtnRef"
+                  type="button" 
+                  class="btn btn-secondary btn-sm" 
+                  @click="handleAddLineRequest"
+                >
+                  <Plus :size="16" /> Añadir Producto (Ins)
+                </button>
+              </div>
             </div>
           </section>
         </div>
@@ -271,6 +199,7 @@ import {
 } from 'lucide-vue-next';
 import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
 import { useLineNavigation } from '@/composables/useLineNavigation';

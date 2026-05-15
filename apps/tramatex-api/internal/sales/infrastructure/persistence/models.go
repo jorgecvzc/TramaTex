@@ -244,11 +244,11 @@ func normalizeInvoiceStatus(raw string) domain.InvoiceStatus {
 	switch u {
 	case "BORRADOR":
 		return domain.InvoiceStatusDraft
-	case "EMITIDA", "EMITIDO":
+	case "EMITIDA", "EMITIDO", "SENT", "ENVIADO", "ENVIADA":
 		return domain.InvoiceStatusIssued
-	case "PAGADA", "PAGADO":
+	case "PAGADA", "PAGADO", "COBRADO", "COBRADA":
 		return domain.InvoiceStatusPaid
-	case "VENCIDA", "VENCIDO":
+	case "VENCIDA", "VENCIDO", "CADUCADO", "CADUCADA":
 		return domain.InvoiceStatusOverdue
 	case "ANULADA", "ANULADO":
 		return domain.InvoiceStatusVoid

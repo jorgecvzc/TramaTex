@@ -464,14 +464,15 @@
       <PrintDocument
         v-if="order"
         type="ORDER"
-        :number="order.order_number || order.orderNumber"
-        :date="order.order_date || order.orderDate"
-        :customer-name="order.party_name || order.partyName"
-        :customer-tax-id="order.tax_id || order.taxId"
-        :items="order.line_items || order.lineItems"
-        :totals="{ subtotal: subtotal, taxAmount: taxAmount, total: totalAmount }"
+        :number="order.orderNumber"
+        :date="order.orderDate"
+        :customer-name="order.partyName"
+        :customer-tax-id="order.taxId"
+        :items="order.lineItems"
+        :totals="{ subtotal: order.subtotal, taxAmount: order.taxAmount, total: order.total }"
         :notes="order.notes"
       />
+
     </div>
   </BaseEntityPage>
 </template>

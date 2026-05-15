@@ -97,81 +97,22 @@
     </FormSection>
 
     <!-- Section: Line Items -->
-    <FormSection title="Detalle de Líneas" icon="list_alt" description="Añade los productos o servicios que componen el presupuesto.">
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Producto / Variante</th>
-              <th class="text-center">Cant.</th>
-              <th class="align-right">P. Unitario</th>
-              <th class="text-center">Dto %</th>
-              <th class="align-right">Subtotal</th>
-              <th class="text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in formData.lineItems" :key="index">
-              <td>
-                <div v-if="!item.productVariantId" class="input-with-action">
-                  <input v-model="item.quickSearch" type="text" class="form-input-sm" placeholder="SKU o nombre..." @keyup.enter="openVariantSelector(index)" />
-                  <button type="button" class="btn btn-outline btn-sm" @click="openVariantSelector(index)"><Search :size="16" /></button>
-                </div>
-                <div v-else class="selected-item-tag" @click="clearLine(index)">
-                  <strong>{{ item.variantSku }}</strong> <span>{{ item.displayName }}</span>
-                  <X :size="16" />
-                </div>
-              </td>
-              <td class="text-center">
-                <input 
-                  v-model.number="item.quantity" 
-                  type="number" 
-                  min="1" 
-                  class="form-input-sm w-16" 
-                  :data-row="index"
-                  data-col="qty"
-                  @input="calculateTotals" 
-                  @keydown="handleLineKeyDown($event, index, 'qty', item)"
-                />
-              </td>
-              <td class="align-right">
-                <input 
-                  v-model.number="item.unitPrice" 
-                  type="number" 
-                  step="0.01" 
-                  class="form-input-sm w-24 text-right" 
-                  :data-row="index"
-                  data-col="price"
-                  @input="calculateTotals" 
-                  @keydown="handleLineKeyDown($event, index, 'price', item)"
-                />
-              </td>
-              <td class="text-center">
-                <input 
-                  v-model.number="item.discountPercent" 
-                  type="number" 
-                  step="0.01" 
-                  class="form-input-sm w-16 text-center" 
-                  :data-row="index"
-                  data-col="disc"
-                  @input="calculateTotals" 
-                  @keydown="handleLineKeyDown($event, index, 'disc', item)"
-                />
-              </td>
-              <td class="align-right"><strong>{{ formatMoney(calculateLineSubtotal(index)) }}</strong></td>
-              <td class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLine(index)"><Trash2 :size="18" /></button>
-              </td>
-            </tr>
-            <tr v-if="formData.lineItems.length === 0">
-              <td colspan="6" class="empty-row">Pulse el botón para añadir productos al presupuesto.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <FormSection title="Detalle de Líneas" icon="List" description="Añade los productos o servicios que componen el presupuesto.">
+      <OrderLines
+        :lines="formData.lineItems"
+        :is-editing="true"
+        @update:lines="(newLines) => formData.lineItems = newLines"
+        @add-line="openVariantSelector"
+        @last-field-tab="addProductBtn?.focus()"
+      />
       <div class="mt-4">
-        <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
-          <Plus :size="16" /> Añadir Producto
+        <button 
+          ref="addProductBtn"
+          type="button" 
+          class="btn btn-secondary btn-sm" 
+          @click="openVariantSelector"
+        >
+          <Plus :size="16" /> Añadir Producto (Ins)
         </button>
       </div>
     </FormSection>
@@ -219,6 +160,7 @@ import { Search, X, Trash2, Plus, Package } from 'lucide-vue-next';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
 import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
@@ -235,24 +177,6 @@ const formData = reactive({
   notes: '',
   lineItems: [],
   mesWorkRefs: []
-});
-
-const { handleLineKeyDown, focusLineInput } = useLineNavigation({
-  rowCount: () => formData.lineItems.length,
-  columns: ['qty', 'price', 'disc'],
-  onUpdate: (index, col, val) => {
-    const item = formData.lineItems[index];
-    if (col === 'qty') item.quantity = val;
-    else if (col === 'price') item.unitPrice = val;
-    else if (col === 'disc') item.discountPercent = val;
-    calculateTotals();
-  },
-  onRemoveField: (index) => {
-    formData.lineItems.splice(index, 1);
-    calculateTotals();
-  },
-  onLastFieldEnter: () => addLineItem(),
-  onAddField: () => addLineItem()
 });
 
 const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({

@@ -88,6 +88,83 @@ test.describe('Sales Stabilization Phase 1: Quotes and Invoices', () => {
     await expect(page.locator('text=¿Está seguro de que desea convertir este presupuesto')).toBeVisible()
   })
 
+  test('Verify "Convertir a Pedido" button appears for EMITIDO (masculine) quotes', async () => {
+    const quoteId = 'quote-emitido-123'
+    
+    // Mock quote with masculine Spanish status
+    await page.route(`**/api/sales/quotes/${quoteId}`, async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: quoteId,
+          quoteNumber: 'PRE-2026-002',
+          status: 'EMITIDO', 
+          partyId: 'party-123',
+          quoteDate: '2026-05-10T10:00:00Z',
+          expirationDate: '2026-06-10T10:00:00Z',
+          subtotal: { amount: 1000, currency: 'EUR' },
+          taxAmount: { amount: 210, currency: 'EUR' },
+          total: { amount: 1210, currency: 'EUR' },
+          lineItems: [],
+          mesWorkRefs: []
+        })
+      })
+    })
+
+    await page.goto(`${BASE_URL}/sales/quotes/${quoteId}`)
+
+    // Check for the conversion button - should be visible due to normalization
+    const convertButton = page.locator('button:has-text("Convertir a Pedido")')
+    await expect(convertButton).toBeVisible()
+  })
+
+  test('Verify Invoice payment transition flow', async () => {
+    const invoiceId = 'invoice-pay-123'
+    
+    await page.route(`**/api/sales/invoices/${invoiceId}`, async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: invoiceId,
+          invoiceNumber: 'FAC-PAY-001',
+          status: 'ISSUED',
+          partyId: 'party-123',
+          total: { amount: 100, currency: 'EUR' },
+          lineItems: []
+        })
+      })
+    })
+
+    // Mock the status update API call
+    let statusUpdated = false
+    await page.route(`**/api/sales/invoices/${invoiceId}/status`, async route => {
+      const postData = route.request().postDataJSON()
+      if (postData.newStatus === 'PAID') {
+        statusUpdated = true
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: invoiceId, status: 'PAID' })
+      })
+    })
+
+    await page.goto(`${BASE_URL}/sales/invoices/${invoiceId}`)
+
+    const payButton = page.locator('button:has-text("Registrar Cobro")')
+    await expect(payButton).toBeVisible()
+    
+    await payButton.click()
+    
+    // Confirm in the prompt
+    await expect(page.locator('text=¿Desea marcar esta factura como PAGADA?')).toBeVisible()
+    await page.locator('button.btn-success:has-text("Confirmar Cobro")').click()
+    
+    expect(statusUpdated).toBe(true)
+  })
+
   test('Verify InvoiceDetail.vue loads correctly with camelCase fields', async () => {
     const invoiceId = 'invoice-123'
     

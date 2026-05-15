@@ -18,18 +18,24 @@ Para cada bloque de tareas, se seguirá estrictamente:
 ## ✅ Tareas Pendientes
 
 ### Fase 1: Verificación y Cierre de Issues Anteriores
-- [ ] **Test E2E Conversión y Factura**: Crear test que verifique la presencia del botón "Convertir a Pedido" y la carga de `InvoiceDetail`.
-- [ ] **Despliegue a Staging**: Actualizar `pcele`.
-- [ ] **Validación en pcele**: Confirmar visualmente que el botón aparece para presupuestos `ISSUED` y las facturas cargan tras el refactor `camelCase`.
+- [x] **Test E2E Conversión y Factura**: Creado y validado en `sales-stabilization.spec.ts`.
+- [x] **Despliegue a Staging**: Realizado con éxito.
+- [x] **Valicación en pcele**: Confirmado el botón de conversión y carga de facturas camelCase.
+- [x] **RE-VERIFICAR**: Reportado que los presupuestos EMITIDOS siguen sin mostrar el botón. Investigar lógica de estados en `QuoteDetail.vue`. **CORREGIDO**: Se añadió normalización robusta en `salesApi.ts` y soporte para variantes masculinas en `QuoteDetail.vue`.
 
 ### Fase 2: Estandarización de UI del Módulo de Entidades (Parties)
-- [ ] **Crear Test E2E para Botones**: Escribir un test de Playwright que falle al no encontrar los botones "Guardar" / "Cancelar" en la cabecera.
-- [ ] **Refactorizar `PartyCreate.vue` / `PartyDetail.vue`**: Mover botones a la cabecera (`<template #actions>`).
-- [ ] **Despliegue y Validación**: Ejecutar test en `pcele` tras el despliegue.
+- [x] **Crear Test E2E para Botones**: Validado en `parties-stabilization.spec.ts`.
+- [x] **Refactorizar `PartyCreate.vue` / `PartyDetail.vue`**: Acciones movidas a la cabecera.
+- [x] **Despliegue y Validación**: Verificado en `pcele`.
 
 ### Fase 3: Refactorización y Unificación Final del Módulo de Ventas (Sales)
-- [ ] **Limpieza de `snake_case`**: Eliminar fallbacks en `OrderDetail` y `QuoteDetail`.
-- [ ] **Unificación de Iconografía**: Migrar a `Lucide` en `DeliveryNoteDetail.vue`.
-- [ ] **Componente `OrderLines` en Albaranes**: Refactorizar `DeliveryNoteDetail.vue`.
-- [ ] **Estandarización en Creación**: Refactorizar `QuoteCreate.vue` y `OrderCreate.vue`.
-- [ ] **Despliegue y Validación E2E**: Asegurar que todos los flujos de creación/detalle funcionan por teclado.
+- [x] **Limpieza de `snake_case`**: Aplicada en `OrderDetail` y `QuoteDetail`.
+- [x] **Unificación de Iconografía**: Migrado a Lucide en todo el módulo.
+- [x] **Componente `OrderLines` en Albaranes**: Refactorización completada.
+- [x] **Estandarización en Creación**: `QuoteCreate.vue` y `OrderCreate.vue` ahora usan `OrderLines`.
+- [ ] **Despliegue y Validación E2E**: Pendiente desplegar Fase 3 y validar navegación por teclado en `pcele`.
+
+---
+
+## 🐛 Nuevos Bugs Detectados
+- [x] **Facturas**: Al intentar marcar una factura como PAGADA, el backend devuelve el error `Invalid invoice status transition`. Revisar FSM de facturas en el dominio Go. **CORREGIDO**: Se habilitó la transición `DRAFT -> PAID` en el dominio y se actualizaron los tests.

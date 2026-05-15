@@ -104,24 +104,36 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
 }
 
 function normalizeSalesStatus(status: string): string {
-  const key = String(status || '').trim().toUpperCase()
+  const key = String(status || "").trim().toUpperCase();
   const statusMap: Record<string, string> = {
-    PENDIENTE: 'PENDING',
-    BORRADOR: 'DRAFT',
-    EMITIDA: 'ISSUED',
-    PAGADA: 'PAID',
-    CANCELADO: 'CANCELLED',
-    CANCELADA: 'CANCELLED',
-    ENTREGADO: 'DELIVERED',
-    ENTREGADA: 'DELIVERED',
-    FACTURADO: 'INVOICED',
-    FACTURADA: 'INVOICED',
-    PREPARACION: 'IN_PREPARATION',
-    EN_PREPARACION: 'IN_PREPARATION',
-    EN_PREPARACIÓN: 'IN_PREPARATION',
-  }
+    PENDIENTE: "PENDING",
+    BORRADOR: "DRAFT",
+    EMITIDA: "ISSUED",
+    EMITIDO: "ISSUED",
+    SENT: "ISSUED",
+    ENVIADO: "ISSUED",
+    ENVIADA: "ISSUED",
+    APROBADO: "APPROVED",
+    APROBADA: "APPROVED",
+    ACEPTADO: "APPROVED",
+    ACEPTADA: "APPROVED",
+    ACCEPTED: "APPROVED",
+    RECHAZADO: "REJECTED",
+    RECHAZADA: "REJECTED",
+    PAGADA: "PAID",
+    PAGADO: "PAID",
+    CANCELADO: "CANCELLED",
+    CANCELADA: "CANCELLED",
+    ENTREGADO: "DELIVERED",
+    ENTREGADA: "DELIVERED",
+    FACTURADO: "INVOICED",
+    FACTURADA: "INVOICED",
+    PREPARACION: "IN_PREPARATION",
+    EN_PREPARACION: "IN_PREPARATION",
+    EN_PREPARACIÓN: "IN_PREPARATION",
+  };
 
-  return statusMap[key] || key
+  return statusMap[key] || key;
 }
 
 function resolveTotal(res: any, rawData: any[]): number {

@@ -67,21 +67,21 @@
           </span>
         </div>
         <div class="toolbar-buttons">
-          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status)" class="btn btn-success btn-sm" @click="promptIssueQuote">
+          <button v-if="['BORRADOR', 'DRAFT'].includes(quote.status?.toUpperCase())" class="btn btn-success btn-sm" @click="promptIssueQuote">
             <Send :size="16" /> <span>Emitir a Cliente</span>
           </button>
           <!-- Robust check for conversion button -->
           <button 
-            v-if="['ISSUED', 'EMITIDA', 'APPROVED', 'APROBADA', 'ACCEPTED'].includes(quote.status?.toUpperCase()) && !quote.generatedOrderId" 
+            v-if="['ISSUED', 'EMITIDA', 'EMITIDO', 'APPROVED', 'APROBADA', 'APROBADO', 'ACCEPTED'].includes(quote.status?.toUpperCase()) && !quote.generatedOrderId" 
             class="btn btn-success btn-sm" 
             @click="showConvertModal = true"
           >
             <ShoppingCart :size="16" /> <span>Convertir a Pedido</span>
           </button>
-          <button v-if="['EMITIDA', 'ISSUED'].includes(quote.status)" class="btn btn-danger btn-sm" @click="promptRejectQuote">
+          <button v-if="['EMITIDA', 'EMITIDO', 'ISSUED'].includes(quote.status?.toUpperCase())" class="btn btn-danger btn-sm" @click="promptRejectQuote">
             <XCircle :size="16" /> <span>Rechazar</span>
           </button>
-          <button v-if="['RECHAZADA', 'REJECTED'].includes(quote.status)" class="btn btn-primary btn-sm" @click="promptReactivateQuote">
+          <button v-if="['RECHAZADA', 'RECHAZADO', 'REJECTED'].includes(quote.status?.toUpperCase())" class="btn btn-primary btn-sm" @click="promptReactivateQuote">
             <RefreshCw :size="16" /> <span>Reactivar</span>
           </button>
         </div>

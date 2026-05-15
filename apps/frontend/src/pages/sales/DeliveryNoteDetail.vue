@@ -152,10 +152,10 @@
       <DataRow v-if="deliveryNote.taxId" label="NIF/CIF" :value="deliveryNote.taxId" is-mono />
     </FormSection>
 
-    <FormSection title="Detalles de Entrega" icon="local_shipping">
+    <FormSection title="Detalles de Entrega" icon="Truck">
       <div v-if="mode === 'detail'">
-        <DataRow label="Fecha de Entrega" :value="formatDate(deliveryNote.deliveryDate)" icon="calendar_today" />
-        <DataRow v-if="deliveryNote.deliveryAddress" label="Dirección de Entrega" icon="location_on">
+        <DataRow label="Fecha de Entrega" :value="formatDate(deliveryNote.deliveryDate)" icon="Calendar" />
+        <DataRow v-if="deliveryNote.deliveryAddress" label="Dirección de Entrega" icon="MapPin">
           <div class="address-content">
             <p>{{ deliveryNote.deliveryAddress.street }}</p>
             <p>{{ deliveryNote.deliveryAddress.postalCode }} {{ deliveryNote.deliveryAddress.city }}</p>
@@ -163,7 +163,7 @@
             <p v-if="deliveryNote.deliveryAddress.country">{{ deliveryNote.deliveryAddress.country }}</p>
           </div>
         </DataRow>
-        <DataRow label="Observaciones del Albarán" icon="notes">
+        <DataRow label="Observaciones del Albarán" icon="FileText">
           <p class="notes-text">{{ deliveryNote.notes || 'Sin observaciones.' }}</p>
         </DataRow>
       </div>
@@ -189,49 +189,17 @@
       </div>
     </FormSection>
 
-    <FormSection title="Líneas del Albarán" icon="list_alt">
-      <div class="table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Producto / Referencia</th>
-              <th class="text-center">Cant. Entregada</th>
-              <th>Estado / Notas</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, idx) in deliveryNote.lineItems" :key="item.id">
-              <td>
-                <div class="product-info-cell">
-                  <Package :size="18" class="icon-secondary" />
-                  <div class="content">
-                    <strong>{{ item.productName || formatVariantId(item.productVariantId) }}</strong>
-                    <code v-if="item.variantSku" class="code-badge ml-2">{{ item.variantSku }}</code>
-                  </div>
-                </div>
-              </td>
-              <td class="text-center">
-                <template v-if="mode === 'detail'">
-                  <strong class="text-success" style="font-size: 1.1rem">{{ item.deliveredQuantity }}</strong>
-                </template>
-                <input 
-                  v-else 
-                  v-model.number="item.deliveredQuantity" 
-                  type="number" 
-                  class="form-input-sm w-24 text-center font-bold" 
-                  :data-row="idx"
-                  data-col="deliveredQuantity"
-                  @keydown="handleLineKeyDown($event, idx, 'deliveredQuantity', item)"
-                />
-              </td>
-              <td class="text-muted italic">Correcto</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <FormSection title="Líneas del Albarán" icon="List">
+      <OrderLines
+        :lines="deliveryNote.lineItems"
+        :is-editing="false"
+        :show-prices="false"
+        :show-total="false"
+        quantity-label="Cantidad"
+      />
     </FormSection>
 
-    <FormSection v-if="mode === 'detail'" title="Conformidad y Firmas" icon="history_edu">
+    <FormSection v-if="mode === 'detail'" title="Conformidad y Firmas" icon="History">
       <div class="signatures-grid">
         <div class="signature-box">
           <label class="form-label">Recibido por (Cliente)</label>
@@ -348,6 +316,7 @@ import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
