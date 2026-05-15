@@ -6,8 +6,8 @@
     </label>
     
     <div class="selector-container">
-      <!-- Search Mode: Dropdown with search -->
-      <div v-if="!selectedParty || showDropdown" class="search-selector">
+      <!-- Search Mode: Input is always in DOM but hidden when selection is active and not searching -->
+      <div v-show="!selectedParty || showDropdown" class="search-selector">
         <input
           :id="inputId"
           ref="searchInput"
@@ -55,8 +55,8 @@
         </div>
       </div>
       
-      <!-- Selected Party Display -->
-      <div v-else class="selected-party">
+      <!-- Selected Party Display: Only when not searching and selection exists -->
+      <div v-if="selectedParty && !showDropdown" class="selected-party" @click="focusSearch">
         <div class="selected-party-info">
           <span class="party-name">{{ selectedParty.name }}</span>
           <span v-if="selectedParty.tax_id" class="party-detail">{{ selectedParty.tax_id }}</span>
@@ -64,7 +64,7 @@
         <button
           type="button"
           class="btn-clear"
-          @click="clearSelection"
+          @click.stop="clearSelection"
           title="Limpiar selección"
         >
           ✕
@@ -123,14 +123,16 @@ async function loadParties(name = '') {
     const response = await partyApi.listParties(filters);
     allParties.value = response.data || (Array.isArray(response) ? response : []);
     
-    if (props.modelValue && !name && !selectedParty.value) {
-      // Si tenemos un ID pero no lo encontramos en la lista, traerlo específicamente
-      try {
-        externalParty.value = await partyApi.getParty(props.modelValue);
-        if (externalParty.value) searchTerm.value = externalParty.value.name;
-      } catch (e) { console.error("Error trayendo entidad seleccionada", e); }
-    } else if (selectedParty.value) {
-      searchTerm.value = selectedParty.value.name;
+    // Solo actualizar searchTerm si NO estamos en una búsqueda activa por nombre
+    if (!name) {
+      if (props.modelValue && !selectedParty.value) {
+        try {
+          externalParty.value = await partyApi.getParty(props.modelValue);
+          if (externalParty.value) searchTerm.value = externalParty.value.name;
+        } catch (e) { console.error("Error trayendo entidad seleccionada", e); }
+      } else if (selectedParty.value) {
+        searchTerm.value = selectedParty.value.name;
+      }
     }
   } catch (error) {
     console.error('Error loading parties:', error);
@@ -140,6 +142,14 @@ async function loadParties(name = '') {
 }
 
 const searchInput = ref<HTMLInputElement | null>(null);
+
+function focusSearch() {
+  showDropdown.value = true;
+  nextTick(() => {
+    searchInput.value?.focus();
+    searchInput.value?.select();
+  });
+}
 
 function handleInput() {
   showDropdown.value = true;
