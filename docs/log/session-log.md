@@ -7,6 +7,7 @@
 ## 📅 2026-05-13 — Estabilización Global de UI y Flujos
 - **Session ID:** `global-ui-flows-stabilization`
 - **Status:** En Progreso
+- **Started:** 2026-05-13
 - **Contexto:** Cierre de issues pendientes en Sales, estandarización de UI en Parties y refactorización final de componentes.
 - **Rama:** `fix/sales-order-detail-blank-screen-and-conversion-flow`
 - **Logros Recientes:**
