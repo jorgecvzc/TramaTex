@@ -461,7 +461,8 @@ const route = useRoute();
 const router = useRouter();
 const toastStore = useToastStore();
 
-const mode = ref('detail');
+const isCreateMode = computed(() => !route.params.id || route.params.id === 'new')
+const mode = ref(isCreateMode.value ? 'create' : 'detail');
 const isLoading = ref(true); 
 const isSaving = ref(false);
 const error = ref('');

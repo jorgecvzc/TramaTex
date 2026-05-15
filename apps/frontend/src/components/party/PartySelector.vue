@@ -7,7 +7,7 @@
     
     <div class="selector-container">
       <!-- Search Mode: Dropdown with search -->
-      <div class="search-selector">
+      <div v-if="!selectedParty || showDropdown" class="search-selector">
         <input
           :id="inputId"
           ref="searchInput"
@@ -21,7 +21,7 @@
           @keydown.enter.prevent="selectFirst"
           @keydown.down.prevent="navigateDown"
           @keydown.up.prevent="navigateUp"
-          :required="required"
+          :required="required && !selectedParty"
           autocomplete="off"
         />
         
@@ -56,7 +56,7 @@
       </div>
       
       <!-- Selected Party Display -->
-      <div v-if="selectedParty && !showDropdown" class="selected-party">
+      <div v-else class="selected-party">
         <div class="selected-party-info">
           <span class="party-name">{{ selectedParty.name }}</span>
           <span v-if="selectedParty.tax_id" class="party-detail">{{ selectedParty.tax_id }}</span>
@@ -171,6 +171,16 @@ function selectParty(party: any) {
   showDropdown.value = false;
 }
 
+function clearSelection() {
+  emit('update:modelValue', '');
+  emit('select', null);
+  searchTerm.value = '';
+  showDropdown.value = false;
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
+}
+
 function selectFirst() {
   if (filteredParties.value.length > 0) selectParty(filteredParties.value[activeIndex.value]);
 }
@@ -181,6 +191,13 @@ function navigateUp() { if (activeIndex.value > 0) activeIndex.value--; }
 function handleGlobalEsc() {
   showDropdown.value = false;
 }
+
+watch(() => props.modelValue, (newVal) => {
+  if (!newVal) {
+    searchTerm.value = '';
+    externalParty.value = null;
+  }
+});
 
 onMounted(() => {
   loadParties();
