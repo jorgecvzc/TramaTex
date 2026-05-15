@@ -4,14 +4,26 @@
 # SESIONES ABIERTAS
 ---
 
-## 📅 2026-05-13 — Estabilización Global de UI y Flujos
-*   **Contexto:** Cierre de issues pendientes en Sales, estandarización de UI en Parties y refactorización final de componentes.
-*   **Estado:** En curso (Rama: `fix/sales-order-detail-blank-screen-and-conversion-flow`).
-*   **Análisis detallado:** [docs/log/analysis/2026-05-13-global-ui-stabilization.md](docs/log/analysis/2026-05-13-global-ui-stabilization.md)
+*(No hay sesiones abiertas actualmente)*
 
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
+
+- **Estabilización Global de UI y Flujos (Fase 3 Sales & UI Fixes)** | Iniciada: 2026-05-13 | Finalizada: 2026-05-15 | Status: ✅ **COMPLETADO**
+    - **Contexto**: Cierre de la Fase 3 de unificación UI en Ventas y resolución de bugs críticos de flujo detectados durante la validación.
+    - **Cambios Realizados**:
+        - [x] **Presupuestos**: Corregido bug donde el botón "Convertir a Pedido" no aparecía para estados `EMITIDO` y `APROBADO`. Se implementó normalización robusta en `salesApi.ts` y soporte para variantes masculinas en `QuoteDetail.vue`.
+        - [x] **Facturas**: Habilitada la transición `DRAFT -> PAID` en el dominio Go y base de datos para permitir cobros inmediatos y tickets.
+        - [x] **Selector de Clientes**: Corregida regresión en `PartySelector.vue` que impedía la búsqueda correcta y el borrado de selección, restaurando la usabilidad del componente.
+        - [x] **Modo Creación**: Corregido fallo de inicialización en `OrderDetail.vue` y `QuoteDetail.vue` que causaba crashes al intentar crear nuevas entidades.
+        - [x] **Fase 3 Sales**: Finalizada la migración a Lucide, limpieza de `snake_case` y unificación de componentes en todo el módulo de Ventas.
+    - **📋 PROTOCOLO DE VALIDACIÓN FINAL**:
+        1.  **Despliegue**: Verificado en Staging (`pcele`) tras un rebuild completo desde código fuente.
+        2.  **Conversión**: El botón de conversión aparece correctamente independientemente de la normalización del estado desde el backend.
+        3.  **Cobros**: La transición de factura a `PAGADA` funciona sin errores de FSM.
+        4.  **UX**: La creación de pedidos y presupuestos es fluida y el selector de clientes responde correctamente al teclado y ratón.
+
 
 - **Refinamiento UI/UX y Regresiones Sales** | Iniciada: 2026-05-12 | Finalizada: 2026-05-13 | Status: ✅ **COMPLETADO**
     - **Contexto**: Resolución de fallos críticos en la visualización de pedidos y estabilización del flujo de conversión de presupuestos.
