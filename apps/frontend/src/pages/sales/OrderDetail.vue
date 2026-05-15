@@ -639,9 +639,6 @@ const previewResult = ref(null);
 const isPreviewLoading = ref(false);
 let previewTimer = null;
 
-const orderId = computed(() => route.params.id)
-const isCreateMode = computed(() => !orderId.value || orderId.value === 'new')
-
 // Watcher para cambios en el formulario que requieran recalcular totales
 watch(() => [editableOrder.value.partyId, editableOrder.value.lineItems], () => {
   if (mode.value !== 'detail' && !isSaving.value) {
