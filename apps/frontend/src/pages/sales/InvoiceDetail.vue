@@ -1,70 +1,50 @@
 <template>
-  <BaseEntityPage v-if="isLoading" class="no-print">
-    <template #header>
-      <PageHeader title="Cargando..." :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
-    </template>
-    <div class="loading-state card">
-      <div class="spinner"></div>
-      <p>Cargando información de la factura...</p>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else-if="error" class="no-print">
-    <template #header>
-      <PageHeader title="Error" :breadcrumbs="[{ label: 'Ventas', to: '/sales/invoices' }, { label: 'Facturas' }]" />
-    </template>
-    <div class="alert-card card">
-      <div class="alert-icon-wrapper error">
-        <span class="material-symbols-outlined">error</span>
-      </div>
-      <div class="alert-content">
-        <h3>Error al cargar</h3>
-        <p>{{ error }}</p>
-        <button class="btn btn-outline btn-sm mt-4" @click="router.push('/sales/invoices')">Volver al catálogo</button>
-      </div>
-    </div>
-  </BaseEntityPage>
-
-  <BaseEntityPage v-else-if="invoice" class="no-print">
+  <BaseEntityPage 
+    :is-loading="isLoading" 
+    :error="error" 
+    class="no-print" 
+    @refresh="fetchInvoice"
+  >
     <!-- 1. IDENTITY HEADER -->
     <template #header>
-      <PageHeader 
-        :title="mode === 'edit' ? `Editando Factura ${invoice.invoiceNumber}` : `Factura ${invoice.invoiceNumber}`" 
-        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice.invoiceNumber }]"
+      <BasePageHeader 
+        :title="mode === 'edit' ? `Editando Factura ${invoice?.invoiceNumber}` : `Factura ${invoice?.invoiceNumber || 'Detalle'}`" 
+        :breadcrumbs="[{ label: 'Ventas', to: '/sales/dashboard' }, { label: 'Facturas', to: '/sales/invoices' }, { label: invoice?.invoiceNumber || 'Detalle' }]"
+        show-back
       >
         <template #icon>
-          <span class="material-symbols-outlined">receipt</span>
+          <Receipt :size="28" />
         </template>
-        <template #actions>
+        <template #actions v-if="invoice">
           <template v-if="mode === 'detail'">
             <button class="btn btn-outline btn-sm" @click="printInvoice">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir</span>
+              <Printer :size="16" /> <span>Imprimir</span>
             </button>
           </template>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <!-- 2. TOOLBAR -->
-    <template #toolbar v-if="mode === 'detail'">
+    <template #toolbar v-if="mode === 'detail' && invoice">
       <div class="action-toolbar card">
         <div class="toolbar-info">
           <span :class="['status-badge', `status-${salesApi.getStatusClass(invoice.status)}`]">
             {{ salesApi.getStatusLabel(invoice.status) }}
           </span>
-          <span :class="['type-badge-inline', `type-${invoice.type?.toLowerCase()}`]">
-            {{ getTypeLabel(invoice.type) }}
+          <span v-if="invoice.invoiceType" :class="['type-badge-inline', `type-${invoice.invoiceType.toLowerCase()}`]">
+            {{ getTypeLabel(invoice.invoiceType) }}
           </span>
         </div>
         <div class="toolbar-buttons">
           <button
-            v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status)"
+            v-if="['DRAFT', 'ISSUED', 'OVERDUE'].includes(invoice.status?.toUpperCase())"
             class="btn btn-success btn-sm"
             @click="markAsPaid"
             :disabled="isChangingStatus || !canManageInvoiceStatus"
             :title="!canManageInvoiceStatus ? 'Requiere rol admin o commercial' : ''"
           >
-            <span class="material-symbols-outlined">payments</span> <span>Registrar Cobro</span>
+            <CreditCard :size="16" /> <span>Registrar Cobro</span>
           </button>
         </div>
       </div>
@@ -72,7 +52,7 @@
       <!-- Draft Warning -->
       <div v-if="invoice.status === 'DRAFT'" class="alert-card card warning mt-4 mb-0 no-print">
         <div class="alert-icon-wrapper warning">
-          <span class="material-symbols-outlined">warning</span>
+          <AlertTriangle :size="24" />
         </div>
         <div class="alert-content">
           <h4>Factura en estado Borrador</h4>
@@ -82,22 +62,22 @@
     </template>
 
     <!-- 3. SUMMARY -->
-    <template #summary>
+    <template #summary v-if="invoice">
       <div class="overview-tags-row">
         <div class="summary-tag">
-          <div class="icon blue"><span class="material-symbols-outlined">person</span></div>
-          <div class="tag-content"><label>Cliente</label><strong>{{ partyName }}</strong></div>
+          <div class="icon blue"><User :size="20" /></div>
+          <div class="tag-content"><label>Cliente</label><strong>{{ partyName || 'Cargando...' }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon yellow"><span class="material-symbols-outlined">calendar_today</span></div>
-          <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate) }}</strong></div>
+          <div class="icon yellow"><Calendar :size="20" /></div>
+          <div class="tag-content"><label>Fecha Emisión</label><strong>{{ formatDate(invoice.issueDate || invoice.invoiceDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon purple"><span class="material-symbols-outlined">event_busy</span></div>
+          <div class="icon purple"><CalendarOff :size="20" /></div>
           <div class="tag-content"><label>Vencimiento</label><strong>{{ formatDate(invoice.dueDate) }}</strong></div>
         </div>
         <div class="summary-tag">
-          <div class="icon green"><span class="material-symbols-outlined">payments</span></div>
+          <div class="icon green"><CreditCard :size="20" /></div>
           <div class="tag-content">
             <label>Total Factura</label>
             <strong class="amount">{{ salesApi.formatMoney(invoice.total) }}</strong>
@@ -107,30 +87,30 @@
     </template>
 
     <!-- 4. RELATED -->
-    <template #related v-if="mode === 'detail' && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
+    <template #related v-if="mode === 'detail' && invoice && (relatedOrders.length > 0 || relatedDeliveryNotes.length > 0)">
       <div class="related-history-grid">
         <router-link v-for="order in relatedOrders" :key="order.id" :to="`/sales/orders/${order.id}`" class="related-tag-card highlight-info">
-          <div class="tag-icon"><span class="material-symbols-outlined">shopping_cart</span></div>
+          <div class="tag-icon"><ShoppingCart :size="20" /></div>
           <div class="tag-content">
             <label>Pedido de Origen</label>
             <strong>{{ order.orderNumber || formatId(order.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
 
         <router-link v-for="dn in relatedDeliveryNotes" :key="dn.id" :to="`/sales/delivery-notes/${dn.id}`" class="related-tag-card">
-          <div class="tag-icon"><span class="material-symbols-outlined">local_shipping</span></div>
+          <div class="tag-icon"><Truck :size="20" /></div>
           <div class="tag-content">
             <label>Albarán de Origen</label>
             <strong>{{ dn.deliveryNoteNumber || formatId(dn.id) }}</strong>
           </div>
-          <span class="material-symbols-outlined jump-icon">open_in_new</span>
+          <ExternalLink :size="14" class="jump-icon" />
         </router-link>
       </div>
     </template>
 
     <!-- 5. MAIN CONTENT -->
-    <div ref="invoiceContentRef">
+    <div v-if="invoice">
       <FormSection title="Identificación del Cliente" icon="person">
         <DataRow label="Nombre del Cliente" :value="partyName" icon="person" />
         <DataRow v-if="invoice.taxId" label="NIF/CIF" :value="invoice.taxId" is-mono />
@@ -163,40 +143,7 @@
       </FormSection>
 
       <FormSection title="Líneas de la Factura" icon="list_alt">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Producto / Referencia</th>
-                <th class="text-center">Cant.</th>
-                <th class="align-right">P. Unitario</th>
-                <th class="text-center">Dto. %</th>
-                <th class="text-center">IVA %</th>
-                <th class="align-right">Subtotal</th>
-                <th class="align-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in invoice.lineItems" :key="item.id || item.productVariantID">
-                <td>
-                  <div class="product-info-cell">
-                    <span class="material-symbols-outlined icon-secondary">inventory_2</span>
-                    <div class="content">
-                      <strong>{{ buildDisplayName(item) }}</strong>
-                      <code class="code-badge ml-2">{{ item.variantSku || formatId(item.productVariantId || item.productVariantID) }}</code>
-                    </div>
-                  </div>
-                </td>
-                <td class="text-center">{{ item.quantity }}</td>
-                <td class="align-right">{{ salesApi.formatUnitPrice(item.unitPrice) }}</td>
-                <td class="text-center">{{ item.discountAmount && item.unitPrice?.amount ? ((item.discountAmount.amount / item.unitPrice.amount) * 100).toFixed(2) + '%' : '—' }}</td>
-                <td class="text-center">{{ typeof item.taxRate === 'number' ? `${item.taxRate}%` : '21%' }}</td>
-                <td class="align-right">{{ salesApi.formatMoney(item.subtotal) }}</td>
-                <td class="align-right"><strong>{{ salesApi.formatMoney(item.total) }}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <OrderLines :lines="invoice.lineItems" :is-editing="false" />
       </FormSection>
 
       <FormSection title="Resumen Económico" icon="payments">
@@ -248,7 +195,7 @@
       v-if="invoice"
       type="INVOICE"
       :number="invoice.invoiceNumber"
-      :date="invoice.invoiceDate"
+      :date="invoice.issueDate || invoice.invoiceDate"
       :customer-name="partyName"
       :customer-tax-id="invoice.taxId"
       :items="invoice.lineItems"
@@ -262,18 +209,18 @@
     <div v-if="showPostIssueModal" class="modal-backdrop no-print">
       <div class="modal card w-modal-md">
         <div class="modal-header">
-          <span class="material-symbols-outlined text-success">check_circle</span>
+          <CheckCircle :size="24" class="text-success" />
           <h2>Factura Emitida con Éxito</h2>
-          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showPostIssueModal = false"><X :size="20" /></button>
         </div>
         <div class="modal-body">
           <p class="mb-4">La factura <strong>{{ invoice?.invoiceNumber }}</strong> ya es oficial y puede ser enviada al cliente.</p>
           <div class="post-issue-actions">
             <button class="btn btn-primary w-full justify-center mb-3" @click="postIssuePrint">
-              <span class="material-symbols-outlined">print</span> <span>Imprimir Factura</span>
+              <Printer :size="16" /> <span>Imprimir Factura</span>
             </button>
             <button class="btn btn-outline w-full justify-center mb-2" @click="postIssueEmail">
-              <span class="material-symbols-outlined">mail</span> <span>Enviar por Email</span>
+              <Mail :size="16" /> <span>Enviar por Email</span>
             </button>
           </div>
         </div>
@@ -283,23 +230,43 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 
+import { 
+  AlertCircle, 
+  Receipt, 
+  Printer, 
+  CreditCard, 
+  AlertTriangle, 
+  User, 
+  Calendar, 
+  CalendarOff, 
+  ShoppingCart, 
+  Truck, 
+  ExternalLink, 
+  CheckCircle, 
+  X, 
+  Mail 
+} from 'lucide-vue-next';
+
 import BaseEntityPage from '@/components/shared/BaseEntityPage.vue';
-import PageHeader from '@/components/layout/PageHeader.vue';
+import BasePageHeader from '@/components/shared/BasePageHeader.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import DataRow from '@/components/shared/DataRow.vue';
 import BaseDialog from '@/components/shared/BaseDialog.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import PrintDocument from '@/components/sales/PrintDocument.vue';
 import salesApi from '@/services/salesApi';
 import { partyApi } from '@/services/partyApi';
 import { useAuthStore } from '@/stores/auth';
+import { useToastStore } from '@/stores/toast';
 import '@/assets/sales-print.css';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const toastStore = useToastStore();
 
 const mode = ref('detail');
 const invoice = ref(null);
@@ -330,16 +297,53 @@ const formData = reactive({
 
 onMounted(() => {
   fetchInvoice();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('keydown', handleInvoiceKeydown);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('keydown', handleInvoiceKeydown);
+});
+
+function handleInvoiceKeydown(e) {
+  if (e.ctrlKey && e.key === 'e') {
+    e.preventDefault();
+    if (mode.value === 'detail' && invoice.value?.status === 'DRAFT') {
+      enterEditMode();
+    }
+  }
+}
+
+function handleGlobalEsc() {
+  if (mode.value === 'edit') {
+    mode.value = 'detail';
+  } else {
+    router.push('/sales/invoices');
+  }
+}
+
+function handleGlobalSave() {
+  if (mode.value === 'edit' && !isSaving.value) {
+    saveInvoice();
+  }
+}
 
 async function fetchInvoice() {
   const invoiceId = route.params.id;
+  if (!invoiceId) return;
+
   isLoading.value = true;
+  error.value = '';
   try {
     invoice.value = await salesApi.getInvoice(invoiceId);
+    if (!invoice.value) throw new Error('Factura no encontrada');
     await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
   } catch (err) {
     error.value = err?.message || 'Error al cargar factura';
+    console.error('fetchInvoice error:', err);
   } finally {
     isLoading.value = false;
   }
@@ -349,12 +353,12 @@ async function loadPartyName() {
   if (!invoice.value?.partyId) return;
   try {
     const party = await partyApi.getParty(invoice.value.partyId);
-    partyName.value = party.name || 'Sin nombre';
+    partyName.value = party.name || party.displayName || 'Sin nombre';
   } catch { partyName.value = 'Desconocido'; }
 }
 
 async function loadRelatedOrders() {
-  const ids = invoice.value?.salesOrderIds;
+  const ids = invoice.value?.salesOrderIds || invoice.value?.relatedOrderIds;
   if (!ids?.length) {
     relatedOrders.value = [];
     return;
@@ -363,7 +367,7 @@ async function loadRelatedOrders() {
 }
 
 async function loadRelatedDeliveryNotes() {
-  const ids = invoice.value?.deliveryNoteIds;
+  const ids = invoice.value?.deliveryNoteIds || invoice.value?.relatedDeliveryNoteIds;
   if (!ids?.length) {
     relatedDeliveryNotes.value = [];
     return;
@@ -383,59 +387,27 @@ async function saveInvoice() {
   isSaving.value = true;
   try {
     const payload = {
-      dueDate: new Date(formData.dueDate).toISOString(),
+      dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
       paymentTerms: formData.paymentTerms,
       notes: formData.notes
     };
-    // Note: Backend might have limited support for updates in current MVP iteration
-    // but we proceed to allow saving basic metadata if implemented.
     await salesApi.updateInvoice(invoice.value.id, payload);
     mode.value = 'detail';
     await fetchInvoice();
   } catch (err) {
-    alert('Error al guardar: ' + err.message);
+    toastStore.error('Error al guardar: ' + err.message);
   } finally {
     isSaving.value = false;
   }
 }
 
-function emitInvoice() {
-  statusConfirmTitle.value = 'Emitir Factura';
-  statusConfirmMessage.value = '¿Desea <strong>EMITIR</strong> esta factura? Esta acción generará el número de factura definitivo y bloqueará cambios estructurales.';
-  statusConfirmIcon.value = 'send';
-  statusConfirmText.value = 'Emitir Factura';
-  statusConfirmClass.value = 'btn-success';
-  pendingStatus.value = 'ISSUED';
-  showStatusConfirm.value = true;
-}
-
 function markAsPaid() {
   statusConfirmTitle.value = 'Registrar Cobro';
   statusConfirmMessage.value = '¿Desea marcar esta factura como <strong>PAGADA</strong>?';
-  statusConfirmIcon.value = 'payments';
+  statusConfirmIcon.value = CreditCard;
   statusConfirmText.value = 'Confirmar Cobro';
   statusConfirmClass.value = 'btn-success';
   pendingStatus.value = 'PAID';
-  showStatusConfirm.value = true;
-}
-
-function cancelInvoice() {
-  statusConfirmTitle.value = 'Anular Factura';
-  statusConfirmMessage.value = '¿Realmente desea <strong>ANULAR</strong> esta factura? Esta acción es irreversible en términos contables.';
-  statusConfirmIcon.value = 'block';
-  statusConfirmText.value = 'Anular Factura';
-  statusConfirmClass.value = 'btn-danger';
-  pendingStatus.value = 'VOID';
-  showStatusConfirm.value = true;
-}
-
-function reactivateInvoice() {
-  statusConfirmTitle.value = 'Reactivar Factura';
-  statusConfirmMessage.value = '¿Desea devolver esta factura al estado <strong>borrador</strong>?';
-  statusConfirmIcon.value = 'refresh';
-  statusConfirmText.value = 'Reactivar';
-  statusConfirmClass.value = 'btn-primary';
-  pendingStatus.value = 'DRAFT';
   showStatusConfirm.value = true;
 }
 
@@ -444,11 +416,9 @@ async function executeStatusChange() {
   try {
     const invoiceId = invoice.value.id;
     const requestedStatus = pendingStatus.value;
-    invoice.value = await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
+    await salesApi.changeInvoiceStatus(invoiceId, requestedStatus);
 
-    // Always rehydrate from GET to keep related entities and enriched fields in sync.
-    invoice.value = await salesApi.getInvoice(invoiceId);
-    await Promise.all([loadPartyName(), loadRelatedOrders(), loadRelatedDeliveryNotes()]);
+    await fetchInvoice();
     showStatusConfirm.value = false;
     if (requestedStatus === 'ISSUED') {
       showPostIssueModal.value = true;
@@ -456,21 +426,18 @@ async function executeStatusChange() {
   } catch (err) {
     const statusCode = err?.response?.status;
     if (statusCode === 403) {
-      alert('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
+      toastStore.error('No tienes permisos para cambiar el estado de facturas. Se requiere rol admin o commercial.');
       return;
     }
-    alert(err?.message || 'Error al cambiar estado');
+    toastStore.error(err?.message || 'Error al cambiar estado');
   } finally {
     isChangingStatus.value = false;
   }
 }
 
 function printInvoice() { window.print(); }
-
 function postIssuePrint() { showPostIssueModal.value = false; window.print(); }
 async function postIssueEmail() { showPostIssueModal.value = false; await generateInvoicePdf(); openMailClient(); }
-
-const invoiceContentRef = ref(null);
 
 async function generateInvoicePdf() {
   const { default: html2pdf } = await import('html2pdf.js');
@@ -490,7 +457,6 @@ function openMailClient() {
 function formatDate(d) { return d ? new Date(d).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'; }
 function formatId(id) { return id ? id.substring(0, 8) : '—'; }
 function getTypeLabel(t) { const map = { STANDARD: 'Venta Estándar', SIMPLIFIED: 'Venta Simplificada' }; return map[t] || t; }
-function buildDisplayName(item) { return (item.productName || item.displayName || 'Producto') + (item.optionConfiguration ? ' - ' + Object.values(item.optionConfiguration).join(', ') : ''); }
 </script>
 
 <style scoped>
@@ -504,12 +470,8 @@ function buildDisplayName(item) { return (item.productName || item.displayName |
 .type-standard { border-left: 3px solid #2563eb; }
 .type-simplified { border-left: 3px solid #d97706; }
 
-.product-info-cell { display: flex; align-items: center; gap: 0.75rem; }
-.product-info-cell .content { display: flex; flex-direction: column; }
-
 .notes-text { font-style: italic; color: var(--color-text-secondary); margin: 0; }
 .audit-info { color: var(--color-text-secondary); font-size: 0.8rem; font-style: italic; }
-.code-badge { background: var(--color-background); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: var(--font-family-mono); font-size: 0.8rem; }
 
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .w-modal-md { width: 90%; max-width: 500px; }

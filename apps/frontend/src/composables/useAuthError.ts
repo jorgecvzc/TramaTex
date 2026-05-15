@@ -14,7 +14,7 @@ export function useAuthError() {
       clearTimeout(timeoutId)
     }
 
-    // Auto-limpiar después del duration especificado
+    // Auto-clear after the specified duration
     timeoutId = setTimeout(() => {
       clearError()
     }, durationMs)

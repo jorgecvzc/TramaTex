@@ -50,11 +50,12 @@ Todos los botones deben heredar de la clase base `.btn`.
 
 ## 4. Iconografía
 
-**ESTÁNDAR OBLIGATORIO:** Material Symbols Outlined.
+**ESTÁNDAR OBLIGATORIO:** Lucide Icons (SVG).
 
-*   **Formato:** `<span class="material-symbols-outlined">icon_name</span>`
-*   **Integración en Botones:** Se colocan antes del texto con un espacio de separación automático.
-*   **Tamaño Estándar:** `24px` para UI general, `20px` dentro de botones.
+*   **Implementación:** Componentes de `lucide-vue-next`.
+*   **Verdad Única:** Todos los iconos dinámicos se gestionan en `src/utils/icons.ts`.
+*   **Formato:** `<IconComponent :size="18" />`
+*   **Tamaños Estándar:** `18px` para botones/tablas, `24px` para secciones, `28px` para cabeceras.
 
 ## 5. Elevación y Bordes
 

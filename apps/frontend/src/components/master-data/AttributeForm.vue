@@ -7,6 +7,7 @@
         v-model="formData.name" 
         type="text" 
         class="form-input"
+        :class="{ 'border-error': errors.name }"
         placeholder="Ej: Talla, Color, Material"
         @input="clearError('name')"
       />
@@ -20,6 +21,7 @@
         v-model="formData.code" 
         type="text" 
         class="form-input"
+        :class="{ 'border-error': errors.code }"
         placeholder="Ej: SIZE, COLOR (mayúsculas, sin espacios)"
         @input="handleCodeInput"
       />
@@ -301,16 +303,6 @@ defineExpose({
 .form-input:disabled {
   background: #f8fafc;
   cursor: not-allowed;
-}
-
-.error-message {
-  color: #ef4444;
-  font-size: 0.75rem;
-}
-
-.hint {
-  color: #64748b;
-  font-size: 0.75rem;
 }
 
 .mt-2 {

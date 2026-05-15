@@ -55,11 +55,18 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 /* 4. Validation States */
-input.is-invalid, select.is-invalid {
-  border-color: var(--color-error);
+input.is-invalid, select.is-invalid, .border-error {
+  border-color: var(--color-error) !important;
 }
-input.is-invalid:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+input.is-invalid:focus, .border-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-weight: 600;
 }
 
 /* 5. Custom Select Styling */
@@ -88,12 +95,13 @@ select {
 .input-with-icon {
   position: relative;
 }
-.input-with-icon .material-symbols-outlined {
+.input-with-icon .lucide {
   position: absolute;
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
   color: var(--color-text-secondary);
   pointer-events: none;
 }

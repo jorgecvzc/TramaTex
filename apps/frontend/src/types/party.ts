@@ -9,7 +9,7 @@
 
 export type PartyRole = 'CLIENT' | 'SUPPLIER' | 'BOTH' | 'CONTACT'
 export type PartyStatus = 'ACTIVE' | 'INACTIVE'
-export type TaxIdType = 'RUT' | 'DNI' | 'CUIT' | 'CUIL' | 'OTHER'
+export type TaxIdType = 'CIF' | 'NIF' | 'NIE' | 'DNI' | 'PASSPORT' | 'RESIDENT_CARD' | 'VAT' | 'OTHER'
 export type ContactType = 'EMPLOYEE' | 'EXTERNAL'
 
 // ============================================================================
@@ -58,6 +58,7 @@ export interface Party {
 export interface PartyUI {
   id: string
   name: string
+  type: EntityType
   role: PartyRole
   status: PartyStatus
   can_delete: boolean
@@ -138,6 +139,7 @@ export interface CreatePartyRequest {
 export interface UpdatePartyRequest {
   name: string
   role?: PartyRole
+  type?: EntityType
   hasPerson?: boolean
   taxId?: string | null
   taxIdType?: TaxIdType | null
@@ -145,7 +147,10 @@ export interface UpdatePartyRequest {
   phone?: string | null
   email?: string | null
   notes?: string | null
+  defaultDiscountPercentage?: number
   default_discount_percentage?: number
+  firstName?: string
+  lastName?: string
 }
 
 export interface ChangePartyStatusRequest {

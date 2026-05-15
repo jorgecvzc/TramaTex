@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { getIcon } from '@/utils/icons'
+
 const props = defineProps<{
   label: string
   value?: string | number | null
-  icon?: string
+  icon?: any
   isMono?: boolean
   highlight?: boolean
 }>()
@@ -12,7 +14,7 @@ const props = defineProps<{
   <div class="data-row" :class="{ 'highlight-row': props.highlight }">
     <div class="data-label">
       <div v-if="props.icon" class="row-icon">
-        <span class="material-symbols-outlined">{{ props.icon }}</span>
+        <component :is="getIcon(props.icon)" :size="18" />
       </div>
       <label>{{ props.label }}</label>
     </div>
@@ -51,8 +53,9 @@ const props = defineProps<{
   opacity: 0.7;
 }
 
-.row-icon .material-symbols-outlined {
-  font-size: 18px;
+.row-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
 }
 
 .data-label label {

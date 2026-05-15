@@ -87,7 +87,7 @@ export interface WorkOrderTask {
   task_id: string
   sequence: number
   status: string
-  assigned_to?: string // Post-MVP: asignación de tareas a operarios
+  assigned_to?: string // Post-MVP: task assignment to operators
   started_at?: string
   completed_at?: string
   notes?: string

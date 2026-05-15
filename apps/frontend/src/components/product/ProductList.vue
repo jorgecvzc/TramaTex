@@ -1,15 +1,18 @@
 <script setup lang="ts">
 /**
- * ProductList.vue - Listado Maestro de Productos
+ * ProductList.vue - Master Product List
  * 
- * Implementa el estándar BaseCatalog con Arquitectura de 3 Capas.
+ * Implements the BaseCatalog standard with 3-Layer Architecture.
  */
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Ban, CheckCircle2 } from 'lucide-vue-next'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const products = ref<any[]>([])
 const brands = ref<any[]>([])
 const productGroups = ref<any[]>([])
@@ -27,7 +30,7 @@ const hasFilters = computed(() =>
   filters.search.trim() !== '' || filters.brandId !== '' || filters.groupId !== '' || filters.isActive !== ''
 )
 
-// Lógica de filtrado con debounce
+// Filtering logic with debounce
 let debounceTimer: any = null
 watch(filters, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
@@ -81,8 +84,9 @@ async function toggleStatus(product: any) {
   try { 
     await productApi.changeProductStatus(product.id, newStatus)
     product.is_active = newStatus 
+    toastStore.success(`Producto "${product.name}" ${newStatus ? 'activado' : 'desactivado'}`)
   } catch (err: any) {
-    alert('Error al cambiar estado: ' + err.message)
+    toastStore.error('Error al cambiar estado: ' + err.message)
   }
 }
 
@@ -119,7 +123,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
     @refresh="fetchProducts"
     @click-item="navigateToDetail"
   >
-    <!-- CAPA 2: CONTEXTO (Filtros) -->
+    <!-- LAYER 2: CONTEXT (Filters) -->
     <template #filters>
       <div class="filter-group">
         <label>Búsqueda</label>
@@ -152,7 +156,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
       </div>
     </template>
 
-    <!-- CAPA 3: TRABAJO (Tabla) -->
+    <!-- LAYER 3: WORK (Table) -->
     <template #table-header>
       <th>SKU / Referencia</th>
       <th>Nombre del Producto</th>
@@ -184,7 +188,7 @@ onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
             @click="toggleStatus(item)" 
             :title="item.is_active ? 'Desactivar' : 'Activar'"
           >
-            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+            <component :is="item.is_active ? Ban : CheckCircle2" :size="18" />
           </button>
         </div>
       </td>

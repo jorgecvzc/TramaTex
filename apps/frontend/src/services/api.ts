@@ -23,7 +23,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const authStore = useAuthStore();
       authStore.logout();
-      // Redirigir al login si no estamos ya en él
+      // Redirect to login if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

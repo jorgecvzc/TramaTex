@@ -15,7 +15,7 @@
   >
     <template #header-actions>
       <button @click="openCreateModal" class="btn btn-primary">
-        <span class="material-symbols-outlined">add</span>
+        <Plus :size="18" />
         <span>Nueva Posición</span>
       </button>
     </template>
@@ -55,13 +55,13 @@
       </td>
       <td class="align-right" @click.stop>
         <div class="action-buttons">
-          <button @click="editPosition(item)" class="btn btn-ghost" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+          <button @click="editPosition(item)" class="btn btn-ghost" title="Editar"><Pencil :size="18" /></button>
           <button 
             @click="toggleActive(item)" 
             class="btn btn-ghost" 
             :title="item.is_active ? 'Desactivar' : 'Activar'"
           >
-            <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+            <component :is="item.is_active ? Ban : CheckCircle" :size="18" />
           </button>
         </div>
       </td>
@@ -69,102 +69,109 @@
   </BaseCatalog>
 
   <!-- MODAL: CREAR/EDITAR POSICIÓN -->
-    <BaseDialog
-      :show="showModal"
-      :title="modalMode === 'create' ? 'Nueva Posición de Marcaje' : 'Editar Posición'"
-      icon="location_on"
-      confirm-text="Guardar Posición"
-      :is-confirming="isSaving"
-      @close="showModal = false"
-      @confirm="savePosition"
-    >
-      <div class="form-group">
-        <label>Nombre de la Posición *</label>
-        <input v-model="formData.name" type="text" class="form-input" placeholder="Ej: Pecho Izquierdo, Espalda..." required />
-      </div>
-      <div class="form-row mt-4">
-        <div class="form-group">
-          <label>Código Interno</label>
-          <input v-model="formData.code" type="text" class="form-input" placeholder="Ej: P-IZQ" />
-        </div>
-        <div class="form-group">
-          <label>Estado</label>
-          <label class="checkbox-label mt-2">
-            <input v-model="formData.is_active" type="checkbox" class="form-checkbox" />
-            <span>Posición activa</span>
-          </label>
-        </div>
-      </div>
-      <div class="form-group mt-4">
-        <label>Notas de la posición</label>
-        <textarea v-model="formData.description" class="form-textarea" rows="3"></textarea>
-      </div>
-    </BaseDialog>
-</template>
+  <BaseDialog
+    :show="showModal"
+    :title="modalMode === 'create' ? 'Nueva Posición de Marcaje' : 'Editar Posición'"
+    icon="location_on"
+    confirm-text="Guardar Posición"
+    :is-confirming="isSaving"
+    @close="showModal = false"
+    @confirm="submitForm"
+  >
+    <PositionForm 
+      v-if="showModal"
+      :key="modalMode + (selectedPositionId || 'new')"
+      ref="positionFormRef" 
+      :position="currentPosition" 
+      :mode="modalMode" 
+      @submit="handleSubmit" 
+    />
+  </BaseDialog>
+  </template>
 
-<script setup lang="ts">
-import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
-import BaseCatalog from '@/components/shared/BaseCatalog.vue'
-import BaseDialog from '@/components/shared/BaseDialog.vue'
-import { mesApi } from '@/services/mesApi'
-import type { MESPosition } from '@/types/mes'
+  <script setup lang="ts">
+  import { onMounted, ref, reactive, computed, watch, onUnmounted } from 'vue'
+  import { Plus, Pencil, Ban, CheckCircle } from 'lucide-vue-next'
+  import BaseCatalog from '@/components/shared/BaseCatalog.vue'
+  import BaseDialog from '@/components/shared/BaseDialog.vue'
+  import PositionForm from '@/components/master-data/PositionForm.vue'
+  import { mesApi } from '@/services/mesApi'
+  import { useToastStore } from '@/stores/toast'
+  import type { MESPosition } from '@/types/mes'
 
-const positions = ref<MESPosition[]>([])
-const isLoading = ref(false)
-const isSaving = ref(false)
-const error = ref('')
+  const toastStore = useToastStore()
+  const positions = ref<MESPosition[]>([])
+  const isLoading = ref(false)
+  const isSaving = ref(false)
+  const error = ref('')
 
-const filters = reactive({ search: '', isActive: '' })
-const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
+  const filters = reactive({ search: '', isActive: '' })
+  const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
 
-// Modal State
-const showModal = ref(false)
-const modalMode = ref<'create' | 'edit'>('create')
-const selectedPositionId = ref<string | null>(null)
-const formData = reactive({ name: '', code: '', description: '', is_active: true })
+  // Modal State
+  const showModal = ref(false)
+  const modalMode = ref<'create' | 'edit'>('create')
+  const selectedPositionId = ref<string | null>(null)
+  const currentPosition = ref<any>(null)
+  const positionFormRef = ref<any>(null)
 
-let debounceTimer: any = null
-watch(filters, () => {
+  let debounceTimer: any = null
+  watch(filters, () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => loadPositions(), 350)
-}, { deep: true })
+  }, { deep: true })
 
-async function loadPositions() {
+  async function loadPositions() {
   isLoading.value = true
   error.value = ''
   try {
-    const isActive = filters.isActive === '' ? undefined : filters.isActive === 'true'
-    positions.value = await mesApi.listPositions({ search: filters.search.trim() || undefined, is_active: isActive })
+  const isActive = filters.isActive === '' ? undefined : filters.isActive === 'true'
+  positions.value = await mesApi.listPositions({ search: filters.search.trim() || undefined, is_active: isActive })
   } catch (err: any) { error.value = 'Error al cargar posiciones.' }
   finally { isLoading.value = false }
-}
+  }
 
-function openCreateModal() {
-  modalMode.value = 'create'; selectedPositionId.value = null
-  Object.assign(formData, { name: '', code: '', description: '', is_active: true })
+  function openCreateModal() {
+  modalMode.value = 'create'
+  selectedPositionId.value = null
+  currentPosition.value = null
   showModal.value = true
-}
+  }
 
-function editPosition(item: MESPosition) {
-  modalMode.value = 'edit'; selectedPositionId.value = item.id
-  Object.assign(formData, { name: item.name, code: item.code, description: item.description, is_active: item.is_active })
+  function editPosition(item: MESPosition) {
+  modalMode.value = 'edit'
+  selectedPositionId.value = item.id
+  currentPosition.value = item
   showModal.value = true
-}
+  }
 
-async function savePosition() {
-  if (!formData.name) return;
+  function submitForm() {
+  if (positionFormRef.value) {
+  positionFormRef.value.handleSubmit()
+  }
+  }
+
+  async function handleSubmit(payload: any) {
   isSaving.value = true
   try {
-    if (modalMode.value === 'create') await mesApi.createPosition(formData)
-    else await mesApi.updatePosition(selectedPositionId.value!, formData)
-    showModal.value = false; await loadPositions()
-  } catch (err: any) { alert(err.message) }
-  finally { isSaving.value = false }
-}
-
+  if (modalMode.value === 'create') {
+    await mesApi.createPosition(payload)
+    toastStore.success('Posición creada correctamente')
+  } else {
+    await mesApi.updatePosition(selectedPositionId.value!, payload)
+    toastStore.success('Posición actualizada correctamente')
+  }
+  showModal.value = false
+  await loadPositions()
+  } catch (err: any) {
+  toastStore.addToast(err.message, 'error')
+  } finally {
+  isSaving.value = false
+  }
+  }
 async function toggleActive(item: MESPosition) {
   try { await mesApi.updatePosition(item.id, { is_active: !item.is_active }); await loadPositions() }
-  catch (err: any) { alert(err.message) }
+  catch (err: any) { toastStore.addToast(err.message, 'error') }
 }
 
 function clearFilters() { filters.search = ''; filters.isActive = ''; }

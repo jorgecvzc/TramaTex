@@ -1,43 +1,43 @@
 <template>
   <BaseDashboardPage :is-loading="isLoading" class="no-print">
     <template #header>
-      <PageHeader title="Monitor de Producción (MES)">
-        <template #icon><span class="material-symbols-outlined">precision_manufacturing</span></template>
+      <BasePageHeader title="Monitor de Producción (MES)">
+        <template #icon><Factory :size="28" /></template>
         <template #actions>
           <button @click="loadDashboard" class="btn btn-outline btn-sm" :disabled="isLoading">
-            <span class="material-symbols-outlined" :class="{ 'spin': isLoading }">refresh</span>
+            <RefreshCw :size="16" :class="{ 'spin': isLoading }" />
             Actualizar
           </button>
         </template>
-      </PageHeader>
+      </BasePageHeader>
     </template>
 
     <div class="module-dashboard-content">
       <!-- 1. KPIs de Resumen -->
       <section class="stats-grid">
         <div class="stat-card clickable" @click="router.push('/mes/work-orders')">
-          <div class="stat-icon blue"><span class="material-symbols-outlined">factory</span></div>
+          <div class="stat-icon blue"><Factory :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Total Trabajos</span>
             <span class="stat-value">{{ stats?.total ?? 0 }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/mes/work-orders?status=OVERDUE')">
-          <div class="stat-icon red"><span class="material-symbols-outlined">history</span></div>
+          <div class="stat-icon red"><History :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Vencidos</span>
             <span class="stat-value text-danger">{{ stats?.overdue ?? 0 }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/mes/work-orders?status=IN_PROGRESS')">
-          <div class="stat-icon yellow"><span class="material-symbols-outlined">running_with_errors</span></div>
+          <div class="stat-icon yellow"><AlertCircle :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">En Producción</span>
             <span class="stat-value text-warning">{{ inProgressOrders.length }}</span>
           </div>
         </div>
         <div class="stat-card clickable" @click="router.push('/mes/terminal')">
-          <div class="stat-icon purple"><span class="material-symbols-outlined">assignment</span></div>
+          <div class="stat-icon purple"><ClipboardList :size="22" /></div>
           <div class="stat-info">
             <span class="stat-label">Tareas Taller</span>
             <span class="stat-value">{{ pendingTasksCount }}</span>
@@ -48,19 +48,19 @@
       <!-- 2. Accesos a Listados -->
       <section class="listings-grid">
         <RouterLink to="/mes/work-orders" class="listing-link">
-          <span class="material-symbols-outlined">format_list_bulleted</span>
+          <List :size="20" />
           <span>Órdenes de Trabajo</span>
         </RouterLink>
         <RouterLink to="/mes/tasks" class="listing-link">
-          <span class="material-symbols-outlined">checklist</span>
+          <ClipboardCheck :size="20" />
           <span>Tareas de Taller</span>
         </RouterLink>
         <RouterLink to="/mes/positions" class="listing-link">
-          <span class="material-symbols-outlined">location_on</span>
+          <MapPin :size="20" />
           <span>Mapa de Posiciones</span>
         </RouterLink>
         <RouterLink to="/mes/terminal" class="listing-link highlight-subtle">
-          <span class="material-symbols-outlined">tablet_mac</span>
+          <Tablet :size="20" />
           <span>Terminal Taller</span>
         </RouterLink>
       </section>
@@ -68,7 +68,7 @@
       <!-- 3. Actividad (Órdenes en Cola de Producción) -->
       <section class="dashboard-section">
         <div class="section-header">
-          <span class="material-symbols-outlined text-info">pending_actions</span>
+          <Timer :size="20" class="text-info" />
           <h2>Cola de Producción (Sin Lanzar)</h2>
           <span class="header-tag">{{ pendingOrders.length }}</span>
         </div>
@@ -92,13 +92,13 @@
                 <td class="align-right">
                   <div class="actions-cell">
                     <button v-if="wo.work_setup_id" class="btn btn-secondary btn-sm" @click="launchToWorkshop(wo)" title="Enviar a la Tablet del taller">
-                      <span class="material-symbols-outlined">rocket_launch</span>
+                      <Rocket :size="16" />
                       Lanzar
                     </button>
                     <button v-else class="btn btn-primary btn-sm" @click="configureOrder(wo)">Configurar</button>
                     
                     <button v-if="wo.work_setup_id" class="btn btn-ghost btn-icon btn-sm" @click="configureOrder(wo)" title="Cambiar configuración técnica">
-                      <span class="material-symbols-outlined">settings</span>
+                      <Settings :size="16" />
                     </button>
                   </div>
                 </td>
@@ -114,7 +114,7 @@
       <!-- 4. Actividad en Curso (Trabajos en el Taller) -->
       <section class="dashboard-section mt-6">
         <div class="section-header">
-          <span class="material-symbols-outlined text-success">play_circle</span>
+          <PlayCircle :size="20" class="text-success" />
           <h2>Trabajos en Curso (Taller)</h2>
           <span class="header-tag success">{{ inProgressOrders.length }}</span>
         </div>
@@ -145,11 +145,11 @@
                 <td class="align-right">
                   <div class="actions-cell">
                     <button class="btn btn-outline btn-sm" @click="router.push('/mes/terminal')">
-                      <span class="material-symbols-outlined">tablet_mac</span>
+                      <Tablet :size="16" />
                       Ver Terminal
                     </button>
                     <button class="btn btn-ghost btn-icon btn-sm" @click="router.push(`/mes/work-orders/${wo.id}`)" title="Ver detalle completo">
-                      <span class="material-symbols-outlined">visibility</span>
+                      <Eye :size="16" />
                     </button>
                   </div>
                 </td>
@@ -174,19 +174,19 @@
     <template #sidebar>
       <section class="sidebar-section">
         <div class="section-header">
-          <span class="material-symbols-outlined">bolt</span>
+          <Zap :size="20" />
           <h2>Mantenimiento</h2>
         </div>
         <div class="quick-actions-list">
           <RouterLink to="/mes/work-setups" class="admin-card clickable">
-            <span class="material-symbols-outlined text-primary">settings_input_component</span>
+            <Cpu :size="20" class="text-primary" />
             <div class="admin-card-info">
               <strong>Setups Técnicos</strong>
               <p>Configuraciones base</p>
             </div>
           </RouterLink>
           <RouterLink to="/mes/tasks" class="admin-card clickable mt-2">
-            <span class="material-symbols-outlined text-secondary">tune</span>
+            <Sliders :size="20" class="text-secondary" />
             <div class="admin-card-info">
               <strong>Maestro de Tareas</strong>
               <p>Definición de procesos</p>
@@ -201,7 +201,26 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import PageHeader from '@/components/layout/PageHeader.vue'
+import { 
+  Factory, 
+  RefreshCw, 
+  History, 
+  AlertCircle, 
+  ClipboardList, 
+  List, 
+  ClipboardCheck, 
+  MapPin, 
+  Tablet, 
+  Timer, 
+  Rocket, 
+  Settings, 
+  PlayCircle, 
+  Eye, 
+  Zap, 
+  Cpu, 
+  Sliders 
+} from 'lucide-vue-next'
+import BasePageHeader from '@/components/shared/BasePageHeader.vue'
 import BaseDashboardPage from '@/components/shared/BaseDashboardPage.vue'
 import WorkSetupSelectorDialog from '@/components/mes/WorkSetupSelectorDialog.vue'
 import { mesApi } from '@/services/mesApi'
@@ -305,7 +324,7 @@ async function launchToWorkshop(wo: WorkOrder) {
 }
 
 function configurePending(setup: any) {
-  // Mapeamos el objeto de solicitud pendiente al formato que espera el diálogo
+  // Map the pending request object to the format expected by the dialog
   selectedWorkOrder.value = {
     id: setup.id,
     work_number: setup.order_number,
@@ -321,7 +340,7 @@ async function handleSetupAssigned() {
   await loadDashboard()
 }
 
-// Helpers de progreso
+// Progress helpers
 function getTotalTasksCount(wo: WorkOrder) {
   let total = 0
   wo.lines?.forEach(l => { total += l.tasks?.length || 0 })
@@ -357,7 +376,7 @@ onMounted(loadDashboard)
 .stat-card { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); display: flex; align-items: center; gap: 0.75rem; position: relative; transition: 0.2s; cursor: pointer; }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--box-shadow-md); border-color: var(--color-primary); }
 .stat-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.stat-icon .material-symbols-outlined { font-size: 22px; }
+.stat-icon :deep(svg) { width: 22px; height: 22px; }
 .stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .stat-icon.red { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .stat-icon.yellow { background: rgba(230, 184, 0, 0.1); color: #E6B800; }
@@ -369,7 +388,7 @@ onMounted(loadDashboard)
 .listings-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
 .listing-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: white; border: 1px solid var(--color-border); border-radius: 8px; text-decoration: none; color: var(--color-text-primary); font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
 .listing-link:hover { background: var(--color-background); border-color: var(--color-secondary); color: var(--color-secondary); }
-.listing-link .material-symbols-outlined { color: var(--color-secondary); font-size: 1.25rem; }
+.listing-link :deep(svg) { color: var(--color-secondary); }
 .listing-link.highlight-subtle { border-left: 3px solid var(--color-primary); }
 
 .dashboard-section { background: white; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--color-border); box-shadow: var(--box-shadow-sm); }
@@ -393,4 +412,7 @@ onMounted(loadDashboard)
 .btn-icon { padding: 0.25rem; min-width: auto; }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--color-text-secondary); }
 .btn-ghost:hover { color: var(--color-primary); background: var(--color-background); }
-</style>
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>e>>

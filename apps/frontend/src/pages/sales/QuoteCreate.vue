@@ -38,49 +38,81 @@
       </div>
     </FormSection>
 
-    <!-- Section: Line Items -->
-    <FormSection title="Detalle de Líneas" icon="list_alt" description="Añade los productos o servicios que componen el presupuesto.">
+    <!-- Section: MES Technical Config -->
+    <FormSection title="Configuración Técnica (MES)" icon="precision_manufacturing" description="Define los requerimientos técnicos o configuraciones de taller vinculadas.">
+      <div class="mb-4">
+        <button type="button" class="btn btn-primary btn-sm" @click="addMesWorkRef">
+          <Plus :size="16" /> <span>Añadir Trabajo MES</span>
+        </button>
+      </div>
       <div class="table-wrapper">
-        <table class="data-table">
+        <table class="data-table fixed-layout">
           <thead>
             <tr>
-              <th>Producto / Variante</th>
-              <th class="text-center">Cant.</th>
-              <th class="align-right">P. Unitario</th>
-              <th class="text-center">Dto %</th>
-              <th class="align-right">Subtotal</th>
-              <th class="text-center">Acciones</th>
+              <th style="width: 50px">#</th>
+              <th style="width: 250px">Configuración</th>
+              <th>Descripción / Notas *</th>
+              <th class="text-center" style="width: 80px">Borrar</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in formData.lineItems" :key="index">
+            <tr v-for="(ref, idx) in formData.mesWorkRefs" :key="idx">
+              <td class="text-muted">{{ idx + 1 }}</td>
               <td>
-                <div v-if="!item.productVariantId" class="input-with-action">
-                  <input v-model="item.quickSearch" type="text" class="form-input-sm" placeholder="SKU o nombre..." @keyup.enter="openVariantSelector(index)" />
-                  <button type="button" class="btn btn-outline btn-sm" @click="openVariantSelector(index)"><span class="material-symbols-outlined">search</span></button>
-                </div>
-                <div v-else class="selected-item-tag" @click="clearLine(index)">
-                  <strong>{{ item.variantSku }}</strong> <span>{{ item.displayName }}</span>
-                  <span class="material-symbols-outlined">close</span>
-                </div>
+                <select 
+                  v-model="ref.workSetupId" 
+                  class="form-input-sm w-full"
+                  :data-mes-row="idx"
+                  data-mes-col="setup"
+                  @keydown="handleMesKeyDown($event, idx, 'setup', ref)"
+                >
+                  <option :value="null">-- Personalizado --</option>
+                  <option v-for="setup in availableMesSetups" :key="setup.id" :value="setup.id">{{ setup.name }}</option>
+                </select>
               </td>
-              <td class="text-center"><input v-model.number="item.quantity" type="number" min="1" class="form-input-sm w-16" @input="calculateTotals" /></td>
-              <td class="align-right"><input v-model.number="item.unitPrice" type="number" step="0.01" class="form-input-sm w-24 text-right" @input="calculateTotals" /></td>
-              <td class="text-center"><input v-model.number="item.discountPercent" type="number" step="0.01" class="form-input-sm w-16 text-center" @input="calculateTotals" /></td>
-              <td class="align-right"><strong>{{ formatMoney(calculateLineSubtotal(index)) }}</strong></td>
+              <td class="w-full">
+                <input 
+                  v-model="ref.description" 
+                  type="text" 
+                  class="form-input-sm w-full" 
+                  placeholder="Especificaciones técnicas..." 
+                  required 
+                  :data-mes-row="idx"
+                  data-mes-col="desc"
+                  @keydown="handleMesKeyDown($event, idx, 'desc', ref)"
+                />
+              </td>
               <td class="text-center">
-                <button type="button" class="btn-icon text-danger" @click="removeLine(index)"><span class="material-symbols-outlined">delete</span></button>
+                <button type="button" class="btn-icon text-danger" @click="removeMesWorkRef(idx)">
+                  <Trash2 :size="18" />
+                </button>
               </td>
             </tr>
-            <tr v-if="formData.lineItems.length === 0">
-              <td colspan="6" class="empty-row">Pulse el botón para añadir productos al presupuesto.</td>
+            <tr v-if="formData.mesWorkRefs.length === 0">
+              <td colspan="4" class="text-muted text-center p-4">No hay trabajos MES vinculados. Pulsa en "Añadir".</td>
             </tr>
           </tbody>
         </table>
       </div>
+    </FormSection>
+
+    <!-- Section: Line Items -->
+    <FormSection title="Detalle de Líneas" icon="List" description="Añade los productos o servicios que componen el presupuesto.">
+      <OrderLines
+        :lines="formData.lineItems"
+        :is-editing="true"
+        @update:lines="(newLines) => formData.lineItems = newLines"
+        @add-line="openVariantSelector"
+        @last-field-tab="addProductBtn?.focus()"
+      />
       <div class="mt-4">
-        <button type="button" class="btn btn-secondary btn-sm" @click="addLineItem">
-          <span class="material-symbols-outlined">add</span> Añadir Producto
+        <button 
+          ref="addProductBtn"
+          type="button" 
+          class="btn btn-secondary btn-sm" 
+          @click="openVariantSelector"
+        >
+          <Plus :size="16" /> Añadir Producto (Ins)
         </button>
       </div>
     </FormSection>
@@ -109,9 +141,9 @@
     <div v-if="showVariantSelector" class="modal-backdrop">
       <div class="modal card w-modal-xl">
         <div class="modal-header">
-          <span class="material-symbols-outlined">inventory_2</span>
+          <Package :size="24" />
           <h2>Seleccionar Producto</h2>
-          <button class="btn-icon ml-auto" @click="showVariantSelector = false"><span class="material-symbols-outlined">close</span></button>
+          <button class="btn-icon ml-auto" @click="showVariantSelector = false"><X :size="20" /></button>
         </div>
         <div class="modal-body overflow-y">
           <VariantSelector :initial-query="variantQuery" @variant-selected="handleVariantSelected" />
@@ -122,31 +154,88 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { Search, X, Trash2, Plus, Package } from 'lucide-vue-next';
 import BaseFormLayout from '@/components/shared/BaseFormLayout.vue';
 import FormSection from '@/components/shared/FormSection.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
+import OrderLines from '@/components/sales/OrderLines.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
+import { useLineNavigation } from '@/composables/useLineNavigation';
 import salesApi from '@/services/salesApi';
+import { mesApi } from '@/services/mesApi';
+import { useToastStore } from '@/stores/toast';
 
 const router = useRouter();
+const toastStore = useToastStore();
 const isSubmitting = ref(false);
 const formData = reactive({
   partyId: '',
   quoteDate: new Date().toISOString().split('T')[0],
   expirationDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
   notes: '',
-  lineItems: []
+  lineItems: [],
+  mesWorkRefs: []
 });
 
-const totals = reactive({ subtotal: 0, tax: 0, total: 0 });
+const { handleLineKeyDown: handleMesKeyDown, focusLineInput: focusMesInput } = useLineNavigation({
+  rowCount: () => formData.mesWorkRefs.length,
+  columns: ['setup', 'desc'],
+  prefix: 'mes',
+  onRemoveField: (index) => removeMesWorkRef(index),
+  onLastFieldEnter: () => addMesWorkRef(),
+  onAddField: () => addMesWorkRef()
+});
+
+onMounted(() => {
+  loadMesMasters();
+  window.addEventListener('tramatex-save', handleGlobalSave);
+  window.addEventListener('tramatex-esc', () => router.push('/sales/quotes'));
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-save', handleGlobalSave);
+  window.removeEventListener('tramatex-esc', () => router.push('/sales/quotes'));
+});
+
+function handleGlobalSave() {
+  if (!isSubmitting.value && formData.lineItems.length > 0) handleSubmit();
+}
+
+const availableMesSetups = ref([]);
+const workTypesCache = ref({});
+const positionsCache = ref({});
 const partyDefaultDiscount = ref(null);
 const showVariantSelector = ref(false);
 const editingIdx = ref(null);
 const variantQuery = ref('');
+const totals = reactive({ subtotal: 0, tax: 0, total: 0 });
 
-function onPartySelected(party) { partyDefaultDiscount.value = party?.default_discount_percentage || null; }
+async function loadMesMasters() {
+  try {
+    const [types, pos] = await Promise.all([mesApi.listWorkTypes(), mesApi.listPositions()]);
+    (types.data || types).forEach(t => workTypesCache.value[t.id] = t.name);
+    (pos.data || pos).forEach(p => positionsCache.value[p.id] = p.name);
+  } catch (err) { console.error('Error maestros MES', err); }
+}
+
+async function loadAvailableSetups(partyId) {
+  if (!partyId) return;
+  try { 
+    const res = await mesApi.listWorkSetups({ party_id: partyId }); 
+    availableMesSetups.value = res.data || res || [];
+  } catch (err) { availableMesSetups.value = []; }
+}
+
+function onPartySelected(party) {
+  partyDefaultDiscount.value = party?.default_discount_percentage || null;
+  formData.partyId = party?.id || '';
+  loadAvailableSetups(party?.id);
+}
+
+function addMesWorkRef() { formData.mesWorkRefs.push({ workSetupId: null, description: '' }); }
+function removeMesWorkRef(idx) { formData.mesWorkRefs.splice(idx, 1); }
 
 function addLineItem() {
   formData.lineItems.push({ productVariantId: '', variantSku: '', displayName: '', quantity: 1, unitPrice: 0, discountPercent: partyDefaultDiscount.value || 0, quickSearch: '' });
@@ -169,8 +258,6 @@ function handleVariantSelected(v) {
   item.listPrice = null;
   item._autoPrice = true;
   showVariantSelector.value = false;
-  
-  // Trigger immediate calculation to get the correct sale price with margins
   calculateTotals(true);
 }
 
@@ -202,7 +289,6 @@ function calculateTotals(immediate = false) {
         totals.tax = res.taxAmount.amount; 
         totals.total = res.total.amount;
         
-        // Update line prices for items that haven't been manually overridden
         formData.lineItems.forEach((item, idx) => {
           if (item.productVariantId && item._autoPrice !== false && res.lineItems?.[idx]) {
             item.unitPrice = res.lineItems[idx].unitPrice.amount;
@@ -223,7 +309,10 @@ function calculateLineSubtotal(idx) {
 }
 
 async function handleSubmit() {
-  if (formData.lineItems.length === 0) return;
+  if (formData.lineItems.length === 0) {
+    toastStore.warning('Añade al menos un producto');
+    return;
+  }
   isSubmitting.value = true;
   try {
     const payload = {
@@ -233,11 +322,18 @@ async function handleSubmit() {
       items: formData.lineItems.map(i => ({
         productVariantId: i.productVariantId, quantity: i.quantity,
         unitPrice: { amount: i.unitPrice, currency: 'EUR' }, discountPercent: i.discountPercent
+      })),
+      mesWorkRefs: formData.mesWorkRefs.filter(r => r.workSetupId || r.description).map(r => ({
+        workSetupId: r.workSetupId || undefined,
+        description: r.description || ''
       }))
     };
     const res = await salesApi.createQuote(payload);
+    toastStore.success('Presupuesto creado correctamente');
     router.push(`/sales/quotes/${res.id}`);
-  } catch (err) { alert(err.message); }
+  } catch (err: any) { 
+    toastStore.error(err.message || 'Error al crear el presupuesto'); 
+  }
   finally { isSubmitting.value = false; }
 }
 
@@ -262,4 +358,6 @@ function formatMoney(a) { return new Intl.NumberFormat('es-ES', { style: 'curren
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .w-modal-xl { width: 90%; max-width: 1100px; }
 .btn-icon { color: var(--color-text-secondary); cursor: pointer; }
+
+.fixed-layout { table-layout: fixed; }
 </style>

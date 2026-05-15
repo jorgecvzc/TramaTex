@@ -261,11 +261,26 @@ func (s *SalesService) ConvertQuoteToOrder(ctx context.Context, cmd ConvertQuote
 		return nil, err
 	}
 
-	if err := s.orderRepo.Save(ctx, order); err != nil {
-		return nil, err
-	}
-	if err := s.quoteRepo.Save(ctx, quote); err != nil {
-		return nil, err
+	if s.txManager != nil {
+		err = s.txManager.RunInTransaction(ctx, func(ctx context.Context) error {
+			if err := s.orderRepo.Save(ctx, order); err != nil {
+				return err
+			}
+			if err := s.quoteRepo.Save(ctx, quote); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.orderRepo.Save(ctx, order); err != nil {
+			return nil, err
+		}
+		if err := s.quoteRepo.Save(ctx, quote); err != nil {
+			return nil, err
+		}
 	}
 
 	return NewSalesOrderDTO(order), nil
@@ -305,11 +320,26 @@ func (s *SalesService) AcceptAndConvertQuote(ctx context.Context, cmd AcceptAndC
 		return nil, err
 	}
 
-	if err := s.orderRepo.Save(ctx, order); err != nil {
-		return nil, err
-	}
-	if err := s.quoteRepo.Save(ctx, quote); err != nil {
-		return nil, err
+	if s.txManager != nil {
+		err = s.txManager.RunInTransaction(ctx, func(ctx context.Context) error {
+			if err := s.orderRepo.Save(ctx, order); err != nil {
+				return err
+			}
+			if err := s.quoteRepo.Save(ctx, quote); err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if err := s.orderRepo.Save(ctx, order); err != nil {
+			return nil, err
+		}
+		if err := s.quoteRepo.Save(ctx, quote); err != nil {
+			return nil, err
+		}
 	}
 
 	return NewSalesOrderDTO(order), nil

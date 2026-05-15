@@ -6,10 +6,11 @@
     </label>
     
     <div class="selector-container">
-      <!-- Search Mode: Dropdown with search -->
-      <div class="search-selector">
+      <!-- Search Mode: Input is always in DOM but hidden when selection is active and not searching -->
+      <div v-show="!selectedParty || showDropdown" class="search-selector">
         <input
           :id="inputId"
+          ref="searchInput"
           v-model="searchTerm"
           type="text"
           :placeholder="placeholder || 'Buscar por nombre o referencia...'"
@@ -20,7 +21,7 @@
           @keydown.enter.prevent="selectFirst"
           @keydown.down.prevent="navigateDown"
           @keydown.up.prevent="navigateUp"
-          :required="required"
+          :required="required && !selectedParty"
           autocomplete="off"
         />
         
@@ -54,8 +55,8 @@
         </div>
       </div>
       
-      <!-- Selected Party Display -->
-      <div v-if="selectedParty && !showDropdown" class="selected-party">
+      <!-- Selected Party Display: Only when not searching and selection exists -->
+      <div v-if="selectedParty && !showDropdown" class="selected-party" @click="focusSearch">
         <div class="selected-party-info">
           <span class="party-name">{{ selectedParty.name }}</span>
           <span v-if="selectedParty.tax_id" class="party-detail">{{ selectedParty.tax_id }}</span>
@@ -63,7 +64,7 @@
         <button
           type="button"
           class="btn-clear"
-          @click="clearSelection"
+          @click.stop="clearSelection"
           title="Limpiar selección"
         >
           ✕
@@ -77,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { partyApi } from '@/services/partyApi';
 
 const props = defineProps({
@@ -122,20 +123,32 @@ async function loadParties(name = '') {
     const response = await partyApi.listParties(filters);
     allParties.value = response.data || (Array.isArray(response) ? response : []);
     
-    if (props.modelValue && !name && !selectedParty.value) {
-      // Si tenemos un ID pero no lo encontramos en la lista, traerlo específicamente
-      try {
-        externalParty.value = await partyApi.getParty(props.modelValue);
-        if (externalParty.value) searchTerm.value = externalParty.value.name;
-      } catch (e) { console.error("Error trayendo entidad seleccionada", e); }
-    } else if (selectedParty.value) {
-      searchTerm.value = selectedParty.value.name;
+    // Solo actualizar searchTerm si NO estamos en una búsqueda activa por nombre
+    if (!name) {
+      if (props.modelValue && !selectedParty.value) {
+        try {
+          externalParty.value = await partyApi.getParty(props.modelValue);
+          if (externalParty.value) searchTerm.value = externalParty.value.name;
+        } catch (e) { console.error("Error trayendo entidad seleccionada", e); }
+      } else if (selectedParty.value) {
+        searchTerm.value = selectedParty.value.name;
+      }
     }
   } catch (error) {
     console.error('Error loading parties:', error);
   } finally {
     isSearching.value = false;
   }
+}
+
+const searchInput = ref<HTMLInputElement | null>(null);
+
+function focusSearch() {
+  showDropdown.value = true;
+  nextTick(() => {
+    searchInput.value?.focus();
+    searchInput.value?.select();
+  });
 }
 
 function handleInput() {
@@ -168,6 +181,16 @@ function selectParty(party: any) {
   showDropdown.value = false;
 }
 
+function clearSelection() {
+  emit('update:modelValue', '');
+  emit('select', null);
+  searchTerm.value = '';
+  showDropdown.value = false;
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
+}
+
 function selectFirst() {
   if (filteredParties.value.length > 0) selectParty(filteredParties.value[activeIndex.value]);
 }
@@ -175,25 +198,23 @@ function selectFirst() {
 function navigateDown() { if (activeIndex.value < filteredParties.value.length - 1) activeIndex.value++; }
 function navigateUp() { if (activeIndex.value > 0) activeIndex.value--; }
 
-function clearSelection() {
-  emit('update:modelValue', '');
-  emit('select', null);
-  searchTerm.value = '';
+function handleGlobalEsc() {
   showDropdown.value = false;
 }
 
 function getRoleLabel(role: string) {
-  const labels: any = { CLIENT: 'Cliente', SUPPLIER: 'Proveedor', BOTH: 'Ambos', CONTACT: 'Contacto' };
-  return labels[role] || role;
+  if (!role) return 'Desconocido';
+  const map: Record<string, string> = {
+    'CUSTOMER': 'Cliente',
+    'SUPPLIER': 'Proveedor',
+    'BOTH': 'Cliente / Prov.',
+    'CARRIER': 'Transportista'
+  };
+  return map[role.toUpperCase()] || role;
 }
 
 watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    // Si cambia el valor externamente, forzar recarga para asegurar que tenemos el nombre
-    if (!selectedParty.value || selectedParty.value.id !== newVal) {
-      loadParties();
-    }
-  } else {
+  if (!newVal) {
     searchTerm.value = '';
     externalParty.value = null;
   }
@@ -201,6 +222,16 @@ watch(() => props.modelValue, (newVal) => {
 
 onMounted(() => {
   loadParties();
+  window.addEventListener('tramatex-esc', handleGlobalEsc);
+  
+  // Auto-focus if requested or standard
+  nextTick(() => {
+    searchInput.value?.focus();
+  });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('tramatex-esc', handleGlobalEsc);
 });
 </script>
 

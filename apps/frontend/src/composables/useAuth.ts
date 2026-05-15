@@ -9,7 +9,7 @@ export function useAuth() {
   const isLoading = computed(() => authStore.isLoading)
 
   async function login(email: string, password: string) {
-    // Validación básica
+    // Basic validation
     if (!email || !password) {
       throw new Error('Email y contraseña son requeridos')
     }

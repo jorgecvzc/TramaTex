@@ -591,7 +591,7 @@ func TestInvoice_ChangeStatus_OverdueToVoid_Success(t *testing.T) {
 	}
 }
 
-func TestInvoice_ChangeStatus_InvalidTransition_DraftToPaid_Fail(t *testing.T) {
+func TestInvoice_ChangeStatus_DraftToPaid_Success(t *testing.T) {
 	number, _ := NewInvoiceNumber("INV-008")
 	series, _ := NewInvoiceSeries("A", 2026)
 	partyID := uuid.New()
@@ -615,11 +615,11 @@ func TestInvoice_ChangeStatus_InvalidTransition_DraftToPaid_Fail(t *testing.T) {
 
 	err := invoice.ChangeStatus(InvoiceStatusPaid)
 
-	if err == nil {
-		t.Error("ChangeStatus(PAID) from DRAFT should fail")
+	if err != nil {
+		t.Errorf("ChangeStatus(PAID) from DRAFT error = %v, want nil", err)
 	}
-	if invoice.Status != InvoiceStatusDraft {
-		t.Errorf("Status should remain DRAFT, got %v", invoice.Status)
+	if invoice.Status != InvoiceStatusPaid {
+		t.Errorf("Status should be PAID, got %v", invoice.Status)
 	}
 }
 

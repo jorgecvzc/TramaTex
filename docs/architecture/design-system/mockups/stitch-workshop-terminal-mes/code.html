@@ -4,7 +4,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>TramaTex Login - Dark Intermediate Blue</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/lucide@latest"></script>
 <script id="tailwind-config">
         tailwind.config = {
             theme: {
@@ -53,7 +53,7 @@
                         Username
                     </label>
 <div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg">person</span>
+<i data-lucide="user" style="width: 1.125rem; height: 1.125rem;" class="absolute left-3 top-2.5 text-gray-500"></i>
 <input class="w-full bg-charcoal border-gray-700 text-white rounded-md pl-10 py-2.5 text-sm focus:ring-royal-blue focus:border-royal-blue transition-all" placeholder="admin_user" type="text"/>
 </div>
 </div>
@@ -62,7 +62,7 @@
                         Password
                     </label>
 <div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-2.5 text-gray-500 text-lg">lock</span>
+<i data-lucide="lock" style="width: 1.125rem; height: 1.125rem;" class="absolute left-3 top-2.5 text-gray-500"></i>
 <input class="w-full bg-charcoal border-gray-700 text-white rounded-md pl-10 py-2.5 text-sm focus:ring-royal-blue focus:border-royal-blue transition-all" placeholder="••••••••" type="password"/>
 </div>
 </div>
@@ -74,7 +74,7 @@
 <a class="text-[11px] text-royal-blue font-bold hover:underline" href="#">Forgot password?</a>
 </div>
 <button class="w-full bg-primary hover:bg-[#EAC412] text-gray-900 font-black py-3 rounded-md text-sm flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all uppercase tracking-widest mt-4" type="submit">
-<span class="material-symbols-outlined font-bold text-lg">login</span>
+<i data-lucide="log-in" style="width: 1.125rem; height: 1.125rem;"></i>
                     Login
                 </button>
 </form>
@@ -97,4 +97,7 @@
         </p>
 </div>
 
+<script>
+  lucide.createIcons();
+</script>
 </body></html>

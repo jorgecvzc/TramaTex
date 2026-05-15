@@ -6,7 +6,6 @@ import {
 import Login from "@/pages/auth/Login.vue";
 import Dashboard from "@/pages/Dashboard.vue";
 import NotFound from "@/pages/NotFound.vue";
-import StyleGuide from "@/components/StyleGuide.vue";
 import PartiesList from "@/pages/parties/List.vue";
 import PartiesCreate from "@/pages/parties/Create.vue";
 import PartiesDetail from "@/pages/parties/Detail.vue";
@@ -33,7 +32,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Dashboard - TramaTex" },
   },
   
-  // --- MÓDULO: ENTIDADES (PARTY) ---
+  // --- PARTY MODULE ---
   {
     path: "/parties",
     name: "Parties",
@@ -49,7 +48,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/parties/new",
     name: "CreateParty",
-    component: PartiesCreate,
+    component: PartiesDetail,
     meta: { requiresAuth: true, title: "Crear Entidad - TramaTex" },
   },
   {
@@ -59,7 +58,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Detalle de Entidad - TramaTex" },
   },
 
-  // --- MÓDULO: PRODUCTOS (PRODUCT) ---
+  // --- PRODUCT MODULE ---
   {
     path: "/products",
     name: "Products",
@@ -91,7 +90,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Gestión de Precios - TramaTex" },
   },
 
-  // --- MÓDULO: VENTAS (SALES) ---
+  // --- SALES MODULE ---
   {
     path: "/sales",
     redirect: "/sales/dashboard",
@@ -169,7 +168,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Nuevo Ticket - TramaTex" },
   },
 
-  // --- DATOS MAESTROS (SECUNDARIOS) ---
+  // --- MASTER DATA (SECONDARY) ---
   {
     path: "/master-data/brands",
     name: "BrandsList",
@@ -189,7 +188,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Atributos - TramaTex" },
   },
 
-  // --- MÓDULO: PRODUCCIÓN (MES) ---
+  // --- PRODUCTION MODULE (MES) ---
   {
     path: "/mes",
     redirect: "/mes/dashboard",
@@ -249,7 +248,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, title: "Terminal de Taller - TramaTex" },
   },
 
-  // --- ADMINISTRACIÓN Y SISTEMA ---
+  // --- ADMINISTRATION & SYSTEM ---
   {
     path: "/admin/users",
     name: "UsersManagement",
@@ -261,6 +260,12 @@ const routes: RouteRecordRaw[] = [
     name: "PrintIssuerProfile",
     component: PrintIssuerProfile,
     meta: { requiresAuth: true, requiresAdmin: true, title: "Perfil Fiscal Impresión - TramaTex" },
+  },
+  {
+    path: "/help",
+    name: "HelpCenter",
+    component: () => import("@/pages/help/HelpCenter.vue"),
+    meta: { requiresAuth: true, title: "Centro de Ayuda - TramaTex" },
   },
   {
     path: "/dev/design-system",

@@ -7,6 +7,7 @@
       :items="productGroups"
       :is-loading="isLoading"
       :error="error"
+      :has-filters="hasFilters"
       create-text="Nueva Categoría"
       empty-icon="folder_off"
       empty-text="No hay categorías registradas en el sistema"
@@ -16,7 +17,7 @@
     >
       <template #header-actions>
         <button @click="openCreateModal" class="btn btn-primary">
-          <span class="material-symbols-outlined">add_box</span>
+          <PlusSquare :size="18" />
           <span>Nueva Categoría</span>
         </button>
       </template>
@@ -53,7 +54,7 @@
         <td><strong>{{ item.name }}</strong></td>
         <td class="parent-cell">
           <span v-if="item.parent_group_id" class="parent-badge">
-            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">subdirectory_arrow_right</span>
+            <CornerDownRight :size="14" />
             {{ getParentName(item.parent_group_id) }}
           </span>
           <span v-else class="text-muted">—</span>
@@ -68,15 +69,15 @@
         </td>
         <td class="align-right" @click.stop>
           <div class="action-buttons">
-            <button @click="editGroup(item)" class="btn-icon" title="Editar"><span class="material-symbols-outlined">edit</span></button>
+            <button @click="editGroup(item)" class="btn-icon" title="Editar"><Pencil :size="18" /></button>
             <button 
               @click="toggleActive(item)" 
               class="btn-icon" 
               :title="item.is_active ? 'Desactivar' : 'Activar'"
             >
-              <span class="material-symbols-outlined">{{ item.is_active ? 'block' : 'check_circle' }}</span>
+              <component :is="item.is_active ? Ban : CheckCircle" :size="18" />
             </button>
-            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><span class="material-symbols-outlined">delete</span></button>
+            <button @click="confirmDelete(item)" class="btn-icon text-danger" title="Eliminar"><Trash2 :size="18" /></button>
           </div>
         </td>
       </template>
@@ -90,34 +91,16 @@
       confirm-text="Guardar Cambios"
       :is-confirming="isSaving"
       @close="showModal = false"
-      @confirm="saveGroup"
+      @confirm="submitForm"
     >
-      <div class="form-group">
-        <label>Nombre de la Categoría</label>
-        <input v-model="currentGroup.name" type="text" class="form-input" placeholder="Ej: Hilos, Tejidos..." required @keyup.enter="saveGroup" />
-      </div>
-      <div class="form-group mt-4">
-        <label>Categoría Padre</label>
-        <select v-model="currentGroup.parentGroupId" class="form-input">
-          <option value="">Sin categoría padre (nivel raíz)</option>
-          <option v-for="g in availableParents" :key="g.id" :value="g.id">{{ g.name }}</option>
-        </select>
-      </div>
-      <div class="form-row mt-4">
-        <div class="form-group">
-          <label>Tipo</label>
-          <select v-model="currentGroup.type" class="form-input">
-            <option value="TANGIBLE">Producto Físico</option>
-            <option value="SERVICE">Servicio</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="checkbox-label mt-8">
-            <input v-model="currentGroup.isActive" type="checkbox" />
-            <span>Categoría activa</span>
-          </label>
-        </div>
-      </div>
+      <ProductGroupForm 
+        v-if="showModal"
+        :key="modalMode + (currentGroup?.id || 'new')"
+        ref="groupFormRef" 
+        :product-group="currentGroup" 
+        :mode="modalMode" 
+        @submit="handleSubmit" 
+      />
     </BaseDialog>
 
     <!-- MODAL: CONFIRMAR ELIMINACIÓN -->
@@ -138,10 +121,21 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { 
+  PlusSquare, 
+  CornerDownRight, 
+  Pencil, 
+  Ban, 
+  CheckCircle, 
+  Trash2
+} from 'lucide-vue-next'
 import BaseCatalog from '@/components/shared/BaseCatalog.vue'
 import BaseDialog from '@/components/shared/BaseDialog.vue'
+import ProductGroupForm from '@/components/master-data/ProductGroupForm.vue'
 import { productApi } from '@/services/productApi'
+import { useToastStore } from '@/stores/toast'
 
+const toastStore = useToastStore()
 const allGroups = ref([])
 const isLoading = ref(false)
 const error = ref('')
@@ -168,16 +162,10 @@ const modalMode = ref('create')
 const isSaving = ref(false)
 const showDeleteConfirm = ref(false)
 const groupToDelete = ref(null)
-const currentGroup = ref({ name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' })
+const currentGroup = ref(null)
+const groupFormRef = ref(null)
 
 const hasFilters = computed(() => filters.search.trim() !== '' || filters.isActive !== '')
-
-const availableParents = computed(() => {
-  if (modalMode.value === 'edit') {
-    return allGroups.value.filter(g => g.id !== currentGroup.value.id)
-  }
-  return allGroups.value
-})
 
 function getParentName(parentId) {
   const parent = allGroups.value.find(g => g.id === parentId)
@@ -199,31 +187,50 @@ function clearFilters() {
   filters.isActive = '';
 }
 
-function openCreateModal() { modalMode.value = 'create'; currentGroup.value = { name: '', type: 'TANGIBLE', isActive: true, parentGroupId: '' }; showModal.value = true; }
-function editGroup(group) { modalMode.value = 'edit'; currentGroup.value = { id: group.id, name: group.name, type: group.type, isActive: group.is_active, parentGroupId: group.parent_group_id || '' }; showModal.value = true; }
+function openCreateModal() { 
+  modalMode.value = 'create'; 
+  currentGroup.value = null; 
+  showModal.value = true; 
+}
+
+function editGroup(group) { 
+  modalMode.value = 'edit'; 
+  currentGroup.value = group; 
+  showModal.value = true; 
+}
+
 function openGroupDetail(group) { editGroup(group); }
 
-async function saveGroup() {
-  if (!currentGroup.value.name) return;
+function submitForm() {
+  if (groupFormRef.value) {
+    groupFormRef.value.handleSubmit()
+  }
+}
+
+async function handleSubmit(payload) {
   isSaving.value = true;
-  const payload = {
-    name: currentGroup.value.name,
-    type: currentGroup.value.type,
-    isActive: currentGroup.value.isActive,
-    parentGroupId: currentGroup.value.parentGroupId || null,
-  };
   try {
-    if (modalMode.value === 'create') await productApi.createProductGroup(payload);
-    else await productApi.updateProductGroup(currentGroup.value.id, payload);
-    showModal.value = false; await loadGroups();
-  } catch (err) { alert(err.message); } finally { isSaving.value = false }
+    if (modalMode.value === 'create') {
+      await productApi.createProductGroup(payload);
+      toastStore.success('Categoría creada correctamente');
+    } else {
+      await productApi.updateProductGroup(payload.id, payload);
+      toastStore.success('Categoría actualizada correctamente');
+    }
+    showModal.value = false;
+    await loadGroups();
+  } catch (err) {
+    toastStore.addToast(err.message, 'error');
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 async function toggleActive(group) {
   try {
     await productApi.updateProductGroup(group.id, { isActive: !group.is_active });
     await loadGroups();
-  } catch (err) { alert(err.message); }
+  } catch (err) { toastStore.addToast(err.message, 'error'); }
 }
 
 function confirmDelete(group) { 
@@ -238,7 +245,7 @@ async function deleteGroup() {
     await loadGroups(); 
     showDeleteConfirm.value = false;
   } catch (err) { 
-    alert('No se puede eliminar: ' + (err.message || 'La categoría tiene productos asociados.')); 
+    toastStore.addToast('No se puede eliminar: ' + (err.message || 'La categoría tiene productos asociados.'), 'error'); 
   }
 }
 

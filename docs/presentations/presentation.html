@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Montserrat:wght@800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
       --primary: #1b3a6b;
@@ -132,6 +132,11 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+    }
+
+    .card h3 i {
+      width: 24px;
+      height: 24px;
     }
 
     .image-placeholder {
@@ -273,12 +278,12 @@
         <p class="subtitle" style="color: var(--text-main); margin-bottom: 2rem;">Gestión especializada para microempresas de vestuario laboral y EPIs.</p>
         
         <div class="card" style="margin-bottom: 1rem; border-left: 3px solid var(--primary-soft);">
-          <h3><span class="material-symbols-outlined">bolt</span> El Desafío</h3>
+          <h3><i data-lucide="zap"></i> El Desafío</h3>
           <p>Superar la ineficiencia de procesos manuales y sistemas genéricos costosos mediante una arquitectura local-first eficiente.</p>
         </div>
 
         <div class="card">
-          <h3><span class="material-symbols-outlined">target</span> Objetivo Estratégico</h3>
+          <h3><i data-lucide="target"></i> Objetivo Estratégico</h3>
           <p>Integrar en un flujo único y trazable las ventas, la tarificación inteligente y la producción en taller (MES).</p>
         </div>
       </div>
@@ -303,21 +308,21 @@
         
         <ul style="list-style: none;">
           <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <i data-lucide="check-circle" style="color: var(--accent)"></i>
             <div>
               <strong>Interfaz Moderna:</strong>
               <p>Diseño minimalista que prioriza la agilidad del usuario.</p>
             </div>
           </li>
           <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <i data-lucide="check-circle" style="color: var(--accent)"></i>
             <div>
               <strong>Métricas Críticas:</strong>
               <p>Acceso instantáneo a los indicadores clave de rendimiento.</p>
             </div>
           </li>
           <li style="display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">check_circle</span>
+            <i data-lucide="check-circle" style="color: var(--accent)"></i>
             <div>
               <strong>Navegación Modular:</strong>
               <p>Acceso rápido a Clientes, Catálogo, Ventas y Producción.</p>
@@ -336,19 +341,19 @@
         
         <div class="card-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0;">
           <div class="card" style="padding: 1.25rem;">
-            <h3><span class="material-symbols-outlined">group</span> Entidad Única</h3>
+            <h3><i data-lucide="users"></i> Entidad Única</h3>
             <p>Evita la duplicidad de datos: una misma entidad puede ser cliente y proveedor simultáneamente.</p>
           </div>
           <div class="card" style="padding: 1.25rem;">
-            <h3><span class="material-symbols-outlined">account_tree</span> Relaciones</h3>
+            <h3><i data-lucide="git-fork"></i> Relaciones</h3>
             <p>Múltiples direcciones y puntos de contacto asociados a un mismo tercero.</p>
           </div>
           <div class="card" style="padding: 1.25rem;">
-            <h3><span class="material-symbols-outlined">badge</span> Perfiles</h3>
+            <h3><i data-lucide="user-round"></i> Perfiles</h3>
             <p>Soporte especializado para Organizaciones (B2B) y Personas (B2C).</p>
           </div>
           <div class="card" style="padding: 1.25rem;">
-            <h3><span class="material-symbols-outlined">history</span> Consistencia</h3>
+            <h3><i data-lucide="history"></i> Consistencia</h3>
             <p>Histórico de transacciones centralizado para una visión 360º del tercero.</p>
           </div>
         </div>
@@ -374,21 +379,21 @@
         
         <ul style="list-style: none;">
           <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">settings_input_component</span>
+            <i data-lucide="cpu" style="color: var(--accent)"></i>
             <div>
               <strong>Variantes Just-In-Time:</strong>
               <p>Creación dinámica de combinaciones (Talla/Color) según la demanda real.</p>
             </div>
           </li>
           <li style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">layers</span>
+            <i data-lucide="layers" style="color: var(--accent)"></i>
             <div>
               <strong>Atributos Flexibles:</strong>
               <p>Configuración ilimitada de tallajes, tejidos y tipos de marcación.</p>
             </div>
           </li>
           <li style="display: flex; align-items: flex-start; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--accent)">precision_manufacturing</span>
+            <i data-lucide="factory" style="color: var(--accent)"></i>
             <div>
               <strong>Base para Producción:</strong>
               <p>Precisión técnica total para el cálculo de costes y órdenes de taller.</p>
@@ -406,22 +411,22 @@
       
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 2rem; margin-top: 2rem;">
         <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
-          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">request_quote</span>
+          <i data-lucide="file-question" style="width: 3rem; height: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
           <strong>Presupuestos</strong>
         </div>
-        <span class="material-symbols-outlined" style="color: var(--primary-soft);">arrow_forward</span>
+        <i data-lucide="arrow-right" style="color: var(--primary-soft);"></i>
         <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
-          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">shopping_cart_checkout</span>
+          <i data-lucide="shopping-cart" style="width: 3rem; height: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
           <strong>Pedidos</strong>
         </div>
-        <span class="material-symbols-outlined" style="color: var(--primary-soft);">arrow_forward</span>
+        <i data-lucide="arrow-right" style="color: var(--primary-soft);"></i>
         <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
-          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">local_shipping</span>
+          <i data-lucide="truck" style="width: 3rem; height: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
           <strong>Albaranes</strong>
         </div>
-        <span class="material-symbols-outlined" style="color: var(--primary-soft);">arrow_forward</span>
+        <i data-lucide="arrow-right" style="color: var(--primary-soft);"></i>
         <div style="flex: 1; text-align: center; background: var(--bg-light); padding: 2rem; border-radius: 1rem; border-top: 5px solid var(--accent);">
-          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;">receipt_long</span>
+          <i data-lucide="receipt" style="width: 3rem; height: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
           <strong>Facturación</strong>
         </div>
       </div>
@@ -439,15 +444,15 @@
         <p class="subtitle" style="color: var(--text-main); margin-bottom: 0.75rem;">El corazón operativo que conecta la oficina comercial con el taller.</p>
         
         <div class="card" style="margin-bottom: 0.75rem; padding: 1rem;">
-          <h3><span class="material-symbols-outlined">precision_manufacturing</span> Órdenes de Trabajo</h3>
+          <h3><i data-lucide="factory"></i> Órdenes de Trabajo</h3>
           <p>Transformación automática de pedidos de venta en tareas ejecutables para los operarios.</p>
         </div>
         <div class="card" style="margin-bottom: 0.75rem; padding: 1rem;">
-          <h3><span class="material-symbols-outlined">visibility</span> Monitorización Real-Time</h3>
+          <h3><i data-lucide="eye"></i> Monitorización Real-Time</h3>
           <p>Seguimiento del estado de fabricación en cada centro de trabajo o máquina.</p>
         </div>
         <div class="card" style="padding: 1rem;">
-          <h3><span class="material-symbols-outlined">verified</span> Control de Calidad</h3>
+          <h3><i data-lucide="check-circle-2"></i> Control de Calidad</h3>
           <p>Registro de verificaciones obligatorio en cada etapa crítica del flujo productivo.</p>
         </div>
       </div>
@@ -465,7 +470,7 @@
       
       <div class="card-grid">
         <div class="card" style="border-bottom-color: var(--accent);">
-          <h3><span class="material-symbols-outlined">star</span> MVP Completado</h3>
+          <h3><i data-lucide="star"></i> MVP Completado</h3>
           <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
             <li>✓ Core operativo (Ventas/Precios)</li>
             <li>✓ Gestión de taller (MES)</li>
@@ -473,7 +478,7 @@
           </ul>
         </div>
         <div class="card">
-          <h3><span class="material-symbols-outlined">rocket_launch</span> Hoja de Ruta</h3>
+          <h3><i data-lucide="rocket"></i> Hoja de Ruta</h3>
           <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
             <li>→ Unificación UI/UX Avanzada</li>
             <li>→ Inteligencia de Negocio</li>
@@ -481,7 +486,7 @@
           </ul>
         </div>
         <div class="card">
-          <h3><span class="material-symbols-outlined">add_circle</span> Expansión</h3>
+          <h3><i data-lucide="plus-circle"></i> Expansión</h3>
           <ul style="list-style: none; font-size: 1rem; color: var(--text-light);">
             <li>+ Gestión de Inventario Pro</li>
             <li>+ Logística Integrada</li>
@@ -530,15 +535,15 @@
         
         <ul style="list-style: none;">
           <li style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--primary-mid)">speed</span>
+            <i data-lucide="gauge" style="color: var(--primary-mid)"></i>
             <span><strong>Alto Rendimiento:</strong> Procesamiento ultra-rápido con consumo mínimo.</span>
           </li>
           <li style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--primary-mid)">settings_ethernet</span>
+            <i data-lucide="network" style="color: var(--primary-mid)"></i>
             <span><strong>Concurrencia Nativa:</strong> Gestión de múltiples procesos simultáneos.</span>
           </li>
           <li style="display: flex; align-items: center; gap: 1rem;">
-            <span class="material-symbols-outlined" style="color: var(--primary-mid)">security</span>
+            <i data-lucide="shield-check" style="color: var(--primary-mid)"></i>
             <span><strong>Integridad Total:</strong> Base de datos robusta para información crítica.</span>
           </li>
         </ul>
@@ -593,15 +598,15 @@
       
       <div class="card-grid">
         <div class="card">
-          <h3><span class="material-symbols-outlined">cloud_off</span> Privacidad Total</h3>
+          <h3><i data-lucide="cloud-off"></i> Privacidad Total</h3>
           <p>Operación 100% local. Los datos nunca salen de la empresa, garantizando la máxima seguridad.</p>
         </div>
         <div class="card">
-          <h3><span class="material-symbols-outlined">box</span> Contenedores</h3>
+          <h3><i data-lucide="package"></i> Contenedores</h3>
           <p>Despliegue estandarizado con Docker. Actualizaciones sencillas y sin conflictos de dependencias.</p>
         </div>
         <div class="card">
-          <h3><span class="material-symbols-outlined">memory</span> Eficiencia</h3>
+          <h3><i data-lucide="cpu"></i> Eficiencia</h3>
           <p>Optimizado para funcionar en hardware modesto sin pérdida de rendimiento.</p>
         </div>
       </div>
@@ -619,15 +624,15 @@
         <p class="subtitle" style="color: var(--text-main); margin-bottom: 1.25rem;">Un proyecto derivado de TramaTex para arrancar desarrollos con IA, manteniendo arquitectura y estándares desde el primer día.</p>
         
         <div class="card" style="margin-bottom: 1rem;">
-          <h3><span class="material-symbols-outlined">domain</span> Nacido de TramaTex</h3>
+          <h3><i data-lucide="layout"></i> Nacido de TramaTex</h3>
           <p>Captura decisiones reales del proyecto: estructura modular, ADRs y criterios de calidad aplicados en producción.</p>
         </div>
         <div class="card" style="margin-bottom: 1rem;">
-          <h3><span class="material-symbols-outlined">smart_toy</span> Guía de Desarrollo con IA</h3>
+          <h3><i data-lucide="bot"></i> Guía de Desarrollo con IA</h3>
           <p>Sistema de agentes y contextos que guía sesiones, carga reglas y reduce ambigüedad en tareas técnicas.</p>
         </div>
         <div class="card">
-          <h3><span class="material-symbols-outlined">rocket_launch</span> Reutilización Acelerada</h3>
+          <h3><i data-lucide="rocket"></i> Reutilización Acelerada</h3>
           <p>Plantillas y bootstrap para iniciar nuevos proyectos con consistencia técnica y menos tiempo de puesta en marcha.</p>
         </div>
       </div>
@@ -645,15 +650,15 @@
       
       <div style="max-width: 800px; text-align: left; background: rgba(255,255,255,0.1); padding: 3rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.2);">
         <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          <i data-lucide="check-circle" style="color: var(--accent);"></i>
           Solución ERP/MES completa y específica para el sector textil.
         </p>
         <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          <i data-lucide="check-circle" style="color: var(--accent);"></i>
           Arquitectura moderna: Estabilidad hoy, escalabilidad mañana.
         </p>
         <p style="color: white; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
-          <span class="material-symbols-outlined" style="color: var(--accent);">check_circle</span>
+          <i data-lucide="check-circle" style="color: var(--accent);"></i>
           El aliado tecnológico definitivo para la organización y el crecimiento.
         </p>
       </div>
@@ -665,5 +670,8 @@
 
   </div>
 
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>

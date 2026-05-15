@@ -12,11 +12,13 @@
         >
           <header v-if="!hideHeader" class="dialog-header">
             <div class="header-content">
-              <span v-if="icon" class="material-symbols-outlined">{{ icon }}</span>
+              <template v-if="icon">
+                <component :is="getIcon(icon)" :size="24" />
+              </template>
               <h2>{{ title }}</h2>
             </div>
             <button @click="$emit('close')" class="btn-icon" aria-label="Cerrar">
-              <span class="material-symbols-outlined">close</span>
+              <X :size="24" />
             </button>
           </header>
 
@@ -44,6 +46,8 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted, nextTick } from 'vue'
+import { X } from 'lucide-vue-next'
+import { getIcon } from '@/utils/icons'
 
 const dialogRef = ref<HTMLElement | null>(null)
 const props = withDefaults(defineProps<{
@@ -153,7 +157,7 @@ onUnmounted(() => {
   font-weight: 700;
   color: var(--color-text-primary);
 }
-.header-content .material-symbols-outlined { color: var(--color-primary); }
+.header-content :deep(svg) { color: var(--color-primary); }
 .btn-icon { background: none; border: none; padding: 0.5rem; border-radius: 50%; cursor: pointer; color: var(--color-text-secondary); }
 .btn-icon:hover { background: var(--color-background-soft); }
 

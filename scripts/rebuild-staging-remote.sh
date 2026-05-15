@@ -11,6 +11,7 @@ CHECKOUT_REF="${CHECKOUT_REF:-origin/staging}"
 PRESERVE_DATABASE="${PRESERVE_DATABASE:-false}"
 REMOVE_IMAGES="${REMOVE_IMAGES:-true}"
 SKIP_GIT="${SKIP_GIT:-false}"
+BUILD_SOURCE="${BUILD_SOURCE:-false}"
 
 usage() {
   cat <<'EOF'
@@ -24,6 +25,7 @@ Options:
   --no-checkout             Skip git fetch/checkout/reset step
   --preserve-database       Keep DB volume/data (no -v)
   --skip-image-remove       Do not remove API/Frontend/Postgres images before pull
+  --build-source            Build images from local source instead of pulling from GHCR
   -h, --help                Show this help
 
 Examples:
@@ -63,6 +65,10 @@ while [[ $# -gt 0 ]]; do
       REMOVE_IMAGES="false"
       shift
       ;;
+    --build-source)
+      BUILD_SOURCE="true"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -76,6 +82,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 cd "$PROJECT_DIR"
+
+# Redirigir el almacenamiento temporal de Docker a la partición con espacio (/)
+# Esto evita el error "no space left on device" cuando /home está lleno.
+export DOCKER_CONFIG="$PROJECT_DIR/.docker_config"
+mkdir -p "$DOCKER_CONFIG"
+# Asegurar permisos: si la carpeta ya existía (ej. creada por root), recuperamos la propiedad para el usuario actual
+if [ -d "$DOCKER_CONFIG" ]; then
+    sudo chown -R $(id -u):$(id -g) "$DOCKER_CONFIG" 2>/dev/null || true
+fi
 
 echo "[1/5] Preparing repository in $PROJECT_DIR"
 if [[ "$SKIP_GIT" == "true" ]]; then
@@ -115,7 +130,13 @@ if [[ -f "$ENV_FILE" ]]; then
   fi
 fi
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+if [[ "$BUILD_SOURCE" == "true" ]]; then
+  echo "INFO: Building images from source..."
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" build
+else
+  echo "INFO: Pulling pre-built images from GHCR..."
+  docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
+fi
 
 echo "[4/5] Starting services"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --force-recreate

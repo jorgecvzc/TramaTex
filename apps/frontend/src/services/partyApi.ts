@@ -152,9 +152,12 @@ class PartyApiService {
       email = party.person_profile.email || null
     }
 
+    const type = party.organization_profile ? 'ORGANIZATION' : 'PERSON'
+
     return {
       id: party.id,
       name,
+      type,
       role,
       status: party.status,
       can_delete: party.can_delete ?? true,
@@ -244,14 +247,15 @@ class PartyApiService {
    */
   async createParty(data: CreatePartyRequest): Promise<PartyUI | null> {
     const roles = this.mapRoleToPartyRoles(data.role)
+    const partyId = data.id || this.generateId()
     
     // Determine entity type and build appropriate profile
     const entityType = data.entityType || 'ORGANIZATION'
     const body: any = {
-      id: data.id,
+      id: partyId,
       status: 'ACTIVE',
       roles,
-      default_discount_percentage: data.default_discount_percentage ?? 0,
+      default_discount_percentage: data.default_discount_percentage ?? data.defaultDiscountPercentage ?? 0,
     }
 
     if (entityType === 'PERSON') {
@@ -364,7 +368,7 @@ class PartyApiService {
     if (filters.role && filters.role !== 'BOTH') params.append('role', filters.role)
     if (filters.status) params.append('status', filters.status)
     if (filters.pageNumber) params.append('page', filters.pageNumber.toString())
-    if (filters.pageSize) params.append('page_size', filters.pageSize.toString())
+    if (filters.pageSize || filters.limit) params.append('page_size', (filters.pageSize || filters.limit || 100).toString())
     // Allow filtering by type if provided, otherwise show all
     if (filters.type) params.append('type', filters.type)
 
@@ -414,19 +418,31 @@ class PartyApiService {
    */
   async updateParty(id: string, data: UpdatePartyRequest): Promise<PartyUI | null> {
     const body: Record<string, unknown> = {
-      default_discount_percentage: data.default_discount_percentage ?? 0,
+      default_discount_percentage: data.default_discount_percentage ?? data.defaultDiscountPercentage ?? 0,
     }
 
-    if (data.hasPerson) {
+    const isPerson = data.type === 'PERSON' || data.hasPerson === true
+
+    if (isPerson) {
       // Person entity: split combined name into first/last
-      const nameParts = (data.name || '').trim().split(/\s+/)
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || '-'
+      const finalFirstName = data.firstName || (data.name || '').trim().split(/\s+/)[0] || ''
+      const finalLastName = data.lastName || (data.name || '').trim().split(/\s+/).slice(1).join(' ') || '-'
+      
       body.person_profile = {
-        first_name: firstName,
-        last_name: lastName,
+        first_name: finalFirstName,
+        last_name: finalLastName,
         phone: data.phone || '',
         email: data.email || '',
+      }
+      
+      // Person entities can still have tax_id info (stored in a shadow organization profile)
+      if (data.taxId) {
+        body.organization_profile = {
+          name: data.name,
+          tax_id: data.taxId,
+          tax_id_type: data.taxIdType,
+          website: data.website || '',
+        }
       }
     } else {
       // Organization entity
@@ -434,7 +450,7 @@ class PartyApiService {
         name: data.name,
         tax_id: data.taxId,
         tax_id_type: data.taxIdType,
-        website: data.website,
+        website: data.website || '',
         phone: data.phone || '',
         email: data.email || '',
         notes: data.notes || '',
@@ -1048,6 +1064,81 @@ class PartyApiService {
       return null
     }
     return { ...addresses[0], is_primary: true }
+  }
+
+  // ============================================================================
+  // ALIASES PARA COMPATIBILIDAD CON COMPONENTES
+  // ============================================================================
+
+  /**
+   * Alias para listPartyAddresses (Usado en AddressManager y PartyDetail)
+   */
+  async listAddresses(partyId: string): Promise<Address[]> {
+    const payload = await this.listPartyAddresses(partyId)
+    return payload.data || []
+  }
+
+  /**
+   * Alias para addPartyAddress (Usado en AddressManager)
+   */
+  async createAddress(partyId: string, data: any): Promise<Address> {
+    return this.addPartyAddress(partyId, data)
+  }
+
+  /**
+   * Alias para updatePartyAddress (Usado en AddressManager)
+   */
+  async updateAddress(partyId: string, addressId: string, data: any): Promise<Address> {
+    return this.updatePartyAddress(partyId, addressId, data)
+  }
+
+  /**
+   * Alias para deletePartyAddress (Usado en AddressManager)
+   */
+  async deleteAddress(partyId: string, addressId: string): Promise<void> {
+    return this.deletePartyAddress(partyId, addressId)
+  }
+
+  /**
+   * Alias para listContacts (Usado en PersonManager)
+   */
+  async listPersons(partyId: string): Promise<Contact[]> {
+    const payload = await this.listContacts(partyId)
+    return payload.data || []
+  }
+
+  /**
+   * Alias para addContact (Usado en PersonManager)
+   */
+  async createPerson(partyId: string, data: any): Promise<Contact | null> {
+    return this.addContact(partyId, data)
+  }
+
+  /**
+   * Actualiza datos de una persona de contacto (Usado en PersonManager)
+   */
+  async updatePerson(partyId: string, contactId: string, data: any): Promise<void> {
+    // El backend permite actualizar detalles de contacto (email, tel, cargo)
+    const response = await this.safeFetch(`${this.baseUrl}/${partyId}/contact-details/${contactId}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        email: data.email,
+        phone: data.phone,
+        type_description: data.job_title || data.typeDescription
+      }),
+    })
+
+    if (!response.ok) {
+      await this.handleError(response, 'No se pudo actualizar la persona de contacto')
+    }
+  }
+
+  /**
+   * Alias para removeContact (Usado en PersonManager)
+   */
+  async deletePerson(partyId: string, contactId: string): Promise<void> {
+    return this.removeContact(partyId, contactId, true)
   }
 
 }

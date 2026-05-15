@@ -2,7 +2,7 @@
   <BaseTerminalPage 
     title="Terminal de Venta Directa (Ticket)" 
     station-id="CAJA PRINCIPAL"
-    icon="point_of_sale"
+    :icon="Store"
     :is-loading="isSubmitting"
     @close="router.push('/sales/dashboard')"
     @refresh="clearTicket"
@@ -14,7 +14,7 @@
           class="btn-terminal btn-sync btn-shortcuts"
           @click.stop="showShortcuts = !showShortcuts"
         >
-          <span class="material-symbols-outlined">keyboard</span>
+          <Keyboard :size="20" />
           <span>Atajos</span>
         </button>
         
@@ -24,7 +24,7 @@
             <div class="hotkeys-modal-box" @click.stop>
               <header class="modal-box-header">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined">keyboard</span>
+                  <Keyboard :size="24" />
                   <h3>ATAJOS DE TECLADO</h3>
                 </div>
                 <button class="btn-close-modal" @click="showShortcuts = false">×</button>
@@ -50,7 +50,7 @@
       <main class="tpv-main-content">
         <section class="tpv-card-search">
           <div class="search-flex">
-            <span class="material-symbols-outlined">barcode_scanner</span>
+            <ScanBarcode :size="32" class="search-icon" />
             <input 
               ref="productSearchInput"
               v-model="productSearch" 
@@ -59,7 +59,7 @@
               @keyup.enter="handleSearch"
             />
             <button class="btn-add-item" @click="handleSearch">
-              <span class="material-symbols-outlined">add</span>
+              <Plus :size="18" />
               <span>AÑADIR</span>
             </button>
           </div>
@@ -67,7 +67,7 @@
 
         <section class="tpv-card-cart">
           <header class="cart-title">
-            <span class="material-symbols-outlined">shopping_cart</span>
+            <ShoppingCart :size="18" />
             <h2>Artículos ({{ lineItems.length }})</h2>
           </header>
           
@@ -101,14 +101,14 @@
                 <div class="price-total">{{ salesApi.formatMoney({ amount: (item.unitPrice * item.quantity) * (1 - item.discountPercent / 100), currency: 'EUR' }) }}</div>
 
                 <button class="btn-remove" @click="removeLine(item)">
-                  <span class="material-symbols-outlined">close</span>
+                  <X :size="20" />
                 </button>
               </div>
             </div>
 
             <div v-if="lineItems.length === 0" class="empty-cart">
-              <span class="material-symbols-outlined">point_of_sale</span>
-              <p>Esperando primer producto...</p>
+              <Store :size="64" />
+              <p>Esperando primer artículo...</p>
             </div>
           </div>
         </section>
@@ -119,8 +119,8 @@
         <div class="side-content">
           <section class="tpv-card-side">
             <header class="side-header">
-              <span class="material-symbols-outlined">person</span>
-              <h2>Cliente</h2>
+              <User :size="18" />
+              <h2>CLIENTE</h2>
             </header>
             <div class="p-4">
               <PartySelector
@@ -132,7 +132,7 @@
               />
               <div class="client-detail mt-4" v-if="partyId !== CONSUMIDOR_FINAL_ID">
                 <div class="row">
-                  <label>Descuento cliente:</label>
+                  <label>Bonificación Comercial:</label>
                   <strong>{{ customerDiscount }}%</strong>
                 </div>
               </div>
@@ -144,15 +144,15 @@
         <section class="tpv-checkout-footer">
           <div class="checkout-summary">
             <div class="summary-line">
-              <label>SUBTOTAL</label>
+              <label>BASE IMPONIBLE</label>
               <span>{{ salesApi.formatMoney({ amount: subtotal, currency: 'EUR' }) }}</span>
             </div>
             <div class="summary-line">
-              <label>IVA (21%)</label>
+              <label>I.V.A. (21%)</label>
               <span>{{ salesApi.formatMoney({ amount: taxAmount, currency: 'EUR' }) }}</span>
             </div>
             <div class="grand-total-box">
-              <label>TOTAL TICKET</label>
+              <label>TOTAL A PAGAR</label>
               <div class="total-value">{{ salesApi.formatMoney({ amount: total, currency: 'EUR' }) }}</div>
             </div>
           </div>
@@ -163,12 +163,12 @@
               :disabled="lineItems.length === 0 || isSubmitting" 
               @click="processTicket"
             >
-              <span class="material-symbols-outlined">print</span>
-              <span>COBRAR (F12)</span>
+              <CreditCard :size="24" />
+              <span>COBRAR E IMPRIMIR (F12)</span>
             </button>
             <button class="btn-checkout-secondary" @click="clearTicketPrompt">
-              <span class="material-symbols-outlined">delete_sweep</span>
-              <span>ANULAR TICKET</span>
+              <Trash2 :size="16" />
+              <span>CANCELAR OPERACIÓN</span>
             </button>
           </div>
         </section>
@@ -176,7 +176,7 @@
     </div>
 
     <!-- DIALOGO BUSQUEDA -->
-    <BaseDialog :show="showVariantSelector" title="Buscador" icon="search" size="xl" hide-actions @close="closeVariantSelector">
+    <BaseDialog :show="showVariantSelector" title="Buscador de Artículos" icon="search" size="xl" hide-actions @close="closeVariantSelector">
       <div class="p-4">
         <VariantSelector :initial-query="productSearch" @variant-selected="handleVariantSelected" />
       </div>
@@ -200,6 +200,17 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { 
+  Keyboard, 
+  ScanBarcode, 
+  Plus, 
+  ShoppingCart, 
+  User, 
+  X, 
+  Store, 
+  CreditCard, 
+  Trash2 
+} from 'lucide-vue-next';
 import BaseTerminalPage from '@/components/shared/BaseTerminalPage.vue';
 import PartySelector from '@/components/party/PartySelector.vue';
 import VariantSelector from '@/components/product/VariantSelector.vue';
@@ -244,9 +255,42 @@ function focusSearch() { nextTick(() => productSearchInput.value?.focus()); }
 
 function handleGlobalKeydown(e) {
   const isInput = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+  
   if (e.key === "F3") { e.preventDefault(); focusSearch(); }
   if (e.key === "F4") { e.preventDefault(); document.querySelector(".party-selector input")?.focus(); }
   if (e.key === "F12") { e.preventDefault(); if (lineItems.value.length > 0 && !isSubmitting.value) processTicket(); }
+  
+  // Shortcuts for line adjustments (only if there are items)
+  if (lineItems.value.length > 0) {
+    const lastItem = lineItems.value[lineItems.value.length - 1];
+    
+    // Num+ or Num- (or just + / -)
+    if (e.key === "+" || e.key === "Add") {
+      e.preventDefault();
+      updateQtyByItem(lastItem, 1);
+    }
+    if (e.key === "-" || e.key === "Subtract") {
+      e.preventDefault();
+      updateQtyByItem(lastItem, -1);
+    }
+    
+    // Navigation arrows (only when not in input)
+    if (!isInput) {
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        updateQtyByItem(lastItem, 1);
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        updateQtyByItem(lastItem, -1);
+      }
+      if (e.key === "Delete") {
+        e.preventDefault();
+        removeLine(lastItem);
+      }
+    }
+  }
+
   if (e.key === "Escape") {
     if (showShortcuts.value) showShortcuts.value = false;
     else if (showVariantSelector.value) closeVariantSelector();
@@ -256,10 +300,30 @@ function handleGlobalKeydown(e) {
 
 onMounted(async () => {
   window.addEventListener("keydown", handleGlobalKeydown);
+  window.addEventListener("tramatex-save", handleGlobalSave);
+  window.addEventListener("tramatex-esc", handleGlobalEsc);
   await loadDefaultCustomer();
   focusSearch();
 });
-onBeforeUnmount(() => window.removeEventListener("keydown", handleGlobalKeydown));
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleGlobalKeydown);
+  window.removeEventListener("tramatex-save", handleGlobalSave);
+  window.removeEventListener("tramatex-esc", handleGlobalEsc);
+});
+
+function handleGlobalSave() {
+  if (lineItems.value.length > 0 && !isSubmitting.value) processTicket();
+}
+
+function handleGlobalEsc() {
+  if (showShortcuts.value) showShortcuts.value = false;
+  else if (showVariantSelector.value) closeVariantSelector();
+  else {
+    productSearch.value = "";
+    focusSearch();
+  }
+}
 
 async function loadDefaultCustomer() {
   try {
@@ -364,12 +428,12 @@ async function processTicket() {
 .side-content { flex: 1; display: flex; flex-direction: column; padding: 1rem; }
 .side-header { padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #334155; margin-bottom: 1rem; }
 .side-header h2 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin: 0; }
-.side-header .material-symbols-outlined { color: var(--color-primary); font-size: 1.1rem; }
+.side-header svg { color: var(--color-primary); }
 
 /* BUSQUEDA */
 .tpv-card-search { background: #1e293b; border-radius: 12px; border: 1px solid #334155; margin-bottom: 1rem; padding: 0.4rem; }
 .search-flex { display: flex; align-items: center; gap: 0.75rem; padding: 0.2rem 0.75rem; }
-.search-flex .material-symbols-outlined { font-size: 1.75rem; color: #475569; }
+.search-icon { color: #475569; }
 .search-flex input { flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 0.6rem 1rem; font-size: 1.1rem; color: white; font-weight: 600; outline: none; }
 .search-flex input:focus { border-color: var(--color-primary); }
 .btn-add-item { height: 40px; padding: 0 1.25rem; border-radius: 8px; border: none; background: var(--color-primary); color: black; font-weight: 900; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; }
@@ -378,6 +442,7 @@ async function processTicket() {
 .tpv-card-cart { flex: 1; background: #1e293b; border-radius: 12px; border: 1px solid #334155; display: flex; flex-direction: column; overflow: hidden; }
 .cart-title { padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid #334155; background: #0f172a; }
 .cart-title h2 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; margin: 0; }
+.cart-title svg { color: var(--color-primary); }
 .cart-scroll-area { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
 
 /* FILA COMPACTA */
@@ -403,7 +468,7 @@ input[type=number] { -moz-appearance: textfield; }
 .input-inline .symbol { position: absolute; right: 0.45rem; font-weight: 900; color: var(--color-primary); font-size: 0.66rem; pointer-events: none; }
 
 .price-total { font-size: 1rem; font-weight: 900; color: #16a34a; text-align: right; width: 96px; }
-.btn-remove { background: transparent; border: none; color: #475569; cursor: pointer; }
+.btn-remove { background: transparent; border: none; color: #475569; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .btn-remove:hover { color: #ef4444; }
 
 /* CHECKOUT */
@@ -430,7 +495,7 @@ input[type=number] { -moz-appearance: textfield; }
 .hotkey-entry kbd { background: #0f172a; color: var(--color-primary); padding: 0.3rem 0.6rem; border-radius: 6px; font-family: monospace; font-weight: 900; font-size: 0.85rem; border: 1px solid #334155; min-width: 50px; text-align: center; }
 
 /* UTILS */
-.empty-cart { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.2; gap: 0.5rem; }
+.empty-cart { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; opacity: 0.2; gap: 0.5rem; color: white; }
 .mt-4 { margin-top: 1rem; }
 .p-4 { padding: 1rem; }
 .bg-dark-alt { background: #0f172a; }
