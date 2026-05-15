@@ -202,6 +202,17 @@ function handleGlobalEsc() {
   showDropdown.value = false;
 }
 
+function getRoleLabel(role: string) {
+  if (!role) return 'Desconocido';
+  const map: Record<string, string> = {
+    'CUSTOMER': 'Cliente',
+    'SUPPLIER': 'Proveedor',
+    'BOTH': 'Cliente / Prov.',
+    'CARRIER': 'Transportista'
+  };
+  return map[role.toUpperCase()] || role;
+}
+
 watch(() => props.modelValue, (newVal) => {
   if (!newVal) {
     searchTerm.value = '';
