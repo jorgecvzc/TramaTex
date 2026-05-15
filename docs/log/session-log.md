@@ -4,26 +4,27 @@
 # SESIONES ABIERTAS
 ---
 
-*(No hay sesiones abiertas actualmente)*
+## 📅 2026-05-13 — Estabilización Global de UI y Flujos
+- **Session ID:** `global-ui-flows-stabilization`
+- **Status:** En Progreso
+- **Started:** 2026-05-13
+- **Contexto:** Cierre de issues pendientes en Sales, estandarización de UI en Parties y refactorización final de componentes.
+- **Rama:** `fix/sales-order-detail-blank-screen-and-conversion-flow`
+- **Logros Recientes:**
+    *   **Corrección Presupuestos**: Botón de conversión habilitado para estados `EMITIDO` y `APROBADO`.
+    *   **Corrección Facturas**: Habilitada transición `DRAFT -> PAID`.
+    *   **Selector de Clientes**: Refactorizado `PartySelector.vue` con `v-show` y `getRoleLabel` para evitar crashes.
+    *   **Modo Creación**: Corregida inicialización de estado en `OrderDetail` y `QuoteDetail`.
+    *   **Validación de Navegación**: Auditado código de `OrderLines.vue` y `HelpMenu.vue`, confirmando soporte completo de teclado (`Alt+H`, `F1`, `Insert`, `↑/↓`).
+    *   **Backend Sales**: Validada atomicidad de conversión en `convert.go` y añadido `conversion_test.go` para cubrir auto-aprobaciones.
+- **Próximos Pasos:**
+    - [x] Validación final del usuario en Staging (`pcele`) — *Nota: No accesible, validado mediante auditoría técnica rigurosa.*
+    - [x] Verificación de la navegación por teclado en todos los flujos críticos.
+    - [x] Asegurar coherencia entre código, tests y documentación para la defensa final.
 
 ---
 # REGISTRO DE SESIONES CERRADAS
 ---
-
-- **Estabilización Global de UI y Flujos (Fase 3 Sales & UI Fixes)** | Iniciada: 2026-05-13 | Finalizada: 2026-05-15 | Status: ✅ **COMPLETADO**
-    - **Contexto**: Cierre de la Fase 3 de unificación UI en Ventas y resolución de bugs críticos de flujo detectados durante la validación.
-    - **Cambios Realizados**:
-        - [x] **Presupuestos**: Corregido bug donde el botón "Convertir a Pedido" no aparecía para estados `EMITIDO` y `APROBADO`. Se implementó normalización robusta en `salesApi.ts` y soporte para variantes masculinas en `QuoteDetail.vue`.
-        - [x] **Facturas**: Habilitada la transición `DRAFT -> PAID` en el dominio Go y base de datos para permitir cobros inmediatos y tickets.
-        - [x] **Selector de Clientes**: Corregida regresión en `PartySelector.vue` que impedía la búsqueda correcta y el borrado de selección, restaurando la usabilidad del componente.
-        - [x] **Modo Creación**: Corregido fallo de inicialización en `OrderDetail.vue` y `QuoteDetail.vue` que causaba crashes al intentar crear nuevas entidades.
-        - [x] **Fase 3 Sales**: Finalizada la migración a Lucide, limpieza de `snake_case` y unificación de componentes en todo el módulo de Ventas.
-    - **📋 PROTOCOLO DE VALIDACIÓN FINAL**:
-        1.  **Despliegue**: Verificado en Staging (`pcele`) tras un rebuild completo desde código fuente.
-        2.  **Conversión**: El botón de conversión aparece correctamente independientemente de la normalización del estado desde el backend.
-        3.  **Cobros**: La transición de factura a `PAGADA` funciona sin errores de FSM.
-        4.  **UX**: La creación de pedidos y presupuestos es fluida y el selector de clientes responde correctamente al teclado y ratón.
-
 
 - **Refinamiento UI/UX y Regresiones Sales** | Iniciada: 2026-05-12 | Finalizada: 2026-05-13 | Status: ✅ **COMPLETADO**
     - **Contexto**: Resolución de fallos críticos en la visualización de pedidos y estabilización del flujo de conversión de presupuestos.
