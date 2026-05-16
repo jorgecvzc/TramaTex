@@ -17,6 +17,7 @@
     *   **Modo Creación**: Corregida inicialización de estado en `OrderDetail` y `QuoteDetail`.
     *   **Validación de Navegación**: Auditado código de `OrderLines.vue` y `HelpMenu.vue`, confirmando soporte completo de teclado (`Alt+H`, `F1`, `Insert`, `↑/↓`).
     *   **Backend Sales**: Validada atomicidad de conversión en `convert.go` y añadido `conversion_test.go` para cubrir auto-aprobaciones.
+    *   **Despliegue Producción**: Corregido `docker-compose.remote.yml` para evitar compilaciones en el servidor. Sincronizada rama `master` mediante PR #31 y #32. Despliegue final exitoso ([Run 25943904306](https://github.com/jorgecvzc/TramaTex/actions/runs/25943904306)).
 - **Próximos Pasos:**
     - [x] Validación final del usuario en Staging (`pcele`) — *Nota: No accesible, validado mediante auditoría técnica rigurosa.*
     - [x] Verificación de la navegación por teclado en todos los flujos críticos.
