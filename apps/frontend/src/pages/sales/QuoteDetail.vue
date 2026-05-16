@@ -719,6 +719,26 @@ function handleVariantSelected(payload) {
     return;
   }
 
+  // Agregación: si ya existe la variante, sumamos cantidad
+  const existingLineIndex = formData.lineItems.findIndex(item => item.productVariantId === variant.id);
+  
+  if (existingLineIndex !== -1) {
+    console.log('[QuoteDetail] Product already exists, aggregating quantity at index:', existingLineIndex);
+    const existingLine = formData.lineItems[existingLineIndex];
+    existingLine.quantity = (Number(existingLine.quantity) || 0) + 1;
+    showVariantSelector.value = false;
+    
+    nextTick(() => {
+      fetchPreviewCalculation();
+      const el = document.querySelector(`input[data-row="${existingLineIndex}"][data-col="quantity"]`);
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    });
+    return;
+  }
+
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
@@ -740,7 +760,11 @@ function handleVariantSelected(payload) {
     console.log('[QuoteDetail] UI updated, requesting calculation...');
     fetchPreviewCalculation();
     const lastIdx = formData.lineItems.length - 1;
-    focusLineInput(lastIdx, 'qty');
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`);
+    if (el) {
+      el.focus();
+      el.select();
+    }
   });
 }
 

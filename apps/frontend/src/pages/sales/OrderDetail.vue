@@ -919,6 +919,26 @@ function handleVariantSelected(payload) {
     return;
   }
 
+  // Agregación: si ya existe la variante, sumamos cantidad
+  const existingLineIndex = editableOrder.value.lineItems.findIndex(item => item.productVariantId === variant.id);
+  
+  if (existingLineIndex !== -1) {
+    console.log('[OrderDetail] Product already exists, aggregating quantity at index:', existingLineIndex);
+    const existingLine = editableOrder.value.lineItems[existingLineIndex];
+    existingLine.quantity = (Number(existingLine.quantity) || 0) + 1;
+    showVariantSelector.value = false;
+    
+    nextTick(() => {
+      fetchPreviewCalculation();
+      const el = document.querySelector(`input[data-row="${existingLineIndex}"][data-col="quantity"]`);
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    });
+    return;
+  }
+
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
@@ -939,14 +959,12 @@ function handleVariantSelected(payload) {
     console.log('[OrderDetail] UI updated, requesting calculation...');
     fetchPreviewCalculation();
     const lastIdx = editableOrder.value.lineItems.length - 1;
-    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`);
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`);
     if (el) {
       el.focus();
       el.select();
     }
   });
-}
-  })
 }
 
 async function saveOrder() {
