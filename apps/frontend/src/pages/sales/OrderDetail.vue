@@ -925,7 +925,13 @@ function handleVariantSelected(payload) {
   if (existingLineIndex !== -1) {
     console.log('[OrderDetail] Product already exists, aggregating quantity at index:', existingLineIndex);
     const existingLine = editableOrder.value.lineItems[existingLineIndex];
-    existingLine.quantity = (Number(existingLine.quantity) || 0) + 1;
+    
+    // Actualización reactiva explícita (sustituir el objeto)
+    editableOrder.value.lineItems.splice(existingLineIndex, 1, {
+      ...existingLine,
+      quantity: (Number(existingLine.quantity) || 0) + 1
+    });
+    
     showVariantSelector.value = false;
     
     nextTick(() => {
@@ -950,13 +956,13 @@ function handleVariantSelected(payload) {
     _autoPrice: true
   };
   
-  console.log('[OrderDetail] Pushing item to editableOrder.value.lineItems:', newItem);
+  console.log('[OrderDetail] Pushing new item to editableOrder.value.lineItems:', newItem);
   editableOrder.value.lineItems.push(newItem);
   showVariantSelector.value = false;
   
   // Posicionar foco en la cantidad de la nueva línea tras el renderizado
   nextTick(() => {
-    console.log('[OrderDetail] UI updated, requesting calculation...');
+    console.log('[OrderDetail] UI updated for new line, requesting calculation...');
     fetchPreviewCalculation();
     const lastIdx = editableOrder.value.lineItems.length - 1;
     const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`);

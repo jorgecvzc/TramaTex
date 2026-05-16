@@ -725,7 +725,13 @@ function handleVariantSelected(payload) {
   if (existingLineIndex !== -1) {
     console.log('[QuoteDetail] Product already exists, aggregating quantity at index:', existingLineIndex);
     const existingLine = formData.lineItems[existingLineIndex];
-    existingLine.quantity = (Number(existingLine.quantity) || 0) + 1;
+    
+    // Actualización reactiva explícita (sustituir el objeto)
+    formData.lineItems.splice(existingLineIndex, 1, {
+      ...existingLine,
+      quantity: (Number(existingLine.quantity) || 0) + 1
+    });
+    
     showVariantSelector.value = false;
     
     nextTick(() => {
@@ -751,13 +757,13 @@ function handleVariantSelected(payload) {
     discountPercent: partyDefaultDiscount.value || 0
   };
   
-  console.log('[QuoteDetail] Pushing item to formData.lineItems:', newItem);
+  console.log('[QuoteDetail] Pushing new item to formData.lineItems:', newItem);
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
   
   // Position focus on the quantity of the new line
   nextTick(() => {
-    console.log('[QuoteDetail] UI updated, requesting calculation...');
+    console.log('[QuoteDetail] UI updated for new line, requesting calculation...');
     fetchPreviewCalculation();
     const lastIdx = formData.lineItems.length - 1;
     const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`);
