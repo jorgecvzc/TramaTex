@@ -711,30 +711,36 @@ function openVariantSelector() {
 }
 
 function handleVariantSelected(payload) {
+  console.log('[QuoteDetail] Received variant payload:', payload);
   const variant = payload.variant || payload;
+  
+  if (!variant || !variant.id) {
+    console.error('[QuoteDetail] Selection error: variant is null or missing id', payload);
+    return;
+  }
+
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
-    productName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
+    productName: variant.product_name || variant.name || 'Producto',
+    displayName: (variant.product_name || variant.name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    listPrice: null,
-    unitPrice: null,
+    listPrice: variant.product_base_price || 0,
+    unitPrice: variant.product_base_price || 0,
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   };
-
+  
+  console.log('[QuoteDetail] Pushing item to formData.lineItems:', newItem);
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
-
+  
   // Position focus on the quantity of the new line
   nextTick(() => {
+    console.log('[QuoteDetail] UI updated, requesting calculation...');
     fetchPreviewCalculation();
-    const lastIdx = formData.lineItems.length - 1
-    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`)
-    if (el) {
-      el.focus()
-      el.select()
-    }
+    const lastIdx = formData.lineItems.length - 1;
+    focusLineInput(lastIdx, 'qty');
   });
 }
 

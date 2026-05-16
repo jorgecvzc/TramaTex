@@ -911,28 +911,41 @@ function handleAddLineRequest() {
 }
 
 function handleVariantSelected(payload) {
-  const variant = payload.variant || payload
+  console.log('[OrderDetail] Received variant payload:', payload);
+  const variant = payload.variant || payload;
+  
+  if (!variant || !variant.id) {
+    console.error('[OrderDetail] Selection error: variant is null or missing id', payload);
+    return;
+  }
+
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
-    productName: variant.product_name || variant.name,
+    productName: variant.product_name || variant.name || 'Producto',
+    displayName: (variant.product_name || variant.name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    unitPrice: null,
+    unitPrice: variant.product_base_price || 0,
     discountPercent: partyDefaultDiscount.value || 0,
     _autoPrice: true
-  }
-  editableOrder.value.lineItems.push(newItem)
-  showVariantSelector.value = false
+  };
+  
+  console.log('[OrderDetail] Pushing item to editableOrder.value.lineItems:', newItem);
+  editableOrder.value.lineItems.push(newItem);
+  showVariantSelector.value = false;
   
   // Posicionar foco en la cantidad de la nueva línea tras el renderizado
   nextTick(() => {
+    console.log('[OrderDetail] UI updated, requesting calculation...');
     fetchPreviewCalculation();
-    const lastIdx = editableOrder.value.lineItems.length - 1
-    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`)
+    const lastIdx = editableOrder.value.lineItems.length - 1;
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="qty"]`);
     if (el) {
-      el.focus()
-      el.select()
+      el.focus();
+      el.select();
     }
+  });
+}
   })
 }
 
