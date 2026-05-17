@@ -33,12 +33,12 @@ Guías de comportamiento y reglas de negocio por cada área del sistema.
 Estándares de ingeniería, procesos de despliegue y manuales de usuario.
 - **[Inicio Rápido](./guides/quick-start.md)** | **[Estándares de Ingeniería](./guides/code-and-style-standards.md)** | **[Estrategia de Búsqueda Global](./guides/developer/global-search-strategy.md)**
 
-### 🚀 [Hoja de Ruta Post-MVP](./post-mvp/post-mvp-roadmap.md)
-Mejoras, funcionalidades y módulos planificados tras el MVP.
-- **Primera prioridad:** Unificación UI/UX y Sistema de Diseño.
+### 🚀 [Hoja de Ruta Estratégica](./post-mvp/post-mvp-roadmap.md)
+Mejoras, funcionalidades y módulos planificados para la evolución del sistema.
+- **Primera prioridad:** Unificación UI/UX y Sistema de Diseño (Completado Fase 1).
 
-### 🎓 [Presentaciones](./presentations/slides_spec.md)
-Material de presentación y defensa del proyecto.
+### 📺 [Presentación y Trayectoria](./presentations/slides_spec.md)
+Material visual detallando la propuesta de valor y los hitos de ingeniería del proyecto.
 - **[Presentación TramaTex](./presentations/tramatex-presentation.md)**
 
 ### 📝 [Bitácora del Proyecto](./log/README.md)

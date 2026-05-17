@@ -1,7 +1,7 @@
 # 🏛️ TramaTex: Gestión Inteligente para la Microempresa Textil
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Proyecto-TFM-1b3a6b?style=for-the-badge" alt="TFM">
+  <img src="https://img.shields.io/badge/Proyecto-Profesional-1b3a6b?style=for-the-badge" alt="Profesional">
   <img src="https://img.shields.io/badge/Backend-Go_1.23-1b3a6b?style=flat-square" alt="Go">
   <img src="https://img.shields.io/badge/Frontend-Vue.js_3-1b3a6b?style=flat-square" alt="Vue">
   <img src="https://img.shields.io/badge/Base_de_Datos-PostgreSQL_15-1b3a6b?style=flat-square" alt="PostgreSQL">
@@ -20,12 +20,12 @@
 ---
 
 ## Descripción General
-TramaTex es un sistema integral de gestión (ERP/MES) de código abierto, desarrollado como **Trabajo Fin de Máster (TFM)**. Su misión es digitalizar y profesionalizar las operaciones de microempresas dedicadas al vestuario laboral y EPIs, aportando soluciones a necesidades críticas de personalización (marcajes, arreglos y tallajes complejos).
+TramaTex es un sistema integral de gestión (ERP/MES) de código abierto. Su misión es digitalizar y profesionalizar las operaciones de microempresas dedicadas al vestuario laboral y EPIs, aportando soluciones a necesidades críticas de personalización (marcajes, arreglos y tallajes complejos).
 
-El sistema apuesta por la **soberanía tecnológica** mediante una arquitectura **Local-First**, garantizando que la empresa mantenga el control total de sus datos y opere con total independencia de la nube.
+Originalmente concebido como un Trabajo Fin de Máster (TFM) de Ingeniería de Software (aprobado con éxito), el proyecto ha evolucionado hacia un producto de software robusto, mantenido bajo estándares profesionales de ingeniería y enfocado en la **soberanía tecnológica** mediante una arquitectura **Local-First**.
 
-## 📺 Presentación Rápida
-Explora de un vistazo la propuesta de valor y los pilares de ingeniería en nuestra presentación corporativa interactiva:
+## 📺 Presentación y Trayectoria
+Explora la propuesta de valor, los pilares de ingeniería y la evolución del proyecto:
 👉 **[Ver Presentación Visual del Proyecto](https://jorgecvzc.github.io/TramaTex/presentations/presentation.html)**
 
 ---
@@ -110,7 +110,7 @@ Explora el conocimiento técnico y estratégico siguiendo estas ramas principale
 *   🏛️ **[Arquitectura y Decisiones](docs/architecture/README.md):** ADRs, visión técnica y glosario.
 *   📦 **[Detalle de Módulos](docs/modules/README.md):** Especificaciones funcionales de cada dominio.
 *   🛠️ **[Guías y Estándares](docs/guides/README.md):** Normas de código y operativa.
-*   🚀 **[Evolución Post-MVP](docs/post-mvp/post-mvp-roadmap.md):** Hoja de ruta estratégica tras el TFM.
+*   🚀 **[Evolución Post-MVP](docs/post-mvp/post-mvp-roadmap.md):** Hoja de ruta estratégica tras la fase inicial.
 
 ---
 
