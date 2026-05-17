@@ -20,6 +20,6 @@ El proyecto ha completado su fase de refinamiento y unificación de interfaz. Se
 - **Sistema de Auto-Capacitación:** Implementación de ayuda contextual (F1) y Centro de Ayuda (/help) para reducir la curva de aprendizaje.
 - **Normalización de Estándares:** Iconografía Lucide y diseño en 3 capas aplicado a todos los módulos (Sales, Party, Product, MES).
 
-El foco final se centra en la **estabilización operativa** y la **preparación para la defensa final del TFM**, asegurando que todo el ecosistema (código, tests y docs) sea coherente y robusto.
+El foco actual se centra en la **preparación para la defensa final del TFM**, asegurando que todo el ecosistema (código, tests y docs) sea coherente y robusto. El sistema se encuentra en estado estable y desplegado en producción.
 
 
