@@ -121,6 +121,12 @@ const { lines, isEditing, showPrices, showTotal, quantityLabel } = toRefs(props)
 
 const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
 
+// DEBUG LOGGING
+import { watch } from 'vue'
+watch(lines, (newVal) => {
+  console.log('[OrderLines] lines updated:', newVal?.length, newVal)
+}, { immediate: true, deep: true })
+
 const columns = computed(() => {
   const cols = ['quantity']
   if (showPrices.value) {
@@ -131,7 +137,7 @@ const columns = computed(() => {
 })
 
 const { handleLineKeyDown } = useLineNavigation({
-  rowCount: () => lines.value.length,
+  rowCount: () => Array.isArray(lines.value) ? lines.value.length : 0,
   columns: columns.value,
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
@@ -141,12 +147,14 @@ const { handleLineKeyDown } = useLineNavigation({
 })
 
 function removeLine(index) {
+  if (!Array.isArray(lines.value)) return
   const newLines = [...lines.value]
   newLines.splice(index, 1)
   emit('update:lines', newLines)
 }
 
 function updateLineField(index, field, value) {
+  if (!Array.isArray(lines.value)) return
   const newLines = lines.value.map((line, i) => {
     if (i === index) {
       return { ...line, [field]: value === '' ? 0 : Number(value) }
@@ -157,6 +165,7 @@ function updateLineField(index, field, value) {
 }
 
 function onManualPriceChange(index, value) {
+  if (!Array.isArray(lines.value)) return
   const newLines = lines.value.map((line, i) => {
     if (i === index) {
       return { 

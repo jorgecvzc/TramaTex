@@ -38,18 +38,34 @@ import { api } from './api'
 function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   if (!obj) return obj;
   
-  // Base normalization (snake_case to camelCase)
-  const snakeToCamelMap: Record<string, string> = {
+  // Auto-unwrap if it's a { data: ... } wrapper from a generic API response
+  if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data) && !obj.id && !obj.quoteNumber && !obj.orderNumber && !obj.invoiceNumber) {
+    return normalizeEntity(obj.data as T);
+  }
+  
+  // Base normalization (snake_case/PascalCase to camelCase)
+  const normalizationMap: Record<string, string> = {
+    'ID': 'id',
     'party_id': 'partyId',
+    'PartyID': 'partyId',
+    'PartyName': 'partyName',
     'party_name': 'partyName',
     'party_reference': 'partyReference',
     'order_number': 'orderNumber',
+    'OrderNumber': 'orderNumber',
     'quote_number': 'quoteNumber',
+    'QuoteNumber': 'quoteNumber',
     'order_date': 'orderDate',
+    'OrderDate': 'orderDate',
     'quote_date': 'quoteDate',
+    'QuoteDate': 'quoteDate',
     'delivery_date': 'deliveryDate',
+    'DeliveryDate': 'deliveryDate',
     'expiration_date': 'expirationDate',
+    'ExpirationDate': 'expirationDate',
     'line_items': 'lineItems',
+    'LineItems': 'lineItems',
+    'items': 'lineItems', // Common alias
     'mes_work_refs': 'mesWorkRefs',
     'tax_id': 'taxId',
     'invoice_number': 'invoiceNumber',
@@ -59,20 +75,27 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
     'related_delivery_note_ids': 'relatedDeliveryNoteIds',
     'delivered_quantity': 'deliveredQuantity',
     'unit_price': 'unitPrice',
+    'UnitPrice': 'unitPrice',
+    'list_unit_price': 'listUnitPrice',
+    'ListUnitPrice': 'listUnitPrice',
     'discount_percent': 'discountPercent',
     'product_variant_id': 'productVariantId',
+    'ProductVariantID': 'productVariantId',
     'variant_sku': 'variantSku',
     'product_name': 'productName',
     'work_setup_id': 'workSetupId',
     'work_order_id': 'workOrderId',
-    'subtotal_amount': 'subtotal', // Handle variations
+    'subtotal_amount': 'subtotal', 
+    'Subtotal': 'subtotal',
     'tax_amount': 'taxAmount',
-    'total_amount': 'total'
+    'TaxAmount': 'taxAmount',
+    'total_amount': 'total',
+    'Total': 'total'
   };
 
-  Object.entries(snakeToCamelMap).forEach(([snake, camel]) => {
-    if (snake in obj && !(camel in obj)) {
-      (obj as any)[camel] = obj[snake];
+  Object.entries(normalizationMap).forEach(([raw, camel]) => {
+    if (raw in obj && !(camel in obj)) {
+      (obj as any)[camel] = obj[raw];
     }
   });
 
@@ -84,12 +107,16 @@ function normalizeEntity<T extends Record<string, any>>(obj: T): T {
   // Deep normalization for items/refs
   if (Array.isArray(obj.lineItems)) {
     obj.lineItems = obj.lineItems.map(normalizeEntity);
+    // Keep aliases in sync after normalization if they existed
+    if (obj.items && Array.isArray(obj.items)) obj.items = obj.lineItems;
+    if (obj.line_items && Array.isArray(obj.line_items)) obj.line_items = obj.lineItems;
+  } else if (Array.isArray(obj.items)) {
+    obj.items = obj.items.map(normalizeEntity);
+    obj.lineItems = obj.items; // Ensure lineItems is populated from items
   }
+  
   if (Array.isArray(obj.mesWorkRefs)) {
     obj.mesWorkRefs = obj.mesWorkRefs.map(normalizeEntity);
-  }
-  if (Array.isArray(obj.items)) {
-    obj.items = obj.items.map(normalizeEntity);
   }
   
   // Specific legacy fixes

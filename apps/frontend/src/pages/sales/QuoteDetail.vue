@@ -619,9 +619,8 @@ async function fetchQuote() {
   error.value = '';
   try {
     const res = await salesApi.getQuote(id);
-    const data = res?.data || res;
-    if (!data || (!data.id && !data.ID && !data.quoteNumber)) throw new Error('Presupuesto no encontrado');
-    if (data.ID && !data.id) data.id = data.ID;
+    const data = res;
+    if (!data || (!data.id && !data.quoteNumber)) throw new Error('Presupuesto no encontrado');
     quote.value = data;
     if (quote.value.partyId) {
       try {
