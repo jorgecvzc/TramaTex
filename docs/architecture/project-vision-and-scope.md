@@ -4,11 +4,11 @@ Este documento define el propósito estratégico, los límites y los objetivos d
 
 ---
 
-## 1. Antecedentes y Propósito
+## 1. Propósito y Misión
 
 TramaTex nace para cerrar la brecha digital en el sector de las microempresas textiles y de vestuario laboral. Mientras el mercado ofrece soluciones genéricas o basadas en la nube, TramaTex apuesta por un modelo **local-first** que garantiza la soberanía del dato y la operatividad en infraestructuras modestas.
 
-El sistema transforma procesos manuales y fragmentados en un flujo digital coherente, permitiendo que la información fluya sin fricciones desde la captación del cliente hasta la entrega del producto personalizado.
+El sistema transforma procesos manuales y fragmentados en un flujo digital coherente, permitiendo que la información fluya sin fricciones desde la captación del cliente hasta la entrega del producto personalizado. El proyecto ha evolucionado desde una sólida base de ingeniería de software (originalmente un TFM de éxito) hacia un producto profesional de código abierto.
 
 ---
 
