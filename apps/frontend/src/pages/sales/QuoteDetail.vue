@@ -619,9 +619,8 @@ async function fetchQuote() {
   error.value = '';
   try {
     const res = await salesApi.getQuote(id);
-    const data = res?.data || res;
-    if (!data || (!data.id && !data.ID && !data.quoteNumber)) throw new Error('Presupuesto no encontrado');
-    if (data.ID && !data.id) data.id = data.ID;
+    const data = res;
+    if (!data || (!data.id && !data.quoteNumber)) throw new Error('Presupuesto no encontrado');
     quote.value = data;
     if (quote.value.partyId) {
       try {
@@ -711,29 +710,65 @@ function openVariantSelector() {
 }
 
 function handleVariantSelected(payload) {
+  console.log('[QuoteDetail] Received variant payload:', payload);
   const variant = payload.variant || payload;
+  
+  if (!variant || !variant.id) {
+    console.error('[QuoteDetail] Selection error: variant is null or missing id', payload);
+    return;
+  }
+
+  // Agregación: si ya existe la variante, sumamos cantidad
+  const existingLineIndex = formData.lineItems.findIndex(item => item.productVariantId === variant.id);
+  
+  if (existingLineIndex !== -1) {
+    console.log('[QuoteDetail] Product already exists, aggregating quantity at index:', existingLineIndex);
+    const existingLine = formData.lineItems[existingLineIndex];
+    
+    // Actualización reactiva explícita (sustituir el objeto)
+    formData.lineItems.splice(existingLineIndex, 1, {
+      ...existingLine,
+      quantity: (Number(existingLine.quantity) || 0) + 1
+    });
+    
+    showVariantSelector.value = false;
+    
+    nextTick(() => {
+      fetchPreviewCalculation();
+      const el = document.querySelector(`input[data-row="${existingLineIndex}"][data-col="quantity"]`);
+      if (el) {
+        el.focus();
+        el.select();
+      }
+    });
+    return;
+  }
+
   const newItem = {
     productVariantId: variant.id,
     variantSku: variant.sku,
-    productName: (variant.product_name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
+    productName: variant.product_name || variant.name || 'Producto',
+    displayName: (variant.product_name || variant.name || 'Producto') + (variant.option_configuration ? ' - ' + Object.values(variant.option_configuration).join(', ') : ''),
     quantity: 1,
-    listPrice: null,
-    unitPrice: null,
+    listPrice: variant.product_base_price || 0,
+    unitPrice: variant.product_base_price || 0,
     _autoPrice: true,
     discountPercent: partyDefaultDiscount.value || 0
   };
-
+  
+  console.log('[QuoteDetail] Pushing new item to formData.lineItems:', newItem);
   formData.lineItems.push(newItem);
   showVariantSelector.value = false;
-
+  
   // Position focus on the quantity of the new line
   nextTick(() => {
+    console.log('[QuoteDetail] UI updated for new line, requesting calculation...');
     fetchPreviewCalculation();
-    const lastIdx = formData.lineItems.length - 1
-    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`)
+    const lastIdx = formData.lineItems.length - 1;
+    const el = document.querySelector(`input[data-row="${lastIdx}"][data-col="quantity"]`);
     if (el) {
-      el.focus()
-      el.select()
+      el.focus();
+      el.select();
     }
   });
 }

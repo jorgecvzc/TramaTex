@@ -5,22 +5,22 @@
         <thead>
           <tr>
             <th>Producto / Variante</th>
-            <th class="text-center" style="width: 100px">{{ props.quantityLabel }}</th>
-            <th v-if="props.showPrices" class="text-right" style="width: 140px">P. Tarifa</th>
-            <th v-if="props.showPrices" class="text-right" style="width: 140px">P. Venta</th>
-            <th v-if="props.showPrices" class="text-center" style="width: 100px">Dto %</th>
-            <th v-if="props.showTotal" class="text-right" style="width: 140px">Subtotal</th>
+            <th class="text-center" style="width: 100px">{{ quantityLabel }}</th>
+            <th v-if="showPrices" class="text-right" style="width: 140px">P. Tarifa</th>
+            <th v-if="showPrices" class="text-right" style="width: 140px">P. Venta</th>
+            <th v-if="showPrices" class="text-center" style="width: 100px">Dto %</th>
+            <th v-if="showTotal" class="text-right" style="width: 140px">Subtotal</th>
             <th v-if="isEditing" style="width: 50px"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(line, index) in lines" :key="index">
+          <tr v-for="(line, index) in lines" :key="line.productVariantId || line.id || index">
             <!-- Producto / Variante (SKU al lado del nombre) -->
             <td>
               <div class="product-info-cell">
                 <div class="name-with-sku">
                   <span class="sku-label" v-if="line.variantSku">{{ line.variantSku }}</span>
-                  <span class="product-name">{{ line.productName || line.description || 'Producto' }}</span>
+                  <span class="product-name">{{ line.productName || line.displayName || line.description || 'Producto' }}</span>
                 </div>
               </div>
             </td>
@@ -42,12 +42,12 @@
             </td>
 
             <!-- Precio Tarifa -->
-            <td v-if="props.showPrices" class="text-right">
+            <td v-if="showPrices" class="text-right">
               <span class="text-muted">{{ formatMoney(line.listUnitPrice || line.listPrice) }}</span>
             </td>
 
             <!-- Precio Venta -->
-            <td v-if="props.showPrices" class="text-right">
+            <td v-if="showPrices" class="text-right">
               <input 
                 v-if="isEditing" 
                 :value="line.unitPrice" 
@@ -63,7 +63,7 @@
             </td>
 
             <!-- Descuento -->
-            <td v-if="props.showPrices" class="text-center">
+            <td v-if="showPrices" class="text-center">
               <input 
                 v-if="isEditing" 
                 :value="line.discountPercent" 
@@ -81,7 +81,7 @@
             </td>
 
             <!-- Subtotal -->
-            <td v-if="props.showTotal" class="text-right">
+            <td v-if="showTotal" class="text-right">
               <strong class="text-primary">{{ formatMoney(calculateSubtotal(line)) }}</strong>
             </td>
 
@@ -92,9 +92,9 @@
               </button>
             </td>
           </tr>
-          <tr v-if="lines.length === 0">
-            <td :colspan="isEditing ? 6 : 5" class="empty-msg">
-              <p>No hay líneas cargadas en el pedido.</p>
+          <tr v-if="!lines || lines.length === 0">
+            <td :colspan="isEditing ? 7 : 6" class="empty-msg">
+              <p>No hay líneas cargadas en el documento.</p>
             </td>
           </tr>
         </tbody>
@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import { computed, toRefs } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import { useLineNavigation } from '@/composables/useLineNavigation'
 import salesApi from '@/services/salesApi'
@@ -116,11 +117,19 @@ const props = defineProps({
   quantityLabel: { type: String, default: 'Cant.' }
 })
 
+const { lines, isEditing, showPrices, showTotal, quantityLabel } = toRefs(props)
+
 const emit = defineEmits(['update:lines', 'add-line', 'last-field-tab'])
+
+// DEBUG LOGGING
+import { watch } from 'vue'
+watch(lines, (newVal) => {
+  console.log('[OrderLines] lines updated:', newVal?.length, newVal)
+}, { immediate: true, deep: true })
 
 const columns = computed(() => {
   const cols = ['quantity']
-  if (props.showPrices) {
+  if (showPrices.value) {
     cols.push('unitPrice')
     cols.push('discountPercent')
   }
@@ -128,7 +137,7 @@ const columns = computed(() => {
 })
 
 const { handleLineKeyDown } = useLineNavigation({
-  rowCount: () => props.lines.length,
+  rowCount: () => Array.isArray(lines.value) ? lines.value.length : 0,
   columns: columns.value,
   onUpdate: (index, col, val) => updateLineField(index, col, val),
   onRemoveField: (index) => removeLine(index),
@@ -138,13 +147,15 @@ const { handleLineKeyDown } = useLineNavigation({
 })
 
 function removeLine(index) {
-  const newLines = [...props.lines]
+  if (!Array.isArray(lines.value)) return
+  const newLines = [...lines.value]
   newLines.splice(index, 1)
   emit('update:lines', newLines)
 }
 
 function updateLineField(index, field, value) {
-  const newLines = props.lines.map((line, i) => {
+  if (!Array.isArray(lines.value)) return
+  const newLines = lines.value.map((line, i) => {
     if (i === index) {
       return { ...line, [field]: value === '' ? 0 : Number(value) }
     }
@@ -154,7 +165,8 @@ function updateLineField(index, field, value) {
 }
 
 function onManualPriceChange(index, value) {
-  const newLines = props.lines.map((line, i) => {
+  if (!Array.isArray(lines.value)) return
+  const newLines = lines.value.map((line, i) => {
     if (i === index) {
       return { 
         ...line, 
@@ -168,21 +180,14 @@ function onManualPriceChange(index, value) {
 }
 
 function calculateSubtotal(line) {
-  // Si ya tenemos el subtotal calculado por el backend (modo detalle), lo usamos.
-  if (!props.isEditing && line.subtotal !== undefined) {
+  if (!isEditing.value && line.subtotal !== undefined) {
     return line.subtotal?.amount ?? line.subtotal;
   }
   
-  // En modo edición o si no hay subtotal, calculamos localmente.
-  // Usamos ?? en lugar de || para que el 0 no sea ignorado.
   const price = Number(line.unitPrice ?? 0)
   const qty = Number(line.quantity ?? 0)
   const disc = Number(line.discountPercent ?? 0)
   return (price * qty) * (1 - disc / 100)
-}
-
-function emitLines() {
-  emit('update:lines', props.lines.map(line => ({ ...line })))
 }
 
 function formatMoney(v) { return salesApi.formatMoney(v) }
