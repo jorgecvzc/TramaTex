@@ -30,19 +30,6 @@ Explora la propuesta de valor, los pilares de ingeniería y la evolución del pr
 
 ---
 
-## 🌐 Demo Pública
-Accede a una instancia funcional para evaluar el sistema de forma inmediata:
-
-| Recurso | Detalle |
-| :--- | :--- |
-| **URL de acceso** | [http://46.101.188.130](http://46.101.188.130) |
-| **Usuario Administrador** | `admin@tramatex.local` |
-| **Contraseña de acceso** | `admin123` |
-
-> 🔄 **Mantenimiento Automático:** Para garantizar una experiencia limpia a todos los evaluadores, la base de datos de la demo se restaura a su estado inicial **cada domingo a las 3:00 AM UTC**.
-
----
-
 ## Stack Tecnológico
 Selección técnica orientada al rendimiento, la precisión y la longevidad del software:
 
